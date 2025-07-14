@@ -5,23 +5,26 @@
 namespace LibSynapse {
 namespace Tofino {
 
-std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Route) {
-    return std::nullopt;
+using LibBDD::Route;
+using LibBDD::RouteOp;
+
+std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Route) {
+    return {};
   }
 
-  const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  const LibBDD::RouteOp op        = route_node->get_operation();
+  const Route *route_node = dynamic_cast<const Route *>(node);
+  const RouteOp op        = route_node->get_operation();
 
-  if (op != LibBDD::RouteOp::Forward) {
-    return std::nullopt;
+  if (op != RouteOp::Forward) {
+    return {};
   }
 
   klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
 
-  Context new_ctx                   = ctx;
-  LibSynapse::fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(node);
-  assert(fwd_stats.operation == LibBDD::RouteOp::Forward);
+  Context new_ctx             = ctx;
+  const fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(node);
+  assert(fwd_stats.operation == RouteOp::Forward);
   for (const auto &[device, dev_hr] : fwd_stats.ports) {
     new_ctx.get_mutable_perf_oracle().add_fwd_traffic(device, dev_hr);
   }
@@ -29,15 +32,15 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const LibBDD:
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Route) {
+std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Route) {
     return {};
   }
 
-  const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  const LibBDD::RouteOp op        = route_node->get_operation();
+  const Route *route_node = dynamic_cast<const Route *>(node);
+  const RouteOp op        = route_node->get_operation();
 
-  if (op != LibBDD::RouteOp::Forward) {
+  if (op != RouteOp::Forward) {
     return {};
   }
 
@@ -48,11 +51,11 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const LibBDD::Nod
   Module *module   = new Forward(node, dst_device);
   EPNode *fwd_node = new EPNode(module);
 
-  EPLeaf leaf(fwd_node, node->get_next());
+  const EPLeaf leaf(fwd_node, node->get_next());
   new_ep->process_leaf(fwd_node, {leaf});
 
-  const LibSynapse::fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
-  assert(fwd_stats.operation == LibBDD::RouteOp::Forward);
+  const fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
+  assert(fwd_stats.operation == RouteOp::Forward);
   for (const auto &[device, dev_hr] : fwd_stats.ports) {
     const port_ingress_t fwd_node_egress = new_ep->get_node_egress(dev_hr, fwd_node);
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_fwd_traffic(device, fwd_node_egress);
@@ -63,15 +66,15 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const LibBDD::Nod
   return impls;
 }
 
-std::unique_ptr<Module> ForwardFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Route) {
+std::unique_ptr<Module> ForwardFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Route) {
     return {};
   }
 
-  const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  LibBDD::RouteOp op              = route_node->get_operation();
+  const Route *route_node = dynamic_cast<const Route *>(node);
+  const RouteOp op        = route_node->get_operation();
 
-  if (op != LibBDD::RouteOp::Forward) {
+  if (op != RouteOp::Forward) {
     return {};
   }
 

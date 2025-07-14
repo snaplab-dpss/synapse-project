@@ -11,7 +11,7 @@ private:
   klee::ref<klee::Expr> index;
 
 public:
-  DataplaneDchainTableRefreshIndex(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _index)
+  DataplaneDchainTableRefreshIndex(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index)
       : ControllerModule(ModuleType::Controller_DataplaneDchainTableRefreshIndex, "DataplaneDchainTableRefreshIndex", _node), obj(_obj),
         index(_index) {}
 
@@ -32,9 +32,9 @@ public:
       : ControllerModuleFactory(ModuleType::Controller_DataplaneDchainTableRefreshIndex, "DataplaneDchainTableRefreshIndex") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

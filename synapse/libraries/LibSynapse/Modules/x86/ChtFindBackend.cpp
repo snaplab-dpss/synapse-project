@@ -4,14 +4,20 @@
 
 namespace LibSynapse {
 namespace x86 {
+
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
-bool bdd_node_match_pattern(const LibBDD::Node *node) {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+bool bdd_node_match_pattern(const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Call) {
     return false;
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cht_find_preferred_available_backend") {
     return false;
@@ -21,31 +27,31 @@ bool bdd_node_match_pattern(const LibBDD::Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> ChtFindBackendFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
-    return std::nullopt;
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cht = call.args.at("cht").expr;
-  addr_t cht_addr           = LibCore::expr_addr_to_obj_addr(cht);
+  const addr_t cht_addr     = expr_addr_to_obj_addr(cht);
 
   if (!ctx.can_impl_ds(cht_addr, DSImpl::x86_ConsistentHashTable)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cht      = call.args.at("cht").expr;
   klee::ref<klee::Expr> backends = call.args.at("active_backends").expr;
@@ -54,20 +60,21 @@ std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep, const LibB
   klee::ref<klee::Expr> capacity = call.args.at("backend_capacity").expr;
   klee::ref<klee::Expr> backend  = call.args.at("chosen_backend").out;
 
-  const addr_t cht_addr      = LibCore::expr_addr_to_obj_addr(cht);
-  const addr_t backends_addr = LibCore::expr_addr_to_obj_addr(backends);
+  const addr_t cht_addr      = expr_addr_to_obj_addr(cht);
+  const addr_t backends_addr = expr_addr_to_obj_addr(backends);
 
   if (!ep->get_ctx().can_impl_ds(cht_addr, DSImpl::x86_ConsistentHashTable)) {
     return {};
   }
 
-  LibCore::symbol_t backend_found = call_node->get_local_symbol("prefered_backend_found");
-  Module *module                  = new ChtFindBackend(node, cht_addr, backends_addr, hash, height, capacity, backend, backend_found);
-  EPNode *ep_node                 = new EPNode(module);
+  const symbol_t backend_found = call_node->get_local_symbol("prefered_backend_found");
+
+  Module *module  = new ChtFindBackend(node, cht_addr, backends_addr, hash, height, capacity, backend, backend_found);
+  EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   new_ep->get_mutable_ctx().save_ds_impl(cht_addr, DSImpl::x86_ConsistentHashTable);
@@ -77,13 +84,13 @@ std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep, const LibB
   return impls;
 }
 
-std::unique_ptr<Module> ChtFindBackendFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> ChtFindBackendFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cht      = call.args.at("cht").expr;
   klee::ref<klee::Expr> backends = call.args.at("active_backends").expr;
@@ -92,8 +99,8 @@ std::unique_ptr<Module> ChtFindBackendFactory::create(const LibBDD::BDD *bdd, co
   klee::ref<klee::Expr> capacity = call.args.at("backend_capacity").expr;
   klee::ref<klee::Expr> backend  = call.args.at("chosen_backend").out;
 
-  addr_t cht_addr      = LibCore::expr_addr_to_obj_addr(cht);
-  addr_t backends_addr = LibCore::expr_addr_to_obj_addr(backends);
+  const addr_t cht_addr      = expr_addr_to_obj_addr(cht);
+  const addr_t backends_addr = expr_addr_to_obj_addr(backends);
 
   if (!ctx.check_ds_impl(cht_addr, DSImpl::x86_ConsistentHashTable)) {
     return {};

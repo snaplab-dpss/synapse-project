@@ -12,7 +12,7 @@ private:
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  CMSIncrement(const LibBDD::Node *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys)
+  CMSIncrement(const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys)
       : TofinoModule(ModuleType::Tofino_CMSIncrement, "CMSIncrement", _node), cms_id(_cms_id), cms_addr(_cms_addr), keys(_keys) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -31,9 +31,9 @@ public:
   CMSIncrementFactory() : TofinoModuleFactory(ModuleType::Tofino_CMSIncrement, "CMSIncrement") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Tofino

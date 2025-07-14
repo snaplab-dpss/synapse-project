@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneVectorTableUpdate(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
+  DataplaneVectorTableUpdate(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
       : ControllerModule(ModuleType::Controller_DataplaneVectorTableUpdate, "DataplaneVectorTableUpdate", _node), obj(_obj), key(_key),
         value(_value) {}
 
@@ -33,9 +33,9 @@ public:
   DataplaneVectorTableUpdateFactory() : ControllerModuleFactory(ModuleType::Controller_DataplaneVectorTableUpdate, "DataplaneVectorTableUpdate") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

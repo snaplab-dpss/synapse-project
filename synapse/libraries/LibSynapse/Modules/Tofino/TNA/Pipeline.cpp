@@ -6,6 +6,8 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibCore::int2hr;
+
 PlacementResult::PlacementResult() : status(PlacementStatus::Unknown) {}
 
 PlacementResult::PlacementResult(PlacementStatus _status) : status(_status) {
@@ -66,33 +68,33 @@ void Pipeline::debug() const {
     ss << "\n";
 
     ss << "SRAM: ";
-    ss << LibCore::int2hr(sram_consumed / 8);
+    ss << int2hr(sram_consumed / 8);
     ss << "/";
-    ss << LibCore::int2hr(properties.sram_per_stage / 8);
+    ss << int2hr(properties.sram_per_stage / 8);
     ss << " B ";
     ss << "(" << sram_usage << "%)";
     ss << "\n";
 
     ss << "TCAM: ";
-    ss << LibCore::int2hr(tcam_consumed / 8);
+    ss << int2hr(tcam_consumed / 8);
     ss << "/";
-    ss << LibCore::int2hr(properties.tcam_per_stage / 8);
+    ss << int2hr(properties.tcam_per_stage / 8);
     ss << " B ";
     ss << "(" << tcam_usage << "%)";
     ss << "\n";
 
     ss << "MapRAM: ";
-    ss << LibCore::int2hr(map_ram_consumed / 8);
+    ss << int2hr(map_ram_consumed / 8);
     ss << "/";
-    ss << LibCore::int2hr(properties.map_ram_per_stage / 8);
+    ss << int2hr(properties.map_ram_per_stage / 8);
     ss << " B ";
     ss << "(" << map_ram_usage << "%)";
     ss << "\n";
 
     ss << "Exact Match Crossbar: ";
-    ss << LibCore::int2hr(xbar_consumed / 8);
+    ss << int2hr(xbar_consumed / 8);
     ss << "/";
-    ss << LibCore::int2hr(properties.exact_match_xbar_per_stage / 8);
+    ss << int2hr(properties.exact_match_xbar_per_stage / 8);
     ss << " B ";
     ss << "(" << xbar_usage << "%)";
     ss << "\n";

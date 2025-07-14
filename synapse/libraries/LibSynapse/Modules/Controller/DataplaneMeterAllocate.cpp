@@ -4,6 +4,11 @@
 namespace LibSynapse {
 namespace Controller {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 using Tofino::Table;
 
 namespace {
@@ -16,8 +21,8 @@ struct tb_allocation_data_t {
   klee::ref<klee::Expr> key_size;
 };
 
-tb_allocation_data_t get_tb_data(const LibBDD::Call *tb_allocate) {
-  const LibBDD::call_t &call = tb_allocate->get_call();
+tb_allocation_data_t get_tb_data(const Call *tb_allocate) {
+  const call_t &call = tb_allocate->get_call();
 
   klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
   klee::ref<klee::Expr> rate     = call.args.at("rate").expr;
@@ -25,42 +30,41 @@ tb_allocation_data_t get_tb_data(const LibBDD::Call *tb_allocate) {
   klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
   klee::ref<klee::Expr> tb_out   = call.args.at("tb_out").out;
 
-  addr_t obj = LibCore::expr_addr_to_obj_addr(tb_out);
+  const addr_t obj = expr_addr_to_obj_addr(tb_out);
 
   return {obj, capacity, rate, burst, key_size};
 }
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneMeterAllocateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> DataplaneMeterAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *tb_allocate = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call      = tb_allocate->get_call();
+  const Call *tb_allocate = dynamic_cast<const Call *>(node);
+  const call_t &call      = tb_allocate->get_call();
 
   if (call.function_name != "tb_allocate") {
-    return std::nullopt;
+    return {};
   }
 
-  tb_allocation_data_t data = get_tb_data(tb_allocate);
+  const tb_allocation_data_t data = get_tb_data(tb_allocate);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_Meter)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DataplaneMeterAllocateFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                                LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> DataplaneMeterAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *tb_allocate = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call      = tb_allocate->get_call();
+  const Call *tb_allocate = dynamic_cast<const Call *>(node);
+  const call_t &call      = tb_allocate->get_call();
 
   if (call.function_name != "tb_allocate") {
     return {};
@@ -77,7 +81,7 @@ std::vector<impl_t> DataplaneMeterAllocateFactory::process_node(const EP *ep, co
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -85,19 +89,19 @@ std::vector<impl_t> DataplaneMeterAllocateFactory::process_node(const EP *ep, co
   return impls;
 }
 
-std::unique_ptr<Module> DataplaneMeterAllocateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DataplaneMeterAllocateFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *tb_allocate = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call      = tb_allocate->get_call();
+  const Call *tb_allocate = dynamic_cast<const Call *>(node);
+  const call_t &call      = tb_allocate->get_call();
 
   if (call.function_name != "tb_allocate") {
     return {};
   }
 
-  tb_allocation_data_t data = get_tb_data(tb_allocate);
+  const tb_allocation_data_t data = get_tb_data(tb_allocate);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_Meter)) {
     return {};

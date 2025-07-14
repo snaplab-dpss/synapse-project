@@ -12,6 +12,9 @@
 
 namespace LibBDD {
 
+using LibCore::SymbolManager;
+using LibCore::Symbols;
+
 struct meta_t {
   std::string symbol;
   bits_t offset;
@@ -42,33 +45,33 @@ struct call_path_t {
   std::string file_name;
   klee::ConstraintManager constraints;
   calls_t calls;
-  LibCore::Symbols symbols;
+  Symbols symbols;
 };
 
-std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, LibCore::SymbolManager *manager);
+std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, SymbolManager *manager);
 
 struct call_paths_view_t {
   std::vector<call_path_t *> data;
-  LibCore::SymbolManager *manager;
+  SymbolManager *manager;
 
   call_paths_view_t() : manager(nullptr) {}
   call_paths_view_t(const call_paths_view_t &)            = default;
   call_paths_view_t(call_paths_view_t &&)                 = default;
   call_paths_view_t &operator=(const call_paths_view_t &) = default;
 
-  LibCore::Symbols get_symbols() const;
+  Symbols get_symbols() const;
 };
 
 struct call_paths_t {
   std::vector<std::unique_ptr<call_path_t>> data;
-  LibCore::SymbolManager *manager;
+  SymbolManager *manager;
 
   call_paths_t() : manager(nullptr) {}
   call_paths_t(const call_paths_t &)            = default;
   call_paths_t(call_paths_t &&)                 = default;
   call_paths_t &operator=(const call_paths_t &) = default;
 
-  call_paths_t(const std::vector<std::filesystem::path> &call_path_files, LibCore::SymbolManager *manager);
+  call_paths_t(const std::vector<std::filesystem::path> &call_path_files, SymbolManager *manager);
 
   call_paths_view_t get_view() const;
 };

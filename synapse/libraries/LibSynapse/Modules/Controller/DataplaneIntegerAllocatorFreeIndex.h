@@ -11,7 +11,7 @@ private:
   klee::ref<klee::Expr> index;
 
 public:
-  DataplaneIntegerAllocatorFreeIndex(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
+  DataplaneIntegerAllocatorFreeIndex(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
       : ControllerModule(ModuleType::Controller_DataplaneIntegerAllocatorFreeIndex, "DataplaneIntegerAllocatorFreeIndex", _node),
         dchain_addr(_dchain_addr), index(_index) {}
 
@@ -32,9 +32,9 @@ public:
       : ControllerModuleFactory(ModuleType::Controller_DataplaneIntegerAllocatorFreeIndex, "DataplaneIntegerAllocatorFreeIndex") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

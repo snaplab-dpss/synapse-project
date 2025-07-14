@@ -9,13 +9,18 @@ namespace LibSynapse {
 
 namespace {
 
+using LibBDD::BDDNodeType;
+using LibBDD::BDDNodeVisitAction;
+using LibBDD::call_t;
+using LibCore::expr_addr_to_obj_addr;
+
 constexpr const pps_t STABLE_TPUT_PRECISION        = 100;
 constexpr const double STABLE_TPUT_ACCEPTABLE_LOSS = 0.01;
 
-LibBDD::node_ids_t filter_away_nodes(const LibBDD::node_ids_t &nodes, const LibBDD::node_ids_t &filter) {
-  LibBDD::node_ids_t result;
+bdd_node_ids_t filter_away_nodes(const bdd_node_ids_t &nodes, const bdd_node_ids_t &filter) {
+  bdd_node_ids_t result;
 
-  for (LibBDD::node_id_t node_id : nodes) {
+  for (bdd_node_id_t node_id : nodes) {
     if (filter.find(node_id) == filter.end()) {
       result.insert(node_id);
     }
@@ -65,29 +70,29 @@ pps_t find_stable_tput(pps_t ingress, std::function<tput_estimation_t(pps_t)> es
 
 ep_id_t ep_id_counter = 0;
 
-void delete_all_unused_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
+void delete_all_unused_vector_key_operations_from_bdd(BDD *bdd) {
   // 1. Get all map operations.
   // 2. Remove all vector operations storing the key.
   std::unordered_set<addr_t> maps;
 
-  bdd->get_root()->visit_nodes([&maps](const LibBDD::Node *node) {
-    if (node->get_type() != LibBDD::NodeType::Call) {
-      return LibBDD::NodeVisitAction::Continue;
+  bdd->get_root()->visit_nodes([&maps](const BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
     }
 
-    const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-    const LibBDD::call_t &call    = call_node->get_call();
+    const Call *call_node = dynamic_cast<const Call *>(node);
+    const call_t &call    = call_node->get_call();
 
     if (call.function_name != "map_get" && call.function_name != "map_put" && call.function_name != "map_erase") {
-      return LibBDD::NodeVisitAction::Continue;
+      return BDDNodeVisitAction::Continue;
     }
 
     klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
-    const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
+    const addr_t obj               = expr_addr_to_obj_addr(obj_expr);
 
     maps.insert(obj);
 
-    return LibBDD::NodeVisitAction::Continue;
+    return BDDNodeVisitAction::Continue;
   });
 
   // There are more efficient ways of doing this (that don't involve traversing the entire BDD every single time), but this is a quick and
@@ -97,8 +102,8 @@ void delete_all_unused_vector_key_operations_from_bdd(LibBDD::BDD *bdd) {
   }
 }
 
-LibBDD::BDD *setup_bdd(const LibBDD::BDD &bdd) {
-  LibBDD::BDD *new_bdd = new LibBDD::BDD(bdd);
+BDD *setup_bdd(const BDD &bdd) {
+  BDD *new_bdd = new BDD(bdd);
   delete_all_unused_vector_key_operations_from_bdd(new_bdd);
   return new_bdd;
 }
@@ -113,14 +118,14 @@ std::set<ep_id_t> update_ancestors(const EP &other, bool is_ancestor) {
   return ancestors;
 }
 
-std::string spec2str(const spec_impl_t &speculation, const LibBDD::BDD *bdd) {
+std::string spec2str(const spec_impl_t &speculation, const BDD *bdd) {
   std::stringstream ss;
 
   ss << speculation.decision.module;
   ss << " ";
   if (!speculation.skip.empty()) {
     ss << "skip={";
-    for (LibBDD::node_id_t skip : speculation.skip)
+    for (bdd_node_id_t skip : speculation.skip)
       ss << skip << ",";
     ss << "} ";
   }
@@ -143,15 +148,15 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
 
 } // namespace
 
-EP::EP(const LibBDD::BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
+EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
     : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(nullptr), targets(_targets), ctx(bdd.get(), _targets, _targets_config, _profiler),
       meta(bdd.get(), targets) {
   TargetType initial_target     = targets.get_initial_target().type;
-  targets_roots[initial_target] = LibBDD::node_ids_t({bdd->get_root()->get_id()});
+  targets_roots[initial_target] = bdd_node_ids_t({bdd->get_root()->get_id()});
 
   for (const TargetView &target : targets.elements) {
     if (target.type != initial_target) {
-      targets_roots[target.type] = LibBDD::node_ids_t();
+      targets_roots[target.type] = bdd_node_ids_t();
     }
   }
 
@@ -195,14 +200,14 @@ const std::vector<EPLeaf> &EP::get_active_leaves() const { return active_leaves;
 
 const TargetsView &EP::get_targets() const { return targets; }
 
-const LibBDD::node_ids_t &EP::get_target_roots(TargetType target) const {
+const bdd_node_ids_t &EP::get_target_roots(TargetType target) const {
   assert(targets_roots.find(target) != targets_roots.end() && "Target not found in the roots map.");
   return targets_roots.at(target);
 }
 
 const std::set<ep_id_t> &EP::get_ancestors() const { return ancestors; }
 
-const LibBDD::BDD *EP::get_bdd() const { return bdd.get(); }
+const BDD *EP::get_bdd() const { return bdd.get(); }
 
 std::vector<const EPNode *> EP::get_prev_nodes() const {
   std::vector<const EPNode *> prev_nodes;
@@ -248,7 +253,7 @@ std::vector<const EPNode *> EP::get_nodes_by_type(const std::unordered_set<Modul
 
   root->visit_nodes([&found, &types](const EPNode *node) {
     const Module *module = node->get_module();
-    assert(module && "LibBDD::Node without a module");
+    assert(module && "BDDNode without a module");
 
     if (types.find(module->get_type()) != types.end()) {
       found.push_back(node);
@@ -270,7 +275,7 @@ const Context &EP::get_ctx() const { return ctx; }
 
 Context &EP::get_mutable_ctx() { return ctx; }
 
-const LibBDD::Node *EP::get_next_node() const {
+const BDDNode *EP::get_next_node() const {
   if (!has_active_leaf()) {
     return nullptr;
   }
@@ -302,7 +307,7 @@ TargetType EP::get_active_target() const {
   return active_leaf.node->get_module()->get_next_target();
 }
 
-void EP::process_leaf(const LibBDD::Node *next_node) {
+void EP::process_leaf(const BDDNode *next_node) {
   clear_caches();
 
   TargetType current_target = get_active_target();
@@ -342,9 +347,9 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
       meta.update(active_leaf, new_leaf.node, process_node);
     }
 
-    const Module *module                 = new_leaf.node->get_module();
-    const TargetType next_target         = module->get_next_target();
-    const LibBDD::node_id_t next_node_id = new_leaf.next->get_id();
+    const Module *module             = new_leaf.node->get_module();
+    const TargetType next_target     = module->get_next_target();
+    const bdd_node_id_t next_node_id = new_leaf.next->get_id();
 
     if (next_target != current_target) {
       targets_roots[next_target].insert(next_node_id);
@@ -360,14 +365,14 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
   sort_leaves();
 }
 
-void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd) {
+void EP::replace_bdd(std::unique_ptr<BDD> new_bdd) {
   clear_caches();
 
   for (EPLeaf &leaf : active_leaves) {
     assert(leaf.next && "Active leaf without a next node");
 
-    const LibBDD::node_id_t leaf_id = leaf.next->get_id();
-    const LibBDD::Node *new_node    = new_bdd->get_node_by_id(leaf_id);
+    const bdd_node_id_t leaf_id = leaf.next->get_id();
+    const BDDNode *new_node     = new_bdd->get_node_by_id(leaf_id);
     assert(new_node && "New node not found in the new BDD.");
 
     leaf.next = new_node;
@@ -377,11 +382,11 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd) {
     root->visit_mutable_nodes([&new_bdd](EPNode *node) {
       Module *module = node->get_mutable_module();
 
-      const LibBDD::Node *node_bdd      = module->get_node();
-      const LibBDD::node_id_t target_id = node_bdd->get_id();
+      const BDDNode *node_bdd       = module->get_node();
+      const bdd_node_id_t target_id = node_bdd->get_id();
 
-      const LibBDD::Node *new_node = new_bdd->get_node_by_id(target_id);
-      assert(new_node && "Node not found in the new BDD");
+      const BDDNode *new_node = new_bdd->get_node_by_id(target_id);
+      assert(new_node && "BDDNode not found in the new BDD");
 
       module->set_node(new_node);
 
@@ -400,15 +405,15 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd) {
   sort_leaves();
 }
 
-void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_data_t &translation_data) {
+void EP::replace_bdd(std::unique_ptr<BDD> new_bdd, const translation_data_t &translation_data) {
   clear_caches();
 
-  auto translate_next_node = [&translation_data](LibBDD::node_id_t node_id) {
+  auto translate_next_node = [&translation_data](bdd_node_id_t node_id) {
     auto found_it = translation_data.next_nodes_translator.find(node_id);
     return (found_it != translation_data.next_nodes_translator.end()) ? found_it->second : node_id;
   };
 
-  auto translate_processed_node = [&translation_data](LibBDD::node_id_t node_id) {
+  auto translate_processed_node = [&translation_data](bdd_node_id_t node_id) {
     auto found_it = translation_data.processed_nodes_translator.find(node_id);
     return (found_it != translation_data.processed_nodes_translator.end()) ? found_it->second : node_id;
   };
@@ -416,8 +421,8 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_dat
   for (EPLeaf &leaf : active_leaves) {
     assert(leaf.next && "Active leaf without a next node");
 
-    LibBDD::node_id_t new_id     = translate_next_node(leaf.next->get_id());
-    const LibBDD::Node *new_node = new_bdd->get_node_by_id(new_id);
+    bdd_node_id_t new_id    = translate_next_node(leaf.next->get_id());
+    const BDDNode *new_node = new_bdd->get_node_by_id(new_id);
     assert(new_node && "New node not found in the new BDD.");
 
     leaf.next = new_node;
@@ -427,11 +432,11 @@ void EP::replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_dat
     root->visit_mutable_nodes([&new_bdd, translate_processed_node](EPNode *node) {
       Module *module = node->get_mutable_module();
 
-      const LibBDD::Node *node_bdd = module->get_node();
-      LibBDD::node_id_t target_id  = translate_processed_node(node_bdd->get_id());
+      const BDDNode *node_bdd = module->get_node();
+      bdd_node_id_t target_id = translate_processed_node(node_bdd->get_id());
 
-      const LibBDD::Node *new_node = new_bdd->get_node_by_id(target_id);
-      assert(new_node && "Node not found in the new BDD");
+      const BDDNode *new_node = new_bdd->get_node_by_id(target_id);
+      assert(new_node && "BDDNode not found in the new BDD");
 
       module->set_node(new_node);
 
@@ -512,14 +517,14 @@ void EP::assert_integrity() const {
     nodes.pop_back();
 
     assert_or_panic(node, "Null node");
-    assert_or_panic(node->get_module(), "Node without a module");
+    assert_or_panic(node->get_module(), "BDDNode without a module");
 
-    const Module *module         = node->get_module();
-    const LibBDD::Node *bdd_node = module->get_node();
+    const Module *module    = node->get_module();
+    const BDDNode *bdd_node = module->get_node();
     assert_or_panic(bdd_node, "Module without a node");
 
-    const LibBDD::Node *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
-    assert_or_panic(bdd_node == found_bdd_node, "Node not found in the BDD");
+    const BDDNode *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
+    assert_or_panic(bdd_node == found_bdd_node, "BDDNode not found in the BDD");
 
     for (const EPNode *child : node->get_children()) {
       assert_or_panic(child, "Null child");
@@ -529,25 +534,25 @@ void EP::assert_integrity() const {
   }
 
   for (const auto &[target, roots] : targets_roots) {
-    for (const LibBDD::node_id_t root_id : roots) {
-      const LibBDD::Node *bdd_node = bdd->get_node_by_id(root_id);
+    for (const bdd_node_id_t root_id : roots) {
+      const BDDNode *bdd_node = bdd->get_node_by_id(root_id);
       assert_or_panic(bdd_node, "Root node not found in the BDD");
 
-      const LibBDD::Node *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
+      const BDDNode *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
       assert_or_panic(bdd_node == found_bdd_node, "Root node not found in the BDD");
     }
   }
 
   for (const EPLeaf &leaf : active_leaves) {
-    const LibBDD::Node *next = leaf.next;
+    const BDDNode *next = leaf.next;
     assert_or_panic(next, "Active leaf without a next node");
 
-    const LibBDD::Node *found_next = bdd->get_node_by_id(next->get_id());
+    const BDDNode *found_next = bdd->get_node_by_id(next->get_id());
     assert_or_panic(next == found_next, "Next node not found in the BDD");
   }
 
-  const LibBDD::BDD::inspection_report_t bdd_inspection_report = bdd->inspect();
-  if (bdd_inspection_report.status != LibBDD::BDD::InspectionStatus::Ok) {
+  const BDD::inspection_report_t bdd_inspection_report = bdd->inspect();
+  if (bdd_inspection_report.status != BDD::InspectionStatus::Ok) {
     panic("[EP=%lu] BDD inspection failed: %s", id, bdd_inspection_report.message.c_str());
   }
 }
@@ -599,20 +604,20 @@ void EP::sort_leaves() {
   std::sort(active_leaves.begin(), active_leaves.end(), prioritize_switch_and_hot_paths);
 }
 
-spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const LibBDD::Node *anchor, LibBDD::node_ids_t future_nodes,
+spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const BDDNode *anchor, bdd_node_ids_t future_nodes,
                                                   TargetType current_target, pps_t ingress) const {
   future_nodes.erase(anchor->get_id());
 
   spec_impl_t speculation = base_speculation;
   std::vector<spec_impl_t> speculations;
 
-  anchor->visit_nodes([this, &speculation, &speculations, current_target, ingress, &future_nodes](const LibBDD::Node *node) {
+  anchor->visit_nodes([this, &speculation, &speculations, current_target, ingress, &future_nodes](const BDDNode *node) {
     if (future_nodes.empty()) {
-      return LibBDD::NodeVisitAction::Stop;
+      return BDDNodeVisitAction::Stop;
     }
 
     if (future_nodes.find(node->get_id()) == future_nodes.end()) {
-      return LibBDD::NodeVisitAction::Continue;
+      return BDDNodeVisitAction::Continue;
     }
 
     future_nodes.erase(node->get_id());
@@ -621,10 +626,10 @@ spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_specul
     speculations.push_back(speculation);
 
     if (speculation.next_target.has_value() && speculation.next_target != current_target) {
-      return LibBDD::NodeVisitAction::SkipChildren;
+      return BDDNodeVisitAction::SkipChildren;
     }
 
-    return LibBDD::NodeVisitAction::Continue;
+    return BDDNodeVisitAction::Continue;
   });
 
   return speculation;
@@ -632,10 +637,10 @@ spec_impl_t EP::peek_speculation_for_future_nodes(const spec_impl_t &base_specul
 
 // Compare the performance of an old speculation if it were subjected to the
 // nodes ignored by the new speculation, and vise versa.
-bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const LibBDD::Node *node,
-                               TargetType current_target, pps_t ingress) const {
-  LibBDD::node_ids_t old_future_nodes = filter_away_nodes(new_speculation.skip, old_speculation.skip);
-  LibBDD::node_ids_t new_future_nodes = filter_away_nodes(old_speculation.skip, new_speculation.skip);
+bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const BDDNode *node, TargetType current_target,
+                               pps_t ingress) const {
+  bdd_node_ids_t old_future_nodes = filter_away_nodes(new_speculation.skip, old_speculation.skip);
+  bdd_node_ids_t new_future_nodes = filter_away_nodes(old_speculation.skip, new_speculation.skip);
 
   spec_impl_t peek_old = peek_speculation_for_future_nodes(old_speculation, node, old_future_nodes, current_target, ingress);
   spec_impl_t peek_new = peek_speculation_for_future_nodes(new_speculation, node, new_future_nodes, current_target, ingress);
@@ -655,7 +660,7 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
   old_future_nodes.clear();
   new_future_nodes.clear();
 
-  for (const LibBDD::Node *child : node->get_children(true)) {
+  for (const BDDNode *child : node->get_children(true)) {
     if (old_speculation.skip.find(child->get_id()) == old_speculation.skip.end()) {
       old_future_nodes.insert(child->get_id());
     }
@@ -674,7 +679,7 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
   return new_pps > old_pps;
 }
 
-spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType current_target, const Context &spec_ctx, const LibBDD::node_ids_t &skip,
+spec_impl_t EP::get_best_speculation(const BDDNode *node, TargetType current_target, const Context &spec_ctx, const bdd_node_ids_t &skip,
                                      pps_t ingress) const {
   std::optional<spec_impl_t> best;
 
@@ -721,7 +726,7 @@ spec_impl_t EP::get_best_speculation(const LibBDD::Node *node, TargetType curren
     panic("No module to speculative execute\n"
           "EP:     %lu\n"
           "Target: %s\n"
-          "Node:   %s",
+          "BDDNode:   %s",
           id, to_string(current_target).c_str(), node->dump(true).c_str());
   }
 
@@ -746,7 +751,7 @@ pps_t EP::speculate_tput_pps() const {
 
   std::vector<spec_impl_t> speculations;
   Context spec_ctx = ctx;
-  LibBDD::node_ids_t skip;
+  bdd_node_ids_t skip;
 
   for (const EPLeaf &leaf : active_leaves) {
     if (leaf.node && leaf.node->get_module()->get_next_target() != initial_target) {
@@ -754,14 +759,14 @@ pps_t EP::speculate_tput_pps() const {
     }
 
     assert(leaf.next && "Active leaf without a next node");
-    leaf.next->visit_nodes([this, &speculations, initial_target, &spec_ctx, &skip, ingress](const LibBDD::Node *node) {
+    leaf.next->visit_nodes([this, &speculations, initial_target, &spec_ctx, &skip, ingress](const BDDNode *node) {
       if (skip.find(node->get_id()) != skip.end()) {
-        return LibBDD::NodeVisitAction::Continue;
+        return BDDNodeVisitAction::Continue;
       }
 
       if (ctx.get_profiler().get_hr(node) == 0) {
         skip.insert(node->get_id());
-        return LibBDD::NodeVisitAction::Continue;
+        return BDDNodeVisitAction::Continue;
       }
 
       const spec_impl_t speculation = get_best_speculation(node, initial_target, spec_ctx, skip, ingress);
@@ -772,10 +777,10 @@ pps_t EP::speculate_tput_pps() const {
 
       if (speculation.next_target.has_value()) {
         // Just ignore if we change the target, we only care about the switch nodes for now.
-        return LibBDD::NodeVisitAction::SkipChildren;
+        return BDDNodeVisitAction::SkipChildren;
       }
 
-      return LibBDD::NodeVisitAction::Continue;
+      return BDDNodeVisitAction::Continue;
     });
   }
 
@@ -799,13 +804,13 @@ pps_t EP::speculate_tput_pps() const {
   // if (id == 26) {
   //   std::cerr << speculations2str(this, speculations);
   //   spec_ctx.debug();
-  //   std::cerr << "Ingress: " << LibCore::tput2str(LibCore::pps2bps(ingress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true) <<
+  //   std::cerr << "Ingress: " << tput2str(pps2bps(ingress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true) <<
   //   "\n"; std::cerr << "Egress from ingress: "
-  //             << LibCore::tput2str(
-  //                    LibCore::pps2bps(egress_estimation_from_ingress(ingress).egress_estimation, ctx.get_profiler().get_avg_pkt_bytes()),
+  //             << tput2str(
+  //                    pps2bps(egress_estimation_from_ingress(ingress).egress_estimation, ctx.get_profiler().get_avg_pkt_bytes()),
   //                    "bps", true)
   //             << "\n";
-  //   std::cerr << "Stable egress: " << LibCore::tput2str(LibCore::pps2bps(egress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true)
+  //   std::cerr << "Stable egress: " << tput2str(pps2bps(egress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true)
   //             << "\n";
   //   // BDDViz::visualize(bdd.get(), false);
   //   // EPViz::visualize(this, false);

@@ -10,14 +10,30 @@
 
 namespace LibSynapse {
 
+using LibBDD::bdd_node_id_t;
+using LibBDD::BDDNodeType;
+using LibBDD::BDDNodeVisitAction;
+using LibBDD::Branch;
+using LibBDD::branch_direction_t;
+using LibBDD::Call;
+using LibBDD::call_t;
+using LibBDD::Route;
+using LibBDD::RouteOp;
+
+using LibCore::expr_addr_to_obj_addr;
+using LibCore::expr_to_string;
+using LibCore::pretty_print_expr;
+using LibCore::solver_toolbox;
+using LibCore::symbol_t;
+
 namespace {
 
-ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_profile_t *bdd_profile, u64 max_count) {
+ProfilerNode *build_profiler_tree(const BDDNode *node, const bdd_profile_t *bdd_profile, u64 max_count) {
   ProfilerNode *prof_node = nullptr;
 
   while (node) {
     switch (node->get_type()) {
-    case LibBDD::NodeType::Call: {
+    case BDDNodeType::Call: {
       if (!node->get_next()) {
         const u64 counter   = bdd_profile->counters.at(node->get_id());
         const hit_rate_t hr = hit_rate_t(counter, max_count);
@@ -25,10 +41,10 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
       }
       node = node->get_next();
     } break;
-    case LibBDD::NodeType::Branch: {
-      const LibBDD::Branch *branch    = dynamic_cast<const LibBDD::Branch *>(node);
-      const LibBDD::Node *on_true     = branch->get_on_true();
-      const LibBDD::Node *on_false    = branch->get_on_false();
+    case BDDNodeType::Branch: {
+      const Branch *branch            = dynamic_cast<const Branch *>(node);
+      const BDDNode *on_true          = branch->get_on_true();
+      const BDDNode *on_false         = branch->get_on_false();
       klee::ref<klee::Expr> condition = branch->get_condition();
 
       const u64 counter   = bdd_profile->counters.at(node->get_id());
@@ -45,9 +61,9 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
 
       node = nullptr;
     } break;
-    case LibBDD::NodeType::Route: {
-      const LibBDD::Route *route      = dynamic_cast<const LibBDD::Route *>(node);
-      const LibBDD::RouteOp operation = route->get_operation();
+    case BDDNodeType::Route: {
+      const Route *route      = dynamic_cast<const Route *>(node);
+      const RouteOp operation = route->get_operation();
 
       assert(bdd_profile->forwarding_stats.find(node->get_id()) != bdd_profile->forwarding_stats.end());
 
@@ -56,7 +72,7 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
 
       prof_node = new ProfilerNode(nullptr, hr, node->get_id());
 
-      const LibBDD::bdd_profile_t::fwd_stats_t &fwd_stats = bdd_profile->forwarding_stats.at(node->get_id());
+      const bdd_profile_t::fwd_stats_t &fwd_stats = bdd_profile->forwarding_stats.at(node->get_id());
 
       prof_node->forwarding_stats.emplace();
       prof_node->forwarding_stats->operation = operation;
@@ -102,7 +118,7 @@ ProfilerNode *build_profiler_tree(const LibBDD::Node *node, const LibBDD::bdd_pr
 ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction)
     : constraint(_constraint), fraction(_fraction), on_true(nullptr), on_false(nullptr), prev(nullptr) {}
 
-ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction, LibBDD::node_id_t _node_id)
+ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction, bdd_node_id_t _node_id)
     : constraint(_constraint), fraction(_fraction), bdd_node_id(_node_id), on_true(nullptr), on_false(nullptr), prev(nullptr) {}
 
 ProfilerNode::~ProfilerNode() {
@@ -147,7 +163,7 @@ std::ostream &operator<<(std::ostream &os, const ProfilerNode &node) {
 
   if (!node.constraint.isNull()) {
     os << ", ";
-    os << "cond=" << LibCore::pretty_print_expr(node.constraint, true);
+    os << "cond=" << pretty_print_expr(node.constraint, true);
   }
 
   if (node.bdd_node_id) {
@@ -207,7 +223,7 @@ void ProfilerNode::debug(int lvl) const {
 
 flow_stats_t ProfilerNode::get_flow_stats(klee::ref<klee::Expr> flow_id) const {
   for (const flow_stats_t &stats : flows_stats) {
-    if (LibCore::solver_toolbox.are_exprs_always_equal(flow_id, stats.flow_id)) {
+    if (solver_toolbox.are_exprs_always_equal(flow_id, stats.flow_id)) {
       return stats;
     }
   }
@@ -229,17 +245,17 @@ fwd_stats_t Profiler::get_fwd_stats(const EPNode *node) const {
   return profiler_node->forwarding_stats.value();
 }
 
-fwd_stats_t Profiler::get_fwd_stats(const LibBDD::Node *node) const {
+fwd_stats_t Profiler::get_fwd_stats(const BDDNode *node) const {
   ProfilerNode *profiler_node = get_node(node);
   assert(profiler_node && "Profiler node not found");
   assert(profiler_node->forwarding_stats.has_value());
   return profiler_node->forwarding_stats.value();
 }
 
-Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_profile, bool _assume_uniform_forwarding_distribution)
-    : bdd_profile(new LibBDD::bdd_profile_t(_bdd_profile)), assume_uniform_forwarding_distribution(_assume_uniform_forwarding_distribution),
-      root(nullptr), avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
-  const LibBDD::Node *bdd_root = bdd->get_root();
+Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, bool _assume_uniform_forwarding_distribution)
+    : bdd_profile(new bdd_profile_t(_bdd_profile)), assume_uniform_forwarding_distribution(_assume_uniform_forwarding_distribution), root(nullptr),
+      avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
+  const BDDNode *bdd_root = bdd->get_root();
 
   assert(bdd_profile->counters.find(bdd_root->get_id()) != bdd_profile->counters.end() && "Root node not found");
   const u64 max_count = bdd_profile->counters.at(bdd_root->get_id());
@@ -248,16 +264,16 @@ Profiler::Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &_bdd_pro
 
   for (const auto &[map_addr, map_stats] : bdd_profile->stats_per_map) {
     for (const auto &node_map_stats : map_stats.nodes) {
-      const LibBDD::Node *node = bdd->get_node_by_id(node_map_stats.node);
-      assert(node && "LibBDD::Node not found");
+      const BDDNode *node = bdd->get_node_by_id(node_map_stats.node);
+      assert(node && "BDDNode not found");
 
       std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
       ProfilerNode *profiler_node                    = get_node(constraints);
       assert(profiler_node && "Profiler node not found");
 
-      assert(node->get_type() == LibBDD::NodeType::Call && "Invalid node type");
-      const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-      const LibBDD::call_t &call    = call_node->get_call();
+      assert(node->get_type() == BDDNodeType::Call && "Invalid node type");
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const call_t &call    = call_node->get_call();
 
       assert((call.function_name == "map_get" || call.function_name == "map_put" || call.function_name == "map_erase") && "Invalid call");
 
@@ -301,7 +317,7 @@ Profiler &Profiler::operator=(const Profiler &other) {
   return *this;
 }
 
-const LibBDD::bdd_profile_t *Profiler::get_bdd_profile() const { return bdd_profile.get(); }
+const bdd_profile_t *Profiler::get_bdd_profile() const { return bdd_profile.get(); }
 
 bytes_t Profiler::get_avg_pkt_bytes() const { return avg_pkt_size; }
 
@@ -318,17 +334,17 @@ ProfilerNode *Profiler::get_node(const std::vector<klee::ref<klee::Expr>> &const
     klee::ConstraintManager manager;
     manager.addConstraint(current->constraint);
 
-    const bool always_true  = LibCore::solver_toolbox.is_expr_always_true(manager, cnstr);
-    const bool always_false = LibCore::solver_toolbox.is_expr_always_false(manager, cnstr);
+    const bool always_true  = solver_toolbox.is_expr_always_true(manager, cnstr);
+    const bool always_false = solver_toolbox.is_expr_always_false(manager, cnstr);
 
     if (!always_true && !always_false) {
       std::cerr << "\n";
       std::cerr << "Constraints:\n";
       for (const klee::ref<klee::Expr> &c : constraints) {
-        std::cerr << "  " << LibCore::pretty_print_expr(c, true) << "\n";
+        std::cerr << "  " << pretty_print_expr(c, true) << "\n";
       }
       std::cerr << "Current constraints:\n";
-      std::cerr << "  " << LibCore::pretty_print_expr(current->constraint, true) << "\n";
+      std::cerr << "  " << pretty_print_expr(current->constraint, true) << "\n";
       debug();
       panic("Could find profiler node (invalid constraints).");
     }
@@ -344,7 +360,7 @@ ProfilerNode *Profiler::get_node(const std::vector<klee::ref<klee::Expr>> &const
   return current;
 }
 
-ProfilerNode *Profiler::get_node(const LibBDD::Node *node) const {
+ProfilerNode *Profiler::get_node(const BDDNode *node) const {
   auto found_it = cache.n2p.find(node->get_id());
   if (found_it != cache.n2p.end()) {
     assert(found_it->second && "Invalid profiler node");
@@ -544,7 +560,7 @@ void Profiler::set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_ra
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
 }
 
-hit_rate_t Profiler::get_hr(const LibBDD::Node *node) const {
+hit_rate_t Profiler::get_hr(const BDDNode *node) const {
   ProfilerNode *profiler_node = get_node(node);
   assert(profiler_node);
   return profiler_node->fraction;
@@ -594,8 +610,7 @@ void Profiler::clone_tree_if_shared() {
   root = std::shared_ptr<ProfilerNode>(root->clone(true));
 }
 
-void Profiler::translate(LibCore::SymbolManager *symbol_manager, const LibBDD::Node *reordered_node,
-                         const std::vector<LibBDD::translated_symbol_t> &translated_symbols) {
+void Profiler::translate(SymbolManager *symbol_manager, const BDDNode *reordered_node, const std::vector<translated_symbol_t> &translated_symbols) {
   clone_tree_if_shared();
 
   std::unordered_map<std::string, std::string> translations;
@@ -632,33 +647,33 @@ void Profiler::replace_constraint(const std::vector<klee::ref<klee::Expr>> &cons
   replace_constraint(node, constraint);
 }
 
-rw_fractions_t Profiler::get_cond_map_put_rw_profile_fractions(const LibBDD::Call *map_get) const {
-  const LibBDD::call_t &mg_call = map_get->get_call();
+rw_fractions_t Profiler::get_cond_map_put_rw_profile_fractions(const Call *map_get) const {
+  const call_t &mg_call = map_get->get_call();
   assert(mg_call.function_name == "map_get" && "Unexpected function");
 
   klee::ref<klee::Expr> obj = mg_call.args.at("map").expr;
   klee::ref<klee::Expr> key = mg_call.args.at("key").in;
 
-  LibCore::symbol_t map_has_this_key = map_get->get_local_symbol("map_has_this_key");
+  symbol_t map_has_this_key = map_get->get_local_symbol("map_has_this_key");
 
-  LibBDD::branch_direction_t success_check = map_get->get_map_get_success_check();
+  branch_direction_t success_check = map_get->get_map_get_success_check();
   assert(success_check.branch && "Map get success check not found");
 
-  const LibBDD::Node *read          = success_check.direction ? success_check.branch->get_on_true() : success_check.branch->get_on_false();
-  const LibBDD::Node *write_attempt = success_check.direction ? success_check.branch->get_on_false() : success_check.branch->get_on_true();
+  const BDDNode *read          = success_check.direction ? success_check.branch->get_on_true() : success_check.branch->get_on_false();
+  const BDDNode *write_attempt = success_check.direction ? success_check.branch->get_on_false() : success_check.branch->get_on_true();
 
-  std::vector<const LibBDD::Call *> future_map_puts = write_attempt->get_future_functions({"map_put"});
+  std::vector<const Call *> future_map_puts = write_attempt->get_future_functions({"map_put"});
   assert(future_map_puts.size() >= 1 && "map_put not found");
 
-  const LibBDD::Node *write = nullptr;
-  for (const LibBDD::Call *map_put : future_map_puts) {
-    const LibBDD::call_t &mp_call = map_put->get_call();
+  const BDDNode *write = nullptr;
+  for (const Call *map_put : future_map_puts) {
+    const call_t &mp_call = map_put->get_call();
     assert(mp_call.function_name == "map_put" && "Unexpected function");
 
     klee::ref<klee::Expr> o = mp_call.args.at("map").expr;
     klee::ref<klee::Expr> k = mp_call.args.at("key").in;
 
-    if (LibCore::solver_toolbox.are_exprs_always_equal(o, obj) && LibCore::solver_toolbox.are_exprs_always_equal(k, key)) {
+    if (solver_toolbox.are_exprs_always_equal(o, obj) && solver_toolbox.are_exprs_always_equal(k, key)) {
       write = map_put;
       break;
     }
@@ -697,7 +712,7 @@ bool Profiler::can_update_fractions(ProfilerNode *node) const {
   }
 
   fwd_stats_t &fwd_stats = node->forwarding_stats.value();
-  if (fwd_stats.operation == LibBDD::RouteOp::Forward && original_fwd_stats.ports.empty()) {
+  if (fwd_stats.operation == RouteOp::Forward && original_fwd_stats.ports.empty()) {
     return false;
   }
 
@@ -761,13 +776,13 @@ void Profiler::update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
   }
 
   switch (fwd_stats.operation) {
-  case LibBDD::RouteOp::Drop: {
+  case RouteOp::Drop: {
     fwd_stats.drop = new_fraction;
   } break;
-  case LibBDD::RouteOp::Broadcast: {
+  case RouteOp::Broadcast: {
     fwd_stats.flood = new_fraction;
   } break;
-  case LibBDD::RouteOp::Forward: {
+  case RouteOp::Forward: {
     if (new_fraction == 0_hr && !original_fwd_stats.ports.empty()) {
       for (auto &[port, hr] : original_fwd_stats.ports) {
         fwd_stats.ports[port] = 0_hr;

@@ -7,13 +7,16 @@
 #include <filesystem>
 #include <CLI/CLI.hpp>
 
-void print(const LibBDD::BDD *bdd, const LibBDD::reorder_op_t &op) {
-  const LibBDD::anchor_info_t &anchor_info       = op.anchor_info;
-  const LibBDD::candidate_info_t &candidate_info = op.candidate_info;
+using namespace LibCore;
+using namespace LibBDD;
 
-  const LibBDD::Node *anchor    = bdd->get_node_by_id(anchor_info.id);
-  const LibBDD::Node *evicted   = bdd->get_node_by_id(op.evicted_id);
-  const LibBDD::Node *candidate = bdd->get_node_by_id(candidate_info.id);
+void print(const BDD *bdd, const reorder_op_t &op) {
+  const anchor_info_t &anchor_info       = op.anchor_info;
+  const candidate_info_t &candidate_info = op.candidate_info;
+
+  const BDDNode *anchor    = bdd->get_node_by_id(anchor_info.id);
+  const BDDNode *evicted   = bdd->get_node_by_id(op.evicted_id);
+  const BDDNode *candidate = bdd->get_node_by_id(candidate_info.id);
 
   assert(anchor && "Anchor node not found");
   assert(candidate && "Proposed candidate not found");
@@ -29,54 +32,54 @@ void print(const LibBDD::BDD *bdd, const LibBDD::reorder_op_t &op) {
 
   if (candidate_info.siblings.size() > 0) {
     std::cerr << "* Siblings: ";
-    for (LibBDD::node_id_t sibling : candidate_info.siblings) {
+    for (bdd_node_id_t sibling : candidate_info.siblings) {
       std::cerr << sibling << " ";
     }
     std::cerr << "\n";
   }
 
   if (!candidate_info.condition.isNull()) {
-    std::cerr << "* Condition: " << LibCore::expr_to_string(candidate_info.condition, true) << "\n";
+    std::cerr << "* Condition: " << expr_to_string(candidate_info.condition, true) << "\n";
   }
 
   std::cerr << "==================================\n";
 }
 
-void list_candidates(const LibBDD::BDD *bdd, const LibBDD::anchor_info_t &anchor_info) {
-  const std::vector<LibBDD::reorder_op_t> ops = get_reorder_ops(bdd, anchor_info, false);
+void list_candidates(const BDD *bdd, const anchor_info_t &anchor_info) {
+  const std::vector<reorder_op_t> ops = get_reorder_ops(bdd, anchor_info, false);
 
   std::cerr << "Available reordering operations: " << ops.size() << "\n";
-  for (const LibBDD::reorder_op_t &op : ops) {
+  for (const reorder_op_t &op : ops) {
     print(bdd, op);
   }
 }
 
-void apply_reordering_ops(const LibBDD::BDD *bdd, const std::vector<std::pair<LibBDD::anchor_info_t, LibBDD::node_id_t>> &ops) {
-  for (const std::pair<LibBDD::anchor_info_t, LibBDD::node_id_t> &op : ops) {
-    const LibBDD::anchor_info_t anchor_info = op.first;
-    const LibBDD::node_id_t candidate_id    = op.second;
+void apply_reordering_ops(const BDD *bdd, const std::vector<std::pair<anchor_info_t, bdd_node_id_t>> &ops) {
+  for (const std::pair<anchor_info_t, bdd_node_id_t> &op : ops) {
+    const anchor_info_t anchor_info  = op.first;
+    const bdd_node_id_t candidate_id = op.second;
 
     std::cerr << "-> Reordering op:";
     std::cerr << " anchor=" << anchor_info.id;
     std::cerr << " candidate=" << candidate_id;
     std::cerr << "\n";
 
-    const LibBDD::reordered_bdd_t reordered_bdd = try_reorder(bdd, anchor_info, candidate_id);
+    const reordered_bdd_t reordered_bdd = try_reorder(bdd, anchor_info, candidate_id);
 
-    if (reordered_bdd.op.candidate_info.status != LibBDD::ReorderingCandidateStatus::Valid) {
+    if (reordered_bdd.op.candidate_info.status != ReorderingCandidateStatus::Valid) {
       std::cerr << "Reordering failed: " << reordered_bdd.op.candidate_info.status << "\n";
       break;
     } else {
       assert(reordered_bdd.bdd);
-      LibBDD::BDDViz::visualize(reordered_bdd.bdd.get(), true);
+      BDDViz::visualize(reordered_bdd.bdd.get(), true);
     }
   }
 }
 
-void apply_all_candidates(const LibBDD::BDD *bdd, LibBDD::node_id_t anchor_id) {
+void apply_all_candidates(const BDD *bdd, bdd_node_id_t anchor_id) {
   auto start = std::chrono::steady_clock::now();
 
-  std::vector<LibBDD::reordered_bdd_t> bdds = LibBDD::reorder(bdd, anchor_id);
+  std::vector<reordered_bdd_t> bdds = reorder(bdd, anchor_id);
 
   auto end             = std::chrono::steady_clock::now();
   auto elapsed         = end - start;
@@ -85,7 +88,7 @@ void apply_all_candidates(const LibBDD::BDD *bdd, LibBDD::node_id_t anchor_id) {
   std::cerr << "Total: " << bdds.size() << "\n";
   std::cerr << "Elapsed: " << elapsed_seconds << " seconds\n";
 
-  for (const LibBDD::reordered_bdd_t &reordered_bdd : bdds) {
+  for (const reordered_bdd_t &reordered_bdd : bdds) {
     std::cerr << "\n==================================\n";
     std::cerr << "Candidate: " << reordered_bdd.op.candidate_info.id << "\n";
     if (reordered_bdd.op2.has_value()) {
@@ -97,7 +100,7 @@ void apply_all_candidates(const LibBDD::BDD *bdd, LibBDD::node_id_t anchor_id) {
   }
 }
 
-void estimate(const LibBDD::BDD *bdd) {
+void estimate(const BDD *bdd) {
   auto start = std::chrono::steady_clock::now();
 
   double approximation = estimate_reorder(bdd);
@@ -111,16 +114,16 @@ void estimate(const LibBDD::BDD *bdd) {
 }
 
 int main(int argc, char **argv) {
-  CLI::App app{"LibBDD::BDD reorder"};
+  CLI::App app{"BDD reorder"};
 
   std::filesystem::path input_bdd_file;
 
-  app.add_option("--in", input_bdd_file, "Input file for LibBDD::BDD deserialization.")->required();
+  app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")->required();
 
   CLI11_PARSE(app, argc, argv);
 
-  LibCore::SymbolManager symbol_manager;
-  LibBDD::BDD bdd(input_bdd_file, &symbol_manager);
+  SymbolManager symbol_manager;
+  BDD bdd(input_bdd_file, &symbol_manager);
 
   list_candidates(&bdd, {139, true});
   // apply_reordering_ops(&bdd, {

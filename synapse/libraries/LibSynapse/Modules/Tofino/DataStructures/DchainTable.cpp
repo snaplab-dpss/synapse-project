@@ -7,7 +7,7 @@ namespace Tofino {
 
 namespace {
 
-std::string build_table_name(DS_ID id, LibBDD::node_id_t table_num) { return id + "_" + std::to_string(table_num); }
+std::string build_table_name(DS_ID id, bdd_node_id_t table_num) { return id + "_" + std::to_string(table_num); }
 
 } // namespace
 
@@ -43,7 +43,7 @@ std::vector<std::unordered_set<const DS *>> DchainTable::get_internal() const {
   return internal_ds;
 }
 
-bool DchainTable::has_table(LibBDD::node_id_t op) const {
+bool DchainTable::has_table(bdd_node_id_t op) const {
   std::string table_id = build_table_name(id, op);
   for (const Table &table : tables) {
     if (table.id == table_id)
@@ -52,7 +52,7 @@ bool DchainTable::has_table(LibBDD::node_id_t op) const {
   return false;
 }
 
-const Table *DchainTable::get_table(LibBDD::node_id_t op) const {
+const Table *DchainTable::get_table(bdd_node_id_t op) const {
   std::string table_id = build_table_name(id, op);
   for (const Table &table : tables) {
     if (table.id == table_id)
@@ -61,7 +61,7 @@ const Table *DchainTable::get_table(LibBDD::node_id_t op) const {
   return nullptr;
 }
 
-std::optional<DS_ID> DchainTable::add_table(LibBDD::node_id_t op) {
+std::optional<DS_ID> DchainTable::add_table(bdd_node_id_t op) {
   Table new_table(build_table_name(id, op), capacity, {key_size}, {}, TimeAware::Yes);
   tables.push_back(new_table);
   return new_table.id;

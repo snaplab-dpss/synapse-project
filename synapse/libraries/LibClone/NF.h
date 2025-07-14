@@ -10,18 +10,20 @@
 
 namespace LibClone {
 
+using LibBDD::BDD;
+using LibCore::SymbolManager;
 using NFId = std::string;
 
 class NF {
 private:
   const NFId id;
-  const LibBDD::BDD bdd;
+  const BDD bdd;
 
 public:
-  NF(const NFId &_id, const std::filesystem::path &_path, LibCore::SymbolManager *symbol_manager) : id(_id), bdd(_path, symbol_manager) {}
+  NF(const NFId &_id, const std::filesystem::path &_path, SymbolManager *symbol_manager) : id(_id), bdd(_path, symbol_manager) {}
 
   const NFId &get_id() const { return id; }
-  const LibBDD::BDD &get_bdd() const { return bdd; }
+  const BDD &get_bdd() const { return bdd; }
 
   void debug() const { std::cerr << "NF{" << id << "}"; }
 };

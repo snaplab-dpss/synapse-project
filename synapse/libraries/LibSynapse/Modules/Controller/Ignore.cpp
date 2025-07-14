@@ -6,17 +6,22 @@
 namespace LibSynapse {
 namespace Controller {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
 // We can ignore dchain_rejuvenate_index if the dchain is only used for
 // linking a map with vectors. It doesn't even matter if the data structures
 // are coalesced or not, we can freely ignore it regardless.
-bool can_ignore_dchain_op(const Context &ctx, const LibBDD::call_t &call) {
+bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
   assert(call.function_name == "dchain_rejuvenate_index" && "Not a dchain call");
 
   klee::ref<klee::Expr> chain = call.args.at("chain").expr;
-  addr_t chain_addr           = LibCore::expr_addr_to_obj_addr(chain);
+  addr_t chain_addr           = expr_addr_to_obj_addr(chain);
 
-  std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(chain_addr);
+  std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(chain_addr);
 
   if (!map_objs.has_value()) {
     return false;
@@ -29,14 +34,14 @@ bool can_ignore_dchain_op(const Context &ctx, const LibBDD::call_t &call) {
   return true;
 }
 
-bool ds_ignore_logic(const Context &ctx, const LibBDD::call_t &call) {
+bool ds_ignore_logic(const Context &ctx, const call_t &call) {
   addr_t obj;
 
   if (call.function_name == "dchain_rejuvenate_index" || call.function_name == "dchain_allocate_new_index" ||
       call.function_name == "dchain_free_index") {
-    obj = LibCore::expr_addr_to_obj_addr(call.args.at("chain").expr);
+    obj = expr_addr_to_obj_addr(call.args.at("chain").expr);
   } else if (call.function_name == "vector_borrow" || call.function_name == "vector_return") {
-    obj = LibCore::expr_addr_to_obj_addr(call.args.at("vector").expr);
+    obj = expr_addr_to_obj_addr(call.args.at("vector").expr);
   } else {
     return false;
   }
@@ -48,7 +53,7 @@ bool ds_ignore_logic(const Context &ctx, const LibBDD::call_t &call) {
   return false;
 }
 
-bool should_ignore_coalesced_state_allocation(const Context &ctx, const LibBDD::Call *call_node) {
+bool should_ignore_coalesced_state_allocation(const Context &ctx, const Call *call_node) {
   using ignored_alloc_functions_t = std::unordered_set<std::string>;
 
   const std::unordered_map<DSImpl, ignored_alloc_functions_t> ignored_alloc_functions_per_ds{
@@ -56,14 +61,14 @@ bool should_ignore_coalesced_state_allocation(const Context &ctx, const LibBDD::
       {DSImpl::Tofino_HeavyHitterTable, {"dchain_allocate"}},
   };
 
-  const LibBDD::call_t &call     = call_node->get_call();
+  const call_t &call             = call_node->get_call();
   klee::ref<klee::Expr> obj_expr = call_node->get_obj();
 
   if (obj_expr.isNull()) {
     return false;
   }
 
-  const addr_t obj = LibCore::expr_addr_to_obj_addr(obj_expr);
+  const addr_t obj = expr_addr_to_obj_addr(obj_expr);
 
   if (!ctx.has_ds_impl(obj)) {
     return false;
@@ -79,13 +84,13 @@ bool should_ignore_coalesced_state_allocation(const Context &ctx, const LibBDD::
   return ignored_alloc_functions.find(call.function_name) != ignored_alloc_functions.end();
 }
 
-bool should_ignore(const Context &ctx, const LibBDD::Node *node) {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+bool should_ignore(const Context &ctx, const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Call) {
     return false;
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   const std::unordered_set<std::string> functions_to_always_ignore{
       "expire_items_single_map",
@@ -121,15 +126,15 @@ bool should_ignore(const Context &ctx, const LibBDD::Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
   if (!should_ignore(ep->get_ctx(), node)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   if (!should_ignore(ep->get_ctx(), node)) {
     return {};
   }
@@ -147,7 +152,7 @@ std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const LibBDD::Node
   return impls;
 }
 
-std::unique_ptr<Module> IgnoreFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> IgnoreFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
   if (!should_ignore(ctx, node)) {
     return {};
   }

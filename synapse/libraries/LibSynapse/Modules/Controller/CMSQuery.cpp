@@ -4,35 +4,40 @@
 namespace LibSynapse {
 namespace Controller {
 
-std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
+std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_count_min") {
-    return std::nullopt;
+    return {};
   }
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
-  addr_t cms_addr                     = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t cms_addr               = expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_count_min") {
     return {};
@@ -41,8 +46,8 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const LibBDD::No
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
-  const addr_t cms_addr                = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
-  const LibCore::symbol_t min_estimate = call_node->get_local_symbol("min_estimate");
+  const addr_t cms_addr       = expr_addr_to_obj_addr(cms_addr_expr);
+  const symbol_t min_estimate = call_node->get_local_symbol("min_estimate");
 
   if (!ep->get_ctx().check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};
@@ -53,7 +58,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const LibBDD::No
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -61,13 +66,13 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const LibBDD::No
   return impls;
 }
 
-std::unique_ptr<Module> CMSQueryFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> CMSQueryFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_count_min") {
     return {};
@@ -75,9 +80,9 @@ std::unique_ptr<Module> CMSQueryFactory::create(const LibBDD::BDD *bdd, const Co
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
-  LibCore::symbol_t min_estimate      = call_node->get_local_symbol("min_estimate");
 
-  const addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t cms_addr       = expr_addr_to_obj_addr(cms_addr_expr);
+  const symbol_t min_estimate = call_node->get_local_symbol("min_estimate");
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};

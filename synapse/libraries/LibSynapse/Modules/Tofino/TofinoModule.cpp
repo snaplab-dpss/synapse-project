@@ -81,7 +81,7 @@ public:
 //  Map Table
 // ======================================================================
 
-MapTable *build_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+MapTable *build_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   bits_t key_size = 0;
@@ -106,7 +106,7 @@ MapTable *build_map_table(const EP *ep, const LibBDD::Node *node, const map_tabl
   return map_table;
 }
 
-MapTable *get_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+MapTable *get_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   if (!tofino_ctx->get_data_structures().has(data.obj)) {
@@ -122,7 +122,7 @@ MapTable *get_map_table(const EP *ep, const LibBDD::Node *node, const map_table_
   return dynamic_cast<MapTable *>(mt);
 }
 
-bool can_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+bool can_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   MapTable *map_table = get_map_table(ep, node, data);
   assert(map_table && "Map table not found");
 
@@ -145,7 +145,7 @@ bool can_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table
   return can_place;
 }
 
-MapTable *reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+MapTable *reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   MapTable *map_table = get_map_table(ep, node, data);
   assert(map_table && "Map table not found");
 
@@ -170,7 +170,7 @@ MapTable *reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_tabl
 //  Guarded Map Table
 // ======================================================================
 
-GuardedMapTable *build_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+GuardedMapTable *build_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
   const tna_properties_t &properties = tofino_ctx->get_tna().tna_config.properties;
 
@@ -196,7 +196,7 @@ GuardedMapTable *build_guarded_map_table(const EP *ep, const LibBDD::Node *node,
   return guarded_map_table;
 }
 
-GuardedMapTable *get_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+GuardedMapTable *get_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   if (!tofino_ctx->get_data_structures().has(data.obj)) {
@@ -212,7 +212,7 @@ GuardedMapTable *get_guarded_map_table(const EP *ep, const LibBDD::Node *node, c
   return dynamic_cast<GuardedMapTable *>(mt);
 }
 
-bool can_reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+bool can_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   GuardedMapTable *guarded_map_table = get_guarded_map_table(ep, node, data);
   assert(guarded_map_table && "Guarded map table not found");
 
@@ -235,7 +235,7 @@ bool can_reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const m
   return can_place;
 }
 
-GuardedMapTable *reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+GuardedMapTable *reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   GuardedMapTable *guarded_map_table = get_guarded_map_table(ep, node, data);
   assert(guarded_map_table && "Guarded map table not found");
 
@@ -260,7 +260,7 @@ GuardedMapTable *reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node,
 //  Vector Table
 // ======================================================================
 
-VectorTable *build_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+VectorTable *build_vector_table(const EP *ep, const BDDNode *node, const vector_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   assert(data.key->getWidth() == klee::Expr::Int32);
@@ -279,7 +279,7 @@ VectorTable *build_vector_table(const EP *ep, const LibBDD::Node *node, const ve
   return vector_table;
 }
 
-VectorTable *get_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+VectorTable *get_vector_table(const EP *ep, const BDDNode *node, const vector_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   if (!tofino_ctx->get_data_structures().has(data.obj)) {
@@ -295,7 +295,7 @@ VectorTable *get_vector_table(const EP *ep, const LibBDD::Node *node, const vect
   return dynamic_cast<VectorTable *>(vt);
 }
 
-bool can_reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+bool can_reuse_vector_table(const EP *ep, const BDDNode *node, const vector_table_data_t &data) {
   VectorTable *vector_table = get_vector_table(ep, node, data);
   assert(vector_table && "Vector table not found");
 
@@ -313,7 +313,7 @@ bool can_reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector
   return can_place;
 }
 
-VectorTable *reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+VectorTable *reuse_vector_table(const EP *ep, const BDDNode *node, const vector_table_data_t &data) {
   VectorTable *vector_table = get_vector_table(ep, node, data);
   assert(vector_table && "Vector table not found");
 
@@ -333,7 +333,7 @@ VectorTable *reuse_vector_table(const EP *ep, const LibBDD::Node *node, const ve
 //  Dchain Table
 // ======================================================================
 
-DchainTable *build_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+DchainTable *build_dchain_table(const EP *ep, const BDDNode *node, const dchain_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   assert(data.key->getWidth() == klee::Expr::Int32);
@@ -351,7 +351,7 @@ DchainTable *build_dchain_table(const EP *ep, const LibBDD::Node *node, const dc
   return dchain_table;
 }
 
-DchainTable *get_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+DchainTable *get_dchain_table(const EP *ep, const BDDNode *node, const dchain_table_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   if (!tofino_ctx->get_data_structures().has(data.obj)) {
@@ -367,7 +367,7 @@ DchainTable *get_dchain_table(const EP *ep, const LibBDD::Node *node, const dcha
   return dynamic_cast<DchainTable *>(vt);
 }
 
-bool can_reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+bool can_reuse_dchain_table(const EP *ep, const BDDNode *node, const dchain_table_data_t &data) {
   DchainTable *dchain_table = get_dchain_table(ep, node, data);
   assert(dchain_table && "Dchain table not found");
 
@@ -385,7 +385,7 @@ bool can_reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain
   return can_place;
 }
 
-DchainTable *reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+DchainTable *reuse_dchain_table(const EP *ep, const BDDNode *node, const dchain_table_data_t &data) {
   DchainTable *dchain_table = get_dchain_table(ep, node, data);
   assert(dchain_table && "Dchain table not found");
 
@@ -405,7 +405,7 @@ DchainTable *reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dc
 //  Vector Registers
 // ======================================================================
 
-VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
+VectorRegister *build_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data) {
   const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
   const tna_properties_t &properties = tofino_ctx->get_tna().tna_config.properties;
 
@@ -429,7 +429,7 @@ VectorRegister *build_vector_register(const EP *ep, const LibBDD::Node *node, co
   return vector_register;
 }
 
-VectorRegister *get_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
+VectorRegister *get_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   if (!tofino_ctx->get_data_structures().has(data.obj)) {
@@ -449,8 +449,7 @@ VectorRegister *get_vector_register(const EP *ep, const LibBDD::Node *node, cons
 //  FCFS Cached Table
 // ======================================================================
 
-FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
-                                         u32 cache_capacity) {
+FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity) {
   const Context &ctx                 = ep->get_ctx();
   const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>();
   const TNA &tna                     = tofino_ctx->get_tna();
@@ -474,7 +473,7 @@ FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
   return cached_table;
 }
 
-FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
+FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   if (!tofino_ctx->get_data_structures().has(obj)) {
@@ -505,8 +504,8 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node,
 //  Heavy Hitter Table
 // ======================================================================
 
-HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity,
-                        u32 cms_width, u32 cms_height) {
+HHTable *build_hh_table(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width,
+                        u32 cms_height) {
   const DS_ID id = "hh_table_" + std::to_string(obj);
 
   const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
@@ -528,7 +527,7 @@ HHTable *build_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj, cons
   return hh_table;
 }
 
-HHTable *reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
+HHTable *reuse_hh_table(const EP *ep, const BDDNode *node, addr_t obj) {
   const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
 
@@ -554,7 +553,7 @@ HHTable *reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
 //  Count Min Sketch
 // ======================================================================
 
-CountMinSketch *build_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height) {
+CountMinSketch *build_cms(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   const DS_ID id                     = "cms_" + std::to_string(obj);
@@ -575,7 +574,7 @@ CountMinSketch *build_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, co
   return cms;
 }
 
-CountMinSketch *reuse_cms(const EP *ep, const LibBDD::Node *node, addr_t obj) {
+CountMinSketch *reuse_cms(const EP *ep, const BDDNode *node, addr_t obj) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
   if (!tofino_ctx->get_data_structures().has(obj)) {
@@ -624,7 +623,7 @@ bool TofinoModuleFactory::expr_fits_in_action(klee::ref<klee::Expr> expr) {
   return checker.is_compatible();
 }
 
-MapTable *TofinoModuleFactory::build_or_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+MapTable *TofinoModuleFactory::build_or_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   MapTable *map_table;
 
   const Context &ctx  = ep->get_ctx();
@@ -639,7 +638,7 @@ MapTable *TofinoModuleFactory::build_or_reuse_map_table(const EP *ep, const LibB
   return map_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapTable);
 
@@ -657,7 +656,7 @@ bool TofinoModuleFactory::can_build_or_reuse_map_table(const EP *ep, const LibBD
   return true;
 }
 
-GuardedMapTable *TofinoModuleFactory::build_or_reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+GuardedMapTable *TofinoModuleFactory::build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   GuardedMapTable *guarded_map_table;
 
   const Context &ctx  = ep->get_ctx();
@@ -672,7 +671,7 @@ GuardedMapTable *TofinoModuleFactory::build_or_reuse_guarded_map_table(const EP 
   return guarded_map_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_guarded_map_table(const EP *ep, const LibBDD::Node *node, const map_table_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_GuardedMapTable);
 
@@ -690,7 +689,7 @@ bool TofinoModuleFactory::can_build_or_reuse_guarded_map_table(const EP *ep, con
   return true;
 }
 
-VectorTable *TofinoModuleFactory::build_or_reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+VectorTable *TofinoModuleFactory::build_or_reuse_vector_table(const EP *ep, const BDDNode *node, const vector_table_data_t &data) {
   VectorTable *vector_table;
 
   const Context &ctx  = ep->get_ctx();
@@ -705,7 +704,7 @@ VectorTable *TofinoModuleFactory::build_or_reuse_vector_table(const EP *ep, cons
   return vector_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_vector_table(const EP *ep, const LibBDD::Node *node, const vector_table_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_vector_table(const EP *ep, const BDDNode *node, const vector_table_data_t &data) {
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorTable);
 
@@ -723,7 +722,7 @@ bool TofinoModuleFactory::can_build_or_reuse_vector_table(const EP *ep, const Li
   return true;
 }
 
-DchainTable *TofinoModuleFactory::build_or_reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+DchainTable *TofinoModuleFactory::build_or_reuse_dchain_table(const EP *ep, const BDDNode *node, const dchain_table_data_t &data) {
   DchainTable *dchain_table;
 
   const Context &ctx  = ep->get_ctx();
@@ -738,7 +737,7 @@ DchainTable *TofinoModuleFactory::build_or_reuse_dchain_table(const EP *ep, cons
   return dchain_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_dchain_table(const EP *ep, const LibBDD::Node *node, const dchain_table_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_dchain_table(const EP *ep, const BDDNode *node, const dchain_table_data_t &data) {
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_DchainTable);
 
@@ -756,7 +755,7 @@ bool TofinoModuleFactory::can_build_or_reuse_dchain_table(const EP *ep, const Li
   return true;
 }
 
-VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
+VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data) {
   VectorRegister *vector_register;
 
   const Context &ctx  = ep->get_ctx();
@@ -771,7 +770,7 @@ VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep
   return vector_register;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_vector_register(const EP *ep, const LibBDD::Node *node, const vector_register_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data) {
   const Context &ctx       = ep->get_ctx();
   bool regs_already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorRegister);
 
@@ -790,7 +789,7 @@ bool TofinoModuleFactory::can_build_or_reuse_vector_register(const EP *ep, const
   return true;
 }
 
-FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key,
+FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key,
                                                                        u32 capacity, u32 cache_capacity) {
   FCFSCachedTable *cached_table = nullptr;
 
@@ -806,7 +805,7 @@ FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP 
   return cached_table;
 }
 
-FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj) {
+FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj) {
   const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
 
@@ -822,8 +821,8 @@ FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const 
   return dynamic_cast<FCFSCachedTable *>(*ds.begin());
 }
 
-bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const LibBDD::Node *node, addr_t obj, klee::ref<klee::Expr> key,
-                                                             u32 capacity, u32 cache_capacity) {
+bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
+                                                             u32 cache_capacity) {
   FCFSCachedTable *cached_table = nullptr;
 
   const Context &ctx  = ep->get_ctx();
@@ -850,18 +849,18 @@ bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const
   return true;
 }
 
-LibCore::Symbols TofinoModuleFactory::get_relevant_dataplane_state(const EP *ep, const LibBDD::Node *node) {
-  const LibBDD::node_ids_t &roots = ep->get_target_roots(TargetType::Tofino);
+Symbols TofinoModuleFactory::get_relevant_dataplane_state(const EP *ep, const BDDNode *node) {
+  const bdd_node_ids_t &roots = ep->get_target_roots(TargetType::Tofino);
 
-  LibCore::Symbols generated_symbols = node->get_prev_symbols(roots);
+  Symbols generated_symbols = node->get_prev_symbols(roots);
   generated_symbols.add(ep->get_bdd()->get_device());
   generated_symbols.add(ep->get_bdd()->get_time());
 
-  LibCore::Symbols future_used_symbols;
-  node->visit_nodes([&future_used_symbols](const LibBDD::Node *future_node) {
-    const LibCore::Symbols local_future_symbols = future_node->get_used_symbols();
+  Symbols future_used_symbols;
+  node->visit_nodes([&future_used_symbols](const BDDNode *future_node) {
+    const Symbols local_future_symbols = future_node->get_used_symbols();
     future_used_symbols.add(local_future_symbols);
-    return LibBDD::NodeVisitAction::Continue;
+    return BDDNodeVisitAction::Continue;
   });
 
   return generated_symbols.intersect(future_used_symbols);
@@ -882,8 +881,7 @@ std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_cap(u32 capacity) {
   return capacities;
 }
 
-hit_rate_t TofinoModuleFactory::get_fcfs_cache_success_rate(const Context &ctx, const LibBDD::Node *node, klee::ref<klee::Expr> key,
-                                                            u32 cache_capacity) {
+hit_rate_t TofinoModuleFactory::get_fcfs_cache_success_rate(const Context &ctx, const BDDNode *node, klee::ref<klee::Expr> key, u32 cache_capacity) {
   const std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
   const flow_stats_t flow_stats                        = ctx.get_profiler().get_flow_stats(constraints, key);
 
@@ -900,8 +898,8 @@ hit_rate_t TofinoModuleFactory::get_fcfs_cache_success_rate(const Context &ctx, 
   return hit_rate;
 }
 
-HHTable *TofinoModuleFactory::build_or_reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                                      const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width, u32 cms_height) {
+HHTable *TofinoModuleFactory::build_or_reuse_hh_table(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
+                                                      u32 capacity, u32 cms_width, u32 cms_height) {
   HHTable *hh_table = nullptr;
 
   if (ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
@@ -913,8 +911,8 @@ HHTable *TofinoModuleFactory::build_or_reuse_hh_table(const EP *ep, const LibBDD
   return hh_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                                      const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width, u32 cms_height) {
+bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
+                                                      u32 capacity, u32 cms_width, u32 cms_height) {
   HHTable *hh_table = nullptr;
 
   const Context &ctx  = ep->get_ctx();
@@ -951,13 +949,13 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const LibBDD
   return true;
 }
 
-hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, const Context &ctx, const LibBDD::Node *node, addr_t map,
+hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, const Context &ctx, const BDDNode *node, addr_t map,
                                                               klee::ref<klee::Expr> key, u32 capacity) {
   constexpr const u32 THRESHOLD{16383};
 
   const std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
   const flow_stats_t flow_stats                        = ctx.get_profiler().get_flow_stats(constraints, key);
-  const LibBDD::bdd_profile_t *bdd_profile             = ctx.get_profiler().get_bdd_profile();
+  const bdd_profile_t *bdd_profile                     = ctx.get_profiler().get_bdd_profile();
   const hit_rate_t node_hr                             = ctx.get_profiler().get_hr(node);
 
   u64 top_k = 0;
@@ -989,7 +987,7 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, cons
   return hit_rate;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const LibBDD::Node *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
+bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
                                                  u32 width, u32 height) {
   CountMinSketch *cms = nullptr;
 
@@ -1027,8 +1025,8 @@ bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const LibBDD::Nod
   return true;
 }
 
-CountMinSketch *TofinoModuleFactory::build_or_reuse_cms(const EP *ep, const LibBDD::Node *node, addr_t obj,
-                                                        const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height) {
+CountMinSketch *TofinoModuleFactory::build_or_reuse_cms(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
+                                                        u32 width, u32 height) {
   CountMinSketch *cms = nullptr;
 
   if (ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_CountMinSketch)) {
@@ -1040,7 +1038,7 @@ CountMinSketch *TofinoModuleFactory::build_or_reuse_cms(const EP *ep, const LibB
   return cms;
 }
 
-LPM *TofinoModuleFactory::build_lpm(const EP *ep, const LibBDD::Node *node, addr_t obj) {
+LPM *TofinoModuleFactory::build_lpm(const EP *ep, const BDDNode *node, addr_t obj) {
   const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
   const DS_ID id                     = "lpm_" + std::to_string(obj);
   const tna_properties_t &properties = tofino_ctx->get_tna().tna_config.properties;
@@ -1055,7 +1053,7 @@ LPM *TofinoModuleFactory::build_lpm(const EP *ep, const LibBDD::Node *node, addr
   return lpm;
 }
 
-bool TofinoModuleFactory::can_build_lpm(const EP *ep, const LibBDD::Node *node, addr_t obj) {
+bool TofinoModuleFactory::can_build_lpm(const EP *ep, const BDDNode *node, addr_t obj) {
   LPM *lpm = build_lpm(ep, node, obj);
 
   if (!lpm) {

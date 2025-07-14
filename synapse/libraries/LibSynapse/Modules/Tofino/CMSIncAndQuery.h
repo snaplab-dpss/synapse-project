@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSIncAndQuery(const LibBDD::Node *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys,
+  CMSIncAndQuery(const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys,
                  klee::ref<klee::Expr> _min_estimate)
       : TofinoModule(ModuleType::Tofino_CMSIncAndQuery, "CMSIncAndQuery", _node), cms_id(_cms_id), cms_addr(_cms_addr), keys(_keys),
         min_estimate(_min_estimate) {}
@@ -35,9 +35,9 @@ public:
   CMSIncAndQueryFactory() : TofinoModuleFactory(ModuleType::Tofino_CMSIncAndQuery, "CMSIncAndQuery") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Tofino

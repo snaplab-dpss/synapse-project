@@ -25,6 +25,8 @@
 
 namespace LibSynapse {
 
+using LibCore::pretty_print_expr;
+
 IGNORE_MODULE(Tofino::Ignore)
 
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::If *node) {
@@ -32,7 +34,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 
   for (klee::ref<klee::Expr> condition : node->get_conditions()) {
     label_builder << "\\n";
-    label_builder << LibCore::pretty_print_expr(condition);
+    label_builder << pretty_print_expr(condition);
   }
 
   branch(ep_node, node->get_node(), node->get_target(), label_builder.str());
@@ -53,9 +55,9 @@ SHOW_MODULE_NAME(Tofino::Else)
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  int port                     = node->get_recirc_port();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  int port                = node->get_recirc_port();
 
   label_builder << "Recirculate (";
   label_builder << port;
@@ -69,12 +71,12 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::Forward *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node     = node->get_node();
+  const BDDNode *bdd_node          = node->get_node();
   TargetType target                = node->get_target();
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
 
   label_builder << "Forward (";
-  label_builder << LibCore::pretty_print_expr(dst_device, false);
+  label_builder << pretty_print_expr(dst_device, false);
   label_builder << ")";
 
   function_call(ep_node, bdd_node, target, label_builder.str());
@@ -85,10 +87,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  Tofino::DS_ID tid            = node->get_id();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  Tofino::DS_ID tid       = node->get_id();
+  addr_t obj              = node->get_obj();
 
   label_builder << "Map Table Lookup\n";
   label_builder << "(";
@@ -106,10 +108,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  Tofino::DS_ID tid            = node->get_id();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  Tofino::DS_ID tid       = node->get_id();
+  addr_t obj              = node->get_obj();
 
   label_builder << "Guarded Map Table Lookup\n";
   label_builder << "(";
@@ -127,10 +129,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  Tofino::DS_ID tid            = node->get_id();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  Tofino::DS_ID tid       = node->get_id();
+  addr_t obj              = node->get_obj();
 
   label_builder << "Guarded Map Table Guard Check\n";
   label_builder << "(";
@@ -148,10 +150,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  Tofino::DS_ID tid            = node->get_id();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  Tofino::DS_ID tid       = node->get_id();
+  addr_t obj              = node->get_obj();
 
   label_builder << "Vector Table Lookup\n";
   label_builder << "(";
@@ -169,10 +171,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  Tofino::DS_ID tid            = node->get_id();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  Tofino::DS_ID tid       = node->get_id();
+  addr_t obj              = node->get_obj();
 
   label_builder << "Dchain Table Lookup\n";
   label_builder << "(";
@@ -190,10 +192,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  Tofino::DS_ID id             = node->get_id();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  Tofino::DS_ID id        = node->get_id();
+  addr_t obj              = node->get_obj();
 
   label_builder << "Vector Register Lookup\n";
   label_builder << "(";
@@ -209,10 +211,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  Tofino::DS_ID id             = node->get_id();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  Tofino::DS_ID id        = node->get_id();
+  addr_t obj              = node->get_obj();
 
   label_builder << "Vector Register Update\n";
   label_builder << "(";
@@ -228,9 +230,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  addr_t obj              = node->get_obj();
 
   Tofino::DS_ID id                        = node->get_cached_table_id();
   const Context &ctx                      = ep->get_ctx();
@@ -255,9 +257,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  addr_t obj              = node->get_obj();
 
   Tofino::DS_ID id                        = node->get_cached_table_id();
   const Context &ctx                      = ep->get_ctx();
@@ -282,9 +284,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  addr_t obj              = node->get_obj();
 
   Tofino::DS_ID id                        = node->get_cached_table_id();
   const Context &ctx                      = ep->get_ctx();
@@ -309,9 +311,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableDelete *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  addr_t obj              = node->get_obj();
 
   Tofino::DS_ID id                        = node->get_cached_table_id();
   const Context &ctx                      = ep->get_ctx();
@@ -336,9 +338,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserExtraction *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  bytes_t size                 = node->get_length();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  bytes_t size            = node->get_length();
 
   label_builder << "Parse Header (";
 
@@ -353,9 +355,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::MeterUpdate *node) {
   std::stringstream label_builder;
 
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  addr_t obj              = node->get_obj();
 
   label_builder << "Meter Update\n";
   label_builder << "obj=";
@@ -367,9 +369,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 }
 
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *node) {
-  const LibBDD::Node *bdd_node = node->get_node();
-  TargetType target            = node->get_target();
-  addr_t obj                   = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  addr_t obj              = node->get_obj();
 
   const Tofino::DS *ds = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_data_structures().get_ds_from_id(node->get_hh_table_id());
 

@@ -11,12 +11,14 @@
 
 namespace LibBDD {
 
+using LibCore::Synthesizer;
+
 class BDD;
 class Call;
 
 enum class BDDSynthesizerTarget { NF, Profiler };
 
-class BDDSynthesizer : public LibCore::Synthesizer {
+class BDDSynthesizer : public Synthesizer {
 public:
   BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::filesystem::path _out_file);
 
@@ -91,14 +93,14 @@ private:
   std::unordered_map<std::string, int> reserved_var_names;
 
   // Relevant for profiling
-  std::unordered_map<node_id_t, klee::ref<klee::Expr>> nodes_to_map;
-  std::unordered_set<node_id_t> route_nodes;
-  std::unordered_set<node_id_t> process_nodes;
+  std::unordered_map<bdd_node_id_t, klee::ref<klee::Expr>> nodes_to_map;
+  std::unordered_set<bdd_node_id_t> route_nodes;
+  std::unordered_set<bdd_node_id_t> process_nodes;
 
   void init_pre_process();
   void process();
   void init_post_process();
-  void synthesize(const Node *node);
+  void synthesize(const BDDNode *node);
 
   success_condition_t synthesize_function(coder_t &, const Call *);
 

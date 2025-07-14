@@ -16,10 +16,10 @@ private:
   std::vector<klee::ref<klee::Expr>> conditions;
 
 public:
-  If(const LibBDD::Node *_node, klee::ref<klee::Expr> _original_condition, const std::vector<klee::ref<klee::Expr>> &_conditions)
+  If(const BDDNode *_node, klee::ref<klee::Expr> _original_condition, const std::vector<klee::ref<klee::Expr>> &_conditions)
       : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions(_conditions) {}
 
-  If(const LibBDD::Node *_node, klee::ref<klee::Expr> _original_condition)
+  If(const BDDNode *_node, klee::ref<klee::Expr> _original_condition)
       : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions({_original_condition}) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -38,9 +38,9 @@ public:
   IfFactory() : TofinoModuleFactory(ModuleType::Tofino_If, "If") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Tofino

@@ -10,11 +10,10 @@ private:
   addr_t obj;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
-  std::optional<LibCore::symbol_t> found;
+  std::optional<symbol_t> found;
 
 public:
-  DataplaneMapTableLookup(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
-                          std::optional<LibCore::symbol_t> _found)
+  DataplaneMapTableLookup(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value, std::optional<symbol_t> _found)
       : ControllerModule(ModuleType::Controller_DataplaneMapTableLookup, "DataplaneMapTableLookup", _node), obj(_obj), key(_key), value(_value),
         found(_found) {}
 
@@ -28,7 +27,7 @@ public:
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_value() const { return value; }
-  std::optional<LibCore::symbol_t> get_found() const { return found; }
+  std::optional<symbol_t> get_found() const { return found; }
 };
 
 class DataplaneMapTableLookupFactory : public ControllerModuleFactory {
@@ -36,9 +35,9 @@ public:
   DataplaneMapTableLookupFactory() : ControllerModuleFactory(ModuleType::Controller_DataplaneMapTableLookup, "DataplaneMapTableLookup") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

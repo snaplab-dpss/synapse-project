@@ -4,28 +4,33 @@
 namespace LibSynapse {
 namespace Tofino {
 
-std::optional<spec_impl_t> ParserExtractionFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
+std::optional<spec_impl_t> ParserExtractionFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "packet_borrow_next_chunk") {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "packet_borrow_next_chunk") {
     return {};
@@ -37,13 +42,13 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const Li
 
   // Relevant for IPv4 options, but left for future work.
   assert(!call_node->is_hdr_parse_with_var_len() && "Not implemented");
-  const bytes_t length  = LibCore::solver_toolbox.value_from_expr(length_expr);
-  const addr_t hdr_addr = LibCore::expr_addr_to_obj_addr(hdr_addr_expr);
+  const bytes_t length  = solver_toolbox.value_from_expr(length_expr);
+  const addr_t hdr_addr = expr_addr_to_obj_addr(hdr_addr_expr);
 
-  const std::vector<LibCore::expr_struct_t> &headers = ep->get_ctx().get_expr_structs();
+  const std::vector<expr_struct_t> &headers = ep->get_ctx().get_expr_structs();
   std::vector<klee::ref<klee::Expr>> hdr_fields_guess;
-  for (const LibCore::expr_struct_t &header : headers) {
-    if (LibCore::solver_toolbox.are_exprs_always_equal(header.expr, hdr)) {
+  for (const expr_struct_t &header : headers) {
+    if (solver_toolbox.are_exprs_always_equal(header.expr, hdr)) {
       hdr_fields_guess = header.fields;
       break;
     }
@@ -54,19 +59,19 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const Li
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   return {};
 }
 
-std::unique_ptr<Module> ParserExtractionFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> ParserExtractionFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "packet_borrow_next_chunk") {
     return {};
@@ -76,13 +81,13 @@ std::unique_ptr<Module> ParserExtractionFactory::create(const LibBDD::BDD *bdd, 
   klee::ref<klee::Expr> hdr           = call.extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> length_expr   = call.args.at("length").expr;
 
-  const addr_t hdr_addr = LibCore::expr_addr_to_obj_addr(hdr_addr_expr);
-  const bytes_t length  = LibCore::solver_toolbox.value_from_expr(length_expr);
+  const addr_t hdr_addr = expr_addr_to_obj_addr(hdr_addr_expr);
+  const bytes_t length  = solver_toolbox.value_from_expr(length_expr);
 
-  const std::vector<LibCore::expr_struct_t> &headers = ctx.get_expr_structs();
+  const std::vector<expr_struct_t> &headers = ctx.get_expr_structs();
   std::vector<klee::ref<klee::Expr>> hdr_fields_guess;
-  for (const LibCore::expr_struct_t &header : headers) {
-    if (LibCore::solver_toolbox.are_exprs_always_equal(header.expr, hdr)) {
+  for (const expr_struct_t &header : headers) {
+    if (solver_toolbox.are_exprs_always_equal(header.expr, hdr)) {
       hdr_fields_guess = header.fields;
       break;
     }

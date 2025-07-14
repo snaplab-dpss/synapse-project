@@ -7,18 +7,18 @@
 
 namespace LibBDD {
 
-class NodeManager {
+class BDDNodeManager {
 private:
-  std::vector<std::unique_ptr<Node>> nodes;
+  std::vector<std::unique_ptr<BDDNode>> nodes;
 
 public:
-  NodeManager() {}
-  NodeManager(NodeManager &&other) = default;
+  BDDNodeManager() {}
+  BDDNodeManager(BDDNodeManager &&other) = default;
 
-  void add_node(Node *node) { nodes.emplace_back(node); }
+  void add_node(BDDNode *node) { nodes.emplace_back(node); }
 
-  void free_node(Node *node) {
-    auto it = std::find_if(nodes.begin(), nodes.end(), [node](const std::unique_ptr<Node> &n) { return n.get() == node; });
+  void free_node(BDDNode *node) {
+    auto it = std::find_if(nodes.begin(), nodes.end(), [node](const std::unique_ptr<BDDNode> &n) { return n.get() == node; });
 
     if (it != nodes.end()) {
       assert((*it)->get_id() == node->get_id() && "Invalid node id");
@@ -26,16 +26,16 @@ public:
     }
   }
 
-  NodeManager operator+(const NodeManager &other) const {
-    NodeManager manager;
-    for (const std::unique_ptr<Node> &node : nodes)
+  BDDNodeManager operator+(const BDDNodeManager &other) const {
+    BDDNodeManager manager;
+    for (const std::unique_ptr<BDDNode> &node : nodes)
       node->clone(manager);
-    for (const std::unique_ptr<Node> &node : other.nodes)
+    for (const std::unique_ptr<BDDNode> &node : other.nodes)
       node->clone(manager);
     return manager;
   }
 
-  bool operator==(const NodeManager &other) const { return nodes == other.nodes; }
+  bool operator==(const BDDNodeManager &other) const { return nodes == other.nodes; }
 };
 
 } // namespace LibBDD

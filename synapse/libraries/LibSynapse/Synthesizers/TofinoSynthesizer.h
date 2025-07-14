@@ -15,7 +15,9 @@
 namespace LibSynapse {
 namespace Tofino {
 
-class TofinoSynthesizer : public LibCore::Synthesizer, public EPVisitor {
+using LibCore::Synthesizer;
+
+class TofinoSynthesizer : public Synthesizer, public EPVisitor {
 public:
   TofinoSynthesizer(const EP *ep, std::filesystem::path _out_path);
 
@@ -181,7 +183,7 @@ private:
   Stack recirc_hdr_vars;
 
   std::unordered_set<DS_ID> declared_ds;
-  std::unordered_map<LibBDD::node_id_t, Stack> parser_vars;
+  std::unordered_map<bdd_node_id_t, Stack> parser_vars;
   std::vector<coder_t> recirc_coders;
   std::optional<code_path_t> active_recirc_code_path;
 

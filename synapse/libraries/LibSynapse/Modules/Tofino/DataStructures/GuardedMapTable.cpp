@@ -7,7 +7,7 @@ namespace Tofino {
 
 namespace {
 
-std::string build_table_name(DS_ID id, LibBDD::node_id_t table_num) { return id + "_" + std::to_string(table_num); }
+std::string build_table_name(DS_ID id, bdd_node_id_t table_num) { return id + "_" + std::to_string(table_num); }
 
 Register build_guard(const tna_properties_t &properties, DS_ID id) {
   const DS_ID reg_id              = id + "_guard";
@@ -57,7 +57,7 @@ std::vector<std::unordered_set<const DS *>> GuardedMapTable::get_internal() cons
   return internal_ds;
 }
 
-bool GuardedMapTable::has_table(LibBDD::node_id_t op) const {
+bool GuardedMapTable::has_table(bdd_node_id_t op) const {
   const std::string table_id = build_table_name(id, op);
   for (const Table &table : tables) {
     if (table.id == table_id)
@@ -66,7 +66,7 @@ bool GuardedMapTable::has_table(LibBDD::node_id_t op) const {
   return false;
 }
 
-const Table *GuardedMapTable::get_table(LibBDD::node_id_t op) const {
+const Table *GuardedMapTable::get_table(bdd_node_id_t op) const {
   const std::string table_id = build_table_name(id, op);
   for (const Table &table : tables) {
     if (table.id == table_id)
@@ -75,7 +75,7 @@ const Table *GuardedMapTable::get_table(LibBDD::node_id_t op) const {
   return nullptr;
 }
 
-std::optional<DS_ID> GuardedMapTable::add_table(LibBDD::node_id_t op, const std::vector<bits_t> &keys_sizes, TimeAware time_aware) {
+std::optional<DS_ID> GuardedMapTable::add_table(bdd_node_id_t op, const std::vector<bits_t> &keys_sizes, TimeAware time_aware) {
   Table new_table(build_table_name(id, op), capacity, keys_sizes, {param_size}, time_aware);
   tables.push_back(new_table);
   return new_table.id;

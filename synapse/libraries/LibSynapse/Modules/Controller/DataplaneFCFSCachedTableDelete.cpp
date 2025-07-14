@@ -4,6 +4,11 @@
 namespace LibSynapse {
 namespace Controller {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 using Tofino::DS_ID;
 using Tofino::Table;
 
@@ -18,48 +23,47 @@ DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
   return ds->id;
 }
 
-void get_map_erase_data(const Context &ctx, const LibBDD::Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
-  const LibBDD::call_t &call = call_node->get_call();
+void get_map_erase_data(const Context &ctx, const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
+  const call_t &call = call_node->get_call();
   assert(call.function_name == "map_erase" && "Not a map_erase call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
-  obj  = LibCore::expr_addr_to_obj_addr(map_addr_expr);
+  obj  = expr_addr_to_obj_addr(map_addr_expr);
   keys = Table::build_keys(key, ctx.get_expr_structs());
 }
 } // namespace
 
-std::optional<spec_impl_t> DataplaneFCFSCachedTableDeleteFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> DataplaneFCFSCachedTableDeleteFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_erase") {
-    return std::nullopt;
+    return {};
   }
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  addr_t map_addr                     = LibCore::expr_addr_to_obj_addr(map_addr_expr);
+  addr_t map_addr                     = expr_addr_to_obj_addr(map_addr_expr);
 
   if (!ctx.can_impl_ds(map_addr, DSImpl::Tofino_FCFSCachedTable)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DataplaneFCFSCachedTableDeleteFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                                        LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> DataplaneFCFSCachedTableDeleteFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_erase") {
     return {};
@@ -73,14 +77,14 @@ std::vector<impl_t> DataplaneFCFSCachedTableDeleteFactory::process_node(const EP
     return {};
   }
 
-  DS_ID id = get_cached_table_id(ep->get_ctx(), obj);
+  const DS_ID id = get_cached_table_id(ep->get_ctx(), obj);
 
   Module *module  = new DataplaneFCFSCachedTableDelete(node, id, obj, keys);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -88,13 +92,13 @@ std::vector<impl_t> DataplaneFCFSCachedTableDeleteFactory::process_node(const EP
   return impls;
 }
 
-std::unique_ptr<Module> DataplaneFCFSCachedTableDeleteFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DataplaneFCFSCachedTableDeleteFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_erase") {
     return {};
@@ -108,7 +112,7 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableDeleteFactory::create(const LibB
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<Tofino::TofinoContext>()->get_data_structures().get_ds(obj);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<Tofino::TofinoContext>()->get_data_structures().get_ds(obj);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Tofino::FCFSCachedTable *fcfs_cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(*ds.begin());
 

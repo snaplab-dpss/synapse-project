@@ -14,7 +14,7 @@ private:
   klee::ref<klee::Expr> key_size;
 
 public:
-  TokenBucketAllocate(const LibBDD::Node *_node, addr_t _tb_addr, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _rate,
+  TokenBucketAllocate(const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _rate,
                       klee::ref<klee::Expr> _burst, klee::ref<klee::Expr> _key_size)
       : ControllerModule(ModuleType::Controller_TokenBucketAllocate, "TokenBucketAllocate", _node), tb_addr(_tb_addr), capacity(_capacity),
         rate(_rate), burst(_burst), key_size(_key_size) {}
@@ -38,9 +38,9 @@ public:
   TokenBucketAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_TokenBucketAllocate, "TokenBucketAllocate") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

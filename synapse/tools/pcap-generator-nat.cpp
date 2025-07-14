@@ -15,17 +15,18 @@
 
 #include <CLI/CLI.hpp>
 
-using LibCore::TrafficGenerator;
+using namespace LibCore;
+
 using device_t    = TrafficGenerator::device_t;
 using config_t    = TrafficGenerator::config_t;
 using TrafficType = TrafficGenerator::TrafficType;
 
-std::vector<LibCore::flow_t> get_base_flows(const LibCore::TrafficGenerator::config_t &config) {
-  std::vector<LibCore::flow_t> flows;
+std::vector<flow_t> get_base_flows(const TrafficGenerator::config_t &config) {
+  std::vector<flow_t> flows;
   flows.reserve(config.total_flows);
 
   for (size_t i = 0; i < config.total_flows; i++) {
-    flows.push_back(LibCore::random_flow());
+    flows.push_back(random_flow());
   }
 
   return flows;
@@ -34,7 +35,7 @@ std::vector<LibCore::flow_t> get_base_flows(const LibCore::TrafficGenerator::con
 class PortAllocator {
 private:
   std::vector<device_t> available_ports;
-  std::unordered_map<LibCore::flow_t, u64, LibCore::flow_t::flow_hash_t> flow_to_port;
+  std::unordered_map<flow_t, u64, flow_t::flow_hash_t> flow_to_port;
 
 public:
   PortAllocator() {
@@ -48,7 +49,7 @@ public:
     }
   }
 
-  void allocate(const LibCore::flow_t &flow) {
+  void allocate(const flow_t &flow) {
     assert(!available_ports.empty());
     assert(!flow_to_port.contains(flow));
     device_t port = available_ports.back();
@@ -59,11 +60,11 @@ public:
   size_t available() const { return available_ports.size(); }
   size_t allocated() const { return flow_to_port.size(); }
 
-  bool has(const LibCore::flow_t &flow) const { return flow_to_port.contains(flow); }
+  bool has(const flow_t &flow) const { return flow_to_port.contains(flow); }
 
-  device_t get(const LibCore::flow_t &flow) { return flow_to_port.at(flow); }
+  device_t get(const flow_t &flow) { return flow_to_port.at(flow); }
 
-  bool free(const LibCore::flow_t &flow) {
+  bool free(const flow_t &flow) {
     if (!flow_to_port.contains(flow)) {
       return false;
     }
@@ -76,7 +77,7 @@ public:
   }
 };
 
-class NATTrafficGenerator : public LibCore::TrafficGenerator {
+class NATTrafficGenerator : public TrafficGenerator {
 private:
   static constexpr const u32 PUBLIC_IP = 0xffffffff;
 
@@ -84,13 +85,13 @@ private:
   const std::unordered_map<device_t, device_t> connections;
   const std::unordered_set<device_t> lan_devs;
 
-  std::vector<LibCore::flow_t> flows;
-  std::unordered_set<LibCore::flow_t, LibCore::flow_t::flow_hash_t> allocated_flows;
+  std::vector<flow_t> flows;
+  std::unordered_set<flow_t, flow_t::flow_hash_t> allocated_flows;
   PortAllocator port_allocator;
 
 public:
   NATTrafficGenerator(const config_t &_config, const std::vector<std::pair<device_t, device_t>> &_lan_wan_pairs,
-                      const std::vector<LibCore::flow_t> &_base_flows)
+                      const std::vector<flow_t> &_base_flows)
       : TrafficGenerator("nat", _config, true), lan_wan_pairs(_lan_wan_pairs), connections(build_connections(_lan_wan_pairs)),
         lan_devs(build_lan_devices(_lan_wan_pairs)), flows(_base_flows) {
     assert(flows.size() <= 65536 && "Too many flows for a NAT (max 65536).");
@@ -102,8 +103,8 @@ public:
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());
 
-    const LibCore::flow_t old_flow = flows.at(flow_idx);
-    LibCore::flow_t new_flow       = LibCore::random_flow();
+    const flow_t old_flow = flows.at(flow_idx);
+    flow_t new_flow       = random_flow();
 
     allocated_flows.erase(old_flow);
     port_allocator.free(old_flow);
@@ -113,7 +114,7 @@ public:
   }
 
   virtual std::optional<pkt_t> build_packet(device_t dev, flow_idx_t flow_idx) override {
-    const LibCore::flow_t &flow = flows.at(flow_idx);
+    const flow_t &flow = flows.at(flow_idx);
 
     if (lan_devs.contains(dev)) {
       if (allocated_flows.find(flow) == allocated_flows.end()) {
@@ -132,11 +133,11 @@ public:
     }
 
     if (!port_allocator.has(flow)) {
-      return std::nullopt;
+      return {};
     }
 
-    const LibCore::flow_t inverted_flow = flow.invert();
-    const device_t allocated_port       = port_allocator.get(flow);
+    const flow_t inverted_flow    = flow.invert();
+    const device_t allocated_port = port_allocator.get(flow);
 
     pkt_t pkt            = template_packet;
     pkt.ip_hdr.src_addr  = inverted_flow.five_tuple.src_ip;
@@ -173,7 +174,7 @@ private:
 int main(int argc, char *argv[]) {
   CLI::App app{"Traffic generator for the nat nf."};
 
-  LibCore::TrafficGenerator::config_t config;
+  TrafficGenerator::config_t config;
   std::vector<std::pair<device_t, device_t>> lan_wan_pairs;
   bytes_t packet_size;
 
@@ -213,7 +214,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  std::vector<LibCore::flow_t> base_flows = get_base_flows(config);
+  std::vector<flow_t> base_flows = get_base_flows(config);
   NATTrafficGenerator generator(config, lan_wan_pairs, base_flows);
 
   generator.generate_warmup();

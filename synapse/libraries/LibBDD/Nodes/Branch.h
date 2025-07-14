@@ -4,38 +4,40 @@
 
 namespace LibBDD {
 
-class NodeManager;
+using LibCore::SymbolManager;
 
-class Branch : public Node {
+class BDDNodeManager;
+
+class Branch : public BDDNode {
 private:
-  Node *on_false;
+  BDDNode *on_false;
   klee::ref<klee::Expr> condition;
 
 public:
-  Branch(node_id_t _id, const klee::ConstraintManager &_constraints, LibCore::SymbolManager *_symbol_manager, klee::ref<klee::Expr> _condition)
-      : Node(_id, NodeType::Branch, _constraints, _symbol_manager), on_false(nullptr), condition(_condition) {}
+  Branch(bdd_node_id_t _id, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, klee::ref<klee::Expr> _condition)
+      : BDDNode(_id, BDDNodeType::Branch, _constraints, _symbol_manager), on_false(nullptr), condition(_condition) {}
 
-  Branch(node_id_t _id, Node *_prev, const klee::ConstraintManager &_constraints, LibCore::SymbolManager *_symbol_manager, Node *_on_true,
-         Node *_on_false, klee::ref<klee::Expr> _condition)
-      : Node(_id, NodeType::Branch, _on_true, _prev, _constraints, _symbol_manager), on_false(_on_false), condition(_condition) {}
+  Branch(bdd_node_id_t _id, BDDNode *_prev, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, BDDNode *_on_true,
+         BDDNode *_on_false, klee::ref<klee::Expr> _condition)
+      : BDDNode(_id, BDDNodeType::Branch, _on_true, _prev, _constraints, _symbol_manager), on_false(_on_false), condition(_condition) {}
 
   klee::ref<klee::Expr> get_condition() const { return condition; }
 
   void set_condition(const klee::ref<klee::Expr> &_condition) { condition = _condition; }
 
-  const Node *get_on_true() const { return next; }
-  const Node *get_on_false() const { return on_false; }
+  const BDDNode *get_on_true() const { return next; }
+  const BDDNode *get_on_false() const { return on_false; }
 
-  std::unordered_set<std::string> get_used_symbols() const { return LibCore::symbol_t::get_symbols_names(condition); }
+  std::unordered_set<std::string> get_used_symbols() const { return symbol_t::get_symbols_names(condition); }
 
-  void set_on_true(Node *_on_true) { next = _on_true; }
-  void set_on_false(Node *_on_false) { on_false = _on_false; }
+  void set_on_true(BDDNode *_on_true) { next = _on_true; }
+  void set_on_false(BDDNode *_on_false) { on_false = _on_false; }
 
-  Node *get_mutable_on_true() { return next; }
-  Node *get_mutable_on_false() { return on_false; }
+  BDDNode *get_mutable_on_true() { return next; }
+  BDDNode *get_mutable_on_false() { return on_false; }
 
-  std::vector<node_id_t> get_leaves() const override final;
-  Node *clone(NodeManager &manager, bool recursive = false) const override final;
+  std::vector<bdd_node_id_t> get_leaves() const override final;
+  BDDNode *clone(BDDNodeManager &manager, bool recursive = false) const override final;
   std::string dump(bool one_liner = false, bool id_name_only = false) const override final;
 
   // A parser condition should be the single discriminating condition that
@@ -60,7 +62,7 @@ struct branch_direction_t {
   branch_direction_t(branch_direction_t &&other)                 = default;
   branch_direction_t &operator=(const branch_direction_t &other) = default;
 
-  const Node *get_success_node() const {
+  const BDDNode *get_success_node() const {
     if (direction) {
       return branch->get_on_true();
     } else {
@@ -68,7 +70,7 @@ struct branch_direction_t {
     }
   }
 
-  const Node *get_failure_node() const {
+  const BDDNode *get_failure_node() const {
     if (direction) {
       return branch->get_on_false();
     } else {

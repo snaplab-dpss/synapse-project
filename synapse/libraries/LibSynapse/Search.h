@@ -19,8 +19,8 @@ struct search_meta_t {
   time_t elapsed_time;
   u64 steps;
   u64 backtracks;
-  std::unordered_map<LibBDD::node_id_t, int> visits_per_node;
-  std::unordered_map<LibBDD::node_id_t, double> avg_children_per_node;
+  std::unordered_map<bdd_node_id_t, int> visits_per_node;
+  std::unordered_map<bdd_node_id_t, double> avg_children_per_node;
   u64 avg_bdd_size;
   double branching_factor;
   double total_ss_size_estimation;
@@ -61,13 +61,13 @@ private:
   const targets_config_t &targets_config;
   const search_config_t search_config;
 
-  LibBDD::BDD bdd;
+  BDD bdd;
   Targets targets;
   Profiler profiler;
   std::unique_ptr<Heuristic> heuristic;
 
 public:
-  SearchEngine(const LibBDD::BDD &bdd, HeuristicOption hopt, const Profiler &profiler, const targets_config_t &targets_config,
+  SearchEngine(const BDD &bdd, HeuristicOption hopt, const Profiler &profiler, const targets_config_t &targets_config,
                const search_config_t &search_config);
 
   SearchEngine(const SearchEngine &)            = delete;

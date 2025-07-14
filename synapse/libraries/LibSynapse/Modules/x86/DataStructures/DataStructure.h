@@ -9,6 +9,8 @@
 namespace LibSynapse {
 namespace x86 {
 
+using LibBDD::bdd_node_id_t;
+
 enum class ds_type_t {
   Map,
   Vector,
@@ -20,9 +22,9 @@ enum class ds_type_t {
 struct ds_t {
   ds_type_t type;
   addr_t addr;
-  LibBDD::node_id_t node_id;
+  bdd_node_id_t node_id;
 
-  ds_t(ds_type_t _type, addr_t _addr, LibBDD::node_id_t _node_id) : type(_type), addr(_addr), node_id(_node_id) {}
+  ds_t(ds_type_t _type, addr_t _addr, bdd_node_id_t _node_id) : type(_type), addr(_addr), node_id(_node_id) {}
 
   bool matches(ds_type_t _type, addr_t _addr) const {
     if (type != _type) {

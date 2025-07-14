@@ -3,7 +3,7 @@
 namespace LibBDD {
 
 class BDD;
-class Node;
+class BDDNode;
 class Branch;
 class Call;
 class Route;
@@ -18,13 +18,13 @@ public:
   enum class Action { Continue, Stop };
 
   virtual void visit(const BDD *bdd);
-  void visit(const Node *node);
+  void visit(const BDDNode *node);
 
 protected:
   virtual Action visit(const Branch *node) = 0;
   virtual Action visit(const Call *node)   = 0;
   virtual Action visit(const Route *node)  = 0;
-  virtual void visitRoot(const Node *root);
+  virtual void visitRoot(const BDDNode *root);
 };
 
 } // namespace LibBDD

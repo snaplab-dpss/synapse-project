@@ -4,39 +4,43 @@
 namespace LibSynapse {
 namespace Controller {
 
-std::optional<spec_impl_t> DataplaneVectorRegisterAllocateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
+std::optional<spec_impl_t> DataplaneVectorRegisterAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_allocate") {
-    return std::nullopt;
+    return {};
   }
 
   klee::ref<klee::Expr> elem_size  = call.args.at("elem_size").expr;
   klee::ref<klee::Expr> capacity   = call.args.at("capacity").expr;
   klee::ref<klee::Expr> vector_out = call.args.at("vector_out").out;
 
-  addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector_out);
+  const addr_t vector_addr = expr_addr_to_obj_addr(vector_out);
 
   if (!ctx.can_impl_ds(vector_addr, DSImpl::Tofino_VectorRegister)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DataplaneVectorRegisterAllocateFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                                         LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> DataplaneVectorRegisterAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_allocate") {
     return {};
@@ -46,7 +50,7 @@ std::vector<impl_t> DataplaneVectorRegisterAllocateFactory::process_node(const E
   klee::ref<klee::Expr> capacity   = call.args.at("capacity").expr;
   klee::ref<klee::Expr> vector_out = call.args.at("vector_out").out;
 
-  const addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector_out);
+  const addr_t vector_addr = expr_addr_to_obj_addr(vector_out);
 
   if (!ep->get_ctx().check_ds_impl(vector_addr, DSImpl::Tofino_VectorRegister)) {
     return {};
@@ -57,7 +61,7 @@ std::vector<impl_t> DataplaneVectorRegisterAllocateFactory::process_node(const E
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -65,13 +69,13 @@ std::vector<impl_t> DataplaneVectorRegisterAllocateFactory::process_node(const E
   return impls;
 }
 
-std::unique_ptr<Module> DataplaneVectorRegisterAllocateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DataplaneVectorRegisterAllocateFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_allocate") {
     return {};
@@ -81,7 +85,7 @@ std::unique_ptr<Module> DataplaneVectorRegisterAllocateFactory::create(const Lib
   klee::ref<klee::Expr> capacity   = call.args.at("capacity").expr;
   klee::ref<klee::Expr> vector_out = call.args.at("vector_out").out;
 
-  addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector_out);
+  const addr_t vector_addr = expr_addr_to_obj_addr(vector_out);
 
   if (!ctx.check_ds_impl(vector_addr, DSImpl::Tofino_VectorRegister)) {
     return {};

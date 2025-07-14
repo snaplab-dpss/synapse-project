@@ -4,6 +4,11 @@
 namespace LibSynapse {
 namespace Controller {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 using Tofino::DS;
 using Tofino::DS_ID;
 using Tofino::DSType;
@@ -16,14 +21,14 @@ struct table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> read_value;
-  LibCore::symbol_t map_has_this_key;
+  symbol_t map_has_this_key;
   int capacity;
 
-  table_data_t(const Context &ctx, const LibBDD::Call *map_get) {
-    const LibBDD::call_t &call = map_get->get_call();
+  table_data_t(const Context &ctx, const Call *map_get) {
+    const call_t &call = map_get->get_call();
     assert(call.function_name == "map_get" && "Not a map_get call");
 
-    obj              = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
+    obj              = expr_addr_to_obj_addr(call.args.at("map").expr);
     key              = call.args.at("key").in;
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
@@ -32,39 +37,39 @@ struct table_data_t {
 };
 } // namespace
 
-std::optional<spec_impl_t> DataplaneHHTableReadFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> DataplaneHHTableReadFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
-    return std::nullopt;
+    return {};
   }
 
   const table_data_t table_data(ep->get_ctx(), map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
-    return std::nullopt;
+    return {};
   }
 
   if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) || !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DataplaneHHTableReadFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> DataplaneHHTableReadFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return {};
@@ -72,7 +77,7 @@ std::vector<impl_t> DataplaneHHTableReadFactory::process_node(const EP *ep, cons
 
   const table_data_t table_data(ep->get_ctx(), map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
     return {};
   }
@@ -87,7 +92,7 @@ std::vector<impl_t> DataplaneHHTableReadFactory::process_node(const EP *ep, cons
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -95,13 +100,13 @@ std::vector<impl_t> DataplaneHHTableReadFactory::process_node(const EP *ep, cons
   return impls;
 }
 
-std::unique_ptr<Module> DataplaneHHTableReadFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DataplaneHHTableReadFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return {};
@@ -109,7 +114,7 @@ std::unique_ptr<Module> DataplaneHHTableReadFactory::create(const LibBDD::BDD *b
 
   const table_data_t table_data(ctx, map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
     return {};
   }

@@ -14,8 +14,7 @@ private:
   bool can_be_inlined;
 
 public:
-  VectorRegisterLookup(const LibBDD::Node *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value,
-                       bool _can_be_inlined)
+  VectorRegisterLookup(const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value, bool _can_be_inlined)
       : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", _node), id(_id), obj(_obj), index(_index), value(_value),
         can_be_inlined(_can_be_inlined) {}
 
@@ -40,9 +39,9 @@ public:
   VectorRegisterLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Tofino

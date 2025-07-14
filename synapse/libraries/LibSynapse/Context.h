@@ -13,6 +13,20 @@
 
 namespace LibSynapse {
 
+using LibBDD::BDD;
+using LibBDD::cht_config_t;
+using LibBDD::cms_config_t;
+using LibBDD::dchain_config_t;
+using LibBDD::map_coalescing_objs_t;
+using LibBDD::map_config_t;
+using LibBDD::tb_config_t;
+using LibBDD::translated_symbol_t;
+using LibBDD::vector_config_t;
+
+using LibCore::expr_struct_t;
+using LibCore::symbol_t;
+using LibCore::SymbolManager;
+
 enum class DSImpl {
   // ========================================
   // Tofino
@@ -59,7 +73,7 @@ std::string ds_impl_to_string(DSImpl impl);
 
 struct expiration_data_t {
   time_ns_t expiration_time;
-  LibCore::symbol_t number_of_freed_flows;
+  symbol_t number_of_freed_flows;
 };
 
 class TargetContext {
@@ -77,22 +91,22 @@ private:
   Profiler profiler;
   PerfOracle perf_oracle;
 
-  std::unordered_map<addr_t, LibBDD::map_config_t> map_configs;
-  std::unordered_map<addr_t, LibBDD::vector_config_t> vector_configs;
-  std::unordered_map<addr_t, LibBDD::dchain_config_t> dchain_configs;
-  std::unordered_map<addr_t, LibBDD::cms_config_t> cms_configs;
-  std::unordered_map<addr_t, LibBDD::cht_config_t> cht_configs;
-  std::unordered_map<addr_t, LibBDD::tb_config_t> tb_configs;
+  std::unordered_map<addr_t, map_config_t> map_configs;
+  std::unordered_map<addr_t, vector_config_t> vector_configs;
+  std::unordered_map<addr_t, dchain_config_t> dchain_configs;
+  std::unordered_map<addr_t, cms_config_t> cms_configs;
+  std::unordered_map<addr_t, cht_config_t> cht_configs;
+  std::unordered_map<addr_t, tb_config_t> tb_configs;
 
-  std::vector<LibBDD::map_coalescing_objs_t> coalescing_candidates;
+  std::vector<map_coalescing_objs_t> coalescing_candidates;
   std::optional<expiration_data_t> expiration_data;
-  std::vector<LibCore::expr_struct_t> expr_structs;
+  std::vector<expr_struct_t> expr_structs;
 
   std::unordered_map<addr_t, DSImpl> ds_impls;
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
 
 public:
-  Context(const LibBDD::BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
+  Context(const BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
   Context(const Context &other);
   Context(Context &&other);
 
@@ -105,16 +119,16 @@ public:
   const PerfOracle &get_perf_oracle() const;
   PerfOracle &get_mutable_perf_oracle();
 
-  const LibBDD::map_config_t &get_map_config(addr_t addr) const;
-  const LibBDD::vector_config_t &get_vector_config(addr_t addr) const;
-  const LibBDD::dchain_config_t &get_dchain_config(addr_t addr) const;
-  const LibBDD::cms_config_t &get_cms_config(addr_t addr) const;
-  const LibBDD::cht_config_t &get_cht_config(addr_t addr) const;
-  const LibBDD::tb_config_t &get_tb_config(addr_t addr) const;
+  const map_config_t &get_map_config(addr_t addr) const;
+  const vector_config_t &get_vector_config(addr_t addr) const;
+  const dchain_config_t &get_dchain_config(addr_t addr) const;
+  const cms_config_t &get_cms_config(addr_t addr) const;
+  const cht_config_t &get_cht_config(addr_t addr) const;
+  const tb_config_t &get_tb_config(addr_t addr) const;
 
-  std::optional<LibBDD::map_coalescing_objs_t> get_map_coalescing_objs(addr_t obj) const;
+  std::optional<map_coalescing_objs_t> get_map_coalescing_objs(addr_t obj) const;
   const std::optional<expiration_data_t> &get_expiration_data() const;
-  const std::vector<LibCore::expr_struct_t> &get_expr_structs() const;
+  const std::vector<expr_struct_t> &get_expr_structs() const;
 
   template <class TCtx> const TCtx *get_target_ctx() const;
   template <class TCtx> const TCtx *get_target_ctx_if_available() const;
@@ -127,15 +141,15 @@ public:
   bool check_ds_impl(addr_t obj, DSImpl impl) const;
   bool can_impl_ds(addr_t obj, DSImpl impl) const;
 
-  void translate(LibCore::SymbolManager *symbol_manager, const std::vector<LibBDD::translated_symbol_t> &translated_symbols);
+  void translate(SymbolManager *symbol_manager, const std::vector<translated_symbol_t> &translated_symbols);
 
   void debug() const;
 
 private:
-  void bdd_pre_processing_get_coalescing_candidates(const LibBDD::BDD *bdd);
-  void bdd_pre_processing_get_ds_configs(const LibBDD::BDD *bdd);
-  void bdd_pre_processing_get_structural_fields(const LibBDD::BDD *bdd);
-  void bdd_pre_processing_build_tofino_parser(const LibBDD::BDD *bdd);
+  void bdd_pre_processing_get_coalescing_candidates(const BDD *bdd);
+  void bdd_pre_processing_get_ds_configs(const BDD *bdd);
+  void bdd_pre_processing_get_structural_fields(const BDD *bdd);
+  void bdd_pre_processing_build_tofino_parser(const BDD *bdd);
   void bdd_pre_processing_log();
 };
 

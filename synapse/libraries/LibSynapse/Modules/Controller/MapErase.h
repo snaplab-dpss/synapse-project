@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> trash;
 
 public:
-  MapErase(const LibBDD::Node *_node, addr_t _map_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _trash)
+  MapErase(const BDDNode *_node, addr_t _map_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _trash)
       : ControllerModule(ModuleType::Controller_MapErase, "MapErase", _node), map_addr(_map_addr), key(_key), trash(_trash) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -32,9 +32,9 @@ public:
   MapEraseFactory() : ControllerModuleFactory(ModuleType::Controller_MapErase, "MapErase") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

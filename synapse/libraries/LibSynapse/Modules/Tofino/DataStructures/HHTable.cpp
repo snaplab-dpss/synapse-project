@@ -5,6 +5,8 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibCore::bits_from_pow2_capacity;
+
 namespace {
 
 std::string build_table_name(DS_ID id, u32 table_num) { return id + "_table_" + std::to_string(table_num); }
@@ -66,7 +68,7 @@ const std::vector<u32> HHTable::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f
 HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _capacity, const std::vector<bits_t> &_keys_sizes, u32 _cms_width,
                  u32 _cms_height, u8 _digest_type)
     : DS(DSType::HHTable, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), cms_width(_cms_width), cms_height(_cms_height),
-      hash_size(LibCore::bits_from_pow2_capacity(_cms_width)), cached_counters(build_cached_counters(properties, _id, _capacity)),
+      hash_size(bits_from_pow2_capacity(_cms_width)), cached_counters(build_cached_counters(properties, _id, _capacity)),
       hashes(build_hashes(_id, _keys_sizes, _cms_height, hash_size)),
       count_min_sketch(build_count_min_sketch(properties, _id, _cms_width, _cms_height, hash_size)), threshold(build_threshold(properties, _id)),
       digest(build_digest(_id, _keys_sizes, _digest_type)) {

@@ -7,6 +7,9 @@
 
 namespace LibBDD {
 
+using LibCore::expr_addr_to_obj_addr;
+using LibCore::solver_toolbox;
+
 std::optional<addr_t> get_obj_from_call(const Call *node_call) {
   std::optional<addr_t> addr;
 
@@ -28,7 +31,7 @@ std::optional<addr_t> get_obj_from_call(const Call *node_call) {
   }
 
   if (!obj.isNull()) {
-    addr = LibCore::expr_addr_to_obj_addr(obj);
+    addr = expr_addr_to_obj_addr(obj);
   }
 
   return addr;
@@ -49,12 +52,12 @@ dchain_config_t get_dchain_config_from_bdd(const BDD &bdd, addr_t dchain_addr) {
     assert(!chain_out.isNull() && "Invalid chain_out");
     assert(!index_range.isNull() && "Invalid index_range");
 
-    addr_t chain_out_addr = LibCore::expr_addr_to_obj_addr(chain_out);
+    addr_t chain_out_addr = expr_addr_to_obj_addr(chain_out);
 
     if (chain_out_addr != dchain_addr)
       continue;
 
-    u64 index_range_value = LibCore::solver_toolbox.value_from_expr(index_range);
+    u64 index_range_value = solver_toolbox.value_from_expr(index_range);
     return dchain_config_t{index_range_value};
   }
 
@@ -71,28 +74,28 @@ bits_t get_key_size(const BDD &bdd, addr_t addr) {
       klee::ref<klee::Expr> _map = call.args.at("map_out").out;
       assert(!_map.isNull() && "Invalid map_out");
 
-      addr_t _map_addr = LibCore::expr_addr_to_obj_addr(_map);
+      addr_t _map_addr = expr_addr_to_obj_addr(_map);
       if (_map_addr != addr)
         continue;
 
       klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
       assert(!key_size.isNull() && "Invalid key_size");
 
-      return LibCore::solver_toolbox.value_from_expr(key_size);
+      return solver_toolbox.value_from_expr(key_size);
     }
 
     if (call.function_name == "cms_allocate") {
       klee::ref<klee::Expr> _cms = call.args.at("cms").expr;
       assert(!_cms.isNull() && "Invalid cms");
 
-      addr_t _cms_addr = LibCore::expr_addr_to_obj_addr(_cms);
+      addr_t _cms_addr = expr_addr_to_obj_addr(_cms);
       if (_cms_addr != addr)
         continue;
 
       klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
       assert(!key_size.isNull() && "Invalid key_size");
 
-      return LibCore::solver_toolbox.value_from_expr(key_size);
+      return solver_toolbox.value_from_expr(key_size);
     }
   }
 
@@ -116,12 +119,12 @@ map_config_t get_map_config_from_bdd(const BDD &bdd, addr_t map_addr) {
     assert(!key_size.isNull() && "Invalid key_size");
     assert(!map_out.isNull() && "Invalid map_out");
 
-    addr_t map_out_addr = LibCore::expr_addr_to_obj_addr(map_out);
+    addr_t map_out_addr = expr_addr_to_obj_addr(map_out);
     if (map_out_addr != map_addr)
       continue;
 
-    u64 capacity_value    = LibCore::solver_toolbox.value_from_expr(capacity);
-    bits_t key_size_value = LibCore::solver_toolbox.value_from_expr(key_size) * 8;
+    u64 capacity_value    = solver_toolbox.value_from_expr(capacity);
+    bits_t key_size_value = solver_toolbox.value_from_expr(key_size) * 8;
 
     return map_config_t{capacity_value, static_cast<bits_t>(key_size_value)};
   }
@@ -146,12 +149,12 @@ vector_config_t get_vector_config_from_bdd(const BDD &bdd, addr_t vector_addr) {
     assert(!elem_size.isNull() && "Invalid elem_size");
     assert(!vector_out.isNull() && "Invalid vector_out");
 
-    addr_t vector_out_addr = LibCore::expr_addr_to_obj_addr(vector_out);
+    addr_t vector_out_addr = expr_addr_to_obj_addr(vector_out);
     if (vector_out_addr != vector_addr)
       continue;
 
-    u64 capacity_value     = LibCore::solver_toolbox.value_from_expr(capacity);
-    bits_t elem_size_value = LibCore::solver_toolbox.value_from_expr(elem_size) * 8;
+    u64 capacity_value     = solver_toolbox.value_from_expr(capacity);
+    bits_t elem_size_value = solver_toolbox.value_from_expr(elem_size) * 8;
 
     return vector_config_t{capacity_value, elem_size_value};
   }
@@ -180,14 +183,14 @@ cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr) {
     assert(!cleanup_interval.isNull() && "Invalid cleanup_interval");
     assert(!cms_out.isNull() && "Invalid cms_out");
 
-    addr_t cms_out_addr = LibCore::expr_addr_to_obj_addr(cms_out);
+    addr_t cms_out_addr = expr_addr_to_obj_addr(cms_out);
     if (cms_out_addr != cms_addr)
       continue;
 
-    u64 height_value                 = LibCore::solver_toolbox.value_from_expr(height);
-    u64 width_value                  = LibCore::solver_toolbox.value_from_expr(width);
-    bits_t key_size_value            = LibCore::solver_toolbox.value_from_expr(key_size) * 8;
-    time_ns_t cleanup_interval_value = LibCore::solver_toolbox.value_from_expr(cleanup_interval);
+    u64 height_value                 = solver_toolbox.value_from_expr(height);
+    u64 width_value                  = solver_toolbox.value_from_expr(width);
+    bits_t key_size_value            = solver_toolbox.value_from_expr(key_size) * 8;
+    time_ns_t cleanup_interval_value = solver_toolbox.value_from_expr(cleanup_interval);
 
     return cms_config_t{height_value, width_value, key_size_value, cleanup_interval_value};
   }
@@ -212,12 +215,12 @@ cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr) {
     assert(!height.isNull() && "Invalid height");
     assert(!cht.isNull() && "Invalid cht");
 
-    addr_t _cht_addr = LibCore::expr_addr_to_obj_addr(cht);
+    addr_t _cht_addr = expr_addr_to_obj_addr(cht);
     if (_cht_addr != cht_addr)
       continue;
 
-    u64 capacity_value = LibCore::solver_toolbox.value_from_expr(capacity);
-    u64 height_value   = LibCore::solver_toolbox.value_from_expr(height);
+    u64 capacity_value = solver_toolbox.value_from_expr(capacity);
+    u64 height_value   = solver_toolbox.value_from_expr(height);
 
     return cht_config_t{capacity_value, height_value};
   }
@@ -246,14 +249,14 @@ tb_config_t get_tb_config_from_bdd(const BDD &bdd, addr_t tb_addr) {
     assert(!key_size.isNull() && "Invalid key_size");
     assert(!tb_out.isNull() && "Invalid tb_out");
 
-    addr_t tb_out_addr = LibCore::expr_addr_to_obj_addr(tb_out);
+    addr_t tb_out_addr = expr_addr_to_obj_addr(tb_out);
     if (tb_out_addr != tb_addr)
       continue;
 
-    u64 capacity_value    = LibCore::solver_toolbox.value_from_expr(capacity);
-    Bps_t rate_value      = LibCore::solver_toolbox.value_from_expr(rate);
-    bytes_t burst_value   = LibCore::solver_toolbox.value_from_expr(burst);
-    bits_t key_size_value = LibCore::solver_toolbox.value_from_expr(key_size) * 8;
+    u64 capacity_value    = solver_toolbox.value_from_expr(capacity);
+    Bps_t rate_value      = solver_toolbox.value_from_expr(rate);
+    bytes_t burst_value   = solver_toolbox.value_from_expr(burst);
+    bits_t key_size_value = solver_toolbox.value_from_expr(key_size) * 8;
 
     return tb_config_t{capacity_value, rate_value, burst_value, key_size_value};
   }

@@ -10,10 +10,13 @@
 
 namespace LibSynapse {
 
+using LibBDD::BDDNode;
+using LibCore::Graphviz;
+
 class EP;
 class EPNode;
 
-class EPViz : public EPVisitor, public LibCore::Graphviz {
+class EPViz : public EPVisitor, public Graphviz {
 public:
   EPViz();
 
@@ -161,8 +164,8 @@ protected:
   void log(const EPNode *ep_node) const override final;
 
 private:
-  void function_call(const EPNode *ep_node, const LibBDD::Node *node, TargetType target, const std::string &label);
-  void branch(const EPNode *ep_node, const LibBDD::Node *node, TargetType target, const std::string &label);
+  void function_call(const EPNode *ep_node, const BDDNode *node, TargetType target, const std::string &label);
+  void branch(const EPNode *ep_node, const BDDNode *node, TargetType target, const std::string &label);
 };
 
 } // namespace LibSynapse

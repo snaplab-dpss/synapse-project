@@ -4,11 +4,16 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
 
 struct tb_data_t {
   addr_t obj;
-  LibBDD::tb_config_t cfg;
+  tb_config_t cfg;
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> pkt_len;
   klee::ref<klee::Expr> hit;
@@ -16,11 +21,11 @@ struct tb_data_t {
   DS_ID id;
 };
 
-tb_data_t get_tb_data(const Context &ctx, const LibBDD::Call *tb_is_tracing, const LibBDD::Call *tb_update_and_check) {
-  const LibBDD::call_t &call_is_tracing = tb_is_tracing->get_call();
+tb_data_t get_tb_data(const Context &ctx, const Call *tb_is_tracing, const Call *tb_update_and_check) {
+  const call_t &call_is_tracing = tb_is_tracing->get_call();
   assert(call_is_tracing.function_name == "tb_is_tracing" && "Unexpected function");
 
-  const LibBDD::call_t &call_update = tb_update_and_check->get_call();
+  const call_t &call_update = tb_update_and_check->get_call();
   assert(call_update.function_name == "tb_update_and_check" && "Unexpected function");
 
   klee::ref<klee::Expr> tb_addr_expr = call_is_tracing.args.at("tb").expr;
@@ -28,9 +33,9 @@ tb_data_t get_tb_data(const Context &ctx, const LibBDD::Call *tb_is_tracing, con
   klee::ref<klee::Expr> index_out    = call_is_tracing.args.at("index_out").out;
   klee::ref<klee::Expr> is_tracing   = call_is_tracing.ret;
 
-  tb_data_t data = {
-      .obj     = LibCore::expr_addr_to_obj_addr(tb_addr_expr),
-      .cfg     = ctx.get_tb_config(LibCore::expr_addr_to_obj_addr(tb_addr_expr)),
+  const tb_data_t data = {
+      .obj     = expr_addr_to_obj_addr(tb_addr_expr),
+      .cfg     = ctx.get_tb_config(expr_addr_to_obj_addr(tb_addr_expr)),
       .keys    = Table::build_keys(key, ctx.get_expr_structs()),
       .pkt_len = call_update.args.at("pkt_len").expr,
       .hit     = is_tracing,
@@ -41,7 +46,7 @@ tb_data_t get_tb_data(const Context &ctx, const LibBDD::Call *tb_is_tracing, con
   return data;
 }
 
-Meter *build_meter(const EP *ep, const LibBDD::Node *node, DS_ID id, const LibBDD::tb_config_t &cfg, const std::vector<klee::ref<klee::Expr>> &keys) {
+Meter *build_meter(const EP *ep, const BDDNode *node, DS_ID id, const tb_config_t &cfg, const std::vector<klee::ref<klee::Expr>> &keys) {
   std::vector<bits_t> keys_size;
   for (klee::ref<klee::Expr> key : keys) {
     keys_size.push_back(key->getWidth());
@@ -58,12 +63,11 @@ Meter *build_meter(const EP *ep, const LibBDD::Node *node, DS_ID id, const LibBD
   return meter;
 }
 
-std::unique_ptr<LibBDD::BDD> delete_future_tb_update(EP *ep, const LibBDD::Node *node, const LibBDD::Call *tb_update_and_check,
-                                                     const LibBDD::Node *&new_next) {
-  const LibBDD::BDD *old_bdd           = ep->get_bdd();
-  std::unique_ptr<LibBDD::BDD> new_bdd = std::make_unique<LibBDD::BDD>(*old_bdd);
+std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const BDDNode *node, const Call *tb_update_and_check, const BDDNode *&new_next) {
+  const BDD *old_bdd           = ep->get_bdd();
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
-  const LibBDD::Node *next = node->get_next();
+  const BDDNode *next = node->get_next();
 
   if (next) {
     new_next = new_bdd->get_node_by_id(next->get_id());
@@ -71,8 +75,8 @@ std::unique_ptr<LibBDD::BDD> delete_future_tb_update(EP *ep, const LibBDD::Node 
     new_next = nullptr;
   }
 
-  bool replace_next         = (tb_update_and_check == next);
-  LibBDD::Node *replacement = new_bdd->delete_non_branch(tb_update_and_check->get_id());
+  bool replace_next    = (tb_update_and_check == next);
+  BDDNode *replacement = new_bdd->delete_non_branch(tb_update_and_check->get_id());
 
   if (replace_next) {
     new_next = replacement;
@@ -82,28 +86,28 @@ std::unique_ptr<LibBDD::BDD> delete_future_tb_update(EP *ep, const LibBDD::Node 
 }
 } // namespace
 
-std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *tb_is_tracing = dynamic_cast<const LibBDD::Call *>(node);
+  const Call *tb_is_tracing = dynamic_cast<const Call *>(node);
 
-  const LibBDD::Call *tb_update_and_check;
+  const Call *tb_update_and_check;
   if (!tb_is_tracing->is_tb_tracing_check_followed_by_update_on_true(tb_update_and_check)) {
-    return std::nullopt;
+    return {};
   }
 
-  tb_data_t data = get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check);
+  const tb_data_t data = get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_Meter)) {
-    return std::nullopt;
+    return {};
   }
 
   Meter *meter = build_meter(ep, node, data.id, data.cfg, data.keys);
 
   if (!meter) {
-    return std::nullopt;
+    return {};
   }
 
   delete meter;
@@ -117,14 +121,14 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const Lib
   return spec_impl;
 }
 
-std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *tb_is_tracing = dynamic_cast<const LibBDD::Call *>(node);
+  const Call *tb_is_tracing = dynamic_cast<const Call *>(node);
 
-  const LibBDD::Call *tb_update_and_check;
+  const Call *tb_update_and_check;
   if (!tb_is_tracing->is_tb_tracing_check_followed_by_update_on_true(tb_update_and_check)) {
     return {};
   }
@@ -146,8 +150,8 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const LibBDD:
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  const LibBDD::Node *new_next;
-  std::unique_ptr<LibBDD::BDD> new_bdd = delete_future_tb_update(new_ep.get(), node, tb_update_and_check, new_next);
+  const BDDNode *new_next;
+  std::unique_ptr<BDD> new_bdd = delete_future_tb_update(new_ep.get(), node, tb_update_and_check, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(data.obj, DSImpl::Tofino_Meter);
@@ -155,7 +159,7 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const LibBDD:
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, data.obj, meter);
 
-  EPLeaf leaf(ep_node, new_next);
+  const EPLeaf leaf(ep_node, new_next);
   new_ep->process_leaf(ep_node, {leaf});
   new_ep->replace_bdd(std::move(new_bdd));
 
@@ -164,25 +168,25 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
-std::unique_ptr<Module> MeterUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> MeterUpdateFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *tb_is_tracing = dynamic_cast<const LibBDD::Call *>(node);
+  const Call *tb_is_tracing = dynamic_cast<const Call *>(node);
 
-  const LibBDD::Call *tb_update_and_check;
+  const Call *tb_update_and_check;
   if (!tb_is_tracing->is_tb_tracing_check_followed_by_update_on_true(tb_update_and_check)) {
     return {};
   }
 
-  tb_data_t data = get_tb_data(ctx, tb_is_tracing, tb_update_and_check);
+  const tb_data_t data = get_tb_data(ctx, tb_is_tracing, tb_update_and_check);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_Meter)) {
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Meter *meter = dynamic_cast<const Meter *>(*ds.begin());
 

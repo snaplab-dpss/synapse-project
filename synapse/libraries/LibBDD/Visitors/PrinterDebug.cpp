@@ -5,13 +5,15 @@
 
 namespace LibBDD {
 
-void PrinterDebug::debug(const Node *node) {
+using LibCore::expr_to_string;
+
+void PrinterDebug::debug(const BDDNode *node) {
   PrinterDebug debug(false);
   node->visit(debug);
 }
 
 void PrinterDebug::visit(const BDD *bdd) {
-  const Node *root = bdd->get_root();
+  const BDDNode *root = bdd->get_root();
   assert(root && "No root node");
 
   klee::ref<klee::Expr> device     = bdd->get_device().expr;
@@ -29,20 +31,20 @@ void PrinterDebug::visit(const BDD *bdd) {
 
   std::cerr << "===========================================\n";
   std::cerr << "Base symbols:\n";
-  std::cerr << "  " << LibCore::expr_to_string(device, true) << "\n";
-  std::cerr << "  " << LibCore::expr_to_string(packet_len, true) << "\n";
-  std::cerr << "  " << LibCore::expr_to_string(time, true) << "\n";
+  std::cerr << "  " << expr_to_string(device, true) << "\n";
+  std::cerr << "  " << expr_to_string(packet_len, true) << "\n";
+  std::cerr << "  " << expr_to_string(time, true) << "\n";
   std::cerr << "===========================================\n";
 }
 
-void PrinterDebug::visitRoot(const Node *root) { root->visit(*this); }
+void PrinterDebug::visitRoot(const BDDNode *root) { root->visit(*this); }
 
 BDDVisitor::Action PrinterDebug::visit(const Branch *node) {
-  node_id_t id                    = node->get_id();
+  bdd_node_id_t id                = node->get_id();
   klee::ref<klee::Expr> condition = node->get_condition();
 
-  const Node *on_true  = node->get_on_true();
-  const Node *on_false = node->get_on_false();
+  const BDDNode *on_true  = node->get_on_true();
+  const BDDNode *on_false = node->get_on_false();
 
   std::string on_true_id  = on_true ? std::to_string(on_true->get_id()) : "X";
   std::string on_false_id = on_false ? std::to_string(on_false->get_id()) : "X";
@@ -61,9 +63,9 @@ BDDVisitor::Action PrinterDebug::visit(const Branch *node) {
 }
 
 BDDVisitor::Action PrinterDebug::visit(const Call *node) {
-  node_id_t id       = node->get_id();
-  const call_t &call = node->get_call();
-  const Node *next   = node->get_next();
+  bdd_node_id_t id    = node->get_id();
+  const call_t &call  = node->get_call();
+  const BDDNode *next = node->get_next();
 
   std::cerr << "===========================================\n";
   std::cerr << "node:      " << id << "\n";
@@ -95,10 +97,10 @@ BDDVisitor::Action PrinterDebug::visit(const Call *node) {
 }
 
 BDDVisitor::Action PrinterDebug::visit(const Route *node) {
-  node_id_t id                     = node->get_id();
+  bdd_node_id_t id                 = node->get_id();
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
   RouteOp operation                = node->get_operation();
-  const Node *next                 = node->get_next();
+  const BDDNode *next              = node->get_next();
 
   std::cerr << "===========================================\n";
   std::cerr << "node:      " << id << "\n";
@@ -106,7 +108,7 @@ BDDVisitor::Action PrinterDebug::visit(const Route *node) {
   std::cerr << "operation: ";
   switch (operation) {
   case RouteOp::Forward: {
-    std::cerr << "fwd(" << LibCore::expr_to_string(dst_device) << ")";
+    std::cerr << "fwd(" << expr_to_string(dst_device) << ")";
     break;
   }
   case RouteOp::Drop: {
@@ -128,12 +130,12 @@ BDDVisitor::Action PrinterDebug::visit(const Route *node) {
   return traverse ? BDDVisitor::Action::Continue : BDDVisitor::Action::Stop;
 }
 
-void PrinterDebug::visitConstraints(const Node *node) {
+void PrinterDebug::visitConstraints(const BDDNode *node) {
   const auto &constraints = node->get_constraints();
   if (constraints.size() > 0) {
     std::cerr << "constraints:\n";
     for (const auto &constraint : constraints) {
-      std::cerr << "  " << LibCore::expr_to_string(constraint, true) << "\n";
+      std::cerr << "  " << expr_to_string(constraint, true) << "\n";
     }
   }
 }

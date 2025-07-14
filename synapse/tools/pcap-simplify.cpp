@@ -6,12 +6,14 @@
 
 #include <CLI/CLI.hpp>
 
+using namespace LibCore;
+
 struct pkt_hdr_t {
   ipv4_hdr_t ip_hdr;
   udp_hdr_t udp_hdr;
 } __attribute__((packed));
 
-pkt_hdr_t build_pkt(const LibCore::flow_t &flow, uint16_t len) {
+pkt_hdr_t build_pkt(const flow_t &flow, uint16_t len) {
   pkt_hdr_t pkt;
 
   pkt.ip_hdr.version         = 4;
@@ -48,12 +50,12 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  LibCore::PcapReader pcap_reader(pcap_file);
+  PcapReader pcap_reader(pcap_file);
 
   std::filesystem::path filtered_pcap_file = pcap_file.filename().stem();
   filtered_pcap_file += "-filtered.pcap";
 
-  LibCore::PcapWriter filtered_writer(filtered_pcap_file.c_str(), true);
+  PcapWriter filtered_writer(filtered_pcap_file.c_str(), true);
 
   u64 total_pkts = pcap_reader.get_total_pkts();
   u64 pkt_count  = 0;
@@ -63,7 +65,7 @@ int main(int argc, char *argv[]) {
   u16 hdrs_len;
   u16 sz;
   time_ns_t ts;
-  std::optional<LibCore::flow_t> flow;
+  std::optional<flow_t> flow;
 
   while (pcap_reader.read(pkt, hdrs_len, sz, ts, flow)) {
     pkt_count++;

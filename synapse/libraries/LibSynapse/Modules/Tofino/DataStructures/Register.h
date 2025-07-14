@@ -13,6 +13,8 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibCore::expr_struct_t;
+
 struct tna_properties_t;
 
 enum class RegisterActionType {
@@ -51,7 +53,7 @@ struct Register : public DS {
   u32 get_num_logical_ids() const;
 
   static std::vector<klee::ref<klee::Expr>> partition_value(const tna_properties_t &properties, klee::ref<klee::Expr> value,
-                                                            const std::vector<LibCore::expr_struct_t> &expr_structs);
+                                                            const std::vector<expr_struct_t> &expr_structs);
 };
 
 } // namespace Tofino

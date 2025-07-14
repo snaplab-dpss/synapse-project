@@ -11,7 +11,7 @@ private:
   klee::ref<klee::Expr> key;
 
 public:
-  CMSIncrement(const LibBDD::Node *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
+  CMSIncrement(const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
       : ControllerModule(ModuleType::Controller_CMSIncrement, "CMSIncrement", _node), cms_addr(_cms_addr), key(_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -30,9 +30,9 @@ public:
   CMSIncrementFactory() : ControllerModuleFactory(ModuleType::Controller_CMSIncrement, "CMSIncrement") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

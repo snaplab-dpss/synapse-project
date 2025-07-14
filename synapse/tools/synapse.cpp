@@ -10,6 +10,10 @@
 #include <CLI/CLI.hpp>
 #include <nlohmann/json.hpp>
 
+using namespace LibCore;
+using namespace LibBDD;
+using namespace LibSynapse;
+
 std::string nf_name_from_bdd(const std::string &bdd_fname) {
   std::string nf_name = bdd_fname;
   nf_name             = nf_name.substr(nf_name.find_last_of("/") + 1);
@@ -22,9 +26,9 @@ struct args_t {
   std::filesystem::path out_dir;
   std::string name;
   std::filesystem::path targets_config_file;
-  LibSynapse::HeuristicOption heuristic_opt;
+  HeuristicOption heuristic_opt;
   std::filesystem::path profile_file;
-  LibSynapse::search_config_t search_config;
+  search_config_t search_config;
   u32 seed;
   bool assume_uniform_forwarding_distribution{false};
   bool show_prof{false};
@@ -35,19 +39,19 @@ struct args_t {
   bool dry_run{false};
 
   void print() const {
-    const LibSynapse::targets_config_t targets_config(targets_config_file);
-    const LibSynapse::Targets targets(targets_config);
+    const targets_config_t targets_config(targets_config_file);
+    const Targets targets(targets_config);
 
     std::cout << "====================== Args ======================\n";
     std::cout << "Input BDD file:       " << input_bdd_file.string() << "\n";
     std::cout << "Output directory:     " << out_dir.string() << "\n";
     std::cout << "Name:                 " << name << "\n";
     std::cout << "Targets config:       " << targets_config_file.string() << "\n";
-    std::cout << "Heuristic:            " << LibSynapse::heuristic_opt_to_str.at(heuristic_opt) << "\n";
+    std::cout << "Heuristic:            " << heuristic_opt_to_str.at(heuristic_opt) << "\n";
     std::cout << "Profile file:         " << profile_file.string() << "\n";
     std::cout << "Seed:                 " << seed << "\n";
     std::cout << "Targets:              ";
-    for (const LibSynapse::TargetView &target : targets.get_view().elements) {
+    for (const TargetView &target : targets.get_view().elements) {
       std::cout << target.type << " (" << target.module_factories.size() << " modules) ";
     }
     std::cout << "\n";
@@ -76,7 +80,7 @@ struct args_t {
   }
 };
 
-void dump_final_report(const args_t &args, const LibSynapse::search_report_t &search_report) {
+void dump_final_report(const args_t &args, const search_report_t &search_report) {
   const std::filesystem::path out_report_fpath = args.out_dir / (args.name + ".json");
 
   nlohmann::json report_json;
@@ -85,7 +89,7 @@ void dump_final_report(const args_t &args, const LibSynapse::search_report_t &se
   report_json["targets_config_file"] = args.targets_config_file.filename().string();
   report_json["profile_file"]        = args.profile_file.filename().string();
   report_json["seed"]                = args.seed;
-  report_json["heuristic"]           = LibSynapse::heuristic_opt_to_str.at(args.heuristic_opt);
+  report_json["heuristic"]           = heuristic_opt_to_str.at(args.heuristic_opt);
 
   report_json["heuristic"] = nlohmann::json::object();
 
@@ -95,7 +99,7 @@ void dump_final_report(const args_t &args, const LibSynapse::search_report_t &se
   }
 
   report_json["heuristic"]["meta"] = nlohmann::json::array();
-  for (const LibSynapse::heuristic_metadata_t &meta : search_report.heuristic_meta) {
+  for (const heuristic_metadata_t &meta : search_report.heuristic_meta) {
     nlohmann::json meta_json;
     meta_json["name"]        = meta.name;
     meta_json["description"] = meta.description;
@@ -129,7 +133,7 @@ void dump_final_report(const args_t &args, const LibSynapse::search_report_t &se
   for (const auto &[ds_addr, ds_impl] : search_report.ep->get_ctx().get_ds_impls()) {
     nlohmann::json ds_impl_json;
     ds_impl_json["addr"]           = ds_addr;
-    ds_impl_json["implementation"] = LibSynapse::ds_impl_to_string(ds_impl);
+    ds_impl_json["implementation"] = ds_impl_to_string(ds_impl);
     report_json["implementations"].push_back(ds_impl_json);
   }
 
@@ -142,7 +146,7 @@ void dump_final_report(const args_t &args, const LibSynapse::search_report_t &se
   out_report.close();
 }
 
-void dump_final_hr_report(const args_t &args, const LibSynapse::search_report_t &search_report) {
+void dump_final_hr_report(const args_t &args, const search_report_t &search_report) {
   const std::filesystem::path out_hr_report_fpath = args.out_dir / (args.name + ".txt");
 
   std::ofstream out_hr_report(out_hr_report_fpath);
@@ -155,13 +159,13 @@ void dump_final_hr_report(const args_t &args, const LibSynapse::search_report_t 
   out_hr_report << "  Input BDD file:     " << args.input_bdd_file.filename().string() << "\n";
   out_hr_report << "  Name:               " << args.name << "\n";
   out_hr_report << "  Targets config:     " << args.targets_config_file.filename().string() << "\n";
-  out_hr_report << "  Heuristic:          " << LibSynapse::heuristic_opt_to_str.at(args.heuristic_opt) << "\n";
+  out_hr_report << "  Heuristic:          " << heuristic_opt_to_str.at(args.heuristic_opt) << "\n";
   out_hr_report << "  Profile file:       " << args.profile_file.filename().string() << "\n";
   out_hr_report << "  Seed:               " << args.seed << "\n";
   out_hr_report << "  Targets:\n";
-  const LibSynapse::targets_config_t targets_config(args.targets_config_file);
-  const LibSynapse::Targets targets(targets_config);
-  for (const LibSynapse::TargetView &target : targets.get_view().elements) {
+  const targets_config_t targets_config(args.targets_config_file);
+  const Targets targets(targets_config);
+  for (const TargetView &target : targets.get_view().elements) {
     out_hr_report << "    " << target.type << " (" << target.module_factories.size() << " modules)\n";
   }
   out_hr_report << "  No reorder:         " << args.search_config.no_reorder << "\n";
@@ -171,7 +175,7 @@ void dump_final_hr_report(const args_t &args, const LibSynapse::search_report_t 
 
   out_hr_report << "Winner:\n";
   out_hr_report << "  Score: " << search_report.score << "\n";
-  for (const LibSynapse::heuristic_metadata_t &meta : search_report.heuristic_meta) {
+  for (const heuristic_metadata_t &meta : search_report.heuristic_meta) {
     out_hr_report << "  " << meta.name << ": " << meta.description << "\n";
   }
   out_hr_report << "\n";
@@ -184,14 +188,14 @@ void dump_final_hr_report(const args_t &args, const LibSynapse::search_report_t 
 
   out_hr_report << "Search Metadata:\n";
   out_hr_report << "  Elapsed time:       " << search_report.meta.elapsed_time << " seconds\n";
-  out_hr_report << "  Steps:              " << LibCore::int2hr(search_report.meta.steps) << "\n";
-  out_hr_report << "  Backtracks:         " << LibCore::int2hr(search_report.meta.backtracks) << "\n";
-  out_hr_report << "  Search space size:  " << LibCore::int2hr(search_report.meta.ss_size) << "\n";
-  out_hr_report << "  Unfinished EPs:     " << LibCore::int2hr(search_report.meta.unfinished_eps) << "\n";
-  out_hr_report << "  Finished EPs:       " << LibCore::int2hr(search_report.meta.finished_eps) << "\n";
-  out_hr_report << "  Avg BDD size:       " << LibCore::int2hr(search_report.meta.avg_bdd_size) << "\n";
-  out_hr_report << "  Branching factor:   " << LibCore::int2hr(search_report.meta.branching_factor) << "\n";
-  out_hr_report << "  Total SS size est.: " << LibCore::int2hr(search_report.meta.total_ss_size_estimation) << "\n";
+  out_hr_report << "  Steps:              " << int2hr(search_report.meta.steps) << "\n";
+  out_hr_report << "  Backtracks:         " << int2hr(search_report.meta.backtracks) << "\n";
+  out_hr_report << "  Search space size:  " << int2hr(search_report.meta.ss_size) << "\n";
+  out_hr_report << "  Unfinished EPs:     " << int2hr(search_report.meta.unfinished_eps) << "\n";
+  out_hr_report << "  Finished EPs:       " << int2hr(search_report.meta.finished_eps) << "\n";
+  out_hr_report << "  Avg BDD size:       " << int2hr(search_report.meta.avg_bdd_size) << "\n";
+  out_hr_report << "  Branching factor:   " << int2hr(search_report.meta.branching_factor) << "\n";
+  out_hr_report << "  Total SS size est.: " << int2hr(search_report.meta.total_ss_size_estimation) << "\n";
   out_hr_report << "  Avg children per node:\n";
   for (const auto &[node_id, avg_children] : search_report.meta.avg_children_per_node) {
     out_hr_report << "    Node " << node_id << ": " << avg_children << "\n";
@@ -212,7 +216,7 @@ int main(int argc, char **argv) {
   app.add_option("--name", args.name, "Synthesized filenames (without extensions) (defaults to \"synapse-{bdd filename}\").");
   app.add_option("--config", args.targets_config_file, "Configuration file.")->required();
   app.add_option("--heuristic", args.heuristic_opt, "Chosen heuristic.")
-      ->transform(CLI::CheckedTransformer(LibSynapse::str_to_heuristic_opt, CLI::ignore_case))
+      ->transform(CLI::CheckedTransformer(str_to_heuristic_opt, CLI::ignore_case))
       ->required();
   app.add_option("--profile", args.profile_file, "BDD profile file JSON.");
   app.add_option("--seed", args.seed, "Random seed.")->default_val(std::random_device()());
@@ -234,7 +238,7 @@ int main(int argc, char **argv) {
   if (args.name.empty()) {
     args.name = "synapse";
     args.name += "-" + nf_name_from_bdd(args.input_bdd_file);
-    args.name += "-" + LibSynapse::heuristic_opt_to_str.at(args.heuristic_opt);
+    args.name += "-" + heuristic_opt_to_str.at(args.heuristic_opt);
     args.name += "-" + std::to_string(args.seed);
     if (!args.profile_file.empty()) {
       args.name += "-" + args.profile_file.stem().string();
@@ -246,32 +250,31 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  LibCore::SingletonRandomEngine::seed(args.seed);
-  LibCore::SymbolManager symbol_manager;
-  const LibBDD::BDD bdd(args.input_bdd_file, &symbol_manager);
-  const LibSynapse::targets_config_t targets_config(args.targets_config_file);
-  const LibBDD::bdd_profile_t bdd_profile =
-      args.profile_file.empty() ? LibBDD::build_random_bdd_profile(&bdd) : LibBDD::parse_bdd_profile(args.profile_file);
-  const LibSynapse::Profiler profiler = LibSynapse::Profiler(&bdd, bdd_profile, args.assume_uniform_forwarding_distribution);
+  SingletonRandomEngine::seed(args.seed);
+  SymbolManager symbol_manager;
+  const BDD bdd(args.input_bdd_file, &symbol_manager);
+  const targets_config_t targets_config(args.targets_config_file);
+  const bdd_profile_t bdd_profile = args.profile_file.empty() ? build_random_bdd_profile(&bdd) : parse_bdd_profile(args.profile_file);
+  const Profiler profiler         = Profiler(&bdd, bdd_profile, args.assume_uniform_forwarding_distribution);
 
   if (args.show_prof) {
     profiler.debug();
-    LibSynapse::ProfilerViz::visualize(&bdd, profiler, true);
+    ProfilerViz::visualize(&bdd, profiler, true);
   }
 
-  LibSynapse::SearchEngine engine(bdd, args.heuristic_opt, profiler, targets_config, args.search_config);
-  const LibSynapse::search_report_t report = engine.search();
+  SearchEngine engine(bdd, args.heuristic_opt, profiler, targets_config, args.search_config);
+  const search_report_t report = engine.search();
 
   if (args.show_ep) {
-    LibSynapse::EPViz::visualize(report.ep.get(), false);
+    EPViz::visualize(report.ep.get(), false);
   }
 
   if (args.show_ss) {
-    LibSynapse::SSViz::visualize(report.search_space.get(), report.ep.get(), false);
+    SSViz::visualize(report.search_space.get(), report.ep.get(), false);
   }
 
   if (args.show_bdd) {
-    LibSynapse::ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
+    ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
   }
 
   if (!args.out_dir.empty()) {
@@ -279,12 +282,12 @@ int main(int argc, char **argv) {
     const std::filesystem::path ep_fpath  = args.out_dir / (args.name + "-ep.dot");
     const std::filesystem::path ss_fpath  = args.out_dir / (args.name + "-ss.dot");
 
-    LibSynapse::ProfilerViz::dump_to_file(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), bdd_fpath);
-    LibSynapse::EPViz::dump_to_file(report.ep.get(), ep_fpath);
-    LibSynapse::SSViz::dump_to_file(report.search_space.get(), report.ep.get(), ss_fpath);
+    ProfilerViz::dump_to_file(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), bdd_fpath);
+    EPViz::dump_to_file(report.ep.get(), ep_fpath);
+    SSViz::dump_to_file(report.search_space.get(), report.ep.get(), ss_fpath);
 
     if (!args.skip_synthesis) {
-      LibSynapse::synthesize(report.ep.get(), args.name, args.out_dir);
+      synthesize(report.ep.get(), args.name, args.out_dir);
     }
   }
 
@@ -303,16 +306,16 @@ int main(int argc, char **argv) {
   std::cout << "  Random seed:      " << args.seed << "\n";
   std::cout << "Search:\n";
   std::cout << "  Search time:      " << report.meta.elapsed_time << " s\n";
-  std::cout << "  SS size:          " << LibCore::int2hr(report.meta.ss_size) << "\n";
-  std::cout << "  Steps:            " << LibCore::int2hr(report.meta.steps) << "\n";
-  std::cout << "  Backtracks:       " << LibCore::int2hr(report.meta.backtracks) << "\n";
+  std::cout << "  SS size:          " << int2hr(report.meta.ss_size) << "\n";
+  std::cout << "  Steps:            " << int2hr(report.meta.steps) << "\n";
+  std::cout << "  Backtracks:       " << int2hr(report.meta.backtracks) << "\n";
   std::cout << "  Branching factor: " << report.meta.branching_factor << "\n";
-  std::cout << "  Avg BDD size:     " << LibCore::int2hr(report.meta.avg_bdd_size) << "\n";
-  std::cout << "  Unfinished EPs:   " << LibCore::int2hr(report.meta.unfinished_eps) << "\n";
-  std::cout << "  Solutions:        " << LibCore::int2hr(report.meta.finished_eps) << "\n";
+  std::cout << "  Avg BDD size:     " << int2hr(report.meta.avg_bdd_size) << "\n";
+  std::cout << "  Unfinished EPs:   " << int2hr(report.meta.unfinished_eps) << "\n";
+  std::cout << "  Solutions:        " << int2hr(report.meta.finished_eps) << "\n";
   std::cout << "Winner EP:\n";
   std::cout << "  Score: " << report.score << "\n";
-  for (const LibSynapse::heuristic_metadata_t &meta : report.heuristic_meta) {
+  for (const heuristic_metadata_t &meta : report.heuristic_meta) {
     std::cout << "  " << meta.name << ": " << meta.description << "\n";
   }
   std::cout << "\n";

@@ -12,6 +12,8 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibCore::expr_struct_t;
+
 enum class TimeAware { Yes, No };
 
 struct Table : public DS {
@@ -31,7 +33,7 @@ struct Table : public DS {
   bits_t get_consumed_sram_per_entry() const;
 
   static u32 adjust_capacity_for_collisions(u32 capacity);
-  static std::vector<klee::ref<klee::Expr>> build_keys(klee::ref<klee::Expr> key, const std::vector<LibCore::expr_struct_t> &headers);
+  static std::vector<klee::ref<klee::Expr>> build_keys(klee::ref<klee::Expr> key, const std::vector<expr_struct_t> &headers);
 };
 
 } // namespace Tofino

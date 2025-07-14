@@ -18,7 +18,7 @@ std::string stringify_score(const Score &score) {
   score_builder << score;
 
   std::string score_str = score_builder.str();
-  LibCore::Graphviz::sanitize_html_label(score_str);
+  Graphviz::sanitize_html_label(score_str);
 
   return score_str;
 }

@@ -4,6 +4,11 @@
 namespace LibSynapse {
 namespace Controller {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 using Tofino::MapTable;
 using Tofino::Table;
 
@@ -13,21 +18,21 @@ struct map_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
-  std::optional<LibCore::symbol_t> found;
+  std::optional<symbol_t> found;
 };
 
-map_table_data_t table_data_from_map_op(const Context &ctx, const LibBDD::Call *call_node) {
-  const LibBDD::call_t &call = call_node->get_call();
+map_table_data_t table_data_from_map_op(const Context &ctx, const Call *call_node) {
+  const call_t &call = call_node->get_call();
   assert(call.function_name == "map_get" && "Not a map_get call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
   klee::ref<klee::Expr> value_out     = call.args.at("value_out").out;
 
-  LibCore::symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
+  const symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
 
   const map_table_data_t data = {
-      .obj   = LibCore::expr_addr_to_obj_addr(map_addr_expr),
+      .obj   = expr_addr_to_obj_addr(map_addr_expr),
       .key   = key,
       .value = value_out,
       .found = map_has_this_key,
@@ -38,35 +43,34 @@ map_table_data_t table_data_from_map_op(const Context &ctx, const LibBDD::Call *
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneMapTableLookupFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> DataplaneMapTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
-    return std::nullopt;
+    return {};
   }
 
-  map_table_data_t data = table_data_from_map_op(ctx, map_get);
+  const map_table_data_t data = table_data_from_map_op(ctx, map_get);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_MapTable)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DataplaneMapTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                                 LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> DataplaneMapTableLookupFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return {};
@@ -83,7 +87,7 @@ std::vector<impl_t> DataplaneMapTableLookupFactory::process_node(const EP *ep, c
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -91,19 +95,19 @@ std::vector<impl_t> DataplaneMapTableLookupFactory::process_node(const EP *ep, c
   return impls;
 }
 
-std::unique_ptr<Module> DataplaneMapTableLookupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DataplaneMapTableLookupFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return {};
   }
 
-  map_table_data_t data = table_data_from_map_op(ctx, map_get);
+  const map_table_data_t data = table_data_from_map_op(ctx, map_get);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapTable)) {
     return {};

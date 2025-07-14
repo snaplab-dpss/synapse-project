@@ -7,7 +7,7 @@ namespace Tofino {
 
 namespace {
 
-std::string build_table_name(DS_ID id, LibBDD::node_id_t table_num) { return id + "_" + std::to_string(table_num); }
+std::string build_table_name(DS_ID id, bdd_node_id_t table_num) { return id + "_" + std::to_string(table_num); }
 
 } // namespace
 
@@ -47,7 +47,7 @@ std::vector<std::unordered_set<const DS *>> MapTable::get_internal() const {
   return internal_ds;
 }
 
-bool MapTable::has_table(LibBDD::node_id_t op) const {
+bool MapTable::has_table(bdd_node_id_t op) const {
   const std::string table_id = build_table_name(id, op);
   for (const Table &table : tables) {
     if (table.id == table_id)
@@ -56,7 +56,7 @@ bool MapTable::has_table(LibBDD::node_id_t op) const {
   return false;
 }
 
-const Table *MapTable::get_table(LibBDD::node_id_t op) const {
+const Table *MapTable::get_table(bdd_node_id_t op) const {
   const std::string table_id = build_table_name(id, op);
   for (const Table &table : tables) {
     if (table.id == table_id)
@@ -65,7 +65,7 @@ const Table *MapTable::get_table(LibBDD::node_id_t op) const {
   return nullptr;
 }
 
-std::optional<DS_ID> MapTable::add_table(LibBDD::node_id_t op, const std::vector<bits_t> &keys_sizes, TimeAware time_aware) {
+std::optional<DS_ID> MapTable::add_table(bdd_node_id_t op, const std::vector<bits_t> &keys_sizes, TimeAware time_aware) {
   Table new_table(build_table_name(id, op), capacity, keys_sizes, {param_size}, time_aware);
   tables.push_back(new_table);
   return new_table.id;

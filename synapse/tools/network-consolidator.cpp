@@ -4,6 +4,10 @@
 #include <filesystem>
 #include <CLI/CLI.hpp>
 
+using namespace LibCore;
+using namespace LibBDD;
+using namespace LibClone;
+
 int main(int argc, char **argv) {
   CLI::App app{"Network consolidator"};
 
@@ -13,8 +17,8 @@ int main(int argc, char **argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  LibCore::SymbolManager manager;
-  LibClone::Network network = LibClone::Network::parse(input_network_consolidation_plan_file, &manager);
+  SymbolManager manager;
+  Network network = Network::parse(input_network_consolidation_plan_file, &manager);
 
   network.debug();
 

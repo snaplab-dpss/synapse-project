@@ -98,7 +98,7 @@ Heuristic::ep_it_t Heuristic::get_next_unfinished_it() {
       it = unfinished_eps.begin();
     }
 
-    if (LibCore::SingletonRandomEngine::generate() % 2 == 0) {
+    if (SingletonRandomEngine::generate() % 2 == 0) {
       break;
     }
 

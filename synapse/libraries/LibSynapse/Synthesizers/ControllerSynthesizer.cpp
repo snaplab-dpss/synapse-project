@@ -8,6 +8,16 @@ namespace Controller {
 
 namespace {
 
+using LibCore::bytes_in_expr;
+using LibCore::expr_to_string;
+using LibCore::get_unique_symbolic_reads;
+using LibCore::is_constant;
+using LibCore::is_constant_signed;
+using LibCore::match_endian_swap_pattern;
+using LibCore::simplify;
+using LibCore::solver_toolbox;
+using LibCore::symbolic_reads_t;
+
 using LibSynapse::Tofino::DS;
 using LibSynapse::Tofino::DS_ID;
 using LibSynapse::Tofino::TNA;
@@ -78,26 +88,26 @@ ControllerSynthesizer::Transpiler::Transpiler(const ControllerSynthesizer *_synt
 ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt) {
   loaded_opt = opt;
 
-  std::cerr << "Transpiling: " << LibCore::expr_to_string(expr) << "\n";
-  expr = LibCore::simplify(expr);
-  std::cerr << "Simplified:  " << LibCore::expr_to_string(expr) << "\n";
+  std::cerr << "Transpiling: " << expr_to_string(expr) << "\n";
+  expr = simplify(expr);
+  std::cerr << "Simplified:  " << expr_to_string(expr) << "\n";
 
   coders.emplace();
   coder_t &coder = coders.top();
 
   klee::ref<klee::Expr> endian_swap_target;
 
-  if (LibCore::is_constant(expr)) {
+  if (is_constant(expr)) {
     assert(expr->getWidth() <= 64 && "Unsupported constant width");
-    u64 value = LibCore::solver_toolbox.value_from_expr(expr);
+    u64 value = solver_toolbox.value_from_expr(expr);
     coder << value;
     if (value > (1ull << 31)) {
-      if (!LibCore::is_constant_signed(expr)) {
+      if (!is_constant_signed(expr)) {
         coder << "U";
       }
       coder << "LL";
     }
-  } else if (LibCore::match_endian_swap_pattern(expr, endian_swap_target)) {
+  } else if (match_endian_swap_pattern(expr, endian_swap_target)) {
     bits_t size = endian_swap_target->getWidth();
     if (size == 16) {
       coder << "bswap16(" << transpile(endian_swap_target, loaded_opt) << ")";
@@ -161,10 +171,10 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitRead(const kle
     return Action::skipChildren();
   }
 
-  std::cerr << LibCore::expr_to_string(expr) << "\n";
+  std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  panic("TODO: visitRead (%s)", LibCore::expr_to_string(expr).c_str());
+  panic("TODO: visitRead (%s)", expr_to_string(expr).c_str());
   return Action::skipChildren();
 }
 
@@ -199,7 +209,7 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitConcat(const k
     return Action::skipChildren();
   }
 
-  std::cerr << LibCore::expr_to_string(expr) << "\n";
+  std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
   panic("TODO: visitConcat");
@@ -350,7 +360,7 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitEq(const klee:
   klee::ref<klee::Expr> var_expr;
   klee::ref<klee::Expr> const_expr;
 
-  if (LibCore::is_constant(lhs)) {
+  if (is_constant(lhs)) {
     const_expr = lhs;
     var_expr   = rhs;
   } else {
@@ -374,7 +384,7 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitNe(const klee:
   klee::ref<klee::Expr> var_expr;
   klee::ref<klee::Expr> const_expr;
 
-  if (LibCore::is_constant(lhs)) {
+  if (is_constant(lhs)) {
     const_expr = lhs;
     var_expr   = rhs;
   } else {
@@ -567,12 +577,12 @@ void ControllerSynthesizer::Stack::clear() {
 std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get_exact(klee::ref<klee::Expr> expr) const {
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
-    if (LibCore::solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
+    if (solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
       return var;
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
 std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const {
@@ -591,9 +601,9 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get(kl
     }
 
     for (bits_t offset = 0; offset + expr_size <= var_size; offset += 8) {
-      klee::ref<klee::Expr> var_slice = LibCore::solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
+      klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
 
-      if (LibCore::solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
+      if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
         const var_t out_var = {
             .name      = var.get_slice(offset, expr_size, opt),
             .expr      = var_slice,
@@ -607,7 +617,7 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get(kl
       }
     }
   }
-  return std::nullopt;
+  return {};
 }
 
 std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get_by_addr(addr_t addr) const {
@@ -618,7 +628,7 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get_by
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
 std::vector<ControllerSynthesizer::var_t> ControllerSynthesizer::Stack::get_all() const { return frames; }
@@ -654,7 +664,7 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stacks::get(k
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
 std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stacks::get_by_addr(addr_t addr) const {
@@ -664,7 +674,7 @@ std::optional<ControllerSynthesizer::var_t> ControllerSynthesizer::Stacks::get_b
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
 void ControllerSynthesizer::Stacks::clear() { stacks.clear(); }
@@ -696,11 +706,11 @@ void ControllerSynthesizer::synthesize() {
   vars.clear();
   vars.push();
 
-  const LibBDD::BDD *bdd = target_ep->get_bdd();
+  const BDD *bdd = target_ep->get_bdd();
 
-  LibCore::symbol_t now     = bdd->get_time();
-  LibCore::symbol_t device  = bdd->get_device();
-  LibCore::symbol_t pkt_len = bdd->get_packet_len();
+  symbol_t now     = bdd->get_time();
+  symbol_t device  = bdd->get_device();
+  symbol_t pkt_len = bdd->get_packet_len();
 
   alloc_var("now", now.expr, {}, NO_OPTION);
   alloc_var("size", pkt_len.expr, {}, NO_OPTION);
@@ -711,8 +721,8 @@ void ControllerSynthesizer::synthesize() {
 }
 
 void ControllerSynthesizer::synthesize_nf_init() {
-  coder_t &nf_init       = get(MARKER_NF_INIT);
-  const LibBDD::BDD *bdd = target_ep->get_bdd();
+  coder_t &nf_init = get(MARKER_NF_INIT);
+  const BDD *bdd   = target_ep->get_bdd();
 
   const Context &ctx              = target_ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
@@ -733,7 +743,7 @@ void ControllerSynthesizer::synthesize_nf_init() {
   }
 
   ControllerTarget controller_target;
-  for (const LibBDD::Call *call_node : bdd->get_init()) {
+  for (const Call *call_node : bdd->get_init()) {
     std::vector<std::unique_ptr<Module>> candidate_modules;
     for (const std::unique_ptr<ModuleFactory> &factory : controller_target.module_factories) {
       std::unique_ptr<Module> module = factory->create(bdd, target_ep->get_ctx(), call_node);
@@ -810,8 +820,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const ep_node_id_t code_path = ep_node->get_id();
   code_paths.push_back(code_path);
 
-  const LibCore::Symbols &symbols = node->get_symbols();
-  for (const LibCore::symbol_t &symbol : symbols.get()) {
+  const Symbols &symbols = node->get_symbols();
+  for (const symbol_t &symbol : symbols.get()) {
     const bits_t width = symbol.expr->getWidth();
 
     assert(width % 8 == 0 && "Unexpected width (not a multiple of 8)");
@@ -888,15 +898,15 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ModifyHeader *node) {
   coder_t &coder = get_current_coder();
 
-  const addr_t chunk_addr                             = node->get_chunk_addr();
-  const std::vector<LibCore::expr_mod_t> &changes     = node->get_changes();
-  const std::vector<LibCore::expr_byte_swap_t> &swaps = node->get_swaps();
+  const addr_t chunk_addr                    = node->get_chunk_addr();
+  const std::vector<expr_mod_t> &changes     = node->get_changes();
+  const std::vector<expr_byte_swap_t> &swaps = node->get_swaps();
 
   const std::optional<var_t> hdr = vars.get_by_addr(chunk_addr);
   assert(hdr.has_value() && "Header not found");
 
   std::unordered_set<bytes_t> bytes_already_dealt_with;
-  for (const LibCore::expr_byte_swap_t &byte_swap : swaps) {
+  for (const expr_byte_swap_t &byte_swap : swaps) {
     coder.indent();
     coder << "std::swap(";
     coder << hdr.value().name << "[" << byte_swap.byte0 << "]";
@@ -908,8 +918,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
     bytes_already_dealt_with.insert(byte_swap.byte1);
   }
 
-  for (const LibCore::expr_mod_t &mod : changes) {
-    LibCore::symbolic_reads_t symbolic_reads = LibCore::get_unique_symbolic_reads(mod.expr, "checksum");
+  for (const expr_mod_t &mod : changes) {
+    symbolic_reads_t symbolic_reads = get_unique_symbolic_reads(mod.expr, "checksum");
     if (!symbolic_reads.empty()) {
       continue;
     }
@@ -926,7 +936,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
       if (size == 1) {
         coder << transpiler.transpile(mod.expr);
       } else {
-        coder << transpiler.transpile(LibCore::solver_toolbox.exprBuilder->Extract(mod.expr, i * 8, 8));
+        coder << transpiler.transpile(solver_toolbox.exprBuilder->Extract(mod.expr, i * 8, 8));
       }
 
       coder << ";\n";
@@ -939,9 +949,9 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ChecksumUpdate *node) {
   coder_t &coder = get_current_coder();
 
-  const addr_t ip_hdr_addr         = node->get_ip_hdr_addr();
-  const addr_t l4_hdr_addr         = node->get_l4_hdr_addr();
-  const LibCore::symbol_t checksum = node->get_checksum();
+  const addr_t ip_hdr_addr = node->get_ip_hdr_addr();
+  const addr_t l4_hdr_addr = node->get_l4_hdr_addr();
+  const symbol_t checksum  = node->get_checksum();
 
   std::optional<var_t> ip_hdr = vars.get_by_addr(ip_hdr_addr);
   std::optional<var_t> l4_hdr = vars.get_by_addr(l4_hdr_addr);
@@ -1046,10 +1056,10 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableLookup *node) {
   coder_t &coder = get_current_coder();
 
-  const addr_t obj                             = node->get_obj();
-  const klee::ref<klee::Expr> key              = node->get_key();
-  const klee::ref<klee::Expr> value            = node->get_value();
-  const std::optional<LibCore::symbol_t> found = node->get_found();
+  const addr_t obj                    = node->get_obj();
+  const klee::ref<klee::Expr> key     = node->get_key();
+  const klee::ref<klee::Expr> value   = node->get_value();
+  const std::optional<symbol_t> found = node->get_found();
 
   const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, obj);
 
@@ -1111,10 +1121,10 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableLookup *node) {
   coder_t &coder = get_current_coder();
 
-  const addr_t obj                             = node->get_obj();
-  const klee::ref<klee::Expr> key              = node->get_key();
-  const klee::ref<klee::Expr> value            = node->get_value();
-  const std::optional<LibCore::symbol_t> found = node->get_found();
+  const addr_t obj                    = node->get_obj();
+  const klee::ref<klee::Expr> key     = node->get_key();
+  const klee::ref<klee::Expr> value   = node->get_value();
+  const std::optional<symbol_t> found = node->get_found();
 
   const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, obj);
 
@@ -1141,7 +1151,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder_t &coder = get_current_coder();
 
   const addr_t obj                            = node->get_obj();
-  const LibCore::symbol_t &guard_allow_symbol = node->get_guard_allow();
+  const symbol_t &guard_allow_symbol          = node->get_guard_allow();
   klee::ref<klee::Expr> guard_allow_condition = node->get_guard_allow_condition();
 
   const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, obj);
@@ -1248,9 +1258,9 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableIsIndexAllocated *node) {
   coder_t &coder = get_current_coder();
 
-  const addr_t obj                     = node->get_obj();
-  klee::ref<klee::Expr> index          = node->get_index();
-  const LibCore::symbol_t is_allocated = node->get_is_allocated();
+  const addr_t obj            = node->get_obj();
+  klee::ref<klee::Expr> index = node->get_index();
+  const symbol_t is_allocated = node->get_is_allocated();
 
   const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, obj);
 
@@ -1516,10 +1526,10 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder_t &coder = get_current_coder();
   coder.indent();
 
-  const addr_t obj                          = node->get_obj();
-  const klee::ref<klee::Expr> key           = node->get_key();
-  const klee::ref<klee::Expr> value         = node->get_value();
-  const LibCore::symbol_t &map_has_this_key = node->get_hit();
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> key   = node->get_key();
+  const klee::ref<klee::Expr> value = node->get_value();
+  const symbol_t &map_has_this_key  = node->get_hit();
 
   const Tofino::HHTable *hh_table = get_unique_tofino_ds_from_obj<Tofino::HHTable>(ep, obj);
 
@@ -1997,7 +2007,7 @@ void ControllerSynthesizer::transpile_cms_decl(const Tofino::CountMinSketch *cms
 ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name,
                                                                                   klee::ref<klee::Expr> expr, bool skip_alloc) {
   std::vector<code_t> bytes;
-  for (klee::ref<klee::Expr> byte : LibCore::bytes_in_expr(expr, true)) {
+  for (klee::ref<klee::Expr> byte : bytes_in_expr(expr, true)) {
     bytes.push_back(transpiler.transpile(byte));
   }
 
@@ -2041,7 +2051,7 @@ void ControllerSynthesizer::dbg_vars() const {
       std::cerr << " ";
       std::cerr << var.name;
       std::cerr << ": ";
-      std::cerr << LibCore::expr_to_string(var.expr, true);
+      std::cerr << expr_to_string(var.expr, true);
       std::cerr << "\n";
     }
   }

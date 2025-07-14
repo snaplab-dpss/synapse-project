@@ -6,13 +6,15 @@
 namespace LibSynapse {
 namespace x86 {
 
+using LibCore::expr_mod_t;
+
 class ModifyHeader : public x86Module {
 private:
   addr_t chunk_addr;
-  std::vector<LibCore::expr_mod_t> changes;
+  std::vector<expr_mod_t> changes;
 
 public:
-  ModifyHeader(const LibBDD::Node *_node, addr_t _chunk_addr, const std::vector<LibCore::expr_mod_t> &_changes)
+  ModifyHeader(const BDDNode *_node, addr_t _chunk_addr, const std::vector<expr_mod_t> &_changes)
       : x86Module(ModuleType::x86_ModifyHeader, "ModifyHeader", _node), chunk_addr(_chunk_addr), changes(_changes) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -23,7 +25,7 @@ public:
   }
 
   addr_t get_chunk_addr() const { return chunk_addr; }
-  const std::vector<LibCore::expr_mod_t> &get_changes() const { return changes; }
+  const std::vector<expr_mod_t> &get_changes() const { return changes; }
 };
 
 class ModifyHeaderFactory : public x86ModuleFactory {
@@ -31,9 +33,9 @@ public:
   ModifyHeaderFactory() : x86ModuleFactory(ModuleType::x86_ModifyHeader, "ModifyHeader") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace x86

@@ -22,7 +22,7 @@ struct module_data_t {
 };
 
 struct bdd_node_data_t {
-  LibBDD::node_id_t id;
+  bdd_node_id_t id;
   std::string description;
 };
 
@@ -81,7 +81,7 @@ public:
 
   void activate_leaf(const EP *ep);
 
-  void add_to_active_leaf(const EP *ep, const LibBDD::Node *node, const ModuleFactory *mogden, const std::vector<impl_t> &implementations);
+  void add_to_active_leaf(const EP *ep, const BDDNode *node, const ModuleFactory *mogden, const std::vector<impl_t> &implementations);
   SSNode *get_root() const;
   size_t get_size() const;
   const HeuristicCfg *get_hcfg() const;

@@ -4,21 +4,26 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
 
-vector_table_data_t get_vector_table_data(const Context &ctx, const LibBDD::Call *call_node) {
-  const LibBDD::call_t &call = call_node->get_call();
+vector_table_data_t get_vector_table_data(const Context &ctx, const Call *call_node) {
+  const call_t &call = call_node->get_call();
   assert(call.function_name == "vector_borrow" && "Unexpected function");
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
   klee::ref<klee::Expr> cell             = call.extra_vars.at("borrowed_cell").second;
 
-  addr_t obj = LibCore::expr_addr_to_obj_addr(vector_addr_expr);
+  const addr_t obj = expr_addr_to_obj_addr(vector_addr_expr);
 
-  const LibBDD::vector_config_t &cfg = ctx.get_vector_config(obj);
+  const vector_config_t &cfg = ctx.get_vector_config(obj);
 
-  vector_table_data_t data = {
+  const vector_table_data_t data = {
       .obj      = obj,
       .capacity = static_cast<u32>(cfg.capacity),
       .key      = index,
@@ -30,30 +35,30 @@ vector_table_data_t get_vector_table_data(const Context &ctx, const LibBDD::Call
 
 } // namespace
 
-std::optional<spec_impl_t> VectorTableLookupFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> VectorTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
-    return std::nullopt;
+    return {};
   }
 
   if (!call_node->is_vector_read()) {
-    return std::nullopt;
+    return {};
   }
 
-  vector_table_data_t data = get_vector_table_data(ep->get_ctx(), call_node);
+  const vector_table_data_t data = get_vector_table_data(ep->get_ctx(), call_node);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_VectorTable)) {
-    return std::nullopt;
+    return {};
   }
 
   if (!can_build_or_reuse_vector_table(ep, node, data)) {
-    return std::nullopt;
+    return {};
   }
 
   Context new_ctx = ctx;
@@ -62,13 +67,13 @@ std::optional<spec_impl_t> VectorTableLookupFactory::speculate(const EP *ep, con
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
     return {};
@@ -101,7 +106,7 @@ std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const L
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, data.obj, vector_table);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -109,13 +114,13 @@ std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const L
   return impls;
 }
 
-std::unique_ptr<Module> VectorTableLookupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> VectorTableLookupFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
     return {};
@@ -125,13 +130,13 @@ std::unique_ptr<Module> VectorTableLookupFactory::create(const LibBDD::BDD *bdd,
     return {};
   }
 
-  vector_table_data_t data = get_vector_table_data(ctx, call_node);
+  const vector_table_data_t data = get_vector_table_data(ctx, call_node);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorTable)) {
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
 
   const VectorTable *vector_table = dynamic_cast<const VectorTable *>(*ds.begin());
 

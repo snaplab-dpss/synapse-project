@@ -4,18 +4,23 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
 
-dchain_table_data_t get_dchain_table_data(const Context &ctx, const LibBDD::Call *call_node) {
-  const LibBDD::call_t &call = call_node->get_call();
+dchain_table_data_t get_dchain_table_data(const Context &ctx, const Call *call_node) {
+  const call_t &call = call_node->get_call();
   assert((call.function_name == "dchain_is_index_allocated" || call.function_name == "dchain_rejuvenate_index") && "Unexpected function");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
 
-  addr_t dchain_addr = LibCore::expr_addr_to_obj_addr(dchain_addr_expr);
+  const addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
 
-  const LibBDD::dchain_config_t &cfg = ctx.get_dchain_config(dchain_addr);
+  const dchain_config_t &cfg = ctx.get_dchain_config(dchain_addr);
 
   dchain_table_data_t data = {
       .obj      = dchain_addr,
@@ -33,26 +38,26 @@ dchain_table_data_t get_dchain_table_data(const Context &ctx, const LibBDD::Call
 
 } // namespace
 
-std::optional<spec_impl_t> DchainTableLookupFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> DchainTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_is_index_allocated" && call.function_name != "dchain_rejuvenate_index") {
-    return std::nullopt;
+    return {};
   }
 
-  dchain_table_data_t data = get_dchain_table_data(ep->get_ctx(), call_node);
+  const dchain_table_data_t data = get_dchain_table_data(ep->get_ctx(), call_node);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_DchainTable)) {
-    return std::nullopt;
+    return {};
   }
 
   if (!can_build_or_reuse_dchain_table(ep, node, data)) {
-    return std::nullopt;
+    return {};
   }
 
   Context new_ctx = ctx;
@@ -61,19 +66,19 @@ std::optional<spec_impl_t> DchainTableLookupFactory::speculate(const EP *ep, con
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_is_index_allocated" && call.function_name != "dchain_rejuvenate_index") {
     return {};
   }
 
-  dchain_table_data_t data = get_dchain_table_data(ep->get_ctx(), call_node);
+  const dchain_table_data_t data = get_dchain_table_data(ep->get_ctx(), call_node);
 
   if (!ep->get_ctx().can_impl_ds(data.obj, DSImpl::Tofino_DchainTable)) {
     return {};
@@ -96,7 +101,7 @@ std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const L
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, data.obj, dchain_table);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -104,25 +109,25 @@ std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const L
   return impls;
 }
 
-std::unique_ptr<Module> DchainTableLookupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DchainTableLookupFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "dchain_is_index_allocated" && call.function_name != "dchain_rejuvenate_index") {
     return {};
   }
 
-  dchain_table_data_t data = get_dchain_table_data(ctx, call_node);
+  const dchain_table_data_t data = get_dchain_table_data(ctx, call_node);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_DchainTable)) {
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
 
   const DchainTable *dchain_table = dynamic_cast<const DchainTable *>(*ds.begin());
 

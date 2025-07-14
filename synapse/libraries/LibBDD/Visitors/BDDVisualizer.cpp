@@ -5,6 +5,9 @@
 
 namespace LibBDD {
 
+using LibCore::pretty_print_expr;
+using LibCore::solver_toolbox;
+
 namespace {
 constexpr const char *const COLOR_PROCESSED = "gray";
 constexpr const char *const COLOR_NEXT      = "cyan";
@@ -27,8 +30,8 @@ BDDViz::BDDViz(const bdd_visualizer_opts_t &_opts) : Graphviz(_opts.fname), opts
 
 BDDViz::BDDViz() : Graphviz() {}
 
-std::string BDDViz::get_color(const Node *node) const {
-  node_id_t id = node->get_id();
+std::string BDDViz::get_color(const BDDNode *node) const {
+  bdd_node_id_t id = node->get_id();
 
   if (opts.colors_per_node.find(id) != opts.colors_per_node.end()) {
     return opts.colors_per_node.at(id);
@@ -49,13 +52,13 @@ std::string BDDViz::get_color(const Node *node) const {
   std::string color;
 
   switch (node->get_type()) {
-  case NodeType::Call: {
+  case BDDNodeType::Call: {
     color = COLOR_CALL;
   } break;
-  case NodeType::Branch: {
+  case BDDNodeType::Branch: {
     color = COLOR_BRANCH;
   } break;
-  case NodeType::Route: {
+  case BDDNodeType::Route: {
     const Route *route = dynamic_cast<const Route *>(node);
     RouteOp operation  = route->get_operation();
     switch (operation) {
@@ -93,7 +96,7 @@ void BDDViz::dump_to_file(const BDD *bdd, const std::filesystem::path &file_name
 
 void BDDViz::visit(const BDD *bdd) {
   assert(bdd && "Invalid BDD");
-  const Node *root = bdd->get_root();
+  const BDDNode *root = bdd->get_root();
 
   ss << "digraph mygraph {\n";
   ss << "\tnode [shape=box, style=\"rounded,filled\", border=0];\n";
@@ -102,8 +105,8 @@ void BDDViz::visit(const BDD *bdd) {
 }
 
 BDDVisitor::Action BDDViz::visit(const Branch *node) {
-  const Node *on_true  = node->get_on_true();
-  const Node *on_false = node->get_on_false();
+  const BDDNode *on_true  = node->get_on_true();
+  const BDDNode *on_false = node->get_on_false();
 
   klee::ref<klee::Expr> condition = node->get_condition();
 
@@ -116,7 +119,7 @@ BDDVisitor::Action BDDViz::visit(const Branch *node) {
   ss << " [shape=Mdiamond, label=\"";
 
   ss << node->get_id() << ":";
-  ss << LibCore::pretty_print_expr(condition);
+  ss << pretty_print_expr(condition);
 
   if (opts.annotations_per_node.find(node->get_id()) != opts.annotations_per_node.end()) {
     ss << "\\n";
@@ -146,9 +149,9 @@ BDDVisitor::Action BDDViz::visit(const Branch *node) {
 }
 
 BDDVisitor::Action BDDViz::visit(const Call *node) {
-  const call_t &call = node->get_call();
-  node_id_t id       = node->get_id();
-  const Node *next   = node->get_next();
+  const call_t &call  = node->get_call();
+  bdd_node_id_t id    = node->get_id();
+  const BDDNode *next = node->get_next();
 
   if (next) {
     next->visit(*this);
@@ -172,18 +175,18 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
     if (arg.fn_ptr_name.first) {
       ss << arg.fn_ptr_name.second;
     } else {
-      ss << LibCore::pretty_print_expr(arg.expr, false);
+      ss << pretty_print_expr(arg.expr, false);
 
       if (!arg.in.isNull() || !arg.out.isNull()) {
         ss << "[";
 
         if (!arg.in.isNull()) {
-          ss << LibCore::pretty_print_expr(arg.in, false);
+          ss << pretty_print_expr(arg.in, false);
         }
 
-        if (!arg.out.isNull() && (arg.in.isNull() || !LibCore::solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
+        if (!arg.out.isNull() && (arg.in.isNull() || !solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
           ss << " -> ";
-          ss << LibCore::pretty_print_expr(arg.out, false);
+          ss << pretty_print_expr(arg.out, false);
         }
 
         ss << "]";
@@ -200,14 +203,14 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
   ss << ")";
 
   if (!call.ret.isNull()) {
-    ss << " -> " << LibCore::pretty_print_expr(call.ret);
+    ss << " -> " << pretty_print_expr(call.ret);
   }
 
-  const LibCore::Symbols &symbols = node->get_local_symbols();
+  const Symbols &symbols = node->get_local_symbols();
   if (symbols.size()) {
     ss << "\\l=>{";
     bool first = true;
-    for (const LibCore::symbol_t &s : symbols.get()) {
+    for (const symbol_t &s : symbols.get()) {
       if (!first) {
         ss << ",";
       } else {
@@ -239,10 +242,10 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
 }
 
 BDDVisitor::Action BDDViz::visit(const Route *node) {
-  node_id_t id                     = node->get_id();
+  bdd_node_id_t id                 = node->get_id();
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
   RouteOp operation                = node->get_operation();
-  const Node *next                 = node->get_next();
+  const BDDNode *next              = node->get_next();
 
   if (next) {
     next->visit(*this);
@@ -254,7 +257,7 @@ BDDVisitor::Action BDDViz::visit(const Route *node) {
 
   switch (operation) {
   case RouteOp::Forward: {
-    ss << "fwd(" << LibCore::pretty_print_expr(dst_device, false) << ")";
+    ss << "fwd(" << pretty_print_expr(dst_device, false) << ")";
     break;
   }
   case RouteOp::Drop: {
@@ -286,6 +289,6 @@ BDDVisitor::Action BDDViz::visit(const Route *node) {
   return BDDVisitor::Action::Stop;
 }
 
-void BDDViz::visitRoot(const Node *root) { root->visit(*this); }
+void BDDViz::visitRoot(const BDDNode *root) { root->visit(*this); }
 
 } // namespace LibBDD

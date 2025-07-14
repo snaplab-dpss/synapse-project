@@ -4,19 +4,24 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
 
 struct fcfs_cached_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> read_value;
-  LibCore::symbol_t map_has_this_key;
+  symbol_t map_has_this_key;
   u32 capacity;
 
-  fcfs_cached_table_data_t(const Context &ctx, const LibBDD::Call *map_get) {
-    const LibBDD::call_t &call = map_get->get_call();
+  fcfs_cached_table_data_t(const Context &ctx, const Call *map_get) {
+    const call_t &call = map_get->get_call();
 
-    obj              = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
+    obj              = expr_addr_to_obj_addr(call.args.at("map").expr);
     key              = call.args.at("key").in;
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
@@ -24,7 +29,7 @@ struct fcfs_cached_table_data_t {
   }
 };
 
-std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const LibBDD::Node *node, const LibBDD::map_coalescing_objs_t &map_objs,
+std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *node, const map_coalescing_objs_t &map_objs,
                                                  const fcfs_cached_table_data_t &cached_table_data, u32 cache_capacity) {
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key,
                                                                                         cached_table_data.capacity, cache_capacity);
@@ -53,32 +58,32 @@ std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const LibBDD::Nod
 }
 } // namespace
 
-std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
-    return std::nullopt;
+    return {};
   }
 
   const fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(cached_table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(cached_table_data.obj);
   if (!map_objs.has_value()) {
-    return std::nullopt;
+    return {};
   }
 
   if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
-    return std::nullopt;
+    return {};
   }
 
   FCFSCachedTable *fcfs_cached_table = get_fcfs_cached_table(ep, node, cached_table_data.obj);
   if (!fcfs_cached_table) {
-    return std::nullopt;
+    return {};
   }
 
   Context new_ctx = ctx;
@@ -91,13 +96,13 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
   return spec_impl;
 }
 
-std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return {};
@@ -105,7 +110,7 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
 
   const fcfs_cached_table_data_t cached_table_data(ep->get_ctx(), map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(cached_table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(cached_table_data.obj);
   if (!map_objs.has_value()) {
     return {};
   }
@@ -129,13 +134,13 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
   return impls;
 }
 
-std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return {};
@@ -143,7 +148,7 @@ std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const LibBDD::BDD *bd
 
   const fcfs_cached_table_data_t cached_table_data(ctx, map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(cached_table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(cached_table_data.obj);
   if (!map_objs.has_value()) {
     return {};
   }
@@ -152,7 +157,7 @@ std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const LibBDD::BDD *bd
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(map_objs->map);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(map_objs->map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 

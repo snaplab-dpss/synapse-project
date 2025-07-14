@@ -5,6 +5,8 @@
 namespace LibSynapse {
 namespace Controller {
 
+using LibCore::expr_mod_t;
+
 class DataplaneVectorRegisterUpdate : public ControllerModule {
 private:
   addr_t obj;
@@ -12,12 +14,11 @@ private:
   addr_t value_addr;
   klee::ref<klee::Expr> old_value;
   klee::ref<klee::Expr> new_value;
-  std::vector<LibCore::expr_mod_t> modifications;
+  std::vector<expr_mod_t> modifications;
 
 public:
-  DataplaneVectorRegisterUpdate(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _index, addr_t _value_addr,
-                                klee::ref<klee::Expr> _old_value, klee::ref<klee::Expr> _new_value,
-                                const std::vector<LibCore::expr_mod_t> &_modifications)
+  DataplaneVectorRegisterUpdate(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, addr_t _value_addr, klee::ref<klee::Expr> _old_value,
+                                klee::ref<klee::Expr> _new_value, const std::vector<expr_mod_t> &_modifications)
       : ControllerModule(ModuleType::Controller_DataplaneVectorRegisterUpdate, "DataplaneVectorRegisterUpdate", _node), obj(_obj), index(_index),
         value_addr(_value_addr), old_value(_old_value), new_value(_new_value), modifications(_modifications) {}
 
@@ -33,7 +34,7 @@ public:
   addr_t get_value_addr() const { return value_addr; }
   klee::ref<klee::Expr> get_old_value() const { return old_value; }
   klee::ref<klee::Expr> get_new_value() const { return new_value; }
-  const std::vector<LibCore::expr_mod_t> &get_modifications() const { return modifications; }
+  const std::vector<expr_mod_t> &get_modifications() const { return modifications; }
 };
 
 class DataplaneVectorRegisterUpdateFactory : public ControllerModuleFactory {
@@ -42,9 +43,9 @@ public:
       : ControllerModuleFactory(ModuleType::Controller_DataplaneVectorRegisterUpdate, "DataplaneVectorRegisterUpdate") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

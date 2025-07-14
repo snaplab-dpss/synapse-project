@@ -4,35 +4,40 @@
 namespace LibSynapse {
 namespace Controller {
 
-std::optional<spec_impl_t> MapAllocateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
+std::optional<spec_impl_t> MapAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_allocate") {
-    return std::nullopt;
+    return {};
   }
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  addr_t map_addr                     = LibCore::expr_addr_to_obj_addr(map_addr_expr);
+  const addr_t map_addr               = expr_addr_to_obj_addr(map_addr_expr);
 
   if (!ctx.can_impl_ds(map_addr, DSImpl::Controller_Map)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> MapAllocateFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> MapAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_allocate") {
     return {};
@@ -42,7 +47,7 @@ std::vector<impl_t> MapAllocateFactory::process_node(const EP *ep, const LibBDD:
   klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
   klee::ref<klee::Expr> map_out  = call.args.at("map_out").out;
 
-  const addr_t map_addr = LibCore::expr_addr_to_obj_addr(map_out);
+  const addr_t map_addr = expr_addr_to_obj_addr(map_out);
 
   if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::Controller_Map)) {
     return {};
@@ -53,7 +58,7 @@ std::vector<impl_t> MapAllocateFactory::process_node(const EP *ep, const LibBDD:
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   new_ep->get_mutable_ctx().save_ds_impl(map_addr, DSImpl::Controller_Map);
@@ -63,13 +68,13 @@ std::vector<impl_t> MapAllocateFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
-std::unique_ptr<Module> MapAllocateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> MapAllocateFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_allocate") {
     return {};
@@ -79,7 +84,7 @@ std::unique_ptr<Module> MapAllocateFactory::create(const LibBDD::BDD *bdd, const
   klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
   klee::ref<klee::Expr> map_out  = call.args.at("map_out").out;
 
-  addr_t map_addr = LibCore::expr_addr_to_obj_addr(map_out);
+  const addr_t map_addr = expr_addr_to_obj_addr(map_out);
 
   if (!ctx.check_ds_impl(map_addr, DSImpl::Controller_Map)) {
     return {};

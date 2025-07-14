@@ -4,23 +4,28 @@
 namespace LibSynapse {
 namespace Controller {
 
-std::optional<spec_impl_t> CMSIncrementFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
+std::optional<spec_impl_t> CMSIncrementFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_increment") {
-    return std::nullopt;
+    return {};
   }
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
-  addr_t cms_addr                     = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t cms_addr               = expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ctx.can_impl_ds(cms_addr, DSImpl::Controller_CountMinSketch)) {
-    return std::nullopt;
+    return {};
   }
 
   Context new_ctx = ctx;
@@ -29,13 +34,13 @@ std::optional<spec_impl_t> CMSIncrementFactory::speculate(const EP *ep, const Li
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_increment") {
     return {};
@@ -44,7 +49,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const LibBDD
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
-  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};
@@ -57,7 +62,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const LibBDD
 
   new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -65,13 +70,13 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const LibBDD
   return impls;
 }
 
-std::unique_ptr<Module> CMSIncrementFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> CMSIncrementFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_increment") {
     return {};
@@ -80,7 +85,7 @@ std::unique_ptr<Module> CMSIncrementFactory::create(const LibBDD::BDD *bdd, cons
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
-  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};

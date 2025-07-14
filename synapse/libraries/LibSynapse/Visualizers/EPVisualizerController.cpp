@@ -25,13 +25,15 @@
 
 namespace LibSynapse {
 
+using LibCore::pretty_print_expr;
+
 IGNORE_MODULE(Controller::Ignore)
 
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Controller::If *node) {
   std::stringstream label_builder;
 
   label_builder << "\\n";
-  label_builder << LibCore::pretty_print_expr(node->get_condition());
+  label_builder << pretty_print_expr(node->get_condition());
 
   branch(ep_node, node->get_node(), node->get_target(), label_builder.str());
 

@@ -3,12 +3,12 @@
 
 namespace LibBDD {
 
-Node *Route::clone(NodeManager &manager, bool recursive) const {
+BDDNode *Route::clone(BDDNodeManager &manager, bool recursive) const {
   Route *clone;
 
   if (recursive && next) {
-    Node *next_clone = next->clone(manager, true);
-    clone            = new Route(id, next_clone, nullptr, constraints, symbol_manager, operation, dst_device);
+    BDDNode *next_clone = next->clone(manager, true);
+    clone               = new Route(id, next_clone, nullptr, constraints, symbol_manager, operation, dst_device);
     next_clone->set_prev(clone);
   } else {
     clone = new Route(id, constraints, symbol_manager, operation, dst_device);

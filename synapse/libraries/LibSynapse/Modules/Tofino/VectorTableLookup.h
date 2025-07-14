@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorTableLookup(const LibBDD::Node *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
+  VectorTableLookup(const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
       : TofinoModule(ModuleType::Tofino_VectorTableLookup, "VectorTableLookup", _node), id(_id), obj(_obj), key(_key), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -36,9 +36,9 @@ public:
   VectorTableLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_VectorTableLookup, "VectorTableLookup") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Tofino

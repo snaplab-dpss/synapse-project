@@ -13,11 +13,11 @@ private:
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> value;
-  std::optional<LibCore::symbol_t> found;
+  std::optional<symbol_t> found;
 
 public:
-  DataplaneFCFSCachedTableRead(const LibBDD::Node *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-                               klee::ref<klee::Expr> _value, std::optional<LibCore::symbol_t> _found)
+  DataplaneFCFSCachedTableRead(const BDDNode *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+                               klee::ref<klee::Expr> _value, std::optional<symbol_t> _found)
       : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedTableRead, "DataplaneFCFSCachedTableRead", _node), id(_id), obj(_obj), keys(_keys),
         value(_value), found(_found) {}
 
@@ -32,7 +32,7 @@ public:
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
   klee::ref<klee::Expr> get_value() const { return value; }
-  std::optional<LibCore::symbol_t> get_found() const { return found; }
+  std::optional<symbol_t> get_found() const { return found; }
 };
 
 class DataplaneFCFSCachedTableReadFactory : public ControllerModuleFactory {
@@ -41,9 +41,9 @@ public:
       : ControllerModuleFactory(ModuleType::Controller_DataplaneFCFSCachedTableRead, "DataplaneFCFSCachedTableRead") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

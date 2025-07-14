@@ -44,7 +44,7 @@ struct bdd_profile_t {
 
   struct map_stats_t {
     struct node_t {
-      node_id_t node;
+      bdd_node_id_t node;
       u64 pkts;
       u64 flows;
       std::vector<u64> pkts_per_flow; // Sorted by descending order.
@@ -67,8 +67,8 @@ struct bdd_profile_t {
   config_t config;
   meta_t meta;
   std::unordered_map<u64, map_stats_t> stats_per_map;
-  std::unordered_map<node_id_t, u64> counters;
-  std::unordered_map<node_id_t, fwd_stats_t> forwarding_stats;
+  std::unordered_map<bdd_node_id_t, u64> counters;
+  std::unordered_map<bdd_node_id_t, fwd_stats_t> forwarding_stats;
 
   fpm_t churn_top_k_flows(u64 map, u32 k) const;
   hit_rate_t churn_hit_rate_top_k_flows(u64 map, u32 k) const;

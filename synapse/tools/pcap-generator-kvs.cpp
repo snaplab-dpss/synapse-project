@@ -16,7 +16,8 @@
 
 #include <CLI/CLI.hpp>
 
-using LibCore::TrafficGenerator;
+using namespace LibCore;
+
 using device_t    = TrafficGenerator::device_t;
 using config_t    = TrafficGenerator::config_t;
 using TrafficType = TrafficGenerator::TrafficType;
@@ -74,7 +75,7 @@ static kvs_op_ratio_t calculate_kvs_op_ratio(double get_ratio) {
   return ratio;
 }
 
-class KVSTrafficGenerator : public LibCore::TrafficGenerator {
+class KVSTrafficGenerator : public TrafficGenerator {
 private:
   const kvs_op_ratio_t kvs_op_ratio;
 
@@ -127,7 +128,7 @@ public:
     return pkt;
   }
 
-  virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return std::nullopt; }
+  virtual std::optional<device_t> get_response_dev(device_t dev, flow_idx_t flow_idx) const override { return {}; }
 
 private:
   kvs_op_t get_next_op(flow_idx_t flow_idx) {
@@ -140,7 +141,7 @@ private:
 int main(int argc, char *argv[]) {
   CLI::App app{"Traffic generator for the kvs nf."};
 
-  LibCore::TrafficGenerator::config_t config;
+  TrafficGenerator::config_t config;
   double get_ratio{0.99};
 
   app.add_option("--out", config.out_dir, "Output directory.")->default_val(TrafficGenerator::DEFAULT_OUTPUT_DIR);

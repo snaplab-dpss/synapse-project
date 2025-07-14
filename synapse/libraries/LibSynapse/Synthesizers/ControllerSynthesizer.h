@@ -16,7 +16,9 @@
 namespace LibSynapse {
 namespace Controller {
 
-class ControllerSynthesizer : public LibCore::Synthesizer, public EPVisitor {
+using LibCore::Synthesizer;
+
+class ControllerSynthesizer : public Synthesizer, public EPVisitor {
 public:
   ControllerSynthesizer(const EP *ep, std::filesystem::path out_file);
 

@@ -10,72 +10,79 @@
 
 namespace LibSynapse {
 
-class ProfilerViz : public LibBDD::BDDViz {
-public:
-  static void visualize(const LibBDD::BDD *bdd, const Profiler &profiler, bool interrupt) {
-    const std::unordered_map<LibBDD::node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
+using LibCore::rgb_t;
 
-    LibBDD::bdd_visualizer_opts_t opts;
+using LibBDD::bdd_visualizer_opts_t;
+using LibBDD::BDDNodeType;
+using LibBDD::BDDNodeVisitAction;
+using LibBDD::BDDViz;
+
+class ProfilerViz : public BDDViz {
+public:
+  static void visualize(const BDD *bdd, const Profiler &profiler, bool interrupt) {
+    const std::unordered_map<bdd_node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
+
+    bdd_visualizer_opts_t opts;
 
     opts.colors_per_node      = get_colors_per_node(hrpn);
     opts.default_color.first  = true;
     opts.annotations_per_node = get_annocations_per_node(bdd, profiler, hrpn);
     opts.default_color.second = fraction_to_color(0_hr);
 
-    LibBDD::BDDViz::visualize(bdd, interrupt, opts);
+    BDDViz::visualize(bdd, interrupt, opts);
   }
 
-  static void dump_to_file(const LibBDD::BDD *bdd, const Profiler &profiler, const std::filesystem::path &file_name) {
+  static void dump_to_file(const BDD *bdd, const Profiler &profiler, const std::filesystem::path &file_name) {
     assert(bdd && "Invalid BDD");
 
-    const std::unordered_map<LibBDD::node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
+    const std::unordered_map<bdd_node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
 
-    LibBDD::bdd_visualizer_opts_t opts;
+    bdd_visualizer_opts_t opts;
     opts.fname                = file_name;
     opts.colors_per_node      = get_colors_per_node(hrpn);
     opts.default_color.first  = true;
     opts.annotations_per_node = get_annocations_per_node(bdd, profiler, hrpn);
     opts.default_color.second = fraction_to_color(0_hr);
 
-    LibBDD::BDDViz visualizer(opts);
+    BDDViz visualizer(opts);
     visualizer.visit(bdd);
     visualizer.write();
   }
 
 private:
-  static std::unordered_map<LibBDD::node_id_t, hit_rate_t> hr_per_node(const LibBDD::BDD *bdd, const Profiler &profiler) {
-    std::unordered_map<LibBDD::node_id_t, hit_rate_t> fractions_per_node;
-    const LibBDD::Node *root = bdd->get_root();
+  static std::unordered_map<bdd_node_id_t, hit_rate_t> hr_per_node(const BDD *bdd, const Profiler &profiler) {
+    std::unordered_map<bdd_node_id_t, hit_rate_t> fractions_per_node;
+    const BDDNode *root = bdd->get_root();
 
-    root->visit_nodes([&fractions_per_node, profiler](const LibBDD::Node *node) {
+    root->visit_nodes([&fractions_per_node, profiler](const BDDNode *node) {
       const hit_rate_t fraction          = profiler.get_hr(node);
       fractions_per_node[node->get_id()] = fraction;
-      return LibBDD::NodeVisitAction::Continue;
+      return BDDNodeVisitAction::Continue;
     });
 
     return fractions_per_node;
   }
 
-  static std::unordered_map<LibBDD::node_id_t, std::string> get_annocations_per_node(const LibBDD::BDD *bdd, const Profiler &profiler,
-                                                                                     const std::unordered_map<LibBDD::node_id_t, hit_rate_t> &hrpn) {
-    std::unordered_map<LibBDD::node_id_t, std::string> annocations_per_node;
+  static std::unordered_map<bdd_node_id_t, std::string> get_annocations_per_node(const BDD *bdd, const Profiler &profiler,
+                                                                                 const std::unordered_map<bdd_node_id_t, hit_rate_t> &hrpn) {
+    std::unordered_map<bdd_node_id_t, std::string> annocations_per_node;
 
     for (const auto &[node_id, fraction] : hrpn) {
       std::stringstream ss;
       ss << "HR=" << fraction;
 
-      const LibBDD::Node *bdd_node = bdd->get_node_by_id(node_id);
-      if (bdd_node->get_type() == LibBDD::NodeType::Route) {
-        const LibSynapse::fwd_stats_t fwd_stats = profiler.get_fwd_stats(bdd_node);
+      const BDDNode *bdd_node = bdd->get_node_by_id(node_id);
+      if (bdd_node->get_type() == BDDNodeType::Route) {
+        const fwd_stats_t fwd_stats = profiler.get_fwd_stats(bdd_node);
         ss << "\n";
         switch (fwd_stats.operation) {
-        case LibBDD::RouteOp::Drop: {
+        case RouteOp::Drop: {
           ss << "Drop={" << fwd_stats.drop << "}";
         } break;
-        case LibBDD::RouteOp::Broadcast: {
+        case RouteOp::Broadcast: {
           ss << "Bcast={" << fwd_stats.flood << "}";
         } break;
-        case LibBDD::RouteOp::Forward: {
+        case RouteOp::Forward: {
           ss << "Fwd={";
           int i = 0;
           for (const auto &[port, hr] : fwd_stats.ports) {
@@ -102,9 +109,8 @@ private:
     return annocations_per_node;
   }
 
-  static std::unordered_map<LibBDD::node_id_t, std::string>
-  get_colors_per_node(const std::unordered_map<LibBDD::node_id_t, hit_rate_t> &fraction_per_node) {
-    std::unordered_map<LibBDD::node_id_t, std::string> colors_per_node;
+  static std::unordered_map<bdd_node_id_t, std::string> get_colors_per_node(const std::unordered_map<bdd_node_id_t, hit_rate_t> &fraction_per_node) {
+    std::unordered_map<bdd_node_id_t, std::string> colors_per_node;
 
     for (const auto &[node, fraction] : fraction_per_node) {
       const std::string color = fraction_to_color(fraction);
@@ -121,13 +127,13 @@ private:
   }
 
   static std::string hit_rate_to_rainbow(hit_rate_t fraction) {
-    const LibCore::rgb_t blue(0, 0, 1);
-    const LibCore::rgb_t cyan(0, 1, 1);
-    const LibCore::rgb_t green(0, 1, 0);
-    const LibCore::rgb_t yellow(1, 1, 0);
-    const LibCore::rgb_t red(1, 0, 0);
+    const rgb_t blue(0, 0, 1);
+    const rgb_t cyan(0, 1, 1);
+    const rgb_t green(0, 1, 0);
+    const rgb_t yellow(1, 1, 0);
+    const rgb_t red(1, 0, 0);
 
-    const std::vector<LibCore::rgb_t> palette{blue, cyan, green, yellow, red};
+    const std::vector<rgb_t> palette{blue, cyan, green, yellow, red};
 
     double value = fraction.value * (palette.size() - 1);
     int idx1     = std::floor(value);
@@ -138,7 +144,7 @@ private:
     const u8 g = 0xff * ((palette[idx2].g - palette[idx1].g) * frac + palette[idx1].g);
     const u8 b = 0xff * ((palette[idx2].b - palette[idx1].b) * frac + palette[idx1].b);
 
-    const LibCore::rgb_t color(r, g, b);
+    const rgb_t color(r, g, b);
     return color.to_gv_repr();
   }
 
@@ -148,7 +154,7 @@ private:
     const u8 b = 0xff;
     const u8 o = 0xff * 0.5;
 
-    const LibCore::rgb_t color(r, g, b, o);
+    const rgb_t color(r, g, b, o);
     return color.to_gv_repr();
   }
 
@@ -158,7 +164,7 @@ private:
     const u8 b = 0xff * (1 - fraction.value);
     const u8 o = 0xff * 0.33;
 
-    const LibCore::rgb_t color(r, g, b, o);
+    const rgb_t color(r, g, b, o);
     return color.to_gv_repr();
   }
 };

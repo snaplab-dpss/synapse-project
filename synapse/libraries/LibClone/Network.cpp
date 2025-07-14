@@ -33,8 +33,7 @@ std::ifstream open_file(const std::string &path) {
   return fstream;
 }
 
-std::unique_ptr<NF> parse_nf(const std::vector<std::string> &words, const std::filesystem::path &network_file,
-                             LibCore::SymbolManager *symbol_manager) {
+std::unique_ptr<NF> parse_nf(const std::vector<std::string> &words, const std::filesystem::path &network_file, SymbolManager *symbol_manager) {
   if (words.size() != LENGTH_NF_INPUT) {
     panic("Invalid network function");
   }
@@ -92,7 +91,7 @@ void parse_link(const std::vector<std::string> &words, const std::unordered_map<
 
 } // namespace
 
-Network Network::parse(const std::filesystem::path &network_file, LibCore::SymbolManager *symbol_manager) {
+Network Network::parse(const std::filesystem::path &network_file, SymbolManager *symbol_manager) {
   std::ifstream fstream = open_file(network_file);
 
   std::unordered_map<NFId, std::unique_ptr<NF>> nfs;

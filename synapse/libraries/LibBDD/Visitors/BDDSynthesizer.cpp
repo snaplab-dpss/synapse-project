@@ -6,6 +6,16 @@
 
 namespace LibBDD {
 
+using LibCore::build_expr_mods;
+using LibCore::bytes_in_expr;
+using LibCore::expr_mod_t;
+using LibCore::expr_to_ascii;
+using LibCore::expr_to_string;
+using LibCore::is_constant;
+using LibCore::is_constant_signed;
+using LibCore::simplify;
+using LibCore::solver_toolbox;
+
 namespace {
 constexpr const char *const NF_TEMPLATE_FILENAME       = "nf.template.cpp";
 constexpr const char *const PROFILER_TEMPLATE_FILENAME = "profiler.template.cpp";
@@ -32,7 +42,7 @@ std::filesystem::path template_from_type(BDDSynthesizerTarget target) {
 
 #define TODO(expr)                                                                                                                                   \
   synthesizer->stack_dbg();                                                                                                                          \
-  panic("TODO: %s\n", LibCore::expr_to_string(expr).c_str());
+  panic("TODO: %s\n", expr_to_string(expr).c_str());
 
 BDDSynthesizer::Transpiler::Transpiler(BDDSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
@@ -40,14 +50,14 @@ BDDSynthesizer::code_t BDDSynthesizer::Transpiler::transpile(klee::ref<klee::Exp
   coders.emplace();
   coder_t &coder = coders.top();
 
-  expr = LibCore::simplify(expr);
+  expr = simplify(expr);
 
-  if (LibCore::is_constant(expr)) {
+  if (is_constant(expr)) {
     assert(expr->getWidth() <= 64 && "Unsupported constant width");
-    u64 value = LibCore::solver_toolbox.value_from_expr(expr);
+    u64 value = solver_toolbox.value_from_expr(expr);
     coder << value;
     if (value > (1ull << 31)) {
-      if (!LibCore::is_constant_signed(expr)) {
+      if (!is_constant_signed(expr)) {
         coder << "U";
       }
       coder << "LL";
@@ -404,7 +414,7 @@ klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitEq(const klee::EqExpr
   klee::ref<klee::Expr> var_expr;
   klee::ref<klee::Expr> const_expr;
 
-  if (LibCore::is_constant(lhs)) {
+  if (is_constant(lhs)) {
     const_expr = lhs;
     var_expr   = rhs;
   } else {
@@ -432,7 +442,7 @@ klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitNe(const klee::NeExpr
   klee::ref<klee::Expr> var_expr;
   klee::ref<klee::Expr> const_expr;
 
-  if (LibCore::is_constant(lhs)) {
+  if (is_constant(lhs)) {
     const_expr = lhs;
     var_expr   = rhs;
   } else {
@@ -692,12 +702,12 @@ void BDDSynthesizer::init_post_process() {
       coder << ";\n";
     }
 
-    for (node_id_t node_id : route_nodes) {
+    for (bdd_node_id_t node_id : route_nodes) {
       coder.indent();
       coder << "forwarding_stats_per_route_op.insert({" << node_id << ", PortStats{}});\n";
     }
 
-    for (node_id_t node_id : process_nodes) {
+    for (bdd_node_id_t node_id : process_nodes) {
       coder.indent();
       coder << "node_pkt_counter.insert({" << node_id << ", 0});\n";
     }
@@ -713,9 +723,9 @@ void BDDSynthesizer::init_post_process() {
 void BDDSynthesizer::process() {
   coder_t &coder = get(MARKER_NF_PROCESS);
 
-  LibCore::symbol_t device = bdd->get_device();
-  LibCore::symbol_t len    = bdd->get_packet_len();
-  LibCore::symbol_t now    = bdd->get_time();
+  symbol_t device = bdd->get_device();
+  symbol_t len    = bdd->get_packet_len();
+  symbol_t now    = bdd->get_time();
 
   var_t device_var = build_var("device", device.expr);
   var_t len_var    = build_var("packet_length", len.expr);
@@ -741,16 +751,16 @@ void BDDSynthesizer::process() {
   coder << "}\n";
 }
 
-void BDDSynthesizer::synthesize(const Node *node) {
+void BDDSynthesizer::synthesize(const BDDNode *node) {
   coder_t &coder = get(MARKER_NF_PROCESS);
 
-  node->visit_nodes([this, &coder](const Node *future_node) {
-    NodeVisitAction action = NodeVisitAction::Continue;
+  node->visit_nodes([this, &coder](const BDDNode *future_node) {
+    BDDNodeVisitAction action = BDDNodeVisitAction::Continue;
 
     process_nodes.insert(future_node->get_id());
 
     coder.indent();
-    coder << "// Node ";
+    coder << "// BDDNode ";
     coder << future_node->get_id();
     coder << "\n";
 
@@ -762,11 +772,11 @@ void BDDSynthesizer::synthesize(const Node *node) {
     }
 
     switch (future_node->get_type()) {
-    case NodeType::Branch: {
+    case BDDNodeType::Branch: {
       const Branch *branch_node = dynamic_cast<const Branch *>(future_node);
 
-      const Node *on_true  = branch_node->get_on_true();
-      const Node *on_false = branch_node->get_on_false();
+      const BDDNode *on_true  = branch_node->get_on_true();
+      const BDDNode *on_false = branch_node->get_on_false();
 
       klee::ref<klee::Expr> condition = branch_node->get_condition();
 
@@ -799,13 +809,13 @@ void BDDSynthesizer::synthesize(const Node *node) {
 
       coder << "\n";
 
-      action = NodeVisitAction::Stop;
+      action = BDDNodeVisitAction::Stop;
     } break;
-    case NodeType::Call: {
+    case BDDNodeType::Call: {
       const Call *call_node = dynamic_cast<const Call *>(future_node);
       synthesize_function(coder, call_node);
     } break;
-    case NodeType::Route: {
+    case BDDNodeType::Route: {
       const Route *route_node          = dynamic_cast<const Route *>(future_node);
       RouteOp op                       = route_node->get_operation();
       klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
@@ -892,11 +902,11 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::packet_return_chunk(coder_t 
   klee::ref<klee::Expr> chunk_addr = call.args.at("the_chunk").expr;
   klee::ref<klee::Expr> chunk      = call.args.at("the_chunk").in;
 
-  var_t hdr                                = stack_get(chunk_addr);
-  std::vector<LibCore::expr_mod_t> changes = LibCore::build_expr_mods(hdr.expr, chunk);
+  var_t hdr                       = stack_get(chunk_addr);
+  std::vector<expr_mod_t> changes = build_expr_mods(hdr.expr, chunk);
 
-  for (const LibCore::expr_mod_t &mod : changes) {
-    std::vector<klee::ref<klee::Expr>> bytes = LibCore::bytes_in_expr(mod.expr);
+  for (const expr_mod_t &mod : changes) {
+    std::vector<klee::ref<klee::Expr>> bytes = bytes_in_expr(mod.expr);
     for (size_t i = 0; i < bytes.size(); i++) {
       coder.indent();
       coder << hdr.name;
@@ -923,7 +933,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::nf_set_rte_ipv4_udptcp_check
 
   klee::ref<klee::Expr> ip_header     = call.args.at("ip_header").expr;
   klee::ref<klee::Expr> tcpudp_header = call.args.at("l4_header").expr;
-  LibCore::symbol_t checksum          = call_node->get_local_symbol("checksum");
+  symbol_t checksum                   = call_node->get_local_symbol("checksum");
 
   var_t c = build_var("checksum", checksum.expr);
 
@@ -950,7 +960,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::expire_items_single_map(code
   klee::ref<klee::Expr> map    = call.args.at("map").expr;
   klee::ref<klee::Expr> time   = call.args.at("time").expr;
 
-  LibCore::symbol_t number_of_freed_flows = call_node->get_local_symbol("number_of_freed_flows");
+  symbol_t number_of_freed_flows = call_node->get_local_symbol("number_of_freed_flows");
 
   var_t nfreed = build_var("freed_flows", number_of_freed_flows.expr);
 
@@ -990,7 +1000,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::expire_items_single_map_iter
   klee::ref<klee::Expr> start   = call.args.at("start").expr;
   klee::ref<klee::Expr> n_elems = call.args.at("n_elems").expr;
 
-  LibCore::symbol_t number_of_freed_flows = call_node->get_local_symbol("number_of_freed_flows");
+  symbol_t number_of_freed_flows = call_node->get_local_symbol("number_of_freed_flows");
 
   var_t nfreed = build_var("freed_flows", number_of_freed_flows.expr);
 
@@ -1015,7 +1025,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::map_allocate(coder_t &coder,
   klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
   klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
   klee::ref<klee::Expr> map_out  = call.args.at("map_out").out;
-  LibCore::symbol_t success      = call_node->get_local_symbol("map_allocation_succeeded");
+  symbol_t success               = call_node->get_local_symbol("map_allocation_succeeded");
 
   var_t map_out_var = build_var("map", map_out);
   var_t success_var = build_var("map_allocation_succeeded", success.expr);
@@ -1048,7 +1058,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::map_get(coder_t &coder, cons
   klee::ref<klee::Expr> value_out_addr = call.args.at("value_out").expr;
   klee::ref<klee::Expr> value_out      = call.args.at("value_out").out;
 
-  LibCore::symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
+  symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
 
   var_t r = build_var("map_hit", map_has_this_key.expr);
   var_t v = build_var("value", value_out);
@@ -1207,7 +1217,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::vector_allocate(coder_t &cod
   klee::ref<klee::Expr> elem_size  = call.args.at("elem_size").expr;
   klee::ref<klee::Expr> capacity   = call.args.at("capacity").expr;
   klee::ref<klee::Expr> vector_out = call.args.at("vector_out").out;
-  LibCore::symbol_t success        = call_node->get_local_symbol("vector_alloc_success");
+  symbol_t success                 = call_node->get_local_symbol("vector_alloc_success");
 
   var_t vector_out_var = build_var("vector", vector_out);
   var_t success_var    = build_var("vector_alloc_success", success.expr);
@@ -1265,7 +1275,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::vector_return(coder_t &coder
 
   var_t v = stack_get(value_addr);
 
-  if (LibCore::solver_toolbox.are_exprs_always_equal(v.expr, value)) {
+  if (solver_toolbox.are_exprs_always_equal(v.expr, value)) {
     return {};
   }
 
@@ -1284,8 +1294,8 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::vector_return(coder_t &coder
     return {};
   }
 
-  std::vector<LibCore::expr_mod_t> changes = LibCore::build_expr_mods(v.expr, value);
-  for (const LibCore::expr_mod_t &mod : changes) {
+  std::vector<expr_mod_t> changes = build_expr_mods(v.expr, value);
+  for (const expr_mod_t &mod : changes) {
     coder.indent();
 
     assert(mod.width <= 64 && "Vector element size is too large");
@@ -1335,7 +1345,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::vector_sample_lt(coder_t &co
   bool threshold_in_stack;
   var_t t = build_var_ptr("threshold", threshold_addr, threshold, coder, threshold_in_stack);
 
-  LibCore::symbol_t found_sample = call_node->get_local_symbol("found_sample");
+  symbol_t found_sample = call_node->get_local_symbol("found_sample");
 
   var_t f = build_var("found_sample", found_sample.expr);
   var_t i = build_var("sample_index", index_out);
@@ -1370,7 +1380,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_allocate(coder_t &cod
 
   klee::ref<klee::Expr> index_range = call.args.at("index_range").expr;
   klee::ref<klee::Expr> chain_out   = call.args.at("chain_out").out;
-  LibCore::symbol_t success         = call_node->get_local_symbol("is_dchain_allocated");
+  symbol_t success                  = call_node->get_local_symbol("is_dchain_allocated");
 
   var_t chain_out_var = build_var("dchain", chain_out);
   var_t success_var   = build_var("is_dchain_allocated", success.expr);
@@ -1400,7 +1410,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_allocate_new_index(co
   klee::ref<klee::Expr> time        = call.args.at("time").expr;
   klee::ref<klee::Expr> index_out   = call.args.at("index_out").out;
 
-  LibCore::symbol_t not_out_of_space = call_node->get_local_symbol("not_out_of_space");
+  symbol_t not_out_of_space = call_node->get_local_symbol("not_out_of_space");
 
   var_t noos = build_var("not_out_of_space", not_out_of_space.expr);
   var_t i    = build_var("index", index_out);
@@ -1458,7 +1468,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_is_index_allocated(co
   klee::ref<klee::Expr> dchain_addr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index       = call.args.at("index").expr;
 
-  LibCore::symbol_t is_allocated = call_node->get_local_symbol("is_index_allocated");
+  symbol_t is_allocated = call_node->get_local_symbol("is_index_allocated");
 
   var_t ia = build_var("is_allocated", is_allocated.expr);
 
@@ -1499,7 +1509,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::cms_allocate(coder_t &coder,
   klee::ref<klee::Expr> key_size         = call.args.at("key_size").expr;
   klee::ref<klee::Expr> cleanup_interval = call.args.at("cleanup_interval").expr;
   klee::ref<klee::Expr> cms_out          = call.args.at("cms_out").out;
-  LibCore::symbol_t success              = call_node->get_local_symbol("cms_allocation_succeeded");
+  symbol_t success                       = call_node->get_local_symbol("cms_allocation_succeeded");
 
   var_t cms_out_var = build_var("cms", cms_out);
   var_t success_var = build_var("cms_allocation_succeeded", success.expr);
@@ -1589,7 +1599,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::cms_periodic_cleanup(coder_t
   klee::ref<klee::Expr> cms_addr = call.args.at("cms").expr;
   klee::ref<klee::Expr> time     = call.args.at("time").expr;
 
-  LibCore::symbol_t cleanup_success = call_node->get_local_symbol("cleanup_success");
+  symbol_t cleanup_success = call_node->get_local_symbol("cleanup_success");
 
   var_t cs = build_var("cleanup_success", cleanup_success.expr);
 
@@ -1614,7 +1624,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::tb_allocate(coder_t &coder, 
   klee::ref<klee::Expr> burst    = call.args.at("burst").expr;
   klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
   klee::ref<klee::Expr> tb_out   = call.args.at("tb_out").out;
-  LibCore::symbol_t success      = call_node->get_local_symbol("tb_allocation_succeeded");
+  symbol_t success               = call_node->get_local_symbol("tb_allocation_succeeded");
 
   var_t tb_out_var  = build_var("tb", tb_out);
   var_t success_var = build_var("tb_allocation_succeeded", success.expr);
@@ -1643,7 +1653,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_allocate(coder_t &coder,
   const call_t &call = call_node->get_call();
 
   klee::ref<klee::Expr> lpm_out = call.args.at("lpm_out").out;
-  LibCore::symbol_t success     = call_node->get_local_symbol("lpm_alloc_success");
+  symbol_t success              = call_node->get_local_symbol("lpm_alloc_success");
 
   var_t lpm_out_var = build_var("lpm", lpm_out);
   var_t success_var = build_var("lpm_alloc_success", success.expr);
@@ -1796,7 +1806,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_lookup(coder_t &coder, c
   klee::ref<klee::Expr> prefix    = call.args.at("prefix").expr;
   klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
 
-  LibCore::symbol_t lpm_lookup_match = call_node->get_local_symbol("lpm_lookup_match");
+  symbol_t lpm_lookup_match = call_node->get_local_symbol("lpm_lookup_match");
 
   var_t lookup_match_var = build_var("lpm_lookup_match", lpm_lookup_match.expr);
   var_t lpm_matching_dev = build_var("lpm_matching_dev", value_out);
@@ -1827,7 +1837,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_update(coder_t &coder, c
   klee::ref<klee::Expr> prefixlen = call.args.at("prefixlen").expr;
   klee::ref<klee::Expr> value     = call.args.at("value").expr;
 
-  LibCore::symbol_t lpm_update_elem_result = call_node->get_local_symbol("lpm_update_elem_result");
+  symbol_t lpm_update_elem_result = call_node->get_local_symbol("lpm_update_elem_result");
 
   var_t update_result_var = build_var("lpm_update_elem_success", lpm_update_elem_result.expr);
 
@@ -1852,7 +1862,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_from_file(coder_t &coder
   klee::ref<klee::Expr> lpm_addr  = call.args.at("lpm").expr;
   klee::ref<klee::Expr> cfg_fname = call.args.at("cfg_fname").in;
 
-  std::string cfg_fname_str = LibCore::expr_to_ascii(cfg_fname);
+  const std::string cfg_fname_str = expr_to_ascii(cfg_fname);
 
   coder.indent();
   coder << "lpm_from_file(";
@@ -1871,10 +1881,10 @@ void BDDSynthesizer::stack_dbg() const {
       std::cerr << "[";
       std::cerr << var.name;
       if (!var.addr.isNull()) {
-        std::cerr << "@" << LibCore::expr_to_string(var.addr, true);
+        std::cerr << "@" << expr_to_string(var.addr, true);
       }
       std::cerr << "]: ";
-      std::cerr << LibCore::expr_to_string(var.expr, false) << "\n";
+      std::cerr << expr_to_string(var.expr, false) << "\n";
     }
   }
   std::cerr << "======================================== \n";
@@ -1904,7 +1914,7 @@ BDDSynthesizer::var_t BDDSynthesizer::stack_get(klee::ref<klee::Expr> expr) {
   }
 
   stack_dbg();
-  panic("Variable not found in stack: %s\n", LibCore::expr_to_string(expr).c_str());
+  panic("Variable not found in stack: %s\n", expr_to_string(expr).c_str());
 }
 
 BDDSynthesizer::code_t BDDSynthesizer::slice_var(const var_t &var, bits_t offset, bits_t size) const {
@@ -1946,7 +1956,7 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
     stack_frame_t &frame = *it;
 
     for (const var_t &v : frame.vars) {
-      if (LibCore::solver_toolbox.are_exprs_always_equal(v.expr, expr) || LibCore::solver_toolbox.are_exprs_always_equal(v.addr, expr)) {
+      if (solver_toolbox.are_exprs_always_equal(v.expr, expr) || solver_toolbox.are_exprs_always_equal(v.addr, expr)) {
         out_var = v;
         return true;
       }
@@ -1959,9 +1969,9 @@ bool BDDSynthesizer::stack_find(klee::ref<klee::Expr> expr, var_t &out_var) {
       }
 
       for (bits_t offset = 0; offset <= var_bits - expr_bits; offset += 8) {
-        klee::ref<klee::Expr> var_slice = LibCore::solver_toolbox.exprBuilder->Extract(v.expr, offset, expr_bits);
+        klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(v.expr, offset, expr_bits);
 
-        if (LibCore::solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
+        if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
           out_var      = v;
           out_var.name = slice_var(v, offset, expr_bits);
           out_var.expr = var_slice;
@@ -1979,7 +1989,7 @@ bool BDDSynthesizer::stack_find_or_create_tmp_slice_var(klee::ref<klee::Expr> ex
     stack_frame_t &frame = *it;
 
     for (const var_t &v : frame.vars) {
-      if (LibCore::solver_toolbox.are_exprs_always_equal(v.expr, expr) || LibCore::solver_toolbox.are_exprs_always_equal(v.addr, expr)) {
+      if (solver_toolbox.are_exprs_always_equal(v.expr, expr) || solver_toolbox.are_exprs_always_equal(v.addr, expr)) {
         out_var = v;
         return true;
       }
@@ -1992,9 +2002,9 @@ bool BDDSynthesizer::stack_find_or_create_tmp_slice_var(klee::ref<klee::Expr> ex
       }
 
       for (bits_t offset = 0; offset <= var_bits - expr_bits; offset += 8) {
-        klee::ref<klee::Expr> var_slice = LibCore::solver_toolbox.exprBuilder->Extract(v.expr, offset, expr_bits);
+        klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(v.expr, offset, expr_bits);
 
-        if (LibCore::solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
+        if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
           out_var = build_var(v.name + "_slice", var_slice);
 
           if (expr_bits <= 64) {
@@ -2020,7 +2030,7 @@ bool BDDSynthesizer::stack_find_or_create_tmp_slice_var(klee::ref<klee::Expr> ex
               coder << ");\n";
             } else {
               for (bytes_t b = 0; b < expr_bits / 8; b++) {
-                klee::ref<klee::Expr> byte = LibCore::solver_toolbox.exprBuilder->Extract(v.expr, offset + b * 8, 8);
+                klee::ref<klee::Expr> byte = solver_toolbox.exprBuilder->Extract(v.expr, offset + b * 8, 8);
                 coder.indent();
                 coder << out_var.name << "[" << b << "] = ";
                 coder << transpiler.transpile(byte);
@@ -2062,7 +2072,7 @@ void BDDSynthesizer::stack_replace(const var_t &var, klee::ref<klee::Expr> new_e
   }
 
   stack_dbg();
-  panic("Variable not found in stack: %s\nExpr: %s\n", var.name.c_str(), LibCore::expr_to_string(new_expr).c_str());
+  panic("Variable not found in stack: %s\nExpr: %s\n", var.name.c_str(), expr_to_string(new_expr).c_str());
 }
 
 BDDSynthesizer::var_t BDDSynthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr) { return build_var(name, expr, nullptr); }
@@ -2086,7 +2096,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
     var = build_var(base_name, value, addr);
     coder.indent();
     coder << "uint8_t " << var.name << "[" << size << "];\n";
-  } else if (LibCore::solver_toolbox.are_exprs_always_equal(var.expr, value)) {
+  } else if (solver_toolbox.are_exprs_always_equal(var.expr, value)) {
     return var;
   }
 
@@ -2112,7 +2122,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
     var.expr = stack_value.expr;
   } else {
     for (bytes_t b = 0; b < size; b++) {
-      klee::ref<klee::Expr> byte = LibCore::solver_toolbox.exprBuilder->Extract(var.expr, b * 8, 8);
+      klee::ref<klee::Expr> byte = solver_toolbox.exprBuilder->Extract(var.expr, b * 8, 8);
       coder.indent();
       coder << var.name << "[" << b << "] = ";
       coder << transpiler.transpile(byte);

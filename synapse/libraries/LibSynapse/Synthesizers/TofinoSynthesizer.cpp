@@ -4,6 +4,15 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibCore::expr_to_string;
+using LibCore::get_unique_symbolic_reads;
+using LibCore::is_conditional;
+using LibCore::is_constant;
+using LibCore::is_constant_signed;
+using LibCore::match_endian_swap_pattern;
+using LibCore::simplify;
+using LibCore::solver_toolbox;
+
 namespace {
 
 constexpr const char *const MARKER_CPU_HEADER                   = "CPU_HEADER";
@@ -22,9 +31,9 @@ constexpr const char *const MARKER_EGRESS_METADATA              = "EGRESS_METADA
 constexpr const char *const TEMPLATE_FILENAME                   = "tofino.template.p4";
 
 template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
-  const Context &ctx               = ep->get_ctx();
-  const TofinoContext *tofino_ctx  = ctx.get_target_ctx<TofinoContext>();
-  const LibSynapse::Tofino::DS *ds = tofino_ctx->get_data_structures().get_ds_from_id(id);
+  const Context &ctx              = ep->get_ctx();
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+  const Tofino::DS *ds            = tofino_ctx->get_data_structures().get_ds_from_id(id);
   assert(ds && "DS not found");
   return dynamic_cast<const T *>(ds);
 }
@@ -68,7 +77,7 @@ bool natural_compare(const std::string &a, const std::string &b) {
 TofinoSynthesizer::Transpiler::Transpiler(TofinoSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
 TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile_constant(klee::ref<klee::Expr> expr, bool swap_endianness) {
-  assert(LibCore::is_constant(expr) && "Expected a constant expression");
+  assert(is_constant(expr) && "Expected a constant expression");
 
   const bytes_t width = expr->getWidth() / 8;
 
@@ -77,8 +86,8 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile_constant(klee
 
   for (size_t byte = 0; byte < width; byte++) {
     const bytes_t offset          = swap_endianness ? byte : width - byte - 1;
-    klee::ref<klee::Expr> extract = LibCore::solver_toolbox.exprBuilder->Extract(expr, offset * 8, 8);
-    const u64 byte_value          = LibCore::solver_toolbox.value_from_expr(extract);
+    klee::ref<klee::Expr> extract = solver_toolbox.exprBuilder->Extract(expr, offset * 8, 8);
+    const u64 byte_value          = solver_toolbox.value_from_expr(extract);
 
     std::stringstream ss;
     ss << std::hex << std::setw(2) << std::setfill('0') << byte_value;
@@ -107,18 +116,18 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::swap_endianness(const c
 TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt) {
   loaded_opt = opt;
 
-  std::cerr << "Transpiling: " << LibCore::expr_to_string(expr) << "\n";
-  expr = LibCore::simplify(expr);
-  std::cerr << "Simplified:  " << LibCore::expr_to_string(expr) << "\n";
+  std::cerr << "Transpiling: " << expr_to_string(expr) << "\n";
+  expr = simplify(expr);
+  std::cerr << "Simplified:  " << expr_to_string(expr) << "\n";
 
   coders.emplace();
   coder_t &coder = coders.top();
 
   klee::ref<klee::Expr> endian_swap_target;
 
-  if (LibCore::is_constant(expr)) {
+  if (is_constant(expr)) {
     coder << transpile_constant(expr, opt & TRANSPILER_OPT_SWAP_CONST_ENDIANNESS);
-  } else if (LibCore::match_endian_swap_pattern(expr, endian_swap_target)) {
+  } else if (match_endian_swap_pattern(expr, endian_swap_target)) {
     const bits_t size = endian_swap_target->getWidth();
     coder << swap_endianness(transpile(endian_swap_target, loaded_opt), size);
   } else if (std::optional<var_t> var = synthesizer->ingress_vars.get(expr, loaded_opt)) {
@@ -147,7 +156,7 @@ TofinoSynthesizer::code_t TofinoSynthesizer::Transpiler::type_from_expr(klee::re
   klee::Expr::Width width = expr->getWidth();
   assert(width != klee::Expr::InvalidWidth && "Invalid width");
 
-  if (LibCore::is_conditional(expr)) {
+  if (is_conditional(expr)) {
     return "bool";
   }
 
@@ -206,10 +215,10 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitRead(const klee::R
     return Action::skipChildren();
   }
 
-  std::cerr << LibCore::expr_to_string(expr) << "\n";
+  std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  panic("TODO: visitRead: %s", LibCore::expr_to_string(expr).c_str());
+  panic("TODO: visitRead: %s", expr_to_string(expr).c_str());
   return Action::skipChildren();
 }
 
@@ -232,10 +241,10 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitConcat(const klee:
     return Action::skipChildren();
   }
 
-  std::cerr << LibCore::expr_to_string(expr) << "\n";
+  std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  panic("TODO: visitConcat: %s", LibCore::expr_to_string(expr).c_str());
+  panic("TODO: visitConcat: %s", expr_to_string(expr).c_str());
   return Action::skipChildren();
 }
 
@@ -249,7 +258,7 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitExtract(const klee
   }
 
   synthesizer->dbg_vars();
-  panic("TODO: visitExtract: %s", LibCore::expr_to_string(expr).c_str());
+  panic("TODO: visitExtract: %s", expr_to_string(expr).c_str());
   return Action::skipChildren();
 }
 
@@ -392,7 +401,7 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitEq(const klee::EqE
   klee::ref<klee::Expr> var_expr;
   klee::ref<klee::Expr> const_expr;
 
-  if (LibCore::is_constant(lhs)) {
+  if (is_constant(lhs)) {
     const_expr = lhs;
     var_expr   = rhs;
   } else {
@@ -400,10 +409,10 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitEq(const klee::EqE
     var_expr   = lhs;
   }
 
-  if (LibCore::is_constant(const_expr)) {
+  if (is_constant(const_expr)) {
     std::optional<TofinoSynthesizer::var_t> var = synthesizer->ingress_vars.get(var_expr, loaded_opt);
     if (var && var->is_bool()) {
-      u64 value = LibCore::solver_toolbox.value_from_expr(const_expr);
+      u64 value = solver_toolbox.value_from_expr(const_expr);
       if (value == 0) {
         coder << "!";
       }
@@ -428,7 +437,7 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitNe(const klee::NeE
   klee::ref<klee::Expr> var_expr;
   klee::ref<klee::Expr> const_expr;
 
-  if (LibCore::is_constant(lhs)) {
+  if (is_constant(lhs)) {
     const_expr = lhs;
     var_expr   = rhs;
   } else {
@@ -436,10 +445,10 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitNe(const klee::NeE
     var_expr   = lhs;
   }
 
-  if (LibCore::is_constant(const_expr)) {
+  if (is_constant(const_expr)) {
     std::optional<TofinoSynthesizer::var_t> var = synthesizer->ingress_vars.get(var_expr);
     if (var && var->is_bool()) {
-      u64 value = LibCore::solver_toolbox.value_from_expr(const_expr);
+      u64 value = solver_toolbox.value_from_expr(const_expr);
       if (value != 0) {
         coder << "!";
       }
@@ -569,7 +578,7 @@ TofinoSynthesizer::code_t TofinoSynthesizer::get_parser_state_name(const ParserS
 
   coder << "parser_";
   bool first = true;
-  for (LibBDD::node_id_t id : state->ids) {
+  for (bdd_node_id_t id : state->ids) {
     if (!first) {
       coder << "_";
     } else {
@@ -1059,7 +1068,7 @@ TofinoSynthesizer::code_t TofinoSynthesizer::var_t::get_type() const {
   return force_bool ? "bool" : TofinoSynthesizer::Transpiler::type_from_expr(expr);
 }
 
-bool TofinoSynthesizer::var_t::is_bool() const { return force_bool || LibCore::is_conditional(expr); }
+bool TofinoSynthesizer::var_t::is_bool() const { return force_bool || is_conditional(expr); }
 
 void TofinoSynthesizer::var_t::declare(coder_t &coder, std::optional<code_t> assignment) const {
   coder.indent();
@@ -1088,7 +1097,7 @@ TofinoSynthesizer::var_t TofinoSynthesizer::var_t::get_slice(bits_t offset, bits
   }
 
   const code_t slice_name          = name + "[" + std::to_string(hi) + ":" + std::to_string(lo) + "]";
-  klee::ref<klee::Expr> slice_expr = LibCore::solver_toolbox.exprBuilder->Extract(expr, offset, slice_size);
+  klee::ref<klee::Expr> slice_expr = solver_toolbox.exprBuilder->Extract(expr, offset, slice_size);
 
   return var_t(original_name, original_expr, original_size, slice_name, slice_expr, slice_size, force_bool, is_header_field, is_buffer);
 }
@@ -1147,10 +1156,10 @@ std::string TofinoSynthesizer::var_t::to_string() const {
   std::stringstream ss;
   ss << "var_t{";
   ss << "oname: " << original_name << ", ";
-  ss << "oexpr: " << LibCore::expr_to_string(original_expr, true) << ", ";
+  ss << "oexpr: " << expr_to_string(original_expr, true) << ", ";
   ss << "osize: " << original_size << ", ";
   ss << "name: " << name << ", ";
-  ss << "expr: " << LibCore::expr_to_string(expr, true) << ", ";
+  ss << "expr: " << expr_to_string(expr, true) << ", ";
   ss << "size: " << size << ", ";
   ss << "force_bool: " << force_bool << ", ";
   ss << "is_header_field: " << is_header_field << ", ";
@@ -1180,23 +1189,23 @@ void TofinoSynthesizer::Stack::clear() {
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_exact(klee::ref<klee::Expr> expr) const {
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
-    if (LibCore::solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
+    if (solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
       return var;
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_exact_hdr(klee::ref<klee::Expr> expr) const {
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
-    if (var.is_header_field && LibCore::solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
+    if (var.is_header_field && solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
       return var;
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const {
@@ -1210,7 +1219,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
 
   // No point in looking for a slice if the expression is 1 bit.
   if (expr->getWidth() == 1) {
-    return std::nullopt;
+    return {};
   }
 
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
@@ -1224,9 +1233,9 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
     }
 
     for (bits_t offset = 0; offset + expr_size <= var_size; offset += 8) {
-      klee::ref<klee::Expr> var_slice = LibCore::solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
+      klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
 
-      if (LibCore::solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
+      if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
         var_t slice = var.get_slice(offset, expr_size, opt);
 
         if (slice.is_header_field && (opt & TRANSPILER_OPT_SWAP_HDR_ENDIANNESS)) {
@@ -1238,7 +1247,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_hdr(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const {
@@ -1267,9 +1276,9 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_hdr(klee::
     }
 
     for (bits_t offset = 0; offset + expr_size <= var_size; offset += 8) {
-      klee::ref<klee::Expr> var_slice = LibCore::solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
+      klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
 
-      if (LibCore::solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
+      if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
         var_t slice = var.get_slice(offset, expr_size, opt);
 
         if (slice.is_header_field && (opt & TRANSPILER_OPT_SWAP_HDR_ENDIANNESS)) {
@@ -1281,7 +1290,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_hdr(klee::
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
 std::vector<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_all() const { return frames; }
@@ -1323,7 +1332,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stacks::get(klee::ref
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stacks::get_hdr(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const {
@@ -1339,7 +1348,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stacks::get_hdr(klee:
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
 void TofinoSynthesizer::Stacks::clear() { stacks.clear(); }
@@ -1374,13 +1383,13 @@ TofinoSynthesizer::coder_t &TofinoSynthesizer::get(const std::string &marker) {
 }
 
 void TofinoSynthesizer::synthesize() {
-  const LibBDD::BDD *bdd = target_ep->get_bdd();
+  const BDD *bdd = target_ep->get_bdd();
 
-  LibCore::symbol_t device = bdd->get_device();
-  LibCore::symbol_t time   = bdd->get_time();
+  symbol_t device = bdd->get_device();
+  symbol_t time   = bdd->get_time();
 
   alloc_var("meta.dev", device.expr, EXACT_NAME);
-  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 64), EXACT_NAME);
+  alloc_var("meta.time", solver_toolbox.exprBuilder->Extract(time.expr, 0, 64), EXACT_NAME);
 
   ingress_vars.push();
 
@@ -1391,8 +1400,8 @@ void TofinoSynthesizer::synthesize() {
   ingress_vars.clear();
   ingress_vars.push();
 
-  alloc_var("meta.dev", LibCore::solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), EXACT_NAME);
-  alloc_var("meta.time", LibCore::solver_toolbox.exprBuilder->Extract(time.expr, 0, 64), EXACT_NAME);
+  alloc_var("meta.dev", solver_toolbox.exprBuilder->Extract(device.expr, 0, 16), EXACT_NAME);
+  alloc_var("meta.time", solver_toolbox.exprBuilder->Extract(time.expr, 0, 64), EXACT_NAME);
 
   ingress_vars.push();
 
@@ -1463,7 +1472,7 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
 
     ingress_vars.push();
 
-    for (LibBDD::node_id_t id : state->ids) {
+    for (bdd_node_id_t id : state->ids) {
       if (parser_vars.find(id) != parser_vars.end()) {
         const Stack &vars = parser_vars.at(id);
         ingress_vars.insert_back(vars);
@@ -1604,20 +1613,20 @@ code_path_t TofinoSynthesizer::alloc_recirc_coder() {
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) {
-  coder_t &ingress_apply          = get(MARKER_INGRESS_CONTROL_APPLY);
-  const LibCore::Symbols &symbols = node->get_symbols();
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  const Symbols &symbols = node->get_symbols();
 
   ingress_apply.indent();
   ingress_apply << "send_to_controller(";
   ingress_apply << ep_node->get_id();
   ingress_apply << ");\n";
 
-  for (const LibCore::symbol_t &symbol : symbols.get()) {
+  for (const symbol_t &symbol : symbols.get()) {
     std::optional<var_t> var = ingress_vars.get(symbol.expr);
 
     if (!var) {
       dbg_vars();
-      panic("Variable %s not found in stack", LibCore::expr_to_string(symbol.expr, true).c_str());
+      panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
     }
 
     if (var->is_header_field) {
@@ -1768,7 +1777,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     return EPVisitor::Action::skipChildren;
   }
 
-  const var_t cond_var = alloc_var("cond", LibCore::solver_toolbox.exprBuilder->True(), FORCE_BOOL);
+  const var_t cond_var = alloc_var("cond", solver_toolbox.exprBuilder->True(), FORCE_BOOL);
   cond_var.declare(ingress, "false");
 
   for (klee::ref<klee::Expr> condition : conditions) {
@@ -1923,14 +1932,14 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  klee::ref<klee::Expr> hdr                           = node->get_hdr();
-  const std::vector<LibCore::expr_mod_t> &changes     = node->get_changes();
-  const std::vector<LibCore::expr_byte_swap_t> &swaps = node->get_swaps();
+  klee::ref<klee::Expr> hdr                  = node->get_hdr();
+  const std::vector<expr_mod_t> &changes     = node->get_changes();
+  const std::vector<expr_byte_swap_t> &swaps = node->get_swaps();
 
   std::unordered_set<bytes_t> bytes_already_dealt_with;
-  for (const LibCore::expr_byte_swap_t &byte_swap : swaps) {
-    klee::ref<klee::Expr> byte0_expr = LibCore::solver_toolbox.exprBuilder->Extract(hdr, byte_swap.byte0 * 8, 8);
-    klee::ref<klee::Expr> byte1_expr = LibCore::solver_toolbox.exprBuilder->Extract(hdr, byte_swap.byte1 * 8, 8);
+  for (const expr_byte_swap_t &byte_swap : swaps) {
+    klee::ref<klee::Expr> byte0_expr = solver_toolbox.exprBuilder->Extract(hdr, byte_swap.byte0 * 8, 8);
+    klee::ref<klee::Expr> byte1_expr = solver_toolbox.exprBuilder->Extract(hdr, byte_swap.byte1 * 8, 8);
 
     std::optional<var_t> byte0_var = ingress_vars.get_hdr(byte0_expr);
     std::optional<var_t> byte1_var = ingress_vars.get_hdr(byte1_expr);
@@ -1952,7 +1961,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   std::vector<code_t> assignments;
 
   for (size_t i = 0; i < changes.size(); i++) {
-    const LibCore::expr_mod_t &mod = changes[i];
+    const expr_mod_t &mod = changes[i];
 
     if (bytes_already_dealt_with.find(mod.offset / 8) != bytes_already_dealt_with.end()) {
       continue;
@@ -1974,7 +1983,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       }
 
       if (matching_bytes == var->original_size / 8) {
-        klee::ref<klee::Expr> target_hdr_expr = LibCore::solver_toolbox.exprBuilder->Extract(hdr, mod.offset, var->original_size);
+        klee::ref<klee::Expr> target_hdr_expr = solver_toolbox.exprBuilder->Extract(hdr, mod.offset, var->original_size);
         std::optional<var_t> target_hdr_var   = ingress_vars.get_hdr(target_hdr_expr);
 
         if (target_hdr_var.has_value()) {
@@ -1995,7 +2004,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       }
     }
 
-    klee::ref<klee::Expr> target_hdr_expr = LibCore::solver_toolbox.exprBuilder->Extract(hdr, mod.offset, mod.width);
+    klee::ref<klee::Expr> target_hdr_expr = solver_toolbox.exprBuilder->Extract(hdr, mod.offset, mod.width);
     std::optional<var_t> target_hdr_var   = ingress_vars.get_hdr(target_hdr_expr);
     assert(target_hdr_var.has_value() && "Target hdr field not found");
 
@@ -2030,12 +2039,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const DS_ID map_table_id                       = node->get_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
   const klee::ref<klee::Expr> value              = node->get_value();
-  const std::optional<LibCore::symbol_t> hit     = node->get_hit();
+  const std::optional<symbol_t> hit              = node->get_hit();
 
   const MapTable *map_table = get_tofino_ds<MapTable>(ep, map_table_id);
 
-  const LibBDD::node_id_t node_id = node->get_node()->get_id();
-  const Table *table              = map_table->get_table(node_id);
+  const bdd_node_id_t node_id = node->get_node()->get_id();
+  const Table *table          = map_table->get_table(node_id);
   assert(table && "Table not found");
 
   std::vector<var_t> keys_vars;
@@ -2064,12 +2073,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const DS_ID id                                 = node->get_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
   const klee::ref<klee::Expr> value              = node->get_value();
-  const std::optional<LibCore::symbol_t> hit     = node->get_hit();
+  const std::optional<symbol_t> hit              = node->get_hit();
 
   const GuardedMapTable *guarded_map_table = get_tofino_ds<GuardedMapTable>(ep, id);
 
-  const LibBDD::node_id_t node_id = node->get_node()->get_id();
-  const Table *table              = guarded_map_table->get_table(node_id);
+  const bdd_node_id_t node_id = node->get_node()->get_id();
+  const Table *table          = guarded_map_table->get_table(node_id);
   assert(table && "Table not found");
 
   std::vector<var_t> keys_vars;
@@ -2099,9 +2108,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  const LibBDD::node_id_t node_id             = node->get_node()->get_id();
+  const bdd_node_id_t node_id                 = node->get_node()->get_id();
   const DS_ID id                              = node->get_id();
-  const LibCore::symbol_t &guard_allow        = node->get_guard_allow();
+  const symbol_t &guard_allow                 = node->get_guard_allow();
   klee::ref<klee::Expr> guard_allow_condition = node->get_guard_allow_condition();
 
   const GuardedMapTable *guarded_map_table = get_tofino_ds<GuardedMapTable>(ep, id);
@@ -2153,8 +2162,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   const VectorTable *vector_table = get_tofino_ds<VectorTable>(ep, vector_table_id);
 
-  LibBDD::node_id_t node_id = node->get_node()->get_id();
-  const Table *table        = vector_table->get_table(node_id);
+  bdd_node_id_t node_id = node->get_node()->get_id();
+  const Table *table    = vector_table->get_table(node_id);
   assert(table && "Table not found");
 
   code_t transpiled_key = transpiler.transpile(key, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS);
@@ -2177,14 +2186,14 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  const DS_ID dchain_table_id          = node->get_id();
-  klee::ref<klee::Expr> key            = node->get_key();
-  std::optional<LibCore::symbol_t> hit = node->get_hit();
+  const DS_ID dchain_table_id = node->get_id();
+  klee::ref<klee::Expr> key   = node->get_key();
+  std::optional<symbol_t> hit = node->get_hit();
 
   const DchainTable *dchain_table = get_tofino_ds<DchainTable>(ep, dchain_table_id);
 
-  LibBDD::node_id_t node_id = node->get_node()->get_id();
-  const Table *table        = dchain_table->get_table(node_id);
+  bdd_node_id_t node_id = node->get_node()->get_id();
+  const Table *table    = dchain_table->get_table(node_id);
   assert(table && "Table not found");
 
   const code_t transpiled_key = transpiler.transpile(key, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS);
@@ -2241,7 +2250,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     const code_t action_name = build_register_action_name(reg, RegisterActionType::Read, ep_node);
     transpile_register_action_decl(reg, action_name, RegisterActionType::Read, {});
 
-    const klee::ref<klee::Expr> entry_expr = LibCore::solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
+    const klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
     const code_t assignment                = action_name + ".execute(" + transpiler.transpile(index, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) + ")";
 
     if (can_be_inlined) {
@@ -2289,7 +2298,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   bits_t offset = 0;
   for (const Register *reg : regs) {
-    const klee::ref<klee::Expr> reg_write_expr = LibCore::solver_toolbox.exprBuilder->Extract(write_value, offset, reg->value_size);
+    const klee::ref<klee::Expr> reg_write_expr = solver_toolbox.exprBuilder->Extract(write_value, offset, reg->value_size);
     std::optional<var_t> reg_write_var         = ingress_vars.get(reg_write_expr);
 
     if (!reg_write_var) {
@@ -2326,7 +2335,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   transpile_fcfs_cached_table_decl(fcfs_cached_table, key, value);
 
-  // const LibCore::symbol_t &map_has_this_key         = node->get_map_has_this_key();
+  // const symbol_t &map_has_this_key         = node->get_map_has_this_key();
 
   // transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
   // dbg();
@@ -2384,13 +2393,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const DS_ID hh_table_id                        = node->get_hh_table_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
   klee::ref<klee::Expr> index                    = node->get_value();
-  std::optional<LibCore::symbol_t> hit           = node->get_hit();
+  std::optional<symbol_t> hit                    = node->get_hit();
   assert(hit.has_value() && "Hit is not a variable");
 
   const HHTable *hh_table = get_tofino_ds<HHTable>(ep, hh_table_id);
 
-  const LibBDD::node_id_t node_id = node->get_node()->get_id();
-  const Table *table              = hh_table->get_table(node_id);
+  const bdd_node_id_t node_id = node->get_node()->get_id();
+  const Table *table          = hh_table->get_table(node_id);
   assert(table && "Table not found");
 
   std::vector<var_t> keys_vars;
@@ -2576,7 +2585,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
     if (!key_var.has_value()) {
       dbg_vars();
-      panic("Key is not a header field variable:\n%s", LibCore::expr_to_string(key).c_str());
+      panic("Key is not a header field variable:\n%s", expr_to_string(key).c_str());
     }
 
     ingress_deparser_apply.indent();
@@ -2957,7 +2966,7 @@ void TofinoSynthesizer::dbg_vars() const {
         std::cerr << " (header)";
       }
       std::cerr << ": ";
-      std::cerr << LibCore::expr_to_string(var.expr, true);
+      std::cerr << expr_to_string(var.expr, true);
       std::cerr << "\n";
     }
   }
@@ -2973,7 +2982,7 @@ void TofinoSynthesizer::dbg_vars() const {
       std::cerr << " (header)";
     }
     std::cerr << ": ";
-    std::cerr << LibCore::expr_to_string(var.expr, true);
+    std::cerr << expr_to_string(var.expr, true);
     std::cerr << "\n";
   }
   std::cerr << "======================================== \n";

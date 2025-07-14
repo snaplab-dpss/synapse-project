@@ -10,7 +10,7 @@ private:
   addr_t cms_addr;
 
 public:
-  CMSPeriodicCleanup(const LibBDD::Node *_node, addr_t _cms_addr)
+  CMSPeriodicCleanup(const BDDNode *_node, addr_t _cms_addr)
       : x86Module(ModuleType::x86_CMSPeriodicCleanup, "CMSPeriodicCleanup", _node), cms_addr(_cms_addr) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -28,9 +28,9 @@ public:
   CMSPeriodicCleanupFactory() : x86ModuleFactory(ModuleType::x86_CMSPeriodicCleanup, "CMSPeriodicCleanup") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace x86

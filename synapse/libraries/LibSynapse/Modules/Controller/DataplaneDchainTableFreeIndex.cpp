@@ -4,6 +4,11 @@
 namespace LibSynapse {
 namespace Controller {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
 
 struct dchain_table_data_t {
@@ -11,15 +16,15 @@ struct dchain_table_data_t {
   klee::ref<klee::Expr> index;
 };
 
-dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
-  const LibBDD::call_t &call = call_node->get_call();
+dchain_table_data_t get_dchain_table_data(const Call *call_node) {
+  const call_t &call = call_node->get_call();
   assert(call.function_name == "dchain_free_index" && "Not a dchain call");
 
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
 
-  dchain_table_data_t data = {
-      .obj   = LibCore::expr_addr_to_obj_addr(dchain_addr_expr),
+  const dchain_table_data_t data = {
+      .obj   = expr_addr_to_obj_addr(dchain_addr_expr),
       .index = index,
   };
 
@@ -28,35 +33,34 @@ dchain_table_data_t get_dchain_table_data(const LibBDD::Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneDchainTableFreeIndexFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> DataplaneDchainTableFreeIndexFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *dchain_free_index = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call            = dchain_free_index->get_call();
+  const Call *dchain_free_index = dynamic_cast<const Call *>(node);
+  const call_t &call            = dchain_free_index->get_call();
 
   if (call.function_name != "dchain_free_index") {
-    return std::nullopt;
+    return {};
   }
 
-  dchain_table_data_t data = get_dchain_table_data(dchain_free_index);
+  const dchain_table_data_t data = get_dchain_table_data(dchain_free_index);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_DchainTable)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DataplaneDchainTableFreeIndexFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                                       LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> DataplaneDchainTableFreeIndexFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *dchain_free_index = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call            = dchain_free_index->get_call();
+  const Call *dchain_free_index = dynamic_cast<const Call *>(node);
+  const call_t &call            = dchain_free_index->get_call();
 
   if (call.function_name != "dchain_free_index") {
     return {};
@@ -73,7 +77,7 @@ std::vector<impl_t> DataplaneDchainTableFreeIndexFactory::process_node(const EP 
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -81,19 +85,19 @@ std::vector<impl_t> DataplaneDchainTableFreeIndexFactory::process_node(const EP 
   return impls;
 }
 
-std::unique_ptr<Module> DataplaneDchainTableFreeIndexFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DataplaneDchainTableFreeIndexFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *dchain_free_index = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call            = dchain_free_index->get_call();
+  const Call *dchain_free_index = dynamic_cast<const Call *>(node);
+  const call_t &call            = dchain_free_index->get_call();
 
   if (call.function_name != "dchain_free_index") {
     return {};
   }
 
-  dchain_table_data_t data = get_dchain_table_data(dchain_free_index);
+  const dchain_table_data_t data = get_dchain_table_data(dchain_free_index);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_DchainTable)) {
     return {};

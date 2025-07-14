@@ -5,6 +5,8 @@
 
 namespace LibSynapse {
 
+using LibCore::solver_toolbox;
+
 namespace {
 ep_node_id_t ep_node_id_counter = 0;
 }
@@ -85,7 +87,7 @@ std::vector<klee::ref<klee::Expr>> EPNode::get_constraints() const {
 
     if (!node_constraint.isNull()) {
       if (node->get_children().size() > 1 && node->get_children()[1] == next) {
-        node_constraint = LibCore::solver_toolbox.exprBuilder->Not(node_constraint);
+        node_constraint = solver_toolbox.exprBuilder->Not(node_constraint);
       }
 
       constraints.insert(constraints.begin(), node_constraint);

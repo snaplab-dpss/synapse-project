@@ -15,8 +15,8 @@ private:
   klee::ref<klee::Expr> pass;
 
 public:
-  MeterUpdate(const LibBDD::Node *_node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-              klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _hit, klee::ref<klee::Expr> _pass)
+  MeterUpdate(const BDDNode *_node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _pkt_len,
+              klee::ref<klee::Expr> _hit, klee::ref<klee::Expr> _pass)
       : TofinoModule(ModuleType::Tofino_MeterUpdate, "MeterUpdate", _node), table_id(_table_id), obj(_obj), keys(_keys), pkt_len(_pkt_len), hit(_hit),
         pass(_pass) {}
 
@@ -42,9 +42,9 @@ public:
   MeterUpdateFactory() : TofinoModuleFactory(ModuleType::Tofino_MeterUpdate, "MeterUpdate") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Tofino

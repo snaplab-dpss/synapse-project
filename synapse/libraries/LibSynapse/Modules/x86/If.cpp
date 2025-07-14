@@ -7,9 +7,13 @@
 namespace LibSynapse {
 namespace x86 {
 
+using LibBDD::Branch;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
-bool bdd_node_match_pattern(const LibBDD::Node *node) {
-  if (node->get_type() != LibBDD::NodeType::Branch) {
+bool bdd_node_match_pattern(const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Branch) {
     return false;
   }
 
@@ -17,18 +21,18 @@ bool bdd_node_match_pattern(const LibBDD::Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
   if (bdd_node_match_pattern(node))
     return spec_impl_t(decide(ep, node), ctx);
-  return std::nullopt;
+  return {};
 }
 
-std::vector<impl_t> IfFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
 
-  const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
+  const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
   klee::ref<klee::Expr> condition = branch_node->get_condition();
 
@@ -47,8 +51,8 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const LibBDD::Node *no
   then_node->set_prev(if_node);
   else_node->set_prev(if_node);
 
-  EPLeaf then_leaf(then_node, branch_node->get_on_true());
-  EPLeaf else_leaf(else_node, branch_node->get_on_false());
+  const EPLeaf then_leaf(then_node, branch_node->get_on_true());
+  const EPLeaf else_leaf(else_node, branch_node->get_on_false());
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
@@ -59,13 +63,13 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const LibBDD::Node *no
   return impls;
 }
 
-std::unique_ptr<Module> IfFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> IfFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
 
-  const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
-  klee::ref<klee::Expr> condition   = branch_node->get_condition();
+  const Branch *branch_node       = dynamic_cast<const Branch *>(node);
+  klee::ref<klee::Expr> condition = branch_node->get_condition();
 
   return std::make_unique<If>(node, condition);
 }

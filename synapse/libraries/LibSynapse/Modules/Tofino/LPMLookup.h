@@ -14,7 +14,7 @@ private:
   klee::ref<klee::Expr> match;
 
 public:
-  LPMLookup(const LibBDD::Node *_node, DS_ID _lpm_id, addr_t _obj, klee::ref<klee::Expr> _addr, klee::ref<klee::Expr> _device,
+  LPMLookup(const BDDNode *_node, DS_ID _lpm_id, addr_t _obj, klee::ref<klee::Expr> _addr, klee::ref<klee::Expr> _device,
             klee::ref<klee::Expr> _match)
       : TofinoModule(ModuleType::Tofino_LPMLookup, "LPMLookup", _node), lpm_id(_lpm_id), obj(_obj), addr(_addr), device(_device), match(_match) {}
 
@@ -39,9 +39,9 @@ public:
   LPMLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_LPMLookup, "LPMLookup") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Tofino

@@ -4,6 +4,9 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::Route;
+using LibBDD::RouteOp;
+
 namespace {
 bool is_parser_reject(const EP *ep) {
   EPLeaf leaf = ep->get_active_leaf();
@@ -21,16 +24,16 @@ bool is_parser_reject(const EP *ep) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Route) {
-    return std::nullopt;
+std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Route) {
+    return {};
   }
 
-  const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  LibBDD::RouteOp op              = route_node->get_operation();
+  const Route *route_node = dynamic_cast<const Route *>(node);
+  const RouteOp op        = route_node->get_operation();
 
-  if (op != LibBDD::RouteOp::Drop) {
-    return std::nullopt;
+  if (op != RouteOp::Drop) {
+    return {};
   }
 
   Context new_ctx = ctx;
@@ -39,15 +42,15 @@ std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const Li
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Route) {
+std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Route) {
     return {};
   }
 
-  const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  LibBDD::RouteOp op              = route_node->get_operation();
+  const Route *route_node = dynamic_cast<const Route *>(node);
+  const RouteOp op        = route_node->get_operation();
 
-  if (op != LibBDD::RouteOp::Drop) {
+  if (op != RouteOp::Drop) {
     return {};
   }
 
@@ -60,7 +63,7 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const LibBDD
   Module *module  = new ParserReject(node);
   EPNode *ep_node = new EPNode(module);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   Context &ctx = new_ep->get_mutable_ctx();
@@ -71,15 +74,15 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const LibBDD
   return impls;
 }
 
-std::unique_ptr<Module> ParserRejectFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Route) {
+std::unique_ptr<Module> ParserRejectFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Route) {
     return {};
   }
 
-  const LibBDD::Route *route_node = dynamic_cast<const LibBDD::Route *>(node);
-  LibBDD::RouteOp op              = route_node->get_operation();
+  const Route *route_node = dynamic_cast<const Route *>(node);
+  const RouteOp op        = route_node->get_operation();
 
-  if (op != LibBDD::RouteOp::Drop) {
+  if (op != RouteOp::Drop) {
     return {};
   }
 

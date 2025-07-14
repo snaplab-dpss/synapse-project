@@ -5,6 +5,13 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+using LibCore::solver_toolbox;
+using LibCore::Symbols;
+
 namespace {
 
 struct cms_data_t {
@@ -12,42 +19,42 @@ struct cms_data_t {
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> min_estimate;
 
-  cms_data_t(const Context &ctx, const LibBDD::Call *call_node) {
-    const LibBDD::call_t &call = call_node->get_call();
+  cms_data_t(const Context &ctx, const Call *call_node) {
+    const call_t &call = call_node->get_call();
     assert(call.function_name == "cms_count_min");
 
     klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
     klee::ref<klee::Expr> key           = call.args.at("key").in;
 
-    obj          = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+    obj          = expr_addr_to_obj_addr(cms_addr_expr);
     keys         = Table::build_keys(key, ctx.get_expr_structs());
     min_estimate = call_node->get_local_symbol("min_estimate").expr;
   }
 };
 
-bool is_inc_and_query_cms(const LibBDD::Call *cms_increment, std::vector<const LibBDD::Call *> &cms_count_mins) {
+bool is_inc_and_query_cms(const Call *cms_increment, std::vector<const Call *> &cms_count_mins) {
   if (cms_increment->get_call().function_name != "cms_increment") {
     return false;
   }
 
-  const LibBDD::call_t &cms_increment_call = cms_increment->get_call();
+  const call_t &cms_increment_call = cms_increment->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = cms_increment_call.args.at("cms").expr;
   klee::ref<klee::Expr> key           = cms_increment_call.args.at("key").in;
 
-  const addr_t obj = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t obj = expr_addr_to_obj_addr(cms_addr_expr);
 
-  const std::vector<const LibBDD::Call *> future_cms_count_mins = cms_increment->get_future_functions({"cms_count_min"});
+  const std::vector<const Call *> future_cms_count_mins = cms_increment->get_future_functions({"cms_count_min"});
 
-  for (const LibBDD::Call *future_cms_count_min : future_cms_count_mins) {
-    const LibBDD::call_t &cms_count_min_call = future_cms_count_min->get_call();
+  for (const Call *future_cms_count_min : future_cms_count_mins) {
+    const call_t &cms_count_min_call = future_cms_count_min->get_call();
 
     klee::ref<klee::Expr> cms_addr_expr2 = cms_count_min_call.args.at("cms").expr;
     klee::ref<klee::Expr> key2           = cms_count_min_call.args.at("key").in;
 
-    const addr_t obj2 = LibCore::expr_addr_to_obj_addr(cms_addr_expr2);
+    const addr_t obj2 = expr_addr_to_obj_addr(cms_addr_expr2);
 
-    if ((obj == obj2) && LibCore::solver_toolbox.are_exprs_always_equal(key, key2)) {
+    if ((obj == obj2) && solver_toolbox.are_exprs_always_equal(key, key2)) {
       cms_count_mins.push_back(future_cms_count_min);
     }
   }
@@ -55,18 +62,17 @@ bool is_inc_and_query_cms(const LibBDD::Call *cms_increment, std::vector<const L
   return !cms_count_mins.empty();
 }
 
-std::unique_ptr<LibBDD::BDD> rebuild_bdd(const EP *ep, const LibBDD::Node *node, const std::vector<const LibBDD::Call *> &cms_count_mins,
-                                         const LibBDD::Node *&new_next_node) {
-  const LibBDD::BDD *old_bdd           = ep->get_bdd();
-  std::unique_ptr<LibBDD::BDD> new_bdd = std::make_unique<LibBDD::BDD>(*old_bdd);
+std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const BDDNode *node, const std::vector<const Call *> &cms_count_mins, const BDDNode *&new_next_node) {
+  const BDD *old_bdd           = ep->get_bdd();
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
-  const LibBDD::Node *old_next_node = node->get_next();
-  new_next_node                     = new_bdd->get_node_by_id(old_next_node->get_id());
+  const BDDNode *old_next_node = node->get_next();
+  new_next_node                = new_bdd->get_node_by_id(old_next_node->get_id());
 
-  LibCore::Symbols symbols_to_remember;
-  for (const LibBDD::Call *to_remove : cms_count_mins) {
+  Symbols symbols_to_remember;
+  for (const Call *to_remove : cms_count_mins) {
     symbols_to_remember.add(to_remove->get_local_symbols());
-    LibBDD::Node *new_node = new_bdd->delete_non_branch(to_remove->get_id());
+    BDDNode *new_node = new_bdd->delete_non_branch(to_remove->get_id());
     if (to_remove->get_id() == old_next_node->get_id()) {
       new_next_node = new_node;
     }
@@ -79,28 +85,28 @@ std::unique_ptr<LibBDD::BDD> rebuild_bdd(const EP *ep, const LibBDD::Node *node,
 
 } // namespace
 
-std::optional<spec_impl_t> CMSIncAndQueryFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> CMSIncAndQueryFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *cms_increment = dynamic_cast<const LibBDD::Call *>(node);
+  const Call *cms_increment = dynamic_cast<const Call *>(node);
 
-  std::vector<const LibBDD::Call *> cms_count_mins;
+  std::vector<const Call *> cms_count_mins;
   if (!is_inc_and_query_cms(cms_increment, cms_count_mins)) {
-    return std::nullopt;
+    return {};
   }
 
   const cms_data_t cms_data(ctx, cms_count_mins[0]);
 
   if (!ctx.can_impl_ds(cms_data.obj, DSImpl::Tofino_CountMinSketch)) {
-    return std::nullopt;
+    return {};
   }
 
-  const LibBDD::cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
+  const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
 
   if (!can_build_or_reuse_cms(ep, node, cms_data.obj, cms_data.keys, cfg.width, cfg.height)) {
-    return std::nullopt;
+    return {};
   }
 
   Context new_ctx = ctx;
@@ -108,21 +114,21 @@ std::optional<spec_impl_t> CMSIncAndQueryFactory::speculate(const EP *ep, const 
 
   spec_impl_t spec_impl = spec_impl_t(decide(ep, node), new_ctx);
 
-  for (const LibBDD::Call *count_min : cms_count_mins) {
+  for (const Call *count_min : cms_count_mins) {
     spec_impl.skip.insert(count_min->get_id());
   }
 
   return spec_impl;
 }
 
-std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *cms_increment = dynamic_cast<const LibBDD::Call *>(node);
+  const Call *cms_increment = dynamic_cast<const Call *>(node);
 
-  std::vector<const LibBDD::Call *> cms_count_mins;
+  std::vector<const Call *> cms_count_mins;
   if (!is_inc_and_query_cms(cms_increment, cms_count_mins)) {
     return {};
   }
@@ -133,7 +139,7 @@ std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const LibB
     return {};
   }
 
-  const LibBDD::cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
+  const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
 
   CountMinSketch *cms = build_or_reuse_cms(ep, node, cms_data.obj, cms_data.keys, cfg.width, cfg.height);
 
@@ -146,8 +152,8 @@ std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const LibB
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  const LibBDD::Node *new_next_node;
-  std::unique_ptr<LibBDD::BDD> new_bdd = rebuild_bdd(new_ep.get(), node, cms_count_mins, new_next_node);
+  const BDDNode *new_next_node;
+  std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep.get(), node, cms_count_mins, new_next_node);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(cms_data.obj, DSImpl::Tofino_CountMinSketch);
@@ -165,14 +171,14 @@ std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const LibB
   return impls;
 }
 
-std::unique_ptr<Module> CMSIncAndQueryFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> CMSIncAndQueryFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *cms_increment = dynamic_cast<const LibBDD::Call *>(node);
+  const Call *cms_increment = dynamic_cast<const Call *>(node);
 
-  std::vector<const LibBDD::Call *> cms_count_mins;
+  std::vector<const Call *> cms_count_mins;
   if (!is_inc_and_query_cms(cms_increment, cms_count_mins)) {
     return {};
   }

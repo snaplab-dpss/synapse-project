@@ -10,6 +10,11 @@
 
 namespace LibBDD {
 
+using LibCore::expr_addr_to_obj_addr;
+using LibCore::is_constant;
+using LibCore::SingletonRandomEngine;
+using LibCore::solver_toolbox;
+
 using json = nlohmann::json;
 
 void from_json(const json &j, bdd_profile_t::config_t &config) {
@@ -73,11 +78,11 @@ void from_json(const json &j, std::unordered_map<u64, bdd_profile_t::map_stats_t
   }
 }
 
-void from_json(const json &j, std::unordered_map<node_id_t, u64> &counters) {
+void from_json(const json &j, std::unordered_map<bdd_node_id_t, u64> &counters) {
   for (const auto &kv : j.items()) {
-    node_id_t node_id = std::stoull(kv.key());
-    u64 count         = kv.value();
-    counters[node_id] = count;
+    bdd_node_id_t node_id = std::stoull(kv.key());
+    u64 count             = kv.value();
+    counters[node_id]     = count;
   }
 }
 
@@ -98,9 +103,9 @@ void from_json(const json &j, bdd_profile_t::fwd_stats_t &stats) {
   j.at("flood").get_to(stats.flood);
 }
 
-void from_json(const json &j, std::unordered_map<node_id_t, bdd_profile_t::fwd_stats_t> &forwarding_stats) {
+void from_json(const json &j, std::unordered_map<bdd_node_id_t, bdd_profile_t::fwd_stats_t> &forwarding_stats) {
   for (const auto &kv : j.items()) {
-    node_id_t node_id         = std::stoull(kv.key());
+    bdd_node_id_t node_id     = std::stoull(kv.key());
     forwarding_stats[node_id] = kv.value();
   }
 }
@@ -226,33 +231,33 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   bdd_profile_t bdd_profile;
 
   bdd_profile.meta.pkts  = 100'000;
-  bdd_profile.meta.bytes = bdd_profile.meta.pkts * std::max(MIN_PKT_SIZE_BYTES, LibCore::SingletonRandomEngine::generate() % MAX_PKT_SIZE_BYTES);
+  bdd_profile.meta.bytes = bdd_profile.meta.pkts * std::max(MIN_PKT_SIZE_BYTES, SingletonRandomEngine::generate() % MAX_PKT_SIZE_BYTES);
 
-  const Node *root                     = bdd->get_root();
+  const BDDNode *root                  = bdd->get_root();
   bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
   const std::vector<u16> devices       = bdd->get_devices();
 
-  root->visit_nodes([&bdd_profile, devices](const Node *node) {
-    assert(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end() && "Node counter not found");
+  root->visit_nodes([&bdd_profile, devices](const BDDNode *node) {
+    assert(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end() && "BDDNode counter not found");
     u64 current_counter = bdd_profile.counters[node->get_id()];
 
     switch (node->get_type()) {
-    case NodeType::Branch: {
+    case BDDNodeType::Branch: {
       const Branch *branch = dynamic_cast<const Branch *>(node);
 
-      const Node *on_true  = branch->get_on_true();
-      const Node *on_false = branch->get_on_false();
+      const BDDNode *on_true  = branch->get_on_true();
+      const BDDNode *on_false = branch->get_on_false();
 
       assert(on_true && "Branch node without on_true");
       assert(on_false && "Branch node without on_false");
 
-      u64 on_true_counter  = LibCore::SingletonRandomEngine::generate() % (current_counter + 1);
+      u64 on_true_counter  = SingletonRandomEngine::generate() % (current_counter + 1);
       u64 on_false_counter = current_counter - on_true_counter;
 
       bdd_profile.counters[on_true->get_id()]  = on_true_counter;
       bdd_profile.counters[on_false->get_id()] = on_false_counter;
     } break;
-    case NodeType::Call: {
+    case BDDNodeType::Call: {
       const Call *call_node = dynamic_cast<const Call *>(node);
       const call_t &call    = call_node->get_call();
 
@@ -262,24 +267,24 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
         bdd_profile_t::map_stats_t::node_t map_stats;
         map_stats.node  = node->get_id();
         map_stats.pkts  = current_counter;
-        map_stats.flows = std::max(1ul, LibCore::SingletonRandomEngine::generate() % current_counter);
+        map_stats.flows = std::max(1ul, SingletonRandomEngine::generate() % current_counter);
 
         u64 avg_pkts_per_flow = current_counter / map_stats.flows;
         for (u64 i = 0; i < map_stats.flows; i++) {
           map_stats.pkts_per_flow.push_back(avg_pkts_per_flow);
         }
 
-        bdd_profile.stats_per_map[LibCore::expr_addr_to_obj_addr(map_addr)].nodes.push_back(map_stats);
+        bdd_profile.stats_per_map[expr_addr_to_obj_addr(map_addr)].nodes.push_back(map_stats);
       }
 
       if (node->get_next()) {
-        const Node *next                     = node->get_next();
+        const BDDNode *next                  = node->get_next();
         bdd_profile.counters[next->get_id()] = current_counter;
       }
     } break;
-    case NodeType::Route: {
+    case BDDNodeType::Route: {
       if (node->get_next()) {
-        const Node *next                     = node->get_next();
+        const BDDNode *next                  = node->get_next();
         bdd_profile.counters[next->get_id()] = current_counter;
       }
 
@@ -295,12 +300,12 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
       } break;
       case RouteOp::Forward: {
         klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
-        if (LibCore::is_constant(dst_device)) {
-          const u16 device = LibCore::solver_toolbox.value_from_expr(dst_device);
+        if (is_constant(dst_device)) {
+          const u16 device = solver_toolbox.value_from_expr(dst_device);
           assert(std::find(devices.begin(), devices.end(), device) != devices.end() && "Invalid device");
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
         } else {
-          const u16 device                                           = devices[LibCore::SingletonRandomEngine::generate() % devices.size()];
+          const u16 device                                           = devices[SingletonRandomEngine::generate() % devices.size()];
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
         }
       } break;
@@ -308,7 +313,7 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
     } break;
     }
 
-    return NodeVisitAction::Continue;
+    return BDDNodeVisitAction::Continue;
   });
 
   return bdd_profile;

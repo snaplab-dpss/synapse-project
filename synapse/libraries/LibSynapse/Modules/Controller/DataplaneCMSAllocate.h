@@ -14,7 +14,7 @@ private:
   time_ns_t cleanup_internal;
 
 public:
-  DataplaneCMSAllocate(const LibBDD::Node *_node, addr_t _obj, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
+  DataplaneCMSAllocate(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
                        klee::ref<klee::Expr> _key_size, time_ns_t _cleanup_internal)
       : ControllerModule(ModuleType::Controller_DataplaneCMSAllocate, "DataplaneCMSAllocate", _node), obj(_obj), height(_height), width(_width),
         key_size(_key_size), cleanup_internal(_cleanup_internal) {}
@@ -38,9 +38,9 @@ public:
   DataplaneCMSAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_DataplaneCMSAllocate, "DataplaneCMSAllocate") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

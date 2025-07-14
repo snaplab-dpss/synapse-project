@@ -31,13 +31,15 @@
 namespace LibSynapse {
 namespace Tofino {
 
-namespace {
-std::unique_ptr<LibBDD::BDD> replicate_hdr_parsing_ops(const EP *ep, const LibBDD::Node *node, const LibBDD::Node *&next) {
-  std::vector<const LibBDD::Call *> prev_borrows =
-      node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
-  std::vector<const LibBDD::Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
+using LibBDD::Call;
+using LibBDD::call_t;
 
-  std::vector<const LibBDD::Node *> hdr_parsing_ops;
+namespace {
+std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node, const BDDNode *&next) {
+  std::vector<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
+
+  std::vector<const BDDNode *> hdr_parsing_ops;
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_returns.begin(), prev_returns.end());
 
@@ -45,9 +47,9 @@ std::unique_ptr<LibBDD::BDD> replicate_hdr_parsing_ops(const EP *ep, const LibBD
     return nullptr;
   }
 
-  const LibBDD::BDD *old_bdd = ep->get_bdd();
+  const BDD *old_bdd = ep->get_bdd();
 
-  std::unique_ptr<LibBDD::BDD> new_bdd = std::make_unique<LibBDD::BDD>(*old_bdd);
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
   new_bdd->add_cloned_non_branches(node->get_id(), hdr_parsing_ops);
 
   next = new_bdd->get_node_by_id(node->get_id());
@@ -56,11 +58,11 @@ std::unique_ptr<LibBDD::BDD> replicate_hdr_parsing_ops(const EP *ep, const LibBD
 }
 } // namespace
 
-std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
   Context new_ctx = ctx;
 
   // Don't send to the controller if the node is already a route.
-  if (node->get_type() == LibBDD::NodeType::Route) {
+  if (node->get_type() == BDDNodeType::Route) {
     return {};
   }
 
@@ -76,7 +78,7 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
 struct initial_controller_logic_t {
   EPNode *head;
   EPNode *tail;
-  LibCore::Symbols extra_symbols;
+  Symbols extra_symbols;
 
   void update(EPNode *ep_node) {
     assert(ep_node);
@@ -143,7 +145,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     if (prev.module->get_type() == ModuleType::Tofino_ParserExtraction) {
       const ParserExtraction *parser_extraction_module = dynamic_cast<const ParserExtraction *>(prev.module);
 
-      klee::ref<klee::Expr> length = LibCore::solver_toolbox.exprBuilder->Constant(parser_extraction_module->get_length(), 16);
+      klee::ref<klee::Expr> length = solver_toolbox.exprBuilder->Constant(parser_extraction_module->get_length(), 16);
 
       Controller::ParseHeader *ctrl_parse_header =
           new Controller::ParseHeader(active_leaf.next, parser_extraction_module->get_hdr_addr(), parser_extraction_module->get_hdr(), length);
@@ -171,7 +173,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       const If *if_module = dynamic_cast<const If *>(prev.module);
 
       const klee::ref<klee::Expr> condition = if_module->get_original_condition();
-      const LibBDD::Node *if_node           = if_module->get_node();
+      const BDDNode *if_node                = if_module->get_node();
       assert(if_node);
 
       initial_controller_logic.extra_symbols.add(if_node->get_used_symbols());
@@ -420,7 +422,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
   return initial_controller_logic;
 }
 
-std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   const EPLeaf active_leaf = ep->get_active_leaf();
 
   // We can't send to the controller if a forwarding decision was already made.
@@ -429,7 +431,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
   }
 
   // Don't send to the controller if the node is already a route.
-  if (node->get_type() == LibBDD::NodeType::Route) {
+  if (node->get_type() == BDDNodeType::Route) {
     return {};
   }
 
@@ -438,7 +440,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
 
   const initial_controller_logic_t initial_controller_logic = build_initial_controller_logic(active_leaf);
 
-  LibCore::Symbols symbols = get_relevant_dataplane_state(ep, node);
+  Symbols symbols = get_relevant_dataplane_state(ep, node);
   symbols.add(initial_controller_logic.extra_symbols);
   symbols.remove("packet_chunks");
 
@@ -454,8 +456,8 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
   }
 
   // Now we need to replicate the parsing operations that were done before.
-  const LibBDD::Node *next             = node;
-  std::unique_ptr<LibBDD::BDD> new_bdd = replicate_hdr_parsing_ops(ep, node, next);
+  const BDDNode *next          = node;
+  std::unique_ptr<BDD> new_bdd = replicate_hdr_parsing_ops(ep, node, next);
 
   // Note that we don't point to the next BDD node, as it was not actually implemented.
   // We are delegating the implementation to other platform.
@@ -474,7 +476,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const Li
   return impls;
 }
 
-std::unique_ptr<Module> SendToControllerFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> SendToControllerFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
   // We don't actually create a module for recirculation.
   return {};
 }

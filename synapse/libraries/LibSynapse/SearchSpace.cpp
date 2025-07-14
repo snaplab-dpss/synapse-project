@@ -6,41 +6,50 @@
 
 namespace LibSynapse {
 
+using LibBDD::BDDNodeType;
+using LibBDD::Branch;
+using LibBDD::Call;
+using LibBDD::Route;
+
+using LibCore::expr_to_string;
+using LibCore::Graphviz;
+using LibCore::pretty_print_expr;
+
 namespace {
 ss_node_id_t node_id_counter = 0;
 
-std::string get_bdd_node_description(const LibBDD::Node *node) {
+std::string get_bdd_node_description(const BDDNode *node) {
   std::stringstream description;
 
   description << node->get_id();
   description << ":";
 
   switch (node->get_type()) {
-  case LibBDD::NodeType::Call: {
-    const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
+  case BDDNodeType::Call: {
+    const Call *call_node = dynamic_cast<const Call *>(node);
     description << call_node->get_call().function_name;
   } break;
-  case LibBDD::NodeType::Branch: {
-    const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
-    klee::ref<klee::Expr> condition   = branch_node->get_condition();
+  case BDDNodeType::Branch: {
+    const Branch *branch_node       = dynamic_cast<const Branch *>(node);
+    klee::ref<klee::Expr> condition = branch_node->get_condition();
     description << "if(";
-    description << LibCore::pretty_print_expr(condition);
+    description << pretty_print_expr(condition);
     description << ")";
   } break;
-  case LibBDD::NodeType::Route: {
-    const LibBDD::Route *route = dynamic_cast<const LibBDD::Route *>(node);
-    LibBDD::RouteOp op         = route->get_operation();
+  case BDDNodeType::Route: {
+    const Route *route = dynamic_cast<const Route *>(node);
+    RouteOp op         = route->get_operation();
 
     switch (op) {
-    case LibBDD::RouteOp::Broadcast: {
+    case RouteOp::Broadcast: {
       description << "broadcast()";
     } break;
-    case LibBDD::RouteOp::Drop: {
+    case RouteOp::Drop: {
       description << "drop()";
     } break;
-    case LibBDD::RouteOp::Forward: {
+    case RouteOp::Forward: {
       description << "forward(";
-      description << LibCore::expr_to_string(route->get_dst_device());
+      description << expr_to_string(route->get_dst_device());
       description << ")";
     } break;
     }
@@ -55,7 +64,7 @@ std::string get_bdd_node_description(const LibBDD::Node *node) {
     node_str += " [...]";
   }
 
-  LibCore::Graphviz::sanitize_html_label(node_str);
+  Graphviz::sanitize_html_label(node_str);
 
   return node_str;
 }
@@ -94,8 +103,7 @@ void SearchSpace::activate_leaf(const EP *ep) {
   last_eps.clear();
 }
 
-void SearchSpace::add_to_active_leaf(const EP *ep, const LibBDD::Node *node, const ModuleFactory *modgen,
-                                     const std::vector<impl_t> &implementations) {
+void SearchSpace::add_to_active_leaf(const EP *ep, const BDDNode *node, const ModuleFactory *modgen, const std::vector<impl_t> &implementations) {
   assert(active_leaf && "Active leaf not set");
 
   for (const impl_t &impl : implementations) {
@@ -103,8 +111,8 @@ void SearchSpace::add_to_active_leaf(const EP *ep, const LibBDD::Node *node, con
     const ep_id_t ep_id   = impl.result->get_id();
     const Score score     = hcfg->score(impl.result.get());
 
-    const TargetType target  = modgen->get_target();
-    const LibBDD::Node *next = impl.result->get_next_node();
+    const TargetType target = modgen->get_target();
+    const BDDNode *next     = impl.result->get_next_node();
 
     std::stringstream description_ss;
     for (const auto &[key, value] : impl.decision.params) {

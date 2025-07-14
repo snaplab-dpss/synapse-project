@@ -3,6 +3,9 @@
 #include <filesystem>
 #include <CLI/CLI.hpp>
 
+using namespace LibCore;
+using namespace LibBDD;
+
 int main(int argc, char **argv) {
   CLI::App app{"Inspect BDD"};
 
@@ -14,16 +17,16 @@ int main(int argc, char **argv) {
 
   std::cout << "Inspecting BDD " << input_bdd_file << "...\n";
 
-  LibCore::SymbolManager manager;
-  LibBDD::BDD bdd(input_bdd_file, &manager);
-  LibBDD::BDD::inspection_report_t report = bdd.inspect();
+  SymbolManager manager;
+  BDD bdd(input_bdd_file, &manager);
+  BDD::inspection_report_t report = bdd.inspect();
 
-  if (report.status == LibBDD::BDD::InspectionStatus::Ok) {
+  if (report.status == BDD::InspectionStatus::Ok) {
     std::cout << "Inspection report: PASSED\n";
   } else {
     std::cout << "Inspection report: FAILED\n";
     std::cout << report.message << ".\n";
   }
 
-  return report.status == LibBDD::BDD::InspectionStatus::Ok ? 0 : 1;
+  return report.status == BDD::InspectionStatus::Ok ? 0 : 1;
 }

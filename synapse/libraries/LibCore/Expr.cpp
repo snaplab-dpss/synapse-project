@@ -2251,7 +2251,7 @@ std::vector<klee::ref<klee::Expr>> break_expr_into_structs_aware_chunks(klee::re
 
   std::reverse(chunks.begin(), chunks.end());
 
-  klee::ref<klee::Expr> merged = LibCore::concat_exprs(chunks);
+  klee::ref<klee::Expr> merged = concat_exprs(chunks);
   if (!solver_toolbox.are_exprs_always_equal(merged, target_expr)) {
     std::stringstream ss;
     ss << "***** Bug in break_expr_into_structs_aware_chunks *****\n";

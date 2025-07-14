@@ -7,13 +7,15 @@
 
 namespace LibSynapse {
 
+using LibBDD::bdd_node_id_t;
+
 class MaxTput : public HeuristicCfg {
 private:
   struct decision_hasher_t {
     std::size_t operator()(const decision_t &decision) const {
       size_t hash = 0;
 
-      hash ^= std::hash<LibBDD::node_id_t>{}(decision.node);
+      hash ^= std::hash<bdd_node_id_t>{}(decision.node);
       hash ^= std::hash<ModuleType>{}(decision.module);
 
       for (const auto &[key, value] : decision.params) {

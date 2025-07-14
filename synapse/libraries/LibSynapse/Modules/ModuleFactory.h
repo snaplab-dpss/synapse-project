@@ -11,17 +11,21 @@
 
 namespace LibSynapse {
 
+using LibCore::symbol_t;
+using LibCore::SymbolManager;
+using LibCore::Symbols;
+
 struct decision_t {
   const EP *ep;
-  LibBDD::node_id_t node;
+  bdd_node_id_t node;
   ModuleType module;
   std::unordered_map<std::string, i32> params;
 
   decision_t() : ep(nullptr), node(0), module(ModuleType::InvalidModule) {}
 
-  decision_t(const EP *_ep, LibBDD::node_id_t _node, ModuleType _module) : ep(_ep), node(_node), module(_module) {}
+  decision_t(const EP *_ep, bdd_node_id_t _node, ModuleType _module) : ep(_ep), node(_node), module(_module) {}
 
-  decision_t(const EP *_ep, LibBDD::node_id_t _node, ModuleType _module, const std::unordered_map<std::string, i32> &_params)
+  decision_t(const EP *_ep, bdd_node_id_t _node, ModuleType _module, const std::unordered_map<std::string, i32> &_params)
       : ep(_ep), node(_node), module(_module), params(_params) {}
 
   decision_t(const decision_t &other) : ep(other.ep), node(other.node), module(other.module), params(other.params) {}
@@ -41,7 +45,7 @@ struct spec_impl_t {
   decision_t decision;
   Context ctx;
   std::optional<TargetType> next_target;
-  LibBDD::node_ids_t skip;
+  bdd_node_ids_t skip;
 
   spec_impl_t(const decision_t &_decision, const Context &_ctx) : decision(_decision), ctx(_ctx) {}
 };
@@ -82,18 +86,18 @@ public:
 
   virtual ~ModuleFactory() {}
 
-  std::vector<impl_t> implement(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager, bool reorder_bdd) const;
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const     = 0;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const = 0;
+  std::vector<impl_t> implement(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager, bool reorder_bdd) const;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const = 0;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const     = 0;
 
   ModuleType get_type() const { return type; }
   TargetType get_target() const { return target; }
   const std::string &get_name() const { return name; }
 
 protected:
-  decision_t decide(const EP *ep, const LibBDD::Node *node, std::unordered_map<std::string, i32> params = {}) const;
-  impl_t implement(const EP *ep, const LibBDD::Node *node, std::unique_ptr<EP> result, std::unordered_map<std::string, i32> params = {}) const;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const = 0;
+  decision_t decide(const EP *ep, const BDDNode *node, std::unordered_map<std::string, i32> params = {}) const;
+  impl_t implement(const EP *ep, const BDDNode *node, std::unique_ptr<EP> result, std::unordered_map<std::string, i32> params = {}) const;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const = 0;
 };
 
 } // namespace LibSynapse

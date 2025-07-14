@@ -10,11 +10,10 @@ private:
   DS_ID cached_table_id;
   addr_t obj;
   klee::ref<klee::Expr> key;
-  LibCore::symbol_t cached_delete_failed;
+  symbol_t cached_delete_failed;
 
 public:
-  FCFSCachedTableDelete(const LibBDD::Node *_node, DS_ID _cached_table_id, addr_t _obj, klee::ref<klee::Expr> _key,
-                        const LibCore::symbol_t &_cached_delete_failed)
+  FCFSCachedTableDelete(const BDDNode *_node, DS_ID _cached_table_id, addr_t _obj, klee::ref<klee::Expr> _key, const symbol_t &_cached_delete_failed)
       : TofinoModule(ModuleType::Tofino_FCFSCachedTableDelete, "FCFSCachedTableDelete", _node), cached_table_id(_cached_table_id), obj(_obj),
         key(_key), cached_delete_failed(_cached_delete_failed) {}
 
@@ -28,7 +27,7 @@ public:
   DS_ID get_cached_table_id() const { return cached_table_id; }
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_key() const { return key; }
-  const LibCore::symbol_t &get_cached_delete_failed() const { return cached_delete_failed; }
+  const symbol_t &get_cached_delete_failed() const { return cached_delete_failed; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {cached_table_id}; }
 };
@@ -38,9 +37,9 @@ public:
   FCFSCachedTableDeleteFactory() : TofinoModuleFactory(ModuleType::Tofino_FCFSCachedTableDelete, "FCFSCachedTableDelete") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Tofino

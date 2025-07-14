@@ -13,16 +13,16 @@ public:
   PrinterDebug() : PrinterDebug(true) {}
 
   void visit(const BDD *bdd) override;
-  void visitRoot(const Node *root) override;
+  void visitRoot(const BDDNode *root) override;
 
   BDDVisitor::Action visit(const Branch *node) override;
   BDDVisitor::Action visit(const Call *node) override;
   BDDVisitor::Action visit(const Route *node) override;
 
-  static void debug(const Node *node);
+  static void debug(const BDDNode *node);
 
 private:
-  void visitConstraints(const Node *node);
+  void visitConstraints(const BDDNode *node);
 };
 
 } // namespace LibBDD

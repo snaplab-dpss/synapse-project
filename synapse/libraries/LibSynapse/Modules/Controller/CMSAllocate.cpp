@@ -4,16 +4,21 @@
 namespace LibSynapse {
 namespace Controller {
 
-std::optional<spec_impl_t> CMSAllocateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
+std::optional<spec_impl_t> CMSAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_allocate") {
-    return std::nullopt;
+    return {};
   }
 
   klee::ref<klee::Expr> height           = call.args.at("height").expr;
@@ -22,10 +27,10 @@ std::optional<spec_impl_t> CMSAllocateFactory::speculate(const EP *ep, const Lib
   klee::ref<klee::Expr> cleanup_interval = call.args.at("cleanup_interval").expr;
   klee::ref<klee::Expr> cms_out          = call.args.at("cms_out").out;
 
-  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_out);
+  const addr_t cms_addr = expr_addr_to_obj_addr(cms_out);
 
   if (!ctx.can_impl_ds(cms_addr, DSImpl::Controller_CountMinSketch)) {
-    return std::nullopt;
+    return {};
   }
 
   Context new_ctx = ctx;
@@ -34,13 +39,13 @@ std::optional<spec_impl_t> CMSAllocateFactory::speculate(const EP *ep, const Lib
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> CMSAllocateFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> CMSAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_allocate") {
     return {};
@@ -52,7 +57,7 @@ std::vector<impl_t> CMSAllocateFactory::process_node(const EP *ep, const LibBDD:
   klee::ref<klee::Expr> cleanup_interval = call.args.at("cleanup_interval").expr;
   klee::ref<klee::Expr> cms_out          = call.args.at("cms_out").out;
 
-  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_out);
+  const addr_t cms_addr = expr_addr_to_obj_addr(cms_out);
 
   if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};
@@ -65,7 +70,7 @@ std::vector<impl_t> CMSAllocateFactory::process_node(const EP *ep, const LibBDD:
 
   new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -73,13 +78,13 @@ std::vector<impl_t> CMSAllocateFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
-std::unique_ptr<Module> CMSAllocateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> CMSAllocateFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_allocate") {
     return {};
@@ -91,7 +96,7 @@ std::unique_ptr<Module> CMSAllocateFactory::create(const LibBDD::BDD *bdd, const
   klee::ref<klee::Expr> cleanup_interval = call.args.at("cleanup_interval").expr;
   klee::ref<klee::Expr> cms_out          = call.args.at("cms_out").out;
 
-  const addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_out);
+  const addr_t cms_addr = expr_addr_to_obj_addr(cms_out);
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};

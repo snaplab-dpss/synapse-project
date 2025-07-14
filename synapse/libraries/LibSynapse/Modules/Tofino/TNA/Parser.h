@@ -14,8 +14,14 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::bdd_node_id_t;
+using LibBDD::bdd_node_ids_t;
+
+using LibCore::expr_to_string;
+using LibCore::solver_toolbox;
+
 struct ParserState;
-using states_t = std::unordered_map<LibBDD::node_id_t, ParserState *>;
+using states_t = std::unordered_map<bdd_node_id_t, ParserState *>;
 
 enum class ParserStateType { Extract, Select, Terminate };
 
@@ -28,12 +34,12 @@ struct parser_selection_t {
 };
 
 struct ParserState {
-  LibBDD::node_ids_t ids;
+  bdd_node_ids_t ids;
   ParserStateType type;
 
-  ParserState(LibBDD::node_id_t _id, ParserStateType _type) : ids({_id}), type(_type) {}
+  ParserState(bdd_node_id_t _id, ParserStateType _type) : ids({_id}), type(_type) {}
 
-  ParserState(const LibBDD::node_ids_t &_ids, ParserStateType _type) : ids(_ids), type(_type) {}
+  ParserState(const bdd_node_ids_t &_ids, ParserStateType _type) : ids(_ids), type(_type) {}
 
   virtual ~ParserState() {}
 
@@ -43,7 +49,7 @@ struct ParserState {
     ss << std::string(lvl * 2, ' ');
     ss << "[";
     bool first = true;
-    for (LibBDD::node_id_t id : ids) {
+    for (bdd_node_id_t id : ids) {
       if (first) {
         first = false;
       } else {
@@ -67,7 +73,7 @@ struct ParserState {
   }
 
   virtual void record(states_t &states) {
-    for (LibBDD::node_id_t id : ids) {
+    for (bdd_node_id_t id : ids) {
       states[id] = this;
     }
   }
@@ -76,7 +82,7 @@ struct ParserState {
 struct ParserStateTerminate : public ParserState {
   bool accept;
 
-  ParserStateTerminate(LibBDD::node_id_t _id, bool _accept) : ParserState(_id, ParserStateType::Terminate), accept(_accept) {}
+  ParserStateTerminate(bdd_node_id_t _id, bool _accept) : ParserState(_id, ParserStateType::Terminate), accept(_accept) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -103,7 +109,7 @@ struct ParserStateSelect : public ParserState {
   ParserState *on_true;
   ParserState *on_false;
 
-  ParserStateSelect(LibBDD::node_id_t _id, const std::vector<parser_selection_t> &_selections)
+  ParserStateSelect(bdd_node_id_t _id, const std::vector<parser_selection_t> &_selections)
       : ParserState(_id, ParserStateType::Select), selections(_selections), on_true(nullptr), on_false(nullptr) {}
 
   std::string dump(int lvl = 0) const override {
@@ -115,10 +121,10 @@ struct ParserStateSelect : public ParserState {
     for (const parser_selection_t &selection : selections) {
       ss << "{";
       ss << "field=";
-      ss << LibCore::expr_to_string(selection.target, true);
+      ss << expr_to_string(selection.target, true);
       ss << ", values=[";
       for (size_t i = 0; i < selection.values.size(); i++) {
-        ss << LibCore::expr_to_string(selection.values[i]);
+        ss << expr_to_string(selection.values[i]);
         if (i < selection.values.size() - 1)
           ss << ", ";
       }
@@ -164,7 +170,7 @@ struct ParserStateSelect : public ParserState {
     }
 
     for (size_t i = 0; i < selections.size(); i++) {
-      if (!LibCore::solver_toolbox.are_exprs_always_equal(selections[i].target, other_select->selections[i].target)) {
+      if (!solver_toolbox.are_exprs_always_equal(selections[i].target, other_select->selections[i].target)) {
         return false;
       }
 
@@ -173,7 +179,7 @@ struct ParserStateSelect : public ParserState {
       }
 
       for (size_t j = 0; j < selections[i].values.size(); j++) {
-        if (!LibCore::solver_toolbox.are_exprs_always_equal(selections[i].values[i], other_select->selections[i].values[i])) {
+        if (!solver_toolbox.are_exprs_always_equal(selections[i].values[i], other_select->selections[i].values[i])) {
           return false;
         }
       }
@@ -195,13 +201,13 @@ struct ParserStateExtract : public ParserState {
   klee::ref<klee::Expr> hdr;
   ParserState *next;
 
-  ParserStateExtract(LibBDD::node_id_t _id, klee::ref<klee::Expr> _hdr) : ParserState(_id, ParserStateType::Extract), hdr(_hdr), next(nullptr) {}
+  ParserStateExtract(bdd_node_id_t _id, klee::ref<klee::Expr> _hdr) : ParserState(_id, ParserStateType::Extract), hdr(_hdr), next(nullptr) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
 
     ss << ParserState::dump(lvl);
-    ss << "extract(" << LibCore::expr_to_string(hdr, true) << ")\n";
+    ss << "extract(" << expr_to_string(hdr, true) << ")\n";
 
     lvl++;
 
@@ -225,7 +231,7 @@ struct ParserStateExtract : public ParserState {
 
     const ParserStateExtract *other_extract = dynamic_cast<const ParserStateExtract *>(other);
 
-    return LibCore::solver_toolbox.are_exprs_always_equal(hdr, other_extract->hdr);
+    return solver_toolbox.are_exprs_always_equal(hdr, other_extract->hdr);
   }
 
   void record(states_t &states) override {
@@ -251,7 +257,7 @@ public:
   }
 
   ~Parser() {
-    LibBDD::node_ids_t freed;
+    bdd_node_ids_t freed;
 
     // The states data structure can have duplicates, so we need to make sure
     for (const auto &[node_id, state] : states) {
@@ -264,27 +270,27 @@ public:
 
   const ParserState *get_initial_state() const { return initial_state; }
 
-  void add_extract(LibBDD::node_id_t leaf_id, LibBDD::node_id_t id, klee::ref<klee::Expr> hdr, std::optional<bool> direction) {
+  void add_extract(bdd_node_id_t leaf_id, bdd_node_id_t id, klee::ref<klee::Expr> hdr, std::optional<bool> direction) {
     ParserState *new_state = new ParserStateExtract(id, hdr);
     add_state(leaf_id, new_state, direction);
   }
 
-  void add_extract(LibBDD::node_id_t id, klee::ref<klee::Expr> hdr) {
+  void add_extract(bdd_node_id_t id, klee::ref<klee::Expr> hdr) {
     ParserState *new_state = new ParserStateExtract(id, hdr);
     add_state(new_state);
   }
 
-  void add_select(LibBDD::node_id_t leaf_id, LibBDD::node_id_t id, const std::vector<parser_selection_t> &selections, std::optional<bool> direction) {
+  void add_select(bdd_node_id_t leaf_id, bdd_node_id_t id, const std::vector<parser_selection_t> &selections, std::optional<bool> direction) {
     ParserStateSelect *new_state = new ParserStateSelect(id, selections);
     add_state(leaf_id, new_state, direction);
   }
 
-  void add_select(LibBDD::node_id_t id, const std::vector<parser_selection_t> &selections) {
+  void add_select(bdd_node_id_t id, const std::vector<parser_selection_t> &selections) {
     ParserState *new_state = new ParserStateSelect(id, selections);
     add_state(new_state);
   }
 
-  void accept(LibBDD::node_id_t id) {
+  void accept(bdd_node_id_t id) {
     if (already_terminated(id, true)) {
       return;
     }
@@ -293,7 +299,7 @@ public:
     add_state(new_state);
   }
 
-  void reject(LibBDD::node_id_t id) {
+  void reject(bdd_node_id_t id) {
     if (already_terminated(id, false)) {
       return;
     }
@@ -302,7 +308,7 @@ public:
     add_state(new_state);
   }
 
-  void accept(LibBDD::node_id_t leaf_id, LibBDD::node_id_t id, std::optional<bool> direction) {
+  void accept(bdd_node_id_t leaf_id, bdd_node_id_t id, std::optional<bool> direction) {
     if (already_terminated(leaf_id, id, direction, true)) {
       return;
     }
@@ -311,7 +317,7 @@ public:
     add_state(leaf_id, new_state, direction);
   }
 
-  void reject(LibBDD::node_id_t leaf_id, LibBDD::node_id_t id, std::optional<bool> direction) {
+  void reject(bdd_node_id_t leaf_id, bdd_node_id_t id, std::optional<bool> direction) {
     if (already_terminated(leaf_id, id, direction, false)) {
       return;
     }
@@ -328,7 +334,7 @@ public:
   }
 
 private:
-  bool already_terminated(LibBDD::node_id_t id, bool accepted) {
+  bool already_terminated(bdd_node_id_t id, bool accepted) {
     if (!initial_state) {
       return false;
     }
@@ -339,7 +345,7 @@ private:
     return true;
   }
 
-  bool already_terminated(LibBDD::node_id_t leaf_id, LibBDD::node_id_t id, std::optional<bool> direction, bool accepted) {
+  bool already_terminated(bdd_node_id_t leaf_id, bdd_node_id_t id, std::optional<bool> direction, bool accepted) {
     assert(initial_state && "Invalid parser");
     assert(states.find(leaf_id) != states.end() && "Invalid parser");
 
@@ -391,7 +397,7 @@ private:
     if (next_state && next_state->equals(new_state)) {
       assert(new_state->ids.size() == 1 && "Invalid parser");
 
-      LibBDD::node_id_t new_id = *new_state->ids.begin();
+      bdd_node_id_t new_id = *new_state->ids.begin();
       assert(next_state->ids.find(new_id) == next_state->ids.end() && "Invalid parser");
 
       next_state->ids.insert(new_id);
@@ -437,11 +443,11 @@ private:
     }
   }
 
-  void add_state(LibBDD::node_id_t leaf_id, ParserState *new_state, std::optional<bool> direction) {
+  void add_state(bdd_node_id_t leaf_id, ParserState *new_state, std::optional<bool> direction) {
     assert(initial_state && "Invalid parser");
     assert(states.find(leaf_id) != states.end() && "Invalid parser");
     assert(!new_state->ids.empty() && "Invalid parser");
-    assert(std::all_of(new_state->ids.begin(), new_state->ids.end(), [&](LibBDD::node_id_t id) { return states.find(id) == states.end(); }) &&
+    assert(std::all_of(new_state->ids.begin(), new_state->ids.end(), [&](bdd_node_id_t id) { return states.find(id) == states.end(); }) &&
            "Invalid parser");
 
     states[*new_state->ids.begin()] = new_state;

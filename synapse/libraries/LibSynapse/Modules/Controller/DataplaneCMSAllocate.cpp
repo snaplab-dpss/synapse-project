@@ -5,6 +5,12 @@
 namespace LibSynapse {
 namespace Controller {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+using LibCore::solver_toolbox;
+
 namespace {
 
 struct cms_allocation_data_t {
@@ -15,8 +21,8 @@ struct cms_allocation_data_t {
   time_ns_t cleanup_internal;
 };
 
-cms_allocation_data_t get_cms_allocatino_data(const Context &ctx, const LibBDD::Call *call_node) {
-  const LibBDD::call_t &call = call_node->get_call();
+cms_allocation_data_t get_cms_allocatino_data(const Context &ctx, const Call *call_node) {
+  const call_t &call = call_node->get_call();
   assert(call.function_name == "cms_allocate");
 
   klee::ref<klee::Expr> height                = call.args.at("height").expr;
@@ -25,10 +31,10 @@ cms_allocation_data_t get_cms_allocatino_data(const Context &ctx, const LibBDD::
   klee::ref<klee::Expr> cleanup_interval_expr = call.args.at("cleanup_interval").expr;
   klee::ref<klee::Expr> cms_out               = call.args.at("cms_out").out;
 
-  const time_ns_t cleanup_internal = LibCore::solver_toolbox.value_from_expr(cleanup_interval_expr);
+  const time_ns_t cleanup_internal = solver_toolbox.value_from_expr(cleanup_interval_expr);
 
   const cms_allocation_data_t data = {
-      .obj              = LibCore::expr_addr_to_obj_addr(cms_out),
+      .obj              = expr_addr_to_obj_addr(cms_out),
       .height           = height,
       .width            = width,
       .key_size         = key_size,
@@ -40,23 +46,23 @@ cms_allocation_data_t get_cms_allocatino_data(const Context &ctx, const LibBDD::
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneCMSAllocateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneCMSAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
   // We don't need this for now.
   return {};
 }
 
-std::vector<impl_t> DataplaneCMSAllocateFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> DataplaneCMSAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   // We don't need this for now.
   return {};
 }
 
-std::unique_ptr<Module> DataplaneCMSAllocateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DataplaneCMSAllocateFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *cms_allocate = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call       = cms_allocate->get_call();
+  const Call *cms_allocate = dynamic_cast<const Call *>(node);
+  const call_t &call       = cms_allocate->get_call();
 
   if (call.function_name != "cms_allocate") {
     return {};

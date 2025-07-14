@@ -4,6 +4,11 @@
 namespace LibSynapse {
 namespace Controller {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
 
 struct vector_table_data_t {
@@ -12,18 +17,18 @@ struct vector_table_data_t {
   klee::ref<klee::Expr> value;
 };
 
-vector_table_data_t get_vector_table_data(const LibBDD::Call *call_node) {
+vector_table_data_t get_vector_table_data(const Call *call_node) {
   // We can implement even if we later update the vector's contents!
 
-  const LibBDD::call_t &call = call_node->get_call();
+  const call_t &call = call_node->get_call();
   assert(call.function_name == "vector_borrow" && "Not a vector_borrow call");
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
   klee::ref<klee::Expr> cell             = call.extra_vars.at("borrowed_cell").second;
 
-  vector_table_data_t data = {
-      .obj   = LibCore::expr_addr_to_obj_addr(vector_addr_expr),
+  const vector_table_data_t data = {
+      .obj   = expr_addr_to_obj_addr(vector_addr_expr),
       .index = index,
       .value = cell,
   };
@@ -33,39 +38,38 @@ vector_table_data_t get_vector_table_data(const LibBDD::Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneVectorTableLookupFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> DataplaneVectorTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *vector_borrow = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call        = vector_borrow->get_call();
+  const Call *vector_borrow = dynamic_cast<const Call *>(node);
+  const call_t &call        = vector_borrow->get_call();
 
   if (call.function_name != "vector_borrow") {
-    return std::nullopt;
+    return {};
   }
 
   if (vector_borrow->is_vector_borrow_value_ignored()) {
-    return std::nullopt;
+    return {};
   }
 
-  vector_table_data_t data = get_vector_table_data(vector_borrow);
+  const vector_table_data_t data = get_vector_table_data(vector_borrow);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_VectorTable)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DataplaneVectorTableLookupFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                                    LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> DataplaneVectorTableLookupFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *vector_borrow = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call        = vector_borrow->get_call();
+  const Call *vector_borrow = dynamic_cast<const Call *>(node);
+  const call_t &call        = vector_borrow->get_call();
 
   if (call.function_name != "vector_borrow") {
     return {};
@@ -86,7 +90,7 @@ std::vector<impl_t> DataplaneVectorTableLookupFactory::process_node(const EP *ep
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -94,13 +98,13 @@ std::vector<impl_t> DataplaneVectorTableLookupFactory::process_node(const EP *ep
   return impls;
 }
 
-std::unique_ptr<Module> DataplaneVectorTableLookupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DataplaneVectorTableLookupFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *vector_borrow = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call        = vector_borrow->get_call();
+  const Call *vector_borrow = dynamic_cast<const Call *>(node);
+  const call_t &call        = vector_borrow->get_call();
 
   if (call.function_name != "vector_borrow") {
     return {};
@@ -110,7 +114,7 @@ std::unique_ptr<Module> DataplaneVectorTableLookupFactory::create(const LibBDD::
     return {};
   }
 
-  vector_table_data_t data = get_vector_table_data(vector_borrow);
+  const vector_table_data_t data = get_vector_table_data(vector_borrow);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorTable)) {
     return {};

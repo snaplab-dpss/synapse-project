@@ -8,6 +8,10 @@
 
 namespace LibBDD {
 
+using LibCore::expr_to_string;
+using LibCore::kQuery_t;
+using LibCore::kQueryParser;
+
 namespace {
 constexpr const char *const MAGIC_SIGNATURE   = "===== BDD =====";
 constexpr const char *const KQUERY_DELIMITER  = ";;-- kQuery --";
@@ -17,14 +21,14 @@ constexpr const char *const NODES_DELIMITER   = ";; -- Nodes --";
 constexpr const char *const EDGES_DELIMITER   = ";; -- Edges --";
 constexpr const char *const ROOT_DELIMITER    = ";; -- Root --";
 
-std::string serialize_expr(klee::ref<klee::Expr> expr, LibCore::kQuery_t &kQuery) {
+std::string serialize_expr(klee::ref<klee::Expr> expr, kQuery_t &kQuery) {
   assert(!expr.isNull() && "Null expr");
-  std::string expr_str = LibCore::expr_to_string(expr);
+  std::string expr_str = expr_to_string(expr);
   kQuery.values.push_back(expr);
   return expr_str;
 }
 
-std::string serialize_call(const call_t &call, LibCore::kQuery_t &kQuery) {
+std::string serialize_call(const call_t &call, kQuery_t &kQuery) {
   std::stringstream call_stream;
   std::string expr_str;
 
@@ -147,14 +151,14 @@ std::string serialize_call(const call_t &call, LibCore::kQuery_t &kQuery) {
   return call_stream.str();
 }
 
-std::string serialize_symbols(const LibCore::Symbols &symbols, LibCore::kQuery_t &kQuery) {
+std::string serialize_symbols(const Symbols &symbols, kQuery_t &kQuery) {
   std::stringstream symbols_stream;
 
   symbols_stream << "=>";
   symbols_stream << "<";
 
   bool first = true;
-  for (const LibCore::symbol_t &symbol : symbols.get()) {
+  for (const symbol_t &symbol : symbols.get()) {
     if (!first) {
       symbols_stream << ",";
     } else {
@@ -174,7 +178,7 @@ std::string serialize_symbols(const LibCore::Symbols &symbols, LibCore::kQuery_t
   return symbols_stream.str();
 }
 
-void serialize_node(const Node *node, std::stringstream &nodes_stream, std::stringstream &edges_stream, LibCore::kQuery_t &kQuery) {
+void serialize_node(const BDDNode *node, std::stringstream &nodes_stream, std::stringstream &edges_stream, kQuery_t &kQuery) {
   nodes_stream << node->get_id();
   nodes_stream << ":(";
 
@@ -188,10 +192,10 @@ void serialize_node(const Node *node, std::stringstream &nodes_stream, std::stri
   }
 
   switch (node->get_type()) {
-  case NodeType::Call: {
-    const Call *call_node           = dynamic_cast<const Call *>(node);
-    const Node *next                = node->get_next();
-    const LibCore::Symbols &symbols = call_node->get_local_symbols();
+  case BDDNodeType::Call: {
+    const Call *call_node  = dynamic_cast<const Call *>(node);
+    const BDDNode *next    = node->get_next();
+    const Symbols &symbols = call_node->get_local_symbols();
 
     nodes_stream << "CALL";
     nodes_stream << " ";
@@ -207,11 +211,11 @@ void serialize_node(const Node *node, std::stringstream &nodes_stream, std::stri
       edges_stream << "\n";
     }
   } break;
-  case NodeType::Branch: {
+  case BDDNodeType::Branch: {
     const Branch *branch_node       = dynamic_cast<const Branch *>(node);
     klee::ref<klee::Expr> condition = branch_node->get_condition();
-    const Node *on_true             = branch_node->get_on_true();
-    const Node *on_false            = branch_node->get_on_false();
+    const BDDNode *on_true          = branch_node->get_on_true();
+    const BDDNode *on_false         = branch_node->get_on_false();
 
     assert(!condition.isNull() && "Null condition");
 
@@ -232,10 +236,10 @@ void serialize_node(const Node *node, std::stringstream &nodes_stream, std::stri
     edges_stream << ")";
     edges_stream << "\n";
   } break;
-  case NodeType::Route: {
+  case BDDNodeType::Route: {
     const Route *route_node          = dynamic_cast<const Route *>(node);
     klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
-    const Node *next                 = node->get_next();
+    const BDDNode *next              = node->get_next();
 
     nodes_stream << "ROUTE";
     nodes_stream << " ";
@@ -269,7 +273,7 @@ void serialize_node(const Node *node, std::stringstream &nodes_stream, std::stri
   nodes_stream << "\n";
 }
 
-void serialize_init(const std::vector<Call *> &calls, std::stringstream &init_stream, LibCore::kQuery_t &kQuery) {
+void serialize_init(const std::vector<Call *> &calls, std::stringstream &init_stream, kQuery_t &kQuery) {
   for (const Call *call : calls) {
     // No edges.
     std::stringstream edges_stream;
@@ -535,7 +539,7 @@ call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>
   return call;
 }
 
-LibCore::symbol_t parse_call_symbol(std::string serialized_symbol, std::vector<klee::ref<klee::Expr>> &exprs) {
+symbol_t parse_call_symbol(std::string serialized_symbol, std::vector<klee::ref<klee::Expr>> &exprs) {
   size_t delim = serialized_symbol.find(":");
   assert(delim != std::string::npos && "Invalid symbol");
 
@@ -549,13 +553,13 @@ LibCore::symbol_t parse_call_symbol(std::string serialized_symbol, std::vector<k
   serialized_symbol = serialized_symbol.substr(delim + 1);
 
   klee::ref<klee::Expr> expr = pop_expr(exprs);
-  LibCore::symbol_t symbol(expr);
+  symbol_t symbol(expr);
 
   return symbol;
 }
 
-LibCore::Symbols parse_call_symbols(std::string serialized_symbols, std::vector<klee::ref<klee::Expr>> &exprs) {
-  LibCore::Symbols symbols;
+Symbols parse_call_symbols(std::string serialized_symbols, std::vector<klee::ref<klee::Expr>> &exprs) {
+  Symbols symbols;
 
   assert(serialized_symbols[0] == '<' && "Invalid symbols");
 
@@ -570,7 +574,7 @@ LibCore::Symbols parse_call_symbols(std::string serialized_symbols, std::vector<
     if (c == '{') {
       symbol_str.clear();
     } else if (c == '}' && symbol_str.size()) {
-      LibCore::symbol_t symbol = parse_call_symbol(symbol_str, exprs);
+      symbol_t symbol = parse_call_symbol(symbol_str, exprs);
       symbols.add(symbol);
     } else if (c == '>') {
       break;
@@ -582,32 +586,32 @@ LibCore::Symbols parse_call_symbols(std::string serialized_symbols, std::vector<
   return symbols;
 }
 
-Node *parse_node_call(node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager, std::string serialized,
-                      std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
+BDDNode *parse_node_call(bdd_node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager, std::string serialized,
+                         std::vector<klee::ref<klee::Expr>> &exprs, BDDNodeManager &manager) {
   size_t delim = serialized.find("=>");
   assert(delim != std::string::npos && "Invalid call");
 
   std::string call_str    = serialized.substr(0, delim);
   std::string symbols_str = serialized.substr(delim + 2);
 
-  call_t call              = parse_call(call_str, exprs);
-  LibCore::Symbols symbols = parse_call_symbols(symbols_str, exprs);
+  call_t call     = parse_call(call_str, exprs);
+  Symbols symbols = parse_call_symbols(symbols_str, exprs);
 
   Call *call_node = new Call(id, constraints, symbol_manager, call, symbols);
   manager.add_node(call_node);
   return call_node;
 }
 
-Node *parse_node_branch(node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager, std::string serialized,
-                        std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
+BDDNode *parse_node_branch(bdd_node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager, std::string serialized,
+                           std::vector<klee::ref<klee::Expr>> &exprs, BDDNodeManager &manager) {
   klee::ref<klee::Expr> condition = pop_expr(exprs);
   Branch *branch_node             = new Branch(id, constraints, symbol_manager, condition);
   manager.add_node(branch_node);
   return branch_node;
 }
 
-Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager, std::string serialized,
-                       std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager) {
+BDDNode *parse_node_route(bdd_node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager, std::string serialized,
+                          std::vector<klee::ref<klee::Expr>> &exprs, BDDNodeManager &manager) {
   Route *route_node;
 
   size_t delim = serialized.find(" ");
@@ -636,15 +640,14 @@ Node *parse_node_route(node_id_t id, const klee::ConstraintManager &constraints,
   return route_node;
 }
 
-Node *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>> &exprs, NodeManager &manager,
-                 LibCore::SymbolManager *symbol_manager) {
-  Node *node;
+BDDNode *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Expr>> &exprs, BDDNodeManager &manager, SymbolManager *symbol_manager) {
+  BDDNode *node;
 
   size_t delim = serialized_node.find(":");
   assert(delim != std::string::npos && "Invalid node");
 
-  node_id_t id    = std::stoull(serialized_node.substr(0, delim));
-  serialized_node = serialized_node.substr(delim + 1);
+  bdd_node_id_t id = std::stoull(serialized_node.substr(0, delim));
+  serialized_node  = serialized_node.substr(delim + 1);
 
   assert(serialized_node[0] == '(' && "Invalid node");
   serialized_node = serialized_node.substr(1);
@@ -693,7 +696,7 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
   assert(out && "Could not open file");
   assert(out.is_open() && "File is not open");
 
-  LibCore::kQuery_t kQuery;
+  kQuery_t kQuery;
 
   std::stringstream symbols_stream;
   std::stringstream init_stream;
@@ -709,9 +712,9 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
 
   serialize_init(init, init_stream, kQuery);
 
-  root->visit_nodes([&nodes_stream, &edges_stream, &kQuery](const Node *node) {
+  root->visit_nodes([&nodes_stream, &edges_stream, &kQuery](const BDDNode *node) {
     serialize_node(node, nodes_stream, edges_stream, kQuery);
-    return NodeVisitAction::Continue;
+    return BDDNodeVisitAction::Continue;
   });
 
   out << MAGIC_SIGNATURE << "\n";
@@ -737,7 +740,7 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
   out.close();
 }
 
-void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &nodes) {
+void process_edge(std::string serialized_edge, std::map<bdd_node_id_t, BDDNode *> &nodes) {
   size_t delim = serialized_edge.find("(");
   assert(delim != std::string::npos && "Invalid edge");
 
@@ -752,17 +755,17 @@ void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &node
   assert(delim != std::string::npos && "Invalid edge");
 
   std::string prev_id_str = serialized_edge.substr(0, delim);
-  node_id_t prev_id       = std::stoi(prev_id_str);
+  bdd_node_id_t prev_id   = std::stoi(prev_id_str);
 
   assert(nodes.find(prev_id) != nodes.end() && "Invalid edge");
-  Node *prev = nodes[prev_id];
+  BDDNode *prev = nodes[prev_id];
 
   serialized_edge = serialized_edge.substr(delim + 2);
 
   delim = serialized_edge.find("->");
 
   if (delim != std::string::npos) {
-    assert(prev->get_type() == NodeType::Branch && "Invalid edge");
+    assert(prev->get_type() == BDDNodeType::Branch && "Invalid edge");
 
     std::string on_true_id_str  = serialized_edge.substr(0, delim);
     std::string on_false_id_str = serialized_edge.substr(delim + 2);
@@ -770,26 +773,26 @@ void process_edge(std::string serialized_edge, std::map<node_id_t, Node *> &node
     Branch *branch_node = dynamic_cast<Branch *>(prev);
 
     if (on_true_id_str.size()) {
-      node_id_t on_true_id = std::stoi(on_true_id_str);
+      bdd_node_id_t on_true_id = std::stoi(on_true_id_str);
       assert(nodes.find(on_true_id) != nodes.end() && "Invalid edge");
-      Node *on_true = nodes[on_true_id];
+      BDDNode *on_true = nodes[on_true_id];
       branch_node->set_on_true(on_true);
       on_true->set_prev(prev);
     }
 
     if (on_false_id_str.size()) {
-      node_id_t on_false_id = std::stoi(on_false_id_str);
+      bdd_node_id_t on_false_id = std::stoi(on_false_id_str);
       assert(nodes.find(on_false_id) != nodes.end() && "Invalid edge");
-      Node *on_false = nodes[on_false_id];
+      BDDNode *on_false = nodes[on_false_id];
       branch_node->set_on_false(on_false);
       on_false->set_prev(prev);
     }
   } else {
     std::string next_id_str = serialized_edge;
-    node_id_t next_id       = std::stoi(next_id_str);
+    bdd_node_id_t next_id   = std::stoi(next_id_str);
 
     assert(nodes.find(next_id) != nodes.end() && "Invalid edge");
-    Node *next = nodes[next_id];
+    BDDNode *next = nodes[next_id];
 
     prev->set_next(next);
     next->set_prev(prev);
@@ -831,7 +834,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
 
   std::string kQueryStr;
   std::vector<klee::ref<klee::Expr>> exprs;
-  std::map<node_id_t, Node *> nodes;
+  std::map<bdd_node_id_t, BDDNode *> nodes;
   std::string current_node;
 
   bool magic_check      = false;
@@ -855,8 +858,8 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
       kQueryStr += line + "\n";
 
       if (get_next_state(state, line) != state) {
-        LibCore::kQueryParser parser(symbol_manager);
-        LibCore::kQuery_t kQuery = parser.parse(kQueryStr);
+        kQueryParser parser(symbol_manager);
+        kQuery_t kQuery = parser.parse(kQueryStr);
         assert(kQuery.constraints.empty() && "Invalid kQuery");
         exprs = kQuery.values;
       }
@@ -885,10 +888,10 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
         break;
       }
 
-      Node *node = parse_node(line, exprs, manager, symbol_manager);
+      BDDNode *node = parse_node(line, exprs, manager, symbol_manager);
 
       assert(node && "Invalid node");
-      assert(node->get_type() == NodeType::Call && "Non call node in init");
+      assert(node->get_type() == BDDNodeType::Call && "Non call node in init");
       assert(nodes.find(node->get_id()) == nodes.end() && "Duplicate node");
 
       Call *call = dynamic_cast<Call *>(node);
@@ -919,7 +922,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
       }
 
       if (parenthesis_level == 0) {
-        Node *node = parse_node(current_node, exprs, manager, symbol_manager);
+        BDDNode *node = parse_node(current_node, exprs, manager, symbol_manager);
 
         assert(node && "Invalid node");
         assert(nodes.find(node->get_id()) == nodes.end() && "Duplicate node");
@@ -940,7 +943,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
       if (get_next_state(state, line) != state)
         break;
 
-      node_id_t root_id = std::stoll(line);
+      bdd_node_id_t root_id = std::stoll(line);
       assert(nodes.find(root_id) != nodes.end() && "Invalid root node");
 
       root = nodes[root_id];

@@ -19,8 +19,13 @@
 
 namespace LibBDD {
 
-std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, LibCore::SymbolManager *manager) {
-  LibCore::kQueryParser parser(manager);
+using LibCore::expr_to_string;
+using LibCore::kQuery_t;
+using LibCore::kQueryParser;
+using LibCore::solver_toolbox;
+
+std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, SymbolManager *manager) {
+  kQueryParser parser(manager);
 
   std::ifstream call_path_file(fpath.string());
   assert(call_path_file.is_open() && "Unable to open call path file.");
@@ -65,7 +70,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
           query_str += "])";
         }
 
-        LibCore::kQuery_t kQuery = parser.parse(query_str);
+        kQuery_t kQuery = parser.parse(query_str);
 
         call_path->symbols = kQuery.symbols;
 
@@ -464,15 +469,15 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
   return call_path;
 }
 
-LibCore::Symbols call_paths_view_t::get_symbols() const {
-  LibCore::Symbols symbols;
+Symbols call_paths_view_t::get_symbols() const {
+  Symbols symbols;
   for (const call_path_t *cp : data) {
     symbols.add(cp->symbols);
   }
   return symbols;
 }
 
-call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files, LibCore::SymbolManager *_manager) : manager(_manager) {
+call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files, SymbolManager *_manager) : manager(_manager) {
   for (const std::filesystem::path &fpath : call_path_files) {
     data.push_back(load_call_path(fpath, manager));
   }
@@ -512,19 +517,19 @@ std::ostream &operator<<(std::ostream &os, const arg_t &arg) {
     return os;
   }
 
-  os << LibCore::expr_to_string(arg.expr, true);
+  os << expr_to_string(arg.expr, true);
 
   if (!arg.in.isNull() || !arg.out.isNull()) {
     os << "[";
 
     if (!arg.in.isNull()) {
-      os << LibCore::expr_to_string(arg.in, true);
+      os << expr_to_string(arg.in, true);
     }
 
     os << " -> ";
 
     if (!arg.out.isNull()) {
-      os << LibCore::expr_to_string(arg.out, true);
+      os << expr_to_string(arg.out, true);
     }
 
     os << "]";
@@ -556,7 +561,7 @@ std::ostream &operator<<(std::ostream &os, const call_t &call) {
 
   if (!call.ret.isNull()) {
     os << " => ";
-    os << LibCore::expr_to_string(call.ret, true);
+    os << expr_to_string(call.ret, true);
   }
 
   return os;
@@ -573,7 +578,7 @@ std::ostream &operator<<(std::ostream &str, const call_path_t &cp) {
 }
 
 std::ostream &operator<<(std::ostream &os, klee::ref<klee::Expr> expr) {
-  os << LibCore::expr_to_string(expr, true);
+  os << expr_to_string(expr, true);
   return os;
 }
 
@@ -612,11 +617,11 @@ bool are_calls_equal(call_t c1, call_t c2) {
       return false;
     }
 
-    if (in1.isNull() && out1.isNull() && !LibCore::solver_toolbox.are_exprs_always_equal(expr1, expr2)) {
+    if (in1.isNull() && out1.isNull() && !solver_toolbox.are_exprs_always_equal(expr1, expr2)) {
       return false;
     }
 
-    if (!in1.isNull() && !LibCore::solver_toolbox.are_exprs_always_equal(in1, in2)) {
+    if (!in1.isNull() && !solver_toolbox.are_exprs_always_equal(in1, in2)) {
       return false;
     }
   }

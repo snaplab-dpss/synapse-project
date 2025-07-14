@@ -12,6 +12,8 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::bdd_node_id_t;
+
 struct DchainTable : public DS {
   u32 capacity;
   bits_t key_size;
@@ -28,9 +30,9 @@ struct DchainTable : public DS {
   bits_t get_match_xbar_consume() const;
   bits_t get_consumed_sram() const;
 
-  bool has_table(LibBDD::node_id_t op) const;
-  const Table *get_table(LibBDD::node_id_t op) const;
-  std::optional<DS_ID> add_table(LibBDD::node_id_t op);
+  bool has_table(bdd_node_id_t op) const;
+  const Table *get_table(bdd_node_id_t op) const;
+  std::optional<DS_ID> add_table(bdd_node_id_t op);
 };
 
 } // namespace Tofino

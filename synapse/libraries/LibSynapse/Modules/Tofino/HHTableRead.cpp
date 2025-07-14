@@ -6,21 +6,27 @@ namespace LibSynapse {
 namespace Tofino {
 namespace {
 
+using LibBDD::branch_direction_t;
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 struct hh_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
   std::vector<klee::ref<klee::Expr>> table_keys;
   klee::ref<klee::Expr> read_value;
-  LibCore::symbol_t map_has_this_key;
+  symbol_t map_has_this_key;
   u32 capacity;
 
-  hh_table_data_t(const Context &ctx, const LibBDD::Call *map_get) {
-    const LibBDD::call_t &call = map_get->get_call();
+  hh_table_data_t(const Context &ctx, const Call *map_get) {
+    const call_t &call = map_get->get_call();
     assert(call.function_name == "map_get" && "Not a map_get call");
 
-    const LibCore::symbol_t map_has_this_key_symbol = map_get->get_local_symbol("map_has_this_key");
+    const symbol_t map_has_this_key_symbol = map_get->get_local_symbol("map_has_this_key");
 
-    obj              = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
+    obj              = expr_addr_to_obj_addr(call.args.at("map").expr);
     key              = call.args.at("key").in;
     table_keys       = Table::build_keys(key, ctx.get_expr_structs());
     read_value       = call.args.at("value_out").out;
@@ -29,13 +35,13 @@ struct hh_table_data_t {
   }
 };
 
-bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const LibBDD::Node *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
-                                     const LibBDD::branch_direction_t &mgsc) {
+bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
+                                     const branch_direction_t &mgsc) {
   const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, map_get, map, key, capacity);
 
   assert(mgsc.branch && "No branch checking map_get success");
-  const LibBDD::Node *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
-  const LibBDD::Node *on_failure = mgsc.direction ? mgsc.branch->get_on_false() : mgsc.branch->get_on_true();
+  const BDDNode *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
+  const BDDNode *on_failure = mgsc.direction ? mgsc.branch->get_on_false() : mgsc.branch->get_on_true();
 
   const hit_rate_t branch_hr      = ctx.get_profiler().get_hr(mgsc.branch);
   const hit_rate_t new_success_hr = hit_rate_t{branch_hr * success_rate};
@@ -54,36 +60,36 @@ bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const LibBDD::N
 
 } // namespace
 
-std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
-    return std::nullopt;
+    return {};
   }
 
   const hh_table_data_t table_data(ep->get_ctx(), map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
-    return std::nullopt;
+    return {};
   }
 
   if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_HeavyHitterTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
-    return std::nullopt;
+    return {};
   }
 
-  const LibBDD::branch_direction_t mpsc = map_get->get_map_get_success_check();
+  const branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
-    return std::nullopt;
+    return {};
   }
 
   if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, HHTable::CMS_WIDTH, HHTable::CMS_HEIGHT)) {
-    return std::nullopt;
+    return {};
   }
 
   Context new_ctx = ctx;
@@ -91,19 +97,19 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const Lib
   new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
 
   if (!update_map_get_success_hit_rate(ep, new_ctx, map_get, table_data.obj, table_data.key, table_data.capacity, mpsc)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return {};
@@ -111,7 +117,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
 
   const hh_table_data_t table_data(ep->get_ctx(), map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
     return {};
   }
@@ -121,7 +127,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
     return {};
   }
 
-  const LibBDD::branch_direction_t mpsc = map_get->get_map_get_success_check();
+  const branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
     return {};
   }
@@ -158,13 +164,13 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const LibBDD:
   return impls;
 }
 
-std::unique_ptr<Module> HHTableReadFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> HHTableReadFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *map_get = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call  = map_get->get_call();
+  const Call *map_get = dynamic_cast<const Call *>(node);
+  const call_t &call  = map_get->get_call();
 
   if (call.function_name != "map_get") {
     return {};
@@ -172,7 +178,7 @@ std::unique_ptr<Module> HHTableReadFactory::create(const LibBDD::BDD *bdd, const
 
   const hh_table_data_t table_data(ctx, map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
     return {};
   }
@@ -181,12 +187,12 @@ std::unique_ptr<Module> HHTableReadFactory::create(const LibBDD::BDD *bdd, const
     return {};
   }
 
-  const LibBDD::branch_direction_t mpsc = map_get->get_map_get_success_check();
+  const branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
     return {};
   }
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(map_objs->map);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(map_objs->map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(*ds.begin());
 

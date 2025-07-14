@@ -4,6 +4,11 @@
 namespace LibSynapse {
 namespace Controller {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
 
 struct vector_table_data_t {
@@ -12,16 +17,16 @@ struct vector_table_data_t {
   klee::ref<klee::Expr> value;
 };
 
-vector_table_data_t get_vector_table_data(const LibBDD::Call *call_node) {
-  const LibBDD::call_t &call = call_node->get_call();
+vector_table_data_t get_vector_table_data(const Call *call_node) {
+  const call_t &call = call_node->get_call();
   assert(call.function_name == "vector_return" && "Not a vector_return call");
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
   klee::ref<klee::Expr> value            = call.args.at("value").in;
 
-  vector_table_data_t data = {
-      .obj   = LibCore::expr_addr_to_obj_addr(vector_addr_expr),
+  const vector_table_data_t data = {
+      .obj   = expr_addr_to_obj_addr(vector_addr_expr),
       .key   = index,
       .value = value,
   };
@@ -31,39 +36,38 @@ vector_table_data_t get_vector_table_data(const LibBDD::Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneVectorTableUpdateFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> DataplaneVectorTableUpdateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_return") {
-    return std::nullopt;
+    return {};
   }
 
   if (call_node->is_vector_return_without_modifications()) {
-    return std::nullopt;
+    return {};
   }
 
-  vector_table_data_t data = get_vector_table_data(call_node);
+  const vector_table_data_t data = get_vector_table_data(call_node);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_VectorTable)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DataplaneVectorTableUpdateFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                                    LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> DataplaneVectorTableUpdateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_return") {
     return {};
@@ -84,7 +88,7 @@ std::vector<impl_t> DataplaneVectorTableUpdateFactory::process_node(const EP *ep
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -92,13 +96,13 @@ std::vector<impl_t> DataplaneVectorTableUpdateFactory::process_node(const EP *ep
   return impls;
 }
 
-std::unique_ptr<Module> DataplaneVectorTableUpdateFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DataplaneVectorTableUpdateFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_return") {
     return {};
@@ -108,7 +112,7 @@ std::unique_ptr<Module> DataplaneVectorTableUpdateFactory::create(const LibBDD::
     return {};
   }
 
-  vector_table_data_t data = get_vector_table_data(call_node);
+  const vector_table_data_t data = get_vector_table_data(call_node);
 
   if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_VectorTable)) {
     return {};

@@ -13,6 +13,8 @@
 
 namespace LibClone {
 
+using LibCore::SymbolManager;
+
 class Network {
 private:
   std::unordered_map<NFId, std::unique_ptr<NF>> nfs;
@@ -33,11 +35,11 @@ public:
     //   const unsigned port2 = link->get_port2();
 
     //   if (nodes.find(node1_str) == nodes.end()) {
-    //     nodes.emplace(node1_str, NodePtr(new Node(node1_str, node1_type)));
+    //     nodes.emplace(node1_str, NodePtr(new BDDNode(node1_str, node1_type)));
     //   }
 
     //   if (nodes.find(node2_str) == nodes.end()) {
-    //     nodes.emplace(node2_str, NodePtr(new Node(node2_str, node2_type)));
+    //     nodes.emplace(node2_str, NodePtr(new BDDNode(node2_str, node2_type)));
     //   }
 
     //   const NodePtr node1 = nodes.at(node1_str);
@@ -60,7 +62,7 @@ public:
 
   ~Network() = default;
 
-  static Network parse(const std::filesystem::path &file_path, LibCore::SymbolManager *symbol_manager);
+  static Network parse(const std::filesystem::path &file_path, SymbolManager *symbol_manager);
 
   void consolidate() { assert(false && "TODO"); }
 

@@ -15,7 +15,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneFCFSCachedTableWrite(const LibBDD::Node *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+  DataplaneFCFSCachedTableWrite(const BDDNode *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
                                 klee::ref<klee::Expr> _value)
       : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedTableWrite, "DataplaneFCFSCachedTableWrite", _node), id(_id), obj(_obj),
         keys(_keys), value(_value) {}
@@ -39,9 +39,9 @@ public:
       : ControllerModuleFactory(ModuleType::Controller_DataplaneFCFSCachedTableWrite, "DataplaneFCFSCachedTableWrite") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

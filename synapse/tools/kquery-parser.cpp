@@ -6,9 +6,11 @@
 #include <assert.h>
 #include <vector>
 
-LibCore::kQuery_t parse(const std::string &kQueryStr, LibCore::SymbolManager *manager) {
-  LibCore::kQueryParser kQueryParser(manager);
-  LibCore::kQuery_t kQuery = kQueryParser.parse(kQueryStr);
+using namespace LibCore;
+
+kQuery_t parse(const std::string &kQueryStr, SymbolManager *manager) {
+  kQueryParser kQueryParser(manager);
+  kQuery_t kQuery = kQueryParser.parse(kQueryStr);
   return kQuery;
 }
 
@@ -18,8 +20,8 @@ void test1() {
                             "(query [(Sle (w64 0) N0:(ReadLSB w64 (w32 0) starting_time)) (Eq "
                             "(w32 0) (ReadLSB w32 (w32 0) loop_termination))] false [N0])\n";
 
-  LibCore::SymbolManager manager;
-  LibCore::kQuery_t kQuery = parse(query, &manager);
+  SymbolManager manager;
+  kQuery_t kQuery = parse(query, &manager);
 
   std::cerr << "\n========================================\n";
   std::cerr << "Query:\n";
@@ -27,8 +29,7 @@ void test1() {
 
   std::cerr << "Arrays:\n";
   for (const klee::Array *array : manager.get_arrays()) {
-    std::cerr << "->" << array->getName() << "[" << array->getSize() << "] : w" << array->getDomain() << " -> w" << array->getRange()
-              << " = ";
+    std::cerr << "->" << array->getName() << "[" << array->getSize() << "] : w" << array->getDomain() << " -> w" << array->getRange() << " = ";
     if (array->isSymbolicArray()) {
       std::cerr << "symbolic\n";
     } else {
@@ -62,8 +63,8 @@ void test2() {
       "(query [] false [(Extract w16 0 (Or w32 (Shl w32 (And w32 (ZExt w32 (ReadLSB w16 (w32 514) packet_chunks)) (w32 255)) (w32 8)) "
       "(AShr w32 (And w32 (ZExt w32 (ReadLSB w16 (w32 514) packet_chunks)) (w32 65280)) (w32 8))))])\n";
 
-  LibCore::SymbolManager manager;
-  LibCore::kQuery_t kQuery = parse(query, &manager);
+  SymbolManager manager;
+  kQuery_t kQuery = parse(query, &manager);
 
   std::cerr << "\n========================================\n";
   std::cerr << "Query:\n";
@@ -75,15 +76,15 @@ void test2() {
 
   klee::ref<klee::Expr> expr = kQuery.values[0];
 
-  std::cerr << "Expr: " << LibCore::expr_to_string(expr) << "\n";
+  std::cerr << "Expr: " << expr_to_string(expr) << "\n";
 
   klee::ref<klee::Expr> target;
-  bool is_endian_swap = LibCore::match_endian_swap_pattern(expr, target);
+  bool is_endian_swap = match_endian_swap_pattern(expr, target);
 
   std::cerr << "Is endian swap: " << is_endian_swap << "\n";
 
   if (is_endian_swap) {
-    std::cerr << "Target: " << LibCore::expr_to_string(target) << "\n";
+    std::cerr << "Target: " << expr_to_string(target) << "\n";
   }
 
   std::cerr << "========================================\n";
@@ -98,8 +99,8 @@ void test3() {
       "(Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks))))))))))\n(Concat w104 (Read w8 (w32 265) "
       "packet_chunks) (Concat w96 (ReadLSB w64 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks)))])\n";
 
-  LibCore::SymbolManager manager;
-  LibCore::kQuery_t kQuery = parse(query, &manager);
+  SymbolManager manager;
+  kQuery_t kQuery = parse(query, &manager);
 
   std::cerr << "\n========================================\n";
   std::cerr << "Query:\n";
@@ -112,13 +113,13 @@ void test3() {
   klee::ref<klee::Expr> expr0 = kQuery.values[0];
   klee::ref<klee::Expr> expr1 = kQuery.values[1];
 
-  std::cerr << "Expr0: " << LibCore::expr_to_string(expr0) << "\n";
-  std::cerr << "Simple: " << LibCore::expr_to_string(LibCore::simplify(expr0)) << "\n";
+  std::cerr << "Expr0: " << expr_to_string(expr0) << "\n";
+  std::cerr << "Simple: " << expr_to_string(simplify(expr0)) << "\n";
   std::cerr << "\n";
-  std::cerr << "Expr1: " << LibCore::expr_to_string(expr1) << "\n";
-  std::cerr << "Simple: " << LibCore::expr_to_string(LibCore::simplify(expr1)) << "\n";
+  std::cerr << "Expr1: " << expr_to_string(expr1) << "\n";
+  std::cerr << "Simple: " << expr_to_string(simplify(expr1)) << "\n";
 
-  for (const auto &group : LibCore::get_expr_groups(expr0)) {
+  for (const auto &group : get_expr_groups(expr0)) {
     std::cerr << "\n";
     std::cerr << "has symbol? " << group.has_symbol << "\n";
     if (group.has_symbol) {
@@ -126,12 +127,12 @@ void test3() {
     }
     std::cerr << "offset: " << group.offset << "\n";
     std::cerr << "size: " << group.size << "\n";
-    std::cerr << "expr: " << LibCore::expr_to_string(group.expr) << "\n";
+    std::cerr << "expr: " << expr_to_string(group.expr) << "\n";
   }
 
   std::cerr << "========================================\n";
 
-  std::cerr << "eq? " << LibCore::solver_toolbox.are_exprs_always_equal(expr0, expr1) << "\n";
+  std::cerr << "eq? " << solver_toolbox.are_exprs_always_equal(expr0, expr1) << "\n";
 }
 
 void test4() {
@@ -140,8 +141,8 @@ void test4() {
       "(query [] false [(ReadLSB w32 (w32 512) packet_chunks)\n(Concat w32 (Read w8 (w32 515) packet_chunks) (Concat w24 (Read w8 (w32 "
       "514) packet_chunks) (Concat w16 (Read w8 (w32 513) packet_chunks) (Read w8 (w32 512) packet_chunks))))])\n";
 
-  LibCore::SymbolManager manager;
-  LibCore::kQuery_t kQuery = parse(query, &manager);
+  SymbolManager manager;
+  kQuery_t kQuery = parse(query, &manager);
 
   std::cerr << "\n========================================\n";
   std::cerr << "Query:\n";
@@ -154,12 +155,12 @@ void test4() {
   klee::ref<klee::Expr> expr0 = kQuery.values[0];
   klee::ref<klee::Expr> expr1 = kQuery.values[1];
 
-  std::cerr << "Expr0: " << LibCore::expr_to_string(expr0) << "\n";
-  std::cerr << "Simple: " << LibCore::expr_to_string(LibCore::simplify(expr0)) << "\n";
+  std::cerr << "Expr0: " << expr_to_string(expr0) << "\n";
+  std::cerr << "Simple: " << expr_to_string(simplify(expr0)) << "\n";
 
   std::cerr << "\n";
-  std::cerr << "Expr1: " << LibCore::expr_to_string(expr1) << "\n";
-  std::cerr << "Simple: " << LibCore::expr_to_string(LibCore::simplify(expr1)) << "\n";
+  std::cerr << "Expr1: " << expr_to_string(expr1) << "\n";
+  std::cerr << "Simple: " << expr_to_string(simplify(expr1)) << "\n";
 
   std::cerr << "========================================\n";
 }
@@ -169,8 +170,8 @@ void test5() {
                             "(query [] false [(Extract w32 0 (Add w64 (w64 1) (SExt w64 (Extract w32 0 (Add w64 (w64 18446744073709551615) "
                             "(SExt w64 (ReadLSB w32 (w32 0) vector_data_r35)))))))])";
 
-  LibCore::SymbolManager manager;
-  LibCore::kQuery_t kQuery = parse(query, &manager);
+  SymbolManager manager;
+  kQuery_t kQuery = parse(query, &manager);
 
   std::cerr << "\n========================================\n";
   std::cerr << "Query:\n";
@@ -181,11 +182,11 @@ void test5() {
   assert(kQuery.constraints.size() == 0);
 
   klee::ref<klee::Expr> expr      = kQuery.values[0];
-  klee::ref<klee::Expr> explified = LibCore::simplify(expr);
+  klee::ref<klee::Expr> explified = simplify(expr);
 
   std::cerr << "\n";
-  std::cerr << "Expr:   " << LibCore::expr_to_string(expr) << "\n";
-  std::cerr << "Simple: " << LibCore::expr_to_string(explified) << "\n";
+  std::cerr << "Expr:   " << expr_to_string(expr) << "\n";
+  std::cerr << "Simple: " << expr_to_string(explified) << "\n";
 
   std::cerr << "========================================\n";
 }

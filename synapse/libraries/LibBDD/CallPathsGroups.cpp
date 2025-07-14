@@ -5,6 +5,8 @@
 
 namespace LibBDD {
 
+using LibCore::solver_toolbox;
+
 void CallPathsGroup::group_call_paths() {
   assert(call_paths.data.size() && "No call paths to group");
 
@@ -83,14 +85,14 @@ bool CallPathsGroup::are_calls_equal(call_t c1, call_t c2) {
     const arg_t &c1_arg = c1.args[arg_name];
     const arg_t &c2_arg = c2.args[arg_name];
 
-    if (!c1_arg.out.isNull() && !LibCore::solver_toolbox.are_exprs_always_equal(c1_arg.in, c1_arg.out))
+    if (!c1_arg.out.isNull() && !solver_toolbox.are_exprs_always_equal(c1_arg.in, c1_arg.out))
       continue;
 
     // comparison between modifications to the received packet
-    if (!c1_arg.in.isNull() && !LibCore::solver_toolbox.are_exprs_always_equal(c1_arg.in, c2_arg.in))
+    if (!c1_arg.in.isNull() && !solver_toolbox.are_exprs_always_equal(c1_arg.in, c2_arg.in))
       return false;
 
-    if (c1_arg.in.isNull() && !LibCore::solver_toolbox.are_exprs_always_equal(c1_arg.expr, c2_arg.expr))
+    if (c1_arg.in.isNull() && !solver_toolbox.are_exprs_always_equal(c1_arg.expr, c2_arg.expr))
       return false;
   }
 
@@ -131,8 +133,8 @@ bool CallPathsGroup::satisfies_constraint(std::vector<call_path_t *> cps, klee::
 }
 
 bool CallPathsGroup::satisfies_constraint(call_path_t *call_path, klee::ref<klee::Expr> target_constraint) const {
-  klee::ref<klee::Expr> not_constraint = LibCore::solver_toolbox.exprBuilder->Not(target_constraint);
-  return LibCore::solver_toolbox.is_expr_always_false(call_path->constraints, not_constraint);
+  klee::ref<klee::Expr> not_constraint = solver_toolbox.exprBuilder->Not(target_constraint);
+  return solver_toolbox.is_expr_always_false(call_path->constraints, not_constraint);
 }
 
 bool CallPathsGroup::satisfies_not_constraint(std::vector<call_path_t *> cps, klee::ref<klee::Expr> target_constraint) const {
@@ -144,8 +146,8 @@ bool CallPathsGroup::satisfies_not_constraint(std::vector<call_path_t *> cps, kl
 }
 
 bool CallPathsGroup::satisfies_not_constraint(call_path_t *call_path, klee::ref<klee::Expr> target_constraint) const {
-  klee::ref<klee::Expr> not_constraint = LibCore::solver_toolbox.exprBuilder->Not(target_constraint);
-  return LibCore::solver_toolbox.is_expr_always_true(call_path->constraints, not_constraint);
+  klee::ref<klee::Expr> not_constraint = solver_toolbox.exprBuilder->Not(target_constraint);
+  return solver_toolbox.is_expr_always_true(call_path->constraints, not_constraint);
 }
 
 bool CallPathsGroup::check_discriminating_constraint(klee::ref<klee::Expr> target_constraint) {

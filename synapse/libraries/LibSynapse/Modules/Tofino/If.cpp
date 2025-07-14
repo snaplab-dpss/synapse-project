@@ -6,6 +6,11 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::Branch;
+
+using LibCore::expr_addr_to_obj_addr;
+using LibCore::simplify_conditional;
+
 namespace {
 std::vector<klee::ref<klee::Expr>> split_condition(klee::ref<klee::Expr> condition) {
   std::vector<klee::ref<klee::Expr>> conditions;
@@ -33,26 +38,26 @@ std::vector<klee::ref<klee::Expr>> split_condition(klee::ref<klee::Expr> conditi
 }
 } // namespace
 
-std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Branch) {
-    return std::nullopt;
+std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Branch) {
+    return {};
   }
 
-  const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
+  const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
   if (branch_node->is_parser_condition()) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> IfFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Branch) {
+std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Branch) {
     return {};
   }
 
-  const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
+  const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
   if (branch_node->is_parser_condition()) {
     return {};
@@ -67,7 +72,7 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const LibBDD::Node *no
       return {};
     }
 
-    klee::ref<klee::Expr> simplified = LibCore::simplify_conditional(sub_condition);
+    klee::ref<klee::Expr> simplified = simplify_conditional(sub_condition);
     conditions.push_back(simplified);
   }
 
@@ -98,19 +103,19 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const LibBDD::Node *no
   return impls;
 }
 
-std::unique_ptr<Module> IfFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Branch) {
+std::unique_ptr<Module> IfFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Branch) {
     return {};
   }
 
-  const LibBDD::Branch *branch_node = dynamic_cast<const LibBDD::Branch *>(node);
+  const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
   if (branch_node->is_parser_condition()) {
     return {};
   }
 
-  klee::ref<klee::Expr> condition    = branch_node->get_condition();
-  const LibSynapse::Tofino::TNA &tna = ctx.get_target_ctx<TofinoContext>()->get_tna();
+  klee::ref<klee::Expr> condition = branch_node->get_condition();
+  const Tofino::TNA &tna          = ctx.get_target_ctx<TofinoContext>()->get_tna();
 
   std::vector<klee::ref<klee::Expr>> conditions;
   for (klee::ref<klee::Expr> sub_condition : split_condition(condition)) {
@@ -119,7 +124,7 @@ std::unique_ptr<Module> IfFactory::create(const LibBDD::BDD *bdd, const Context 
       return {};
     }
 
-    klee::ref<klee::Expr> simplified = LibCore::simplify_conditional(sub_condition);
+    klee::ref<klee::Expr> simplified = simplify_conditional(sub_condition);
     conditions.push_back(simplified);
   }
 

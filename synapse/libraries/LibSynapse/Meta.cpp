@@ -4,7 +4,7 @@
 
 namespace LibSynapse {
 
-void EPMeta::process_node(const LibBDD::Node *node, TargetType target) {
+void EPMeta::process_node(const BDDNode *node, TargetType target) {
   if (processed_nodes.find(node->get_id()) == processed_nodes.end()) {
     processed_nodes.insert(node->get_id());
   }
@@ -52,6 +52,6 @@ void EPMeta::update(const EPLeaf &leaf, const EPNode *new_node, bool should_proc
 
 double EPMeta::get_bdd_progress() const { return processed_nodes.size() / static_cast<double>(total_bdd_nodes); }
 
-void EPMeta::update_total_bdd_nodes(const LibBDD::BDD *bdd) { total_bdd_nodes = bdd->size(); }
+void EPMeta::update_total_bdd_nodes(const BDD *bdd) { total_bdd_nodes = bdd->size(); }
 
 } // namespace LibSynapse

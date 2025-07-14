@@ -13,7 +13,7 @@ private:
   std::vector<klee::ref<klee::Expr>> hdr_fields_guess;
 
 public:
-  ParserExtraction(const LibBDD::Node *_node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, bytes_t _length,
+  ParserExtraction(const BDDNode *_node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, bytes_t _length,
                    std::vector<klee::ref<klee::Expr>> _hdr_fields_guess)
       : TofinoModule(ModuleType::Tofino_ParserExtraction, "ParserExtraction", _node), hdr_addr(_hdr_addr), hdr(_hdr), length(_length),
         hdr_fields_guess(_hdr_fields_guess) {}
@@ -36,9 +36,9 @@ public:
   ParserExtractionFactory() : TofinoModuleFactory(ModuleType::Tofino_ParserExtraction, "ParserExtraction") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Tofino

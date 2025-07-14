@@ -7,32 +7,37 @@
 
 namespace LibBDD {
 
+using LibCore::expr_struct_t;
+using LibCore::symbol_t;
+using LibCore::SymbolManager;
+using LibCore::Symbols;
+
 struct branch_direction_t;
 
-class Call : public Node {
+class Call : public BDDNode {
 private:
   call_t call;
-  LibCore::Symbols generated_symbols;
+  Symbols generated_symbols;
 
 public:
-  Call(node_id_t _id, const klee::ConstraintManager &_constraints, LibCore::SymbolManager *_symbol_manager, const call_t &_call,
-       const LibCore::Symbols &_generated_symbols)
-      : Node(_id, NodeType::Call, _constraints, _symbol_manager), call(_call), generated_symbols(_generated_symbols) {}
+  Call(bdd_node_id_t _id, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, const call_t &_call,
+       const Symbols &_generated_symbols)
+      : BDDNode(_id, BDDNodeType::Call, _constraints, _symbol_manager), call(_call), generated_symbols(_generated_symbols) {}
 
-  Call(node_id_t _id, Node *_next, Node *_prev, const klee::ConstraintManager &_constraints, LibCore::SymbolManager *_symbol_manager,
-       call_t _call, const LibCore::Symbols &_generated_symbols)
-      : Node(_id, NodeType::Call, _next, _prev, _constraints, _symbol_manager), call(_call), generated_symbols(_generated_symbols) {}
+  Call(bdd_node_id_t _id, BDDNode *_next, BDDNode *_prev, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, call_t _call,
+       const Symbols &_generated_symbols)
+      : BDDNode(_id, BDDNodeType::Call, _next, _prev, _constraints, _symbol_manager), call(_call), generated_symbols(_generated_symbols) {}
 
   const call_t &get_call() const { return call; }
   void set_call(const call_t &new_call) { call = new_call; }
 
-  LibCore::symbol_t get_local_symbol(const std::string &base) const;
-  const LibCore::Symbols &get_local_symbols() const;
+  symbol_t get_local_symbol(const std::string &base) const;
+  const Symbols &get_local_symbols() const;
   bool has_local_symbol(const std::string &base) const;
 
-  void set_local_symbols(const LibCore::Symbols &new_generated_symbols) { generated_symbols = new_generated_symbols; }
+  void set_local_symbols(const Symbols &new_generated_symbols) { generated_symbols = new_generated_symbols; }
 
-  Node *clone(NodeManager &manager, bool recursive = false) const override final;
+  BDDNode *clone(BDDNodeManager &manager, bool recursive = false) const override final;
   std::string dump(bool one_liner = false, bool id_name_only = false) const;
 
   klee::ref<klee::Expr> get_obj() const;
@@ -48,8 +53,8 @@ public:
   bool is_hdr_parse_with_var_len() const;
   bool is_tb_tracing_check_followed_by_update_on_true(const Call *&tb_update_and_check) const;
   const Call *packet_borrow_from_return() const;
-  bool guess_header_fields_from_packet_borrow(LibCore::expr_struct_t &header) const;
-  bool guess_value_fields_from_vector_borrow(LibCore::expr_struct_t &value_struct) const;
+  bool guess_header_fields_from_packet_borrow(expr_struct_t &header) const;
+  bool guess_value_fields_from_vector_borrow(expr_struct_t &value_struct) const;
 
   // Tries to find the pattern of a map_get followed by map_puts, but only when
   // the map_get is not successful (i.e. the key is not found).
@@ -62,7 +67,7 @@ public:
   static bool are_map_read_write_counterparts(const Call *map_get, const Call *map_put);
 
 private:
-  bool guess_struct_fields_from_expr(klee::ref<klee::Expr> expr, LibCore::expr_struct_t &expr_struct) const;
+  bool guess_struct_fields_from_expr(klee::ref<klee::Expr> expr, expr_struct_t &expr_struct) const;
 };
 
 } // namespace LibBDD

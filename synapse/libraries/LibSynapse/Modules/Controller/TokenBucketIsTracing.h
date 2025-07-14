@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> is_tracing;
 
 public:
-  TokenBucketIsTracing(const LibBDD::Node *_node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _index_out,
+  TokenBucketIsTracing(const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _index_out,
                        klee::ref<klee::Expr> _is_tracing)
       : ControllerModule(ModuleType::Controller_TokenBucketIsTracing, "TokenBucketIsTracing", _node), tb_addr(_tb_addr), key(_key),
         index_out(_index_out), is_tracing(_is_tracing) {}
@@ -36,9 +36,9 @@ public:
   TokenBucketIsTracingFactory() : ControllerModuleFactory(ModuleType::Controller_TokenBucketIsTracing, "TokenBucketIsTracing") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

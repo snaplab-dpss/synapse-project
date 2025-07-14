@@ -14,24 +14,32 @@
 
 namespace LibSynapse {
 
+using LibBDD::BDD;
+using LibBDD::bdd_node_id_t;
+using LibBDD::bdd_node_ids_t;
+using LibBDD::BDDNode;
+using LibBDD::Call;
+using LibBDD::map_coalescing_objs_t;
+using LibBDD::translated_symbol_t;
+
+using translator_t = std::unordered_map<bdd_node_id_t, bdd_node_id_t>;
+using ep_id_t      = u64;
+
 class Profiler;
 struct spec_impl_t;
 
-using translator_t = std::unordered_map<LibBDD::node_id_t, LibBDD::node_id_t>;
-using ep_id_t      = u64;
-
 struct EPLeaf {
   EPNode *node;
-  const LibBDD::Node *next;
+  const BDDNode *next;
 
-  EPLeaf(EPNode *_node, const LibBDD::Node *_next) : node(_node), next(_next) {}
+  EPLeaf(EPNode *_node, const BDDNode *_next) : node(_node), next(_next) {}
   EPLeaf(const EPLeaf &other) : node(other.node), next(other.next) {}
 };
 
 class EP {
 private:
   ep_id_t id;
-  std::shared_ptr<const LibBDD::BDD> bdd;
+  std::shared_ptr<const BDD> bdd;
 
   EPNode *root;
 
@@ -44,7 +52,7 @@ private:
   const TargetsView targets;
   const std::set<ep_id_t> ancestors;
 
-  std::unordered_map<TargetType, LibBDD::node_ids_t> targets_roots;
+  std::unordered_map<TargetType, bdd_node_ids_t> targets_roots;
 
   Context ctx;
   EPMeta meta;
@@ -54,7 +62,7 @@ private:
   mutable std::optional<std::vector<spec_impl_t>> cached_speculations;
 
 public:
-  EP(const LibBDD::BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
+  EP(const BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
   EP(const EP &other, bool is_ancestor = true);
   EP(EP &&other)                 = delete;
   EP &operator=(const EP *other) = delete;
@@ -62,24 +70,24 @@ public:
   ~EP();
 
   void process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, bool process_node = true);
-  void process_leaf(const LibBDD::Node *next_node);
+  void process_leaf(const BDDNode *next_node);
 
   struct translation_data_t {
-    const LibBDD::Node *reordered_node;
+    const BDDNode *reordered_node;
     translator_t next_nodes_translator;
     translator_t processed_nodes_translator;
-    std::vector<LibBDD::translated_symbol_t> translated_symbols;
+    std::vector<translated_symbol_t> translated_symbols;
   };
 
-  void replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd);
-  void replace_bdd(std::unique_ptr<LibBDD::BDD> new_bdd, const translation_data_t &translation_data);
+  void replace_bdd(std::unique_ptr<BDD> new_bdd);
+  void replace_bdd(std::unique_ptr<BDD> new_bdd, const translation_data_t &translation_data);
 
   ep_id_t get_id() const;
-  const LibBDD::BDD *get_bdd() const;
+  const BDD *get_bdd() const;
   const EPNode *get_root() const;
   const std::vector<EPLeaf> &get_active_leaves() const;
   const TargetsView &get_targets() const;
-  const LibBDD::node_ids_t &get_target_roots(TargetType target) const;
+  const bdd_node_ids_t &get_target_roots(TargetType target) const;
   const std::set<ep_id_t> &get_ancestors() const;
   const Context &get_ctx() const;
   const EPMeta &get_meta() const;
@@ -94,7 +102,7 @@ public:
   std::vector<const EPNode *> get_nodes_by_type(const std::unordered_set<ModuleType> &types) const;
 
   bool has_target(TargetType type) const;
-  const LibBDD::Node *get_next_node() const;
+  const BDDNode *get_next_node() const;
   EPLeaf get_active_leaf() const;
   bool has_active_leaf() const;
   TargetType get_active_target() const;
@@ -116,12 +124,12 @@ public:
 
 private:
   void sort_leaves();
-  spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const LibBDD::Node *anchor, LibBDD::node_ids_t future_nodes,
+  spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const BDDNode *anchor, bdd_node_ids_t future_nodes,
                                                 TargetType current_target, pps_t ingress) const;
-  spec_impl_t get_best_speculation(const LibBDD::Node *node, TargetType current_target, const Context &ctx, const LibBDD::node_ids_t &skip,
+  spec_impl_t get_best_speculation(const BDDNode *node, TargetType current_target, const Context &ctx, const bdd_node_ids_t &skip,
                                    pps_t ingress) const;
-  bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const LibBDD::Node *node,
-                             TargetType current_target, pps_t ingress) const;
+  bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const BDDNode *node, TargetType current_target,
+                             pps_t ingress) const;
 };
 
 } // namespace LibSynapse

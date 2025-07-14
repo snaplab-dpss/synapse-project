@@ -10,15 +10,15 @@ private:
   addr_t dchain_addr;
   klee::ref<klee::Expr> time;
   klee::ref<klee::Expr> index_out;
-  std::optional<LibCore::symbol_t> not_out_of_space;
+  std::optional<symbol_t> not_out_of_space;
 
 public:
-  DchainAllocateNewIndex(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
-                         const LibCore::symbol_t &_out_of_space)
+  DchainAllocateNewIndex(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
+                         const symbol_t &_out_of_space)
       : ControllerModule(ModuleType::Controller_DchainAllocateNewIndex, "DchainAllocate", _node), dchain_addr(_dchain_addr), time(_time),
         index_out(_index_out), not_out_of_space(_out_of_space) {}
 
-  DchainAllocateNewIndex(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
+  DchainAllocateNewIndex(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
       : ControllerModule(ModuleType::Controller_DchainAllocateNewIndex, "DchainAllocate", _node), dchain_addr(_dchain_addr), time(_time),
         index_out(_index_out), not_out_of_space(std::nullopt) {}
 
@@ -40,7 +40,7 @@ public:
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_index_out() const { return index_out; }
 
-  std::optional<LibCore::symbol_t> get_not_out_of_space() const { return not_out_of_space; }
+  std::optional<symbol_t> get_not_out_of_space() const { return not_out_of_space; }
 };
 
 class DchainAllocateNewIndexFactory : public ControllerModuleFactory {
@@ -48,9 +48,9 @@ public:
   DchainAllocateNewIndexFactory() : ControllerModuleFactory(ModuleType::Controller_DchainAllocateNewIndex, "DchainAllocateNewIndex") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

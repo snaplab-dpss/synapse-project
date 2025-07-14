@@ -5,14 +5,19 @@
 namespace LibSynapse {
 namespace x86 {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
-bool bdd_node_match_pattern(const LibBDD::Node *node) {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+bool bdd_node_match_pattern(const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Call) {
     return false;
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_periodic_cleanup") {
     return false;
@@ -22,35 +27,35 @@ bool bdd_node_match_pattern(const LibBDD::Node *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> CMSPeriodicCleanupFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
+std::optional<spec_impl_t> CMSPeriodicCleanupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
-    return std::nullopt;
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
-  addr_t cms_addr                     = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t cms_addr               = expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ctx.can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
+std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
 
-  const addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
     return {};
@@ -63,7 +68,7 @@ std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const 
 
   new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::x86_CountMinSketch);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -71,17 +76,17 @@ std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const 
   return impls;
 }
 
-std::unique_ptr<Module> CMSPeriodicCleanupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
+std::unique_ptr<Module> CMSPeriodicCleanupFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
 
-  addr_t cms_addr = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::x86_CountMinSketch)) {
     return {};

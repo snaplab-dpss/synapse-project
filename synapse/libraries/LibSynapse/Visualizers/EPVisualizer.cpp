@@ -64,7 +64,7 @@ void EPViz::log(const EPNode *ep_node) const {
   // Don't log anything.
 }
 
-void EPViz::function_call(const EPNode *ep_node, const LibBDD::Node *node, TargetType target, const std::string &label) {
+void EPViz::function_call(const EPNode *ep_node, const BDDNode *node, TargetType target, const std::string &label) {
   std::string nice_label = label;
   find_and_replace(nice_label, {{"\n", "\\n"}});
 
@@ -85,7 +85,7 @@ void EPViz::function_call(const EPNode *ep_node, const LibBDD::Node *node, Targe
   ss << "\n";
 }
 
-void EPViz::branch(const EPNode *ep_node, const LibBDD::Node *node, TargetType target, const std::string &label) {
+void EPViz::branch(const EPNode *ep_node, const BDDNode *node, TargetType target, const std::string &label) {
   std::string nice_label = label;
   find_and_replace(nice_label, {{"\n", "\\n"}});
 

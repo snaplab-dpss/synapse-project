@@ -17,7 +17,6 @@ private:
 
 public:
   TofinoContext(const tna_config_t &tna_config) : data_structures(), tna(tna_config, data_structures) {}
-
   TofinoContext(const TofinoContext &other) : data_structures(other.data_structures), tna(other.tna, data_structures) {}
 
   virtual TargetContext *clone() const override { return new TofinoContext(*this); }
@@ -28,18 +27,18 @@ public:
   const DataStructures &get_data_structures() const { return data_structures; }
   DataStructures &get_mutable_data_structures() { return data_structures; }
 
-  void parser_transition(const LibBDD::Node *_node, klee::ref<klee::Expr> hdr, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
-  void parser_select(const LibBDD::Node *_node, const std::vector<parser_selection_t> &selections, const LibBDD::Node *last_parser_op,
+  void parser_transition(const BDDNode *_node, klee::ref<klee::Expr> hdr, const BDDNode *last_parser_op, std::optional<bool> direction);
+  void parser_select(const BDDNode *_node, const std::vector<parser_selection_t> &selections, const BDDNode *last_parser_op,
                      std::optional<bool> direction);
-  void parser_accept(const LibBDD::Node *_node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
-  void parser_reject(const LibBDD::Node *_node, const LibBDD::Node *last_parser_op, std::optional<bool> direction);
+  void parser_accept(const BDDNode *_node, const BDDNode *last_parser_op, std::optional<bool> direction);
+  void parser_reject(const BDDNode *_node, const BDDNode *last_parser_op, std::optional<bool> direction);
 
-  void place(EP *ep, const LibBDD::Node *node, addr_t obj, DS *ds);
-  bool can_place(const EP *ep, const LibBDD::Node *node, const DS *ds) const;
+  void place(EP *ep, const BDDNode *node, addr_t obj, DS *ds);
+  bool can_place(const EP *ep, const BDDNode *node, const DS *ds) const;
 
   void debug() const override;
 
-  static std::unordered_set<DS_ID> get_stateful_deps(const EP *ep, const LibBDD::Node *node);
+  static std::unordered_set<DS_ID> get_stateful_deps(const EP *ep, const BDDNode *node);
 };
 
 } // namespace Tofino

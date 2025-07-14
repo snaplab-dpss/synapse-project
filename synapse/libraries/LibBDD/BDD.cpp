@@ -12,6 +12,14 @@
 
 namespace LibBDD {
 
+using LibCore::constraint_from_expr;
+using LibCore::expr_addr_to_obj_addr;
+using LibCore::expr_struct_t;
+using LibCore::expr_to_string;
+using LibCore::is_bool;
+using LibCore::simplify;
+using LibCore::solver_toolbox;
+
 namespace {
 const std::unordered_set<std::string> ignored_functions{
     "start_time",
@@ -69,18 +77,18 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"lpm_update", {"lpm_update_elem_result"}},
 };
 
-typedef LibCore::Symbols (*SymbolsExtractor)(const call_t &call, const LibCore::Symbols &symbols);
+typedef Symbols (*SymbolsExtractor)(const call_t &call, const Symbols &symbols);
 
-LibCore::Symbols packet_chunks_symbol_extractor(const call_t &call, const LibCore::Symbols &symbols) {
+Symbols packet_chunks_symbol_extractor(const call_t &call, const Symbols &symbols) {
   assert(call.function_name == "packet_borrow_next_chunk" && "Unexpected function");
 
   const extra_var_t &extra_var       = call.extra_vars.at("the_chunk");
   klee::ref<klee::Expr> packet_chunk = extra_var.second;
 
-  LibCore::symbol_t symbol = symbols.get("packet_chunks");
-  symbol.expr              = packet_chunk;
+  symbol_t symbol = symbols.get("packet_chunks");
+  symbol.expr     = packet_chunk;
 
-  LibCore::Symbols extracted_symbols;
+  Symbols extracted_symbols;
   extracted_symbols.add(symbol);
 
   return extracted_symbols;
@@ -99,7 +107,7 @@ bool is_routing_function(const call_t &call) {
 }
 
 bool is_skip_condition(klee::ref<klee::Expr> condition) {
-  std::unordered_set<std::string> symbols = LibCore::symbol_t::get_symbols_names(condition);
+  std::unordered_set<std::string> symbols = symbol_t::get_symbols_names(condition);
 
   for (const std::string &symbol : symbols) {
     auto base_symbol_comparator = [symbol](const std::string &s) { return symbol.find(s) != std::string::npos; };
@@ -113,7 +121,7 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
   return false;
 }
 
-Route *route_node_from_call(const call_t &call, node_id_t id, const klee::ConstraintManager &constraints, LibCore::SymbolManager *symbol_manager) {
+Route *route_node_from_call(const call_t &call, bdd_node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager) {
   assert(is_routing_function(call) && "Unexpected function");
 
   if (call.function_name == "packet_free") {
@@ -143,9 +151,9 @@ call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
       return call;
     }
 
-    klee::ref<klee::Expr> zero    = LibCore::solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
-    klee::ref<klee::Expr> eq_zero = LibCore::solver_toolbox.exprBuilder->Eq(call.ret, zero);
-    const bool is_ret_success     = LibCore::solver_toolbox.is_expr_always_false(cp->constraints, eq_zero);
+    klee::ref<klee::Expr> zero    = solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
+    klee::ref<klee::Expr> eq_zero = solver_toolbox.exprBuilder->Eq(call.ret, zero);
+    const bool is_ret_success     = solver_toolbox.is_expr_always_false(cp->constraints, eq_zero);
 
     if (is_ret_success) {
       return call;
@@ -153,21 +161,21 @@ call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
   }
 
   // No function with successful return.
-  assert(!call_paths[0]->calls.empty() && "No calls in first call path");
+  assert_or_panic(!call_paths[0]->calls.empty(), "No calls in first call path");
   return call_paths[0]->calls[0];
 }
 
 klee::ref<klee::Expr> simplify_constraint(klee::ref<klee::Expr> constraint) {
   assert(!constraint.isNull() && "Null constraint");
 
-  klee::ref<klee::Expr> simplified = LibCore::simplify(constraint);
+  klee::ref<klee::Expr> simplified = simplify(constraint);
 
-  if (LibCore::is_bool(simplified))
+  if (is_bool(simplified))
     return simplified;
 
   klee::Expr::Width width           = simplified->getWidth();
-  klee::ref<klee::Expr> zero        = LibCore::solver_toolbox.exprBuilder->Constant(0, width);
-  klee::ref<klee::Expr> is_not_zero = LibCore::solver_toolbox.exprBuilder->Ne(simplified, zero);
+  klee::ref<klee::Expr> zero        = solver_toolbox.exprBuilder->Constant(0, width);
+  klee::ref<klee::Expr> is_not_zero = solver_toolbox.exprBuilder->Ne(simplified, zero);
 
   return is_not_zero;
 }
@@ -175,31 +183,31 @@ klee::ref<klee::Expr> simplify_constraint(klee::ref<klee::Expr> constraint) {
 klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> constraint) {
   assert(!constraint.isNull() && "Null constraint");
 
-  klee::ref<klee::Expr> simplified = LibCore::simplify(constraint);
+  klee::ref<klee::Expr> simplified = simplify(constraint);
 
-  if (LibCore::is_bool(simplified))
-    return LibCore::solver_toolbox.exprBuilder->Not(simplified);
+  if (is_bool(simplified))
+    return solver_toolbox.exprBuilder->Not(simplified);
 
   klee::Expr::Width width       = simplified->getWidth();
-  klee::ref<klee::Expr> zero    = LibCore::solver_toolbox.exprBuilder->Constant(0, width);
-  klee::ref<klee::Expr> is_zero = LibCore::solver_toolbox.exprBuilder->Eq(simplified, zero);
+  klee::ref<klee::Expr> zero    = solver_toolbox.exprBuilder->Constant(0, width);
+  klee::ref<klee::Expr> is_zero = solver_toolbox.exprBuilder->Eq(simplified, zero);
 
   return is_zero;
 }
 
-std::optional<LibCore::symbol_t> get_generated_symbol(const call_t &call, const LibCore::Symbols &symbols, const std::string &base) {
-  std::vector<LibCore::symbol_t> filtered = symbols.filter_by_base(base).get();
+std::optional<symbol_t> get_generated_symbol(const call_t &call, const Symbols &symbols, const std::string &base) {
+  std::vector<symbol_t> filtered = symbols.filter_by_base(base).get();
 
-  if (LibCore::symbol_t::is_symbol(call.ret)) {
-    LibCore::symbol_t symbol(call.ret);
+  if (symbol_t::is_symbol(call.ret)) {
+    symbol_t symbol(call.ret);
     if (base == symbol.base) {
       return symbol;
     }
   }
 
   for (const auto &[arg_name, arg] : call.args) {
-    if (LibCore::symbol_t::is_symbol(arg.out)) {
-      LibCore::symbol_t symbol(arg.out);
+    if (symbol_t::is_symbol(arg.out)) {
+      symbol_t symbol(arg.out);
       if (base == symbol.base) {
         return symbol;
       }
@@ -207,8 +215,8 @@ std::optional<LibCore::symbol_t> get_generated_symbol(const call_t &call, const 
   }
 
   for (const auto &[extra_var_name, extra_var] : call.extra_vars) {
-    if (LibCore::symbol_t::is_symbol(extra_var.second)) {
-      LibCore::symbol_t symbol(extra_var.second);
+    if (symbol_t::is_symbol(extra_var.second)) {
+      symbol_t symbol(extra_var.second);
       if (base == symbol.base) {
         return symbol;
       }
@@ -216,20 +224,19 @@ std::optional<LibCore::symbol_t> get_generated_symbol(const call_t &call, const 
   }
 
   for (const auto &[arg_name, arg] : call.args) {
-    if (LibCore::symbol_t::is_symbol(arg.expr)) {
-      LibCore::symbol_t symbol(arg.expr);
+    if (symbol_t::is_symbol(arg.expr)) {
+      symbol_t symbol(arg.expr);
       if (base == symbol.base) {
         return symbol;
       }
     }
   }
 
-  return std::nullopt;
+  return {};
 }
 
-LibCore::Symbols get_generated_symbols(const call_t &call, LibCore::Symbols &symbols,
-                                       std::unordered_map<std::string, size_t> &base_symbols_generated) {
-  LibCore::Symbols generated_symbols;
+Symbols get_generated_symbols(const call_t &call, Symbols &symbols, std::unordered_map<std::string, size_t> &base_symbols_generated) {
+  Symbols generated_symbols;
 
   auto extractor_it = special_symbols_extractors.find(call.function_name);
   if (extractor_it != special_symbols_extractors.end()) {
@@ -242,7 +249,7 @@ LibCore::Symbols get_generated_symbols(const call_t &call, LibCore::Symbols &sym
   }
 
   for (const std::string &base : base_symbols_it->second) {
-    std::optional<LibCore::symbol_t> symbol = get_generated_symbol(call, symbols, base);
+    std::optional<symbol_t> symbol = get_generated_symbol(call, symbols, base);
     if (symbol.has_value()) {
       generated_symbols.add(symbol.value());
     }
@@ -258,19 +265,19 @@ void pop_call_paths(call_paths_view_t &call_paths_view) {
   }
 }
 
-Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolManager *symbol_manager, NodeManager &node_manager,
-                          std::vector<Call *> &init, node_id_t &id, bool in_init_mode = true,
-                          klee::ConstraintManager constraints                            = klee::ConstraintManager(),
-                          std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
-  Node *root = nullptr;
-  Node *leaf = nullptr;
+BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager, BDDNodeManager &node_manager,
+                             std::vector<Call *> &init, bdd_node_id_t &id, bool in_init_mode = true,
+                             klee::ConstraintManager constraints                            = klee::ConstraintManager(),
+                             std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
+  BDDNode *root = nullptr;
+  BDDNode *leaf = nullptr;
 
   assert(!call_paths_view.data.empty() && "No call paths");
   if (call_paths_view.data[0]->calls.size() == 0) {
     return root;
   }
 
-  LibCore::Symbols symbols = call_paths_view.get_symbols();
+  Symbols symbols = call_paths_view.get_symbols();
 
   while (!call_paths_view.data.empty()) {
     CallPathsGroup group(call_paths_view, in_init_mode);
@@ -286,8 +293,8 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
     if (on_false.data.empty()) {
       call_paths_view = on_true;
 
-      const call_t call                        = get_successful_call(call_paths_view.data);
-      const LibCore::Symbols generated_symbols = get_generated_symbols(call, symbols, base_symbols_generated);
+      const call_t call               = get_successful_call(call_paths_view.data);
+      const Symbols generated_symbols = get_generated_symbols(call, symbols, base_symbols_generated);
 
       std::cerr << "\n";
       std::cerr << "==================================\n";
@@ -296,11 +303,11 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
       for (const call_path_t *cp : call_paths_view.data)
         std::cerr << "  " << cp->file_name << "\n";
       std::cerr << "Generated symbols (" << generated_symbols.size() << "):\n";
-      for (const LibCore::symbol_t &symbol : generated_symbols.get())
-        std::cerr << "  " << LibCore::expr_to_string(symbol.expr, true) << "\n";
+      for (const symbol_t &symbol : generated_symbols.get())
+        std::cerr << "  " << expr_to_string(symbol.expr, true) << "\n";
       std::cerr << "Constraints (" << constraints.size() << "):\n";
       for (const klee::ref<klee::Expr> &constraint : constraints)
-        std::cerr << "  " << LibCore::expr_to_string(constraint, true) << "\n";
+        std::cerr << "  " << expr_to_string(constraint, true) << "\n";
       std::cerr << "==================================\n";
 
       if (call.function_name == init_to_process_trigger_function) {
@@ -327,7 +334,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
 
         init.push_back(node);
       } else {
-        Node *node;
+        BDDNode *node;
 
         if (is_routing_function(call)) {
           node = route_node_from_call(call, id, constraints, symbol_manager);
@@ -363,7 +370,7 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
 
       std::cerr << "\n";
       std::cerr << "==================================\n";
-      std::cerr << "Condition: " << LibCore::expr_to_string(condition, true) << "\n";
+      std::cerr << "Condition: " << expr_to_string(condition, true) << "\n";
       std::cerr << "On true call paths:\n";
       for (const call_path_t *cp : on_true.data)
         std::cerr << "  " << cp->file_name << "\n";
@@ -387,9 +394,9 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
       id++;
       node_manager.add_node(node);
 
-      Node *on_true_root =
+      BDDNode *on_true_root =
           bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id, in_init_mode, on_true_constraints, base_symbols_generated);
-      Node *on_false_root =
+      BDDNode *on_false_root =
           bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id, in_init_mode, on_false_constraints, base_symbols_generated);
 
       if (!on_true_root || !on_false_root) {
@@ -421,18 +428,18 @@ Node *bdd_from_call_paths(call_paths_view_t call_paths_view, LibCore::SymbolMana
   return root;
 }
 
-Branch *create_new_branch(BDD *bdd, const Node *current, klee::ref<klee::Expr> condition) {
-  node_id_t &id                       = bdd->get_mutable_id();
-  NodeManager &manager                = bdd->get_mutable_manager();
+Branch *create_new_branch(BDD *bdd, const BDDNode *current, klee::ref<klee::Expr> condition) {
+  bdd_node_id_t &id                   = bdd->get_mutable_id();
+  BDDNodeManager &manager             = bdd->get_mutable_manager();
   klee::ConstraintManager constraints = current->get_constraints();
   Branch *new_branch                  = new Branch(id++, constraints, bdd->get_mutable_symbol_manager(), condition);
   manager.add_node(new_branch);
   return new_branch;
 }
 
-Call *create_new_call(BDD *bdd, const Node *current, const call_t &call, const LibCore::Symbols &generated_symbols) {
-  node_id_t &id                       = bdd->get_mutable_id();
-  NodeManager &manager                = bdd->get_mutable_manager();
+Call *create_new_call(BDD *bdd, const BDDNode *current, const call_t &call, const Symbols &generated_symbols) {
+  bdd_node_id_t &id                   = bdd->get_mutable_id();
+  BDDNodeManager &manager             = bdd->get_mutable_manager();
   klee::ConstraintManager constraints = current->get_constraints();
   Call *new_call                      = new Call(id++, constraints, bdd->get_mutable_symbol_manager(), call, generated_symbols);
   manager.add_node(new_call);
@@ -493,12 +500,12 @@ struct next_t {
   }
 };
 
-next_t get_next_maps_and_vectors(const Node *root, klee::ref<klee::Expr> index) {
+next_t get_next_maps_and_vectors(const BDDNode *root, klee::ref<klee::Expr> index) {
   next_t candidates;
 
-  root->visit_nodes([&candidates, index](const Node *node) {
-    if (node->get_type() != NodeType::Call) {
-      return NodeVisitAction::Continue;
+  root->visit_nodes([&candidates, index](const BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
     }
 
     const Call *call_node = dynamic_cast<const Call *>(node);
@@ -508,8 +515,8 @@ next_t get_next_maps_and_vectors(const Node *root, klee::ref<klee::Expr> index) 
       klee::ref<klee::Expr> map   = call.args.at("map").expr;
       klee::ref<klee::Expr> value = call.args.at("value").expr;
 
-      const addr_t map_addr = LibCore::expr_addr_to_obj_addr(map);
-      bool same_index       = LibCore::solver_toolbox.are_exprs_always_equal(index, value);
+      const addr_t map_addr = expr_addr_to_obj_addr(map);
+      bool same_index       = solver_toolbox.are_exprs_always_equal(index, value);
 
       if (same_index) {
         candidates.maps.insert({map_addr, call_node});
@@ -518,15 +525,15 @@ next_t get_next_maps_and_vectors(const Node *root, klee::ref<klee::Expr> index) 
       klee::ref<klee::Expr> vector = call.args.at("vector").expr;
       klee::ref<klee::Expr> value  = call.args.at("index").expr;
 
-      const addr_t vector_addr = LibCore::expr_addr_to_obj_addr(vector);
-      bool same_index          = LibCore::solver_toolbox.are_exprs_always_equal(index, value);
+      const addr_t vector_addr = expr_addr_to_obj_addr(vector);
+      bool same_index          = solver_toolbox.are_exprs_always_equal(index, value);
 
       if (same_index) {
         candidates.vectors.insert({vector_addr, call_node});
       }
     }
 
-    return NodeVisitAction::Continue;
+    return BDDNodeVisitAction::Continue;
   });
 
   return candidates;
@@ -540,7 +547,7 @@ next_t get_allowed_coalescing_objs(std::vector<const Call *> index_allocators, a
 
     klee::ref<klee::Expr> allocated_index = allocator_call.args.at("index_out").out;
     klee::ref<klee::Expr> dchain          = allocator_call.args.at("chain").expr;
-    const addr_t dchain_addr              = LibCore::expr_addr_to_obj_addr(dchain);
+    const addr_t dchain_addr              = expr_addr_to_obj_addr(dchain);
 
     // We expect the coalescing candidates to be the same regardless of
     // where in the BDD we are. In case there is some discrepancy, then it
@@ -578,8 +585,8 @@ addr_t get_vector_obj_storing_map_key(const BDD *bdd, addr_t map) {
     klee::ref<klee::Expr> vector_expr     = vb.args.at("vector").expr;
     klee::ref<klee::Expr> value_addr_expr = vb.args.at("val_out").out;
 
-    const addr_t vector_obj = LibCore::expr_addr_to_obj_addr(vector_expr);
-    const addr_t value_addr = LibCore::expr_addr_to_obj_addr(value_addr_expr);
+    const addr_t vector_obj = expr_addr_to_obj_addr(vector_expr);
+    const addr_t value_addr = expr_addr_to_obj_addr(value_addr_expr);
 
     const std::vector<const Call *> map_puts = vector_borrow->get_future_functions({"map_put"});
 
@@ -590,8 +597,8 @@ addr_t get_vector_obj_storing_map_key(const BDD *bdd, addr_t map) {
       klee::ref<klee::Expr> map_expr      = mp.args.at("map").expr;
       klee::ref<klee::Expr> key_addr_expr = mp.args.at("key").expr;
 
-      const addr_t map_obj  = LibCore::expr_addr_to_obj_addr(map_expr);
-      const addr_t key_addr = LibCore::expr_addr_to_obj_addr(key_addr_expr);
+      const addr_t map_obj  = expr_addr_to_obj_addr(map_expr);
+      const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
       if (map_obj != map) {
         continue;
@@ -617,11 +624,11 @@ addr_t get_vector_obj_storing_map_key(const BDD *bdd, addr_t map) {
 
 void BDD::visit(BDDVisitor &visitor) const { visitor.visit(this); }
 
-const Node *BDD::get_node_by_id(node_id_t node_id) const { return root ? root->get_node_by_id(node_id) : nullptr; }
+const BDDNode *BDD::get_node_by_id(bdd_node_id_t node_id) const { return root ? root->get_node_by_id(node_id) : nullptr; }
 
-Node *BDD::get_mutable_node_by_id(node_id_t node_id) { return root ? root->get_mutable_node_by_id(node_id) : nullptr; }
+BDDNode *BDD::get_mutable_node_by_id(bdd_node_id_t node_id) { return root ? root->get_mutable_node_by_id(node_id) : nullptr; }
 
-int BDD::get_node_depth(node_id_t node_id) const {
+int BDD::get_node_depth(bdd_node_id_t node_id) const {
   int depth = -1;
 
   if (!root) {
@@ -638,32 +645,32 @@ int BDD::get_node_depth(node_id_t node_id) const {
   };
 
   root->visit_nodes(
-      [node_id, &depth](const Node *node, cookie_t *cookie) {
+      [node_id, &depth](const BDDNode *node, cookie_t *cookie) {
         depth_tracker_t *depth_tracker = dynamic_cast<depth_tracker_t *>(cookie);
 
         if (node->get_id() == node_id) {
           depth = depth_tracker->depth;
-          return NodeVisitAction::Stop;
+          return BDDNodeVisitAction::Stop;
         }
 
         depth_tracker->depth++;
-        return NodeVisitAction::Continue;
+        return BDDNodeVisitAction::Continue;
       },
       std::make_unique<depth_tracker_t>());
 
   return depth;
 }
 
-LibCore::Symbols BDD::get_generated_symbols(const Node *node) const {
-  LibCore::Symbols symbols;
+Symbols BDD::get_generated_symbols(const BDDNode *node) const {
+  Symbols symbols;
   symbols.add(device);
   symbols.add(packet_len);
   symbols.add(time);
 
   while (node) {
-    if (node->get_type() == NodeType::Call) {
-      const Call *call_node                = dynamic_cast<const Call *>(node);
-      const LibCore::Symbols &more_symbols = call_node->get_local_symbols();
+    if (node->get_type() == BDDNodeType::Call) {
+      const Call *call_node       = dynamic_cast<const Call *>(node);
+      const Symbols &more_symbols = call_node->get_local_symbols();
       symbols.add(more_symbols);
     }
 
@@ -689,7 +696,7 @@ BDD::BDD(const call_paths_view_t &call_paths_view) : id(0), symbol_manager(call_
   }
 }
 
-BDD::BDD(const std::filesystem::path &fpath, LibCore::SymbolManager *_symbol_manager) : id(0), symbol_manager(_symbol_manager) { deserialize(fpath); }
+BDD::BDD(const std::filesystem::path &fpath, SymbolManager *_symbol_manager) : id(0), symbol_manager(_symbol_manager) { deserialize(fpath); }
 
 BDD::BDD(const BDD &other)
     : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time), symbol_manager(other.symbol_manager) {
@@ -732,21 +739,21 @@ BDD &BDD::operator=(const BDD &other) {
   return *this;
 }
 
-void BDD::delete_init_node(node_id_t target_id) {
+void BDD::delete_init_node(bdd_node_id_t target_id) {
   auto it = init.begin();
   while (it != init.end()) {
     if ((*it)->get_id() == target_id) {
-      Call *node = *it;
-      Node *prev = node->get_mutable_prev();
-      Node *next = node->get_mutable_next();
+      Call *node    = *it;
+      BDDNode *prev = node->get_mutable_prev();
+      BDDNode *next = node->get_mutable_next();
 
       if (prev) {
-        assert(prev->get_type() == NodeType::Call && "Unexpected node type");
+        assert(prev->get_type() == BDDNodeType::Call && "Unexpected node type");
         prev->set_next(next);
       }
 
       if (next) {
-        assert(next->get_type() == NodeType::Call && "Unexpected node type");
+        assert(next->get_type() == BDDNodeType::Call && "Unexpected node type");
         next->set_prev(prev);
       }
 
@@ -760,26 +767,26 @@ void BDD::delete_init_node(node_id_t target_id) {
   }
 }
 
-Node *BDD::delete_non_branch(node_id_t target_id) {
-  Node *anchor_next = get_mutable_node_by_id(target_id);
-  assert(anchor_next && "Node not found");
-  assert(anchor_next->get_type() != NodeType::Branch && "Unexpected branch node");
+BDDNode *BDD::delete_non_branch(bdd_node_id_t target_id) {
+  BDDNode *anchor_next = get_mutable_node_by_id(target_id);
+  assert(anchor_next && "BDDNode not found");
+  assert(anchor_next->get_type() != BDDNodeType::Branch && "Unexpected branch node");
 
-  Node *anchor = anchor_next->get_mutable_prev();
+  BDDNode *anchor = anchor_next->get_mutable_prev();
   assert(anchor && "No previous node");
 
-  Node *new_current = anchor_next->get_mutable_next();
+  BDDNode *new_current = anchor_next->get_mutable_next();
 
   switch (anchor->get_type()) {
-  case NodeType::Call:
-  case NodeType::Route: {
+  case BDDNodeType::Call:
+  case BDDNodeType::Route: {
     anchor->set_next(new_current);
   } break;
-  case NodeType::Branch: {
+  case BDDNodeType::Branch: {
     Branch *branch = dynamic_cast<Branch *>(anchor);
 
-    const Node *on_true  = branch->get_on_true();
-    const Node *on_false = branch->get_on_false();
+    const BDDNode *on_true  = branch->get_on_true();
+    const BDDNode *on_false = branch->get_on_false();
 
     assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection");
 
@@ -798,20 +805,20 @@ Node *BDD::delete_non_branch(node_id_t target_id) {
   return new_current;
 }
 
-Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
-  Node *target = get_mutable_node_by_id(target_id);
-  assert(target && "Node not found");
-  assert(target->get_type() == NodeType::Branch && "Unexpected branch node");
+BDDNode *BDD::delete_branch(bdd_node_id_t target_id, bool direction_to_keep) {
+  BDDNode *target = get_mutable_node_by_id(target_id);
+  assert(target && "BDDNode not found");
+  assert(target->get_type() == BDDNodeType::Branch && "Unexpected branch node");
 
-  Node *anchor = target->get_mutable_prev();
+  BDDNode *anchor = target->get_mutable_prev();
   assert(anchor && "No previous node");
 
   Branch *anchor_next = dynamic_cast<Branch *>(target);
 
-  Node *target_on_true  = anchor_next->get_mutable_on_true();
-  Node *target_on_false = anchor_next->get_mutable_on_false();
+  BDDNode *target_on_true  = anchor_next->get_mutable_on_true();
+  BDDNode *target_on_false = anchor_next->get_mutable_on_false();
 
-  Node *new_current;
+  BDDNode *new_current;
 
   if (direction_to_keep) {
     new_current = target_on_true;
@@ -824,15 +831,15 @@ Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
   }
 
   switch (anchor->get_type()) {
-  case NodeType::Call:
-  case NodeType::Route: {
+  case BDDNodeType::Call:
+  case BDDNodeType::Route: {
     anchor->set_next(new_current);
   } break;
-  case NodeType::Branch: {
+  case BDDNodeType::Branch: {
     Branch *branch = dynamic_cast<Branch *>(anchor);
 
-    const Node *on_true  = branch->get_on_true();
-    const Node *on_false = branch->get_on_false();
+    const BDDNode *on_true  = branch->get_on_true();
+    const BDDNode *on_false = branch->get_on_false();
 
     assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection");
 
@@ -851,29 +858,29 @@ Node *BDD::delete_branch(node_id_t target_id, bool direction_to_keep) {
   return new_current;
 }
 
-Node *BDD::add_cloned_non_branches(node_id_t target_id, const std::vector<const Node *> &new_nodes) {
-  const Node *current = get_node_by_id(target_id);
-  assert(current && "Node not found");
+BDDNode *BDD::add_cloned_non_branches(bdd_node_id_t target_id, const std::vector<const BDDNode *> &new_nodes) {
+  const BDDNode *current = get_node_by_id(target_id);
+  assert(current && "BDDNode not found");
 
-  Node *new_current = nullptr;
+  BDDNode *new_current = nullptr;
 
   if (new_nodes.empty()) {
     return new_current;
   }
 
-  const Node *prev = current->get_prev();
+  const BDDNode *prev = current->get_prev();
   assert(prev && "No previous node");
 
-  node_id_t anchor_id = prev->get_id();
-  Node *anchor        = get_mutable_node_by_id(anchor_id);
-  Node *anchor_next   = get_mutable_node_by_id(current->get_id());
+  bdd_node_id_t anchor_id = prev->get_id();
+  BDDNode *anchor         = get_mutable_node_by_id(anchor_id);
+  BDDNode *anchor_next    = get_mutable_node_by_id(current->get_id());
 
   bool set_new_current = false;
 
-  for (const Node *new_node : new_nodes) {
-    assert(new_node->get_type() != NodeType::Branch && "Unexpected branch node");
+  for (const BDDNode *new_node : new_nodes) {
+    assert(new_node->get_type() != BDDNodeType::Branch && "Unexpected branch node");
 
-    Node *clone = new_node->clone(manager, false);
+    BDDNode *clone = new_node->clone(manager, false);
     clone->recursive_update_ids(id);
 
     if (!set_new_current) {
@@ -882,15 +889,15 @@ Node *BDD::add_cloned_non_branches(node_id_t target_id, const std::vector<const 
     }
 
     switch (anchor->get_type()) {
-    case NodeType::Call:
-    case NodeType::Route: {
+    case BDDNodeType::Call:
+    case BDDNodeType::Route: {
       anchor->set_next(clone);
     } break;
-    case NodeType::Branch: {
+    case BDDNodeType::Branch: {
       Branch *branch = dynamic_cast<Branch *>(anchor);
 
-      const Node *on_true  = branch->get_on_true();
-      const Node *on_false = branch->get_on_false();
+      const BDDNode *on_true  = branch->get_on_true();
+      const BDDNode *on_false = branch->get_on_false();
 
       assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection found");
 
@@ -912,25 +919,25 @@ Node *BDD::add_cloned_non_branches(node_id_t target_id, const std::vector<const 
   return new_current;
 }
 
-Branch *BDD::add_cloned_branch(node_id_t target_id, klee::ref<klee::Expr> condition) {
-  const Node *current = get_node_by_id(target_id);
-  assert(current && "Node not found");
+Branch *BDD::add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> condition) {
+  const BDDNode *current = get_node_by_id(target_id);
+  assert(current && "BDDNode not found");
 
-  const Node *prev = current->get_prev();
+  const BDDNode *prev = current->get_prev();
   assert(prev && "No previous node");
 
-  node_id_t anchor_id = prev->get_id();
-  Node *anchor        = get_mutable_node_by_id(anchor_id);
-  Node *anchor_next   = get_mutable_node_by_id(current->get_id());
+  bdd_node_id_t anchor_id = prev->get_id();
+  BDDNode *anchor         = get_mutable_node_by_id(anchor_id);
+  BDDNode *anchor_next    = get_mutable_node_by_id(current->get_id());
 
-  klee::ref<klee::Expr> constraint = LibCore::constraint_from_expr(condition);
+  klee::ref<klee::Expr> constraint = constraint_from_expr(condition);
 
-  Node *on_true_cond  = anchor_next;
-  Node *on_false_cond = anchor_next->clone(manager, true);
+  BDDNode *on_true_cond  = anchor_next;
+  BDDNode *on_false_cond = anchor_next->clone(manager, true);
   on_false_cond->recursive_update_ids(id);
 
   on_true_cond->recursive_add_constraint(constraint);
-  on_false_cond->recursive_add_constraint(LibCore::solver_toolbox.exprBuilder->Not(constraint));
+  on_false_cond->recursive_add_constraint(solver_toolbox.exprBuilder->Not(constraint));
 
   Branch *new_branch = create_new_branch(this, current, condition);
 
@@ -941,15 +948,15 @@ Branch *BDD::add_cloned_branch(node_id_t target_id, klee::ref<klee::Expr> condit
   on_false_cond->set_prev(new_branch);
 
   switch (anchor->get_type()) {
-  case NodeType::Call:
-  case NodeType::Route: {
+  case BDDNodeType::Call:
+  case BDDNodeType::Route: {
     anchor->set_next(new_branch);
   } break;
-  case NodeType::Branch: {
+  case BDDNodeType::Branch: {
     Branch *branch = dynamic_cast<Branch *>(anchor);
 
-    const Node *on_true  = branch->get_on_true();
-    const Node *on_false = branch->get_on_false();
+    const BDDNode *on_true  = branch->get_on_true();
+    const BDDNode *on_false = branch->get_on_false();
 
     assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection found");
 
@@ -967,11 +974,11 @@ Branch *BDD::add_cloned_branch(node_id_t target_id, klee::ref<klee::Expr> condit
   return new_branch;
 }
 
-Call *BDD::add_new_symbol_generator_function(node_id_t target_id, const std::string &fn_name, const LibCore::Symbols &symbols) {
-  const Node *current = get_node_by_id(target_id);
-  assert(current && "Node not found");
+Call *BDD::add_new_symbol_generator_function(bdd_node_id_t target_id, const std::string &fn_name, const Symbols &symbols) {
+  const BDDNode *current = get_node_by_id(target_id);
+  assert(current && "BDDNode not found");
 
-  const Node *prev = current->get_prev();
+  const BDDNode *prev = current->get_prev();
   assert(prev && "No previous node");
 
   const call_t call{
@@ -983,20 +990,20 @@ Call *BDD::add_new_symbol_generator_function(node_id_t target_id, const std::str
 
   Call *new_node = create_new_call(this, current, call, symbols);
 
-  node_id_t anchor_id = prev->get_id();
-  Node *anchor        = get_mutable_node_by_id(anchor_id);
-  Node *anchor_next   = get_mutable_node_by_id(current->get_id());
+  bdd_node_id_t anchor_id = prev->get_id();
+  BDDNode *anchor         = get_mutable_node_by_id(anchor_id);
+  BDDNode *anchor_next    = get_mutable_node_by_id(current->get_id());
 
   switch (anchor->get_type()) {
-  case NodeType::Call:
-  case NodeType::Route: {
+  case BDDNodeType::Call:
+  case BDDNodeType::Route: {
     anchor->set_next(new_node);
   } break;
-  case NodeType::Branch: {
+  case BDDNodeType::Branch: {
     Branch *branch = dynamic_cast<Branch *>(anchor);
 
-    const Node *on_true  = branch->get_on_true();
-    const Node *on_false = branch->get_on_false();
+    const BDDNode *on_true  = branch->get_on_true();
+    const BDDNode *on_false = branch->get_on_false();
 
     assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection found");
 
@@ -1047,9 +1054,9 @@ bool BDD::get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing
 
   addr_t obj;
   if (call.args.find("map") != call.args.end()) {
-    obj = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
+    obj = expr_addr_to_obj_addr(call.args.at("map").expr);
   } else if (call.args.find("map_out") != call.args.end()) {
-    obj = LibCore::expr_addr_to_obj_addr(call.args.at("map_out").out);
+    obj = expr_addr_to_obj_addr(call.args.at("map_out").out);
   } else {
     panic("No map argument");
   }
@@ -1062,9 +1069,9 @@ bool BDD::get_map_coalescing_objs_from_dchain_op(const Call *dchain_op, map_coal
 
   addr_t obj;
   if (call.args.find("chain") != call.args.end()) {
-    obj = LibCore::expr_addr_to_obj_addr(call.args.at("chain").expr);
+    obj = expr_addr_to_obj_addr(call.args.at("chain").expr);
   } else if (call.args.find("chain_out") != call.args.end()) {
-    obj = LibCore::expr_addr_to_obj_addr(call.args.at("chain_out").out);
+    obj = expr_addr_to_obj_addr(call.args.at("chain_out").out);
   } else {
     panic("No chain argument");
   }
@@ -1084,9 +1091,9 @@ bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new
     return false;
   }
 
-  const Node *map_get = dchain_allocate_new_index;
+  const BDDNode *map_get = dchain_allocate_new_index;
   while (map_get) {
-    if (map_get->get_type() != NodeType::Call) {
+    if (map_get->get_type() != BDDNodeType::Call) {
       map_get = map_get->get_prev();
       continue;
     }
@@ -1100,7 +1107,7 @@ bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new
     }
 
     klee::ref<klee::Expr> obj = mg_call.args.at("map").expr;
-    if (LibCore::expr_addr_to_obj_addr(obj) != map_objs.map) {
+    if (expr_addr_to_obj_addr(obj) != map_objs.map) {
       map_get = map_get->get_prev();
       continue;
     }
@@ -1112,13 +1119,13 @@ bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new
     return false;
   }
 
-  LibCore::symbol_t map_has_this_key  = dynamic_cast<const Call *>(map_get)->get_local_symbol("map_has_this_key");
+  symbol_t map_has_this_key           = dynamic_cast<const Call *>(map_get)->get_local_symbol("map_has_this_key");
   klee::ConstraintManager constraints = dchain_allocate_new_index->get_constraints();
 
-  klee::ref<klee::Expr> found_key = LibCore::solver_toolbox.exprBuilder->Ne(
-      map_has_this_key.expr, LibCore::solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
+  klee::ref<klee::Expr> found_key =
+      solver_toolbox.exprBuilder->Ne(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
 
-  return LibCore::solver_toolbox.is_expr_always_false(constraints, found_key);
+  return solver_toolbox.is_expr_always_false(constraints, found_key);
 }
 
 bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) const {
@@ -1153,7 +1160,7 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
     klee::ref<klee::Expr> mp_key   = mp_call.args.at("key").in;
     klee::ref<klee::Expr> mp_value = mp_call.args.at("value").expr;
 
-    const addr_t map = LibCore::expr_addr_to_obj_addr(map_expr);
+    const addr_t map = expr_addr_to_obj_addr(map_expr);
 
     if (map != map_objs.map) {
       continue;
@@ -1161,20 +1168,20 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
 
     if (key.isNull()) {
       key = mp_key;
-    } else if (!LibCore::solver_toolbox.are_exprs_always_equal(key, mp_key)) {
+    } else if (!solver_toolbox.are_exprs_always_equal(key, mp_key)) {
       return false;
     }
 
     if (value.isNull()) {
       value = mp_value;
-    } else if (!LibCore::solver_toolbox.are_exprs_always_equal(value, mp_value)) {
+    } else if (!solver_toolbox.are_exprs_always_equal(value, mp_value)) {
       return false;
     }
 
     klee::ConstraintManager constraints = map_put->get_constraints();
 
-    if ((index_alloc_check.direction && !LibCore::solver_toolbox.is_expr_always_true(constraints, condition)) ||
-        (!index_alloc_check.direction && !LibCore::solver_toolbox.is_expr_always_false(constraints, condition))) {
+    if ((index_alloc_check.direction && !solver_toolbox.is_expr_always_true(constraints, condition)) ||
+        (!index_alloc_check.direction && !solver_toolbox.is_expr_always_false(constraints, condition))) {
       return false;
     }
 
@@ -1188,14 +1195,14 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
   return true;
 }
 
-bool BDD::is_fwd_pattern_depending_on_lpm(const Node *node, std::vector<const Node *> &fwd_logic) const {
+bool BDD::is_fwd_pattern_depending_on_lpm(const BDDNode *node, std::vector<const BDDNode *> &fwd_logic) const {
   bool pattern_found = false;
-  node->visit_nodes([&fwd_logic, &pattern_found](const Node *future_node) {
+  node->visit_nodes([&fwd_logic, &pattern_found](const BDDNode *future_node) {
     switch (future_node->get_type()) {
-    case NodeType::Call: {
+    case BDDNodeType::Call: {
       pattern_found = false;
     } break;
-    case NodeType::Branch: {
+    case BDDNodeType::Branch: {
       const Branch *branch                                = dynamic_cast<const Branch *>(future_node);
       const std::unordered_set<std::string> &used_symbols = branch->get_used_symbols();
       if (used_symbols.size() == 1 && (*used_symbols.begin() == "lpm_lookup_match" || *used_symbols.begin() == "lpm_lookup_result")) {
@@ -1205,7 +1212,7 @@ bool BDD::is_fwd_pattern_depending_on_lpm(const Node *node, std::vector<const No
         pattern_found = false;
       }
     } break;
-    case NodeType::Route: {
+    case BDDNodeType::Route: {
       if (pattern_found) {
         fwd_logic.push_back(future_node);
       }
@@ -1213,9 +1220,9 @@ bool BDD::is_fwd_pattern_depending_on_lpm(const Node *node, std::vector<const No
     }
 
     if (pattern_found) {
-      return NodeVisitAction::Continue;
+      return BDDNodeVisitAction::Continue;
     } else {
-      return NodeVisitAction::Stop;
+      return BDDNodeVisitAction::Stop;
     }
   });
 
@@ -1231,9 +1238,8 @@ std::vector<u16> BDD::get_devices() const {
 
   const klee::ConstraintManager &base_constraints = root->get_constraints();
   for (u16 device_value = 0; device_value < UINT16_MAX; device_value++) {
-    bool valid_device_value = LibCore::solver_toolbox.is_expr_always_false(
-        base_constraints,
-        LibCore::solver_toolbox.exprBuilder->Eq(device.expr, LibCore::solver_toolbox.exprBuilder->Constant(device_value, device.expr->getWidth())));
+    bool valid_device_value = solver_toolbox.is_expr_always_false(
+        base_constraints, solver_toolbox.exprBuilder->Eq(device.expr, solver_toolbox.exprBuilder->Constant(device_value, device.expr->getWidth())));
 
     if (valid_device_value) {
       break;
@@ -1270,105 +1276,105 @@ BDD::inspection_report_t BDD::inspect() const {
 
   inspection_report_t report                                 = {InspectionStatus::Ok, "Ok"};
   const std::unordered_set<std::string> symbols_always_known = {"DEVICE", "pkt_len", "next_time", "packet_chunks"};
-  std::unordered_set<const Node *> visited_nodes;
+  std::unordered_set<const BDDNode *> visited_nodes;
 
-  root->visit_nodes([&report, &symbols_always_known, &visited_nodes](const Node *node) {
+  root->visit_nodes([&report, &symbols_always_known, &visited_nodes](const BDDNode *node) {
     if (visited_nodes.find(node) != visited_nodes.end()) {
       report = {InspectionStatus::HasCycle, "Has cycle in the BDD"};
-      return NodeVisitAction::Stop;
+      return BDDNodeVisitAction::Stop;
     }
 
     visited_nodes.insert(node);
 
     if (!node) {
       report = {InspectionStatus::HasNullNode, "Has null node"};
-      return NodeVisitAction::Stop;
+      return BDDNodeVisitAction::Stop;
     }
 
-    const LibCore::Symbols used_symbols      = node->get_used_symbols();
-    const LibCore::Symbols available_symbols = node->get_prev_symbols();
+    const Symbols used_symbols      = node->get_used_symbols();
+    const Symbols available_symbols = node->get_prev_symbols();
 
-    for (const LibCore::symbol_t &used_symbol : used_symbols.get()) {
+    for (const symbol_t &used_symbol : used_symbols.get()) {
       if (symbols_always_known.find(used_symbol.name) != symbols_always_known.end()) {
         continue;
       }
 
       if (!available_symbols.has(used_symbol.name)) {
-        report = {InspectionStatus::MissingSymbol, "Node " + std::to_string(node->get_id()) + " uses unavailable symbol " + used_symbol.name};
-        return NodeVisitAction::Stop;
+        report = {InspectionStatus::MissingSymbol, "BDDNode " + std::to_string(node->get_id()) + " uses unavailable symbol " + used_symbol.name};
+        return BDDNodeVisitAction::Stop;
       }
     }
 
     switch (node->get_type()) {
-    case NodeType::Branch: {
-      const Branch *branch = dynamic_cast<const Branch *>(node);
-      const Node *on_true  = branch->get_on_true();
-      const Node *on_false = branch->get_on_false();
+    case BDDNodeType::Branch: {
+      const Branch *branch    = dynamic_cast<const Branch *>(node);
+      const BDDNode *on_true  = branch->get_on_true();
+      const BDDNode *on_false = branch->get_on_false();
 
       if (!on_true) {
         report = {InspectionStatus::BranchWithoutChildren, "Branch node " + std::to_string(node->get_id()) + " without on true side"};
-        return NodeVisitAction::Stop;
+        return BDDNodeVisitAction::Stop;
       }
 
       if (!on_false) {
         report = {InspectionStatus::BranchWithoutChildren, "Branch node " + std::to_string(node->get_id()) + " without on false side"};
-        return NodeVisitAction::Stop;
+        return BDDNodeVisitAction::Stop;
       }
 
       if (on_true->get_prev() != node) {
         report = {InspectionStatus::BrokenLink, "Branch node " + std::to_string(node->get_id()) + " on true side has invalid link"};
-        return NodeVisitAction::Stop;
+        return BDDNodeVisitAction::Stop;
       }
 
       if (on_false->get_prev() != node) {
         report = {InspectionStatus::BrokenLink, "Branch node " + std::to_string(node->get_id()) + " on false side has invalid link"};
-        return NodeVisitAction::Stop;
+        return BDDNodeVisitAction::Stop;
       }
     } break;
-    case NodeType::Call: {
+    case BDDNodeType::Call: {
       if (node->get_next() && node->get_next()->get_prev() != node) {
         report = {InspectionStatus::BrokenLink, "Call node " + std::to_string(node->get_id()) + " has invalid link"};
-        return NodeVisitAction::Stop;
+        return BDDNodeVisitAction::Stop;
       }
     } break;
 
-    case NodeType::Route: {
+    case BDDNodeType::Route: {
       if (node->get_next() && node->get_next()->get_prev() != node) {
         report = {InspectionStatus::BrokenLink, "Route node " + std::to_string(node->get_id()) + " has invalid link"};
-        return NodeVisitAction::Stop;
+        return BDDNodeVisitAction::Stop;
       }
     } break;
     }
 
-    return NodeVisitAction::Continue;
+    return BDDNodeVisitAction::Continue;
   });
 
   return report;
 }
 
 void BDD::delete_vector_key_operations(addr_t map) {
-  std::unordered_set<const Node *> candidates;
-  LibCore::Symbols key_symbols;
+  std::unordered_set<const BDDNode *> candidates;
+  Symbols key_symbols;
 
   const addr_t vector_key = get_vector_obj_storing_map_key(this, map);
 
-  root->visit_nodes([vector_key, &candidates, &key_symbols](const Node *node) {
-    if (node->get_type() != NodeType::Call) {
-      return NodeVisitAction::Continue;
+  root->visit_nodes([vector_key, &candidates, &key_symbols](const BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
     }
 
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call    = call_node->get_call();
 
     if (call.function_name != "vector_borrow" && call.function_name != "vector_return") {
-      return NodeVisitAction::Continue;
+      return BDDNodeVisitAction::Continue;
     }
 
     klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
-    const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
+    const addr_t obj               = expr_addr_to_obj_addr(obj_expr);
 
     if (obj != vector_key) {
-      return NodeVisitAction::Continue;
+      return BDDNodeVisitAction::Continue;
     }
 
     if (call.function_name == "vector_borrow") {
@@ -1377,33 +1383,33 @@ void BDD::delete_vector_key_operations(addr_t map) {
 
     candidates.insert(node);
 
-    return NodeVisitAction::Continue;
+    return BDDNodeVisitAction::Continue;
   });
 
   bool used = false;
-  root->visit_nodes([&used, &candidates, &key_symbols](const Node *node) {
-    if (node->get_type() != NodeType::Call) {
-      return NodeVisitAction::Continue;
+  root->visit_nodes([&used, &candidates, &key_symbols](const BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
     }
 
     if (candidates.find(node) != candidates.end()) {
-      return NodeVisitAction::Continue;
+      return BDDNodeVisitAction::Continue;
     }
 
-    const LibCore::Symbols symbols = node->get_used_symbols();
+    const Symbols symbols = node->get_used_symbols();
     if (!symbols.intersect(key_symbols).empty()) {
       used = true;
-      return NodeVisitAction::Stop;
+      return BDDNodeVisitAction::Stop;
     }
 
-    return NodeVisitAction::Continue;
+    return BDDNodeVisitAction::Continue;
   });
 
   if (used) {
     return;
   }
 
-  for (const Node *node : candidates) {
+  for (const BDDNode *node : candidates) {
     delete_non_branch(node->get_id());
   }
 
@@ -1413,7 +1419,7 @@ void BDD::delete_vector_key_operations(addr_t map) {
     }
 
     klee::ref<klee::Expr> obj_expr = call->get_call().args.at("vector_out").out;
-    const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
+    const addr_t obj               = expr_addr_to_obj_addr(obj_expr);
 
     if (obj != vector_key) {
       continue;
@@ -1424,8 +1430,8 @@ void BDD::delete_vector_key_operations(addr_t map) {
   }
 
   // Just to double check that we didn't break anything...
-  const LibBDD::BDD::inspection_report_t report = inspect();
-  if (report.status != LibBDD::BDD::InspectionStatus::Ok) {
+  const BDD::inspection_report_t report = inspect();
+  if (report.status != BDD::InspectionStatus::Ok) {
     panic("BDD inspection failed: %s", report.message.c_str());
   }
 }

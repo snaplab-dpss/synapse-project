@@ -10,10 +10,10 @@ private:
   addr_t dchain_addr;
 
 public:
-  DchainAllocate(const LibBDD::Node *_node, addr_t _dchain_addr)
+  DchainAllocate(const BDDNode *_node, addr_t _dchain_addr)
       : ControllerModule(ModuleType::Controller_DchainAllocate, "DchainAllocate", _node), dchain_addr(_dchain_addr) {}
 
-  DchainAllocate(const LibBDD::Node *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
+  DchainAllocate(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
       : ControllerModule(ModuleType::Controller_DchainAllocate, "DchainAllocate", _node), dchain_addr(_dchain_addr) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -31,9 +31,9 @@ public:
   DchainAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_DchainAllocate, "DchainAllocate") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

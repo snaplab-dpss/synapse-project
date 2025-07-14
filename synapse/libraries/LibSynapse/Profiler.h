@@ -10,6 +10,16 @@
 
 namespace LibSynapse {
 
+using LibBDD::BDD;
+using LibBDD::bdd_node_id_t;
+using LibBDD::bdd_profile_t;
+using LibBDD::BDDNode;
+using LibBDD::Call;
+using LibBDD::RouteOp;
+using LibBDD::translated_symbol_t;
+
+using LibCore::SymbolManager;
+
 class EP;
 class EPNode;
 
@@ -21,7 +31,7 @@ struct flow_stats_t {
 };
 
 struct fwd_stats_t {
-  LibBDD::RouteOp operation;
+  RouteOp operation;
   hit_rate_t drop;
   hit_rate_t flood;
   std::unordered_map<u16, hit_rate_t> ports;
@@ -86,7 +96,7 @@ struct fwd_stats_t {
 struct ProfilerNode {
   klee::ref<klee::Expr> constraint;
   hit_rate_t fraction;
-  std::optional<LibBDD::node_id_t> bdd_node_id;
+  std::optional<bdd_node_id_t> bdd_node_id;
   std::vector<flow_stats_t> flows_stats;
   std::optional<fwd_stats_t> forwarding_stats;
   std::optional<fwd_stats_t> original_forwarding_stats;
@@ -96,7 +106,7 @@ struct ProfilerNode {
   ProfilerNode *prev;
 
   ProfilerNode(klee::ref<klee::Expr> cnstr, hit_rate_t hr);
-  ProfilerNode(klee::ref<klee::Expr> cnstr, hit_rate_t hr, LibBDD::node_id_t node);
+  ProfilerNode(klee::ref<klee::Expr> cnstr, hit_rate_t hr, bdd_node_id_t node);
   ~ProfilerNode();
 
   ProfilerNode *clone(bool keep_bdd_info) const;
@@ -116,7 +126,7 @@ struct ProfilerNode {
 
 class Profiler {
 private:
-  const std::shared_ptr<LibBDD::bdd_profile_t> bdd_profile;
+  const std::shared_ptr<bdd_profile_t> bdd_profile;
   const bool assume_uniform_forwarding_distribution;
 
   std::shared_ptr<ProfilerNode> root;
@@ -125,21 +135,21 @@ private:
   // Not the prettiest solution, but will do.
   // We cache on reads, and invalidate on writes.
   mutable struct {
-    std::unordered_map<LibBDD::node_id_t, ProfilerNode *> n2p;
-    std::unordered_map<ProfilerNode *, LibBDD::node_id_t> p2n;
-    std::unordered_map<LibBDD::node_id_t, ProfilerNode *> e2p;
-    std::unordered_map<ProfilerNode *, LibBDD::node_id_t> p2e;
+    std::unordered_map<bdd_node_id_t, ProfilerNode *> n2p;
+    std::unordered_map<ProfilerNode *, bdd_node_id_t> p2n;
+    std::unordered_map<bdd_node_id_t, ProfilerNode *> e2p;
+    std::unordered_map<ProfilerNode *, bdd_node_id_t> p2e;
   } cache;
 
 public:
-  Profiler(const LibBDD::BDD *bdd, const LibBDD::bdd_profile_t &bdd_profile, bool assume_uniform_forwarding_distribution);
+  Profiler(const BDD *bdd, const bdd_profile_t &bdd_profile, bool assume_uniform_forwarding_distribution);
 
   Profiler(const Profiler &other);
   Profiler(Profiler &&other);
 
   Profiler &operator=(const Profiler &other);
 
-  const LibBDD::bdd_profile_t *get_bdd_profile() const;
+  const bdd_profile_t *get_bdd_profile() const;
   bytes_t get_avg_pkt_bytes() const;
 
   // Estimation is relative to the parent node.
@@ -148,8 +158,7 @@ public:
   // WARNING: this should be called before processing the leaf.
   void insert_relative(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> cnstr, hit_rate_t rel_hr_on_true);
 
-  void translate(LibCore::SymbolManager *symbol_manager, const LibBDD::Node *reordered_node,
-                 const std::vector<LibBDD::translated_symbol_t> &translated_symbols);
+  void translate(SymbolManager *symbol_manager, const BDDNode *reordered_node, const std::vector<translated_symbol_t> &translated_symbols);
   void replace_constraint(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> cnstr);
   void remove(const std::vector<klee::ref<klee::Expr>> &constraints);
   void scale(const std::vector<klee::ref<klee::Expr>> &constraints, double factor);
@@ -157,13 +166,13 @@ public:
   void set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t new_hr);
 
   hit_rate_t get_hr(const EPNode *node) const;
-  hit_rate_t get_hr(const LibBDD::Node *node) const;
+  hit_rate_t get_hr(const BDDNode *node) const;
 
   fwd_stats_t get_fwd_stats(const EPNode *node) const;
-  fwd_stats_t get_fwd_stats(const LibBDD::Node *node) const;
+  fwd_stats_t get_fwd_stats(const BDDNode *node) const;
 
   flow_stats_t get_flow_stats(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> flow) const;
-  rw_fractions_t get_cond_map_put_rw_profile_fractions(const LibBDD::Call *map_get) const;
+  rw_fractions_t get_cond_map_put_rw_profile_fractions(const Call *map_get) const;
 
   void clear_cache() const;
   void debug() const;
@@ -171,7 +180,7 @@ public:
 private:
   ProfilerNode *get_node(const std::vector<klee::ref<klee::Expr>> &cnstrs) const;
   ProfilerNode *get_node(const EPNode *node) const;
-  ProfilerNode *get_node(const LibBDD::Node *node) const;
+  ProfilerNode *get_node(const BDDNode *node) const;
 
   hit_rate_t get_hr(const std::vector<klee::ref<klee::Expr>> &cnstrs) const;
   fwd_stats_t get_fwd_stats(const std::vector<klee::ref<klee::Expr>> &cnstrs) const;

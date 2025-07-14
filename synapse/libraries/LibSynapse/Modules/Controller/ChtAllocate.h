@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> backend_capacity;
 
 public:
-  ChtAllocate(const LibBDD::Node *_node, addr_t _cht_addr, klee::ref<klee::Expr> _cht_height, klee::ref<klee::Expr> _backend_capacity)
+  ChtAllocate(const BDDNode *_node, addr_t _cht_addr, klee::ref<klee::Expr> _cht_height, klee::ref<klee::Expr> _backend_capacity)
       : ControllerModule(ModuleType::Controller_ChtAllocate, "ChtAllocate", _node), cht_addr(_cht_addr), cht_height(_cht_height),
         backend_capacity(_backend_capacity) {}
 
@@ -33,9 +33,9 @@ public:
   ChtAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_ChtAllocate, "ChtAllocate") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Controller

@@ -6,12 +6,14 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibCore::bits_from_pow2_capacity;
+
 namespace {
 
 std::string build_table_name(DS_ID id, u32 table_num) { return id + "_table_" + std::to_string(table_num); }
 
 Register build_cache_expirator(const tna_properties_t &properties, DS_ID id, u32 cache_capacity) {
-  const bits_t hash_size      = LibCore::bits_from_pow2_capacity(cache_capacity);
+  const bits_t hash_size      = bits_from_pow2_capacity(cache_capacity);
   const bits_t timestamp_size = 32;
   return Register(properties, id + "_reg_expirator", cache_capacity, hash_size, timestamp_size, {RegisterActionType::Write});
 }
@@ -19,7 +21,7 @@ Register build_cache_expirator(const tna_properties_t &properties, DS_ID id, u32
 std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &keys_sizes, u32 cache_capacity) {
   std::vector<Register> cache_keys;
 
-  const bits_t hash_size = LibCore::bits_from_pow2_capacity(cache_capacity);
+  const bits_t hash_size = bits_from_pow2_capacity(cache_capacity);
 
   int i = 0;
   for (bits_t key_size : keys_sizes) {

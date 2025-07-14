@@ -6,6 +6,9 @@
 
 namespace LibSynapse {
 
+using LibCore::bps2pps;
+using LibCore::pps2bps;
+
 namespace {
 
 constexpr const int NEWTON_MAX_ITERATIONS{10};
@@ -237,7 +240,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(u16 port, pps_t global_in
 
   const port_ingress_t &usage = recirc_ports_ingress.at(port);
 
-  const bps_t Tin = LibCore::pps2bps(global_ingress * usage.global.value, avg_pkt_size);
+  const bps_t Tin = pps2bps(global_ingress * usage.global.value, avg_pkt_size);
   const bps_t Cr  = recirculation_ports_capacities.at(port);
 
   if (Tin == 0) {
@@ -305,7 +308,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(u16 port, pps_t global_in
 
   std::vector<pps_t> Tout_pps(Tout.size());
   for (size_t i = 0; i < Tout.size(); i++) {
-    Tout_pps[i] = LibCore::bps2pps(Tout[i], avg_pkt_size);
+    Tout_pps[i] = bps2pps(Tout[i], avg_pkt_size);
   }
 
   return Tout_pps;
@@ -318,7 +321,7 @@ bps_t PerfOracle::get_max_input_bps() const {
   return Tin_max;
 }
 
-pps_t PerfOracle::get_max_input_pps() const { return LibCore::bps2pps(get_max_input_bps(), avg_pkt_size); }
+pps_t PerfOracle::get_max_input_pps() const { return bps2pps(get_max_input_bps(), avg_pkt_size); }
 
 pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   // 1. First we calculate the recirculation egress for each recirculation port and recirculation depth.
@@ -366,7 +369,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
       port_tput += recirc_egress[rport][depth - 1] * hr.value;
     }
 
-    const pps_t port_capacity = LibCore::bps2pps(front_panel_ports_capacities.at(fwd_port), avg_pkt_size);
+    const pps_t port_capacity = bps2pps(front_panel_ports_capacities.at(fwd_port), avg_pkt_size);
 
     tput += std::min(port_tput, port_capacity);
   }

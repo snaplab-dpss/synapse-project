@@ -5,6 +5,11 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
 
 struct cms_data_t {
@@ -12,14 +17,14 @@ struct cms_data_t {
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> min_estimate;
 
-  cms_data_t(const Context &ctx, const LibBDD::Call *call_node) {
-    const LibBDD::call_t &call = call_node->get_call();
+  cms_data_t(const Context &ctx, const Call *call_node) {
+    const call_t &call = call_node->get_call();
     assert(call.function_name == "cms_count_min");
 
     klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
     klee::ref<klee::Expr> key           = call.args.at("key").in;
 
-    obj          = LibCore::expr_addr_to_obj_addr(cms_addr_expr);
+    obj          = expr_addr_to_obj_addr(cms_addr_expr);
     keys         = Table::build_keys(key, ctx.get_expr_structs());
     min_estimate = call_node->get_local_symbol("min_estimate").expr;
   }
@@ -27,28 +32,28 @@ struct cms_data_t {
 
 } // namespace
 
-std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_count_min") {
-    return std::nullopt;
+    return {};
   }
 
   const cms_data_t cms_data(ctx, call_node);
 
   if (!ctx.can_impl_ds(cms_data.obj, DSImpl::Tofino_CountMinSketch)) {
-    return std::nullopt;
+    return {};
   }
 
-  const LibBDD::cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
+  const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
 
   if (!can_build_or_reuse_cms(ep, node, cms_data.obj, cms_data.keys, cfg.width, cfg.height)) {
-    return std::nullopt;
+    return {};
   }
 
   Context new_ctx = ctx;
@@ -57,13 +62,13 @@ std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const LibBDD
   return spec_impl_t(decide(ep, node), new_ctx);
 }
 
-std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_count_min") {
     return {};
@@ -75,7 +80,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const LibBDD::No
     return {};
   }
 
-  const LibBDD::cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
+  const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
 
   CountMinSketch *cms = build_or_reuse_cms(ep, node, cms_data.obj, cms_data.keys, cfg.width, cfg.height);
 
@@ -102,13 +107,13 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const LibBDD::No
   return impls;
 }
 
-std::unique_ptr<Module> CMSQueryFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> CMSQueryFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "cms_count_min") {
     return {};

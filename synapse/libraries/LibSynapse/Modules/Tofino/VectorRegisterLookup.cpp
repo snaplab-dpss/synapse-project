@@ -4,18 +4,23 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
+
 namespace {
 
-vector_register_data_t get_vector_register_data(const Context &ctx, const LibBDD::Call *node) {
-  const LibBDD::call_t &call = node->get_call();
+vector_register_data_t get_vector_register_data(const Context &ctx, const Call *node) {
+  const call_t &call = node->get_call();
 
   klee::ref<klee::Expr> obj_expr = call.args.at("vector").expr;
   klee::ref<klee::Expr> index    = call.args.at("index").expr;
   klee::ref<klee::Expr> value    = call.extra_vars.at("borrowed_cell").second;
 
-  addr_t obj = LibCore::expr_addr_to_obj_addr(obj_expr);
+  const addr_t obj = expr_addr_to_obj_addr(obj_expr);
 
-  const LibBDD::vector_config_t &cfg = ctx.get_vector_config(obj);
+  const vector_config_t &cfg = ctx.get_vector_config(obj);
 
   const vector_register_data_t vector_register_data = {
       .obj         = obj,
@@ -31,26 +36,26 @@ vector_register_data_t get_vector_register_data(const Context &ctx, const LibBDD
 
 } // namespace
 
-std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *vector_borrow = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call        = vector_borrow->get_call();
+  const Call *vector_borrow = dynamic_cast<const Call *>(node);
+  const call_t &call        = vector_borrow->get_call();
 
   if (call.function_name != "vector_borrow") {
-    return std::nullopt;
+    return {};
   }
 
   const vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), vector_borrow);
 
   if (!ctx.can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
-    return std::nullopt;
+    return {};
   }
 
   if (!can_build_or_reuse_vector_register(ep, vector_borrow, vector_register_data)) {
-    return std::nullopt;
+    return {};
   }
 
   Context new_ctx = ctx;
@@ -60,13 +65,13 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
   return spec_impl;
 }
 
-std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
     return {};
@@ -76,7 +81,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   // modification.
   const bool can_be_inlined = call_node->get_vector_borrow_value_future_usage() <= 1;
 
-  vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), call_node);
+  const vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), call_node);
 
   if (!ep->get_ctx().can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return {};
@@ -100,7 +105,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, vector_register_data.obj, vector_register);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -108,19 +113,19 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   return impls;
 }
 
-std::unique_ptr<Module> VectorRegisterLookupFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> VectorRegisterLookupFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *call_node = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call    = call_node->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
     return {};
   }
 
-  vector_register_data_t vector_register_data = get_vector_register_data(ctx, call_node);
+  const vector_register_data_t vector_register_data = get_vector_register_data(ctx, call_node);
 
   if (!ctx.check_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return {};
@@ -130,10 +135,10 @@ std::unique_ptr<Module> VectorRegisterLookupFactory::create(const LibBDD::BDD *b
   // modification.
   const bool can_be_inlined = call_node->get_vector_borrow_value_future_usage() <= 1;
 
-  const std::unordered_set<LibSynapse::Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(vector_register_data.obj);
+  const std::unordered_set<DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(vector_register_data.obj);
   assert(ds.size() == 1);
   assert((*ds.begin())->type == DSType::VectorRegister);
-  Tofino::VectorRegister *vector_register = dynamic_cast<Tofino::VectorRegister *>(*ds.begin());
+  VectorRegister *vector_register = dynamic_cast<VectorRegister *>(*ds.begin());
 
   return std::make_unique<VectorRegisterLookup>(node, vector_register->id, vector_register_data.obj, vector_register_data.index,
                                                 vector_register_data.value, can_be_inlined);

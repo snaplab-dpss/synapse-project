@@ -4,9 +4,14 @@
 namespace LibSynapse {
 namespace Controller {
 
-namespace {
+using LibBDD::Call;
+using LibBDD::call_t;
+
+using LibCore::expr_addr_to_obj_addr;
 
 using Tofino::Table;
+
+namespace {
 
 struct table_data_t {
   addr_t obj;
@@ -14,11 +19,11 @@ struct table_data_t {
   std::vector<klee::ref<klee::Expr>> table_keys;
   klee::ref<klee::Expr> value;
 
-  table_data_t(const Context &ctx, const LibBDD::Call *map_put) {
-    const LibBDD::call_t &call = map_put->get_call();
+  table_data_t(const Context &ctx, const Call *map_put) {
+    const call_t &call = map_put->get_call();
     assert(call.function_name == "map_put" && "Not a map_put call");
 
-    obj        = LibCore::expr_addr_to_obj_addr(call.args.at("map").expr);
+    obj        = expr_addr_to_obj_addr(call.args.at("map").expr);
     key        = call.args.at("key").in;
     table_keys = Table::build_keys(key, ctx.get_expr_structs());
     value      = call.args.at("value").expr;
@@ -27,36 +32,35 @@ struct table_data_t {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneHHTableIsIndexAllocatedFactory::speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
-    return std::nullopt;
+std::optional<spec_impl_t> DataplaneHHTableIsIndexAllocatedFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (node->get_type() != BDDNodeType::Call) {
+    return {};
   }
 
-  const LibBDD::Call *dchain_is_index_allocated = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call                    = dchain_is_index_allocated->get_call();
+  const Call *dchain_is_index_allocated = dynamic_cast<const Call *>(node);
+  const call_t &call                    = dchain_is_index_allocated->get_call();
 
   if (call.function_name != "dchain_is_index_allocated") {
-    return std::nullopt;
+    return {};
   }
 
   klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
-  const addr_t obj               = LibCore::expr_addr_to_obj_addr(obj_expr);
+  const addr_t obj               = expr_addr_to_obj_addr(obj_expr);
 
   if (!ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
-    return std::nullopt;
+    return {};
   }
 
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DataplaneHHTableIsIndexAllocatedFactory::process_node(const EP *ep, const LibBDD::Node *node,
-                                                                          LibCore::SymbolManager *symbol_manager) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::vector<impl_t> DataplaneHHTableIsIndexAllocatedFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *dchain_is_index_allocated = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call                    = dchain_is_index_allocated->get_call();
+  const Call *dchain_is_index_allocated = dynamic_cast<const Call *>(node);
+  const call_t &call                    = dchain_is_index_allocated->get_call();
 
   if (call.function_name != "dchain_is_index_allocated") {
     return {};
@@ -65,20 +69,20 @@ std::vector<impl_t> DataplaneHHTableIsIndexAllocatedFactory::process_node(const 
   klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index    = call.args.at("index").expr;
 
-  const addr_t obj = LibCore::expr_addr_to_obj_addr(obj_expr);
+  const addr_t obj = expr_addr_to_obj_addr(obj_expr);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
-  const LibCore::symbol_t is_allocated = dchain_is_index_allocated->get_local_symbol("is_index_allocated");
+  const symbol_t is_allocated = dchain_is_index_allocated->get_local_symbol("is_index_allocated");
 
   Module *module  = new DataplaneHHTableIsIndexAllocated(node, obj, index, is_allocated);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
@@ -86,13 +90,13 @@ std::vector<impl_t> DataplaneHHTableIsIndexAllocatedFactory::process_node(const 
   return impls;
 }
 
-std::unique_ptr<Module> DataplaneHHTableIsIndexAllocatedFactory::create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const {
-  if (node->get_type() != LibBDD::NodeType::Call) {
+std::unique_ptr<Module> DataplaneHHTableIsIndexAllocatedFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+  if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
 
-  const LibBDD::Call *dchain_is_index_allocated = dynamic_cast<const LibBDD::Call *>(node);
-  const LibBDD::call_t &call                    = dchain_is_index_allocated->get_call();
+  const Call *dchain_is_index_allocated = dynamic_cast<const Call *>(node);
+  const call_t &call                    = dchain_is_index_allocated->get_call();
 
   if (call.function_name != "dchain_is_index_allocated") {
     return {};
@@ -101,13 +105,13 @@ std::unique_ptr<Module> DataplaneHHTableIsIndexAllocatedFactory::create(const Li
   klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index    = call.args.at("index").expr;
 
-  const addr_t obj = LibCore::expr_addr_to_obj_addr(obj_expr);
+  const addr_t obj = expr_addr_to_obj_addr(obj_expr);
 
   if (!ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
-  const LibCore::symbol_t is_allocated = dchain_is_index_allocated->get_local_symbol("is_index_allocated");
+  const symbol_t is_allocated = dchain_is_index_allocated->get_local_symbol("is_index_allocated");
 
   return std::make_unique<DataplaneHHTableIsIndexAllocated>(node, obj, index, is_allocated);
 }

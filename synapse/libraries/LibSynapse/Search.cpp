@@ -10,16 +10,23 @@
 
 namespace LibSynapse {
 
+using LibBDD::BDDNodeVisitAction;
+using LibBDD::BDDViz;
+
+using LibCore::int2hr;
+using LibCore::pps2bps;
+using LibCore::scientific;
+
 namespace {
 struct search_step_report_t {
   const EP *chosen;
-  const LibBDD::Node *current;
+  const BDDNode *current;
 
   std::vector<TargetType> targets;
   std::vector<std::string> name;
   std::vector<std::vector<ep_id_t>> gen_ep_ids;
 
-  search_step_report_t(const EP *_chosen, const LibBDD::Node *_current) : chosen(_chosen), current(_current) {}
+  search_step_report_t(const EP *_chosen, const BDDNode *_current) : chosen(_chosen), current(_current) {}
 
   void save(const ModuleFactory *modgen, const std::vector<impl_t> &implementations) {
     if (implementations.empty()) {
@@ -54,7 +61,7 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
     }
   }
 
-  std::cerr << "Node:       " << report.current->dump(true) << "\n";
+  std::cerr << "BDDNode:       " << report.current->dump(true) << "\n";
 
   assert((report.targets.size() == report.name.size() && report.targets.size() == report.gen_ep_ids.size()) && "Mismatch in the number of targets");
 
@@ -77,14 +84,14 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
   std::cerr << "------------------------------------------\n";
   std::cerr << "Progress:         " << std::fixed << std::setprecision(2) << 100 * meta.get_bdd_progress() << " %\n";
   std::cerr << "Elapsed:          " << search_meta.elapsed_time << " s\n";
-  std::cerr << "Backtracks:       " << LibCore::int2hr(search_meta.backtracks) << "\n";
+  std::cerr << "Backtracks:       " << int2hr(search_meta.backtracks) << "\n";
   std::cerr << "Branching factor: " << search_meta.branching_factor << "\n";
-  std::cerr << "Avg BDD size:     " << LibCore::int2hr(search_meta.avg_bdd_size) << "\n";
-  std::cerr << "SS size (est):    " << LibCore::scientific(search_meta.total_ss_size_estimation) << "\n";
-  std::cerr << "Current SS size:  " << LibCore::int2hr(search_meta.ss_size) << "\n";
-  std::cerr << "Search Steps:     " << LibCore::int2hr(search_meta.steps) << "\n";
-  std::cerr << "Unfinished EPs:   " << LibCore::int2hr(search_meta.unfinished_eps) << "\n";
-  std::cerr << "Finished EPs:     " << LibCore::int2hr(search_meta.finished_eps) << "\n";
+  std::cerr << "Avg BDD size:     " << int2hr(search_meta.avg_bdd_size) << "\n";
+  std::cerr << "SS size (est):    " << scientific(search_meta.total_ss_size_estimation) << "\n";
+  std::cerr << "Current SS size:  " << int2hr(search_meta.ss_size) << "\n";
+  std::cerr << "Search Steps:     " << int2hr(search_meta.steps) << "\n";
+  std::cerr << "Unfinished EPs:   " << int2hr(search_meta.unfinished_eps) << "\n";
+  std::cerr << "Finished EPs:     " << int2hr(search_meta.finished_eps) << "\n";
 
   if (report.gen_ep_ids.empty()) {
     std::cerr << "\n";
@@ -111,13 +118,13 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
   if (pause_and_show_on_backtrack) {
     std::cerr << "Backtracked to " << ep->get_id() << "\n";
     ep->debug();
-    LibBDD::BDDViz::visualize(ep->get_bdd(), false);
+    BDDViz::visualize(ep->get_bdd(), false);
     // EPViz::visualize(ep, false);
     SSViz::visualize(search_space, ep, true);
   }
 }
 
-std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, const LibBDD::BDD &bdd, const Targets &targets,
+std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, const BDD &bdd, const Targets &targets,
                                            const targets_config_t &targets_config, const Profiler &profiler) {
   std::unique_ptr<HeuristicCfg> heuristic_cfg = build_heuristic_cfg(hopt);
   std::unique_ptr<EP> starting_ep             = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
@@ -126,7 +133,7 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
 }
 } // namespace
 
-SearchEngine::SearchEngine(const LibBDD::BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler, const targets_config_t &_targets_config,
+SearchEngine::SearchEngine(const BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler, const targets_config_t &_targets_config,
                            const search_config_t &_search_config)
     : targets_config(_targets_config), search_config(_search_config), bdd(_bdd), targets(Targets(_targets_config)), profiler(_profiler),
       heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
@@ -136,13 +143,13 @@ search_report_t SearchEngine::search() {
   std::unique_ptr<SearchSpace> search_space = std::make_unique<SearchSpace>(heuristic->get_cfg());
 
   search_meta_t meta;
-  std::unordered_map<LibBDD::node_id_t, int> node_depth;
-  bdd.get_root()->visit_nodes([this, &meta, &node_depth](const LibBDD::Node *node) {
-    const LibBDD::node_id_t id     = node->get_id();
+  std::unordered_map<bdd_node_id_t, int> node_depth;
+  bdd.get_root()->visit_nodes([this, &meta, &node_depth](const BDDNode *node) {
+    const bdd_node_id_t id         = node->get_id();
     meta.avg_children_per_node[id] = 0;
     meta.visits_per_node[id]       = 0;
     node_depth[id]                 = bdd.get_node_depth(id);
-    return LibBDD::NodeVisitAction::Continue;
+    return BDDNodeVisitAction::Continue;
   });
 
   while (!heuristic->is_finished()) {
@@ -161,7 +168,7 @@ search_report_t SearchEngine::search() {
       peek_backtrack(ep.get(), search_space.get(), search_config.pause_and_show_on_backtrack);
     }
 
-    const LibBDD::Node *node = ep->get_next_node();
+    const BDDNode *node = ep->get_next_node();
     search_step_report_t report(ep.get(), node);
 
     double &avg_node_children = meta.avg_children_per_node[node->get_id()];
@@ -216,7 +223,7 @@ search_report_t SearchEngine::search() {
       const std::filesystem::path ep_path{"deadend-ep.dot"};
       const std::filesystem::path ss_path{"deadend-ss.dot"};
 
-      LibBDD::BDDViz::dump_to_file(ep->get_bdd(), bdd_path);
+      BDDViz::dump_to_file(ep->get_bdd(), bdd_path);
       EPViz::dump_to_file(ep.get(), ep_path);
       SSViz::dump_to_file(search_space.get(), ep.get(), ss_path);
 
@@ -241,7 +248,7 @@ search_report_t SearchEngine::search() {
   const std::vector<heuristic_metadata_t> heuristic_meta = heuristic->get_cfg()->get_metadata(winner.get());
   const pps_t tput_estimation_pps                        = winner->estimate_tput_pps();
   const bytes_t avg_pkt_size                             = profiler.get_avg_pkt_bytes();
-  const bps_t tput_estimation_bps                        = LibCore::pps2bps(tput_estimation_pps, avg_pkt_size);
+  const bps_t tput_estimation_bps                        = pps2bps(tput_estimation_pps, avg_pkt_size);
 
   search_report_t report{
       heuristic->get_cfg()->name, std::move(winner), std::move(search_space), score, heuristic_meta, meta, tput_estimation_pps, tput_estimation_bps,

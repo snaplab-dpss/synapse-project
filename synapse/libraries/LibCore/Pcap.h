@@ -132,13 +132,13 @@ inline std::ostream &operator<<(std::ostream &os, const flow_t &flow) {
 
   switch (flow.type) {
   case FlowType::FiveTuple:
-    os << LibCore::ipv4_to_str(flow.five_tuple.src_ip);
+    os << ipv4_to_str(flow.five_tuple.src_ip);
     os << ":";
     os << bswap16(flow.five_tuple.src_port);
 
     os << " -> ";
 
-    os << LibCore::ipv4_to_str(flow.five_tuple.dst_ip);
+    os << ipv4_to_str(flow.five_tuple.dst_ip);
     os << ":";
     os << bswap16(flow.five_tuple.dst_port);
     break;

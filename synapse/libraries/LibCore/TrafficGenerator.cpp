@@ -60,8 +60,8 @@ TrafficGenerator::pkt_t TrafficGenerator::build_pkt_template() const {
   pkt_t pkt;
 
   pkt.eth_hdr.ether_type = htons(ETHERTYPE_IP);
-  LibCore::parse_etheraddr(DMAC, &pkt.eth_hdr.daddr);
-  LibCore::parse_etheraddr(SMAC, &pkt.eth_hdr.saddr);
+  parse_etheraddr(DMAC, &pkt.eth_hdr.daddr);
+  parse_etheraddr(SMAC, &pkt.eth_hdr.saddr);
 
   pkt.ip_hdr.version         = 4;
   pkt.ip_hdr.ihl             = 5;

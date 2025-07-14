@@ -8,7 +8,9 @@
 
 namespace LibSynapse {
 
-class SSViz : public LibCore::Graphviz {
+using LibCore::Graphviz;
+
+class SSViz : public Graphviz {
 private:
   std::set<ep_id_t> highlight;
 

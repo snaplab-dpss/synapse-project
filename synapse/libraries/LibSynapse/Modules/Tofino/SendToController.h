@@ -7,10 +7,10 @@ namespace Tofino {
 
 class SendToController : public TofinoModule {
 private:
-  LibCore::Symbols symbols;
+  Symbols symbols;
 
 public:
-  SendToController(const LibBDD::Node *_node, LibCore::Symbols _symbols)
+  SendToController(const BDDNode *_node, Symbols _symbols)
       : TofinoModule(ModuleType::Tofino_SendToController, TargetType::Controller, "SendToController", _node), symbols(_symbols) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -20,7 +20,7 @@ public:
     return cloned;
   }
 
-  const LibCore::Symbols &get_symbols() const { return symbols; }
+  const Symbols &get_symbols() const { return symbols; }
 };
 
 class SendToControllerFactory : public TofinoModuleFactory {
@@ -28,9 +28,9 @@ public:
   SendToControllerFactory() : TofinoModuleFactory(ModuleType::Tofino_SendToController, "SendToController") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace Tofino

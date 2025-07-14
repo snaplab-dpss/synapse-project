@@ -5,6 +5,9 @@
 #include <filesystem>
 #include <CLI/CLI.hpp>
 
+using namespace LibCore;
+using namespace LibBDD;
+
 int main(int argc, char **argv) {
   CLI::App app{"Call paths to BDD"};
 
@@ -23,17 +26,17 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  LibCore::SymbolManager manager;
+  SymbolManager manager;
 
-  std::unique_ptr<LibBDD::BDD> bdd;
+  std::unique_ptr<BDD> bdd;
   if (input_bdd_file.empty()) {
-    LibBDD::call_paths_t call_paths(input_call_path_files, &manager);
-    bdd = std::make_unique<LibBDD::BDD>(call_paths.get_view());
+    call_paths_t call_paths(input_call_path_files, &manager);
+    bdd = std::make_unique<BDD>(call_paths.get_view());
   } else {
-    bdd = std::make_unique<LibBDD::BDD>(input_bdd_file, &manager);
+    bdd = std::make_unique<BDD>(input_bdd_file, &manager);
   }
 
-  LibBDD::PrinterDebug printer;
+  PrinterDebug printer;
   bdd->visit(printer);
 
   if (!output_bdd_file.empty()) {

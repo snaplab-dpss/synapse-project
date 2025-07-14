@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorRead(const LibBDD::Node *_node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr, klee::ref<klee::Expr> _value)
+  VectorRead(const BDDNode *_node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr, klee::ref<klee::Expr> _value)
       : x86Module(ModuleType::x86_VectorRead, "VectorRead", _node), vector_addr(_vector_addr), index(_index), value_addr(_value_addr), value(_value) {
   }
 
@@ -35,9 +35,9 @@ public:
   VectorReadFactory() : x86ModuleFactory(ModuleType::x86_VectorRead, "VectorRead") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const LibBDD::Node *node, const Context &ctx) const override;
-  virtual std::vector<impl_t> process_node(const EP *ep, const LibBDD::Node *node, LibCore::SymbolManager *symbol_manager) const override;
-  virtual std::unique_ptr<Module> create(const LibBDD::BDD *bdd, const Context &ctx, const LibBDD::Node *node) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };
 
 } // namespace x86

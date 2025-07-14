@@ -9,6 +9,8 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibCore::break_expr_into_structs_aware_chunks;
+
 Table::Table(DS_ID _id, u32 _capacity, const std::vector<bits_t> &_keys, const std::vector<bits_t> &_params, TimeAware _time_aware)
     : DS(DSType::Table, true, _id), capacity(adjust_capacity_for_collisions(_capacity)), keys(_keys), params(_params), time_aware(_time_aware) {
   assert(_capacity > 0 && "Table entries must be greater than 0");
@@ -59,8 +61,8 @@ void Table::debug() const {
 
 u32 Table::adjust_capacity_for_collisions(u32 capacity) { return std::ceil(capacity / TNA::TABLE_CAPACITY_EFFICIENCY); }
 
-std::vector<klee::ref<klee::Expr>> Table::build_keys(klee::ref<klee::Expr> key, const std::vector<LibCore::expr_struct_t> &headers) {
-  const std::vector<klee::ref<klee::Expr>> &keys = LibCore::break_expr_into_structs_aware_chunks(key, headers);
+std::vector<klee::ref<klee::Expr>> Table::build_keys(klee::ref<klee::Expr> key, const std::vector<expr_struct_t> &headers) {
+  const std::vector<klee::ref<klee::Expr>> &keys = break_expr_into_structs_aware_chunks(key, headers);
   return keys;
 }
 

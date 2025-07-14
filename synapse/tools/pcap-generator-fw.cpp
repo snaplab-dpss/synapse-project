@@ -15,17 +15,18 @@
 
 #include <CLI/CLI.hpp>
 
-using LibCore::TrafficGenerator;
+using namespace LibCore;
+
 using device_t    = TrafficGenerator::device_t;
 using config_t    = TrafficGenerator::config_t;
 using TrafficType = TrafficGenerator::TrafficType;
 
-std::vector<LibCore::flow_t> get_base_flows(const config_t &config) {
-  std::vector<LibCore::flow_t> flows;
+std::vector<flow_t> get_base_flows(const config_t &config) {
+  std::vector<flow_t> flows;
   flows.reserve(config.total_flows);
 
   for (size_t i = 0; i < config.total_flows; i++) {
-    flows.push_back(LibCore::random_flow());
+    flows.push_back(random_flow());
   }
 
   return flows;
@@ -37,11 +38,11 @@ private:
   const std::unordered_map<device_t, device_t> connections;
   const std::unordered_set<device_t> lan_devs;
 
-  std::vector<LibCore::flow_t> flows;
+  std::vector<flow_t> flows;
 
 public:
   FWTrafficGenerator(const config_t &_config, const std::vector<std::pair<device_t, device_t>> &_lan_wan_pairs,
-                     const std::vector<LibCore::flow_t> &_base_flows)
+                     const std::vector<flow_t> &_base_flows)
       : TrafficGenerator("fw", _config, true), lan_wan_pairs(_lan_wan_pairs), connections(build_connections(_lan_wan_pairs)),
         lan_devs(build_lan_devices(_lan_wan_pairs)), flows(_base_flows) {
     reset_client_dev();
@@ -51,14 +52,14 @@ public:
 
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());
-    flows[flow_idx] = LibCore::random_flow();
+    flows[flow_idx] = random_flow();
     flows_swapped++;
   }
 
   virtual std::optional<pkt_t> build_packet(device_t dev, flow_idx_t flow_idx) override {
     pkt_t pkt = template_packet;
 
-    LibCore::flow_t flow = flows[flow_idx];
+    flow_t flow = flows[flow_idx];
     if (!lan_devs.contains(dev)) {
       flow = flow.invert();
     }
@@ -135,7 +136,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  std::vector<LibCore::flow_t> base_flows = get_base_flows(config);
+  std::vector<flow_t> base_flows = get_base_flows(config);
   FWTrafficGenerator generator(config, lan_wan_pairs, base_flows);
 
   generator.generate_warmup();
