@@ -6,8 +6,96 @@
 
 namespace LibCore {
 
+namespace {
+
+std::ostream &operator<<(std::ostream &stream, const TreeViz::Color &color) {
+  switch (color.type) {
+  case TreeViz::Color::Type::RGB: {
+    stream << "#";
+    stream << std::hex;
+
+    stream << std::setw(2);
+    stream << std::setfill('0');
+    stream << static_cast<int>(color.rgb.red);
+
+    stream << std::setw(2);
+    stream << std::setfill('0');
+    stream << static_cast<int>(color.rgb.green);
+
+    stream << std::setw(2);
+    stream << std::setfill('0');
+    stream << static_cast<int>(color.rgb.blue);
+
+    stream << std::setw(2);
+    stream << std::setfill('0');
+    stream << static_cast<int>(color.rgb.opacity);
+
+    stream << std::dec;
+  } break;
+  case TreeViz::Color::Type::Literal: {
+    switch (color.literal) {
+    case TreeViz::Color::Literal::Gray: {
+      stream << "gray";
+    } break;
+    case TreeViz::Color::Literal::Cyan: {
+      stream << "cyan";
+    } break;
+    case TreeViz::Color::Literal::CornflowerBlue: {
+      stream << "cornflowerblue";
+    } break;
+    case TreeViz::Color::Literal::Yellow: {
+      stream << "yellow";
+    } break;
+    case TreeViz::Color::Literal::Chartreuse2: {
+      stream << "chartreuse2";
+    } break;
+    case TreeViz::Color::Literal::Brown1: {
+      stream << "brown1";
+    } break;
+    case TreeViz::Color::Literal::Purple: {
+      stream << "purple";
+    } break;
+    }
+  } break;
+  }
+
+  return stream;
+}
+
+std::ostream &operator<<(std::ostream &stream, TreeViz::Style style) {
+  switch (style) {
+  case TreeViz::Style::Rounded:
+    stream << "rounded";
+    break;
+  case TreeViz::Style::Filled:
+    stream << "filled";
+    break;
+  }
+  return stream;
+}
+
+std::ostream &operator<<(std::ostream &stream, TreeViz::Shape shape) {
+  switch (shape) {
+  case TreeViz::Shape::Box:
+    stream << "box";
+    break;
+  case TreeViz::Shape::MDiamond:
+    stream << "mdiamond";
+    break;
+  case TreeViz::Shape::Octagon:
+    stream << "octagon";
+    break;
+  case TreeViz::Shape::Ellipse:
+    stream << "ellipse";
+    break;
+  }
+  return stream;
+}
+
+} // namespace
+
 TreeViz::TreeViz(const std::filesystem::path &_fpath)
-    : fpath(_fpath.empty() ? create_random_file(".dot") : _fpath), default_node(Color::Gray, Shape::Box, 0, {Style::Filled}) {}
+    : fpath(_fpath.empty() ? create_random_file(".dot") : _fpath), default_node(Color::Literal::Gray, Shape::Box, 0, {Style::Filled}) {}
 
 TreeViz::TreeViz() : TreeViz(create_random_file(".dot")) {}
 
@@ -42,15 +130,15 @@ void TreeViz::write() const {
     file << "[";
     file << "label=\"" << node.label << "\"";
     file << ",";
-    file << "shape=" << shape_to_string(node.shape);
+    file << "shape=" << node.shape;
     file << ",";
     file << "style=\"";
     for (const Style &style : node.styles) {
-      file << style_to_string(style) << ",";
+      file << style << ",";
     }
     file << "\"";
     file << ",";
-    file << "fillcolor=\"" << color_to_string(node.color) << "\"";
+    file << "fillcolor=\"" << node.color << "\"";
     file << ",";
     file << "border=" << static_cast<int>(node.border);
     file << ",";
@@ -87,46 +175,32 @@ void TreeViz::show(bool interrupt) const {
   }
 }
 
-std::string TreeViz::color_to_string(Color color) const {
-  switch (color) {
-  case Color::Gray:
-    return "gray";
-  case Color::Cyan:
-    return "cyan";
-  case Color::CornflowerBlue:
-    return "cornflowerblue";
-  case Color::Yellow:
-    return "yellow";
-  case Color::Chartreuse2:
-    return "chartreuse2";
-  case Color::Brown1:
-    return "brown1";
-  case Color::Purple:
-    return "purple";
+void TreeViz::find_and_replace(std::string &str, const std::vector<std::pair<std::string, std::string>> &replacements) {
+  for (const std::pair<std::string, std::string> &replacement : replacements) {
+    const std::string &before = replacement.first;
+    const std::string &after  = replacement.second;
+
+    std::string::size_type n = 0;
+    while ((n = str.find(before, n)) != std::string::npos) {
+      str.replace(n, before.size(), after);
+      n += after.size();
+    }
   }
-  panic("Unknown color type");
 }
 
-std::string TreeViz::shape_to_string(Shape shape) const {
-  switch (shape) {
-  case Shape::Box:
-    return "box";
-  case Shape::MDiamond:
-    return "mdiamond";
-  case Shape::Octagon:
-    return "octagon";
-  }
-  panic("Unknown shape type");
-}
-
-std::string TreeViz::style_to_string(Style style) const {
-  switch (style) {
-  case Style::Rounded:
-    return "rounded";
-  case Style::Filled:
-    return "filled";
-  }
-  panic("Unknown style type");
+void TreeViz::sanitize_html_label(std::string &label) {
+  find_and_replace(label, {
+                              {"&", "&amp;"}, // Careful, this needs to be the first
+                                              // one, otherwise we mess everything up. Notice
+                                              // that all the others use ampersands.
+                              {"{", "&#123;"},
+                              {"}", "&#125;"},
+                              {"[", "&#91;"},
+                              {"]", "&#93;"},
+                              {"<", "&lt;"},
+                              {">", "&gt;"},
+                              {"\n", "<br/>"},
+                          });
 }
 
 } // namespace LibCore

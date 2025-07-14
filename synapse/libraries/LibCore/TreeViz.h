@@ -14,25 +14,26 @@ namespace LibCore {
 class TreeViz {
 public:
   struct Color {
-    enum class ColorType { RGB, Literal };
-    enum class ColorLiteral { Gray, Cyan, CornflowerBlue, Yellow, Chartreuse2, Brown1, Purple };
+    enum class Type { RGB, Literal };
+    enum class Literal { Gray, Cyan, CornflowerBlue, Yellow, Chartreuse2, Brown1, Purple };
 
-    ColorType type;
+    Type type;
     struct {
-      u8 r;
-      u8 g;
-      u8 b;
-      u8 o;
+      u8 red;
+      u8 green;
+      u8 blue;
+      u8 opacity;
     } rgb;
-    ColorLiteral literal;
+    Literal literal;
 
-    Color(u8 r, u8 g, u8 b, u8 o = 1) : type(ColorType::RGB), rgb{r, g, b, o} {}
-    Color(ColorLiteral _literal) : type(ColorType::Literal), literal(_literal) {}
-
-    std::string to_gv_repr() const;
+    Color() : type(Type::Literal), literal(Literal::Gray) {}
+    Color(u8 r, u8 g, u8 b, u8 o = 0xff) : type(Type::RGB), rgb{r, g, b, o} {}
+    Color(Literal _literal) : type(Type::Literal), literal(_literal) {}
+    Color(const Color &other) : type(other.type), rgb(other.rgb), literal(other.literal) {}
+    Color &operator=(const Color &other) = default;
   };
 
-  enum class Shape { Box, MDiamond, Octagon };
+  enum class Shape { Box, MDiamond, Octagon, Ellipse };
   enum class Style { Rounded, Filled };
 
   using NodeId = std::string;
@@ -86,19 +87,10 @@ public:
 
   void add_edge(const NodeId &from, const NodeId &to, std::optional<Label> label = std::nullopt);
 
-  void set_default_node_color(Color color) { default_node.color = color; }
-  void set_default_node_shape(Shape shape) { default_node.shape = shape; }
-  void set_default_node_styles(const std::vector<Style> &styles) { default_node.styles = styles; }
-
   std::filesystem::path get_file_path() const { return fpath; }
 
   static void find_and_replace(std::string &str, const std::vector<std::pair<std::string, std::string>> &replacements);
   static void sanitize_html_label(std::string &label);
-
-private:
-  std::string color_to_string(Color color) const;
-  std::string shape_to_string(Shape shape) const;
-  std::string style_to_string(Style style) const;
 };
 
 } // namespace LibCore

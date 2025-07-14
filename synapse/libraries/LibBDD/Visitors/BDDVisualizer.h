@@ -2,7 +2,6 @@
 
 #include <LibBDD/Nodes/Nodes.h>
 #include <LibBDD/Visitors/Visitor.h>
-#include <LibCore/Graphviz.h>
 #include <LibCore/TreeViz.h>
 
 #include <filesystem>
@@ -53,10 +52,12 @@ public:
   BDDViz();
 
   static void visualize(const BDD *bdd, bool interrupt, bdd_visualizer_opts_t opts = {});
-  static void dump_to_file(const BDD *bdd, const std::filesystem::path &file_name);
+  static void dump_to_file(const BDD *bdd, const std::filesystem::path &fpath);
+  static void dump_to_file(const BDD *bdd, const bdd_visualizer_opts_t &opts);
 
   void visit(const BDD *bdd) override final;
   void visitRoot(const BDDNode *root) override final;
+  void write() const;
   void show(bool interrupt) const;
 
   BDDVisitor::Action visit(const Branch *node) override final;

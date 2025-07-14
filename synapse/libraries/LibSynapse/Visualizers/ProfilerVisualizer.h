@@ -10,7 +10,7 @@
 
 namespace LibSynapse {
 
-using LibCore::rgb_t;
+using LibCore::TreeViz;
 
 using LibBDD::bdd_visualizer_opts_t;
 using LibBDD::BDDNodeType;
@@ -39,13 +39,10 @@ public:
     bdd_visualizer_opts_t opts;
     opts.fname                = file_name;
     opts.colors_per_node      = get_colors_per_node(hrpn);
-    opts.default_color.first  = true;
     opts.annotations_per_node = get_annocations_per_node(bdd, profiler, hrpn);
-    opts.default_color.second = fraction_to_color(0_hr);
+    opts.default_color        = fraction_to_color(0_hr);
 
-    BDDViz visualizer(opts);
-    visualizer.visit(bdd);
-    visualizer.write();
+    BDDViz::dump_to_file(bdd, opts);
   }
 
 private:
@@ -108,63 +105,58 @@ private:
     return annocations_per_node;
   }
 
-  static std::unordered_map<bdd_node_id_t, std::string> get_colors_per_node(const std::unordered_map<bdd_node_id_t, hit_rate_t> &fraction_per_node) {
-    std::unordered_map<bdd_node_id_t, std::string> colors_per_node;
+  static std::unordered_map<bdd_node_id_t, TreeViz::Color>
+  get_colors_per_node(const std::unordered_map<bdd_node_id_t, hit_rate_t> &fraction_per_node) {
+    std::unordered_map<bdd_node_id_t, TreeViz::Color> colors_per_node;
 
     for (const auto &[node, fraction] : fraction_per_node) {
-      const std::string color = fraction_to_color(fraction);
-      colors_per_node[node]   = color;
+      colors_per_node[node] = fraction_to_color(fraction);
     }
 
     return colors_per_node;
   }
 
-  static std::string fraction_to_color(hit_rate_t fraction) {
+  static TreeViz::Color fraction_to_color(hit_rate_t fraction) {
     // return hit_rate_to_rainbow(fraction);
     // return hit_rate_to_blue(fraction);
     return hit_rate_to_blue_red_scale(fraction);
   }
 
-  static std::string hit_rate_to_rainbow(hit_rate_t fraction) {
-    const rgb_t blue(0, 0, 1);
-    const rgb_t cyan(0, 1, 1);
-    const rgb_t green(0, 1, 0);
-    const rgb_t yellow(1, 1, 0);
-    const rgb_t red(1, 0, 0);
+  static TreeViz::Color hit_rate_to_rainbow(hit_rate_t fraction) {
+    const TreeViz::Color blue(0, 0, 1);
+    const TreeViz::Color cyan(0, 1, 1);
+    const TreeViz::Color green(0, 1, 0);
+    const TreeViz::Color yellow(1, 1, 0);
+    const TreeViz::Color red(1, 0, 0);
 
-    const std::vector<rgb_t> palette{blue, cyan, green, yellow, red};
+    const std::vector<TreeViz::Color> palette{blue, cyan, green, yellow, red};
 
     double value = fraction.value * (palette.size() - 1);
     int idx1     = std::floor(value);
     int idx2     = idx1 + 1;
     double frac  = value - idx1;
 
-    const u8 r = 0xff * ((palette[idx2].r - palette[idx1].r) * frac + palette[idx1].r);
-    const u8 g = 0xff * ((palette[idx2].g - palette[idx1].g) * frac + palette[idx1].g);
-    const u8 b = 0xff * ((palette[idx2].b - palette[idx1].b) * frac + palette[idx1].b);
+    const u8 r = 0xff * ((palette[idx2].rgb.red - palette[idx1].rgb.red) * frac + palette[idx1].rgb.red);
+    const u8 g = 0xff * ((palette[idx2].rgb.green - palette[idx1].rgb.green) * frac + palette[idx1].rgb.green);
+    const u8 b = 0xff * ((palette[idx2].rgb.blue - palette[idx1].rgb.blue) * frac + palette[idx1].rgb.blue);
 
-    const rgb_t color(r, g, b);
-    return color.to_gv_repr();
+    return TreeViz::Color(r, g, b);
   }
 
-  static std::string hit_rate_to_blue(hit_rate_t fraction) {
+  static TreeViz::Color hit_rate_to_blue(hit_rate_t fraction) {
     const u8 r = 0xff * (1 - fraction.value);
     const u8 g = 0xff * (1 - fraction.value);
     const u8 b = 0xff;
     const u8 o = 0xff * 0.5;
-
-    const rgb_t color(r, g, b, o);
-    return color.to_gv_repr();
+    return TreeViz::Color(r, g, b, o);
   }
 
-  static std::string hit_rate_to_blue_red_scale(hit_rate_t fraction) {
+  static TreeViz::Color hit_rate_to_blue_red_scale(hit_rate_t fraction) {
     const u8 r = 0xff * fraction.value;
     const u8 g = 0;
     const u8 b = 0xff * (1 - fraction.value);
     const u8 o = 0xff * 0.33;
-
-    const rgb_t color(r, g, b, o);
-    return color.to_gv_repr();
+    return TreeViz::Color(r, g, b, o);
   }
 };
 

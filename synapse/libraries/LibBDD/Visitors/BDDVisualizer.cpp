@@ -9,13 +9,20 @@ using LibCore::pretty_print_expr;
 using LibCore::solver_toolbox;
 
 namespace {
-constexpr const TreeViz::Color COLOR_PROCESSED = TreeViz::Color::Gray;
-constexpr const TreeViz::Color COLOR_NEXT      = TreeViz::Color::Cyan;
-constexpr const TreeViz::Color COLOR_CALL      = TreeViz::Color::CornflowerBlue;
-constexpr const TreeViz::Color COLOR_BRANCH    = TreeViz::Color::Yellow;
-constexpr const TreeViz::Color COLOR_FORWARD   = TreeViz::Color::Chartreuse2;
-constexpr const TreeViz::Color COLOR_DROP      = TreeViz::Color::Brown1;
-constexpr const TreeViz::Color COLOR_BROADCAST = TreeViz::Color::Purple;
+
+const TreeViz::Color COLOR_PROCESSED(TreeViz::Color::Literal::Gray);
+const TreeViz::Color COLOR_NEXT(TreeViz::Color::Literal::Cyan);
+const TreeViz::Color COLOR_CALL(TreeViz::Color::Literal::CornflowerBlue);
+const TreeViz::Color COLOR_BRANCH(TreeViz::Color::Literal::Yellow);
+const TreeViz::Color COLOR_FORWARD(TreeViz::Color::Literal::Chartreuse2);
+const TreeViz::Color COLOR_DROP(TreeViz::Color::Literal::Brown1);
+const TreeViz::Color COLOR_BROADCAST(TreeViz::Color::Literal::Purple);
+
+const TreeViz::Shape SHAPE_CALL(TreeViz::Shape::Box);
+const TreeViz::Shape SHAPE_BRANCH(TreeViz::Shape::Ellipse);
+const TreeViz::Shape SHAPE_FORWARD(TreeViz::Shape::Box);
+const TreeViz::Shape SHAPE_DROP(TreeViz::Shape::Box);
+const TreeViz::Shape SHAPE_BROADCAST(TreeViz::Shape::Box);
 
 void log_visualization(const BDD *bdd, const std::string &fname) {
   std::cerr << "Visualizing BDD";
@@ -24,14 +31,15 @@ void log_visualization(const BDD *bdd, const std::string &fname) {
   std::cerr << " file=" << fname;
   std::cerr << "\n";
 }
+
 } // namespace
 
 BDDViz::BDDViz(const bdd_visualizer_opts_t &_opts)
-    : call_node(TreeViz::Node(COLOR_CALL, TreeViz::Shape::Box, 0, {TreeViz::Style::Filled})),
-      branch_node(TreeViz::Node(COLOR_BRANCH, TreeViz::Shape::Octagon, 0, {TreeViz::Style::Filled})),
-      forward_node(TreeViz::Node(COLOR_FORWARD, TreeViz::Shape::Box, 0, {TreeViz::Style::Filled})),
-      drop_node(TreeViz::Node(COLOR_DROP, TreeViz::Shape::Box, 0, {TreeViz::Style::Filled})),
-      broadcast_node(TreeViz::Node(COLOR_BROADCAST, TreeViz::Shape::Box, 0, {TreeViz::Style::Filled})), opts(_opts), treeviz(_opts.fname) {}
+    : call_node(TreeViz::Node(COLOR_CALL, SHAPE_CALL, 0, {TreeViz::Style::Filled})),
+      branch_node(TreeViz::Node(COLOR_BRANCH, SHAPE_BRANCH, 0, {TreeViz::Style::Filled})),
+      forward_node(TreeViz::Node(COLOR_FORWARD, SHAPE_FORWARD, 0, {TreeViz::Style::Filled})),
+      drop_node(TreeViz::Node(COLOR_DROP, SHAPE_DROP, 0, {TreeViz::Style::Filled})),
+      broadcast_node(TreeViz::Node(COLOR_BROADCAST, SHAPE_BROADCAST, 0, {TreeViz::Style::Filled})), opts(_opts), treeviz(_opts.fname) {}
 
 BDDViz::BDDViz() : BDDViz(bdd_visualizer_opts_t()) {}
 
@@ -73,7 +81,7 @@ TreeViz::Color BDDViz::get_color(const BDDNode *node) const {
   }
   }
 
-  return TreeViz::Color::Gray; // Default color if none matched
+  return TreeViz::Color::Literal::Gray; // Default color if none matched
 }
 
 void BDDViz::visualize(const BDD *bdd, bool interrupt, bdd_visualizer_opts_t opts) {
@@ -84,10 +92,14 @@ void BDDViz::visualize(const BDD *bdd, bool interrupt, bdd_visualizer_opts_t opt
   bddviz.show(interrupt);
 }
 
-void BDDViz::dump_to_file(const BDD *bdd, const std::filesystem::path &file_name) {
-  assert(bdd && "Invalid BDD");
+void BDDViz::dump_to_file(const BDD *bdd, const std::filesystem::path &fpath) {
   bdd_visualizer_opts_t opts;
-  opts.fname = file_name;
+  opts.fname = fpath;
+  dump_to_file(bdd, opts);
+}
+
+void BDDViz::dump_to_file(const BDD *bdd, const bdd_visualizer_opts_t &opts) {
+  assert(bdd && "Invalid BDD");
   BDDViz bddviz(opts);
   bddviz.visit(bdd);
   bddviz.treeviz.write();
@@ -268,5 +280,8 @@ BDDVisitor::Action BDDViz::visit(const Route *node) {
 }
 
 void BDDViz::visitRoot(const BDDNode *root) { root->visit(*this); }
+
+void BDDViz::show(bool interrupt) const { treeviz.show(interrupt); }
+void BDDViz::write() const { treeviz.write(); }
 
 } // namespace LibBDD
