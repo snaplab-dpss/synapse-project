@@ -101,12 +101,25 @@ std::vector<bdd_node_id_t> BDDNode::get_leaves() const {
   return next->get_leaves();
 }
 
-std::vector<const BDDNode *> BDDNode::get_children(bool recursive) const {
+std::vector<const BDDNode *> BDDNode::get_reachable_nodes() const {
   std::vector<const BDDNode *> children;
-
   const BDDNode *self = this;
-
   visit_nodes([&children, self](const BDDNode *node) -> BDDNodeVisitAction {
+    if (node == self) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    children.push_back(node);
+    return BDDNodeVisitAction::Continue;
+  });
+
+  return children;
+}
+
+std::vector<BDDNode *> BDDNode::get_mutable_reachable_nodes() {
+  std::vector<BDDNode *> children;
+  BDDNode *self = this;
+  visit_mutable_nodes([&children, self](BDDNode *node) -> BDDNodeVisitAction {
     if (node == self) {
       return BDDNodeVisitAction::Continue;
     }
@@ -782,6 +795,17 @@ std::vector<const Route *> BDDNode::get_future_routing_decisions() const {
   });
 
   return routes;
+}
+
+const Route *BDDNode::get_latest_routing_decision() const {
+  const BDDNode *node = this;
+  while (node) {
+    if (node->get_type() == BDDNodeType::Route) {
+      return dynamic_cast<const Route *>(node);
+    }
+    node = node->get_prev();
+  }
+  return nullptr;
 }
 
 } // namespace LibBDD

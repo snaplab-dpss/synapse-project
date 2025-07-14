@@ -102,9 +102,12 @@ public:
   std::vector<const Call *> get_future_functions(const std::unordered_set<std::string> &functions, bool stop_on_branches = false) const;
   std::vector<const Call *> get_coalescing_nodes_from_key(klee::ref<klee::Expr> target_key, const map_coalescing_objs_t &data) const;
   std::vector<const Route *> get_future_routing_decisions() const;
+  const Route *get_latest_routing_decision() const;
+
+  std::vector<const BDDNode *> get_reachable_nodes() const;
+  std::vector<BDDNode *> get_mutable_reachable_nodes();
 
   virtual std::vector<bdd_node_id_t> get_leaves() const;
-  virtual std::vector<const BDDNode *> get_children(bool recursive = false) const;
   virtual BDDNode *clone(BDDNodeManager &manager, bool recursive = false) const     = 0;
   virtual std::string dump(bool one_liner = false, bool id_name_only = false) const = 0;
 

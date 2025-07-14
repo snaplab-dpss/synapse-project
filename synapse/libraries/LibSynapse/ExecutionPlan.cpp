@@ -660,7 +660,7 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
   old_future_nodes.clear();
   new_future_nodes.clear();
 
-  for (const BDDNode *child : node->get_children(true)) {
+  for (const BDDNode *child : node->get_reachable_nodes()) {
     if (old_speculation.skip.find(child->get_id()) == old_speculation.skip.end()) {
       old_future_nodes.insert(child->get_id());
     }

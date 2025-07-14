@@ -25,12 +25,17 @@ private:
   std::unordered_map<Port, std::pair<Port, const NetworkNode *>> links;
 
 public:
-  NetworkNode(const NetworkNodeId &_id, const NF *_nf, Port _port) : id(_id), type(NetworkNodeType::NF), nf(_nf) { assert(nf != nullptr); }
-  NetworkNode(const NetworkNodeId &_id, Port _port) : id(_id), type(NetworkNodeType::GLOBAL_PORT), nf(nullptr) {}
+  NetworkNode(const NetworkNodeId &_id, const NF *_nf) : id(_id), type(NetworkNodeType::NF), nf(_nf) { assert(nf != nullptr); }
+  NetworkNode(const NetworkNodeId &_id) : id(_id), type(NetworkNodeType::GLOBAL_PORT), nf(nullptr) {}
 
   NetworkNodeId get_id() const { return id; }
   NetworkNodeType get_node_type() const { return type; }
-  const NF *get_nf() const { return nf; }
+
+  const NF *get_nf() const {
+    assert(type == NetworkNodeType::NF);
+    assert(nf != nullptr);
+    return nf;
+  }
 
   const std::unordered_map<Port, std::pair<Port, const NetworkNode *>> &get_links() const { return links; }
 

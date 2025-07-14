@@ -680,7 +680,9 @@ Symbols BDD::get_generated_symbols(const BDDNode *node) const {
   return symbols;
 }
 
-BDD::BDD() : id(0), root(nullptr) {}
+BDD::BDD(SymbolManager *_symbol_manager) : id(0), root(nullptr), symbol_manager(_symbol_manager) {
+  assert(symbol_manager && "Symbol manager cannot be null");
+}
 
 BDD::BDD(const call_paths_view_t &call_paths_view) : id(0), symbol_manager(call_paths_view.manager) {
   root = bdd_from_call_paths(call_paths_view, symbol_manager, manager, init, id);
@@ -1278,7 +1280,12 @@ BDD::inspection_report_t BDD::inspect() const {
   const std::unordered_set<std::string> symbols_always_known = {"DEVICE", "pkt_len", "next_time", "packet_chunks"};
   std::unordered_set<const BDDNode *> visited_nodes;
 
-  root->visit_nodes([&report, &symbols_always_known, &visited_nodes](const BDDNode *node) {
+  root->visit_nodes([&](const BDDNode *node) {
+    if (!manager.has_node(node)) {
+      report = {InspectionStatus::UnmanagedNode, "Unmanaged BDDNode " + std::to_string(node->get_id())};
+      return BDDNodeVisitAction::Stop;
+    }
+
     if (visited_nodes.find(node) != visited_nodes.end()) {
       report = {InspectionStatus::HasCycle, "Has cycle in the BDD"};
       return BDDNodeVisitAction::Stop;

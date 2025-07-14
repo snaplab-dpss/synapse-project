@@ -1,5 +1,7 @@
 #pragma once
 
+#include <LibCore/Debug.h>
+
 #include <LibBDD/CallPath.h>
 #include <LibBDD/Profile.h>
 #include <LibBDD/Nodes/Nodes.h>
@@ -30,7 +32,7 @@ private:
   SymbolManager *symbol_manager;
 
 public:
-  BDD();
+  BDD(SymbolManager *symbol_manager);
 
   BDD(const call_paths_view_t &call_paths);
   BDD(const std::filesystem::path &bdd_file, SymbolManager *symbol_manager);
@@ -49,6 +51,13 @@ public:
 
   const std::vector<Call *> &get_init() const { return init; }
   const BDDNode *get_root() const { return root; }
+
+  void set_root(BDDNode *_root) {
+    root = _root;
+    if (!manager.has_node(_root)) {
+      panic("Root node is not managed by the BDDNodeManager");
+    }
+  }
 
   std::string hash() const { return root->hash(true); }
   size_t size() const { return root->count_children(true) + 1; }
@@ -69,6 +78,7 @@ public:
     MissingSymbol,
     DanglingInitNode,
     HasCycle,
+    UnmanagedNode,
   };
 
   struct inspection_report_t {

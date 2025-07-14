@@ -19,8 +19,18 @@ int main(int argc, char **argv) {
 
   SymbolManager manager;
   Network network = Network::parse(input_network_consolidation_plan_file, &manager);
-
   network.debug();
+
+  const BDD bdd = network.consolidate();
+
+  const BDD::inspection_report_t report = bdd.inspect();
+  if (report.status != BDD::InspectionStatus::Ok) {
+    std::cout << "BDD inspection failed: " << report.message << "\n";
+    return 1;
+  }
+
+  std::cout << "BDD inspection passed.\n";
+  BDDViz::visualize(&bdd, false);
 
   return 0;
 }

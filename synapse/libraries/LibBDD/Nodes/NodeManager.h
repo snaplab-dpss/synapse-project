@@ -17,13 +17,26 @@ public:
 
   void add_node(BDDNode *node) { nodes.emplace_back(node); }
 
-  void free_node(BDDNode *node) {
-    auto it = std::find_if(nodes.begin(), nodes.end(), [node](const std::unique_ptr<BDDNode> &n) { return n.get() == node; });
+  void free_node(BDDNode *node, bool recursive = false) {
+    std::vector<BDDNode *> to_free;
 
-    if (it != nodes.end()) {
-      assert((*it)->get_id() == node->get_id() && "Invalid node id");
-      nodes.erase(it);
+    if (recursive) {
+      to_free = node->get_mutable_reachable_nodes();
+    } else {
+      to_free.push_back(node);
     }
+
+    for (BDDNode *to_free_node : to_free) {
+      auto it = std::find_if(nodes.begin(), nodes.end(), [to_free_node](const std::unique_ptr<BDDNode> &n) { return n.get() == to_free_node; });
+      if (it != nodes.end()) {
+        assert((*it)->get_id() == to_free_node->get_id() && "Invalid node id");
+        nodes.erase(it);
+      }
+    }
+  }
+
+  bool has_node(const BDDNode *node) const {
+    return std::any_of(nodes.begin(), nodes.end(), [node](const std::unique_ptr<BDDNode> &n) { return n.get() == node; });
   }
 
   BDDNodeManager operator+(const BDDNodeManager &other) const {

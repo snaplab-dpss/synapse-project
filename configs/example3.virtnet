@@ -1,0 +1,22 @@
+// NF definitions
+
+nf forwarder ../dpdk-nfs/fwd/nf.bdd
+nf firewall ../bdds/fw.bdd
+
+// NF connections and global port mapping
+
+link global_port 0 forwarder 0
+link forwarder 0 global_port 0
+
+link global_port 1 forwarder 1
+link forwarder 1 global_port 1
+
+link global_port 2 forwarder 2
+link forwarder 2 global_port 2
+
+// link global_port 3 firewall 1
+// link firewall 1 global_port 3
+
+link forwarder 3 firewall 0
+link firewall 0 forwarder 3
+

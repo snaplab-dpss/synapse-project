@@ -34,5 +34,17 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
   // Mark now as unused, we don't care about time
   (void)now;
 
+  if (now > 1000) {
+    if (device == 0 || device == 3) {
+      return 0;
+    } else {
+      return 1;
+    }
+  }
+
+  if (device == 0) {
+    return FLOOD;
+  }
+
   return get_dst_dev(device);
 }
