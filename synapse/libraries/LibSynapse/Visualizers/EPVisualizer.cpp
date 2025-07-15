@@ -21,10 +21,10 @@
 namespace LibSynapse {
 
 namespace {
-const std::unordered_map<TargetType, std::string> node_colors{
-    {TargetType::Tofino, "cornflowerblue"},
-    {TargetType::Controller, "lightcoral"},
-    {TargetType::x86, "orange"},
+const std::unordered_map<TargetType, TreeViz::Color> node_colors = {
+    {TargetType::Tofino, TreeViz::Color::Literal::CornflowerBlue},
+    {TargetType::Controller, TreeViz::Color::Literal::LightCoral},
+    {TargetType::x86, TreeViz::Color::Literal::Orange},
 };
 
 const std::unordered_set<ModuleType> modules_to_ignore{
@@ -34,8 +34,8 @@ const std::unordered_set<ModuleType> modules_to_ignore{
 };
 
 bool should_ignore_node(const EPNode *node) {
-  const Module *module = node->get_module();
-  ModuleType type      = module->get_type();
+  const Module *module  = node->get_module();
+  const ModuleType type = module->get_type();
   return modules_to_ignore.find(type) != modules_to_ignore.end();
 }
 
@@ -60,17 +60,14 @@ void log_visualization(const EP *ep, const std::string &fname) {
 
 EPViz::EPViz() {}
 
+EPViz::EPViz(const std::filesystem::path &fpath) : treeviz(fpath) {}
+
 void EPViz::log(const EPNode *ep_node) const {
   // Don't log anything.
 }
 
 void EPViz::function_call(const EPNode *ep_node, const BDDNode *node, TargetType target, const std::string &label) {
-  std::string nice_label = label;
-  find_and_replace(nice_label, {{"\n", "\\n"}});
-
-  assert(node_colors.find(target) != node_colors.end() && "No color for target");
-  ss << "[label=\"";
-
+  std::stringstream ss;
   ss << "[";
   ss << "EPNode=";
   ss << ep_node->get_id();
@@ -78,20 +75,17 @@ void EPViz::function_call(const EPNode *ep_node, const BDDNode *node, TargetType
   ss << node->get_id();
   ss << "]";
   ss << "\\n";
+  ss << TreeViz::find_and_replace(label, {{"\n", "\\n"}});
 
-  ss << nice_label;
-  ss << "\", ";
-  ss << "color=" << node_colors.at(target) << "];";
-  ss << "\n";
+  TreeViz::Node tree_node = treeviz.get_default_node();
+  tree_node.id            = std::to_string(ep_node->get_id());
+  tree_node.label         = ss.str();
+  tree_node.color         = node_colors.at(target);
+  treeviz.add_node(tree_node);
 }
 
 void EPViz::branch(const EPNode *ep_node, const BDDNode *node, TargetType target, const std::string &label) {
-  std::string nice_label = label;
-  find_and_replace(nice_label, {{"\n", "\\n"}});
-
-  assert(node_colors.find(target) != node_colors.end() && "No color for target");
-  ss << "[shape=Mdiamond, label=\"";
-
+  std::stringstream ss;
   ss << "[";
   ss << "EPNode=";
   ss << ep_node->get_id();
@@ -99,59 +93,46 @@ void EPViz::branch(const EPNode *ep_node, const BDDNode *node, TargetType target
   ss << node->get_id();
   ss << "]";
   ss << " ";
+  ss << TreeViz::find_and_replace(label, {{"\n", "\\n"}});
 
-  ss << nice_label;
-  ss << "\", ";
-  ss << "color=" << node_colors.at(target) << "];";
-  ss << "\n";
+  TreeViz::Node tree_node = treeviz.get_default_node();
+  tree_node.id            = std::to_string(ep_node->get_id());
+  tree_node.label         = ss.str();
+  tree_node.color         = node_colors.at(target);
+  tree_node.shape         = TreeViz::Shape::Ellipse;
+  treeviz.add_node(tree_node);
 }
 
 void EPViz::visualize(const EP *ep, bool interrupt) {
   assert(ep && "Invalid EP");
   EPViz visualizer;
   visualizer.visit(ep);
-  log_visualization(ep, visualizer.fpath);
-  visualizer.show(interrupt);
+  log_visualization(ep, visualizer.treeviz.get_file_path());
+  visualizer.treeviz.show(interrupt);
 }
 
 void EPViz::dump_to_file(const EP *ep, const std::filesystem::path &file_name) {
   assert(ep && "Invalid EP");
-  EPViz visualizer;
-  visualizer.fpath = file_name;
+  EPViz visualizer(file_name);
   visualizer.visit(ep);
-  visualizer.write();
+  visualizer.treeviz.write();
 }
 
 void EPViz::visit(const EP *ep) {
   assert(ep && "Invalid EP");
-  ss << "digraph EP {\n";
-  ss << "layout=\"dot\";";
-  ss << "node [shape=record,style=filled];\n";
-
   EPVisitor::visit(ep);
-
-  ss << "}\n";
-  ss.flush();
 }
 
 void EPViz::visit(const EP *ep, const EPNode *node) {
   assert(ep && "Invalid EP");
 
-  bool ignore = should_ignore_node(node);
-
-  if (!ignore) {
-    ss << node->get_id() << " ";
-  }
-
-  const Module *module     = node->get_module();
-  EPVisitor::Action action = module->visit(*this, ep, node);
-
+  const Module *module           = node->get_module();
+  const EPVisitor::Action action = module->visit(*this, ep, node);
   if (action == EPVisitor::Action::skipChildren) {
     return;
   }
 
-  const std::vector<EPNode *> &children = node->get_children();
-  for (const EPNode *child : children) {
+  for (const EPNode *child : node->get_children()) {
     while (child && should_ignore_node(child)) {
       assert(child->get_children().size() <= 1 && "Invalid child");
       if (!child->get_children().empty()) {
@@ -167,9 +148,8 @@ void EPViz::visit(const EP *ep, const EPNode *node) {
 
     visit(ep, child);
 
-    if (!ignore) {
-      ss << node->get_id() << " -> " << child->get_id() << ";"
-         << "\n";
+    if (!should_ignore_node(node)) {
+      treeviz.add_edge(std::to_string(node->get_id()), std::to_string(child->get_id()));
     }
   }
 }

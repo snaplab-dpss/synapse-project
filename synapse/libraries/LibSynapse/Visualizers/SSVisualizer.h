@@ -1,23 +1,31 @@
 #pragma once
 
 #include <LibSynapse/SearchSpace.h>
-#include <LibCore/Graphviz.h>
+#include <LibCore/TreeViz.h>
 
 #include <set>
 #include <filesystem>
 
 namespace LibSynapse {
 
-using LibCore::Graphviz;
+using LibCore::TreeViz;
 
-class SSViz : public Graphviz {
+class SSViz {
 private:
+  struct ss_opts_t {
+    const EP *highlight;
+    std::filesystem::path fpath;
+  };
+
+  TreeViz treeviz;
   std::set<ep_id_t> highlight;
 
   SSViz();
-  SSViz(const EP *highlight);
+  SSViz(const ss_opts_t &opts);
 
   void visit(const SearchSpace *search_space);
+  void visit_definitions(const SSNode *ssnode);
+  void visit_links(const SSNode *ssnode);
 
 public:
   static void visualize(const SearchSpace *search_space, bool interrupt);

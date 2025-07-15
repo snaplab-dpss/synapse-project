@@ -15,7 +15,19 @@ class TreeViz {
 public:
   struct Color {
     enum class Type { RGB, Literal };
-    enum class Literal { Gray, Cyan, CornflowerBlue, Yellow, Chartreuse2, Brown1, Purple };
+    enum class Literal {
+      Gray,
+      Cyan,
+      CornflowerBlue,
+      Yellow,
+      Chartreuse2,
+      Brown1,
+      Purple,
+      Firebrick2,
+      Orange,
+      Green,
+      LightCoral,
+    };
 
     Type type;
     struct {
@@ -33,7 +45,7 @@ public:
     Color &operator=(const Color &other) = default;
   };
 
-  enum class Shape { Box, MDiamond, Octagon, Ellipse };
+  enum class Shape { Box, MDiamond, Octagon, Ellipse, Html };
   enum class Style { Rounded, Filled };
 
   using NodeId = std::string;
@@ -89,8 +101,15 @@ public:
 
   std::filesystem::path get_file_path() const { return fpath; }
 
-  static void find_and_replace(std::string &str, const std::vector<std::pair<std::string, std::string>> &replacements);
-  static void sanitize_html_label(std::string &label);
+  Node get_default_node() const { return default_node; }
+  void set_default_node(const Node &node) { default_node = node; }
+
+  static std::string find_and_replace(const std::string &str, const std::vector<std::pair<std::string, std::string>> &replacements);
+  static std::string sanitize_html_label(const std::string &label);
 };
+
+std::ostream &operator<<(std::ostream &stream, const TreeViz::Color &color);
+std::ostream &operator<<(std::ostream &stream, TreeViz::TreeViz::Style style);
+std::ostream &operator<<(std::ostream &stream, TreeViz::TreeViz::Shape shape);
 
 } // namespace LibCore

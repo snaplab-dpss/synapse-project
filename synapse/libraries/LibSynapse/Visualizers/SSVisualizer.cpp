@@ -5,208 +5,23 @@
 namespace LibSynapse {
 
 namespace {
-const std::unordered_map<TargetType, std::string> node_colors = {
-    {TargetType::Tofino, "cornflowerblue"},
-    {TargetType::Controller, "firebrick2"},
-    {TargetType::x86, "orange"},
+const std::unordered_map<TargetType, TreeViz::Color> node_colors = {
+    {TargetType::Tofino, TreeViz::Color::Literal::CornflowerBlue},
+    {TargetType::Controller, TreeViz::Color::Literal::LightCoral},
+    {TargetType::x86, TreeViz::Color::Literal::Orange},
 };
 
-const std::string selected_color = "green";
+const TreeViz::Color selected_color = TreeViz::Color::Literal::Green;
 
 std::string stringify_score(const Score &score) {
   std::stringstream score_builder;
   score_builder << score;
-
-  std::string score_str = score_builder.str();
-  Graphviz::sanitize_html_label(score_str);
-
-  return score_str;
+  return TreeViz::sanitize_html_label(score_builder.str());
 }
 
 bool should_highlight(const SSNode *ssnode, const std::set<ep_id_t> &highlight) { return highlight.find(ssnode->ep_id) != highlight.end(); }
 
 std::string bold(const std::string &str) { return "<b>" + str + "</b>"; }
-
-void visit_definitions(std::stringstream &ss, const SearchSpace *search_space, const SSNode *ssnode, const std::set<ep_id_t> &highlight) {
-  const std::string &target_color = node_colors.at(ssnode->target);
-
-  auto indent = [&ss](int lvl) { ss << std::string(lvl, '\t'); };
-
-  indent(1);
-  ss << ssnode->node_id;
-  ss << " [label=<\n";
-
-  indent(2);
-  ss << "<table";
-
-  ss << " bgcolor=\"" << target_color << "\"";
-
-  if (should_highlight(ssnode, highlight)) {
-    ss << " border=\"4\"";
-    ss << " color=\"" << selected_color << "\"";
-  } else {
-    ss << " border=\"2\"";
-    ss << " color=\"black\"";
-  }
-  ss << ">\n";
-
-  // First row
-
-  indent(3);
-  ss << "<tr>\n";
-
-  indent(4);
-  ss << "<td ";
-  // ss << "bgcolor=\"" << target_color << "\"";
-  ss << ">";
-  ss << bold("EP: ") << ssnode->ep_id;
-  ss << "</td>\n";
-
-  indent(4);
-  ss << "<td ";
-  // ss << "bgcolor=\"" << target_color << "\"";
-  ss << ">";
-  if (ssnode->module_data) {
-    ss << bold("HR: ") << ssnode->module_data->hit_rate;
-  } else {
-    ss << bold("HR: ") << "None";
-  }
-  ss << "</td>\n";
-
-  indent(3);
-  ss << "</tr>\n";
-
-  // Second row
-
-  indent(3);
-  ss << "<tr>\n";
-
-  indent(4);
-  ss << "<td";
-  // ss << " bgcolor=\"" << target_color << "\"";
-  ss << " colspan=\"2\"";
-  ss << ">";
-
-  ss << bold("Score: ");
-  ss << stringify_score(ssnode->score);
-  ss << "</td>\n";
-
-  indent(3);
-  ss << "</tr>\n";
-
-  // Third row
-
-  indent(3);
-  ss << "<tr>\n";
-
-  indent(4);
-  ss << "<td";
-  // ss << " bgcolor=\"" << target_color << "\"";
-  ss << " colspan=\"2\"";
-  ss << ">";
-  ss << bold("Module: ");
-  if (ssnode->module_data) {
-    ss << ssnode->module_data->name;
-    if (ssnode->module_data->bdd_reordered) {
-      ss << " [R]";
-    }
-    if (!ssnode->module_data->description.empty()) {
-      ss << " (";
-      ss << ssnode->module_data->description;
-      ss << ")";
-    }
-  } else {
-    ss << "ROOT";
-  }
-  ss << "</td>\n";
-
-  indent(3);
-  ss << "</tr>\n";
-
-  // Forth row
-
-  indent(3);
-  ss << "<tr>\n";
-
-  indent(4);
-  ss << "<td ";
-  // ss << " bgcolor=\"" << target_color << "\"";
-  ss << " colspan=\"2\"";
-  ss << ">";
-  if (ssnode->bdd_node_data) {
-    ss << bold("Processed: ");
-    ss << ssnode->bdd_node_data->description;
-  }
-  ss << "</td>\n";
-
-  indent(3);
-  ss << "</tr>\n";
-
-  // Fifth row
-
-  if (ssnode->next_bdd_node_data) {
-    indent(3);
-    ss << "<tr>\n";
-
-    indent(4);
-    ss << "<td ";
-    // ss << " bgcolor=\"" << target_color << "\"";
-    ss << " colspan=\"2\"";
-    ss << ">";
-    ss << bold("Next: ");
-    ss << ssnode->next_bdd_node_data->description;
-    ss << "</td>\n";
-
-    indent(3);
-    ss << "</tr>\n";
-  }
-
-  // Metadata rows
-
-  for (const heuristic_metadata_t &meta : ssnode->metadata) {
-    indent(3);
-    ss << "<tr>\n";
-
-    indent(4);
-
-    ss << "<td ";
-    // ss << " bgcolor=\"" << target_color << "\"";
-    ss << " colspan=\"2\"";
-    ss << ">";
-    ss << bold(meta.name + ": ");
-    ss << meta.description;
-    ss << "</td>\n";
-
-    indent(3);
-    ss << "</tr>\n";
-  }
-
-  indent(2);
-  ss << "</table>\n";
-
-  indent(1);
-  ss << ">]\n\n";
-
-  for (const SSNode *next : ssnode->children) {
-    visit_definitions(ss, search_space, next, highlight);
-  }
-}
-
-void visit_links(std::stringstream &ss, const SSNode *ssnode) {
-  ss_node_id_t node_id                  = ssnode->node_id;
-  const std::vector<SSNode *> &children = ssnode->children;
-
-  for (const SSNode *child : children) {
-    ss << node_id;
-    ss << " -> ";
-    ss << child->node_id;
-    ss << ";\n";
-  }
-
-  for (const SSNode *child : children) {
-    visit_links(ss, child);
-  }
-}
 
 void log_visualization(const SearchSpace *search_space, const std::string &fname, const EP *ep = nullptr) {
   assert(search_space && "Search space is null");
@@ -220,64 +35,142 @@ void log_visualization(const SearchSpace *search_space, const std::string &fname
 
 SSViz::SSViz() {}
 
-SSViz::SSViz(const EP *_highlight) {
-  const std::set<ep_id_t> &ancestors = _highlight->get_ancestors();
+SSViz::SSViz(const ss_opts_t &opts) : treeviz(opts.fpath) {
+  const std::set<ep_id_t> &ancestors = opts.highlight->get_ancestors();
   highlight.insert(ancestors.begin(), ancestors.end());
-  highlight.insert(_highlight->get_id());
+  highlight.insert(opts.highlight->get_id());
 }
 
 void SSViz::visit(const SearchSpace *search_space) {
-  ss << "digraph SearchSpace {\n";
-
-  ss << "\tlayout=\"dot\";\n";
-  // ss << "\tlayout=\"twopi\";\n";
-  // ss << "\tlayout=\"sfdp\";\n";
-  // ss << "\tgraph [splines=true overlap=false];\n";
-  ss << "\tnode [shape=none];\n";
+  TreeViz::Node default_node = treeviz.get_default_node();
+  default_node.shape         = TreeViz::Shape::Html;
+  treeviz.set_default_node(default_node);
 
   const SSNode *root = search_space->get_root();
 
   if (root) {
-    visit_definitions(ss, search_space, root, highlight);
-    visit_links(ss, root);
+    visit_definitions(root);
+    visit_links(root);
   }
-
-  ss << "}";
-  ss.flush();
 }
 
 void SSViz::visualize(const SearchSpace *search_space, bool interrupt) {
   assert(search_space && "Search space is null");
   SSViz visualizer;
   visualizer.visit(search_space);
-  log_visualization(search_space, visualizer.fpath);
-  visualizer.show(interrupt);
+  log_visualization(search_space, visualizer.treeviz.get_file_path());
+  visualizer.treeviz.show(interrupt);
 }
 
 void SSViz::visualize(const SearchSpace *search_space, const EP *highlight, bool interrupt) {
   assert(search_space && "Search space is null");
   assert(highlight && "EP is null");
-  SSViz visualizer(highlight);
+  ss_opts_t opts;
+  opts.highlight = highlight;
+  SSViz visualizer(opts);
   visualizer.visit(search_space);
-  log_visualization(search_space, visualizer.fpath, highlight);
-  visualizer.show(interrupt);
+  log_visualization(search_space, visualizer.treeviz.get_file_path(), highlight);
+  visualizer.treeviz.show(interrupt);
 }
 
 void SSViz::dump_to_file(const SearchSpace *search_space, const std::filesystem::path &file_name) {
   assert(search_space && "Search space is null");
-  SSViz visualizer;
-  visualizer.fpath = file_name;
+  ss_opts_t opts;
+  opts.fpath = file_name;
+  SSViz visualizer(opts);
   visualizer.visit(search_space);
-  visualizer.write();
+  visualizer.treeviz.write();
 }
 
 void SSViz::dump_to_file(const SearchSpace *search_space, const EP *highlight, const std::filesystem::path &file_name) {
   assert(search_space && "Search space is null");
   assert(highlight && "EP is null");
-  SSViz visualizer(highlight);
-  visualizer.fpath = file_name;
+  ss_opts_t opts;
+  opts.highlight = highlight;
+  opts.fpath     = file_name;
+  SSViz visualizer(opts);
   visualizer.visit(search_space);
-  visualizer.write();
+  visualizer.treeviz.write();
+}
+
+void SSViz::visit_definitions(const SSNode *ssnode) {
+  std::stringstream label;
+  label << "<table bgcolor=\"" << node_colors.at(ssnode->target) << "\"";
+  if (should_highlight(ssnode, highlight)) {
+    label << " border=\"4\"";
+    label << " color=\"" << selected_color << "\"";
+  } else {
+    label << " border=\"2\"";
+    label << " color=\"black\"";
+  }
+  label << ">";
+
+  label << "<tr>";
+  label << "<td>" << bold("EP: ") << ssnode->ep_id << "</td>";
+  label << "<td>" << bold("HR: ") << (ssnode->module_data ? ssnode->module_data->hit_rate.to_string() : "None") << "</td>";
+  label << "</tr>";
+
+  label << "<tr>";
+  label << "<td colspan=\"2\">" << bold("Score: ") << stringify_score(ssnode->score) << "</td>";
+  label << "</tr>";
+
+  label << "<tr>";
+  label << "<td colspan=\"2\">" << bold("Module: ");
+  if (ssnode->module_data) {
+    label << ssnode->module_data->name;
+    if (ssnode->module_data->bdd_reordered) {
+      label << " [R]";
+    }
+    if (!ssnode->module_data->description.empty()) {
+      label << " (";
+      label << ssnode->module_data->description;
+      label << ")";
+    }
+  } else {
+    label << "ROOT";
+  }
+  label << "</td>";
+  label << "</tr>";
+
+  label << "<tr>";
+  label << "<td colspan=\"2\">";
+  if (ssnode->bdd_node_data) {
+    label << bold("Processed: ");
+    label << ssnode->bdd_node_data->description;
+  }
+  label << "</td>";
+  label << "</tr>";
+
+  if (ssnode->next_bdd_node_data) {
+    label << "<tr>";
+    label << "<td colspan=\"2\">" << bold("Next: ") << ssnode->next_bdd_node_data->description << "</td>";
+    label << "</tr>";
+  }
+
+  for (const heuristic_metadata_t &meta : ssnode->metadata) {
+    label << "<tr>";
+    label << "<td colspan=\"2\">" << bold(meta.name + ": ") << meta.description << "</td>";
+    label << "</tr>";
+  }
+
+  label << "</table>";
+
+  TreeViz::Node tree_node = treeviz.get_default_node();
+  tree_node.id            = std::to_string(ssnode->node_id);
+  tree_node.label         = label.str();
+  tree_node.color         = node_colors.at(ssnode->target);
+  treeviz.add_node(tree_node);
+
+  for (const SSNode *next : ssnode->children) {
+    visit_definitions(next);
+  }
+}
+
+void SSViz::visit_links(const SSNode *ssnode) {
+  for (const SSNode *child : ssnode->children) {
+    treeviz.add_edge(std::to_string(ssnode->node_id), std::to_string(child->node_id));
+    visit_links(child);
+  }
 }
 
 } // namespace LibSynapse

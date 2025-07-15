@@ -3,7 +3,7 @@
 #include <LibSynapse/Visitor.h>
 #include <LibSynapse/Target.h>
 #include <LibBDD/Nodes/Node.h>
-#include <LibCore/Graphviz.h>
+#include <LibCore/TreeViz.h>
 
 #include <vector>
 #include <filesystem>
@@ -11,14 +11,18 @@
 namespace LibSynapse {
 
 using LibBDD::BDDNode;
-using LibCore::Graphviz;
+using LibCore::TreeViz;
 
 class EP;
 class EPNode;
 
-class EPViz : public EPVisitor, public Graphviz {
+class EPViz : public EPVisitor {
+private:
+  TreeViz treeviz;
+
 public:
   EPViz();
+  EPViz(const std::filesystem::path &fpath);
 
   static void visualize(const EP *ep, bool interrupt);
   static void dump_to_file(const EP *ep, const std::filesystem::path &file_name);

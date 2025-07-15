@@ -1,5 +1,4 @@
 #include <LibSynapse/SearchSpace.h>
-#include <LibCore/Graphviz.h>
 #include <LibCore/Types.h>
 #include <LibCore/Expr.h>
 #include <LibCore/Debug.h>
@@ -12,7 +11,6 @@ using LibBDD::Call;
 using LibBDD::Route;
 
 using LibCore::expr_to_string;
-using LibCore::Graphviz;
 using LibCore::pretty_print_expr;
 
 namespace {
@@ -56,17 +54,14 @@ std::string get_bdd_node_description(const BDDNode *node) {
   } break;
   }
 
-  std::string node_str = description.str();
-
   constexpr const int MAX_STR_SIZE = 250;
+  std::string node_str             = description.str();
   if (node_str.size() > MAX_STR_SIZE) {
     node_str = node_str.substr(0, MAX_STR_SIZE);
     node_str += " [...]";
   }
 
-  Graphviz::sanitize_html_label(node_str);
-
-  return node_str;
+  return TreeViz::sanitize_html_label(node_str);
 }
 } // namespace
 
