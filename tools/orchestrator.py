@@ -339,7 +339,7 @@ class Orchestrator:
             queue.put_nowait(task)
 
         async_tasks = []
-        for i in range(cpu_count):
+        for _ in range(cpu_count):
             task = asyncio.create_task(self._worker(queue, skip_if_already_produced))
             async_tasks.append(task)
 

@@ -22,7 +22,7 @@ from utils.constants import *
 EXPERIMENT_NAME = "NetCache throughput"
 DATA_FILE_NAME = "tput_netcache.csv"
 STORAGE_SERVER_DELAY_NS = 0
-TOTAL_FLOWS = 50_000
+TOTAL_FLOWS = 25_000
 KVS_GET_RATIO = 0.99
 
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]

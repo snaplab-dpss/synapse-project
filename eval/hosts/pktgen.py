@@ -39,8 +39,6 @@ class Pktgen:
         self.setup_env_script = Path(repo) / "paths.sh"
 
         self.pktgen_active = False
-
-        self.max_churn = 0
         self.ready = False
 
         if self.nb_tx_cores < MIN_NUM_TX_CORES:
@@ -83,9 +81,6 @@ class Pktgen:
         traffic_dist: TrafficDist = TrafficDist.UNIFORM,
         zipf_param: float = 1.26,
         pkt_size: int = 64,
-        exp_time_us: int = 100_000,
-        crc_unique_flows: bool = False,
-        crc_bits: int = 16,
         mark_warmup_packets: bool = False,
         kvs_mode: bool = False,
         kvs_get_ratio: float = 0.99,
@@ -116,15 +111,10 @@ class Pktgen:
             f"--tx {tx_port}",
             f"--rx {rx_port}",
             f"--tx-cores {self.nb_tx_cores}",
-            f"--exp-time {exp_time_us}",
         ]
 
         if seed is not None:
             pktgen_options_list.append(f"--seed {seed}")
-
-        if crc_unique_flows:
-            pktgen_options_list.append(f"--crc-unique-flows")
-            pktgen_options_list.append(f"--crc-bits {crc_bits}")
 
         if mark_warmup_packets:
             pktgen_options_list.append(f"--mark-warmup-packets")
@@ -144,34 +134,14 @@ class Pktgen:
         self.remote_cmd = remote_cmd
         self.target_pkt_tx = 0
 
-    def wait_launch(self) -> int:
+    def wait_launch(self):
         assert self.pktgen_active
 
         if self.ready:
-            return self.max_churn
+            return
 
-        output = self.wait_ready()
-
+        self.wait_ready()
         self.ready = True
-        lines = output.split("\r\n")
-
-        while lines:
-            # Look for the header:
-            # ----- Config -----
-            if "Config" in lines[0]:
-                break
-            lines = lines[1:]
-
-        for line in lines:
-            match = re.search(r"\s*Max churn:\s*(\d+) fpm", line)
-
-            if not match:
-                continue
-
-            self.max_churn = int(match.group(1))
-            return self.max_churn
-
-        raise Exception("Unable to retrieve max churn data from output")
 
     def wait_ready(self) -> str:
         assert self.pktgen_active

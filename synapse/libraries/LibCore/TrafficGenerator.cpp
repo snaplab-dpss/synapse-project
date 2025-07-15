@@ -3,7 +3,7 @@
 namespace LibCore {
 
 TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_config, bool _assume_ip)
-    : nf(_nf), config(_config), assume_ip(_assume_ip), template_packet(build_pkt_template()), seeds_random_engine(config.random_seed, 0, UINT32_MAX),
+    : nf(_nf), config(_config), assume_ip(_assume_ip), template_packet(build_pkt_template()), seeds_random_engine(config.random_seed),
       churn_random_engine(seeds_random_engine.generate(), 0, config.total_flows - 1),
       flows_random_engine_uniform(seeds_random_engine.generate(), 0, config.total_flows - 1),
       flows_random_engine_zipf(seeds_random_engine.generate(), config.zipf_param, 0, config.total_flows - 1), pd(NULL), pdumper(NULL),

@@ -121,7 +121,6 @@ class ThroughputPerPacketSize(Experiment):
         self.hosts.pktgen.launch(
             nb_flows=self.nb_flows,
             pkt_size=self.pkt_sizes[0],
-            exp_time_us=self.controller_timeout_ms * 1000,
         )
 
         self.log("Waiting for Tofino TG")
@@ -165,7 +164,6 @@ class ThroughputPerPacketSize(Experiment):
             self.hosts.pktgen.launch(
                 nb_flows=self.nb_flows,
                 pkt_size=pkt_size,
-                exp_time_us=self.controller_timeout_ms * 1000,
             )
 
             self.hosts.pktgen.wait_launch()

@@ -74,14 +74,15 @@ def get_pcap_base_name(
 
 
 def build_synapse(
+    debug: bool,
     skip_execution: bool = False,
     show_cmds_output: bool = False,
     show_cmds: bool = False,
     silence: bool = False,
 ) -> Task:
-    cmd = "./build.sh"
+    cmd = "./build-debug.sh" if debug else "./build-release.sh"
 
-    files_consumed = [SYNAPSE_DIR / "build.sh"]
+    files_consumed = []
     files_produced = [SYNAPSE_BIN_DIR / "synapse"]
 
     return Task(
@@ -215,6 +216,7 @@ if __name__ == "__main__":
     parser.add_argument("--churns", type=int, nargs="+", default=DEFAULT_CHURN_FPM, help="Churn rate (fpm)")
     parser.add_argument("--heuristics", type=str, nargs="+", default=DEFAULT_HEURISTICS, help="Heuristic to use for searching")
     parser.add_argument("--seed", type=int, default=0, help="Seed for random number generation")
+    parser.add_argument("--debug", action="store_true", default=False, help="Enable debug mode (synapse runs much slower)")
 
     parser.add_argument("--synthesize", action="store_true", default=False, help="Synthesize solutions")
 
@@ -239,6 +241,7 @@ if __name__ == "__main__":
 
     orchestrator.add_task(
         build_synapse(
+            debug=args.debug,
             show_cmds_output=args.show_cmds_output,
             show_cmds=args.show_cmds,
             silence=args.silence,

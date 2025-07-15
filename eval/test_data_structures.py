@@ -6,7 +6,7 @@ import tomli
 from dataclasses import dataclass
 from pathlib import Path
 
-from typing import Optional, Callable
+from typing import Optional
 
 from experiments.tput import ThroughputHosts
 from experiments.experiment import Experiment
@@ -14,7 +14,7 @@ from hosts.pktgen import TrafficDist
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
-TOTAL_FLOWS = 50_000
+TOTAL_FLOWS = 25_000
 CHURN_FPM = 0
 ZIPF_PARAM = 1
 
@@ -98,6 +98,11 @@ class Test(Experiment):
             broadcast=self.tg_dut_ports,
             symmetric=[],
             route=[],
+        )
+
+        self.tput_hosts.dut_controller.launch(
+            src_in_repo=self.controller_src_in_repo,
+            ports=self.dut_ports,
         )
 
         self.log("Waiting for pktgen")

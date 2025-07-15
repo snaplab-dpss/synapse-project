@@ -18,7 +18,7 @@ from hosts.pktgen import TrafficDist
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
-TOTAL_FLOWS = 50_000
+TOTAL_FLOWS = 25_000
 
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]

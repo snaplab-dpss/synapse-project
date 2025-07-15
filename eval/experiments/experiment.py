@@ -24,10 +24,10 @@ MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
 PORT_SETUP_PRECISION = 0.1  # 10%
 PORT_SETUP_TIME_SEC = 5
 PORT_SETUP_RATE = 1  # 1 Mbps
-WARMUP_TIME_SEC = 5
+WARMUP_TIME_SEC = 8
 WARMUP_RATE = MIN_THROUGHPUT
-REST_TIME_SEC = 5
-BOGUS_RETRIES = 4
+REST_TIME_SEC = 6
+BOGUS_RETRIES = 1
 
 DEFAULT_THROUGHPUT_SEARCH_STEPS = 10
 DEFAULT_EXPERIMENT_ITERATIONS = 5
@@ -277,7 +277,7 @@ class Experiment:
 
         bogus_retry = 0
         while report.requested_bps == 0:
-            if bogus_retry >= BOGUS_RETRIES:
+            if bogus_retry > BOGUS_RETRIES:
                 self.log("Bogus retry limit reached, stopping search.")
                 break
 

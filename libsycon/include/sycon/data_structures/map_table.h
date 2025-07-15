@@ -132,8 +132,6 @@ private:
       ERROR("Target table %s not found", table_name.c_str());
     }
 
-    assert(map_table->cache.find(key_buffer) != map_table->cache.end() && "Key not found in cache");
-
     map_table->del(key_buffer);
 
     cfg.commit_dataplane_notification_transaction();

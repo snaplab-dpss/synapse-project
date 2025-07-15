@@ -6,6 +6,7 @@
 #include <random>
 #include <memory>
 #include <cassert>
+#include <iostream>
 
 namespace LibCore {
 

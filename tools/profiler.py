@@ -93,14 +93,15 @@ def get_pcap_base_name(
 
 def build_synapse(
     nfs: list[NF],
+    debug: bool,
     skip_execution: bool = False,
     show_cmds_output: bool = False,
     show_cmds: bool = False,
     silence: bool = False,
 ) -> Task:
-    cmd = "./build.sh"
+    cmd = "./build-debug.sh" if debug else "./build-release.sh"
 
-    files_consumed = [SYNAPSE_DIR / "build.sh"]
+    files_consumed = []
     files_produced = [nf.get_pcap_generator() for nf in nfs] + [
         SYNAPSE_BIN_DIR / "bdd-synthesizer",
         SYNAPSE_BIN_DIR / "bdd-visualizer",
@@ -362,6 +363,7 @@ if __name__ == "__main__":
     parser.add_argument("--total-flows", type=int, nargs="+", default=DEFAULT_TOTAL_FLOWS, help="Total flows to generate")
     parser.add_argument("--zipf-params", type=float, nargs="+", default=DEFAULT_ZIPF_PARAMS, help="Zipf parameters")
     parser.add_argument("--churn", type=int, nargs="+", default=DEFAULT_CHURN_FPM, help="Churn rate (fpm)")
+    parser.add_argument("--debug", action="store_true", default=False, help="Enable debug mode (synapse runs much slower)")
 
     parser.add_argument("--skip-pcap-generation", action="store_true", default=False, help="Skip pcap generation")
     parser.add_argument("--skip-profiler-generation", action="store_true", default=False, help="Skip profiler generation")
@@ -396,6 +398,7 @@ if __name__ == "__main__":
     orchestrator.add_task(
         build_synapse(
             nfs=[NFs[nf_name] for nf_name in args.nfs],
+            debug=args.debug,
             show_cmds_output=args.show_cmds_output,
             show_cmds=args.show_cmds,
             silence=args.silence,

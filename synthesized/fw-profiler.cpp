@@ -1059,38 +1059,38 @@ bool nf_init() {
 
 
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
-  // Node 133
+  // BDDNode 133
   inc_path_counter(133);
   int freed_flows = profiler_expire_items_single_map(dchain, vector, map, now);
   expiration_tracker.update(freed_flows, now);
-  // Node 134
+  // BDDNode 134
   inc_path_counter(134);
   uint8_t* hdr;
   packet_borrow_next_chunk(buffer, 14, (void**)&hdr);
-  // Node 135
+  // BDDNode 135
   inc_path_counter(135);
   if (((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))) {
-    // Node 136
+    // BDDNode 136
     inc_path_counter(136);
     uint8_t* hdr2;
     packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
-    // Node 137
+    // BDDNode 137
     inc_path_counter(137);
     if ((((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & ((4) <= ((uint32_t)((4294967262LL) + ((uint16_t)(packet_length & 65535)))))) {
-      // Node 138
+      // BDDNode 138
       inc_path_counter(138);
       uint8_t* hdr3;
       packet_borrow_next_chunk(buffer, 4, (void**)&hdr3);
-      // Node 139
+      // BDDNode 139
       inc_path_counter(139);
       uint8_t* vector_value_out65 = 0;
       vector_borrow(vector2, (uint16_t)(device & 65535), (void**)&vector_value_out65);
-      // Node 140
+      // BDDNode 140
       inc_path_counter(140);
-      // Node 141
+      // BDDNode 141
       inc_path_counter(141);
       if ((0) == (*(uint32_t*)vector_value_out65)) {
-        // Node 142
+        // BDDNode 142
         inc_path_counter(142);
         uint8_t key[13];
         key[0] = *(hdr3+2);
@@ -1109,57 +1109,57 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         int value;
         int map_hit = map_get(map, key, &value);
         stats_per_map[1074044016].update(142, key, 13, now);
-        // Node 143
+        // BDDNode 143
         inc_path_counter(143);
         if ((0) == (map_hit)) {
-          // Node 144
+          // BDDNode 144
           inc_path_counter(144);
           packet_return_chunk(buffer, hdr3);
-          // Node 145
+          // BDDNode 145
           inc_path_counter(145);
           packet_return_chunk(buffer, hdr2);
-          // Node 146
+          // BDDNode 146
           inc_path_counter(146);
           packet_return_chunk(buffer, hdr);
-          // Node 147
+          // BDDNode 147
           inc_path_counter(147);
           forwarding_stats_per_route_op[147].inc_drop();
           return DROP;
         } else {
-          // Node 148
+          // BDDNode 148
           inc_path_counter(148);
           dchain_rejuvenate_index(dchain, value, now);
-          // Node 149
+          // BDDNode 149
           inc_path_counter(149);
           uint8_t* vector_value_out66 = 0;
           vector_borrow(vector3, (uint16_t)(device & 65535), (void**)&vector_value_out66);
-          // Node 150
+          // BDDNode 150
           inc_path_counter(150);
-          // Node 151
+          // BDDNode 151
           inc_path_counter(151);
           packet_return_chunk(buffer, hdr3);
-          // Node 152
+          // BDDNode 152
           inc_path_counter(152);
           packet_return_chunk(buffer, hdr2);
-          // Node 153
+          // BDDNode 153
           inc_path_counter(153);
           packet_return_chunk(buffer, hdr);
-          // Node 154
+          // BDDNode 154
           inc_path_counter(154);
           if ((65535) != (*(uint16_t*)vector_value_out66)) {
-            // Node 155
+            // BDDNode 155
             inc_path_counter(155);
             forwarding_stats_per_route_op[155].inc_fwd(*(uint16_t*)vector_value_out66);
             return *(uint16_t*)vector_value_out66;
           } else {
-            // Node 156
+            // BDDNode 156
             inc_path_counter(156);
             forwarding_stats_per_route_op[156].inc_drop();
             return DROP;
           } // (65535) != (*(uint16_t*)vector_value_out66)
         } // (0) == (map_hit)
       } else {
-        // Node 157
+        // BDDNode 157
         inc_path_counter(157);
         uint8_t key2[13];
         key2[0] = *(hdr3+0);
@@ -1178,113 +1178,113 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         int value2;
         int map_hit2 = map_get(map, key2, &value2);
         stats_per_map[1074044016].update(157, key2, 13, now);
-        // Node 158
+        // BDDNode 158
         inc_path_counter(158);
         if ((0) == (map_hit2)) {
-          // Node 159
+          // BDDNode 159
           inc_path_counter(159);
           int index;
           int not_out_of_space = dchain_allocate_new_index(dchain, &index, now);
-          // Node 160
+          // BDDNode 160
           inc_path_counter(160);
           if ((0) == (not_out_of_space)) {
-            // Node 161
+            // BDDNode 161
             inc_path_counter(161);
             uint8_t* vector_value_out67 = 0;
             vector_borrow(vector3, (uint16_t)(device & 65535), (void**)&vector_value_out67);
-            // Node 162
+            // BDDNode 162
             inc_path_counter(162);
-            // Node 163
+            // BDDNode 163
             inc_path_counter(163);
             packet_return_chunk(buffer, hdr3);
-            // Node 164
+            // BDDNode 164
             inc_path_counter(164);
             packet_return_chunk(buffer, hdr2);
-            // Node 165
+            // BDDNode 165
             inc_path_counter(165);
             packet_return_chunk(buffer, hdr);
-            // Node 166
+            // BDDNode 166
             inc_path_counter(166);
             if ((65535) != (*(uint16_t*)vector_value_out67)) {
-              // Node 167
+              // BDDNode 167
               inc_path_counter(167);
               forwarding_stats_per_route_op[167].inc_fwd(*(uint16_t*)vector_value_out67);
               return *(uint16_t*)vector_value_out67;
             } else {
-              // Node 168
+              // BDDNode 168
               inc_path_counter(168);
               forwarding_stats_per_route_op[168].inc_drop();
               return DROP;
             } // (65535) != (*(uint16_t*)vector_value_out67)
           } else {
-            // Node 169
+            // BDDNode 169
             inc_path_counter(169);
             uint8_t* vector_value_out68 = 0;
             vector_borrow(vector, index, (void**)&vector_value_out68);
-            // Node 170
+            // BDDNode 170
             inc_path_counter(170);
             memcpy((void*)vector_value_out68, (void*)key2, 13);
             map_put(map, vector_value_out68, index);
             stats_per_map[1074044016].update(170, vector_value_out68, 13, now);
-            // Node 171
+            // BDDNode 171
             inc_path_counter(171);
-            // Node 172
+            // BDDNode 172
             inc_path_counter(172);
             uint8_t* vector_value_out69 = 0;
             vector_borrow(vector3, (uint16_t)(device & 65535), (void**)&vector_value_out69);
-            // Node 173
+            // BDDNode 173
             inc_path_counter(173);
-            // Node 174
+            // BDDNode 174
             inc_path_counter(174);
             packet_return_chunk(buffer, hdr3);
-            // Node 175
+            // BDDNode 175
             inc_path_counter(175);
             packet_return_chunk(buffer, hdr2);
-            // Node 176
+            // BDDNode 176
             inc_path_counter(176);
             packet_return_chunk(buffer, hdr);
-            // Node 177
+            // BDDNode 177
             inc_path_counter(177);
             if ((65535) != (*(uint16_t*)vector_value_out69)) {
-              // Node 178
+              // BDDNode 178
               inc_path_counter(178);
               forwarding_stats_per_route_op[178].inc_fwd(*(uint16_t*)vector_value_out69);
               return *(uint16_t*)vector_value_out69;
             } else {
-              // Node 179
+              // BDDNode 179
               inc_path_counter(179);
               forwarding_stats_per_route_op[179].inc_drop();
               return DROP;
             } // (65535) != (*(uint16_t*)vector_value_out69)
           } // (0) == (not_out_of_space)
         } else {
-          // Node 180
+          // BDDNode 180
           inc_path_counter(180);
           dchain_rejuvenate_index(dchain, value2, now);
-          // Node 181
+          // BDDNode 181
           inc_path_counter(181);
           uint8_t* vector_value_out70 = 0;
           vector_borrow(vector3, (uint16_t)(device & 65535), (void**)&vector_value_out70);
-          // Node 182
+          // BDDNode 182
           inc_path_counter(182);
-          // Node 183
+          // BDDNode 183
           inc_path_counter(183);
           packet_return_chunk(buffer, hdr3);
-          // Node 184
+          // BDDNode 184
           inc_path_counter(184);
           packet_return_chunk(buffer, hdr2);
-          // Node 185
+          // BDDNode 185
           inc_path_counter(185);
           packet_return_chunk(buffer, hdr);
-          // Node 186
+          // BDDNode 186
           inc_path_counter(186);
           if ((65535) != (*(uint16_t*)vector_value_out70)) {
-            // Node 187
+            // BDDNode 187
             inc_path_counter(187);
             forwarding_stats_per_route_op[187].inc_fwd(*(uint16_t*)vector_value_out70);
             return *(uint16_t*)vector_value_out70;
           } else {
-            // Node 188
+            // BDDNode 188
             inc_path_counter(188);
             forwarding_stats_per_route_op[188].inc_drop();
             return DROP;
@@ -1292,22 +1292,22 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         } // (0) == (map_hit2)
       } // (0) == (*(uint32_t*)vector_value_out65)
     } else {
-      // Node 189
+      // BDDNode 189
       inc_path_counter(189);
       packet_return_chunk(buffer, hdr2);
-      // Node 190
+      // BDDNode 190
       inc_path_counter(190);
       packet_return_chunk(buffer, hdr);
-      // Node 191
+      // BDDNode 191
       inc_path_counter(191);
       forwarding_stats_per_route_op[191].inc_drop();
       return DROP;
     } // (((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & ((4) <= ((uint32_t)((4294967262LL) + ((uint16_t)(packet_length & 65535)))))
   } else {
-    // Node 192
+    // BDDNode 192
     inc_path_counter(192);
     packet_return_chunk(buffer, hdr);
-    // Node 193
+    // BDDNode 193
     inc_path_counter(193);
     forwarding_stats_per_route_op[193].inc_drop();
     return DROP;

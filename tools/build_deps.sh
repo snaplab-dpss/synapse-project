@@ -252,8 +252,7 @@ build_synapse() {
 	echo "Building Synapse..."
 
 	pushd "$SYNAPSE_DIR"
-		rm -rf build
-		./build.sh
+		./build-release.sh
 	popd
 
 	add_multiline_var_to_paths_file "PATH" "$SYNAPSE_BUILD_DIR/bin:\$PATH"
