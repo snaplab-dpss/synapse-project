@@ -19,13 +19,8 @@
 
 namespace LibBDD {
 
-using LibCore::expr_to_string;
-using LibCore::kQuery_t;
-using LibCore::kQueryParser;
-using LibCore::solver_toolbox;
-
-std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, SymbolManager *manager) {
-  kQueryParser parser(manager);
+std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, LibCore::SymbolManager *manager) {
+  LibCore::kQueryParser parser(manager);
 
   std::ifstream call_path_file(fpath.string());
   assert(call_path_file.is_open() && "Unable to open call path file.");
@@ -70,7 +65,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
           query_str += "])";
         }
 
-        kQuery_t kQuery = parser.parse(query_str);
+        LibCore::kQuery_t kQuery = parser.parse(query_str);
 
         call_path->symbols = kQuery.symbols;
 
@@ -144,15 +139,15 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
         }
 
         if (current_exprs_str.size() && parenthesis_level == 0) {
-          auto last_store = current_exprs_str.back();
+          std::string last_store = current_exprs_str.back();
           if (line.size() < last_store.size())
             last_store = last_store.substr(last_store.size() - line.size());
-          auto remainder_delim = line.find(last_store);
-          auto remainder       = line.substr(remainder_delim + last_store.size());
-          auto ret_symbol      = std::string("-> ");
-          auto ret_delim       = remainder.find(ret_symbol);
+          const size_t remainder_delim = line.find(last_store);
+          const std::string remainder  = line.substr(remainder_delim + last_store.size());
+          const std::string ret_symbol = "-> ";
+          const size_t ret_delim       = remainder.find(ret_symbol);
           if (ret_delim != std::string::npos && remainder.substr(ret_symbol.size() + 1) != "[]") {
-            auto ret = remainder.substr(ret_symbol.size() + 1);
+            std::string ret = remainder.substr(ret_symbol.size() + 1);
             current_exprs_str.push_back(ret);
           }
         }
@@ -252,6 +247,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                   }
 
                   bits_t offset = 0;
+
                   for (std::string part : expr_parts) {
                     delim = part.find("->");
                     assert(delim != std::string::npos && "Invalid call");
@@ -266,9 +262,9 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                     std::string meta_expr_str = part.substr(open_delim + 1);
                     meta_expr_str             = meta_expr_str.substr(0, meta_expr_str.size() - 1);
 
-                    klee::ref<klee::Expr> meta_expr = parser.parse_expr(meta_expr_str);
-                    const bits_t meta_size          = meta_expr->getWidth();
-                    const meta_t meta               = meta_t{symbol, offset, meta_size};
+                    klee::ref<klee::Expr> meta_expr   = parser.parse_expr(meta_expr_str);
+                    const klee::Expr::Width meta_size = meta_expr->getWidth();
+                    meta_t meta                       = {symbol, offset, meta_size};
 
                     offset += meta_size;
 
@@ -308,7 +304,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
       }
 
       if (current_exprs_str.size() && parenthesis_level == 0) {
-        std::string &last_store = current_exprs_str.back();
+        std::string last_store = current_exprs_str.back();
         if (line.size() < last_store.size())
           last_store = last_store.substr(last_store.size() - line.size());
         const size_t remainder_delim = line.find(last_store);
@@ -416,6 +412,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                 }
 
                 bits_t offset = 0;
+
                 for (std::string part : expr_parts) {
                   delim = part.find("->");
                   assert(delim != std::string::npos && "Invalid call");
@@ -423,16 +420,15 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
                   part = part.substr(0, delim);
 
                   const size_t open_delim = part.find("(");
-                  assert(open_delim != std::string::npos && "Invalid call");
                   assert(part.find(")") != std::string::npos && "Invalid call");
 
                   const std::string symbol  = part.substr(0, open_delim);
                   std::string meta_expr_str = part.substr(open_delim + 1);
                   meta_expr_str             = meta_expr_str.substr(0, meta_expr_str.size() - 1);
 
-                  klee::ref<klee::Expr> meta_expr = parser.parse_expr(meta_expr_str);
-                  const bits_t meta_size          = meta_expr->getWidth();
-                  const meta_t meta               = meta_t{symbol, offset, meta_size};
+                  klee::ref<klee::Expr> meta_expr   = parser.parse_expr(meta_expr_str);
+                  const klee::Expr::Width meta_size = meta_expr->getWidth();
+                  const meta_t meta                 = {symbol, offset, meta_size};
 
                   offset += meta_size;
 
@@ -469,37 +465,38 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
   return call_path;
 }
 
-Symbols call_paths_view_t::get_symbols() const {
-  Symbols symbols;
+LibCore::Symbols call_paths_view_t::get_symbols() const {
+  LibCore::Symbols symbols;
   for (const call_path_t *cp : data) {
     symbols.add(cp->symbols);
   }
   return symbols;
 }
 
-call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files, SymbolManager *_manager) : manager(_manager) {
+call_paths_t::call_paths_t(const std::vector<std::filesystem::path> &call_path_files, LibCore::SymbolManager *_manager) : manager(_manager) {
   for (const std::filesystem::path &fpath : call_path_files) {
     data.push_back(load_call_path(fpath, manager));
   }
 
-  for (const auto &call_path : data) {
-    for (const auto &expr : call_path->constraints) {
-      assert_or_panic(manager->manages(expr), "Call path constraint is not managed by the symbol manager.");
+  assert(std::all_of(data.begin(), data.end(), [this](const std::unique_ptr<call_path_t> &call_path) {
+    bool passed = true;
+    for (const klee::ref<klee::Expr> &expr : call_path->constraints) {
+      passed = passed && manager->manages(expr);
     }
-    for (const auto &call : call_path->calls) {
-      for (const auto &arg : call.args) {
-        assert_or_panic(manager->manages(arg.second.expr), "Call path argument expression is not managed by the symbol manager.");
-        assert_or_panic(manager->manages(arg.second.in), "Call path argument input expression is not managed by the symbol manager.");
-        assert_or_panic(manager->manages(arg.second.out), "Call path argument output expression is not managed by the symbol manager.");
+    for (const call_t &call : call_path->calls) {
+      for (const auto &[_, arg] : call.args) {
+        passed = passed && manager->manages(arg.expr);
+        passed = passed && manager->manages(arg.in);
+        passed = passed && manager->manages(arg.out);
       }
-      for (const auto &extra_var : call.extra_vars) {
-        assert_or_panic(manager->manages(extra_var.second.first), "Call path extra variable first expression is not managed by the symbol manager.");
-        assert_or_panic(manager->manages(extra_var.second.second),
-                        "Call path extra variable second expression is not managed by the symbol manager.");
+      for (const auto &[_, extra_var] : call.extra_vars) {
+        passed = passed && manager->manages(extra_var.first);
+        passed = passed && manager->manages(extra_var.second);
       }
-      assert_or_panic(manager->manages(call.ret), "Call path return expression is not managed by the symbol manager.");
+      passed = passed && manager->manages(call.ret);
     }
-  }
+    return passed;
+  }));
 }
 
 call_paths_view_t call_paths_t::get_view() const {
@@ -517,19 +514,19 @@ std::ostream &operator<<(std::ostream &os, const arg_t &arg) {
     return os;
   }
 
-  os << expr_to_string(arg.expr, true);
+  os << LibCore::expr_to_string(arg.expr, true);
 
   if (!arg.in.isNull() || !arg.out.isNull()) {
     os << "[";
 
     if (!arg.in.isNull()) {
-      os << expr_to_string(arg.in, true);
+      os << LibCore::expr_to_string(arg.in, true);
     }
 
     os << " -> ";
 
     if (!arg.out.isNull()) {
-      os << expr_to_string(arg.out, true);
+      os << LibCore::expr_to_string(arg.out, true);
     }
 
     os << "]";
@@ -543,10 +540,7 @@ std::ostream &operator<<(std::ostream &os, const call_t &call) {
   os << "(";
 
   bool first = true;
-  for (auto arg_pair : call.args) {
-    auto label = arg_pair.first;
-    auto arg   = arg_pair.second;
-
+  for (const auto &[label, arg] : call.args) {
     if (!first) {
       os << ",";
     }
@@ -561,7 +555,7 @@ std::ostream &operator<<(std::ostream &os, const call_t &call) {
 
   if (!call.ret.isNull()) {
     os << " => ";
-    os << expr_to_string(call.ret, true);
+    os << LibCore::expr_to_string(call.ret, true);
   }
 
   return os;
@@ -570,7 +564,7 @@ std::ostream &operator<<(std::ostream &os, const call_t &call) {
 std::ostream &operator<<(std::ostream &str, const call_path_t &cp) {
   str << "Callpath:\n";
 
-  for (auto call : cp.calls) {
+  for (const call_t &call : cp.calls) {
     str << "  " << call << "\n";
   }
 
@@ -578,7 +572,7 @@ std::ostream &operator<<(std::ostream &str, const call_path_t &cp) {
 }
 
 std::ostream &operator<<(std::ostream &os, klee::ref<klee::Expr> expr) {
-  os << expr_to_string(expr, true);
+  os << LibCore::expr_to_string(expr, true);
   return os;
 }
 
@@ -587,13 +581,13 @@ bool are_calls_equal(call_t c1, call_t c2) {
     return false;
   }
 
-  for (auto arg : c1.args) {
-    auto found = c2.args.find(arg.first);
+  for (const auto &[arg_name, arg] : c1.args) {
+    auto found = c2.args.find(arg_name);
     if (found == c2.args.end()) {
       return false;
     }
 
-    const arg_t &arg1 = arg.second;
+    const arg_t &arg1 = arg;
     const arg_t &arg2 = found->second;
 
     klee::ref<klee::Expr> expr1 = arg1.expr;
@@ -617,11 +611,11 @@ bool are_calls_equal(call_t c1, call_t c2) {
       return false;
     }
 
-    if (in1.isNull() && out1.isNull() && !solver_toolbox.are_exprs_always_equal(expr1, expr2)) {
+    if (in1.isNull() && out1.isNull() && !LibCore::solver_toolbox.are_exprs_always_equal(expr1, expr2)) {
       return false;
     }
 
-    if (!in1.isNull() && !solver_toolbox.are_exprs_always_equal(in1, in2)) {
+    if (!in1.isNull() && !LibCore::solver_toolbox.are_exprs_always_equal(in1, in2)) {
       return false;
     }
   }

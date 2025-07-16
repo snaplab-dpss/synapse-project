@@ -11,6 +11,7 @@
 namespace LibSynapse {
 
 using LibCore::TreeViz;
+using LibCore::Graphviz::Color;
 
 using LibBDD::bdd_visualizer_opts_t;
 using LibBDD::BDDNodeType;
@@ -105,9 +106,8 @@ private:
     return annocations_per_node;
   }
 
-  static std::unordered_map<bdd_node_id_t, TreeViz::Color>
-  get_colors_per_node(const std::unordered_map<bdd_node_id_t, hit_rate_t> &fraction_per_node) {
-    std::unordered_map<bdd_node_id_t, TreeViz::Color> colors_per_node;
+  static std::unordered_map<bdd_node_id_t, Color> get_colors_per_node(const std::unordered_map<bdd_node_id_t, hit_rate_t> &fraction_per_node) {
+    std::unordered_map<bdd_node_id_t, Color> colors_per_node;
 
     for (const auto &[node, fraction] : fraction_per_node) {
       colors_per_node[node] = fraction_to_color(fraction);
@@ -116,20 +116,20 @@ private:
     return colors_per_node;
   }
 
-  static TreeViz::Color fraction_to_color(hit_rate_t fraction) {
+  static Color fraction_to_color(hit_rate_t fraction) {
     // return hit_rate_to_rainbow(fraction);
     // return hit_rate_to_blue(fraction);
     return hit_rate_to_blue_red_scale(fraction);
   }
 
-  static TreeViz::Color hit_rate_to_rainbow(hit_rate_t fraction) {
-    const TreeViz::Color blue(0, 0, 1);
-    const TreeViz::Color cyan(0, 1, 1);
-    const TreeViz::Color green(0, 1, 0);
-    const TreeViz::Color yellow(1, 1, 0);
-    const TreeViz::Color red(1, 0, 0);
+  static Color hit_rate_to_rainbow(hit_rate_t fraction) {
+    const Color blue(0, 0, 1);
+    const Color cyan(0, 1, 1);
+    const Color green(0, 1, 0);
+    const Color yellow(1, 1, 0);
+    const Color red(1, 0, 0);
 
-    const std::vector<TreeViz::Color> palette{blue, cyan, green, yellow, red};
+    const std::vector<Color> palette{blue, cyan, green, yellow, red};
 
     double value = fraction.value * (palette.size() - 1);
     int idx1     = std::floor(value);
@@ -140,23 +140,23 @@ private:
     const u8 g = 0xff * ((palette[idx2].rgb.green - palette[idx1].rgb.green) * frac + palette[idx1].rgb.green);
     const u8 b = 0xff * ((palette[idx2].rgb.blue - palette[idx1].rgb.blue) * frac + palette[idx1].rgb.blue);
 
-    return TreeViz::Color(r, g, b);
+    return Color(r, g, b);
   }
 
-  static TreeViz::Color hit_rate_to_blue(hit_rate_t fraction) {
+  static Color hit_rate_to_blue(hit_rate_t fraction) {
     const u8 r = 0xff * (1 - fraction.value);
     const u8 g = 0xff * (1 - fraction.value);
     const u8 b = 0xff;
     const u8 o = 0xff * 0.5;
-    return TreeViz::Color(r, g, b, o);
+    return Color(r, g, b, o);
   }
 
-  static TreeViz::Color hit_rate_to_blue_red_scale(hit_rate_t fraction) {
+  static Color hit_rate_to_blue_red_scale(hit_rate_t fraction) {
     const u8 r = 0xff * fraction.value;
     const u8 g = 0;
     const u8 b = 0xff * (1 - fraction.value);
     const u8 o = 0xff * 0.33;
-    return TreeViz::Color(r, g, b, o);
+    return Color(r, g, b, o);
   }
 };
 

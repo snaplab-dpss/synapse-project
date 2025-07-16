@@ -1,5 +1,6 @@
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Visualizers/EPVisualizer.h>
+#include <LibCore/Strings.h>
 
 #include <ctime>
 #include <fstream>
@@ -20,11 +21,15 @@
 
 namespace LibSynapse {
 
+using LibCore::find_and_replace;
+using LibCore::Graphviz::Node;
+using LibCore::Graphviz::Shape;
+
 namespace {
-const std::unordered_map<TargetType, TreeViz::Color> node_colors = {
-    {TargetType::Tofino, TreeViz::Color::Literal::CornflowerBlue},
-    {TargetType::Controller, TreeViz::Color::Literal::LightCoral},
-    {TargetType::x86, TreeViz::Color::Literal::Orange},
+const std::unordered_map<TargetType, Color> node_colors = {
+    {TargetType::Tofino, Color::Literal::CornflowerBlue},
+    {TargetType::Controller, Color::Literal::LightCoral},
+    {TargetType::x86, Color::Literal::Orange},
 };
 
 const std::unordered_set<ModuleType> modules_to_ignore{
@@ -75,12 +80,12 @@ void EPViz::function_call(const EPNode *ep_node, const BDDNode *node, TargetType
   ss << node->get_id();
   ss << "]";
   ss << "\\n";
-  ss << TreeViz::find_and_replace(label, {{"\n", "\\n"}});
+  ss << find_and_replace(label, {{"\n", "\\n"}});
 
-  TreeViz::Node tree_node = treeviz.get_default_node();
-  tree_node.id            = std::to_string(ep_node->get_id());
-  tree_node.label         = ss.str();
-  tree_node.color         = node_colors.at(target);
+  Node tree_node  = treeviz.get_default_node();
+  tree_node.id    = std::to_string(ep_node->get_id());
+  tree_node.label = ss.str();
+  tree_node.color = node_colors.at(target);
   treeviz.add_node(tree_node);
 }
 
@@ -93,13 +98,13 @@ void EPViz::branch(const EPNode *ep_node, const BDDNode *node, TargetType target
   ss << node->get_id();
   ss << "]";
   ss << " ";
-  ss << TreeViz::find_and_replace(label, {{"\n", "\\n"}});
+  ss << find_and_replace(label, {{"\n", "\\n"}});
 
-  TreeViz::Node tree_node = treeviz.get_default_node();
-  tree_node.id            = std::to_string(ep_node->get_id());
-  tree_node.label         = ss.str();
-  tree_node.color         = node_colors.at(target);
-  tree_node.shape         = TreeViz::Shape::Ellipse;
+  Node tree_node  = treeviz.get_default_node();
+  tree_node.id    = std::to_string(ep_node->get_id());
+  tree_node.label = ss.str();
+  tree_node.color = node_colors.at(target);
+  tree_node.shape = Shape::Ellipse;
   treeviz.add_node(tree_node);
 }
 

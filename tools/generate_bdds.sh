@@ -35,8 +35,8 @@ run() {
 
 # run "echo"
 # run "fwd"
-# run "fw"
-# run "nat"
+run "fw"
+run "nat"
 run "kvs"
 # run "pol"
 # run "cl"

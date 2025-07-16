@@ -16,7 +16,7 @@ from utils.constants import *
 
 TOTAL_FLOWS = 25_000
 CHURN_FPM = 0
-ZIPF_PARAM = 1
+ZIPF_PARAM = 1.2
 
 
 @dataclass

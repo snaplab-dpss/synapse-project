@@ -2,6 +2,7 @@
 
 #include <LibCore/Debug.h>
 #include <LibCore/Symbol.h>
+#include <LibCore/ClusterViz.h>
 
 #include <LibBDD/BDD.h>
 
@@ -16,6 +17,7 @@
 
 namespace LibClone {
 
+using LibCore::ClusterViz;
 using LibCore::SymbolManager;
 
 class Network {
@@ -35,6 +37,7 @@ public:
   static Network parse(const std::filesystem::path &file_path, SymbolManager *symbol_manager);
 
   BDD consolidate() const;
+  ClusterViz build_clusterviz() const;
 
   void debug() const {
     std::cerr << "========== Network ==========\n";

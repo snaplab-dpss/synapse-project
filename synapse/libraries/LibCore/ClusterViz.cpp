@@ -1,4 +1,4 @@
-#include <LibCore/TreeViz.h>
+#include <LibCore/ClusterViz.h>
 #include <LibCore/Debug.h>
 #include <LibCore/System.h>
 
@@ -6,19 +6,12 @@
 
 namespace LibCore {
 
-TreeViz::TreeViz(const std::filesystem::path &_fpath)
+ClusterViz::ClusterViz(const std::filesystem::path &_fpath)
     : fpath(_fpath.empty() ? create_random_file(".dot") : _fpath), default_node(Color::Literal::Gray, Shape::Box, 0, {Style::Filled}) {}
 
-TreeViz::TreeViz() : TreeViz(create_random_file(".dot")) {}
+ClusterViz::ClusterViz() : ClusterViz(create_random_file(".dot")) {}
 
-void TreeViz::add_node(const ID &id, const Label &label) {
-  Node node  = default_node;
-  node.id    = id;
-  node.label = label;
-  add_node(node);
-}
-
-void TreeViz::add_node(const Node &node) {
+void ClusterViz::add_node(const Node &node) {
   if (nodes.find(node) == nodes.end()) {
     nodes.insert(node);
   } else {
@@ -26,15 +19,26 @@ void TreeViz::add_node(const Node &node) {
   }
 }
 
-void TreeViz::add_edge(const ID &from, const ID &to, std::optional<Label> label) { edges.emplace_back(from, to, label); }
+void ClusterViz::add_cluster(const Cluster &cluster) {
+  if (clusters.find(cluster) == clusters.end()) {
+    clusters.insert(cluster);
+  } else {
+    panic("Cluster with id %s already exists", cluster.id.c_str());
+  }
+}
 
-void TreeViz::write() const {
+void ClusterViz::add_edge(const Edge &edge) { edges.push_back(edge); }
+
+void ClusterViz::write() const {
   std::ofstream file(fpath);
   if (!file.is_open()) {
     panic("Failed to open file %s for writing", fpath.string().c_str());
   }
 
   file << "digraph G {\n";
+  for (const Cluster &cluster : clusters) {
+    file << cluster << "\n";
+  }
   for (const Node &node : nodes) {
     file << "\t" << node << ";\n";
   }
@@ -44,7 +48,7 @@ void TreeViz::write() const {
   file << "}";
 }
 
-void TreeViz::show(bool interrupt) const {
+void ClusterViz::show(bool interrupt) const {
   write();
   Graphviz::visualize_dot_file(fpath, interrupt);
 }

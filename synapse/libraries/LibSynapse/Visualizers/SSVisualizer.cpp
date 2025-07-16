@@ -1,22 +1,29 @@
 #include <LibSynapse/Visualizers/SSVisualizer.h>
+#include <LibCore/TreeViz.h>
+#include <LibCore/Strings.h>
 
 #include <unordered_map>
 
 namespace LibSynapse {
 
+using LibCore::sanitize_html_label;
+using LibCore::Graphviz::Color;
+using LibCore::Graphviz::Node;
+using LibCore::Graphviz::Shape;
+
 namespace {
-const std::unordered_map<TargetType, TreeViz::Color> node_colors = {
-    {TargetType::Tofino, TreeViz::Color::Literal::CornflowerBlue},
-    {TargetType::Controller, TreeViz::Color::Literal::LightCoral},
-    {TargetType::x86, TreeViz::Color::Literal::Orange},
+const std::unordered_map<TargetType, Color> node_colors = {
+    {TargetType::Tofino, Color::Literal::CornflowerBlue},
+    {TargetType::Controller, Color::Literal::LightCoral},
+    {TargetType::x86, Color::Literal::Orange},
 };
 
-const TreeViz::Color selected_color = TreeViz::Color::Literal::Green;
+const Color selected_color = Color::Literal::Green;
 
 std::string stringify_score(const Score &score) {
   std::stringstream score_builder;
   score_builder << score;
-  return TreeViz::sanitize_html_label(score_builder.str());
+  return sanitize_html_label(score_builder.str());
 }
 
 bool should_highlight(const SSNode *ssnode, const std::set<ep_id_t> &highlight) { return highlight.find(ssnode->ep_id) != highlight.end(); }
@@ -42,8 +49,8 @@ SSViz::SSViz(const ss_opts_t &opts) : treeviz(opts.fpath) {
 }
 
 void SSViz::visit(const SearchSpace *search_space) {
-  TreeViz::Node default_node = treeviz.get_default_node();
-  default_node.shape         = TreeViz::Shape::Html;
+  Node default_node  = treeviz.get_default_node();
+  default_node.shape = Shape::Html;
   treeviz.set_default_node(default_node);
 
   const SSNode *root = search_space->get_root();
@@ -155,10 +162,10 @@ void SSViz::visit_definitions(const SSNode *ssnode) {
 
   label << "</table>";
 
-  TreeViz::Node tree_node = treeviz.get_default_node();
-  tree_node.id            = std::to_string(ssnode->node_id);
-  tree_node.label         = label.str();
-  tree_node.color         = node_colors.at(ssnode->target);
+  Node tree_node  = treeviz.get_default_node();
+  tree_node.id    = std::to_string(ssnode->node_id);
+  tree_node.label = label.str();
+  tree_node.color = node_colors.at(ssnode->target);
   treeviz.add_node(tree_node);
 
   for (const SSNode *next : ssnode->children) {

@@ -11,6 +11,8 @@
 namespace LibBDD {
 
 using LibCore::TreeViz;
+using LibCore::Graphviz::Color;
+using LibCore::Graphviz::Shape;
 
 class BDDProfileVisualizer : public BDDViz {
 public:
@@ -71,9 +73,9 @@ private:
     return annocations_per_node;
   }
 
-  static std::unordered_map<bdd_node_id_t, TreeViz::Color> get_colors_per_node(const std::unordered_map<bdd_node_id_t, u64> &counters) {
+  static std::unordered_map<bdd_node_id_t, Color> get_colors_per_node(const std::unordered_map<bdd_node_id_t, u64> &counters) {
     const u64 total_counter = get_total_counter(counters);
-    std::unordered_map<bdd_node_id_t, TreeViz::Color> colors_per_node;
+    std::unordered_map<bdd_node_id_t, Color> colors_per_node;
 
     for (auto it = counters.begin(); it != counters.end(); it++) {
       const bdd_node_id_t node = it->first;
@@ -85,20 +87,20 @@ private:
     return colors_per_node;
   }
 
-  static TreeViz::Color hit_rate_to_color(hit_rate_t node_hit_rate) {
+  static Color hit_rate_to_color(hit_rate_t node_hit_rate) {
     // return hit_rate_to_rainbow(node_hit_rate);
     // return hit_rate_to_blue(node_hit_rate);
     return hit_rate_to_blue_red_scale(node_hit_rate);
   }
 
-  static TreeViz::Color hit_rate_to_rainbow(hit_rate_t node_hit_rate) {
-    const TreeViz::Color blue(0, 0, 1);
-    const TreeViz::Color cyan(0, 1, 1);
-    const TreeViz::Color green(0, 1, 0);
-    const TreeViz::Color yellow(1, 1, 0);
-    const TreeViz::Color red(1, 0, 0);
+  static Color hit_rate_to_rainbow(hit_rate_t node_hit_rate) {
+    const Color blue(0, 0, 1);
+    const Color cyan(0, 1, 1);
+    const Color green(0, 1, 0);
+    const Color yellow(1, 1, 0);
+    const Color red(1, 0, 0);
 
-    const std::vector<TreeViz::Color> palette{blue, cyan, green, yellow, red};
+    const std::vector<Color> palette{blue, cyan, green, yellow, red};
 
     const double value = node_hit_rate.value * (palette.size() - 1);
     const int idx1     = std::floor(value);
@@ -109,23 +111,23 @@ private:
     const u8 g = 0xff * ((palette[idx2].rgb.green - palette[idx1].rgb.green) * frac + palette[idx1].rgb.green);
     const u8 b = 0xff * ((palette[idx2].rgb.blue - palette[idx1].rgb.blue) * frac + palette[idx1].rgb.blue);
 
-    return TreeViz::Color(r, g, b);
+    return Color(r, g, b);
   }
 
-  static TreeViz::Color hit_rate_to_blue(hit_rate_t node_hit_rate) {
+  static Color hit_rate_to_blue(hit_rate_t node_hit_rate) {
     const u8 r = 0xff * (1.0 - node_hit_rate.value);
     const u8 g = 0xff * (1.0 - node_hit_rate.value);
     const u8 b = 0xff;
     const u8 o = 0xff;
-    return TreeViz::Color(r, g, b, o);
+    return Color(r, g, b, o);
   }
 
-  static TreeViz::Color hit_rate_to_blue_red_scale(hit_rate_t node_hit_rate) {
+  static Color hit_rate_to_blue_red_scale(hit_rate_t node_hit_rate) {
     const u8 r = 0xff * node_hit_rate.value;
     const u8 g = 0;
     const u8 b = 0xff * (1.0 - node_hit_rate).value;
     const u8 o = 0xff * 0.33;
-    return TreeViz::Color(r, g, b, o);
+    return Color(r, g, b, o);
   }
 };
 

@@ -20,6 +20,9 @@
 namespace LibBDD {
 
 using LibCore::TreeViz;
+using LibCore::Graphviz::Color;
+using LibCore::Graphviz::Node;
+using LibCore::Graphviz::Shape;
 
 struct processed_t {
   std::unordered_set<bdd_node_id_t> nodes;
@@ -30,19 +33,19 @@ struct processed_t {
 
 struct bdd_visualizer_opts_t {
   std::filesystem::path fname;
-  std::unordered_map<bdd_node_id_t, TreeViz::Color> colors_per_node;
-  std::optional<TreeViz::Color> default_color;
+  std::unordered_map<bdd_node_id_t, Color> colors_per_node;
+  std::optional<Color> default_color;
   std::unordered_map<bdd_node_id_t, std::string> annotations_per_node;
   processed_t processed;
 };
 
 class BDDViz : public BDDVisitor {
 protected:
-  const TreeViz::Node call_node;
-  const TreeViz::Node branch_node;
-  const TreeViz::Node forward_node;
-  const TreeViz::Node drop_node;
-  const TreeViz::Node broadcast_node;
+  const Node call_node;
+  const Node branch_node;
+  const Node forward_node;
+  const Node drop_node;
+  const Node broadcast_node;
 
   bdd_visualizer_opts_t opts;
   TreeViz treeviz;
@@ -66,7 +69,7 @@ public:
 
 private:
   std::string get_gv_name(const BDDNode *node) const { return std::to_string(node->get_id()); }
-  TreeViz::Color get_color(const BDDNode *node) const;
+  Color get_color(const BDDNode *node) const;
 };
 
 } // namespace LibBDD

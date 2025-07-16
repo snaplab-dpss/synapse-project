@@ -17,15 +17,15 @@ from rich.progress import (
 from hosts.tofino_tg import TofinoTGController
 from hosts.pktgen import Pktgen
 
-MIN_THROUGHPUT = 100  # 0.1 Gbps
+MIN_THROUGHPUT = 100  # 1 Gbps
 MAX_THROUGHPUT = 100_000  # 100 Gbps
 ITERATION_DURATION_SEC = 5
 MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
 PORT_SETUP_PRECISION = 0.1  # 10%
 PORT_SETUP_TIME_SEC = 5
 PORT_SETUP_RATE = 1  # 1 Mbps
-WARMUP_TIME_SEC = 8
-WARMUP_RATE = MIN_THROUGHPUT
+WARMUP_TIME_SEC = 10
+WARMUP_RATE = 1_000  # 1 Gbps
 REST_TIME_SEC = 6
 BOGUS_RETRIES = 1
 
@@ -275,7 +275,7 @@ class Experiment:
             search_steps=search_steps,
         )
 
-        bogus_retry = 0
+        bogus_retry = 1
         while report.requested_bps == 0:
             if bogus_retry > BOGUS_RETRIES:
                 self.log("Bogus retry limit reached, stopping search.")

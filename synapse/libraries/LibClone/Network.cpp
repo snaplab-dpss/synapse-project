@@ -24,6 +24,9 @@ using LibBDD::Call;
 using LibBDD::Route;
 using LibBDD::RouteOp;
 
+using LibCore::Cluster;
+using LibCore::Edge;
+using LibCore::Node;
 using LibCore::solver_toolbox;
 using LibCore::symbol_t;
 
@@ -369,6 +372,57 @@ BDD Network::consolidate() const {
   final_drop_node->set_prev(leaf_branch_node);
 
   return bdd;
+}
+
+ClusterViz Network::build_clusterviz() const {
+  ClusterViz clusterviz;
+
+  Cluster global_ports("global_ports", "Global Ports");
+
+  std::unordered_map<NFId, Cluster> nf_clusters;
+  for (const auto &[nf_id, nf] : nfs) {
+    Cluster nf_cluster(nf_id, nf_id);
+    nf_clusters.insert({nf_id, nf_cluster});
+  }
+
+  auto build_network_node_id = [](const NetworkNodeId &id, Port port) { return id + "_" + std::to_string(port); };
+
+  for (const auto &[_, node] : nodes) {
+    for (const auto &[port, destination] : node->get_links()) {
+      Node source_cluster_node(build_network_node_id(node->get_id(), port), std::to_string(port));
+      switch (node->get_node_type()) {
+      case NetworkNodeType::GLOBAL_PORT: {
+        global_ports.nodes.insert(source_cluster_node);
+      } break;
+      case NetworkNodeType::NF: {
+        nf_clusters.at(node->get_nf()->get_id()).nodes.insert(source_cluster_node);
+      } break;
+      }
+
+      const Port destination_port         = destination.first;
+      const NetworkNode *destination_node = destination.second;
+
+      Node destination_cluster_node(build_network_node_id(destination_node->get_id(), destination_port), std::to_string(destination_port));
+      switch (destination_node->get_node_type()) {
+      case NetworkNodeType::GLOBAL_PORT: {
+        global_ports.nodes.insert(destination_cluster_node);
+      } break;
+      case NetworkNodeType::NF: {
+        nf_clusters.at(destination_node->get_nf()->get_id()).nodes.insert(destination_cluster_node);
+      } break;
+      }
+
+      Edge edge(source_cluster_node.id, destination_cluster_node.id);
+      clusterviz.add_edge(edge);
+    }
+  }
+
+  clusterviz.add_cluster(global_ports);
+  for (const auto &[_, cluster] : nf_clusters) {
+    clusterviz.add_cluster(cluster);
+  }
+
+  return clusterviz;
 }
 
 } // namespace LibClone

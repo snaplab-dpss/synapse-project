@@ -740,7 +740,7 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
   out.close();
 }
 
-void process_edge(std::string serialized_edge, std::map<bdd_node_id_t, BDDNode *> &nodes) {
+void process_edge(std::string serialized_edge, const std::map<bdd_node_id_t, BDDNode *> &nodes) {
   size_t delim = serialized_edge.find("(");
   assert(delim != std::string::npos && "Invalid edge");
 
@@ -758,7 +758,7 @@ void process_edge(std::string serialized_edge, std::map<bdd_node_id_t, BDDNode *
   bdd_node_id_t prev_id   = std::stoi(prev_id_str);
 
   assert(nodes.find(prev_id) != nodes.end() && "Invalid edge");
-  BDDNode *prev = nodes[prev_id];
+  BDDNode *prev = nodes.at(prev_id);
 
   serialized_edge = serialized_edge.substr(delim + 2);
 
@@ -775,7 +775,7 @@ void process_edge(std::string serialized_edge, std::map<bdd_node_id_t, BDDNode *
     if (on_true_id_str.size()) {
       bdd_node_id_t on_true_id = std::stoi(on_true_id_str);
       assert(nodes.find(on_true_id) != nodes.end() && "Invalid edge");
-      BDDNode *on_true = nodes[on_true_id];
+      BDDNode *on_true = nodes.at(on_true_id);
       branch_node->set_on_true(on_true);
       on_true->set_prev(prev);
     }
@@ -783,17 +783,18 @@ void process_edge(std::string serialized_edge, std::map<bdd_node_id_t, BDDNode *
     if (on_false_id_str.size()) {
       bdd_node_id_t on_false_id = std::stoi(on_false_id_str);
       assert(nodes.find(on_false_id) != nodes.end() && "Invalid edge");
-      BDDNode *on_false = nodes[on_false_id];
+      BDDNode *on_false = nodes.at(on_false_id);
       branch_node->set_on_false(on_false);
       on_false->set_prev(prev);
     }
   } else {
     std::string next_id_str = serialized_edge;
     bdd_node_id_t next_id   = std::stoi(next_id_str);
-
-    assert(nodes.find(next_id) != nodes.end() && "Invalid edge");
-    BDDNode *next = nodes[next_id];
-
+    // assert(nodes.find(next_id) != nodes.end() && "Invalid edge");
+    if (nodes.find(next_id) == nodes.end()) {
+      panic("Invalid edge: next node ID %lu not found", next_id);
+    }
+    BDDNode *next = nodes.at(next_id);
     prev->set_next(next);
     next->set_prev(prev);
   }

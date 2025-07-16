@@ -7,22 +7,23 @@ namespace LibBDD {
 
 using LibCore::pretty_print_expr;
 using LibCore::solver_toolbox;
+using LibCore::Graphviz::Style;
 
 namespace {
 
-const TreeViz::Color COLOR_PROCESSED(TreeViz::Color::Literal::Gray);
-const TreeViz::Color COLOR_NEXT(TreeViz::Color::Literal::Cyan);
-const TreeViz::Color COLOR_CALL(TreeViz::Color::Literal::CornflowerBlue);
-const TreeViz::Color COLOR_BRANCH(TreeViz::Color::Literal::Yellow);
-const TreeViz::Color COLOR_FORWARD(TreeViz::Color::Literal::Chartreuse2);
-const TreeViz::Color COLOR_DROP(TreeViz::Color::Literal::Brown1);
-const TreeViz::Color COLOR_BROADCAST(TreeViz::Color::Literal::Purple);
+const Color COLOR_PROCESSED(Color::Literal::Gray);
+const Color COLOR_NEXT(Color::Literal::Cyan);
+const Color COLOR_CALL(Color::Literal::CornflowerBlue);
+const Color COLOR_BRANCH(Color::Literal::Yellow);
+const Color COLOR_FORWARD(Color::Literal::Chartreuse2);
+const Color COLOR_DROP(Color::Literal::Brown1);
+const Color COLOR_BROADCAST(Color::Literal::Purple);
 
-const TreeViz::Shape SHAPE_CALL(TreeViz::Shape::Box);
-const TreeViz::Shape SHAPE_BRANCH(TreeViz::Shape::Ellipse);
-const TreeViz::Shape SHAPE_FORWARD(TreeViz::Shape::Box);
-const TreeViz::Shape SHAPE_DROP(TreeViz::Shape::Box);
-const TreeViz::Shape SHAPE_BROADCAST(TreeViz::Shape::Box);
+const Shape SHAPE_CALL(Shape::Box);
+const Shape SHAPE_BRANCH(Shape::Ellipse);
+const Shape SHAPE_FORWARD(Shape::Box);
+const Shape SHAPE_DROP(Shape::Box);
+const Shape SHAPE_BROADCAST(Shape::Box);
 
 void log_visualization(const BDD *bdd, const std::string &fname) {
   std::cerr << "Visualizing BDD";
@@ -35,15 +36,13 @@ void log_visualization(const BDD *bdd, const std::string &fname) {
 } // namespace
 
 BDDViz::BDDViz(const bdd_visualizer_opts_t &_opts)
-    : call_node(TreeViz::Node(COLOR_CALL, SHAPE_CALL, 0, {TreeViz::Style::Filled})),
-      branch_node(TreeViz::Node(COLOR_BRANCH, SHAPE_BRANCH, 0, {TreeViz::Style::Filled})),
-      forward_node(TreeViz::Node(COLOR_FORWARD, SHAPE_FORWARD, 0, {TreeViz::Style::Filled})),
-      drop_node(TreeViz::Node(COLOR_DROP, SHAPE_DROP, 0, {TreeViz::Style::Filled})),
-      broadcast_node(TreeViz::Node(COLOR_BROADCAST, SHAPE_BROADCAST, 0, {TreeViz::Style::Filled})), opts(_opts), treeviz(_opts.fname) {}
+    : call_node(Node(COLOR_CALL, SHAPE_CALL, 0, {Style::Filled})), branch_node(Node(COLOR_BRANCH, SHAPE_BRANCH, 0, {Style::Filled})),
+      forward_node(Node(COLOR_FORWARD, SHAPE_FORWARD, 0, {Style::Filled})), drop_node(Node(COLOR_DROP, SHAPE_DROP, 0, {Style::Filled})),
+      broadcast_node(Node(COLOR_BROADCAST, SHAPE_BROADCAST, 0, {Style::Filled})), opts(_opts), treeviz(_opts.fname) {}
 
 BDDViz::BDDViz() : BDDViz(bdd_visualizer_opts_t()) {}
 
-TreeViz::Color BDDViz::get_color(const BDDNode *node) const {
+Color BDDViz::get_color(const BDDNode *node) const {
   const bdd_node_id_t id = node->get_id();
 
   if (opts.colors_per_node.find(id) != opts.colors_per_node.end()) {
@@ -81,7 +80,7 @@ TreeViz::Color BDDViz::get_color(const BDDNode *node) const {
   }
   }
 
-  return TreeViz::Color::Literal::Gray; // Default color if none matched
+  return Color::Literal::Gray; // Default color if none matched
 }
 
 void BDDViz::visualize(const BDD *bdd, bool interrupt, bdd_visualizer_opts_t opts) {
@@ -115,9 +114,9 @@ BDDVisitor::Action BDDViz::visit(const Branch *node) {
   const BDDNode *on_true          = node->get_on_true();
   const BDDNode *on_false         = node->get_on_false();
 
-  TreeViz::Node tree_node = branch_node;
-  tree_node.id            = get_gv_name(node);
-  tree_node.color         = get_color(node);
+  Node tree_node  = branch_node;
+  tree_node.id    = get_gv_name(node);
+  tree_node.color = get_color(node);
 
   std::stringstream label;
   label << node->get_id() << ":" << pretty_print_expr(condition);
@@ -145,9 +144,9 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
   const bdd_node_id_t id = node->get_id();
   const BDDNode *next    = node->get_next();
 
-  TreeViz::Node tree_node = call_node;
-  tree_node.id            = get_gv_name(node);
-  tree_node.color         = get_color(node);
+  Node tree_node  = call_node;
+  tree_node.id    = get_gv_name(node);
+  tree_node.color = get_color(node);
 
   std::stringstream label;
   label << id << ":";
@@ -233,7 +232,7 @@ BDDVisitor::Action BDDViz::visit(const Route *node) {
   const RouteOp operation          = node->get_operation();
   const BDDNode *next              = node->get_next();
 
-  TreeViz::Node tree_node = forward_node;
+  Node tree_node = forward_node;
   switch (operation) {
   case RouteOp::Forward:
     tree_node = forward_node;

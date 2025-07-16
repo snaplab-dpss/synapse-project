@@ -21,6 +21,10 @@ int main(int argc, char **argv) {
   Network network = Network::parse(input_network_consolidation_plan_file, &manager);
   network.debug();
 
+  ClusterViz clusterviz = network.build_clusterviz();
+  clusterviz.show(false);
+  std::cout << "Network consolidation plan graph written to: " << clusterviz.get_file_path() << std::endl;
+
   const BDD bdd = network.consolidate();
 
   const BDD::inspection_report_t report = bdd.inspect();

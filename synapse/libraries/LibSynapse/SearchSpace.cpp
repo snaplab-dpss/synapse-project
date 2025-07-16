@@ -2,6 +2,7 @@
 #include <LibCore/Types.h>
 #include <LibCore/Expr.h>
 #include <LibCore/Debug.h>
+#include <LibCore/Strings.h>
 
 namespace LibSynapse {
 
@@ -12,6 +13,7 @@ using LibBDD::Route;
 
 using LibCore::expr_to_string;
 using LibCore::pretty_print_expr;
+using LibCore::sanitize_html_label;
 
 namespace {
 ss_node_id_t node_id_counter = 0;
@@ -61,7 +63,7 @@ std::string get_bdd_node_description(const BDDNode *node) {
     node_str += " [...]";
   }
 
-  return TreeViz::sanitize_html_label(node_str);
+  return sanitize_html_label(node_str);
 }
 } // namespace
 

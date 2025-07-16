@@ -11,6 +11,7 @@
 namespace LibCore {
 
 using Graphviz::Border;
+using Graphviz::Cluster;
 using Graphviz::Color;
 using Graphviz::Edge;
 using Graphviz::ID;
@@ -19,28 +20,26 @@ using Graphviz::Node;
 using Graphviz::Shape;
 using Graphviz::Style;
 
-class TreeViz {
+class ClusterViz {
 private:
   const std::filesystem::path fpath;
   Node default_node;
+  std::unordered_set<Cluster, Cluster::Hash> clusters;
   std::unordered_set<Node, Node::Hash> nodes;
   std::vector<Edge> edges;
 
 public:
-  TreeViz(const std::filesystem::path &path);
-  TreeViz();
+  ClusterViz(const std::filesystem::path &path);
+  ClusterViz();
 
   void write() const;
   void show(bool interrupt) const;
 
-  void add_node(const ID &id, const Label &label);
   void add_node(const Node &node);
-  void add_edge(const ID &from, const ID &to, std::optional<Label> label = std::nullopt);
+  void add_cluster(const Cluster &cluster);
+  void add_edge(const Edge &edge);
 
   std::filesystem::path get_file_path() const { return fpath; }
-
-  Node get_default_node() const { return default_node; }
-  void set_default_node(const Node &node) { default_node = node; }
 };
 
 } // namespace LibCore
