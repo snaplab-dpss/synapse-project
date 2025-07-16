@@ -36,7 +36,8 @@ public:
   BDDNode *get_mutable_on_true() { return next; }
   BDDNode *get_mutable_on_false() { return on_false; }
 
-  std::vector<bdd_node_id_t> get_leaves() const override final;
+  std::vector<const BDDNode *> get_leaves() const override final;
+  std::vector<BDDNode *> get_mutable_leaves() override final;
   BDDNode *clone(BDDNodeManager &manager, bool recursive = false) const override final;
   std::string dump(bool one_liner = false, bool id_name_only = false) const override final;
 

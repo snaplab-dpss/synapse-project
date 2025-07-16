@@ -29,14 +29,29 @@ BDDNode *Branch::clone(BDDNodeManager &manager, bool recursive) const {
   return clone;
 }
 
-std::vector<bdd_node_id_t> Branch::get_leaves() const {
-  std::vector<bdd_node_id_t> terminating_ids;
+std::vector<const BDDNode *> Branch::get_leaves() const {
+  std::vector<const BDDNode *> terminating_ids;
 
   assert(next && "No on_true node");
   assert(on_false && "No on_false node");
 
-  const std::vector<bdd_node_id_t> on_true_ids  = next->get_leaves();
-  const std::vector<bdd_node_id_t> on_false_ids = on_false->get_leaves();
+  const std::vector<const BDDNode *> on_true_ids  = next->get_leaves();
+  const std::vector<const BDDNode *> on_false_ids = on_false->get_leaves();
+
+  terminating_ids.insert(terminating_ids.end(), on_true_ids.begin(), on_true_ids.end());
+  terminating_ids.insert(terminating_ids.end(), on_false_ids.begin(), on_false_ids.end());
+
+  return terminating_ids;
+}
+
+std::vector<BDDNode *> Branch::get_mutable_leaves() {
+  std::vector<BDDNode *> terminating_ids;
+
+  assert(next && "No on_true node");
+  assert(on_false && "No on_false node");
+
+  const std::vector<BDDNode *> on_true_ids  = next->get_mutable_leaves();
+  const std::vector<BDDNode *> on_false_ids = on_false->get_mutable_leaves();
 
   terminating_ids.insert(terminating_ids.end(), on_true_ids.begin(), on_true_ids.end());
   terminating_ids.insert(terminating_ids.end(), on_false_ids.begin(), on_false_ids.end());

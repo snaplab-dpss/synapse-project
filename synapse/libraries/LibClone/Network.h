@@ -39,6 +39,8 @@ public:
   BDD consolidate() const;
   ClusterViz build_clusterviz() const;
 
+  bool has_global_port(const Port port) const;
+
   void debug() const {
     std::cerr << "========== Network ==========\n";
     std::cerr << "NFs:\n";
@@ -55,6 +57,9 @@ public:
     }
     std::cerr << "=============================\n";
   }
+
+private:
+  BDD build_new_bdd() const;
 };
 
 } // namespace LibClone

@@ -769,95 +769,10 @@ void BDD::delete_init_node(bdd_node_id_t target_id) {
   }
 }
 
-BDDNode *BDD::delete_non_branch(bdd_node_id_t target_id) {
-  BDDNode *anchor_next = get_mutable_node_by_id(target_id);
-  assert(anchor_next && "BDDNode not found");
-  assert(anchor_next->get_type() != BDDNodeType::Branch && "Unexpected branch node");
-
-  BDDNode *anchor = anchor_next->get_mutable_prev();
-  assert(anchor && "No previous node");
-
-  BDDNode *new_current = anchor_next->get_mutable_next();
-
-  switch (anchor->get_type()) {
-  case BDDNodeType::Call:
-  case BDDNodeType::Route: {
-    anchor->set_next(new_current);
-  } break;
-  case BDDNodeType::Branch: {
-    Branch *branch = dynamic_cast<Branch *>(anchor);
-
-    const BDDNode *on_true  = branch->get_on_true();
-    const BDDNode *on_false = branch->get_on_false();
-
-    assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection");
-
-    if (on_true == anchor_next) {
-      branch->set_on_true(new_current);
-    } else {
-      branch->set_on_false(new_current);
-    }
-
-  } break;
-  }
-
-  new_current->set_prev(anchor);
-  manager.free_node(anchor_next);
-
-  return new_current;
-}
+BDDNode *BDD::delete_non_branch(bdd_node_id_t target_id) { return delete_non_branch(get_mutable_node_by_id(target_id), manager); }
 
 BDDNode *BDD::delete_branch(bdd_node_id_t target_id, bool direction_to_keep) {
-  BDDNode *target = get_mutable_node_by_id(target_id);
-  assert(target && "BDDNode not found");
-  assert(target->get_type() == BDDNodeType::Branch && "Unexpected branch node");
-
-  BDDNode *anchor = target->get_mutable_prev();
-  assert(anchor && "No previous node");
-
-  Branch *anchor_next = dynamic_cast<Branch *>(target);
-
-  BDDNode *target_on_true  = anchor_next->get_mutable_on_true();
-  BDDNode *target_on_false = anchor_next->get_mutable_on_false();
-
-  BDDNode *new_current;
-
-  if (direction_to_keep) {
-    new_current = target_on_true;
-    target_on_false->recursive_free_children(manager);
-    manager.free_node(target_on_false);
-  } else {
-    new_current = target_on_false;
-    target_on_true->recursive_free_children(manager);
-    manager.free_node(target_on_true);
-  }
-
-  switch (anchor->get_type()) {
-  case BDDNodeType::Call:
-  case BDDNodeType::Route: {
-    anchor->set_next(new_current);
-  } break;
-  case BDDNodeType::Branch: {
-    Branch *branch = dynamic_cast<Branch *>(anchor);
-
-    const BDDNode *on_true  = branch->get_on_true();
-    const BDDNode *on_false = branch->get_on_false();
-
-    assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection");
-
-    if (on_true == anchor_next) {
-      branch->set_on_true(new_current);
-    } else {
-      branch->set_on_false(new_current);
-    }
-
-  } break;
-  }
-
-  new_current->set_prev(anchor);
-  manager.free_node(anchor_next);
-
-  return new_current;
+  return delete_branch(get_mutable_node_by_id(target_id), direction_to_keep, manager);
 }
 
 BDDNode *BDD::add_cloned_non_branches(bdd_node_id_t target_id, const std::vector<const BDDNode *> &new_nodes) {
@@ -1441,6 +1356,98 @@ void BDD::delete_vector_key_operations(addr_t map) {
   if (report.status != BDD::InspectionStatus::Ok) {
     panic("BDD inspection failed: %s", report.message.c_str());
   }
+}
+
+BDDNode *BDD::delete_non_branch(BDDNode *anchor_next, BDDNodeManager &manager) {
+  assert(anchor_next && "BDDNode not found");
+  assert(anchor_next->get_type() != BDDNodeType::Branch && "Unexpected branch node");
+
+  BDDNode *anchor = anchor_next->get_mutable_prev();
+  assert(anchor && "No previous node");
+
+  BDDNode *new_current = anchor_next->get_mutable_next();
+
+  switch (anchor->get_type()) {
+  case BDDNodeType::Call:
+  case BDDNodeType::Route: {
+    anchor->set_next(new_current);
+  } break;
+  case BDDNodeType::Branch: {
+    Branch *branch = dynamic_cast<Branch *>(anchor);
+
+    const BDDNode *on_true  = branch->get_on_true();
+    const BDDNode *on_false = branch->get_on_false();
+
+    assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection");
+
+    if (on_true == anchor_next) {
+      branch->set_on_true(new_current);
+    } else {
+      branch->set_on_false(new_current);
+    }
+
+  } break;
+  }
+
+  if (new_current) {
+    new_current->set_prev(anchor);
+  }
+
+  manager.free_node(anchor_next);
+
+  return new_current;
+}
+
+BDDNode *BDD::delete_branch(BDDNode *target, bool direction_to_keep, BDDNodeManager &manager) {
+  assert(target && "BDDNode not found");
+  assert(target->get_type() == BDDNodeType::Branch && "Unexpected branch node");
+
+  BDDNode *anchor = target->get_mutable_prev();
+  assert(anchor && "No previous node");
+
+  Branch *anchor_next = dynamic_cast<Branch *>(target);
+
+  BDDNode *target_on_true  = anchor_next->get_mutable_on_true();
+  BDDNode *target_on_false = anchor_next->get_mutable_on_false();
+
+  BDDNode *new_current;
+
+  if (direction_to_keep) {
+    new_current = target_on_true;
+    target_on_false->recursive_free_children(manager);
+    manager.free_node(target_on_false);
+  } else {
+    new_current = target_on_false;
+    target_on_true->recursive_free_children(manager);
+    manager.free_node(target_on_true);
+  }
+
+  switch (anchor->get_type()) {
+  case BDDNodeType::Call:
+  case BDDNodeType::Route: {
+    anchor->set_next(new_current);
+  } break;
+  case BDDNodeType::Branch: {
+    Branch *branch = dynamic_cast<Branch *>(anchor);
+
+    const BDDNode *on_true  = branch->get_on_true();
+    const BDDNode *on_false = branch->get_on_false();
+
+    assert_or_panic((on_true == anchor_next || on_false == anchor_next), "No connection");
+
+    if (on_true == anchor_next) {
+      branch->set_on_true(new_current);
+    } else {
+      branch->set_on_false(new_current);
+    }
+
+  } break;
+  }
+
+  new_current->set_prev(anchor);
+  manager.free_node(anchor_next);
+
+  return new_current;
 }
 
 } // namespace LibBDD

@@ -38,8 +38,14 @@ public:
   }
 
   const std::unordered_map<Port, std::pair<Port, const NetworkNode *>> &get_links() const { return links; }
+  bool has_link(const Port source_port) const { return links.find(source_port) != links.end(); }
+  const std::pair<Port, const NetworkNode *> &get_link(const Port source_port) const { return links.at(source_port); }
 
-  bool has_link(const Port port) const { return links.find(port) != links.end(); }
+  bool connects_to_global_port(const Port destination_port) const {
+    return std::any_of(links.begin(), links.end(), [destination_port](const std::pair<Port, std::pair<Port, const NetworkNode *>> &link) {
+      return link.second.first == destination_port && link.second.second->get_node_type() == NetworkNodeType::GLOBAL_PORT;
+    });
+  }
 
   const std::pair<Port, const NetworkNode *> &get_connected_node(const Port port) const {
     assert(links.find(port) != links.end());

@@ -49,6 +49,10 @@ public:
   symbol_t get_packet_len() const { return packet_len; }
   symbol_t get_time() const { return time; }
 
+  void set_device(const symbol_t &new_device) { device = new_device; }
+  void set_packet_len(const symbol_t &new_packet_len) { packet_len = new_packet_len; }
+  void set_time(const symbol_t &new_time) { time = new_time; }
+
   const std::vector<Call *> &get_init() const { return init; }
   const BDDNode *get_root() const { return root; }
 
@@ -114,6 +118,9 @@ public:
   Call *add_new_symbol_generator_function(bdd_node_id_t target_id, const std::string &fn_name, const Symbols &symbols);
   BDDNode *add_cloned_non_branches(bdd_node_id_t target_id, const std::vector<const BDDNode *> &new_nodes);
   Branch *add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> condition);
+
+  static BDDNode *delete_non_branch(BDDNode *target, BDDNodeManager &manager);
+  static BDDNode *delete_branch(BDDNode *target, bool direction_to_keep, BDDNodeManager &manager);
 };
 
 } // namespace LibBDD

@@ -95,9 +95,15 @@ std::vector<const Call *> get_unfiltered_coalescing_nodes(const BDDNode *node, c
 }
 } // namespace
 
-std::vector<bdd_node_id_t> BDDNode::get_leaves() const {
+std::vector<BDDNode *> BDDNode::get_mutable_leaves() {
   if (!next)
-    return std::vector<bdd_node_id_t>{id};
+    return {this};
+  return next->get_mutable_leaves();
+}
+
+std::vector<const BDDNode *> BDDNode::get_leaves() const {
+  if (!next)
+    return {this};
   return next->get_leaves();
 }
 
@@ -804,6 +810,17 @@ const Route *BDDNode::get_latest_routing_decision() const {
       return dynamic_cast<const Route *>(node);
     }
     node = node->get_prev();
+  }
+  return nullptr;
+}
+
+Route *BDDNode::get_mutable_latest_routing_decision() {
+  BDDNode *node = this;
+  while (node) {
+    if (node->get_type() == BDDNodeType::Route) {
+      return dynamic_cast<Route *>(node);
+    }
+    node = node->get_mutable_prev();
   }
   return nullptr;
 }

@@ -48,7 +48,7 @@ namespace LibCore {
     }                                                                                                                                                \
   } while (0)
 
-#define not_implemented()                                                                                                                            \
+#define todo()                                                                                                                                       \
   do {                                                                                                                                               \
     panic("FIXME: not implemented");                                                                                                                 \
   } while (0)

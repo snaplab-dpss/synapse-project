@@ -35,16 +35,21 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
   (void)now;
 
   if (now > 1000) {
-    if (device == 0 || device == 3) {
-      return 0;
+    if (device == 0) {
+      return 2;
+    } else if (device == 1) {
+      return 3;
+    } else if (device == 2) {
+      return 4;
     } else {
-      return 1;
+      return 0;
     }
   }
 
   if (device == 0) {
-    return FLOOD;
+    return 1;
   }
 
-  return get_dst_dev(device);
+  // return get_dst_dev(device);
+  return DROP;
 }
