@@ -6,17 +6,5 @@ nf firewall2 ../bdds/fw.bdd
 // NF connections and global port mapping
 
 link global_port 0 firewall 0
-link firewall 0 global_port 0
-
-link firewall2 1 global_port 1
-link global_port 1 firewall2 1
-
-link firewall2 2 global_port 2
-link global_port 2 firewall2 2
-
-link firewall2 3 global_port 3
-link global_port 3 firewall2 3
-
 link firewall 1 firewall2 0
-link firewall2 0 firewall 1
-
+link firewall2 1 global_port 1
