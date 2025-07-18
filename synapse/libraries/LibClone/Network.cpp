@@ -13,6 +13,7 @@
 
 namespace LibClone {
 
+using LibBDD::arg_t;
 using LibBDD::bdd_node_id_t;
 using LibBDD::BDDNode;
 using LibBDD::BDDNodeManager;
@@ -21,6 +22,7 @@ using LibBDD::BDDNodeVisitAction;
 using LibBDD::BDDViz;
 using LibBDD::Branch;
 using LibBDD::Call;
+using LibBDD::call_t;
 using LibBDD::Route;
 using LibBDD::RouteOp;
 
@@ -285,6 +287,124 @@ void translate_symbols(SymbolManager *symbol_manager, BDDNode *root) {
   });
 }
 
+void reset_data_structure_address(BDD &bdd, Call *init, BDDNode *root) {
+  using func_name_t = std::string;
+  using arg_name_t  = std::string;
+
+  struct produced_consumed_args_t {
+    std::string produced;
+    std::unordered_map<func_name_t, arg_name_t> target_functions;
+  };
+
+  const std::unordered_map<std::string, produced_consumed_args_t> init_functions{
+      {"map_allocate",
+       {"map_out",
+        {
+            {"map_get", "map"},
+            {"map_put", "map"},
+            {"map_erase", "map"},
+            {"map_size", "map"},
+            {"expire_items_single_map", "map"},
+            {"expire_items_single_map_iteratively", "map"},
+        }}},
+      {"vector_allocate",
+       {"vector_out",
+        {
+            {"vector_borrow", "vector"},
+            {"vector_return", "vector"},
+            {"vector_clear", "vector"},
+            {"vector_sample_lt", "vector"},
+            {"expire_items_single_map", "vector"},
+            {"expire_items_single_map_iteratively", "vector"},
+        }}},
+      {"dchain_allocate",
+       {"chain_out",
+        {
+            {"dchain_allocate_new_index", "chain"},
+            {"dchain_rejuvenate_index", "chain"},
+            {"dchain_expire_one_index", "chain"},
+            {"dchain_is_index_allocated", "chain"},
+            {"dchain_free_index", "chain"},
+            {"expire_items_single_map", "chain"},
+        }}},
+      {"cms_allocate",
+       {"cms_out",
+        {
+            {"cms_increment", "cms"},
+            {"cms_count_min", "cms"},
+            {"cms_periodic_cleanup", "cms"},
+        }}},
+      {"lpm_allocate",
+       {"lpm_out",
+        {
+            {"lpm_free", "lpm"},
+            {"lpm_from_file", "lpm"},
+            {"lpm_update", "lpm"},
+            {"lpm_lookup", "lpm"},
+        }}},
+      {"tb_allocate",
+       {"tb_out",
+        {
+            {"tb_is_tracing", "tb"},
+            {"tb_trace", "tb"},
+            {"tb_update_and_check", "tb"},
+            {"tb_expire", "tb"},
+        }}},
+  };
+
+  call_t init_call = init->get_call();
+  auto found_it    = init_functions.find(init_call.function_name);
+  if (found_it == init_functions.end()) {
+    return;
+  }
+
+  const produced_consumed_args_t &produced_consumed_args = found_it->second;
+
+  arg_t &produced = init_call.args.at(produced_consumed_args.produced);
+  assert(!produced.out.isNull() && "Produced argument should not be null");
+  assert(LibCore::is_constant(produced.out) && "Produced argument should be a constant");
+
+  klee::ref<klee::Expr> old_addr_expr = produced.out;
+
+  const u64 new_addr                  = init->get_id();
+  klee::ref<klee::Expr> new_addr_expr = solver_toolbox.exprBuilder->Constant(new_addr, produced.out->getWidth());
+
+  produced.out = new_addr_expr;
+  init->set_call(init_call);
+
+  auto addr_resetter = [&produced_consumed_args, old_addr_expr, new_addr_expr](BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    Call *call_node = dynamic_cast<Call *>(node);
+    call_t call     = call_node->get_call();
+
+    auto found_arg_it = produced_consumed_args.target_functions.find(call.function_name);
+    if (found_arg_it == produced_consumed_args.target_functions.end()) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const arg_name_t &arg_name = found_arg_it->second;
+    assert_or_panic(call.args.find(arg_name) != call.args.end(), "Target function should have the argument");
+
+    arg_t &target_arg = call.args.at(arg_name);
+    assert_or_panic(LibCore::is_constant(target_arg.expr), "Target function argument should be a constant");
+
+    if (!solver_toolbox.are_exprs_always_equal(target_arg.expr, old_addr_expr)) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    target_arg.expr = new_addr_expr;
+    call_node->set_call(call);
+
+    return BDDNodeVisitAction::Continue;
+  };
+
+  root->visit_mutable_nodes(addr_resetter);
+  init->visit_mutable_nodes(addr_resetter);
+}
+
 void store_cloned_and_translated_init_symbols(BDD &bdd, BDDNode *root, const std::vector<Call *> &init) {
   std::vector<Call *> new_init;
   std::vector<symbol_translation_t> translations;
@@ -309,8 +429,11 @@ void store_cloned_and_translated_init_symbols(BDD &bdd, BDDNode *root, const std
     new_init.front()->recursive_update_ids(bdd.get_mutable_id());
   }
 
-  std::vector<Call *> current_init = bdd.get_init();
+  for (Call *init_call : new_init) {
+    reset_data_structure_address(bdd, init_call, root);
+  }
 
+  std::vector<Call *> current_init = bdd.get_init();
   if (!current_init.empty()) {
     current_init.back()->set_next(new_init.front());
     new_init.front()->set_prev(current_init.back());
