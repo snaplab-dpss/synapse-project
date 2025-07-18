@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
   if (show_plan) {
     ClusterViz clusterviz = network.build_clusterviz();
     clusterviz.show(false);
-    std::cout << "Network consolidation plan graph written to: " << clusterviz.get_file_path() << std::endl;
+    std::cout << "Network consolidation plan graph written to " << clusterviz.get_file_path().string() << std::endl;
   }
 
   if (consolidate) {

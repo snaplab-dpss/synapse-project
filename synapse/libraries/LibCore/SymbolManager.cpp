@@ -39,12 +39,12 @@ private:
   std::unordered_map<std::string, const klee::Array *> translations;
 
 public:
-  SymbolRenamer(SymbolManager *manager, const std::unordered_map<std::string, std::string> &_translations)
-      : klee::ExprVisitor::ExprVisitor(true) {
+  SymbolRenamer(SymbolManager *manager, const std::unordered_map<std::string, std::string> &_translations) : klee::ExprVisitor::ExprVisitor(true) {
     for (const auto &[old_name, new_name] : _translations) {
-      const symbol_t &old = manager->get_symbol(old_name);
-      const bits_t size   = old.expr->getWidth();
-      manager->create_symbol(new_name, size);
+      if (!manager->has_symbol(new_name)) {
+        const symbol_t &old = manager->get_symbol(old_name);
+        manager->create_symbol(new_name, old.expr->getWidth());
+      }
       translations.insert({old_name, manager->get_array(new_name)});
     }
   }

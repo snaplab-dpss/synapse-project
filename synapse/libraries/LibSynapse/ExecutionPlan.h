@@ -20,7 +20,7 @@ using LibBDD::bdd_node_ids_t;
 using LibBDD::BDDNode;
 using LibBDD::Call;
 using LibBDD::map_coalescing_objs_t;
-using LibBDD::translated_symbol_t;
+using LibBDD::symbol_translation_t;
 
 using translator_t = std::unordered_map<bdd_node_id_t, bdd_node_id_t>;
 using ep_id_t      = u64;
@@ -76,7 +76,7 @@ public:
     const BDDNode *reordered_node;
     translator_t next_nodes_translator;
     translator_t processed_nodes_translator;
-    std::vector<translated_symbol_t> translated_symbols;
+    std::vector<symbol_translation_t> translated_symbols;
   };
 
   void replace_bdd(std::unique_ptr<BDD> new_bdd);

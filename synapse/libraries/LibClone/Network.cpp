@@ -29,6 +29,7 @@ using LibCore::Edge;
 using LibCore::Node;
 using LibCore::solver_toolbox;
 using LibCore::symbol_t;
+using LibCore::Symbols;
 
 namespace {
 constexpr char TOKEN_CMD_NF[]   = "nf";
@@ -178,13 +179,10 @@ std::vector<bdd_vector_t> get_bdd_sections_handling_port(const BDD &bdd, Port po
 
 BDDNode *stitch_bdd_sections(BDD &bdd, const NF *nf, const std::vector<bdd_vector_t> &sections) {
   BDDNodeManager &manager = bdd.get_mutable_manager();
-
-  BDDNode *new_root = nf->get_bdd().get_root()->clone(manager, true);
-
+  BDDNode *new_root       = nf->get_bdd().get_root()->clone(manager, true);
   for (const bdd_vector_t vector : sections) {
     BDD::delete_branch(new_root->get_mutable_node_by_id(vector.node->get_id()), vector.direction, manager);
   }
-
   new_root->recursive_update_ids(bdd.get_mutable_id());
   return new_root;
 }
@@ -254,6 +252,33 @@ BDDNode *build_chain_of_device_checking_branches(BDD &bdd, const klee::Constrain
   return root;
 }
 
+void translate_symbols(SymbolManager *symbol_manager, BDDNode *root) {
+  const std::unordered_set<std::string> symbols_never_translated{"device", "port", "packet_chunks"};
+  root->visit_mutable_nodes([symbol_manager, &symbols_never_translated](BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const Call *call       = dynamic_cast<Call *>(node);
+    const Symbols &symbols = call->get_local_symbols();
+
+    for (const symbol_t &symbol : symbols.get()) {
+      if (symbols_never_translated.find(symbol.name) != symbols_never_translated.end()) {
+        continue;
+      }
+      // We have to make sure this new symbol name does not collide with any existing symbol.
+      // In the BDD reordering logic, we append "_r" to the symbol name to ensure this, where "r" comes from "reordering".
+      // Here, we append "_c", where "c" comes from "consolidate".
+      const std::string new_name = symbol.base + "_c" + std::to_string(node->get_id());
+      assert(!symbol_manager->has_symbol(new_name) && "Symbol should not exist in the symbol manager");
+      const symbol_t new_symbol = symbol_manager->create_symbol(new_name, symbol.expr->getWidth());
+      node->recursive_translate_symbol(symbol, new_symbol);
+    }
+
+    return BDDNodeVisitAction::Continue;
+  });
+}
+
 BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *network_node, Port port) {
   BDDNode *root = nullptr;
 
@@ -279,6 +304,7 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
     //   }
     // }
     root = stitch_bdd_sections(bdd, nf, sections);
+    translate_symbols(bdd.get_mutable_symbol_manager(), root);
   } break;
   }
 

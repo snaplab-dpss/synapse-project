@@ -16,7 +16,7 @@ using LibBDD::call_t;
 using LibBDD::cookie_t;
 using LibBDD::Route;
 using LibBDD::RouteOp;
-using LibBDD::translated_symbol_t;
+using LibBDD::symbol_translation_t;
 
 using LibCore::expr_addr_to_obj_addr;
 using LibCore::expr_to_string;
@@ -587,7 +587,7 @@ void Context::debug() const {
   std::cerr << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 }
 
-void Context::translate(SymbolManager *symbol_manager, const std::vector<translated_symbol_t> &translated_symbols) {
+void Context::translate(SymbolManager *symbol_manager, const std::vector<symbol_translation_t> &translated_symbols) {
   std::unordered_map<std::string, std::string> translations;
   for (const auto &[old_symbol, new_symbol] : translated_symbols) {
     translations[old_symbol.name] = new_symbol.name;

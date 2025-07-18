@@ -1,10 +1,11 @@
 // NF definitions
 
 nf firewall ../bdds/fw.bdd
-nf firewall2 ../bdds/fw.bdd
 
 // NF connections and global port mapping
 
 link global_port 0 firewall 0
-link firewall 1 firewall2 0
-link firewall2 1 global_port 1
+link firewall 0 global_port 0
+
+link firewall 1 global_port 1
+link global_port 1 firewall 1

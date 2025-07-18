@@ -19,8 +19,8 @@ using LibBDD::cms_config_t;
 using LibBDD::dchain_config_t;
 using LibBDD::map_coalescing_objs_t;
 using LibBDD::map_config_t;
+using LibBDD::symbol_translation_t;
 using LibBDD::tb_config_t;
-using LibBDD::translated_symbol_t;
 using LibBDD::vector_config_t;
 
 using LibCore::expr_struct_t;
@@ -141,7 +141,7 @@ public:
   bool check_ds_impl(addr_t obj, DSImpl impl) const;
   bool can_impl_ds(addr_t obj, DSImpl impl) const;
 
-  void translate(SymbolManager *symbol_manager, const std::vector<translated_symbol_t> &translated_symbols);
+  void translate(SymbolManager *symbol_manager, const std::vector<symbol_translation_t> &translated_symbols);
 
   void debug() const;
 

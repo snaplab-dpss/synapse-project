@@ -922,8 +922,8 @@ symbol_t get_collision_free_symbol(const symbol_t &candidate_symbol, SymbolManag
   return symbol_manager->create_symbol(name, candidate_symbol.expr->getWidth());
 }
 
-std::vector<translated_symbol_t> translate_symbols(BDD *bdd, BDDNode *candidate) {
-  std::vector<translated_symbol_t> translated_symbols;
+std::vector<symbol_translation_t> translate_symbols(BDD *bdd, BDDNode *candidate) {
+  std::vector<symbol_translation_t> translated_symbols;
 
   if (candidate->get_type() != BDDNodeType::Call) {
     return translated_symbols;
@@ -941,8 +941,8 @@ std::vector<translated_symbol_t> translate_symbols(BDD *bdd, BDDNode *candidate)
   return translated_symbols;
 }
 
-std::vector<translated_symbol_t> pull_non_branch(BDD *bdd, const mutable_vector_t &anchor, BDDNode *candidate,
-                                                 const std::unordered_set<BDDNode *> &siblings) {
+std::vector<symbol_translation_t> pull_non_branch(BDD *bdd, const mutable_vector_t &anchor, BDDNode *candidate,
+                                                  const std::unordered_set<BDDNode *> &siblings) {
   // Remove candidate from the BDD, linking its parent with its child.
   disconnect_and_link_non_branch(candidate);
 
@@ -963,9 +963,9 @@ std::vector<translated_symbol_t> pull_non_branch(BDD *bdd, const mutable_vector_
   return translate_symbols(bdd, candidate);
 }
 
-std::vector<translated_symbol_t> pull_candidate(BDD *bdd, const mutable_vector_t &anchor, BDDNode *candidate,
-                                                const std::unordered_set<BDDNode *> &siblings) {
-  std::vector<translated_symbol_t> translated_symbols;
+std::vector<symbol_translation_t> pull_candidate(BDD *bdd, const mutable_vector_t &anchor, BDDNode *candidate,
+                                                 const std::unordered_set<BDDNode *> &siblings) {
+  std::vector<symbol_translation_t> translated_symbols;
 
   switch (candidate->get_type()) {
   case BDDNodeType::Branch: {
@@ -1160,7 +1160,7 @@ std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd, const anchor_info_t &a
   return ops;
 }
 
-std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op, std::vector<translated_symbol_t> &translated_symbols) {
+std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op, std::vector<symbol_translation_t> &translated_symbols) {
   std::unique_ptr<BDD> bdd = std::make_unique<BDD>(*original_bdd);
   bdd_node_id_t &id        = bdd->get_mutable_id();
 
@@ -1233,7 +1233,7 @@ std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op, st
     anchor.direction = true;
   }
 
-  std::vector<translated_symbol_t> new_translated_symbols = pull_candidate(bdd.get(), anchor, candidate, siblings);
+  std::vector<symbol_translation_t> new_translated_symbols = pull_candidate(bdd.get(), anchor, candidate, siblings);
   translated_symbols.insert(translated_symbols.end(), new_translated_symbols.begin(), new_translated_symbols.end());
 
   const BDD::inspection_report_t inspection_report = bdd->inspect();
@@ -1269,7 +1269,7 @@ std::vector<reordered_bdd_t> reorder(const BDD *bdd, bdd_node_id_t anchor_id, bo
   std::vector<reorder_op_t> ops = get_reorder_ops(bdd, {anchor_id, true}, allow_shape_altering_ops);
 
   for (const reorder_op_t &op : ops) {
-    std::vector<translated_symbol_t> translated_symbols;
+    std::vector<symbol_translation_t> translated_symbols;
     std::unique_ptr<BDD> new_bdd = reorder(bdd, op, translated_symbols);
     reordered_bdds.push_back({std::move(new_bdd), op, {}, translated_symbols});
   }
@@ -1286,15 +1286,15 @@ std::vector<reordered_bdd_t> reorder(const BDD *bdd, bdd_node_id_t anchor_id, bo
     const reorder_op_t &rhs = rhs_ops[rhs_idx];
 
     // Only reordering the ride side.
-    std::vector<translated_symbol_t> rhs_translated_symbols;
+    std::vector<symbol_translation_t> rhs_translated_symbols;
     std::unique_ptr<BDD> rhs_bdd = reorder(bdd, rhs, rhs_translated_symbols);
 
     for (size_t lhs_idx = 0; lhs_idx < lhs_ops.size(); lhs_idx++) {
       const reorder_op_t &lhs = lhs_ops[lhs_idx];
 
       // And now applying both
-      std::vector<translated_symbol_t> lhs_translated_symbols = rhs_translated_symbols;
-      std::unique_ptr<BDD> lhs_bdd                            = reorder(rhs_bdd.get(), lhs, lhs_translated_symbols);
+      std::vector<symbol_translation_t> lhs_translated_symbols = rhs_translated_symbols;
+      std::unique_ptr<BDD> lhs_bdd                             = reorder(rhs_bdd.get(), lhs, lhs_translated_symbols);
       reordered_bdds.push_back({std::move(lhs_bdd), rhs, lhs, lhs_translated_symbols});
     }
 
@@ -1309,7 +1309,7 @@ std::vector<reordered_bdd_t> reorder(const BDD *bdd, const anchor_info_t &anchor
 
   std::vector<reorder_op_t> ops = get_reorder_ops(bdd, anchor_info, allow_shape_altering_ops);
   for (const reorder_op_t &op : ops) {
-    std::vector<translated_symbol_t> translated_symbols;
+    std::vector<symbol_translation_t> translated_symbols;
     std::unique_ptr<BDD> new_bdd = reorder(bdd, op, translated_symbols);
     bdds.push_back({std::move(new_bdd), op, {}, translated_symbols});
   }
@@ -1327,7 +1327,7 @@ reordered_bdd_t try_reorder(const BDD *bdd, const anchor_info_t &anchor_info, bd
   candidate_info_t proposed_candidate = concretize_reordering_candidate(bdd, anchor_vector, candidate_id);
   reorder_op_t op                     = {anchor_info, next->get_id(), proposed_candidate};
 
-  std::vector<translated_symbol_t> translated_symbols;
+  std::vector<symbol_translation_t> translated_symbols;
   reordered_bdd_t result{
       .bdd                = (proposed_candidate.status == ReorderingCandidateStatus::Valid) ? reorder(bdd, op, translated_symbols) : nullptr,
       .op                 = op,

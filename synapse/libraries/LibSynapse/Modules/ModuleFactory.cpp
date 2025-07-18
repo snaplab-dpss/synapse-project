@@ -15,7 +15,7 @@ using LibBDD::BDDNodeType;
 using LibBDD::Branch;
 using LibBDD::reorder_op_t;
 using LibBDD::reordered_bdd_t;
-using LibBDD::translated_symbol_t;
+using LibBDD::symbol_translation_t;
 
 using LibCore::dbg_mode_active;
 

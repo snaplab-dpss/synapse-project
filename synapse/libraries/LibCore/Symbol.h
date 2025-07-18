@@ -64,4 +64,9 @@ public:
 
 std::ostream &operator<<(std::ostream &os, const Symbols &symbols);
 
+struct symbol_translation_t {
+  symbol_t old_symbol;
+  symbol_t new_symbol;
+};
+
 } // namespace LibCore

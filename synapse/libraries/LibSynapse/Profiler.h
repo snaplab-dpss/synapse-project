@@ -16,7 +16,7 @@ using LibBDD::bdd_profile_t;
 using LibBDD::BDDNode;
 using LibBDD::Call;
 using LibBDD::RouteOp;
-using LibBDD::translated_symbol_t;
+using LibBDD::symbol_translation_t;
 
 using LibCore::SymbolManager;
 
@@ -158,7 +158,7 @@ public:
   // WARNING: this should be called before processing the leaf.
   void insert_relative(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> cnstr, hit_rate_t rel_hr_on_true);
 
-  void translate(SymbolManager *symbol_manager, const BDDNode *reordered_node, const std::vector<translated_symbol_t> &translated_symbols);
+  void translate(SymbolManager *symbol_manager, const BDDNode *reordered_node, const std::vector<symbol_translation_t> &translated_symbols);
   void replace_constraint(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> cnstr);
   void remove(const std::vector<klee::ref<klee::Expr>> &constraints);
   void scale(const std::vector<klee::ref<klee::Expr>> &constraints, double factor);
