@@ -29,6 +29,7 @@ using LibCore::Edge;
 using LibCore::Node;
 using LibCore::solver_toolbox;
 using LibCore::symbol_t;
+using LibCore::symbol_translation_t;
 using LibCore::Symbols;
 
 namespace {
@@ -252,6 +253,16 @@ BDDNode *build_chain_of_device_checking_branches(BDD &bdd, const klee::Constrain
   return root;
 }
 
+symbol_t create_translation_symbol(SymbolManager *symbol_manager, const symbol_t &symbol, const BDDNode *node_creating_symbol) {
+  // We have to make sure this new symbol name does not collide with any existing symbol.
+  // In the BDD reordering logic, we append "_r" to the symbol name to ensure this, where "r" comes from "reordering".
+  // Here, we append "_c", where "c" comes from "consolidate".
+  const std::string new_name = symbol.base + "_c" + std::to_string(node_creating_symbol->get_id());
+  assert(!symbol_manager->has_symbol(new_name) && "Symbol should not exist in the symbol manager");
+  const symbol_t new_symbol = symbol_manager->create_symbol(new_name, symbol.expr->getWidth());
+  return new_symbol;
+}
+
 void translate_symbols(SymbolManager *symbol_manager, BDDNode *root) {
   const std::unordered_set<std::string> symbols_never_translated{"device", "port", "packet_chunks"};
   root->visit_mutable_nodes([symbol_manager, &symbols_never_translated](BDDNode *node) {
@@ -266,12 +277,7 @@ void translate_symbols(SymbolManager *symbol_manager, BDDNode *root) {
       if (symbols_never_translated.find(symbol.name) != symbols_never_translated.end()) {
         continue;
       }
-      // We have to make sure this new symbol name does not collide with any existing symbol.
-      // In the BDD reordering logic, we append "_r" to the symbol name to ensure this, where "r" comes from "reordering".
-      // Here, we append "_c", where "c" comes from "consolidate".
-      const std::string new_name = symbol.base + "_c" + std::to_string(node->get_id());
-      assert(!symbol_manager->has_symbol(new_name) && "Symbol should not exist in the symbol manager");
-      const symbol_t new_symbol = symbol_manager->create_symbol(new_name, symbol.expr->getWidth());
+      const symbol_t new_symbol = create_translation_symbol(symbol_manager, symbol, node);
       node->recursive_translate_symbol(symbol, new_symbol);
     }
 
@@ -279,7 +285,51 @@ void translate_symbols(SymbolManager *symbol_manager, BDDNode *root) {
   });
 }
 
+void store_cloned_and_translated_init_symbols(BDD &bdd, BDDNode *root, const std::vector<Call *> &init) {
+  std::vector<Call *> new_init;
+  std::vector<symbol_translation_t> translations;
+  for (const Call *call : init) {
+    Call *new_call = dynamic_cast<Call *>(call->clone(bdd.get_mutable_manager(), false));
+    new_call->set_local_symbols(call->get_local_symbols());
+
+    for (const symbol_t &symbol : call->get_local_symbols().get()) {
+      const symbol_t new_symbol = create_translation_symbol(bdd.get_mutable_symbol_manager(), symbol, new_call);
+      translations.emplace_back(symbol, new_symbol);
+    }
+
+    if (!new_init.empty()) {
+      new_init.back()->set_next(new_call);
+      new_call->set_prev(new_init.back());
+    }
+
+    new_init.push_back(new_call);
+  }
+
+  if (!new_init.empty()) {
+    new_init.front()->recursive_update_ids(bdd.get_mutable_id());
+  }
+
+  std::vector<Call *> current_init = bdd.get_init();
+
+  if (!current_init.empty()) {
+    current_init.back()->set_next(new_init.front());
+    new_init.front()->set_prev(current_init.back());
+  }
+
+  current_init.insert(current_init.end(), new_init.begin(), new_init.end());
+  bdd.set_init(current_init);
+
+  if (!current_init.empty()) {
+    for (const symbol_translation_t &translation : translations) {
+      current_init.front()->recursive_translate_symbol(translation.old_symbol, translation.new_symbol);
+      root->recursive_translate_symbol(translation.old_symbol, translation.new_symbol);
+    }
+  }
+}
+
 BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *network_node, Port port) {
+  const std::string ctx = network_node->get_id() + ":" + std::to_string(port);
+
   BDDNode *root = nullptr;
 
   switch (network_node->get_node_type()) {
@@ -289,21 +339,14 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
     bdd.get_mutable_manager().add_node(route_node);
     bdd.get_mutable_id()++;
     root = route_node;
-    // std::cerr << "Building BDD for global port " << network_node->get_id() << " with port " << port << "\n";
     return root;
   } break;
   case NetworkNodeType::NF: {
     const NF *nf                             = network_node->get_nf();
     const std::vector<bdd_vector_t> sections = get_bdd_sections_handling_port(nf->get_bdd(), port);
-    // for (const bdd_vector_t &bdd_vector : sections) {
-    //   std::cerr << "Found discriminating vector: " << bdd_vector.node->dump(true) << " with direction: ";
-    //   if (bdd_vector.direction) {
-    //     std::cerr << "True\n";
-    //   } else {
-    //     std::cerr << "False\n";
-    //   }
-    // }
+
     root = stitch_bdd_sections(bdd, nf, sections);
+    store_cloned_and_translated_init_symbols(bdd, root, nf->get_bdd().get_init());
     translate_symbols(bdd.get_mutable_symbol_manager(), root);
   } break;
   }
@@ -317,36 +360,32 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
     switch (route->get_operation()) {
     case RouteOp::Forward: {
       klee::ref<klee::Expr> dst_device_expr = route->get_dst_device();
-      // std::cerr << "dst_device: " << LibCore::expr_to_string(dst_device_expr) << "\n";
-
       if (LibCore::is_constant(dst_device_expr)) {
         const Port dst_device = solver_toolbox.value_from_expr(dst_device_expr);
         if (network_node->has_link(dst_device)) {
           const std::pair<Port, const NetworkNode *> link = network_node->get_link(dst_device);
           const Port dst_network_node_port                = link.first;
           const NetworkNode *dst_network_node             = link.second;
-          // std::cerr << "  * Direct routing to port " << dst_network_node_port << " of node " << dst_network_node->get_id() << "!\n";
+          std::cerr << "  [" << ctx << "] Forwards to " << dst_device << " (" << dst_network_node->get_id() << ":" << dst_network_node_port << ")\n";
           BDDNode *new_node = build_network_node_bdd_from_local_port(bdd, dst_network_node, dst_network_node_port);
           replace_route_with_node(bdd, route, new_node);
-          // std::cerr << " [!] Forwarding logic of node " << network_node->get_id() << " to port " << dst_device
-          //           << " has a link on the virtual network, forwarding to node " << dst_network_node->get_id() << " with port "
-          //           << dst_network_node_port << "\n";
         } else {
-          // std::cout << "WARNING: forwarding logic of node " << network_node->get_id() << " to port " << dst_device
-          //           << " does not have a link on the virtual network, dropping the packet.\n";
+          std::cerr << "  [" << ctx << "] Forwards to local port " << dst_device << " without virtual link (dropping)\n";
           replace_route_with_drop(bdd, route, leaf_constraints);
         }
       } else {
         std::vector<std::pair<Port, BDDNode *>> per_device_logic;
-        for (const auto &[_, destination] : network_node->get_links()) {
-          const Port dst_network_node_port    = destination.first;
-          const NetworkNode *dst_network_node = destination.second;
-          klee::ref<klee::Expr> dst_port      = solver_toolbox.exprBuilder->Constant(dst_network_node_port, dst_device_expr->getWidth());
-          // if (solver_toolbox.is_expr_maybe_true(leaf_constraints, solver_toolbox.exprBuilder->Eq(dst_port, dst_device_expr))) {
-          //   std::cerr << "  * Could be sending to port " << dst_network_node_port << " of node " << dst_network_node->get_id() << "!\n";
-          // }
-          BDDNode *new_node = build_network_node_bdd_from_local_port(bdd, dst_network_node, dst_network_node_port);
-          per_device_logic.emplace_back(dst_network_node_port, new_node);
+        for (const auto &[local_port, destination] : network_node->get_links()) {
+          const Port dst_network_node_port      = destination.first;
+          const NetworkNode *dst_network_node   = destination.second;
+          klee::ref<klee::Expr> local_port_expr = solver_toolbox.exprBuilder->Constant(local_port, dst_device_expr->getWidth());
+          klee::ref<klee::Expr> handles_port    = solver_toolbox.exprBuilder->Eq(dst_device_expr, local_port_expr);
+          if (solver_toolbox.is_expr_maybe_true(route->get_constraints(), handles_port)) {
+            std::cerr << "  [" << ctx << "] May forward to " << local_port << " (" << dst_network_node->get_id() << ":" << dst_network_node_port
+                      << ")\n";
+            BDDNode *new_node = build_network_node_bdd_from_local_port(bdd, dst_network_node, dst_network_node_port);
+            per_device_logic.emplace_back(dst_network_node_port, new_node);
+          }
         }
         BDDNode *if_else_logic = build_chain_of_device_checking_branches(bdd, leaf_constraints, dst_device_expr, per_device_logic);
         replace_route_with_node(bdd, route, if_else_logic);
@@ -436,8 +475,7 @@ BDD Network::consolidate() const {
     }
 
     for (const auto &[global_port, dport_node] : node->get_links()) {
-      // std::cerr << "Setting up global port " << node_id << " with sport " << global_port << " and destination " << dport_node.second->get_id()
-      //           << " with dport " << dport_node.first << "\n";
+      std::cerr << "Global port " << global_port << " -> " << dport_node.second->get_id() << ":" << dport_node.first << "\n";
       BDDNode *next_node = build_network_node_bdd_from_local_port(bdd, dport_node.second, dport_node.first);
       per_device_logic.emplace_back(global_port, next_node);
     }
@@ -445,8 +483,6 @@ BDD Network::consolidate() const {
 
   BDDNode *root = build_chain_of_device_checking_branches(bdd, {}, bdd.get_device().expr, per_device_logic);
   bdd.set_root(root);
-
-  // BDDViz::visualize(&bdd, false);
 
   return bdd;
 }

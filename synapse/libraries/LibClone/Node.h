@@ -54,12 +54,13 @@ public:
 
   void add_link(Port port_from, Port port_to, const NetworkNode *node) { links[port_from] = {port_to, node}; }
 
-  void debug() const {
-    std::cerr << id << "{";
-    for (const auto &[sport, destination] : links) {
-      std::cerr << "(" << sport << "->" << destination.first << ":" << destination.second->get_id() << "),";
+  friend std::ostream &operator<<(std::ostream &os, const NetworkNode &node) {
+    os << node.id << "{";
+    for (const auto &[sport, destination] : node.links) {
+      os << "(" << sport << "->" << destination.first << ":" << destination.second->get_id() << "),";
     }
-    std::cerr << "}";
+    os << "}";
+    return os;
   }
 };
 

@@ -53,13 +53,22 @@ public:
   void set_packet_len(const symbol_t &new_packet_len) { packet_len = new_packet_len; }
   void set_time(const symbol_t &new_time) { time = new_time; }
 
-  const std::vector<Call *> &get_init() const { return init; }
   const BDDNode *get_root() const { return root; }
+  const std::vector<Call *> &get_init() const { return init; }
 
   void set_root(BDDNode *_root) {
     root = _root;
     if (!manager.has_node(_root)) {
       panic("Root node is not managed by the BDDNodeManager");
+    }
+  }
+
+  void set_init(const std::vector<Call *> &new_init) {
+    init = new_init;
+    for (Call *call : init) {
+      if (!manager.has_node(call)) {
+        panic("Init node is not managed by the BDDNodeManager");
+      }
     }
   }
 

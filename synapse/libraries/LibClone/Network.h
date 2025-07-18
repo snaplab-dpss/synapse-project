@@ -45,15 +45,11 @@ public:
     std::cerr << "========== Network ==========\n";
     std::cerr << "NFs:\n";
     for (const auto &[_, nf] : nfs) {
-      std::cerr << "  ";
-      nf->debug();
-      std::cerr << "\n";
+      std::cerr << "  " << *nf << "\n";
     }
     std::cerr << "Nodes:\n";
     for (const auto &[_, node] : nodes) {
-      std::cerr << "  ";
-      node->debug();
-      std::cerr << "\n";
+      std::cerr << "  " << *node << "\n";
     }
     std::cerr << "=============================\n";
   }

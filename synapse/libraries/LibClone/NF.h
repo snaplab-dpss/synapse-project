@@ -25,7 +25,10 @@ public:
   const NFId &get_id() const { return id; }
   const BDD &get_bdd() const { return bdd; }
 
-  void debug() const { std::cerr << "NF{" << id << "}"; }
+  friend std::ostream &operator<<(std::ostream &os, const NF &nf) {
+    os << "NF{" << nf.id << "}";
+    return os;
+  }
 };
 
 } // namespace LibClone
