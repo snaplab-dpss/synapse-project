@@ -476,8 +476,11 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
 
   assert(root && "Root node should not be null");
   for (BDDNode *leaf_node : root->get_mutable_leaves()) {
-    const klee::ConstraintManager leaf_constraints = leaf_node->get_constraints();
-    Route *route                                   = leaf_node->get_mutable_latest_routing_decision();
+    klee::ConstraintManager leaf_constraints = leaf_node->get_constraints();
+    leaf_constraints.addConstraint(
+        solver_toolbox.exprBuilder->Eq(bdd.get_device().expr, solver_toolbox.exprBuilder->Constant(port, bdd.get_device().expr->getWidth())));
+
+    Route *route = leaf_node->get_mutable_latest_routing_decision();
     assert(route && "Leaf node should have a routing decision");
 
     switch (route->get_operation()) {
@@ -503,7 +506,7 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
           const NetworkNode *dst_network_node   = destination.second;
           klee::ref<klee::Expr> local_port_expr = solver_toolbox.exprBuilder->Constant(local_port, dst_device_expr->getWidth());
           klee::ref<klee::Expr> handles_port    = solver_toolbox.exprBuilder->Eq(dst_device_expr, local_port_expr);
-          if (solver_toolbox.is_expr_maybe_true(route->get_constraints(), handles_port)) {
+          if (solver_toolbox.is_expr_maybe_true(leaf_constraints, handles_port)) {
             std::cerr << "  [" << ctx << "] May forward to " << local_port << " (" << dst_network_node->get_id() << ":" << dst_network_node_port
                       << ")\n";
             BDDNode *new_node = build_network_node_bdd_from_local_port(bdd, dst_network_node, dst_network_node_port);

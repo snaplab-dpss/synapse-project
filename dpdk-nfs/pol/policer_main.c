@@ -38,6 +38,10 @@ uint16_t get_dst_dev(uint16_t src_dev) {
   dst_dev = *destination_device;
   vector_return(state->fwd_rules, src_dev, destination_device);
 
+  if (src_dev == dst_dev) {
+    return DROP;
+  }
+
   return dst_dev;
 }
 
