@@ -44,7 +44,7 @@ KVS_STATUS_FAIL = 0
 
 CUCKOO_CAPACITY = 8192
 EXPIRATION_TIME = 256  # units of 65536 ns = 16ms
-MAX_LOOPS = 10
+MAX_LOOPS = 4
 
 
 class KVS(Packet):

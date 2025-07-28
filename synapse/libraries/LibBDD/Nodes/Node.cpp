@@ -345,21 +345,6 @@ void BDDNode::recursive_translate_symbol(const symbol_t &old_symbol, const symbo
     } break;
     }
 
-    const klee::ConstraintManager &old_constraints = node->get_constraints();
-    klee::ConstraintManager new_constraints;
-    for (klee::ref<klee::Expr> constraint : old_constraints) {
-      klee::ref<klee::Expr> new_constraint = symbol_manager->translate(constraint, {{old_symbol.name, new_symbol.name}});
-      new_constraints.addConstraint(new_constraint);
-    }
-    node->set_constraints(new_constraints);
-
-    return BDDNodeVisitAction::Continue;
-  });
-}
-
-void BDDNode::recursive_add_constraint(klee::ref<klee::Expr> constraint) {
-  visit_mutable_nodes([constraint](BDDNode *node) -> BDDNodeVisitAction {
-    node->constraints.addConstraint(constraint);
     return BDDNodeVisitAction::Continue;
   });
 }

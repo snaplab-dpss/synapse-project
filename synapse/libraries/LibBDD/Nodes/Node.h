@@ -45,16 +45,14 @@ protected:
   BDDNode *next;
   BDDNode *prev;
 
-  klee::ConstraintManager constraints;
   SymbolManager *symbol_manager;
 
 public:
-  BDDNode(bdd_node_id_t _id, BDDNodeType _type, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager)
-      : id(_id), type(_type), next(nullptr), prev(nullptr), constraints(_constraints), symbol_manager(_symbol_manager) {}
+  BDDNode(bdd_node_id_t _id, BDDNodeType _type, SymbolManager *_symbol_manager)
+      : id(_id), type(_type), next(nullptr), prev(nullptr), symbol_manager(_symbol_manager) {}
 
-  BDDNode(bdd_node_id_t _id, BDDNodeType _type, BDDNode *_next, BDDNode *_prev, const klee::ConstraintManager &_constraints,
-          SymbolManager *_symbol_manager)
-      : id(_id), type(_type), next(_next), prev(_prev), constraints(_constraints), symbol_manager(_symbol_manager) {}
+  BDDNode(bdd_node_id_t _id, BDDNodeType _type, BDDNode *_next, BDDNode *_prev, SymbolManager *_symbol_manager)
+      : id(_id), type(_type), next(_next), prev(_prev), symbol_manager(_symbol_manager) {}
 
   const BDDNode *get_next() const { return next; }
   const BDDNode *get_prev() const { return prev; }
@@ -65,8 +63,6 @@ public:
   BDDNodeType get_type() const { return type; }
   bdd_node_id_t get_id() const { return id; }
 
-  const klee::ConstraintManager &get_constraints() const { return constraints; }
-  void set_constraints(const klee::ConstraintManager &_constraints) { constraints = _constraints; }
   std::vector<klee::ref<klee::Expr>> get_ordered_branch_constraints() const;
 
   BDDNode *get_mutable_next() { return next; }
@@ -84,7 +80,6 @@ public:
 
   void recursive_update_ids(bdd_node_id_t &new_id);
   void recursive_translate_symbol(const symbol_t &old_symbol, const symbol_t &new_symbol);
-  void recursive_add_constraint(klee::ref<klee::Expr> constraint);
   void recursive_free_children(BDDNodeManager &manager);
   std::string recursive_dump(int lvl = 0) const;
 

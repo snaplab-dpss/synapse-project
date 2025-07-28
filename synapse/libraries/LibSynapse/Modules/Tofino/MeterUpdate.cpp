@@ -94,7 +94,7 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const BDD
   const Call *tb_is_tracing = dynamic_cast<const Call *>(node);
 
   const Call *tb_update_and_check;
-  if (!tb_is_tracing->is_tb_tracing_check_followed_by_update_on_true(tb_update_and_check)) {
+  if (!ep->get_bdd()->is_tb_tracing_check_followed_by_update_on_true(tb_is_tracing, tb_update_and_check)) {
     return {};
   }
 
@@ -129,7 +129,7 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const BDDNode
   const Call *tb_is_tracing = dynamic_cast<const Call *>(node);
 
   const Call *tb_update_and_check;
-  if (!tb_is_tracing->is_tb_tracing_check_followed_by_update_on_true(tb_update_and_check)) {
+  if (!ep->get_bdd()->is_tb_tracing_check_followed_by_update_on_true(tb_is_tracing, tb_update_and_check)) {
     return {};
   }
 
@@ -176,7 +176,7 @@ std::unique_ptr<Module> MeterUpdateFactory::create(const BDD *bdd, const Context
   const Call *tb_is_tracing = dynamic_cast<const Call *>(node);
 
   const Call *tb_update_and_check;
-  if (!tb_is_tracing->is_tb_tracing_check_followed_by_update_on_true(tb_update_and_check)) {
+  if (!bdd->is_tb_tracing_check_followed_by_update_on_true(tb_is_tracing, tb_update_and_check)) {
     return {};
   }
 

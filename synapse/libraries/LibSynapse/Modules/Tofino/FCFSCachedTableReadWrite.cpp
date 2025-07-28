@@ -104,7 +104,7 @@ std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, con
     const call_t &call = coalescing_node->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
-      branch_direction_t index_alloc_check = coalescing_node->find_branch_checking_index_alloc();
+      const branch_direction_t index_alloc_check = ep->get_bdd()->find_branch_checking_index_alloc(coalescing_node);
 
       // FIXME: We ignore all logic happening when the index is not
       // successfuly allocated. This is a major simplification, as the NF
@@ -135,7 +135,7 @@ void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, BDDNode *on_succ
     const call_t &call      = call_target->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
-      branch_direction_t index_alloc_check = call_target->find_branch_checking_index_alloc();
+      const branch_direction_t index_alloc_check = bdd->find_branch_checking_index_alloc(call_target);
 
       if (index_alloc_check.branch) {
         assert(!deleted_branch_constraints.has_value() && "Multiple branch checking index allocation detected");
@@ -270,7 +270,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
   const Call *map_get = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
-  if (!map_get->is_map_get_followed_by_map_puts_on_miss(future_map_puts)) {
+  if (!ep->get_bdd()->is_map_get_followed_by_map_puts_on_miss(map_get, future_map_puts)) {
     // The cached table read should deal with these cases.
     return {};
   }
@@ -346,7 +346,7 @@ std::vector<impl_t> FCFSCachedTableReadWriteFactory::process_node(const EP *ep, 
 
   std::vector<const Call *> future_map_puts;
 
-  if (!map_get->is_map_get_followed_by_map_puts_on_miss(future_map_puts)) {
+  if (!ep->get_bdd()->is_map_get_followed_by_map_puts_on_miss(map_get, future_map_puts)) {
     // The cached table read should deal with these cases.
     return {};
   }
@@ -387,7 +387,7 @@ std::unique_ptr<Module> FCFSCachedTableReadWriteFactory::create(const BDD *bdd, 
   const Call *map_get = dynamic_cast<const Call *>(node);
 
   std::vector<const Call *> future_map_puts;
-  if (!map_get->is_map_get_followed_by_map_puts_on_miss(future_map_puts)) {
+  if (!bdd->is_map_get_followed_by_map_puts_on_miss(map_get, future_map_puts)) {
     return {};
   }
 

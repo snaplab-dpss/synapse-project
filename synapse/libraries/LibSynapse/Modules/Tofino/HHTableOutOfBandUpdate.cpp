@@ -87,7 +87,7 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
   spec_impl_t spec_impl(decide(ep, node), ctx);
 
   // Get all nodes executed on a successful index allocation.
-  const branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
+  const branch_direction_t index_alloc_check = ep->get_bdd()->find_branch_checking_index_alloc(dchain_allocate_new_index);
   assert(index_alloc_check.branch && "Branch checking index allocation not found");
 
   const hit_rate_t index_alloc_failure_hr = ep->get_ctx().get_profiler().get_hr(index_alloc_check.get_failure_node());
@@ -127,7 +127,7 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
     return {};
   }
 
-  const branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
+  const branch_direction_t index_alloc_check = ep->get_bdd()->find_branch_checking_index_alloc(dchain_allocate_new_index);
   assert(index_alloc_check.branch && "Branch checking index allocation not found");
 
   const hit_rate_t index_alloc_failure_hr = ep->get_ctx().get_profiler().get_hr(index_alloc_check.get_failure_node());

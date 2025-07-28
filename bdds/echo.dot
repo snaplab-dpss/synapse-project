@@ -1,4 +1,3 @@
-digraph mygraph {
-	node [shape=box, style="rounded,filled", border=0];
-	0 [label="0:fwd(DEVICE)", fillcolor="chartreuse2"];
+digraph G {
+	"0"[label="0:fwd(DEVICE)",shape=box,style="filled,",fillcolor="chartreuse2",border=0,];
 }

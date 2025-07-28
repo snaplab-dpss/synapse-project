@@ -58,7 +58,7 @@ typedef bit<VAL_WIDTH>		val_t;
 // Entry Timeout Expiration (units of 65536 ns).
 #define ENTRY_TIMEOUT		16 // 1 ms
 
-#define MAX_LOOPS			5
+#define MAX_LOOPS			4
 
 // Cuckoo Table Size.
 #define CUCKOO_ENTRIES		8192

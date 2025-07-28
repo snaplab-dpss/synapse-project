@@ -16,13 +16,13 @@ BDDNode *Branch::clone(BDDNodeManager &manager, bool recursive) const {
   if (recursive) {
     BDDNode *on_true_clone  = on_true ? on_true->clone(manager, true) : nullptr;
     BDDNode *on_false_clone = on_false ? on_false->clone(manager, true) : nullptr;
-    clone                   = new Branch(id, nullptr, constraints, symbol_manager, on_true_clone, on_false_clone, condition);
+    clone                   = new Branch(id, nullptr, symbol_manager, on_true_clone, on_false_clone, condition);
     if (on_true_clone)
       on_true_clone->set_prev(clone);
     if (on_false_clone)
       on_false_clone->set_prev(clone);
   } else {
-    clone = new Branch(id, constraints, symbol_manager, condition);
+    clone = new Branch(id, symbol_manager, condition);
   }
 
   manager.add_node(clone);

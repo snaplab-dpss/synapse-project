@@ -17,9 +17,9 @@ from utils.constants import *
 
 STORAGE_SERVER_DELAY_NS = 0
 TOTAL_FLOWS = 25_000
-KVS_GET_RATIO = 0.99
+KVS_GET_RATIO = 0.9
 CHURN_FPM = 1_000_000
-ZIPF_PARAM = 0
+ZIPF_PARAM = 0.6
 
 EXPERIMENT_NAME = "Switcharoo throughput"
 

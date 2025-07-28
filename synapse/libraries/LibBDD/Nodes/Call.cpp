@@ -23,10 +23,10 @@ BDDNode *Call::clone(BDDNodeManager &manager, bool recursive) const {
 
   if (recursive && next) {
     BDDNode *next_clone = next->clone(manager, true);
-    clone               = new Call(id, next_clone, nullptr, constraints, symbol_manager, call, generated_symbols);
+    clone               = new Call(id, next_clone, nullptr, symbol_manager, call, generated_symbols);
     next_clone->set_prev(clone);
   } else {
-    clone = new Call(id, constraints, symbol_manager, call, generated_symbols);
+    clone = new Call(id, symbol_manager, call, generated_symbols);
   }
 
   manager.add_node(clone);
@@ -253,56 +253,6 @@ u32 Call::get_vector_borrow_value_future_usage() const {
 
 bool Call::is_vector_return_without_modifications() const { return call.function_name == "vector_return" && is_vector_read(); }
 
-branch_direction_t Call::find_branch_checking_index_alloc() const {
-  branch_direction_t index_alloc_check;
-
-  if (call.function_name != "dchain_allocate_new_index") {
-    return index_alloc_check;
-  }
-
-  const symbol_t not_out_of_space = get_local_symbol("not_out_of_space");
-
-  visit_nodes([&not_out_of_space, &index_alloc_check](const BDDNode *node) {
-    if (node->get_type() != BDDNodeType::Branch) {
-      return BDDNodeVisitAction::Continue;
-    }
-
-    const Branch *branch                       = dynamic_cast<const Branch *>(node);
-    const klee::ref<klee::Expr> condition      = branch->get_condition();
-    const std::unordered_set<std::string> used = symbol_t::get_symbols_names(condition);
-
-    for (const std::string &name : used) {
-      if (name != not_out_of_space.name) {
-        return BDDNodeVisitAction::Continue;
-      }
-    }
-
-    index_alloc_check.branch = branch;
-    return BDDNodeVisitAction::Stop;
-  });
-
-  if (index_alloc_check.branch) {
-    klee::ref<klee::Expr> success_condition =
-        solver_toolbox.exprBuilder->Ne(not_out_of_space.expr, solver_toolbox.exprBuilder->Constant(0, not_out_of_space.expr->getWidth()));
-
-    assert_or_panic(index_alloc_check.branch->get_on_true(), "No on_true");
-    assert_or_panic(index_alloc_check.branch->get_on_false(), "No on_false");
-
-    const BDDNode *on_true  = index_alloc_check.branch->get_on_true();
-    const BDDNode *on_false = index_alloc_check.branch->get_on_false();
-
-    const bool success_on_true  = solver_toolbox.is_expr_always_true(on_true->get_constraints(), success_condition);
-    const bool success_on_false = solver_toolbox.is_expr_always_true(on_false->get_constraints(), success_condition);
-
-    assert_or_panic((success_on_true || success_on_false), "No branch side is successful");
-    assert_or_panic((success_on_true ^ success_on_false), "Both branch sides have the same success condition");
-
-    index_alloc_check.direction = success_on_true;
-  }
-
-  return index_alloc_check;
-}
-
 branch_direction_t Call::get_map_get_success_check() const {
   branch_direction_t success_check;
 
@@ -374,98 +324,6 @@ bool Call::are_map_read_write_counterparts(const Call *map_get, const Call *map_
   }
 
   return true;
-}
-
-bool Call::is_map_get_followed_by_map_puts_on_miss(std::vector<const Call *> &map_puts) const {
-  const call_t &mg_call = call;
-
-  if (mg_call.function_name != "map_get") {
-    return false;
-  }
-
-  klee::ref<klee::Expr> obj_expr = mg_call.args.at("map").expr;
-  klee::ref<klee::Expr> key      = mg_call.args.at("key").in;
-
-  addr_t obj                = expr_addr_to_obj_addr(obj_expr);
-  symbol_t map_has_this_key = get_local_symbol("map_has_this_key");
-
-  klee::ref<klee::Expr> failed_map_get =
-      solver_toolbox.exprBuilder->Eq(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
-
-  std::vector<const Call *> future_map_puts = get_future_functions({"map_put"});
-
-  klee::ref<klee::Expr> value;
-  for (const Call *map_put : future_map_puts) {
-    const call_t &mp_call = map_put->get_call();
-    assert(mp_call.function_name == "map_put" && "Unexpected function");
-
-    klee::ref<klee::Expr> map_expr = mp_call.args.at("map").expr;
-    klee::ref<klee::Expr> mp_key   = mp_call.args.at("key").in;
-    klee::ref<klee::Expr> mp_value = mp_call.args.at("value").expr;
-
-    const addr_t map = expr_addr_to_obj_addr(map_expr);
-
-    if (map != obj) {
-      continue;
-    }
-
-    if (!solver_toolbox.are_exprs_always_equal(key, mp_key)) {
-      return false;
-    }
-
-    if (value.isNull()) {
-      value = mp_value;
-    } else if (!solver_toolbox.are_exprs_always_equal(value, mp_value)) {
-      return false;
-    }
-
-    klee::ConstraintManager map_put_constraints = map_put->get_constraints();
-    if (!solver_toolbox.is_expr_always_true(map_put_constraints, failed_map_get)) {
-      // Found map_put that happens even if map_get was successful.
-      return false;
-    }
-
-    map_puts.push_back(map_put);
-  }
-
-  if (map_puts.empty()) {
-    return false;
-  }
-
-  return true;
-}
-
-bool Call::is_tb_tracing_check_followed_by_update_on_true(const Call *&tb_update_and_check) const {
-  const Call *tb_is_tracing     = this;
-  const call_t &is_tracing_call = tb_is_tracing->get_call();
-
-  if (is_tracing_call.function_name != "tb_is_tracing") {
-    return false;
-  }
-
-  klee::ref<klee::Expr> tb = is_tracing_call.args.at("tb").expr;
-  klee::ref<klee::Expr> is_tracing_condition =
-      solver_toolbox.exprBuilder->Ne(is_tracing_call.ret, solver_toolbox.exprBuilder->Constant(0, is_tracing_call.ret->getWidth()));
-
-  std::vector<const Call *> tb_update_and_checks = tb_is_tracing->get_future_functions({"tb_update_and_check"});
-
-  tb_update_and_check = nullptr;
-  for (const Call *candidate : tb_update_and_checks) {
-    klee::ref<klee::Expr> candidate_tb = candidate->get_call().args.at("tb").expr;
-    if (!solver_toolbox.are_exprs_always_equal(tb, candidate_tb)) {
-      continue;
-    }
-
-    klee::ConstraintManager candidate_constraints = candidate->get_constraints();
-    if (!solver_toolbox.is_expr_always_true(candidate_constraints, is_tracing_condition)) {
-      continue;
-    }
-
-    tb_update_and_check = candidate;
-    break;
-  }
-
-  return tb_update_and_check != nullptr;
 }
 
 const Call *Call::packet_borrow_from_return() const {

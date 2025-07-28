@@ -13,19 +13,19 @@ using LibCore::kQuery_t;
 using LibCore::kQueryParser;
 
 namespace {
-constexpr const char *const MAGIC_SIGNATURE   = "===== BDD =====";
-constexpr const char *const KQUERY_DELIMITER  = ";;-- kQuery --";
-constexpr const char *const SYMBOLS_DELIMITER = ";;-- Symbols --";
-constexpr const char *const INIT_DELIMITER    = ";;-- Init --";
-constexpr const char *const NODES_DELIMITER   = ";; -- Nodes --";
-constexpr const char *const EDGES_DELIMITER   = ";; -- Edges --";
-constexpr const char *const ROOT_DELIMITER    = ";; -- Root --";
+constexpr const char *const MAGIC_SIGNATURE            = "===== BDD =====";
+constexpr const char *const KQUERY_DELIMITER           = ";;-- kQuery --";
+constexpr const char *const SYMBOLS_DELIMITER          = ";;-- Symbols --";
+constexpr const char *const BASE_CONSTRAINTS_DELIMITER = ";;-- Base Constraints --";
+constexpr const char *const INIT_DELIMITER             = ";;-- Init --";
+constexpr const char *const NODES_DELIMITER            = ";; -- Nodes --";
+constexpr const char *const EDGES_DELIMITER            = ";; -- Edges --";
+constexpr const char *const ROOT_DELIMITER             = ";; -- Root --";
 
 std::string serialize_expr(klee::ref<klee::Expr> expr, kQuery_t &kQuery) {
   assert(!expr.isNull() && "Null expr");
-  std::string expr_str = expr_to_string(expr);
   kQuery.values.push_back(expr);
-  return expr_str;
+  return expr_to_string(expr, true);
 }
 
 std::string serialize_call(const call_t &call, kQuery_t &kQuery) {
@@ -181,15 +181,6 @@ std::string serialize_symbols(const Symbols &symbols, kQuery_t &kQuery) {
 void serialize_node(const BDDNode *node, std::stringstream &nodes_stream, std::stringstream &edges_stream, kQuery_t &kQuery) {
   nodes_stream << node->get_id();
   nodes_stream << ":(";
-
-  const klee::ConstraintManager &constraints = node->get_constraints();
-
-  nodes_stream << constraints.size();
-  nodes_stream << " ";
-
-  for (klee::ref<klee::Expr> constraint : constraints) {
-    serialize_expr(constraint, kQuery);
-  }
 
   switch (node->get_type()) {
   case BDDNodeType::Call: {
@@ -447,7 +438,6 @@ std::pair<std::string, extra_var_t> parse_extra_var(std::string serialized_extra
 }
 
 call_t parse_call(std::string serialized_call, std::vector<klee::ref<klee::Expr>> &exprs) {
-
   call_t call;
 
   // Cleanup by removing duplicated spaces
@@ -586,8 +576,8 @@ Symbols parse_call_symbols(std::string serialized_symbols, std::vector<klee::ref
   return symbols;
 }
 
-BDDNode *parse_node_call(bdd_node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager, std::string serialized,
-                         std::vector<klee::ref<klee::Expr>> &exprs, BDDNodeManager &manager) {
+BDDNode *parse_node_call(bdd_node_id_t id, SymbolManager *symbol_manager, std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs,
+                         BDDNodeManager &manager) {
   size_t delim = serialized.find("=>");
   assert(delim != std::string::npos && "Invalid call");
 
@@ -597,21 +587,21 @@ BDDNode *parse_node_call(bdd_node_id_t id, const klee::ConstraintManager &constr
   call_t call     = parse_call(call_str, exprs);
   Symbols symbols = parse_call_symbols(symbols_str, exprs);
 
-  Call *call_node = new Call(id, constraints, symbol_manager, call, symbols);
+  Call *call_node = new Call(id, symbol_manager, call, symbols);
   manager.add_node(call_node);
   return call_node;
 }
 
-BDDNode *parse_node_branch(bdd_node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager, std::string serialized,
-                           std::vector<klee::ref<klee::Expr>> &exprs, BDDNodeManager &manager) {
+BDDNode *parse_node_branch(bdd_node_id_t id, SymbolManager *symbol_manager, std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs,
+                           BDDNodeManager &manager) {
   klee::ref<klee::Expr> condition = pop_expr(exprs);
-  Branch *branch_node             = new Branch(id, constraints, symbol_manager, condition);
+  Branch *branch_node             = new Branch(id, symbol_manager, condition);
   manager.add_node(branch_node);
   return branch_node;
 }
 
-BDDNode *parse_node_route(bdd_node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager, std::string serialized,
-                          std::vector<klee::ref<klee::Expr>> &exprs, BDDNodeManager &manager) {
+BDDNode *parse_node_route(bdd_node_id_t id, SymbolManager *symbol_manager, std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs,
+                          BDDNodeManager &manager) {
   Route *route_node;
 
   size_t delim = serialized.find(" ");
@@ -620,9 +610,9 @@ BDDNode *parse_node_route(bdd_node_id_t id, const klee::ConstraintManager &const
     assert(route_operation_str != "FWD" && "Invalid route");
 
     if (route_operation_str == "DROP") {
-      route_node = new Route(id, constraints, symbol_manager, RouteOp::Drop);
+      route_node = new Route(id, symbol_manager, RouteOp::Drop);
     } else if (route_operation_str == "BCAST") {
-      route_node = new Route(id, constraints, symbol_manager, RouteOp::Broadcast);
+      route_node = new Route(id, symbol_manager, RouteOp::Broadcast);
     } else {
       panic("Unknown route operation");
     }
@@ -632,7 +622,7 @@ BDDNode *parse_node_route(bdd_node_id_t id, const klee::ConstraintManager &const
     assert(route_operation_str == "FWD" && "Invalid route");
 
     klee::ref<klee::Expr> dst_device = pop_expr(exprs);
-    route_node                       = new Route(id, constraints, symbol_manager, RouteOp::Forward, dst_device);
+    route_node                       = new Route(id, symbol_manager, RouteOp::Forward, dst_device);
   }
 
   manager.add_node(route_node);
@@ -655,31 +645,17 @@ BDDNode *parse_node(std::string serialized_node, std::vector<klee::ref<klee::Exp
   delim = serialized_node.find(" ");
   assert(delim != std::string::npos && "Invalid node");
 
-  std::string serialized_constraints_num = serialized_node.substr(0, delim);
-  serialized_node                        = serialized_node.substr(delim + 1);
-  int constraints_num                    = std::atoi(serialized_constraints_num.c_str());
-  assert(constraints_num >= 0 && "Invalid node");
-
-  klee::ConstraintManager constraints;
-  for (int i = 0; i < constraints_num; i++) {
-    klee::ref<klee::Expr> constraint = pop_expr(exprs);
-    constraints.addConstraint(constraint);
-  }
-
-  delim = serialized_node.find(" ");
-  assert(delim != std::string::npos && "Invalid node");
-
   std::string node_type_str = serialized_node.substr(0, delim);
 
   serialized_node = serialized_node.substr(delim + 1);
   serialized_node = serialized_node.substr(0, serialized_node.size() - 1);
 
   if (node_type_str == "CALL") {
-    node = parse_node_call(id, constraints, symbol_manager, serialized_node, exprs, manager);
+    node = parse_node_call(id, symbol_manager, serialized_node, exprs, manager);
   } else if (node_type_str == "BRANCH") {
-    node = parse_node_branch(id, constraints, symbol_manager, serialized_node, exprs, manager);
+    node = parse_node_branch(id, symbol_manager, serialized_node, exprs, manager);
   } else if (node_type_str == "ROUTE") {
-    node = parse_node_route(id, constraints, symbol_manager, serialized_node, exprs, manager);
+    node = parse_node_route(id, symbol_manager, serialized_node, exprs, manager);
   } else {
     panic("Unknown node type");
   }
@@ -699,6 +675,7 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
   kQuery_t kQuery;
 
   std::stringstream symbols_stream;
+  std::stringstream base_constraints_stream;
   std::stringstream init_stream;
   std::stringstream nodes_stream;
   std::stringstream edges_stream;
@@ -709,6 +686,11 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
   symbols_stream << "\n";
   symbols_stream << serialize_expr(time.expr, kQuery);
   symbols_stream << "\n";
+
+  for (klee::ref<klee::Expr> constraint : base_constraints) {
+    base_constraints_stream << serialize_expr(constraint, kQuery);
+    base_constraints_stream << "\n";
+  }
 
   serialize_init(init, init_stream, kQuery);
 
@@ -724,6 +706,9 @@ void BDD::serialize(const std::filesystem::path &fpath) const {
 
   out << SYMBOLS_DELIMITER << "\n";
   out << symbols_stream.str();
+
+  out << BASE_CONSTRAINTS_DELIMITER << "\n";
+  out << base_constraints_stream.str();
 
   out << INIT_DELIMITER << "\n";
   out << init_stream.str();
@@ -811,6 +796,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
     STATE_START,
     STATE_KQUERY,
     STATE_SYMBOLS,
+    STATE_BASE_CONSTRAINTS,
     STATE_INIT,
     STATE_NODES,
     STATE_EDGES,
@@ -822,6 +808,8 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
       return state_t::STATE_KQUERY;
     if (line == SYMBOLS_DELIMITER)
       return state_t::STATE_SYMBOLS;
+    if (line == BASE_CONSTRAINTS_DELIMITER)
+      return state_t::STATE_BASE_CONSTRAINTS;
     if (line == INIT_DELIMITER)
       return state_t::STATE_INIT;
     if (line == NODES_DELIMITER)
@@ -881,7 +869,14 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
       time = symbol_manager->get_symbol("next_time");
       pop_expr(exprs);
       std::getline(bdd_file, line);
+    } break;
 
+    case state_t::STATE_BASE_CONSTRAINTS: {
+      if (get_next_state(state, line) != state)
+        break;
+
+      klee::ref<klee::Expr> constraint = pop_expr(exprs);
+      base_constraints.addConstraint(constraint);
     } break;
 
     case state_t::STATE_INIT: {

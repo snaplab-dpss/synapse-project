@@ -40,9 +40,19 @@ array restarting_time[8] : w32 -> w8 = symbolic
 (ReadLSB w32 (w32 0) DEVICE)
 (ReadLSB w32 (w32 0) pkt_len)
 (ReadLSB w64 (w32 0) next_time)
+;;-- Base Constraints --
+(Sle (w64 0) (ReadLSB w64 (w32 0) starting_time))
+(Eq false (Eq (w32 0) (ReadLSB w32 (w32 0) loop_termination)))
+(Sle (w64 0) (ReadLSB w64 (w32 0) restarting_time))
+(Sle (ReadLSB w64 (w32 0) restarting_time) (ReadLSB w64 (w32 0) next_time))
+(Ult (ReadLSB w32 (w32 0) DEVICE) (w32 32))
+(Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) DEVICE)))
+(Eq false (Eq (w16 65534) (ReadLSB w16 (w32 0) DEVICE)))
+(Sle (ZExt w32 (ReadLSB w16 (w32 0) data_len)) (ZExt w32 (ReadLSB w16 (w32 0) pkt_len)))
+(Ule (w64 14) (ZExt w64 (ReadLSB w16 (w32 0) data_len)))
 ;;-- Init --
 ;; -- Nodes --
-0:(9 ROUTE FWD (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) DEVICE))))
+0:(ROUTE FWD (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) DEVICE))))
 ;; -- Edges --
 ;; -- Root --
 0

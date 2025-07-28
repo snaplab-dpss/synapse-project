@@ -156,15 +156,15 @@ std::vector<bdd_vector_t> get_bdd_sections_handling_port(const BDD &bdd, Port po
 
     const Branch *branch_node = dynamic_cast<const Branch *>(node);
 
-    if (!solver_toolbox.is_expr_maybe_true(branch_node->get_constraints(), handles_port)) {
+    if (!solver_toolbox.is_expr_maybe_true(bdd.get_constraints(branch_node), handles_port)) {
       return BDDNodeVisitAction::Stop;
     }
 
     const BDDNode *on_true  = branch_node->get_on_true();
     const BDDNode *on_false = branch_node->get_on_false();
 
-    const bool on_true_never_handles_port  = solver_toolbox.is_expr_always_false(on_true->get_constraints(), handles_port);
-    const bool on_false_never_handles_port = solver_toolbox.is_expr_always_false(on_false->get_constraints(), handles_port);
+    const bool on_true_never_handles_port  = solver_toolbox.is_expr_always_false(bdd.get_constraints(on_true), handles_port);
+    const bool on_false_never_handles_port = solver_toolbox.is_expr_always_false(bdd.get_constraints(on_false), handles_port);
 
     assert(!on_true_never_handles_port || !on_false_never_handles_port);
 
@@ -206,14 +206,14 @@ void replace_route_with_node(BDD &bdd, Route *route, BDDNode *node) {
   BDD::delete_non_branch(route, bdd.get_mutable_manager());
 }
 
-void replace_route_with_drop(BDD &bdd, Route *route, klee::ConstraintManager constraints) {
-  Route *drop_node = new Route(bdd.get_mutable_id(), constraints, bdd.get_mutable_symbol_manager(), RouteOp::Drop);
+void replace_route_with_drop(BDD &bdd, Route *route) {
+  Route *drop_node = new Route(bdd.get_mutable_id(), bdd.get_mutable_symbol_manager(), RouteOp::Drop);
   bdd.get_mutable_manager().add_node(drop_node);
   bdd.get_mutable_id()++;
   replace_route_with_node(bdd, route, drop_node);
 }
 
-BDDNode *build_chain_of_device_checking_branches(BDD &bdd, const klee::ConstraintManager &constraints, klee::ref<klee::Expr> device_expr,
+BDDNode *build_chain_of_device_checking_branches(BDD &bdd, klee::ref<klee::Expr> device_expr,
                                                  std::vector<std::pair<Port, BDDNode *>> &per_device_logic) {
   auto build_device_checking_condition = [device_expr](Port port) {
     return solver_toolbox.exprBuilder->Eq(device_expr, solver_toolbox.exprBuilder->Constant(port, device_expr->getWidth()));
@@ -224,7 +224,7 @@ BDDNode *build_chain_of_device_checking_branches(BDD &bdd, const klee::Constrain
   for (const auto &[port, on_true_logic] : per_device_logic) {
     klee::ref<klee::Expr> condition = build_device_checking_condition(port);
 
-    Branch *branch_node = new Branch(bdd.get_mutable_id(), constraints, bdd.get_mutable_symbol_manager(), condition);
+    Branch *branch_node = new Branch(bdd.get_mutable_id(), bdd.get_mutable_symbol_manager(), condition);
     bdd.get_mutable_manager().add_node(branch_node);
     bdd.get_mutable_id()++;
 
@@ -241,7 +241,7 @@ BDDNode *build_chain_of_device_checking_branches(BDD &bdd, const klee::Constrain
     leaf_branch_node = branch_node;
   }
 
-  Route *drop_node = new Route(bdd.get_mutable_id(), constraints, bdd.get_mutable_symbol_manager(), RouteOp::Drop);
+  Route *drop_node = new Route(bdd.get_mutable_id(), bdd.get_mutable_symbol_manager(), RouteOp::Drop);
   bdd.get_mutable_manager().add_node(drop_node);
   bdd.get_mutable_id()++;
 
@@ -458,7 +458,7 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
   switch (network_node->get_node_type()) {
   case NetworkNodeType::GLOBAL_PORT: {
     Route *route_node =
-        new Route(bdd.get_mutable_id(), {}, bdd.get_mutable_symbol_manager(), RouteOp::Forward, solver_toolbox.exprBuilder->Constant(port, 32));
+        new Route(bdd.get_mutable_id(), bdd.get_mutable_symbol_manager(), RouteOp::Forward, solver_toolbox.exprBuilder->Constant(port, 32));
     bdd.get_mutable_manager().add_node(route_node);
     bdd.get_mutable_id()++;
     root = route_node;
@@ -476,10 +476,6 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
 
   assert(root && "Root node should not be null");
   for (BDDNode *leaf_node : root->get_mutable_leaves()) {
-    klee::ConstraintManager leaf_constraints = leaf_node->get_constraints();
-    leaf_constraints.addConstraint(
-        solver_toolbox.exprBuilder->Eq(bdd.get_device().expr, solver_toolbox.exprBuilder->Constant(port, bdd.get_device().expr->getWidth())));
-
     Route *route = leaf_node->get_mutable_latest_routing_decision();
     assert(route && "Leaf node should have a routing decision");
 
@@ -497,11 +493,15 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
           replace_route_with_node(bdd, route, new_node);
         } else {
           std::cerr << "  [" << ctx << "] Forwards to local port " << dst_device << " without virtual link (dropping)\n";
-          replace_route_with_drop(bdd, route, leaf_constraints);
+          replace_route_with_drop(bdd, route);
         }
       } else {
         std::vector<std::pair<Port, BDDNode *>> per_device_logic;
         for (const auto &[local_port, destination] : network_node->get_links()) {
+          klee::ConstraintManager leaf_constraints = bdd.get_constraints(leaf_node);
+          leaf_constraints.addConstraint(
+              solver_toolbox.exprBuilder->Eq(bdd.get_device().expr, solver_toolbox.exprBuilder->Constant(port, bdd.get_device().expr->getWidth())));
+
           const Port dst_network_node_port      = destination.first;
           const NetworkNode *dst_network_node   = destination.second;
           klee::ref<klee::Expr> local_port_expr = solver_toolbox.exprBuilder->Constant(local_port, dst_device_expr->getWidth());
@@ -513,7 +513,7 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
             per_device_logic.emplace_back(dst_network_node_port, new_node);
           }
         }
-        BDDNode *if_else_logic = build_chain_of_device_checking_branches(bdd, leaf_constraints, dst_device_expr, per_device_logic);
+        BDDNode *if_else_logic = build_chain_of_device_checking_branches(bdd, dst_device_expr, per_device_logic);
         replace_route_with_node(bdd, route, if_else_logic);
       }
     } break;
@@ -607,7 +607,7 @@ BDD Network::consolidate() const {
     }
   }
 
-  BDDNode *root = build_chain_of_device_checking_branches(bdd, {}, bdd.get_device().expr, per_device_logic);
+  BDDNode *root = build_chain_of_device_checking_branches(bdd, bdd.get_device().expr, per_device_logic);
   bdd.set_root(root);
 
   return bdd;

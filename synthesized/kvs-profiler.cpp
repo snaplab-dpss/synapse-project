@@ -782,8 +782,8 @@ bool nf_init() {
   ports.push_back(29);
   ports.push_back(30);
   ports.push_back(31);
-  stats_per_map[1073923160].init(24);
-  stats_per_map[1073923160].init(13);
+  stats_per_map[1073923800].init(24);
+  stats_per_map[1073923800].init(13);
   forwarding_stats_per_route_op.insert({73, PortStats{}});
   forwarding_stats_per_route_op.insert({68, PortStats{}});
   forwarding_stats_per_route_op.insert({64, PortStats{}});
@@ -908,7 +908,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
           *(uint32_t*)key = hdr4_slice;
           int value;
           int map_hit = map_get(map, key, &value);
-          stats_per_map[1073923160].update(13, key, 4, now);
+          stats_per_map[1073923800].update(13, key, 4, now);
           // BDDNode 14
           inc_path_counter(14);
           if ((0) == (map_hit)) {
@@ -949,7 +949,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 inc_path_counter(24);
                 *(uint32_t*)vector_value_out = hdr4_slice;
                 map_put(map, vector_value_out, index);
-                stats_per_map[1073923160].update(24, vector_value_out, 4, now);
+                stats_per_map[1073923800].update(24, vector_value_out, 4, now);
                 // BDDNode 25
                 inc_path_counter(25);
                 // BDDNode 26

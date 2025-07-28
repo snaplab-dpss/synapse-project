@@ -52,8 +52,7 @@ std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, con
     nodes_to_ignore.push_back(coalescing_node);
   }
 
-  branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
-
+  const branch_direction_t index_alloc_check = ep->get_bdd()->find_branch_checking_index_alloc(dchain_allocate_new_index);
   if (index_alloc_check.branch) {
     nodes_to_ignore.push_back(index_alloc_check.branch);
 
@@ -111,8 +110,7 @@ void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, BDDNode *on_succ
     const call_t &call      = call_target->get_call();
 
     if (call.function_name == "dchain_allocate_new_index") {
-      branch_direction_t index_alloc_check = call_target->find_branch_checking_index_alloc();
-
+      const branch_direction_t index_alloc_check = bdd->find_branch_checking_index_alloc(call_target);
       if (index_alloc_check.branch) {
         assert(!deleted_branch_constraints.has_value() && "Multiple branch checking index allocation detected");
         deleted_branch_constraints = index_alloc_check.branch->get_ordered_branch_constraints();

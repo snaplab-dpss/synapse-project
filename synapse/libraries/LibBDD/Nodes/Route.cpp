@@ -8,10 +8,10 @@ BDDNode *Route::clone(BDDNodeManager &manager, bool recursive) const {
 
   if (recursive && next) {
     BDDNode *next_clone = next->clone(manager, true);
-    clone               = new Route(id, next_clone, nullptr, constraints, symbol_manager, operation, dst_device);
+    clone               = new Route(id, next_clone, nullptr, symbol_manager, operation, dst_device);
     next_clone->set_prev(clone);
   } else {
-    clone = new Route(id, constraints, symbol_manager, operation, dst_device);
+    clone = new Route(id, symbol_manager, operation, dst_device);
   }
 
   manager.add_node(clone);

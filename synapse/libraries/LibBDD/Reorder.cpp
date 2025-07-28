@@ -334,8 +334,8 @@ bool map_can_reorder(const BDD *bdd, const BDDNode *anchor, const BDDNode *betwe
     return true;
   }
 
-  const klee::ConstraintManager &between_constraints   = between->get_constraints();
-  const klee::ConstraintManager &candidate_constraints = candidate->get_constraints();
+  const klee::ConstraintManager &between_constraints   = bdd->get_constraints(between);
+  const klee::ConstraintManager &candidate_constraints = bdd->get_constraints(candidate);
 
   const Call *between_call_node = dynamic_cast<const Call *>(between);
 
@@ -386,8 +386,8 @@ bool vector_can_reorder(const BDD *bdd, const BDDNode *anchor, const BDDNode *be
     return true;
   }
 
-  const klee::ConstraintManager &between_constraints   = between->get_constraints();
-  const klee::ConstraintManager &candidate_constraints = candidate->get_constraints();
+  const klee::ConstraintManager &between_constraints   = bdd->get_constraints(between);
+  const klee::ConstraintManager &candidate_constraints = bdd->get_constraints(candidate);
 
   const Call *between_call_node = dynamic_cast<const Call *>(between);
 
@@ -520,21 +520,19 @@ bool rw_check(const BDD *bdd, const BDDNode *anchor, const BDDNode *candidate, k
   return true;
 }
 
-bool condition_check(const vector_t &anchor, const BDDNode *candidate, const std::unordered_set<bdd_node_id_t> &siblings,
+bool condition_check(const BDD *bdd, const vector_t &anchor, const BDDNode *candidate, const std::unordered_set<bdd_node_id_t> &siblings,
                      klee::ref<klee::Expr> condition) {
   if (condition.isNull())
     return true;
 
-  bool compatible = true;
-
+  bool compatible                     = true;
   klee::ref<klee::Expr> not_condition = solver_toolbox.exprBuilder->Not(condition);
+  const BDDNode *anchor_next          = get_vector_next(anchor);
+  anchor_next->visit_nodes([&compatible, bdd, condition, not_condition, candidate, siblings](const BDDNode *node) -> BDDNodeVisitAction {
+    const klee::ConstraintManager constraints = bdd->get_constraints(node);
 
-  const BDDNode *anchor_next = get_vector_next(anchor);
-  anchor_next->visit_nodes([&compatible, condition, not_condition, candidate, siblings](const BDDNode *node) -> BDDNodeVisitAction {
-    klee::ConstraintManager constraints = node->get_constraints();
-
-    bool pos_always_false = solver_toolbox.is_expr_always_false(constraints, condition);
-    bool neg_always_false = solver_toolbox.is_expr_always_false(constraints, not_condition);
+    const bool pos_always_false = solver_toolbox.is_expr_always_false(constraints, condition);
+    const bool neg_always_false = solver_toolbox.is_expr_always_false(constraints, not_condition);
 
     if (pos_always_false || neg_always_false) {
       compatible = false;
@@ -1104,7 +1102,7 @@ candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t 
 
     get_siblings(anchor, proposed_candidate, false, candidate_info.siblings);
 
-    if (!condition_check(anchor, call_node, candidate_info.siblings, candidate_info.condition)) {
+    if (!condition_check(bdd, anchor, call_node, candidate_info.siblings, candidate_info.condition)) {
       candidate_info.status = ReorderingCandidateStatus::ImpossibleCondition;
       return candidate_info;
     }
@@ -1190,14 +1188,12 @@ std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op, st
   // Reordering will happen on the true side of this branch node, while the
   // false side will contain the original remaining nodes.
   if (!candidate_info.condition.isNull()) {
-    klee::ConstraintManager anchor_constraints = anchor.node->get_constraints();
-
     BDDNode *after_anchor = get_vector_next(anchor);
     assert(after_anchor && "Anchor has no next node");
 
     BDDNode *after_anchor_clone = after_anchor->clone(manager, true);
 
-    Branch *extra_branch = new Branch(id, anchor_constraints, bdd->get_mutable_symbol_manager(), candidate_info.condition);
+    Branch *extra_branch = new Branch(id, bdd->get_mutable_symbol_manager(), candidate_info.condition);
     manager.add_node(extra_branch);
     id++;
 
@@ -1222,11 +1218,6 @@ std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op, st
     // WARNING: Now the information on the candidate info provided in
     // the arguments is not valid anymore (has the wrong candidate ID).
     after_anchor_clone->recursive_update_ids(id);
-
-    // Add the new constraint to all nodes
-    klee::ref<klee::Expr> not_condition = solver_toolbox.exprBuilder->Not(candidate_info.condition);
-    after_anchor_clone->recursive_add_constraint(candidate_info.condition);
-    after_anchor->recursive_add_constraint(not_condition);
 
     // Finally update to the new anchor.
     anchor.node      = extra_branch;

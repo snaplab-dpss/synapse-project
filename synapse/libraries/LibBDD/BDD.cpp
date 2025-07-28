@@ -121,15 +121,15 @@ bool is_skip_condition(klee::ref<klee::Expr> condition) {
   return false;
 }
 
-Route *route_node_from_call(const call_t &call, bdd_node_id_t id, const klee::ConstraintManager &constraints, SymbolManager *symbol_manager) {
+Route *route_node_from_call(const call_t &call, bdd_node_id_t id, SymbolManager *symbol_manager) {
   assert(is_routing_function(call) && "Unexpected function");
 
   if (call.function_name == "packet_free") {
-    return new Route(id, constraints, symbol_manager, RouteOp::Drop);
+    return new Route(id, symbol_manager, RouteOp::Drop);
   }
 
   if (call.function_name == "packet_broadcast") {
-    return new Route(id, constraints, symbol_manager, RouteOp::Broadcast);
+    return new Route(id, symbol_manager, RouteOp::Broadcast);
   }
 
   assert(call.function_name == "packet_send" && "Unexpected function");
@@ -137,7 +137,7 @@ Route *route_node_from_call(const call_t &call, bdd_node_id_t id, const klee::Co
   klee::ref<klee::Expr> dst_device = call.args.at("dst_device").expr;
   assert(!dst_device.isNull() && "Null dst_device");
 
-  return new Route(id, constraints, symbol_manager, RouteOp::Forward, dst_device);
+  return new Route(id, symbol_manager, RouteOp::Forward, dst_device);
 }
 
 call_t get_successful_call(const std::vector<call_path_t *> &call_paths) {
@@ -266,8 +266,7 @@ void pop_call_paths(call_paths_view_t &call_paths_view) {
 }
 
 BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager, BDDNodeManager &node_manager,
-                             std::vector<Call *> &init, bdd_node_id_t &id, bool in_init_mode = true,
-                             klee::ConstraintManager constraints                            = klee::ConstraintManager(),
+                             std::vector<Call *> &init, bdd_node_id_t &id, klee::ConstraintManager &base_constraints, bool in_init_mode = true,
                              std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
   BDDNode *root = nullptr;
   BDDNode *leaf = nullptr;
@@ -305,15 +304,12 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
       std::cerr << "Generated symbols (" << generated_symbols.size() << "):\n";
       for (const symbol_t &symbol : generated_symbols.get())
         std::cerr << "  " << expr_to_string(symbol.expr, true) << "\n";
-      std::cerr << "Constraints (" << constraints.size() << "):\n";
-      for (const klee::ref<klee::Expr> &constraint : constraints)
-        std::cerr << "  " << expr_to_string(constraint, true) << "\n";
       std::cerr << "==================================\n";
 
       if (call.function_name == init_to_process_trigger_function) {
         in_init_mode = false;
         for (klee::ref<klee::Expr> common_constraint : group.get_common_constraints()) {
-          constraints.addConstraint(common_constraint);
+          base_constraints.addConstraint(common_constraint);
         }
       }
 
@@ -323,7 +319,7 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
       }
 
       if (in_init_mode) {
-        Call *node = new Call(id, constraints, symbol_manager, call, generated_symbols);
+        Call *node = new Call(id, symbol_manager, call, generated_symbols);
         node_manager.add_node(node);
         id++;
 
@@ -337,9 +333,9 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
         BDDNode *node;
 
         if (is_routing_function(call)) {
-          node = route_node_from_call(call, id, constraints, symbol_manager);
+          node = route_node_from_call(call, id, symbol_manager);
         } else {
-          node = new Call(id, constraints, symbol_manager, call, generated_symbols);
+          node = new Call(id, symbol_manager, call, generated_symbols);
         }
 
         node_manager.add_node(node);
@@ -361,12 +357,6 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
 
       klee::ref<klee::Expr> condition     = simplify_constraint(discriminating_constraint);
       klee::ref<klee::Expr> not_condition = negate_and_simplify_constraint(discriminating_constraint);
-
-      klee::ConstraintManager on_true_constraints  = constraints;
-      klee::ConstraintManager on_false_constraints = constraints;
-
-      on_true_constraints.addConstraint(condition);
-      on_false_constraints.addConstraint(not_condition);
 
       std::cerr << "\n";
       std::cerr << "==================================\n";
@@ -390,14 +380,14 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
         continue;
       }
 
-      Branch *node = new Branch(id, constraints, symbol_manager, condition);
+      Branch *node = new Branch(id, symbol_manager, condition);
       id++;
       node_manager.add_node(node);
 
       BDDNode *on_true_root =
-          bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id, in_init_mode, on_true_constraints, base_symbols_generated);
+          bdd_from_call_paths(on_true, symbol_manager, node_manager, init, id, base_constraints, in_init_mode, base_symbols_generated);
       BDDNode *on_false_root =
-          bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id, in_init_mode, on_false_constraints, base_symbols_generated);
+          bdd_from_call_paths(on_false, symbol_manager, node_manager, init, id, base_constraints, in_init_mode, base_symbols_generated);
 
       if (!on_true_root || !on_false_root) {
         std::stringstream ss;
@@ -429,19 +419,17 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
 }
 
 Branch *create_new_branch(BDD *bdd, const BDDNode *current, klee::ref<klee::Expr> condition) {
-  bdd_node_id_t &id                   = bdd->get_mutable_id();
-  BDDNodeManager &manager             = bdd->get_mutable_manager();
-  klee::ConstraintManager constraints = current->get_constraints();
-  Branch *new_branch                  = new Branch(id++, constraints, bdd->get_mutable_symbol_manager(), condition);
+  bdd_node_id_t &id       = bdd->get_mutable_id();
+  BDDNodeManager &manager = bdd->get_mutable_manager();
+  Branch *new_branch      = new Branch(id++, bdd->get_mutable_symbol_manager(), condition);
   manager.add_node(new_branch);
   return new_branch;
 }
 
 Call *create_new_call(BDD *bdd, const BDDNode *current, const call_t &call, const Symbols &generated_symbols) {
-  bdd_node_id_t &id                   = bdd->get_mutable_id();
-  BDDNodeManager &manager             = bdd->get_mutable_manager();
-  klee::ConstraintManager constraints = current->get_constraints();
-  Call *new_call                      = new Call(id++, constraints, bdd->get_mutable_symbol_manager(), call, generated_symbols);
+  bdd_node_id_t &id       = bdd->get_mutable_id();
+  BDDNodeManager &manager = bdd->get_mutable_manager();
+  Call *new_call          = new Call(id++, bdd->get_mutable_symbol_manager(), call, generated_symbols);
   manager.add_node(new_call);
   return new_call;
 }
@@ -685,7 +673,7 @@ BDD::BDD(SymbolManager *_symbol_manager) : id(0), root(nullptr), symbol_manager(
 }
 
 BDD::BDD(const call_paths_view_t &call_paths_view) : id(0), symbol_manager(call_paths_view.manager) {
-  root = bdd_from_call_paths(call_paths_view, symbol_manager, manager, init, id);
+  root = bdd_from_call_paths(call_paths_view, symbol_manager, manager, init, id, base_constraints);
 
   packet_len = symbol_manager->get_symbol("pkt_len");
   time       = symbol_manager->get_symbol("next_time");
@@ -701,7 +689,8 @@ BDD::BDD(const call_paths_view_t &call_paths_view) : id(0), symbol_manager(call_
 BDD::BDD(const std::filesystem::path &fpath, SymbolManager *_symbol_manager) : id(0), symbol_manager(_symbol_manager) { deserialize(fpath); }
 
 BDD::BDD(const BDD &other)
-    : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time), symbol_manager(other.symbol_manager) {
+    : id(other.id), device(other.device), packet_len(other.packet_len), time(other.time), base_constraints(other.base_constraints),
+      symbol_manager(other.symbol_manager) {
   for (const Call *init_node : other.init) {
     Call *cloned = dynamic_cast<Call *>(init_node->clone(manager));
     if (!init.empty()) {
@@ -715,17 +704,19 @@ BDD::BDD(const BDD &other)
 
 BDD::BDD(BDD &&other)
     : id(other.id), device(std::move(other.device)), packet_len(std::move(other.packet_len)), time(std::move(other.time)),
-      init(std::move(other.init)), root(other.root), manager(std::move(other.manager)), symbol_manager(std::move(other.symbol_manager)) {
+      base_constraints(std::move(other.base_constraints)), init(std::move(other.init)), root(other.root), manager(std::move(other.manager)),
+      symbol_manager(std::move(other.symbol_manager)) {
   other.root = nullptr;
 }
 
 BDD &BDD::operator=(const BDD &other) {
   if (this == &other)
     return *this;
-  id         = other.id;
-  device     = other.device;
-  packet_len = other.packet_len;
-  time       = other.time;
+  id               = other.id;
+  device           = other.device;
+  packet_len       = other.packet_len;
+  time             = other.time;
+  base_constraints = other.base_constraints;
 
   for (const Call *init_node : other.init) {
     Call *cloned = dynamic_cast<Call *>(init_node->clone(manager));
@@ -852,9 +843,6 @@ Branch *BDD::add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> co
   BDDNode *on_true_cond  = anchor_next;
   BDDNode *on_false_cond = anchor_next->clone(manager, true);
   on_false_cond->recursive_update_ids(id);
-
-  on_true_cond->recursive_add_constraint(constraint);
-  on_false_cond->recursive_add_constraint(solver_toolbox.exprBuilder->Not(constraint));
 
   Branch *new_branch = create_new_branch(this, current, condition);
 
@@ -1036,8 +1024,8 @@ bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new
     return false;
   }
 
-  symbol_t map_has_this_key           = dynamic_cast<const Call *>(map_get)->get_local_symbol("map_has_this_key");
-  klee::ConstraintManager constraints = dchain_allocate_new_index->get_constraints();
+  const symbol_t map_has_this_key           = dynamic_cast<const Call *>(map_get)->get_local_symbol("map_has_this_key");
+  const klee::ConstraintManager constraints = get_constraints(dchain_allocate_new_index);
 
   klee::ref<klee::Expr> found_key =
       solver_toolbox.exprBuilder->Ne(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
@@ -1057,8 +1045,7 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
     return false;
   }
 
-  const branch_direction_t index_alloc_check = dchain_allocate_new_index->find_branch_checking_index_alloc();
-
+  const branch_direction_t index_alloc_check = find_branch_checking_index_alloc(dchain_allocate_new_index);
   if (!index_alloc_check.branch) {
     return false;
   }
@@ -1095,7 +1082,7 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::
       return false;
     }
 
-    klee::ConstraintManager constraints = map_put->get_constraints();
+    klee::ConstraintManager constraints = get_constraints(map_put);
 
     if ((index_alloc_check.direction && !solver_toolbox.is_expr_always_true(constraints, condition)) ||
         (!index_alloc_check.direction && !solver_toolbox.is_expr_always_false(constraints, condition))) {
@@ -1153,12 +1140,11 @@ std::vector<u16> BDD::get_devices() const {
     return devices;
   }
 
-  const klee::ConstraintManager &base_constraints = root->get_constraints();
+  const klee::ConstraintManager constraints = get_constraints(root);
   for (u16 device_value = 0; device_value < UINT16_MAX; device_value++) {
-    bool valid_device_value = solver_toolbox.is_expr_always_false(
-        base_constraints, solver_toolbox.exprBuilder->Eq(device.expr, solver_toolbox.exprBuilder->Constant(device_value, device.expr->getWidth())));
-
-    if (valid_device_value) {
+    const bool valid_device_value = solver_toolbox.is_expr_maybe_true(
+        constraints, solver_toolbox.exprBuilder->Eq(device.expr, solver_toolbox.exprBuilder->Constant(device_value, device.expr->getWidth())));
+    if (!valid_device_value) {
       break;
     } else {
       devices.push_back(device_value);
@@ -1448,6 +1434,159 @@ BDDNode *BDD::delete_branch(BDDNode *target, bool direction_to_keep, BDDNodeMana
   manager.free_node(anchor_next);
 
   return new_current;
+}
+
+klee::ConstraintManager BDD::get_constraints(const BDDNode *node) const {
+  klee::ConstraintManager constraints = base_constraints;
+  for (klee::ref<klee::Expr> constraint : node->get_ordered_branch_constraints()) {
+    constraints.addConstraint(constraint);
+  }
+  return constraints;
+}
+
+branch_direction_t BDD::find_branch_checking_index_alloc(const Call *dchain_allocate_new_index) const {
+  assert_or_panic(dchain_allocate_new_index, "dchain_allocate_new_index cannot be null");
+  branch_direction_t index_alloc_check;
+
+  const call_t &call = dchain_allocate_new_index->get_call();
+  if (call.function_name != "dchain_allocate_new_index") {
+    return index_alloc_check;
+  }
+
+  const symbol_t not_out_of_space = dchain_allocate_new_index->get_local_symbol("not_out_of_space");
+
+  dchain_allocate_new_index->visit_nodes([&not_out_of_space, &index_alloc_check](const BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Branch) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const Branch *branch                       = dynamic_cast<const Branch *>(node);
+    const klee::ref<klee::Expr> condition      = branch->get_condition();
+    const std::unordered_set<std::string> used = symbol_t::get_symbols_names(condition);
+
+    for (const std::string &name : used) {
+      if (name != not_out_of_space.name) {
+        return BDDNodeVisitAction::Continue;
+      }
+    }
+
+    index_alloc_check.branch = branch;
+    return BDDNodeVisitAction::Stop;
+  });
+
+  if (index_alloc_check.branch) {
+    klee::ref<klee::Expr> success_condition =
+        solver_toolbox.exprBuilder->Ne(not_out_of_space.expr, solver_toolbox.exprBuilder->Constant(0, not_out_of_space.expr->getWidth()));
+
+    assert_or_panic(index_alloc_check.branch->get_on_true(), "No on_true");
+    assert_or_panic(index_alloc_check.branch->get_on_false(), "No on_false");
+
+    const BDDNode *on_true  = index_alloc_check.branch->get_on_true();
+    const BDDNode *on_false = index_alloc_check.branch->get_on_false();
+
+    const bool success_on_true  = solver_toolbox.is_expr_always_true(get_constraints(on_true), success_condition);
+    const bool success_on_false = solver_toolbox.is_expr_always_true(get_constraints(on_false), success_condition);
+
+    assert_or_panic((success_on_true || success_on_false), "No branch side is successful");
+    assert_or_panic((success_on_true ^ success_on_false), "Both branch sides have the same success condition");
+
+    index_alloc_check.direction = success_on_true;
+  }
+
+  return index_alloc_check;
+}
+
+bool BDD::is_map_get_followed_by_map_puts_on_miss(const Call *map_get, std::vector<const Call *> &map_puts) const {
+  assert_or_panic(map_get, "map_get cannot be null");
+  const call_t &mg_call = map_get->get_call();
+
+  if (mg_call.function_name != "map_get") {
+    return false;
+  }
+
+  klee::ref<klee::Expr> obj_expr = mg_call.args.at("map").expr;
+  klee::ref<klee::Expr> key      = mg_call.args.at("key").in;
+
+  const addr_t obj                = expr_addr_to_obj_addr(obj_expr);
+  const symbol_t map_has_this_key = map_get->get_local_symbol("map_has_this_key");
+
+  klee::ref<klee::Expr> failed_map_get =
+      solver_toolbox.exprBuilder->Eq(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
+
+  std::vector<const Call *> future_map_puts = map_get->get_future_functions({"map_put"});
+
+  klee::ref<klee::Expr> value;
+  for (const Call *map_put : future_map_puts) {
+    const call_t &mp_call = map_put->get_call();
+    assert(mp_call.function_name == "map_put" && "Unexpected function");
+
+    klee::ref<klee::Expr> map_expr = mp_call.args.at("map").expr;
+    klee::ref<klee::Expr> mp_key   = mp_call.args.at("key").in;
+    klee::ref<klee::Expr> mp_value = mp_call.args.at("value").expr;
+
+    const addr_t map = expr_addr_to_obj_addr(map_expr);
+
+    if (map != obj) {
+      continue;
+    }
+
+    if (!solver_toolbox.are_exprs_always_equal(key, mp_key)) {
+      return false;
+    }
+
+    if (value.isNull()) {
+      value = mp_value;
+    } else if (!solver_toolbox.are_exprs_always_equal(value, mp_value)) {
+      return false;
+    }
+
+    const klee::ConstraintManager map_put_constraints = get_constraints(map_put);
+    if (!solver_toolbox.is_expr_always_true(map_put_constraints, failed_map_get)) {
+      // Found map_put that happens even if map_get was successful.
+      return false;
+    }
+
+    map_puts.push_back(map_put);
+  }
+
+  if (map_puts.empty()) {
+    return false;
+  }
+
+  return true;
+}
+
+bool BDD::is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing, const Call *&tb_update_and_check) const {
+  assert_or_panic(tb_is_tracing, "tb_is_tracing cannot be null");
+  const call_t &is_tracing_call = tb_is_tracing->get_call();
+
+  if (is_tracing_call.function_name != "tb_is_tracing") {
+    return false;
+  }
+
+  klee::ref<klee::Expr> tb = is_tracing_call.args.at("tb").expr;
+  klee::ref<klee::Expr> is_tracing_condition =
+      solver_toolbox.exprBuilder->Ne(is_tracing_call.ret, solver_toolbox.exprBuilder->Constant(0, is_tracing_call.ret->getWidth()));
+
+  const std::vector<const Call *> tb_update_and_checks = tb_is_tracing->get_future_functions({"tb_update_and_check"});
+
+  tb_update_and_check = nullptr;
+  for (const Call *candidate : tb_update_and_checks) {
+    klee::ref<klee::Expr> candidate_tb = candidate->get_call().args.at("tb").expr;
+    if (!solver_toolbox.are_exprs_always_equal(tb, candidate_tb)) {
+      continue;
+    }
+
+    const klee::ConstraintManager candidate_constraints = get_constraints(candidate);
+    if (!solver_toolbox.is_expr_always_true(candidate_constraints, is_tracing_condition)) {
+      continue;
+    }
+
+    tb_update_and_check = candidate;
+    break;
+  }
+
+  return tb_update_and_check != nullptr;
 }
 
 } // namespace LibBDD

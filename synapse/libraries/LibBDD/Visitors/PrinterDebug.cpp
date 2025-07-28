@@ -56,7 +56,6 @@ BDDVisitor::Action PrinterDebug::visit(const Branch *node) {
   condition->dump();
   std::cerr << "on true:   " << on_true_id << "\n";
   std::cerr << "on false:  " << on_false_id << "\n";
-  visitConstraints(node);
   std::cerr << "===========================================\n";
 
   return traverse ? BDDVisitor::Action::Continue : BDDVisitor::Action::Stop;
@@ -90,7 +89,6 @@ BDDVisitor::Action PrinterDebug::visit(const Call *node) {
   if (next) {
     std::cerr << "next:      " << next->get_id() << "\n";
   }
-  visitConstraints(node);
   std::cerr << "===========================================\n";
 
   return traverse ? BDDVisitor::Action::Continue : BDDVisitor::Action::Stop;
@@ -124,20 +122,9 @@ BDDVisitor::Action PrinterDebug::visit(const Route *node) {
   if (next) {
     std::cerr << "next:      " << next->get_id() << "\n";
   }
-  visitConstraints(node);
   std::cerr << "===========================================\n";
 
   return traverse ? BDDVisitor::Action::Continue : BDDVisitor::Action::Stop;
-}
-
-void PrinterDebug::visitConstraints(const BDDNode *node) {
-  const auto &constraints = node->get_constraints();
-  if (constraints.size() > 0) {
-    std::cerr << "constraints:\n";
-    for (const auto &constraint : constraints) {
-      std::cerr << "  " << expr_to_string(constraint, true) << "\n";
-    }
-  }
 }
 
 } // namespace LibBDD

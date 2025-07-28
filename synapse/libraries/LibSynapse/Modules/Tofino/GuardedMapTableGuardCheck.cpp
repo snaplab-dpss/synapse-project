@@ -92,8 +92,8 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Call *dchain_allocate_new_i
   assert(on_guard_allow->get_call().function_name == "dchain_allocate_new_index");
   assert(on_guard_disallow->get_call().function_name == "dchain_allocate_new_index");
 
-  new_bdd_nodes.index_alloc_check_on_guard_allow               = on_guard_allow->find_branch_checking_index_alloc();
-  const branch_direction_t index_alloc_check_on_guard_disallow = on_guard_disallow->find_branch_checking_index_alloc();
+  new_bdd_nodes.index_alloc_check_on_guard_allow               = new_bdd->find_branch_checking_index_alloc(on_guard_allow);
+  const branch_direction_t index_alloc_check_on_guard_disallow = new_bdd->find_branch_checking_index_alloc(on_guard_disallow);
 
   assert(new_bdd_nodes.index_alloc_check_on_guard_allow.branch);
   assert(index_alloc_check_on_guard_disallow.branch);
@@ -143,8 +143,7 @@ std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP 
     }
   }
 
-  const branch_direction_t branch_direction = dchain_allocate_new_index->find_branch_checking_index_alloc();
-
+  const branch_direction_t branch_direction = ep->get_bdd()->find_branch_checking_index_alloc(dchain_allocate_new_index);
   if (branch_direction.branch == nullptr) {
     return {};
   }
@@ -206,8 +205,7 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
     }
   }
 
-  const branch_direction_t branch_direction = dchain_allocate_new_index->find_branch_checking_index_alloc();
-
+  const branch_direction_t branch_direction = ep->get_bdd()->find_branch_checking_index_alloc(dchain_allocate_new_index);
   if (branch_direction.branch == nullptr) {
     return {};
   }

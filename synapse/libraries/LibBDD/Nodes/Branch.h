@@ -14,12 +14,11 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  Branch(bdd_node_id_t _id, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, klee::ref<klee::Expr> _condition)
-      : BDDNode(_id, BDDNodeType::Branch, _constraints, _symbol_manager), on_false(nullptr), condition(_condition) {}
+  Branch(bdd_node_id_t _id, SymbolManager *_symbol_manager, klee::ref<klee::Expr> _condition)
+      : BDDNode(_id, BDDNodeType::Branch, _symbol_manager), on_false(nullptr), condition(_condition) {}
 
-  Branch(bdd_node_id_t _id, BDDNode *_prev, const klee::ConstraintManager &_constraints, SymbolManager *_symbol_manager, BDDNode *_on_true,
-         BDDNode *_on_false, klee::ref<klee::Expr> _condition)
-      : BDDNode(_id, BDDNodeType::Branch, _on_true, _prev, _constraints, _symbol_manager), on_false(_on_false), condition(_condition) {}
+  Branch(bdd_node_id_t _id, BDDNode *_prev, SymbolManager *_symbol_manager, BDDNode *_on_true, BDDNode *_on_false, klee::ref<klee::Expr> _condition)
+      : BDDNode(_id, BDDNodeType::Branch, _on_true, _prev, _symbol_manager), on_false(_on_false), condition(_condition) {}
 
   klee::ref<klee::Expr> get_condition() const { return condition; }
 

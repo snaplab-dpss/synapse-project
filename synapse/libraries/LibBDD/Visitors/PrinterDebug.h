@@ -20,9 +20,6 @@ public:
   BDDVisitor::Action visit(const Route *node) override;
 
   static void debug(const BDDNode *node);
-
-private:
-  void visitConstraints(const BDDNode *node);
 };
 
 } // namespace LibBDD

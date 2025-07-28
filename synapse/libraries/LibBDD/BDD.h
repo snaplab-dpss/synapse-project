@@ -25,6 +25,7 @@ private:
   symbol_t packet_len;
   symbol_t time;
 
+  klee::ConstraintManager base_constraints;
   std::vector<Call *> init;
   BDDNode *root;
 
@@ -58,17 +59,13 @@ public:
 
   void set_root(BDDNode *_root) {
     root = _root;
-    if (!manager.has_node(_root)) {
-      panic("Root node is not managed by the BDDNodeManager");
-    }
+    assert_or_panic(manager.has_node(_root), "Root node is not managed by the BDDNodeManager");
   }
 
   void set_init(const std::vector<Call *> &new_init) {
     init = new_init;
     for (Call *call : init) {
-      if (!manager.has_node(call)) {
-        panic("Init node is not managed by the BDDNodeManager");
-      }
+      assert_or_panic(manager.has_node(call), "Init node is not managed by the BDDNodeManager");
     }
   }
 
@@ -104,13 +101,24 @@ public:
   // A valid BDD should always pass this check.
   [[nodiscard]] inspection_report_t inspect() const;
 
+  klee::ConstraintManager get_constraints(const BDDNode *node) const;
   bool get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const;
   bool get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing_objs_t &map_objs) const;
   bool get_map_coalescing_objs_from_dchain_op(const Call *dchain_op, map_coalescing_objs_t &map_objs) const;
   bool is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new_index) const;
   bool is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) const;
+  branch_direction_t find_branch_checking_index_alloc(const Call *dchain_allocate_new_index) const;
   bool is_fwd_pattern_depending_on_lpm(const BDDNode *node, std::vector<const BDDNode *> &fwd_logic) const;
+  bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing, const Call *&tb_update_and_check) const;
   void delete_vector_key_operations(addr_t map);
+
+  // Tries to find the pattern of a map_get followed by map_puts, but only when
+  // the map_get is not successful (i.e. the key is not found).
+  // Conditions to meet:
+  // (1) Has at least 1 future map_put
+  // (2) All map_put happen if the map_get was not successful
+  // (3) All map_puts with the target obj also have the same key as the map_get
+  bool is_map_get_followed_by_map_puts_on_miss(const Call *map_get, std::vector<const Call *> &map_puts) const;
 
   const BDDNode *get_node_by_id(bdd_node_id_t id) const;
   BDDNode *get_mutable_node_by_id(bdd_node_id_t id);

@@ -1,5 +1,6 @@
 #include <LibBDD/BDD.h>
 #include <LibBDD/Visitors/PrinterDebug.h>
+#include <LibCore/Debug.h>
 
 #include <fstream>
 #include <filesystem>
@@ -36,8 +37,12 @@ int main(int argc, char **argv) {
     bdd = std::make_unique<BDD>(input_bdd_file, &manager);
   }
 
-  PrinterDebug printer;
-  bdd->visit(printer);
+  const BDD::inspection_report_t bdd_inspection_report = bdd->inspect();
+  if (bdd_inspection_report.status != BDD::InspectionStatus::Ok) {
+    panic("BDD inspection failed: %s", bdd_inspection_report.message.c_str());
+  } else {
+    std::cout << "BDD inspection succeeded.\n";
+  }
 
   if (!output_bdd_file.empty()) {
     bdd->serialize(output_bdd_file);
