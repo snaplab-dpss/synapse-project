@@ -62,7 +62,9 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const BD
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  return {};
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
+  return impls;
 }
 
 std::unique_ptr<Module> ParserExtractionFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {

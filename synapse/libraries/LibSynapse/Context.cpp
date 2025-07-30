@@ -382,10 +382,10 @@ Context &Context::operator=(const Context &other) {
     return *this;
   }
 
-  for (auto &target_ctx_pair : target_ctxs) {
-    if (target_ctx_pair.second) {
-      delete target_ctx_pair.second;
-      target_ctx_pair.second = nullptr;
+  for (auto &[_, ctx_ptr] : target_ctxs) {
+    if (ctx_ptr) {
+      delete ctx_ptr;
+      ctx_ptr = nullptr;
     }
   }
 
@@ -405,6 +405,35 @@ Context &Context::operator=(const Context &other) {
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }
+
+  return *this;
+}
+
+Context &Context::operator=(Context &&other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  for (auto &[_, ctx_ptr] : target_ctxs) {
+    if (ctx_ptr) {
+      delete ctx_ptr;
+      ctx_ptr = nullptr;
+    }
+  }
+
+  profiler              = std::move(other.profiler);
+  perf_oracle           = std::move(other.perf_oracle);
+  map_configs           = std::move(other.map_configs);
+  vector_configs        = std::move(other.vector_configs);
+  dchain_configs        = std::move(other.dchain_configs);
+  cms_configs           = std::move(other.cms_configs);
+  cht_configs           = std::move(other.cht_configs);
+  tb_configs            = std::move(other.tb_configs);
+  coalescing_candidates = std::move(other.coalescing_candidates);
+  expiration_data       = std::move(other.expiration_data);
+  expr_structs          = std::move(other.expr_structs);
+  ds_impls              = std::move(other.ds_impls);
+  target_ctxs           = std::move(other.target_ctxs);
 
   return *this;
 }

@@ -48,9 +48,6 @@ std::ostream &operator<<(std::ostream &stream, const Color &color) {
     case Color::Literal::Yellow: {
       stream << "yellow";
     } break;
-    case Color::Literal::Chartreuse2: {
-      stream << "chartreuse2";
-    } break;
     case Color::Literal::Brown1: {
       stream << "brown1";
     } break;
@@ -68,6 +65,12 @@ std::ostream &operator<<(std::ostream &stream, const Color &color) {
     } break;
     case Color::Literal::LightCoral: {
       stream << "lightcoral";
+    } break;
+    case Color::Literal::Chartreuse1: {
+      stream << "chartreuse1";
+    } break;
+    case Color::Literal::Chartreuse2: {
+      stream << "chartreuse2";
     } break;
     }
   } break;

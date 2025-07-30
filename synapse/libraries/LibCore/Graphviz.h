@@ -19,13 +19,14 @@ struct Color {
     Cyan,
     CornflowerBlue,
     Yellow,
-    Chartreuse2,
     Brown1,
     Purple,
     Firebrick2,
     Orange,
     Green,
     LightCoral,
+    Chartreuse1,
+    Chartreuse2,
   };
 
   Type type;

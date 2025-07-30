@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
+#include <list>
 
 namespace LibSynapse {
 
@@ -111,6 +112,15 @@ public:
   port_ingress_t get_node_egress(hit_rate_t hr, const EPNode *node) const;
   port_ingress_t get_node_egress(hit_rate_t hr, std::vector<int> past_recirculations) const;
   pps_t estimate_tput_pps() const;
+
+  // Sources of error:
+  // 1. Speculative performance is calculated as we make the speculative decisions, so local speculative decisions don't take into
+  // consideration future speculative decisions.
+  //   - This makes the speculative performance optimistic.
+  //   - Fixing this would require a recalculation of the speculative performance after all decisions were made.
+  // 2. Speculative decisions that would perform BDD manipulations don't actually make them. Newer parts of the BDD are
+  // abandoned during speculation, along with their hit rates.
+  //   - This makes the speculation pessismistic, as part of the traffic will be lost.
   pps_t speculate_tput_pps() const;
 
   void debug() const;
@@ -124,12 +134,48 @@ public:
 
 private:
   void sort_leaves();
-  spec_impl_t peek_speculation_for_future_nodes(const spec_impl_t &base_speculation, const BDDNode *anchor, bdd_node_ids_t future_nodes,
-                                                TargetType current_target, pps_t ingress) const;
-  spec_impl_t get_best_speculation(const BDDNode *node, TargetType current_target, const Context &ctx, const bdd_node_ids_t &skip,
-                                   pps_t ingress) const;
+  std::list<const BDDNode *> get_nodes_targeted_for_speculation() const;
+
+  struct complete_speculation_t {
+    std::vector<spec_impl_t> speculations_per_node;
+    Context final_ctx;
+  };
+
+  enum class Lookahead {
+    WithLookahead,
+    WithoutLookahead,
+  };
+
+  complete_speculation_t speculate(const Context &ctx, std::list<const BDDNode *> speculation_target_nodes, TargetType current_target, pps_t ingress,
+                                   Lookahead lookahead) const;
+  spec_impl_t get_best_speculation(const BDDNode *node, TargetType target, const Context &ctx, pps_t ingress,
+                                   const std::list<const BDDNode *> &speculation_target_nodes, Lookahead lookahead) const;
   bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const BDDNode *node, TargetType current_target,
-                             pps_t ingress) const;
+                             pps_t ingress, const std::list<const BDDNode *> &speculation_target_nodes, Lookahead lookahead) const;
+
+  struct tput_cmp_t {
+    pps_t old_pps;
+    pps_t new_pps;
+  };
+
+  // Compare the performance between an old speculation decision and a new one by checking their performance as if they were subjected to the nodes
+  // ignored by the other one, and vise versa.
+  tput_cmp_t compare_speculations_by_ignored_nodes(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const BDDNode *node,
+                                                   TargetType current_target, pps_t ingress,
+                                                   const std::list<const BDDNode *> &speculation_target_nodes) const;
+
+  // Compare the performance of an old speculation with a new one by checking their performance when considering all reachable BDD nodes from the
+  // current node (down to the leaves).
+  tput_cmp_t compare_speculations_with_reachable_nodes_lookahead(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
+                                                                 const BDDNode *node, TargetType current_target, pps_t ingress,
+                                                                 const std::list<const BDDNode *> &speculation_target_nodes) const;
+
+  // Compare the performance of an old speculation with a new one by checking their performance when considering _all_ unexplored BDD nodes.
+  // This is much more expensive than compare_speculations_by_ignored_nodes and compare_speculations_with_reachable_nodes_lookahead, but it is useful
+  // to break ties between them.
+  tput_cmp_t compare_speculations_with_unexplored_nodes_lookahead(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
+                                                                  const BDDNode *node, TargetType current_target, pps_t ingress,
+                                                                  const std::list<const BDDNode *> &speculation_target_nodes) const;
 };
 
 } // namespace LibSynapse

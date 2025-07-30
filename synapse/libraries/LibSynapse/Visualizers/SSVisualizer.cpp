@@ -18,7 +18,7 @@ const std::unordered_map<TargetType, Color> node_colors = {
     {TargetType::x86, Color::Literal::Orange},
 };
 
-const Color selected_color = Color::Literal::Green;
+const Color selected_color = Color::Literal::Chartreuse1;
 
 std::string stringify_score(const Score &score) {
   std::stringstream score_builder;

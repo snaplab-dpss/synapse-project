@@ -84,14 +84,14 @@ private:
 
 public:
   KVSTrafficGenerator(const config_t &_config, const kvs_op_ratio_t &_kvs_op_ratio, const std::vector<kv_key_t> &_base_keys)
-      : TrafficGenerator("kvs", _config, true), kvs_op_ratio(_kvs_op_ratio), keys(_base_keys), kvs_op_seq(_base_keys.size(), kvs_op_ratio.get) {}
+      : TrafficGenerator("kvs", _config, true), kvs_op_ratio(_kvs_op_ratio), keys(_base_keys), kvs_op_seq(_base_keys.size(), kvs_op_ratio.put) {}
 
   virtual bytes_t get_hdrs_len() const override { return sizeof(ether_hdr_t) + sizeof(ipv4_hdr_t) + sizeof(udp_hdr_t) + sizeof(kvs_hdr_t); }
 
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < keys.size());
     keys[flow_idx]       = random_key();
-    kvs_op_seq[flow_idx] = kvs_op_ratio.get;
+    kvs_op_seq[flow_idx] = kvs_op_ratio.put;
     flows_swapped++;
   }
 

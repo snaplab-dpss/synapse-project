@@ -109,8 +109,11 @@ public:
   Context(const BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
   Context(const Context &other);
   Context(Context &&other);
+  Context() = delete;
 
   Context &operator=(const Context &other);
+  Context &operator=(Context &&other);
+
   ~Context();
 
   const Profiler &get_profiler() const;

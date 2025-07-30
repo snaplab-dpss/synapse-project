@@ -172,7 +172,9 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const BDD
 
   new_ep->process_leaf(if_node, {then_leaf, else_leaf});
 
-  return {};
+  std::vector<impl_t> impls;
+  impls.emplace_back(implement(ep, node, std::move(new_ep)));
+  return impls;
 }
 
 std::unique_ptr<Module> ParserConditionFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {

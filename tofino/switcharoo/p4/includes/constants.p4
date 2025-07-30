@@ -56,7 +56,7 @@ typedef bit<KEY_WIDTH>		key_t;
 typedef bit<VAL_WIDTH>		val_t;
 
 // Entry Timeout Expiration (units of 65536 ns).
-#define ENTRY_TIMEOUT		16 // 1 ms
+#define ENTRY_TIMEOUT		16384 // 1 s
 
 #define MAX_LOOPS			4
 
