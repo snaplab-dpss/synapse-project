@@ -151,8 +151,8 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
 } // namespace
 
 EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
-    : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(nullptr), targets(_targets), ctx(bdd.get(), _targets, _targets_config, _profiler),
-      meta(bdd.get(), targets) {
+    : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(), targets(_targets), ctx(bdd.get(), _targets, _targets_config, _profiler),
+      meta(bdd.get(), targets), ep_stats() {
   TargetType initial_target     = targets.get_initial_target().type;
   targets_roots[initial_target] = bdd_node_ids_t({bdd->get_root()->get_id()});
 
@@ -167,7 +167,8 @@ EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_ta
 
 EP::EP(const EP &other, bool is_ancestor)
     : id(ep_id_counter++), bdd(other.bdd), root(other.root ? other.root->clone(true) : nullptr), targets(other.targets),
-      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta) {
+      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta),
+      ep_stats(other.ep_stats) {
   if (!root) {
     assert(other.active_leaves.size() == 1 && "No root and multiple leaves.");
     active_leaves.emplace_back(nullptr, bdd->get_root());
@@ -182,34 +183,6 @@ EP::EP(const EP &other, bool is_ancestor)
 
   sort_leaves();
 }
-
-EP::~EP() {
-  if (root) {
-    delete root;
-    root = nullptr;
-  }
-}
-
-const EPMeta &EP::get_meta() const { return meta; }
-
-ep_id_t EP::get_id() const { return id; }
-
-const EPNode *EP::get_root() const { return root; }
-
-EPNode *EP::get_mutable_root() { return root; }
-
-const std::vector<EPLeaf> &EP::get_active_leaves() const { return active_leaves; }
-
-const TargetsView &EP::get_targets() const { return targets; }
-
-const bdd_node_ids_t &EP::get_target_roots(TargetType target) const {
-  assert(targets_roots.find(target) != targets_roots.end() && "Target not found in the roots map.");
-  return targets_roots.at(target);
-}
-
-const std::set<ep_id_t> &EP::get_ancestors() const { return ancestors; }
-
-const BDD *EP::get_bdd() const { return bdd.get(); }
 
 std::vector<const EPNode *> EP::get_prev_nodes() const {
   std::vector<const EPNode *> prev_nodes;
@@ -273,10 +246,6 @@ bool EP::has_target(TargetType type) const {
   return found_it != targets.elements.end();
 }
 
-const Context &EP::get_ctx() const { return ctx; }
-
-Context &EP::get_mutable_ctx() { return ctx; }
-
 const BDDNode *EP::get_next_node() const {
   if (!has_active_leaf()) {
     return nullptr;
@@ -293,14 +262,9 @@ EPLeaf EP::pop_active_leaf() {
   return leaf;
 }
 
-EPLeaf EP::get_active_leaf() const { return active_leaves.front(); }
-
-bool EP::has_active_leaf() const { return !active_leaves.empty(); }
-
 TargetType EP::get_active_target() const {
   if (!root) {
-    TargetType initial_target = targets.get_initial_target().type;
-    return initial_target;
+    return targets.get_initial_target().type;
   }
 
   assert(has_active_leaf() && "No active leaf");
@@ -330,7 +294,7 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
   const EPLeaf active_leaf        = pop_active_leaf();
 
   if (!root) {
-    root = new_node;
+    root = std::unique_ptr<EPNode>(new_node);
   } else {
     active_leaf.node->set_children(new_node);
     new_node->set_prev(active_leaf.node);
@@ -512,7 +476,7 @@ void EP::debug_speculations() const {
 
 void EP::assert_integrity() const {
   std::cerr << "***** Asserting integrity of EP " << id << " *****\n";
-  std::vector<const EPNode *> nodes{root};
+  std::vector<const EPNode *> nodes{root.get()};
 
   while (nodes.size()) {
     const EPNode *node = nodes.back();
@@ -727,6 +691,8 @@ EP::tput_cmp_t EP::compare_speculations_with_unexplored_nodes_lookahead(const sp
 // Compare the performance of an old speculation if it were subjected to the nodes ignored by the new speculation, and vise versa.
 bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const BDDNode *node, TargetType current_target,
                                pps_t ingress, const std::list<const BDDNode *> &speculation_target_nodes, Lookahead lookahead) const {
+  ep_stats.num_phase1_speculations++;
+
   if (ingress <= STABLE_TPUT_PRECISION) {
     return false;
   }
@@ -741,6 +707,8 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
     return false;
   }
 
+  ep_stats.num_phase2_speculations++;
+
   tput_cmp_t tput_cmp =
       compare_speculations_by_ignored_nodes(old_speculation, new_speculation, node, current_target, ingress, speculation_target_nodes);
 
@@ -748,12 +716,16 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
     return tput_cmp.new_pps > tput_cmp.old_pps;
   }
 
+  ep_stats.num_phase3_speculations++;
+
   tput_cmp =
       compare_speculations_with_reachable_nodes_lookahead(old_speculation, new_speculation, node, current_target, ingress, speculation_target_nodes);
 
   if (tput_cmp.old_pps != tput_cmp.new_pps) {
     return tput_cmp.new_pps > tput_cmp.old_pps;
   }
+
+  ep_stats.num_phase4_speculations++;
 
   tput_cmp =
       compare_speculations_with_unexplored_nodes_lookahead(old_speculation, new_speculation, node, current_target, ingress, speculation_target_nodes);

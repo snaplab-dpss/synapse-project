@@ -37,12 +37,23 @@ struct EPLeaf {
   EPLeaf(const EPLeaf &other) : node(other.node), next(other.next) {}
 };
 
+struct EPStats {
+  u64 num_phase1_speculations;
+  u64 num_phase2_speculations;
+  u64 num_phase3_speculations;
+  u64 num_phase4_speculations;
+
+  EPStats() : num_phase1_speculations(0), num_phase2_speculations(0), num_phase3_speculations(0), num_phase4_speculations(0) {}
+  EPStats(const EPStats &other)
+      : num_phase1_speculations(other.num_phase1_speculations), num_phase2_speculations(other.num_phase2_speculations),
+        num_phase3_speculations(other.num_phase3_speculations), num_phase4_speculations(other.num_phase4_speculations) {}
+};
+
 class EP {
 private:
   ep_id_t id;
   std::shared_ptr<const BDD> bdd;
-
-  EPNode *root;
+  std::unique_ptr<EPNode> root;
 
   // Sorted by target priority and hit rates, from highest to lowest priority.
   // Leaves targeting the switch are prioritized over other targets.
@@ -58,6 +69,7 @@ private:
   Context ctx;
   EPMeta meta;
 
+  mutable EPStats ep_stats;
   mutable std::optional<pps_t> cached_tput_estimation;
   mutable std::optional<pps_t> cached_tput_speculation;
   mutable std::optional<std::vector<spec_impl_t>> cached_speculations;
@@ -67,8 +79,6 @@ public:
   EP(const EP &other, bool is_ancestor = true);
   EP(EP &&other)                 = delete;
   EP &operator=(const EP *other) = delete;
-
-  ~EP();
 
   void process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, bool process_node = true);
   void process_leaf(const BDDNode *next_node);
@@ -83,19 +93,19 @@ public:
   void replace_bdd(std::unique_ptr<BDD> new_bdd);
   void replace_bdd(std::unique_ptr<BDD> new_bdd, const translation_data_t &translation_data);
 
-  ep_id_t get_id() const;
-  const BDD *get_bdd() const;
-  const EPNode *get_root() const;
-  const std::vector<EPLeaf> &get_active_leaves() const;
-  const TargetsView &get_targets() const;
-  const bdd_node_ids_t &get_target_roots(TargetType target) const;
-  const std::set<ep_id_t> &get_ancestors() const;
-  const Context &get_ctx() const;
-  const EPMeta &get_meta() const;
+  ep_id_t get_id() const { return id; }
+  const BDD *get_bdd() const { return bdd.get(); }
+  const EPNode *get_root() const { return root.get(); }
+  const std::vector<EPLeaf> &get_active_leaves() const { return active_leaves; }
+  const TargetsView &get_targets() const { return targets; }
+  const bdd_node_ids_t &get_target_roots(TargetType target) const { return targets_roots.at(target); }
+  const std::set<ep_id_t> &get_ancestors() const { return ancestors; }
+  const Context &get_ctx() const { return ctx; }
+  const EPMeta &get_meta() const { return meta; }
+  const EPStats &get_stats() const { return ep_stats; }
 
-  EPNode *get_mutable_root();
-  Context &get_mutable_ctx();
-  EPNode *get_mutable_node_by_id(ep_node_id_t id);
+  EPNode *get_mutable_root() { return root.get(); }
+  Context &get_mutable_ctx() { return ctx; }
   EPLeaf pop_active_leaf();
 
   std::vector<const EPNode *> get_prev_nodes() const;
@@ -104,10 +114,9 @@ public:
 
   bool has_target(TargetType type) const;
   const BDDNode *get_next_node() const;
-  EPLeaf get_active_leaf() const;
-  bool has_active_leaf() const;
+  EPLeaf get_active_leaf() const { return active_leaves.front(); }
+  bool has_active_leaf() const { return !active_leaves.empty(); }
   TargetType get_active_target() const;
-  EPNode *get_node_by_id(ep_node_id_t id) const;
   hit_rate_t get_active_leaf_hit_rate() const;
   port_ingress_t get_node_egress(hit_rate_t hr, const EPNode *node) const;
   port_ingress_t get_node_egress(hit_rate_t hr, std::vector<int> past_recirculations) const;

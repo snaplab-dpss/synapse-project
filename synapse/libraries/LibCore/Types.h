@@ -148,6 +148,8 @@ bps_t pps2bps(pps_t pps, bytes_t pkt_size);
 std::string int2hr(i64 value);
 std::string scientific(double value);
 std::string tput2str(u64 thpt, std::string units, bool human_readable = false);
+std::string percent2str(double value, int precision);
+std::string percent2str(double numerator, double denominator, int precision);
 bits_t bits_from_pow2_capacity(size_t capacity);
 
 } // namespace LibCore

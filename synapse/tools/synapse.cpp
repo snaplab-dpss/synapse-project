@@ -318,6 +318,16 @@ int main(int argc, char **argv) {
   for (const heuristic_metadata_t &meta : report.heuristic_meta) {
     std::cout << "  " << meta.name << ": " << meta.description << "\n";
   }
+  std::cout << "Stats:\n";
+  std::cout << "  Speculative phases:\n";
+  std::cout << "    Phase 1: " << int2hr(report.ep->get_stats().num_phase1_speculations) << " ("
+            << percent2str(report.ep->get_stats().num_phase1_speculations, report.ep->get_stats().num_phase1_speculations, 2) << ")\n";
+  std::cout << "    Phase 2: " << int2hr(report.ep->get_stats().num_phase2_speculations) << " ("
+            << percent2str(report.ep->get_stats().num_phase2_speculations, report.ep->get_stats().num_phase1_speculations, 2) << ")\n";
+  std::cout << "    Phase 3: " << int2hr(report.ep->get_stats().num_phase3_speculations) << " ("
+            << percent2str(report.ep->get_stats().num_phase3_speculations, report.ep->get_stats().num_phase1_speculations, 2) << ")\n";
+  std::cout << "    Phase 4: " << int2hr(report.ep->get_stats().num_phase4_speculations) << " ("
+            << percent2str(report.ep->get_stats().num_phase4_speculations, report.ep->get_stats().num_phase1_speculations, 2) << ")\n";
   std::cout << "\n";
 
   return 0;
