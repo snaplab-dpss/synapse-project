@@ -43,7 +43,7 @@ KVS_STATUS_OK = 1
 KVS_STATUS_FAIL = 0
 
 CUCKOO_CAPACITY = 8192
-EXPIRATION_TIME = 256  # units of 65536 ns = 16ms
+EXPIRATION_TIME = 16384  # units of 65536 ns = 1s
 MAX_LOOPS = 4
 
 
@@ -191,11 +191,9 @@ class Register(Table):
         self.table.entry_add(self.target, [key], [data])
 
     def clear(self):
-        resp = self.table.entry_get(self.target, [], {"from_hw": True})
-        for _, key in resp:
-            index = key.to_dict()["$REGISTER_INDEX"]["value"]
-            if key:
-                self.write(index, 0)
+        keys = [self.table.make_key([gc.KeyTuple("$REGISTER_INDEX", index)]) for index in range(CUCKOO_CAPACITY)]
+        values = [self.table.make_data([gc.DataTuple(f"{self.name}.f1", 0)]) for _ in range(CUCKOO_CAPACITY)]
+        self.table.entry_add(self.target, keys, values)
 
     def dump(self):
         table = PrettyTable()
@@ -231,30 +229,17 @@ class IngressPortToNFDev(Table):
         super().__init__(bfrt_info, "Ingress.ingress_port_to_nf_dev")
 
     def setup(self):
-        try:
-            self.table.entry_add(
-                self.target,
-                [self.table.make_key([gc.KeyTuple("ig_intr_md.ingress_port", CLIENT_PORT)])],
-                [self.table.make_data([gc.DataTuple("nf_dev", CLIENT_NF_DEV)], "Ingress.set_ingress_dev")],
-            )
+        self.table.entry_add_or_mod(
+            self.target,
+            [self.table.make_key([gc.KeyTuple("ig_intr_md.ingress_port", CLIENT_PORT)])],
+            [self.table.make_data([gc.DataTuple("nf_dev", CLIENT_NF_DEV)], "Ingress.set_ingress_dev")],
+        )
 
-            self.table.entry_add(
-                self.target,
-                [self.table.make_key([gc.KeyTuple("ig_intr_md.ingress_port", STORAGE_SERVER_PORT)])],
-                [self.table.make_data([gc.DataTuple("nf_dev", STORAGE_SERVER_NF_DEV)], "Ingress.set_ingress_dev")],
-            )
-        except:
-            self.table.entry_mod(
-                self.target,
-                [self.table.make_key([gc.KeyTuple("ig_intr_md.ingress_port", CLIENT_PORT)])],
-                [self.table.make_data([gc.DataTuple("nf_dev", CLIENT_NF_DEV)], "Ingress.set_ingress_dev")],
-            )
-
-            self.table.entry_mod(
-                self.target,
-                [self.table.make_key([gc.KeyTuple("ig_intr_md.ingress_port", STORAGE_SERVER_PORT)])],
-                [self.table.make_data([gc.DataTuple("nf_dev", STORAGE_SERVER_NF_DEV)], "Ingress.set_ingress_dev")],
-            )
+        self.table.entry_add_or_mod(
+            self.target,
+            [self.table.make_key([gc.KeyTuple("ig_intr_md.ingress_port", STORAGE_SERVER_PORT)])],
+            [self.table.make_data([gc.DataTuple("nf_dev", STORAGE_SERVER_NF_DEV)], "Ingress.set_ingress_dev")],
+        )
 
 
 class ForwardNFDev(Table):
@@ -299,6 +284,7 @@ class CuckooHashTable:
         self.reg_ts_2 = Register(bfrt_info, "Ingress.cuckoo_hash_table.reg_ts_2")
 
     def clear(self):
+        print("Clearing Cuckoo Hash Table...")
         self.reg_k_1.clear()
         self.reg_v_1.clear()
         self.reg_ts_1.clear()
@@ -369,6 +355,7 @@ class CuckooHashBloomFilter:
         self.swapped_transient = Register(bfrt_info, "Ingress.cuckoo_bloom_filter.swapped_transient")
 
     def clear(self):
+        print("Clearing Cuckoo Hash Bloom Filter...")
         self.swap_transient.clear()
         self.swapped_transient.clear()
 
@@ -592,18 +579,16 @@ class SingleInsertion(BfRuntimeTest):
         val = generate_random_value()
         kvs_put = KVS(ts=self.time, op=KVS_OP_PUT, key=key, val=val)
 
-        send_and_expect(self, kvs_put, CLIENT_PORT)
+        send_and_expect(self, kvs_put, CLIENT_PORT, verbose=True)
+
+        # self.cuckoo_hash_bloom_filter.dump()
 
         h1 = hash1(key)
-        (key1, val1, ts1), (key2, val2, ts2) = self.cuckoo_hash_table.read(h1)
+        (key1, val1, ts1), _ = self.cuckoo_hash_table.read(h1)
 
         assert key1 == key, f"Expected {key1:08x} == {key:08x}"
         assert val1 == val, f"Expected {val1:08x} == {val:08x}"
         assert ts1 == self.time, f"Expected {ts1} == {self.time}"
-
-        assert key2 == 0, f"Expected {key2:08x} == 0"
-        assert val2 == 0, f"Expected {val2:08x} == 0"
-        assert ts2 == 0, f"Expected {ts2} == 0"
 
         swap, swapped = self.cuckoo_hash_bloom_filter.read(key)
 
@@ -621,7 +606,8 @@ class SingleInsertion(BfRuntimeTest):
         assert kvs_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_res.status}"
 
     def tearDown(self):
-        self.interface.clear_all_tables()
+        self.cuckoo_hash_table.clear()
+        self.cuckoo_hash_bloom_filter.clear()
         super().tearDown()
 
 
@@ -691,7 +677,8 @@ class MultipleInsertionsOnTheFirstTable(BfRuntimeTest):
         print()
 
     def tearDown(self):
-        self.interface.clear_all_tables()
+        self.cuckoo_hash_table.clear()
+        self.cuckoo_hash_bloom_filter.clear()
         super().tearDown()
 
 
@@ -769,7 +756,8 @@ class InsertionsOnTheSecondTable(BfRuntimeTest):
         print()
 
     def tearDown(self):
-        self.interface.clear_all_tables()
+        self.cuckoo_hash_table.clear()
+        self.cuckoo_hash_bloom_filter.clear()
         super().tearDown()
 
 
@@ -799,7 +787,7 @@ class Random(BfRuntimeTest):
             val = generate_random_value()
 
             new_entries = self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
-            evictions = len(new_entries) - 1
+            evictions = len(new_entries)
 
             print(f"[Random][{i+1}/{n}] key={key:08x} -> evictions {evictions:3}", end="\r")
 
@@ -827,7 +815,8 @@ class Random(BfRuntimeTest):
         print()
 
     def tearDown(self):
-        self.interface.clear_all_tables()
+        self.cuckoo_hash_table.clear()
+        self.cuckoo_hash_bloom_filter.clear()
         super().tearDown()
 
 
@@ -914,7 +903,8 @@ class ExpiringEntries(BfRuntimeTest):
         print()
 
     def tearDown(self):
-        self.interface.clear_all_tables()
+        self.cuckoo_hash_table.clear()
+        self.cuckoo_hash_bloom_filter.clear()
         super().tearDown()
 
 

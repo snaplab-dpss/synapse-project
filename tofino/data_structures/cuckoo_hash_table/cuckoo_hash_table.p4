@@ -258,8 +258,8 @@ control CuckooHashTable(
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_v_1;
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_v_2;
 
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_ts_1;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_ts_2;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0x7fffffff) reg_ts_1;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0x7fffffff) reg_ts_2;
 
 	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bool>(reg_k_1) k_1_read = {
 		void apply(inout bit<32> val, out bool match) {

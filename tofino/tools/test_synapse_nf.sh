@@ -131,7 +131,7 @@ run_tests() {
 	test_file="${test_script%.*}"
 
 	pushd $LOG_DIR
-		PYTHONPATH="$BFRT_PYTHON_PATH" $P4_TESTS_SCRIPT --no-veth --no-status-srv -p $SYNAPSE_NF_NAME -t $test_dir -s $test_file --arch tf2 -f $PORTS_FILE
+		PYTHONPATH="$BFRT_PYTHON_PATH" $P4_TESTS_SCRIPT --no-veth --no-status-srv -p $SYNAPSE_NF_NAME -t $test_dir --arch tf2 -f $PORTS_FILE
 	popd
 }
 
