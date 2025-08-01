@@ -693,30 +693,22 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
                                pps_t ingress, const std::list<const BDDNode *> &speculation_target_nodes, Lookahead lookahead) const {
   ep_stats.num_phase1_speculations++;
 
-  if (ingress <= STABLE_TPUT_PRECISION) {
-    return false;
-  }
-
-  const pps_t old_pps = old_speculation.ctx.get_perf_oracle().estimate_tput(ingress);
-  if (old_pps <= STABLE_TPUT_PRECISION) {
-    return true;
-  }
-
-  const pps_t new_pps = new_speculation.ctx.get_perf_oracle().estimate_tput(ingress);
-  if (new_pps <= STABLE_TPUT_PRECISION) {
-    return false;
-  }
-
-  ep_stats.num_phase2_speculations++;
-
   tput_cmp_t tput_cmp =
       compare_speculations_by_ignored_nodes(old_speculation, new_speculation, node, current_target, ingress, speculation_target_nodes);
+
+  if (tput_cmp.new_pps <= STABLE_TPUT_PRECISION) {
+    return false;
+  }
+
+  if (tput_cmp.old_pps <= STABLE_TPUT_PRECISION) {
+    return true;
+  }
 
   if ((lookahead == Lookahead::WithoutLookahead) || (tput_cmp.old_pps != tput_cmp.new_pps)) {
     return tput_cmp.new_pps > tput_cmp.old_pps;
   }
 
-  ep_stats.num_phase3_speculations++;
+  ep_stats.num_phase2_speculations++;
 
   tput_cmp =
       compare_speculations_with_reachable_nodes_lookahead(old_speculation, new_speculation, node, current_target, ingress, speculation_target_nodes);
@@ -725,7 +717,7 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
     return tput_cmp.new_pps > tput_cmp.old_pps;
   }
 
-  ep_stats.num_phase4_speculations++;
+  ep_stats.num_phase3_speculations++;
 
   tput_cmp =
       compare_speculations_with_unexplored_nodes_lookahead(old_speculation, new_speculation, node, current_target, ingress, speculation_target_nodes);

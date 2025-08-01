@@ -41,12 +41,11 @@ struct EPStats {
   u64 num_phase1_speculations;
   u64 num_phase2_speculations;
   u64 num_phase3_speculations;
-  u64 num_phase4_speculations;
 
-  EPStats() : num_phase1_speculations(0), num_phase2_speculations(0), num_phase3_speculations(0), num_phase4_speculations(0) {}
+  EPStats() : num_phase1_speculations(0), num_phase2_speculations(0), num_phase3_speculations(0) {}
   EPStats(const EPStats &other)
       : num_phase1_speculations(other.num_phase1_speculations), num_phase2_speculations(other.num_phase2_speculations),
-        num_phase3_speculations(other.num_phase3_speculations), num_phase4_speculations(other.num_phase4_speculations) {}
+        num_phase3_speculations(other.num_phase3_speculations) {}
 };
 
 class EP {
