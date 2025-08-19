@@ -18,7 +18,7 @@ from hosts.pktgen import TrafficDist
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
-TOTAL_FLOWS = 25_000
+TOTAL_FLOWS = 50_000
 
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
@@ -45,6 +45,13 @@ NFS = [
         data_out=Path("tput_map_table.csv"),
         tofino=Path("tofino/data_structures/map_table/map_table.p4"),
         controller=Path("tofino/data_structures/map_table/map_table.cpp"),
+    ),
+    NF(
+        name="cuckoo_hash_table",
+        description="CuckooHashTable",
+        data_out=Path("tput_map_table.csv"),
+        tofino=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.p4"),
+        controller=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.cpp"),
     ),
 ]
 

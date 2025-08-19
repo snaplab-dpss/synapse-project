@@ -58,7 +58,7 @@ private:
   // Leaves targeting the switch are prioritized over other targets.
   // Leaves with higher hit rates are prioritized over lower hit rates.
   // Don't forget to call the sorting method after adding new leaves.
-  std::vector<EPLeaf> active_leaves;
+  std::list<EPLeaf> active_leaves;
 
   const TargetsView targets;
   const std::set<ep_id_t> ancestors;
@@ -95,7 +95,7 @@ public:
   ep_id_t get_id() const { return id; }
   const BDD *get_bdd() const { return bdd.get(); }
   const EPNode *get_root() const { return root.get(); }
-  const std::vector<EPLeaf> &get_active_leaves() const { return active_leaves; }
+  const std::list<EPLeaf> &get_active_leaves() const { return active_leaves; }
   const TargetsView &get_targets() const { return targets; }
   const bdd_node_ids_t &get_target_roots(TargetType target) const { return targets_roots.at(target); }
   const std::set<ep_id_t> &get_ancestors() const { return ancestors; }

@@ -11,7 +11,7 @@ pport        = 1              # Storage server front panel port
 capacity_bps = 50_000_000_000 # Storage server capacity (bottleneck)
 
 [[switch.front_panel_ports]]
-vport        = -1              # Unused
+vport        = 1
 pport        = 2
 capacity_bps = 100_000_000_000 # 100G
 

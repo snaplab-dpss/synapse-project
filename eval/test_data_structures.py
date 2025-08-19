@@ -10,11 +10,15 @@ from typing import Optional
 
 from experiments.tput import ThroughputHosts
 from experiments.experiment import Experiment
+from hosts.kvs_server import KVSServer
 from hosts.pktgen import TrafficDist
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
-TOTAL_FLOWS = 25_000
+STORAGE_SERVER_DELAY_NS = 0
+KVS_GET_RATIO = 0.99
+
+TOTAL_FLOWS = 50_000
 CHURN_FPM = 0
 ZIPF_PARAM = 1.2
 
@@ -25,14 +29,23 @@ class NF:
     description: str
     tofino: Path
     controller: Path
+    kvs_mode: bool
 
 
 NFS = [
+    # NF(
+    #     name="map_table",
+    #     description="MapTable",
+    #     tofino=Path("tofino/data_structures/map_table/map_table.p4"),
+    #     controller=Path("tofino/data_structures/map_table/map_table.cpp"),
+    #     kvs_mode=False,
+    # ),
     NF(
-        name="map_table",
-        description="MapTable",
-        tofino=Path("tofino/data_structures/map_table/map_table.p4"),
-        controller=Path("tofino/data_structures/map_table/map_table.cpp"),
+        name="cuckoo_hash_table",
+        description="CuckooHashTable",
+        tofino=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.p4"),
+        controller=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.cpp"),
+        kvs_mode=True,
     ),
 ]
 
@@ -44,6 +57,7 @@ class Test(Experiment):
         name: str,
         # Hosts
         tput_hosts: ThroughputHosts,
+        kvs_server: Optional[KVSServer],
         # TG controller
         tg_dut_ports: list[int],
         # NF
@@ -61,6 +75,7 @@ class Test(Experiment):
 
         # Hosts
         self.tput_hosts = tput_hosts
+        self.kvs_server = kvs_server
 
         # TG controller
         self.tg_dut_ports = tg_dut_ports
@@ -88,7 +103,13 @@ class Test(Experiment):
         )
 
         self.log("Launching pktgen")
-        self.tput_hosts.pktgen.launch()
+        self.tput_hosts.pktgen.launch(
+            nb_flows=self.total_flows,
+            traffic_dist=TrafficDist.ZIPF,
+            zipf_param=self.zipf_param,
+            kvs_mode=self.kvs_server is not None,
+            kvs_get_ratio=KVS_GET_RATIO,
+        )
 
         self.log("Waiting for Tofino TG")
         self.tput_hosts.tg_switch.wait_ready()
@@ -110,18 +131,14 @@ class Test(Experiment):
 
         self.log("Starting experiment")
 
+        if self.kvs_server:
+            self.log(f"Launching KVS server (delay={STORAGE_SERVER_DELAY_NS}ns)")
+            self.kvs_server.kill_server()
+            self.kvs_server.launch(delay_ns=STORAGE_SERVER_DELAY_NS)
+            self.kvs_server.wait_launch()
+
         self.log("Waiting for controller")
         self.tput_hosts.dut_controller.wait_ready()
-
-        self.log("Launching pktgen")
-        self.tput_hosts.pktgen.close()
-        self.tput_hosts.pktgen.launch(
-            nb_flows=self.total_flows,
-            traffic_dist=TrafficDist.ZIPF,
-            zipf_param=self.zipf_param,
-        )
-
-        self.tput_hosts.pktgen.wait_launch()
 
         report = self.find_stable_throughput(
             tg_controller=self.tput_hosts.tg_controller,
@@ -141,6 +158,8 @@ class Test(Experiment):
 
         self.tput_hosts.pktgen.close()
         self.tput_hosts.dut_controller.quit()
+        if self.kvs_server:
+            self.kvs_server.kill_server()
 
 
 def main():
@@ -162,17 +181,31 @@ def main():
         use_accelerator=False,
     )
 
+    kvs_server = KVSServer(
+        hostname=config["hosts"]["server"],
+        repo=config["repo"]["server"],
+        pcie_dev=config["devices"]["server"]["dev"],
+        log_file=config["logs"]["server"],
+    )
+
     tg_dut_ports = config["devices"]["switch_tg"]["dut_ports"]
     dut_ports = config["devices"]["switch_dut"]["client_ports"]
+    server_port = config["devices"]["switch_dut"]["server_port"]
 
     for nf in NFS:
+        nf_dut_ports = dut_ports.copy()
+        if nf.kvs_mode:
+            nf_dut_ports.append(server_port)
+            nf_dut_ports = sorted(nf_dut_ports)
+
         experiment = Test(
             name=nf.description,
             tput_hosts=tput_hosts,
+            kvs_server=kvs_server if nf.kvs_mode else None,
             tg_dut_ports=tg_dut_ports,
             p4_src_in_repo=nf.tofino,
             controller_src_in_repo=nf.controller,
-            dut_ports=dut_ports,
+            dut_ports=nf_dut_ports,
             total_flows=TOTAL_FLOWS,
             zipf_param=ZIPF_PARAM,
             churn_fpm=CHURN_FPM,

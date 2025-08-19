@@ -18,6 +18,7 @@ namespace {
 constexpr const char *const MARKER_CPU_HEADER                   = "CPU_HEADER";
 constexpr const char *const MARKER_RECIRC_HEADER                = "RECIRCULATION_HEADER";
 constexpr const char *const MARKER_CUSTOM_HEADERS               = "CUSTOM_HEADERS";
+constexpr const char *const MARKER_CONTROL_BLOCKS               = "CONTROL_BLOCKS";
 constexpr const char *const MARKER_INGRESS_HEADERS              = "INGRESS_HEADERS";
 constexpr const char *const MARKER_INGRESS_METADATA             = "INGRESS_METADATA";
 constexpr const char *const MARKER_INGRESS_PARSER               = "INGRESS_PARSER";
@@ -28,7 +29,18 @@ constexpr const char *const MARKER_INGRESS_DEPARSER             = "INGRESS_DEPAR
 constexpr const char *const MARKER_INGRESS_DEPARSER_APPLY       = "INGRESS_DEPARSER_APPLY";
 constexpr const char *const MARKER_EGRESS_HEADERS               = "EGRESS_HEADERS";
 constexpr const char *const MARKER_EGRESS_METADATA              = "EGRESS_METADATA";
+
+namespace CuckooHashTableTemplateMarkers {
+constexpr const char *const MARKER_CUCKOO_IDX_WIDTH = "CUCKOO_IDX_WIDTH";
+constexpr const char *const MARKER_CUCKOO_ENTRIES   = "CUCKOO_ENTRIES";
+constexpr const char *const MARKER_ENTRY_TIMEOUT    = "ENTRY_TIMEOUT";
+constexpr const char *const MARKER_BLOOM_IDX_WIDTH  = "BLOOM_IDX_WIDTH";
+constexpr const char *const MARKER_BLOOM_ENTRIES    = "BLOOM_ENTRIES";
+constexpr const char *const MARKER_MAX_LOOPS        = "MAX_LOOPS";
+} // namespace CuckooHashTableTemplateMarkers
+
 constexpr const char *const TEMPLATE_FILENAME                   = "tofino.template.p4";
+constexpr const char *const TEMPLATE_CUCKOO_HASH_TABLE_FILENAME = "cuckoo_hash_table.template.p4";
 
 template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx              = ep->get_ctx();

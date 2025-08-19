@@ -539,6 +539,24 @@ size_t Table::get_usage() const {
 const std::vector<table_field_t> &Table::get_key_fields() const { return key_fields; }
 const std::vector<table_action_t> &Table::get_actions() const { return actions; }
 
+table_field_t Table::get_key_field(const std::string &name) const {
+  for (const table_field_t &field : key_fields) {
+    if (field.name == name) {
+      return field;
+    }
+  }
+  ERROR("Field '%s' not found in table '%s'", name.c_str(), this->name.c_str());
+}
+
+table_action_t Table::get_action(const std::string &name) const {
+  for (const table_action_t &action : actions) {
+    if (action.name == name) {
+      return action;
+    }
+  }
+  ERROR("Action '%s' not found in table '%s'", name.c_str(), this->name.c_str());
+}
+
 void Table::add_entry(const buffer_t &k) {
   bf_status_t bf_status;
 

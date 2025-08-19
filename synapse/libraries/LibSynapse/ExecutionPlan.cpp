@@ -257,8 +257,8 @@ const BDDNode *EP::get_next_node() const {
 
 EPLeaf EP::pop_active_leaf() {
   assert(!active_leaves.empty() && "No active leaf");
-  EPLeaf leaf = active_leaves.front();
-  active_leaves.erase(active_leaves.begin());
+  const EPLeaf leaf = active_leaves.front();
+  active_leaves.pop_front();
   return leaf;
 }
 
@@ -280,6 +280,7 @@ void EP::process_leaf(const BDDNode *next_node) {
   EPLeaf active_leaf        = pop_active_leaf();
 
   meta.process_node(active_leaf.next, current_target);
+  meta.depth++;
 
   if (next_node) {
     active_leaves.emplace_back(active_leaf.node, next_node);
@@ -301,7 +302,6 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
   }
 
   meta.update(active_leaf, new_node, process_node);
-
   meta.depth++;
 
   for (const EPLeaf &new_leaf : new_leaves) {
@@ -567,7 +567,7 @@ void EP::sort_leaves() {
     return l1_hr > l2_hr;
   };
 
-  std::sort(active_leaves.begin(), active_leaves.end(), prioritize_switch_and_hot_paths);
+  active_leaves.sort(prioritize_switch_and_hot_paths);
 }
 
 std::list<const BDDNode *> EP::get_nodes_targeted_for_speculation() const {
@@ -772,7 +772,7 @@ spec_impl_t EP::get_best_speculation(const BDDNode *node, TargetType current_tar
     panic("No module to speculative execute\n"
           "EP:     %lu\n"
           "Target: %s\n"
-          "BDDNode:   %s",
+          "Node:   %s",
           id, to_string(current_target).c_str(), node->dump(true).c_str());
   }
 

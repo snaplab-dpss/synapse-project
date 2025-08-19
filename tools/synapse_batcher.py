@@ -26,7 +26,7 @@ SYNAPSE_BUILD_DIR = SYNAPSE_DIR / "build"
 SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
 DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs"]
-DEFAULT_TOTAL_FLOWS = [25_000]
+DEFAULT_TOTAL_FLOWS = [50_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 DEFAULT_HEURISTICS = ["max-tput", "ds-pref-simple", "ds-pref-guardedmaptable", "ds-pref-hhtable", "ds-pref-cuckoo"]

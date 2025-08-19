@@ -14,6 +14,26 @@
   #define RECIRCULATION_PORT_1 196
 #endif
 
+#define bswap32(x) (x[7:0] ++ x[15:8] ++ x[23:16] ++ x[31:24])
+#define bswap16(x) (x[7:0] ++ x[15:8])
+
+const bit<16> CUCKOO_CODE_PATH = 0x0000;
+
+enum bit<8> cuckoo_ops_t {
+  LOOKUP  = 0x00,
+  UPDATE  = 0x01,
+  INSERT  = 0x02,
+  SWAP    = 0x03,
+  DONE    = 0x04,
+}
+
+enum bit<2> fwd_op_t {
+  FORWARD_NF_DEV  = 0,
+  FORWARD_TO_CPU  = 1,
+  RECIRCULATE     = 2,
+  DROP            = 3,
+}
+
 header cpu_h {
   bit<16> code_path;                  // Written by the data plane
   bit<16> egress_dev;                 // Written by the control plane
@@ -23,21 +43,32 @@ header cpu_h {
 
 header recirc_h {
   bit<16> code_path;
+  bit<16> ingress_port;
+  bit<32> dev;
 /*@{RECIRCULATION_HEADER}@*/
 };
+
+header cuckoo_h {
+  bit<8> op;
+  bit<8> recirc_cntr;
+  bit<32> ts;
+  bit<8> old_op;
+  /*@{CUCKOO_HEADER_EXTRA_FIELDS}@*/
+}
 
 /*@{CUSTOM_HEADERS}@*/
 
 struct synapse_ingress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
+  cuckoo_h cuckoo;
 /*@{INGRESS_HEADERS}@*/
 }
 
 struct synapse_ingress_metadata_t {
+  bit<16> ingress_port;
   bit<32> dev;
   bit<32> time;
-  bool recirculate;
 /*@{INGRESS_METADATA}@*/
 }
 
@@ -58,8 +89,8 @@ parser TofinoIngressParser(
   state start {
     pkt.extract(ig_intr_md);
     transition select(ig_intr_md.resubmit_flag) {
-      1 : parse_resubmit;
-      0 : parse_port_metadata;
+      1: parse_resubmit;
+      0: parse_port_metadata;
     }
   }
 
@@ -86,10 +117,10 @@ parser IngressParser(
   state start {
     tofino_parser.apply(pkt, ig_intr_md);
 
+    meta.ingress_port[8:0] = ig_intr_md.ingress_port;
     meta.dev = 0;
     meta.time = ig_intr_md.ingress_mac_tstamp[47:16];
-    meta.recirculate = false;
-    
+
     transition select(ig_intr_md.ingress_port) {
       CPU_PCIE_PORT: parse_cpu;
       RECIRCULATION_PORT_0: parse_recirc;
@@ -109,11 +140,21 @@ parser IngressParser(
 
   state parse_recirc {
     pkt.extract(hdr.recirc);
+    transition select(hdr.recirc.code_path) {
+      CUCKOO_CODE_PATH: parse_cuckoo;
+      default: parser_init;
+    }
+  }
+
+  state parse_cuckoo {
+    pkt.extract(hdr.cuckoo);
     transition parser_init;
   }
 
 /*@{INGRESS_PARSER}@*/
 }
+
+/*@{CONTROL_BLOCKS}@*/
 
 control Ingress(
   inout synapse_ingress_headers_t hdr,
@@ -123,23 +164,26 @@ control Ingress(
   inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
   inout ingress_intrinsic_metadata_for_tm_t ig_tm_md
 ) {
-  action drop() { ig_dprsr_md.drop_ctl = 1; }
-  action fwd(bit<16> port) { ig_tm_md.ucast_egress_port = port[8:0]; }
+  action drop() {
+    ig_dprsr_md.drop_ctl = 1;
+  }
+  
+  action fwd(bit<16> port) {
+    ig_tm_md.ucast_egress_port = port[8:0];
+  }
 
-  action send_to_controller(bit<16> code_path) {
-    hdr.cpu.setValid();
-    hdr.cpu.code_path = code_path;
+  action fwd_to_cpu() {
+    hdr.recirc.setInvalid();
+    hdr.cuckoo.setInvalid();
     fwd(CPU_PCIE_PORT);
   }
 
-  action swap(inout bit<8> a, inout bit<8> b) {
-    bit<8> tmp = a;
-    a = b;
-    b = tmp;
+  action fwd_nf_dev(bit<16> port) {
+    hdr.cpu.setInvalid();
+    hdr.recirc.setInvalid();
+    hdr.cuckoo.setInvalid();
+    fwd(port);
   }
-
-  #define bswap32(x) (x[7:0] ++ x[15:8] ++ x[23:16] ++ x[31:24])
-  #define bswap16(x) (x[7:0] ++ x[15:8])
 
   action set_ingress_dev(bit<32> nf_dev) { meta.dev = nf_dev; }
   table ingress_port_to_nf_dev {
@@ -154,35 +198,82 @@ control Ingress(
     ig_tm_md.ucast_egress_port = port[8:0];
   }
 
-  bool trigger_forward = false;
-  bit<32> nf_dev = 0;
-  table forward_nf_dev {
-    key = { nf_dev: exact; }
-    actions = { fwd_nf_dev; }
+  action set_ingress_dev(bit<32> nf_dev) {
+    meta.dev = nf_dev;
+  }
+
+  action set_ingress_dev_from_recirculation() {
+    meta.ingress_port = hdr.recirc.ingress_port;
+    meta.dev = hdr.recirc.dev;
+  }
+
+  table ingress_port_to_nf_dev {
+    key = {
+      meta.ingress_port: exact;
+    }
+    actions = {
+      set_ingress_dev;
+      set_ingress_dev_from_recirculation;
+      drop;
+    }
+
     size = 64;
+    const default_action = drop();
+  }
+
+  fwd_op_t fwd_op = fwd_op_t.FORWARD_NF_DEV;
+  bit<32> nf_dev = 0;
+  table forwarding_tbl {
+    key = {
+      fwd_op: exact;
+      nf_dev: ternary;
+      meta.ingress_port: ternary;
+    }
+
+    actions = {
+      fwd;
+      fwd_nf_dev;
+      fwd_to_cpu;
+      drop;
+    }
+
+    size = 128;
+
+    const default_action = drop();
+  }
+
+  action swap(inout bit<8> a, inout bit<8> b) {
+    bit<8> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
+  action build_cpu_hdr(bit<16> code_path) {
+    hdr.cpu.setValid();
+    hdr.cpu.code_path = code_path;
+    fwd(CPU_PCIE_PORT);
+  }
+
+  action recirculate(bit<16> code_path) {
+    hdr.recirc.setValid();
+    hdr.recirc.ingress_port = meta.ingress_port;
+    hdr.recirc.dev = meta.dev;
+    hdr.recirc.code_path = code_path;
   }
 
 /*@{INGRESS_CONTROL}@*/
   apply {
+    ingress_port_to_nf_dev.apply();
+
     if (hdr.cpu.isValid() && hdr.cpu.trigger_dataplane_execution == 0) {
       nf_dev[15:0] = hdr.cpu.egress_dev;
-      hdr.cpu.setInvalid();
-      trigger_forward = true;
-    } else if (hdr.recirc.isValid()) {
+    } else if (hdr.recirc.isValid() && !hdr.cuckoo.isValid()) {
 /*@{INGRESS_CONTROL_APPLY_RECIRC}@*/
     } else {
-      ingress_port_to_nf_dev.apply();
 /*@{INGRESS_CONTROL_APPLY}@*/
     }
 
-    if (trigger_forward) {
-      forward_nf_dev.apply();
-    }
-
-    if (!meta.recirculate) {
-      hdr.recirc.setInvalid();
-    }
-
+    forwarding_tbl.apply();
     ig_tm_md.bypass_egress = 1;
   }
 }

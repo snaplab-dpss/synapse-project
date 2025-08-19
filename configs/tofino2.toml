@@ -6,12 +6,12 @@ model = "AS9516-32D"
 ########################################################
 
 [[switch.front_panel_ports]]
-vport        = -1              # Unused
+vport        = 0
 pport        = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport        = -1              # Unused
+vport        = 1
 pport        = 2
 capacity_bps = 100_000_000_000 # 100G
 

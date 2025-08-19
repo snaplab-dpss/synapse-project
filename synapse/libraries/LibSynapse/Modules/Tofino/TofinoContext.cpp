@@ -11,10 +11,8 @@ namespace Tofino {
 namespace {
 
 const EPNode *get_ep_node_from_bdd_node(const EP *ep, const BDDNode *node) {
-  std::vector<EPLeaf> active_leaves = ep->get_active_leaves();
   std::vector<const EPNode *> ep_nodes;
-
-  for (const EPLeaf &leaf : active_leaves) {
+  for (const EPLeaf &leaf : ep->get_active_leaves()) {
     if (leaf.node) {
       ep_nodes.push_back(leaf.node);
     }
@@ -41,7 +39,7 @@ const EPNode *get_ep_node_from_bdd_node(const EP *ep, const BDDNode *node) {
 }
 
 const EPNode *get_ep_node_leaf_from_future_bdd_node(const EP *ep, const BDDNode *node) {
-  const std::vector<EPLeaf> &active_leaves = ep->get_active_leaves();
+  const std::list<EPLeaf> &active_leaves = ep->get_active_leaves();
 
   while (node) {
     for (const EPLeaf &leaf : active_leaves) {

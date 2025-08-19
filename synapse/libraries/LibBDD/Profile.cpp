@@ -267,9 +267,9 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
         bdd_profile_t::map_stats_t::node_t map_stats;
         map_stats.node  = node->get_id();
         map_stats.pkts  = current_counter;
-        map_stats.flows = std::max(1ul, SingletonRandomEngine::generate() % current_counter);
+        map_stats.flows = current_counter == 0 ? 0 : std::max(1ul, SingletonRandomEngine::generate() % current_counter);
 
-        u64 avg_pkts_per_flow = current_counter / map_stats.flows;
+        u64 avg_pkts_per_flow = map_stats.flows == 0 ? 0 : current_counter / map_stats.flows;
         for (u64 i = 0; i < map_stats.flows; i++) {
           map_stats.pkts_per_flow.push_back(avg_pkts_per_flow);
         }

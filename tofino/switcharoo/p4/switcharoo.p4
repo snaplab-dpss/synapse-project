@@ -499,10 +499,10 @@ control Ingress(inout header_t hdr,
 
 				if (hdr.cuckoo.recirc_cntr >= MAX_LOOPS) {
 					// Assume the insertion packet was lost.
+					// Give up and send to the KVS server.
+					ig_md.send_to_kvs_server = true;
 					swapped_transient_incr.execute(old_key_hash);
 					debug_state_insert_from_max_loops_inc();
-
-					hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
 				} else {
 					ig_md.swapped_transient_val	= swapped_transient_read.execute(old_key_hash);
 					bool new_insertion = swap_transient_conditional_inc.execute(old_key_hash);
@@ -531,11 +531,15 @@ control Ingress(inout header_t hdr,
 			}
 
 			if (ig_md.send_to_kvs_server) {
+				hdr.kv.key = hdr.cuckoo.key;
+				hdr.kv.val = hdr.cuckoo.val;
 				set_out_port(KVS_SERVER_PORT);
 			} else if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
 				debug_state_nop_inc();
 				set_out_port((bit<9>)hdr.kv.port);
 			} else if (hdr.cuckoo.recirc_cntr >= MAX_LOOPS) {
+				hdr.kv.key = hdr.cuckoo.key;
+				hdr.kv.val = hdr.cuckoo.val;
 				set_out_port(KVS_SERVER_PORT);
 				debug_max_recirculations_inc();
 			} else {

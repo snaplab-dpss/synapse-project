@@ -70,6 +70,9 @@ public:
   const std::vector<table_field_t> &get_key_fields() const;
   const std::vector<table_action_t> &get_actions() const;
 
+  table_field_t get_key_field(const std::string &name) const;
+  table_action_t get_action(const std::string &name) const;
+
   void set_notify_mode(time_ms_t timeout_value, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable);
 
   void add_entry(const buffer_t &k);

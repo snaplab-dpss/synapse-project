@@ -14,6 +14,9 @@
 	#define RECIRCULATION_PORT_1 196
 #endif
 
+#define bswap32(x) (x[7:0] ++ x[15:8] ++ x[23:16] ++ x[31:24])
+#define bswap16(x) (x[7:0] ++ x[15:8])
+
 typedef bit<9> port_t;
 typedef bit<7> port_pad_t;
 typedef bit<32> time_t;
@@ -42,11 +45,15 @@ enum bit<8> cuckoo_ops_t {
 	DONE	= 0x04,
 }
 
-#define KEY_WIDTH 32
-#define VAL_WIDTH 32
+enum bit<2> fwd_op_t {
+	FORWARD_NF_DEV	= 0,
+	FORWARD_TO_CPU  = 1,
+	RECIRCULATE 	= 2,
+	DROP 			= 3,
+}
 
-typedef bit<KEY_WIDTH> key_t;
-typedef bit<VAL_WIDTH> val_t;
+typedef bit<32> key_t;
+typedef bit<32> val_t;
 
 // Entry Timeout Expiration (units of 65536 ns).
 #define ENTRY_TIMEOUT 16384 // 1 s
@@ -64,8 +71,7 @@ header cpu_h {
 
 header recirc_h {
 	bit<16>	code_path;
-	bit<7> _pad0;
-	bit<9> ingress_port;
+	bit<16> ingress_port;
 	bit<32> dev;
 }
 
@@ -77,7 +83,6 @@ header cuckoo_h {
 	val_t   val;
 	bit<8>  old_op;
 	key_t   old_key;
-	key_t   original_key;
 }
 
 header ethernet_h {
@@ -109,7 +114,6 @@ header udp_h {
 }
 
 header kvs_h {
-	bit<32> debug_ts; // Timestamp for testing purposes only.
 	bit<8>	op;
 	key_t	key;
 	val_t	val;
@@ -128,9 +132,9 @@ struct headers_t {
 }
 
 struct metadata_t {
+	bit<16> ingress_port;
 	bit<32> dev;
 	bit<32> time;
-	bool recirculate;
 }
 
 parser TofinoIngressParser(
@@ -168,9 +172,9 @@ parser IngressParser(
 	state start {
 		tofino_parser.apply(pkt, ig_intr_md);
 
+		meta.ingress_port[8:0] = ig_intr_md.ingress_port;
 		meta.dev = 0;
 		meta.time = ig_intr_md.ingress_mac_tstamp[47:16];
-		meta.recirculate = false;
 
 		transition select(ig_intr_md.ingress_port) {
 			CPU_PCIE_PORT: parse_cpu;
@@ -192,8 +196,8 @@ parser IngressParser(
 	state parse_recirc {
 		pkt.extract(hdr.recirc);
 		transition select(hdr.recirc.code_path) {
-			0: parse_cuckoo; // <- Special cuckoo parsing!
-			1: parse_cuckoo; // <- Special cuckoo parsing!
+			0xca: parse_cuckoo; // <- Special cuckoo parsing!
+			0xfe: parse_cuckoo; // <- Special cuckoo parsing!
 			default: parser_init;
 		}
 	}
@@ -230,27 +234,22 @@ parser IngressParser(
 
 	state parse_kvs {
 		pkt.extract(hdr.kvs);
-		meta.time = hdr.kvs.debug_ts;
 		transition accept;
 	}
 }
 
-control CuckooHashTable(
-	in bit<32> now,
-	inout cuckoo_h cuckoo,
-	out bool success
-) {
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_1;
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_2;
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cucko_hash_2_r;
+control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success) {
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cuckoo_hash_func_1;
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cuckoo_hash_func_2;
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) cuckoo_hash_func_2_r;
 
 	bit<CUCKOO_IDX_WIDTH> cuckoo_hash_1 = 0;
 	bit<CUCKOO_IDX_WIDTH> cuckoo_hash_2 = 0;
 	bit<CUCKOO_IDX_WIDTH> cuckoo_hash_2_r = 0;
 
-	action calc_cuckoo_hash_1() { cuckoo_hash_1	= cucko_hash_1.get({HASH_SALT_1, cuckoo.key});	}
-	action calc_cuckoo_hash_2() { cuckoo_hash_2	= cucko_hash_2.get({HASH_SALT_2, cuckoo.key});	}
-	action calc_cuckoo_hash_2_r() { cuckoo_hash_2_r = cucko_hash_2_r.get({HASH_SALT_2, cuckoo.key}); }
+	action calc_cuckoo_hash_1() { cuckoo_hash_1	= cuckoo_hash_func_1.get({HASH_SALT_1, cuckoo.key}); }
+	action calc_cuckoo_hash_2() { cuckoo_hash_2	= cuckoo_hash_func_2.get({HASH_SALT_2, cuckoo.key}); }
+	action calc_cuckoo_hash_2_r() { cuckoo_hash_2_r = cuckoo_hash_func_2_r.get({HASH_SALT_2, cuckoo.key}); }
 
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_k_1;
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_k_2;
@@ -258,8 +257,8 @@ control CuckooHashTable(
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_v_1;
 	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_v_2;
 
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0x7fffffff) reg_ts_1;
-	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0x7fffffff) reg_ts_2;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_ts_1;
+	Register<bit<32>, bit<CUCKOO_IDX_WIDTH>>(CUCKOO_ENTRIES, 0) reg_ts_2;
 
 	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bool>(reg_k_1) k_1_read = {
 		void apply(inout bit<32> val, out bool match) {
@@ -295,27 +294,21 @@ control CuckooHashTable(
 		}
 	};
 
-	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_v_1) v_1_read = {
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_v_1) v_1_read_or_update = {
 		void apply(inout bit<32> val, out bit<32> res) {
+			if (cuckoo.op == cuckoo_ops_t.UPDATE) {
+				val = cuckoo.val;
+			}
 			res = val;
 		}
 	};
 
-	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_v_2) v_2_read = {
+	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_v_2) v_2_read_or_update = {
 		void apply(inout bit<32> val, out bit<32> res) {
+			if (cuckoo.op == cuckoo_ops_t.UPDATE) {
+				val = cuckoo.val;
+			}
 			res = val;
-		}
-	};
-
-	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_v_1) v_1_write = {
-		void apply(inout bit<32> val) {
-			val = cuckoo.val;
-		}
-	};
-
-	RegisterAction<bit<32>, bit<CUCKOO_IDX_WIDTH>, bit<32>>(reg_v_2) v_2_write = {
-		void apply(inout bit<32> val) {
-			val = cuckoo.val;
 		}
 	};
 
@@ -378,44 +371,32 @@ control CuckooHashTable(
 	}
 
 	apply {
-		calc_cuckoo_hash_1();
+		cuckoo.old_op = cuckoo.op;
+		cuckoo.old_key = cuckoo.key;
 
+		calc_cuckoo_hash_1();
+		calc_cuckoo_hash_2();
+		calc_cuckoo_hash_2_r();
+
+		success = false;
 		if (cuckoo.op == cuckoo_ops_t.LOOKUP || cuckoo.op == cuckoo_ops_t.UPDATE) {
-			success = false;
 			if (k_1_read.execute(cuckoo_hash_1)) {
 				if (ts_1_query_and_refresh.execute(cuckoo_hash_1)) {
-					if (cuckoo.op == cuckoo_ops_t.LOOKUP) {
-						cuckoo.val = v_1_read.execute(cuckoo_hash_1);
-					} else {
-						v_1_write.execute(cuckoo_hash_1);
-					}
+					cuckoo.val = v_1_read_or_update.execute(cuckoo_hash_1);
 					cuckoo.op = cuckoo_ops_t.DONE;
 					success = true;
 				}
 			}
-
-			if (cuckoo.op != cuckoo_ops_t.DONE) {
-				calc_cuckoo_hash_2() ;
+			if (!success) {
 				if (k_2_read.execute(cuckoo_hash_2)) {
 					if (ts_2_query_and_refresh.execute(cuckoo_hash_2)) {
-						if (cuckoo.op == cuckoo_ops_t.LOOKUP) {
-							cuckoo.val = v_2_read.execute(cuckoo_hash_2);
-						} else {
-							v_2_write.execute(cuckoo_hash_2);
-						}
+						cuckoo.val = v_2_read_or_update.execute(cuckoo_hash_2);
 						cuckoo.op = cuckoo_ops_t.DONE;
 						success = true;
 					}
 				}
 			}
-
-			if (cuckoo.op != cuckoo_ops_t.DONE && cuckoo.op == cuckoo_ops_t.UPDATE) {
-				cuckoo.op = cuckoo_ops_t.INSERT;
-			}
-		} else if (cuckoo.op == cuckoo_ops_t.INSERT || cuckoo.op == cuckoo_ops_t.SWAP) {
-			success = true;
-			cuckoo.old_key = cuckoo.key;
-
+		} else {
 			cuckoo.key = k_1_swap.execute(cuckoo_hash_1);
 			cuckoo.ts = ts_1_swap.execute(cuckoo_hash_1);
 			cuckoo.val = v_1_swap.execute(cuckoo_hash_1);
@@ -424,8 +405,6 @@ control CuckooHashTable(
 			ts_diff(cuckoo.ts, ts_1_diff);
 
 			if (ts_1_diff < ENTRY_TIMEOUT) {
-				calc_cuckoo_hash_2_r();
-				
 				cuckoo.key = k_2_swap.execute(cuckoo_hash_2_r);
 				cuckoo.ts = ts_2_swap.execute(cuckoo_hash_2_r);
 				cuckoo.val = v_2_swap.execute(cuckoo_hash_2_r);
@@ -434,34 +413,26 @@ control CuckooHashTable(
 				ts_diff(cuckoo.ts, ts_2_diff);
 
 				if (ts_2_diff < ENTRY_TIMEOUT) {
-					if (cuckoo.op == cuckoo_ops_t.INSERT) {
-						cuckoo.op = cuckoo_ops_t.SWAP;
-					} else if (cuckoo.key == cuckoo.original_key) {
-						success = false;
-						cuckoo.op = cuckoo_ops_t.DONE;
-					}
+					cuckoo.op = cuckoo_ops_t.SWAP;
 				} else {
 					cuckoo.op = cuckoo_ops_t.DONE;
+					success = true;
 				}
 			} else {
 				cuckoo.op = cuckoo_ops_t.DONE;
+				success = true;
 			}
 		}
 	}
 }
 
-control CuckooHashBloomFilter(
-	in port_t ingress_port,
-	inout headers_t hdr,
-	out bool recirculate,
-	out port_t recirc_port
-) {
+control CuckooHashBloomFilter(inout cuckoo_h cuckoo, out fwd_op_t fwd_op) {
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_old_key;
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_new_key;
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_old_key_2;
 
-	Register<bit<16>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) swap_transient;
-	Register<bit<16>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES) swapped_transient;
+	Register<bit<16>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES, 0) swap_transient;
+	Register<bit<16>, bit<BLOOM_IDX_WIDTH>>(BLOOM_ENTRIES, 0) swapped_transient;
 
 	bit<16> swapped_transient_val = 0;
 
@@ -504,58 +475,49 @@ control CuckooHashBloomFilter(
 		}
 	};
 
-	action setup_recirculation(port_t out_port) {
-		hdr.cuckoo.recirc_cntr = hdr.cuckoo.recirc_cntr + 1;
-		hdr.cuckoo.old_op = hdr.cuckoo.op;
-		recirculate = true;
-		recirc_port = out_port;
-	}
-
-	table cuckoo_recirculate {
-		key = { ingress_port[8:7]: exact; }
-		actions = { setup_recirculation; }
-		size = 4;
-		const entries = {
-			0: setup_recirculation(RECIRCULATION_PORT_0);
-			1: setup_recirculation(RECIRCULATION_PORT_1);
-			#if __TARGET_TOFINO__ == 2
-			2: setup_recirculation(RECIRCULATION_PORT_2);
-			3: setup_recirculation(RECIRCULATION_PORT_3);
-			#endif
-		}
-	}
-
 	apply {
-		bit<BLOOM_IDX_WIDTH> old_key_hash = hash_old_key.get({hdr.cuckoo.old_key});
+		bit<BLOOM_IDX_WIDTH> old_key_hash = hash_old_key.get({cuckoo.old_key});
+		bit<BLOOM_IDX_WIDTH> old_key_hash_2 = hash_old_key_2.get({cuckoo.old_key});
 
-		if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
-			if (hdr.cuckoo.old_op == cuckoo_ops_t.INSERT || hdr.cuckoo.old_op == cuckoo_ops_t.SWAP) {
-				swapped_transient_inc.execute(hash_old_key_2.get({hdr.cuckoo.old_key}));
+		if (cuckoo.op == cuckoo_ops_t.DONE) {
+			if (cuckoo.old_op == cuckoo_ops_t.INSERT || cuckoo.old_op == cuckoo_ops_t.SWAP) {
+				swapped_transient_inc.execute(old_key_hash);
 			}
-		} else if (hdr.cuckoo.op == cuckoo_ops_t.LOOKUP) {
+		} else if (cuckoo.op == cuckoo_ops_t.LOOKUP) {
 			swapped_transient_val = swapped_transient_read.execute(old_key_hash);
 			if (swap_transient_read.execute(old_key_hash)) {
-				hdr.cuckoo.op = cuckoo_ops_t.DONE;
+				// Cache miss.
+				cuckoo.op = cuckoo_ops_t.DONE;
 			}
-		} else if (hdr.cuckoo.op == cuckoo_ops_t.INSERT) {
-			if (hdr.cuckoo.recirc_cntr >= MAX_LOOPS) {
-				swapped_transient_inc.execute(old_key_hash);
-				hdr.cuckoo.op = cuckoo_ops_t.UPDATE;
+		} else if (cuckoo.op == cuckoo_ops_t.UPDATE) {
+			if (cuckoo.recirc_cntr >= MAX_LOOPS) {
+				// Give up and send to KVS server.
+				swapped_transient_inc.execute(old_key_hash_2);
+				cuckoo.op = cuckoo_ops_t.DONE;
 			} else {
-				swapped_transient_val = swapped_transient_read.execute(old_key_hash);
-				if (swap_transient_conditional_inc.execute(old_key_hash)) {
-					hdr.cuckoo.recirc_cntr = 0;
-				} else {
-					hdr.cuckoo.op = cuckoo_ops_t.UPDATE;
+				swapped_transient_val = swapped_transient_read.execute(old_key_hash_2);
+				bool new_insertion = swap_transient_conditional_inc.execute(old_key_hash_2);
+				if (new_insertion) {
+					cuckoo.op = cuckoo_ops_t.INSERT;
+					cuckoo.recirc_cntr = 0;
 				}
 			}
-		} else if (hdr.cuckoo.op == cuckoo_ops_t.SWAP) {
-			swapped_transient_inc.execute(old_key_hash);
-			swap_transient_inc.execute(hash_new_key.get({hdr.cuckoo.key}));
+		} else if (cuckoo.op == cuckoo_ops_t.SWAP) {
+			swapped_transient_inc.execute(old_key_hash_2);
+			if (cuckoo.recirc_cntr >= MAX_LOOPS) {
+				cuckoo.op = cuckoo_ops_t.DONE;
+			} else {
+				swap_transient_inc.execute(hash_new_key.get({cuckoo.key}));
+			}
 		}
 
-		if (hdr.cuckoo.op != cuckoo_ops_t.DONE) {
-			cuckoo_recirculate.apply();
+		if (cuckoo.op != cuckoo_ops_t.DONE) {
+			if (cuckoo.recirc_cntr >= MAX_LOOPS) {
+				cuckoo.op = cuckoo_ops_t.DONE;
+			} else {
+				fwd_op = fwd_op_t.RECIRCULATE;
+				cuckoo.recirc_cntr = cuckoo.recirc_cntr + 1;
+			}
 		}
 	}
 }
@@ -571,10 +533,17 @@ control Ingress(
 	action drop() { ig_dprsr_md.drop_ctl = 1; }
 	action fwd(bit<16> port) { ig_tm_md.ucast_egress_port = port[8:0]; }
 
-	action send_to_controller(bit<16> code_path) {
-		hdr.cpu.setValid();
-		hdr.cpu.code_path = code_path;
+	action fwd_to_cpu() {
+		hdr.recirc.setInvalid();
+		hdr.cuckoo.setInvalid();
 		fwd(CPU_PCIE_PORT);
+	}
+
+	action fwd_nf_dev(bit<16> port) {
+		hdr.cpu.setInvalid();
+		hdr.recirc.setInvalid();
+		hdr.cuckoo.setInvalid();
+		fwd(port);
 	}
 
 	action swap(inout bit<8> a, inout bit<8> b) {
@@ -583,163 +552,126 @@ control Ingress(
 		b = tmp;
 	}
 
-	#define bswap32(x) (x[7:0] ++ x[15:8] ++ x[23:16] ++ x[31:24])
-	#define bswap16(x) (x[7:0] ++ x[15:8])
+	action build_cpu_hdr(bit<16> code_path) {
+		hdr.cpu.setValid();
+		hdr.cpu.code_path = code_path;
+	}
 
-	action set_ingress_dev(bit<32> nf_dev) { meta.dev = nf_dev; }
+	action set_ingress_dev(bit<32> nf_dev) {
+		meta.dev = nf_dev;
+	}
+
+	action set_ingress_dev_from_recirculation() {
+		meta.ingress_port = hdr.recirc.ingress_port;
+		meta.dev = hdr.recirc.dev;
+	}
+
 	table ingress_port_to_nf_dev {
-		key = { ig_intr_md.ingress_port: exact; }
-		actions = { set_ingress_dev; drop; }
-		size = 32;
+		key = {
+			meta.ingress_port: exact;
+		}
+		actions = {
+			set_ingress_dev;
+			set_ingress_dev_from_recirculation;
+			drop;
+		}
+
+		size = 64;
 		const default_action = drop();
 	}
 
-	bool trigger_forward = false;
+	fwd_op_t fwd_op = fwd_op_t.FORWARD_NF_DEV;
 	bit<32> nf_dev = 0;
-	table forward_nf_dev {
-		key = { nf_dev: exact; }
-		actions = { fwd; }
-		size = 64;
-	}
+	table forwarding_tbl {
+		key = {
+			fwd_op: exact;
+			nf_dev: ternary;
+			meta.ingress_port: ternary;
+		}
 
-	bit<16> swapped_transient_val = 0;
+		actions = {
+			fwd;
+			fwd_nf_dev;
+			fwd_to_cpu;
+			drop;
+		}
+
+		size = 128;
+
+		const default_action = drop();
+	}
 
 	CuckooHashTable() cuckoo_hash_table;
 	CuckooHashBloomFilter() cuckoo_bloom_filter;
 
 	action build_cuckoo_hdr() {
 		hdr.cuckoo.setValid();
-		hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
 		hdr.cuckoo.recirc_cntr = 0;
 		hdr.cuckoo.ts = meta.time;
 		hdr.cuckoo.key = hdr.kvs.key;
 		hdr.cuckoo.val = hdr.kvs.val;
-		hdr.cuckoo.old_op = hdr.kvs.op;
-		hdr.cuckoo.old_key = hdr.kvs.key;
-		hdr.cuckoo.original_key = hdr.kvs.key;
+	}
+
+	action recirculate() {
+		hdr.recirc.setValid();
+		hdr.recirc.ingress_port = meta.ingress_port;
+		hdr.recirc.dev = meta.dev;
+		hdr.recirc.code_path = 0xca;
 	}
 
 	apply {
+		ingress_port_to_nf_dev.apply();
+
 		if (hdr.cpu.isValid() && hdr.cpu.trigger_dataplane_execution == 0) {
 			nf_dev[15:0] = hdr.cpu.egress_dev;
-			hdr.cpu.setInvalid();
-			trigger_forward = true;
-		} else if (hdr.recirc.isValid()) {
-			// These are all the code paths that use recirculation because of cuckoo logic.
-			if (hdr.recirc.code_path == 0 || hdr.recirc.code_path == 1) {
-				bool success;
-				cuckoo_hash_table.apply(meta.time, hdr.cuckoo, success);
-
-				cuckoo_bloom_filter.apply(
-					hdr.recirc.ingress_port,
-					hdr,
-					meta.recirculate,
-					ig_tm_md.ucast_egress_port
-				);
-
-				if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
-					// Now that we are here, let's check which piece of the code we are in.
-					if (hdr.recirc.code_path == 0) {
-						if (success) {
-							/*****************************************
-							* BDD: on map_get success
-							*****************************************/
-							hdr.kvs.val = hdr.cuckoo.val;
-							hdr.kvs.status = KVS_STATUS_HIT;
-							nf_dev = hdr.recirc.dev;
-							trigger_forward = true;
-						} else {
-							nf_dev[15:0] = KVS_SERVER_NF_DEV;
-							trigger_forward = true;
-						}
-					} else {
-						if (success) {
-							hdr.kvs.status = KVS_STATUS_HIT;
-							nf_dev = hdr.recirc.dev;
-							trigger_forward = true;
-						} else {
-							nf_dev[15:0] = KVS_SERVER_NF_DEV;
-							trigger_forward = true;
-						}
-					}
-				}
-			}
+		} else if (hdr.recirc.isValid() && !hdr.cuckoo.isValid()) {
 		} else {
-			ingress_port_to_nf_dev.apply();
-
 			if (meta.dev == KVS_SERVER_NF_DEV) {
 				nf_dev[15:0] = hdr.kvs.client_port;
-				trigger_forward = true;
 			} else {
-				build_cuckoo_hdr();
 				hdr.kvs.client_port = meta.dev[15:0];
 
-				if (hdr.kvs.op == KVS_OP_GET) {
-					bool success;
-					cuckoo_hash_table.apply(meta.time, hdr.cuckoo, success);
-
-					cuckoo_bloom_filter.apply(
-						ig_intr_md.ingress_port,
-						hdr,
-						meta.recirculate,
-						ig_tm_md.ucast_egress_port
-					);
-
-					if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
-						if (success) {
-							/*****************************************
-							* BDD: on map_get success
-							*****************************************/
-							hdr.kvs.val = hdr.cuckoo.val;
-							hdr.kvs.status = KVS_STATUS_HIT;
-							nf_dev = meta.dev;
-							trigger_forward = true;
-						} else {
-							nf_dev[15:0] = KVS_SERVER_NF_DEV;
-							trigger_forward = true;
-						}
+				if (!hdr.cuckoo.isValid()) {
+					build_cuckoo_hdr();
+					if (hdr.kvs.op == KVS_OP_GET) {
+						hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
 					} else {
-						hdr.recirc.setValid();
-						hdr.recirc.ingress_port = ig_intr_md.ingress_port;
-						hdr.recirc.dev = meta.dev;
-						hdr.recirc.code_path = 0;
-					}
-				} else {
-					hdr.cuckoo.op = cuckoo_ops_t.UPDATE;
-
-					bool success;
-					cuckoo_hash_table.apply(meta.time, hdr.cuckoo, success);
-
-					cuckoo_bloom_filter.apply(
-						ig_intr_md.ingress_port,
-						hdr,
-						meta.recirculate,
-						ig_tm_md.ucast_egress_port
-					);
-
-					if (hdr.cuckoo.op == cuckoo_ops_t.DONE) {
-						hdr.kvs.status = KVS_STATUS_HIT;
-						nf_dev = meta.dev;
-						trigger_forward = true;
-					} else {
-						hdr.recirc.setValid();
-						hdr.recirc.ingress_port = ig_intr_md.ingress_port;
-						hdr.recirc.dev = meta.dev;
-						hdr.recirc.code_path = 1;
+						hdr.cuckoo.op = cuckoo_ops_t.UPDATE;
 					}
 				}
-			}
+
+				bool success;
+				cuckoo_hash_table.apply(meta.time, hdr.cuckoo, success);
+				cuckoo_bloom_filter.apply(hdr.cuckoo, fwd_op);
+
+				hdr.kvs.key = hdr.cuckoo.key;
+				hdr.kvs.val = hdr.cuckoo.val;
+
+				if (hdr.cuckoo.op != cuckoo_ops_t.DONE) {
+					recirculate();
+				} else {
+					if (hdr.kvs.op == KVS_OP_GET) {
+						if (success) {
+							// BDD: on map_get success
+							hdr.kvs.status = KVS_STATUS_HIT;
+							nf_dev = meta.dev;
+						} else {
+							nf_dev = KVS_SERVER_NF_DEV;
+						}
+					} else {
+						if (success) {
+							// BDD: on dchain_allocate_new_index success
+							hdr.kvs.status = KVS_STATUS_HIT;
+							nf_dev = meta.dev;
+						} else {
+							nf_dev = KVS_SERVER_NF_DEV;
+						}
+					}
+				}
+			}	
 		}
 
-		if (trigger_forward) {
-			forward_nf_dev.apply();
-		}
-
-		if (!meta.recirculate) {
-			hdr.recirc.setInvalid();
-			hdr.cuckoo.setInvalid();
-		}
-
+		forwarding_tbl.apply();
 		ig_tm_md.bypass_egress = 1;
 	}
 }

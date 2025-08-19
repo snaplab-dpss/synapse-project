@@ -132,14 +132,7 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const BDD
   }
 
   if (on_true_borrows.size() != on_false_borrows.size()) {
-    const BDDNode *conditional_borrow   = on_true_borrows.size() > on_false_borrows.size() ? on_true_borrows[0] : on_false_borrows[0];
-    const BDDNode *not_conditional_path = on_true_borrows.size() > on_false_borrows.size() ? on_false : on_true;
-
-    // Missing implementation of discriminating parsing between multiple headers.
-    // Right now we are assuming that either we parse the target header, or we drop the packet.
-    if (!not_conditional_path->is_packet_drop_code_path()) {
-      todo();
-    }
+    const BDDNode *conditional_borrow = on_true_borrows.size() > on_false_borrows.size() ? on_true_borrows[0] : on_false_borrows[0];
 
     // Relevant for IPv4 options, but left for future work.
     if (conditional_borrow->get_type() == BDDNodeType::Call) {

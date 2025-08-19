@@ -24,10 +24,12 @@ STORAGE_SERVER_NF_DEV = 0
 STORAGE_SERVER_PORT = 0 if test_param_get("arch") == "tofino" else 8
 CLIENT_NF_DEV = 1
 CLIENT_PORT = 1 if test_param_get("arch") == "tofino" else 16
+CLIENT_2_NF_DEV = 2
+CLIENT_2_PORT = 2 if test_param_get("arch") == "tofino" else 24
 
 PROGRAM = "cuckoo_hash_table"
 
-TIMEOUT_SEC = 2
+TIMEOUT_SEC = 10
 SRC_MAC = "00:11:22:33:44:55"
 DST_MAC = "00:11:22:33:44:56"
 
@@ -50,7 +52,6 @@ MAX_LOOPS = 4
 class KVS(Packet):
     name = "kvs"
     fields_desc = [
-        fields.BitField("ts", 0, 32),
         fields.BitField("op", 0, 8),
         fields.BitField("key", 0, KVS_KEY_SIZE_BYTES * 8),
         fields.BitField("val", 0, KVS_VALUE_SIZE_BYTES * 8),
@@ -59,7 +60,7 @@ class KVS(Packet):
     ]
 
     def __str__(self):
-        return f"KVS{{ts={self.ts} op={self.op}, key={self.key:08x}, val={self.val:08x}, status={self.status}, client_port={self.client_port}}}"
+        return f"KVS{{op={self.op}, key={self.key:08x}, val={self.val:08x}, status={self.status}, client_port={self.client_port}}}"
 
 
 bind_layers(UDP, KVS)
@@ -237,6 +238,12 @@ class IngressPortToNFDev(Table):
 
         self.table.entry_add_or_mod(
             self.target,
+            [self.table.make_key([gc.KeyTuple("ig_intr_md.ingress_port", CLIENT_2_PORT)])],
+            [self.table.make_data([gc.DataTuple("nf_dev", CLIENT_2_NF_DEV)], "Ingress.set_ingress_dev")],
+        )
+
+        self.table.entry_add_or_mod(
+            self.target,
             [self.table.make_key([gc.KeyTuple("ig_intr_md.ingress_port", STORAGE_SERVER_PORT)])],
             [self.table.make_data([gc.DataTuple("nf_dev", STORAGE_SERVER_NF_DEV)], "Ingress.set_ingress_dev")],
         )
@@ -364,6 +371,14 @@ class CuckooHashBloomFilter:
         swap = self.swap_transient.read(index)
         swapped = self.swapped_transient.read(index)
         return swap, swapped
+
+    def write_swap(self, key: int, new_swap_value: int):
+        index = hash(key)
+        self.swap_transient.write(index, new_swap_value)
+
+    def write_swapped(self, key: int, new_swapped_value: int):
+        index = hash(key)
+        self.swapped_transient.write(index, new_swapped_value)
 
     def dump(self):
         table = PrettyTable()
@@ -537,26 +552,427 @@ class CuckooHashSimulator:
         print(table)
 
 
-class EmptyCuckooFailedLookup(BfRuntimeTest):
-    def setUp(self):
-        client_id = 0
-        BfRuntimeTest.setUp(self, client_id, PROGRAM)
-        self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
+# class EmptyCuckooFailedLookup(BfRuntimeTest):
+#     def setUp(self):
+#         client_id = 0
+#         BfRuntimeTest.setUp(self, client_id, PROGRAM)
+#         self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
 
-        ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
-        forward_nf_dev = ForwardNFDev(self.bfrt_info)
+#         ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
+#         forward_nf_dev = ForwardNFDev(self.bfrt_info)
 
-        ingress_port_to_nf_dev.setup()
-        forward_nf_dev.setup()
+#         ingress_port_to_nf_dev.setup()
+#         forward_nf_dev.setup()
 
-    def runTest(self):
-        key = generate_random_key()
-        kvs = KVS(ts=0, op=KVS_OP_GET, key=key)
+#     def runTest(self):
+#         key = generate_random_key()
+#         kvs = KVS(ts=0, op=KVS_OP_GET, key=key)
 
-        send_and_expect(self, kvs, STORAGE_SERVER_PORT)
+#         send_and_expect(self, kvs, STORAGE_SERVER_PORT)
 
 
-class SingleInsertion(BfRuntimeTest):
+# class SingleInsertion(BfRuntimeTest):
+#     def setUp(self):
+#         client_id = 0
+#         BfRuntimeTest.setUp(self, client_id, PROGRAM)
+#         self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
+
+#         self.ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
+#         self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
+#         self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
+#         self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
+
+#         self.ingress_port_to_nf_dev.setup()
+#         self.forward_nf_dev.setup()
+
+#         self.time = EXPIRATION_TIME
+
+#     def runTest(self):
+#         self.time += 1
+
+#         key = generate_random_key()
+#         val = generate_random_value()
+#         kvs_put = KVS(op=KVS_OP_PUT, key=key, val=val)
+
+#         send_and_expect(self, kvs_put, CLIENT_PORT, verbose=True)
+
+#         # self.cuckoo_hash_bloom_filter.dump()
+
+#         h1 = hash1(key)
+#         (key1, val1, ts1), _ = self.cuckoo_hash_table.read(h1)
+
+#         assert key1 == key, f"Expected {key1:08x} == {key:08x}"
+#         assert val1 == val, f"Expected {val1:08x} == {val:08x}"
+
+#         swap, swapped = self.cuckoo_hash_bloom_filter.read(key)
+
+#         assert swap == 1, f"Expected swap 1, but got {swap}"
+#         assert swapped == 1, f"Expected swapped 1, but got {swapped}"
+
+#         self.time += 1
+#         kvs_get = KVS(op=KVS_OP_GET, key=key)
+
+#         kvs_res = send_and_expect(self, kvs_get, CLIENT_PORT)
+
+#         assert kvs_res.op == KVS_OP_GET, f"Expected GET operation, but got {kvs_res.op}"
+#         assert kvs_res.key == key, f"Expected key {key:08x}, but got {kvs_res.key:08x}"
+#         assert kvs_res.val == val, f"Expected value {val:08x}, but got {kvs_res.val:08x}"
+#         assert kvs_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_res.status}"
+
+#     def tearDown(self):
+#         self.cuckoo_hash_table.clear()
+#         self.cuckoo_hash_bloom_filter.clear()
+#         super().tearDown()
+
+
+# class MultipleInsertionsOnTheFirstTable(BfRuntimeTest):
+#     def setUp(self):
+#         client_id = 0
+#         BfRuntimeTest.setUp(self, client_id, PROGRAM)
+#         self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
+
+#         self.ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
+#         self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
+#         self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
+#         self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
+
+#         self.ingress_port_to_nf_dev.setup()
+#         self.forward_nf_dev.setup()
+
+#         self.time = EXPIRATION_TIME
+
+#     def runTest(self):
+#         hashes = set()
+
+#         i = 0
+#         n = 120
+#         while i < n:
+#             self.time += 1
+
+#             key = generate_random_key()
+#             val = generate_random_value()
+#             kvs_put = KVS(op=KVS_OP_PUT, key=key, val=val)
+
+#             h = hash1(key)
+#             if h in hashes:
+#                 continue
+#             hashes.add(h)
+#             i += 1
+
+#             print(f"[MultipleInsertionsOnTheFirstTable][{i}/{n}] h={h:08x} key={key:08x} val={val:08x}", end="\r")
+
+#             send_and_expect(self, kvs_put, CLIENT_PORT)
+
+#             h1 = hash1(key)
+#             (key1, val1, _), (key2, val2, _) = self.cuckoo_hash_table.read(h1)
+
+#             assert key1 == key, f"Expected {key1:08x} == {key:08x}"
+#             assert val1 == val, f"Expected {val1:08x} == {val:08x}"
+
+#             assert key2 == 0, f"Expected {key2:08x} == 0"
+#             assert val2 == 0, f"Expected {val2:08x} == 0"
+
+#             swap, swapped = self.cuckoo_hash_bloom_filter.read(key)
+
+#             assert swap == 1, f"Expected swap 1, but got {swap}"
+#             assert swapped == 1, f"Expected swapped 1, but got {swapped}"
+
+#             self.time += 1
+#             kvs_get = KVS(op=KVS_OP_GET, key=key)
+
+#             kvs_res = send_and_expect(self, kvs_get, CLIENT_PORT)
+
+#             assert kvs_res.op == KVS_OP_GET, f"Expected GET operation, but got {kvs_res.op}"
+#             assert kvs_res.key == key, f"Expected key {key:08x}, but got {kvs_res.key:08x}"
+#             assert kvs_res.val == val, f"Expected value {val:08x}, but got {kvs_res.val:08x}"
+#             assert kvs_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_res.status}"
+#         print()
+
+#     def tearDown(self):
+#         self.cuckoo_hash_table.clear()
+#         self.cuckoo_hash_bloom_filter.clear()
+#         super().tearDown()
+
+
+# class InsertionsOnTheSecondTable(BfRuntimeTest):
+#     def setUp(self):
+#         client_id = 0
+#         BfRuntimeTest.setUp(self, client_id, PROGRAM)
+#         self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
+
+#         self.ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
+#         self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
+#         self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
+#         self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
+#         self.cuckoo_hash_table_simulator = CuckooHashSimulator()
+
+#         self.ingress_port_to_nf_dev.setup()
+#         self.forward_nf_dev.setup()
+
+#         self.time = EXPIRATION_TIME + 1
+
+#         n = 120
+#         for i in range(n):
+#             key = self.cuckoo_hash_table_simulator.get_next_key(self.time, target_evictions=0)
+#             val = generate_random_value()
+
+#             print(f"[InsertionsOnTheSecondTable setup][{i+1}/{n}] key={key:08x} val={val:08x}", end="\r")
+
+#             self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
+#             kvs_put = KVS(op=KVS_OP_PUT, key=key, val=val)
+#             send_and_expect(self, kvs_put, CLIENT_PORT)
+#         print()
+
+#     def runTest(self):
+#         self.time += 10
+
+#         n = 50
+#         for i in range(n):
+#             key = self.cuckoo_hash_table_simulator.get_next_key(self.time, target_evictions=1)
+#             val = generate_random_value()
+
+#             kvs_put = KVS(op=KVS_OP_PUT, key=key, val=val)
+
+#             h1 = hash1(key)
+
+#             (evicted_key, evicted_val, _), _ = self.cuckoo_hash_table.read(h1)
+
+#             self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
+#             send_and_expect(self, kvs_put, CLIENT_PORT)
+
+#             (key1, val1, _), _ = self.cuckoo_hash_table.read(h1)
+#             _, (key2, val2, _) = self.cuckoo_hash_table.read(hash2(evicted_key))
+
+#             print(f"[InsertionsOnTheSecondTable][{i+1}/{n}] h1={h1:08x} key={key:08x} val={val:08x}", end="\r")
+
+#             assert key1 == key, f"Expected {key1:08x} == {key:08x}"
+#             assert val1 == val, f"Expected {val1:08x} == {val:08x}"
+
+#             assert key2 == evicted_key, f"Expected {key2:08x} == {evicted_key:08x}"
+#             assert val2 == evicted_val, f"Expected {val2:08x} == {evicted_val:08x}"
+
+#             swap, swapped = self.cuckoo_hash_bloom_filter.read(key)
+
+#             assert swap == 2, f"Expected swap 2, but got {swap}"
+#             assert swapped == 2, f"Expected swapped 2, but got {swapped}"
+
+#             kvs_get = KVS(op=KVS_OP_GET, key=key)
+#             kvs_res = send_and_expect(self, kvs_get, CLIENT_PORT)
+
+#             assert kvs_res.op == KVS_OP_GET, f"Expected GET operation, but got {kvs_res.op}"
+#             assert kvs_res.key == key, f"Expected key {key}, but got {kvs_res.key}"
+#             assert kvs_res.val == val, f"Expected value {val}, but got {kvs_res.val}"
+#             assert kvs_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_res.status}"
+#         print()
+
+#     def tearDown(self):
+#         self.cuckoo_hash_table.clear()
+#         self.cuckoo_hash_bloom_filter.clear()
+#         super().tearDown()
+
+
+# class Random(BfRuntimeTest):
+#     def setUp(self):
+#         client_id = 0
+#         BfRuntimeTest.setUp(self, client_id, PROGRAM)
+#         self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
+
+#         self.ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
+#         self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
+#         self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
+#         self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
+#         self.cuckoo_hash_table_simulator = CuckooHashSimulator()
+
+#         self.ingress_port_to_nf_dev.setup()
+#         self.forward_nf_dev.setup()
+
+#         self.time = EXPIRATION_TIME + 1
+
+#     def runTest(self):
+#         self.time += 10
+
+#         n = CUCKOO_CAPACITY
+#         for i in range(n):
+#             key = generate_random_key()
+#             val = generate_random_value()
+
+#             new_entries = self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
+#             evictions = len(new_entries)
+
+#             print(f"[Random][{i+1}/{n}] key={key:08x} -> evictions {evictions:3}", end="\r")
+
+#             expected_port = CLIENT_PORT if evictions >= 0 and evictions < MAX_LOOPS else STORAGE_SERVER_PORT
+
+#             kvs_put = KVS(op=KVS_OP_PUT, key=key, val=val)
+#             kvs_put_res = send_and_expect(self, kvs_put, expected_port)
+
+#             if expected_port != CLIENT_PORT:
+#                 continue
+
+#             assert kvs_put_res.op == KVS_OP_PUT, f"Expected PUT operation, but got {kvs_put_res.op}"
+#             assert kvs_put_res.key == key, f"Expected key {key}, but got {kvs_put_res.key}"
+#             assert kvs_put_res.val == val, f"Expected value {val}, but got {kvs_put_res.val}"
+
+#             assert kvs_put_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_put_res.status}"
+
+#             kvs_get = KVS(op=KVS_OP_GET, key=key)
+#             kvs_get_res = send_and_expect(self, kvs_get, CLIENT_PORT)
+
+#             assert kvs_get_res.op == KVS_OP_GET, f"Expected GET operation, but got {kvs_get_res.op}"
+#             assert kvs_get_res.key == key, f"Expected key {key}, but got {kvs_get_res.key}"
+#             assert kvs_get_res.val == val, f"Expected value {val}, but got {kvs_get_res.val}"
+#             assert kvs_get_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_get_res.status}"
+#         print()
+
+#     def tearDown(self):
+#         self.cuckoo_hash_table.clear()
+#         self.cuckoo_hash_bloom_filter.clear()
+#         super().tearDown()
+
+
+# class ExpiringEntries(BfRuntimeTest):
+#     def setUp(self):
+#         client_id = 0
+#         BfRuntimeTest.setUp(self, client_id, PROGRAM)
+#         self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
+
+#         self.ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
+#         self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
+#         self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
+#         self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
+#         self.cuckoo_hash_table_simulator = CuckooHashSimulator()
+
+#         self.ingress_port_to_nf_dev.setup()
+#         self.forward_nf_dev.setup()
+
+#         self.time = EXPIRATION_TIME + 1
+
+#         n = CUCKOO_CAPACITY
+#         for i in range(n):
+#             key = generate_random_key()
+#             val = generate_random_value()
+
+#             new_entries = self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
+#             evictions = len(new_entries) - 1
+
+#             print(f"[ExpiringEntries setup][{i+1}/{n}] key={key:08x} -> evictions {evictions:3}", end="\r")
+
+#             if evictions < 0 or evictions >= MAX_LOOPS:
+#                 continue
+
+#             kvs_put = KVS(op=KVS_OP_PUT, key=key, val=val)
+#             send_and_expect(self, kvs_put, CLIENT_PORT)
+
+#         print()
+
+#     def runTest(self):
+#         self.time += EXPIRATION_TIME * 2
+
+#         n = 120
+#         i = 0
+#         while i < n:
+#             key = generate_random_key()
+#             val = generate_random_value()
+#             h = hash1(key)
+
+#             if h not in self.cuckoo_hash_table_simulator.table_1:
+#                 continue
+
+#             new_entries = self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
+#             evictions = len(new_entries) - 1
+
+#             print(f"[ExpiringEntries][{i+1}/{n}] key={key:08x} -> evictions {evictions:3}", end="\r")
+
+#             if evictions < 0 or evictions >= MAX_LOOPS:
+#                 continue
+
+#             kvs_put = KVS(op=KVS_OP_PUT, key=key, val=val)
+#             kvs_put_res = send_and_expect(self, kvs_put, CLIENT_PORT)
+
+#             assert kvs_put_res.op == KVS_OP_PUT, f"Expected PUT operation, but got {kvs_put_res.op}"
+#             assert kvs_put_res.key == key, f"Expected key {key}, but got {kvs_put_res.key}"
+#             assert kvs_put_res.val == val, f"Expected value {val}, but got {kvs_put_res.val}"
+
+#             assert kvs_put_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_put_res.status}"
+
+#             kvs_get = KVS(op=KVS_OP_GET, key=key)
+#             kvs_get_res = send_and_expect(self, kvs_get, CLIENT_PORT)
+
+#             assert kvs_get_res.op == KVS_OP_GET, f"Expected GET operation, but got {kvs_get_res.op}"
+#             assert kvs_get_res.key == key, f"Expected key {key}, but got {kvs_get_res.key}"
+#             assert kvs_get_res.val == val, f"Expected value {val}, but got {kvs_get_res.val}"
+#             assert kvs_get_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_get_res.status}"
+
+#             (key1, val1, _), _ = self.cuckoo_hash_table.read(h)
+
+#             assert key1 == key, f"Expected {key1:08x} == {key:08x}"
+#             assert val1 == val, f"Expected {val1:08x} == {val:08x}"
+
+#             i += 1
+#         print()
+
+#     def tearDown(self):
+#         self.cuckoo_hash_table.clear()
+#         self.cuckoo_hash_bloom_filter.clear()
+#         super().tearDown()
+
+
+# class StorageServerAnswersShouldBeSentToClient(BfRuntimeTest):
+#     def setUp(self):
+#         client_id = 0
+#         BfRuntimeTest.setUp(self, client_id, PROGRAM)
+#         self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
+
+#         ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
+#         forward_nf_dev = ForwardNFDev(self.bfrt_info)
+
+#         ingress_port_to_nf_dev.setup()
+#         forward_nf_dev.setup()
+
+#     def runTest(self):
+#         key = generate_random_key()
+#         val = generate_random_value()
+#         kvs = KVS(ts=0, op=KVS_OP_GET, key=key, val=val, status=KVS_STATUS_OK, client_port=CLIENT_NF_DEV)
+
+#         send_and_expect(self, kvs, CLIENT_PORT, send_to_port=STORAGE_SERVER_PORT)
+
+
+# class WriteOnLostTransientPacket(BfRuntimeTest):
+#     def setUp(self):
+#         client_id = 0
+#         BfRuntimeTest.setUp(self, client_id, PROGRAM)
+#         self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
+
+#         self.ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
+#         self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
+#         self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
+#         self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
+#         self.cuckoo_hash_table_simulator = CuckooHashSimulator()
+
+#         self.ingress_port_to_nf_dev.setup()
+#         self.forward_nf_dev.setup()
+
+#         self.time = EXPIRATION_TIME + 1
+
+#     def runTest(self):
+#         key = generate_random_key()
+#         val = generate_random_value()
+
+#         swap, swapped = self.cuckoo_hash_bloom_filter.read(key)
+#         assert swap == swapped
+#         self.cuckoo_hash_bloom_filter.write_swap(key, swap + 1)
+
+#         swap, swapped = self.cuckoo_hash_bloom_filter.read(key)
+#         print("swap", swap, "swapped", swapped)
+
+#         kvs = KVS(op=KVS_OP_PUT, key=key, val=val, status=KVS_STATUS_OK, client_port=CLIENT_NF_DEV)
+#         send_and_expect(self, kvs, CLIENT_PORT, send_to_port=CLIENT_PORT)
+
+#         swap, swapped = self.cuckoo_hash_bloom_filter.read(key)
+#         print("swap", swap, "swapped", swapped)
+
+
+class ResponseFromKVSServer(BfRuntimeTest):
     def setUp(self):
         client_id = 0
         BfRuntimeTest.setUp(self, client_id, PROGRAM)
@@ -566,363 +982,17 @@ class SingleInsertion(BfRuntimeTest):
         self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
         self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
         self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
+        self.cuckoo_hash_table_simulator = CuckooHashSimulator()
 
         self.ingress_port_to_nf_dev.setup()
         self.forward_nf_dev.setup()
 
-        self.time = EXPIRATION_TIME
-
     def runTest(self):
-        self.time += 1
-
         key = generate_random_key()
         val = generate_random_value()
-        kvs_put = KVS(ts=self.time, op=KVS_OP_PUT, key=key, val=val)
 
-        send_and_expect(self, kvs_put, CLIENT_PORT, verbose=True)
+        kvs = KVS(op=KVS_OP_GET, key=key, val=val, status=KVS_STATUS_OK, client_port=CLIENT_NF_DEV)
+        send_and_expect(self, kvs, STORAGE_SERVER_PORT, send_to_port=CLIENT_PORT, verbose=True)
 
-        # self.cuckoo_hash_bloom_filter.dump()
-
-        h1 = hash1(key)
-        (key1, val1, ts1), _ = self.cuckoo_hash_table.read(h1)
-
-        assert key1 == key, f"Expected {key1:08x} == {key:08x}"
-        assert val1 == val, f"Expected {val1:08x} == {val:08x}"
-        assert ts1 == self.time, f"Expected {ts1} == {self.time}"
-
-        swap, swapped = self.cuckoo_hash_bloom_filter.read(key)
-
-        assert swap == 1, f"Expected swap 1, but got {swap}"
-        assert swapped == 1, f"Expected swapped 1, but got {swapped}"
-
-        self.time += 1
-        kvs_get = KVS(ts=self.time, op=KVS_OP_GET, key=key)
-
-        kvs_res = send_and_expect(self, kvs_get, CLIENT_PORT)
-
-        assert kvs_res.op == KVS_OP_GET, f"Expected GET operation, but got {kvs_res.op}"
-        assert kvs_res.key == key, f"Expected key {key:08x}, but got {kvs_res.key:08x}"
-        assert kvs_res.val == val, f"Expected value {val:08x}, but got {kvs_res.val:08x}"
-        assert kvs_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_res.status}"
-
-    def tearDown(self):
-        self.cuckoo_hash_table.clear()
-        self.cuckoo_hash_bloom_filter.clear()
-        super().tearDown()
-
-
-class MultipleInsertionsOnTheFirstTable(BfRuntimeTest):
-    def setUp(self):
-        client_id = 0
-        BfRuntimeTest.setUp(self, client_id, PROGRAM)
-        self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
-
-        self.ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
-        self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
-        self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
-        self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
-
-        self.ingress_port_to_nf_dev.setup()
-        self.forward_nf_dev.setup()
-
-        self.time = EXPIRATION_TIME
-
-    def runTest(self):
-        hashes = set()
-
-        i = 0
-        n = 120
-        while i < n:
-            self.time += 1
-
-            key = generate_random_key()
-            val = generate_random_value()
-            kvs_put = KVS(ts=self.time, op=KVS_OP_PUT, key=key, val=val)
-
-            h = hash1(key)
-            if h in hashes:
-                continue
-            hashes.add(h)
-            i += 1
-
-            print(f"[MultipleInsertionsOnTheFirstTable][{i}/{n}] h={h:08x} key={key:08x} val={val:08x}", end="\r")
-
-            send_and_expect(self, kvs_put, CLIENT_PORT)
-
-            h1 = hash1(key)
-            (key1, val1, ts1), (key2, val2, ts2) = self.cuckoo_hash_table.read(h1)
-
-            assert key1 == key, f"Expected {key1:08x} == {key:08x}"
-            assert val1 == val, f"Expected {val1:08x} == {val:08x}"
-            assert ts1 == self.time, f"Expected {ts1} == {self.time}"
-
-            assert key2 == 0, f"Expected {key2:08x} == 0"
-            assert val2 == 0, f"Expected {val2:08x} == 0"
-            assert ts2 == 0, f"Expected {ts2} == 0"
-
-            swap, swapped = self.cuckoo_hash_bloom_filter.read(key)
-
-            assert swap == 1, f"Expected swap 1, but got {swap}"
-            assert swapped == 1, f"Expected swapped 1, but got {swapped}"
-
-            self.time += 1
-            kvs_get = KVS(ts=self.time, op=KVS_OP_GET, key=key)
-
-            kvs_res = send_and_expect(self, kvs_get, CLIENT_PORT)
-
-            assert kvs_res.op == KVS_OP_GET, f"Expected GET operation, but got {kvs_res.op}"
-            assert kvs_res.key == key, f"Expected key {key:08x}, but got {kvs_res.key:08x}"
-            assert kvs_res.val == val, f"Expected value {val:08x}, but got {kvs_res.val:08x}"
-            assert kvs_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_res.status}"
-        print()
-
-    def tearDown(self):
-        self.cuckoo_hash_table.clear()
-        self.cuckoo_hash_bloom_filter.clear()
-        super().tearDown()
-
-
-class InsertionsOnTheSecondTable(BfRuntimeTest):
-    def setUp(self):
-        client_id = 0
-        BfRuntimeTest.setUp(self, client_id, PROGRAM)
-        self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
-
-        self.ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
-        self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
-        self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
-        self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
-        self.cuckoo_hash_table_simulator = CuckooHashSimulator()
-
-        self.ingress_port_to_nf_dev.setup()
-        self.forward_nf_dev.setup()
-
-        self.time = EXPIRATION_TIME + 1
-
-        n = 120
-        for i in range(n):
-            key = self.cuckoo_hash_table_simulator.get_next_key(self.time, target_evictions=0)
-            val = generate_random_value()
-
-            print(f"[InsertionsOnTheSecondTable setup][{i+1}/{n}] key={key:08x} val={val:08x}", end="\r")
-
-            self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
-            kvs_put = KVS(ts=self.time, op=KVS_OP_PUT, key=key, val=val)
-            send_and_expect(self, kvs_put, CLIENT_PORT)
-        print()
-
-    def runTest(self):
-        self.time += 10
-
-        n = 50
-        for i in range(n):
-            key = self.cuckoo_hash_table_simulator.get_next_key(self.time, target_evictions=1)
-            val = generate_random_value()
-
-            kvs_put = KVS(ts=self.time, op=KVS_OP_PUT, key=key, val=val)
-
-            h1 = hash1(key)
-
-            (evicted_key, evicted_val, evicted_ts), _ = self.cuckoo_hash_table.read(h1)
-
-            self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
-            send_and_expect(self, kvs_put, CLIENT_PORT)
-
-            (key1, val1, ts1), _ = self.cuckoo_hash_table.read(h1)
-            _, (key2, val2, ts2) = self.cuckoo_hash_table.read(hash2(evicted_key))
-
-            print(f"[InsertionsOnTheSecondTable][{i+1}/{n}] h1={h1:08x} key={key:08x} val={val:08x}", end="\r")
-
-            assert key1 == key, f"Expected {key1:08x} == {key:08x}"
-            assert val1 == val, f"Expected {val1:08x} == {val:08x}"
-            assert ts1 == self.time, f"Expected {ts1} == {self.time}"
-
-            assert key2 == evicted_key, f"Expected {key2:08x} == {evicted_key:08x}"
-            assert val2 == evicted_val, f"Expected {val2:08x} == {evicted_val:08x}"
-            assert ts2 == evicted_ts, f"Expected {ts2} == {evicted_ts}"
-
-            swap, swapped = self.cuckoo_hash_bloom_filter.read(key)
-
-            assert swap == 2, f"Expected swap 2, but got {swap}"
-            assert swapped == 2, f"Expected swapped 2, but got {swapped}"
-
-            kvs_get = KVS(ts=self.time, op=KVS_OP_GET, key=key)
-            kvs_res = send_and_expect(self, kvs_get, CLIENT_PORT)
-
-            assert kvs_res.op == KVS_OP_GET, f"Expected GET operation, but got {kvs_res.op}"
-            assert kvs_res.key == key, f"Expected key {key}, but got {kvs_res.key}"
-            assert kvs_res.val == val, f"Expected value {val}, but got {kvs_res.val}"
-            assert kvs_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_res.status}"
-        print()
-
-    def tearDown(self):
-        self.cuckoo_hash_table.clear()
-        self.cuckoo_hash_bloom_filter.clear()
-        super().tearDown()
-
-
-class Random(BfRuntimeTest):
-    def setUp(self):
-        client_id = 0
-        BfRuntimeTest.setUp(self, client_id, PROGRAM)
-        self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
-
-        self.ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
-        self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
-        self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
-        self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
-        self.cuckoo_hash_table_simulator = CuckooHashSimulator()
-
-        self.ingress_port_to_nf_dev.setup()
-        self.forward_nf_dev.setup()
-
-        self.time = EXPIRATION_TIME + 1
-
-    def runTest(self):
-        self.time += 10
-
-        n = CUCKOO_CAPACITY
-        for i in range(n):
-            key = generate_random_key()
-            val = generate_random_value()
-
-            new_entries = self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
-            evictions = len(new_entries)
-
-            print(f"[Random][{i+1}/{n}] key={key:08x} -> evictions {evictions:3}", end="\r")
-
-            expected_port = CLIENT_PORT if evictions >= 0 and evictions < MAX_LOOPS else STORAGE_SERVER_PORT
-
-            kvs_put = KVS(ts=self.time, op=KVS_OP_PUT, key=key, val=val)
-            kvs_put_res = send_and_expect(self, kvs_put, expected_port)
-
-            if expected_port != CLIENT_PORT:
-                continue
-
-            assert kvs_put_res.op == KVS_OP_PUT, f"Expected PUT operation, but got {kvs_put_res.op}"
-            assert kvs_put_res.key == key, f"Expected key {key}, but got {kvs_put_res.key}"
-            assert kvs_put_res.val == val, f"Expected value {val}, but got {kvs_put_res.val}"
-
-            assert kvs_put_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_put_res.status}"
-
-            kvs_get = KVS(ts=self.time, op=KVS_OP_GET, key=key)
-            kvs_get_res = send_and_expect(self, kvs_get, CLIENT_PORT)
-
-            assert kvs_get_res.op == KVS_OP_GET, f"Expected GET operation, but got {kvs_get_res.op}"
-            assert kvs_get_res.key == key, f"Expected key {key}, but got {kvs_get_res.key}"
-            assert kvs_get_res.val == val, f"Expected value {val}, but got {kvs_get_res.val}"
-            assert kvs_get_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_get_res.status}"
-        print()
-
-    def tearDown(self):
-        self.cuckoo_hash_table.clear()
-        self.cuckoo_hash_bloom_filter.clear()
-        super().tearDown()
-
-
-class ExpiringEntries(BfRuntimeTest):
-    def setUp(self):
-        client_id = 0
-        BfRuntimeTest.setUp(self, client_id, PROGRAM)
-        self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
-
-        self.ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
-        self.forward_nf_dev = ForwardNFDev(self.bfrt_info)
-        self.cuckoo_hash_table = CuckooHashTable(self.bfrt_info)
-        self.cuckoo_hash_bloom_filter = CuckooHashBloomFilter(self.bfrt_info)
-        self.cuckoo_hash_table_simulator = CuckooHashSimulator()
-
-        self.ingress_port_to_nf_dev.setup()
-        self.forward_nf_dev.setup()
-
-        self.time = EXPIRATION_TIME + 1
-
-        n = CUCKOO_CAPACITY
-        for i in range(n):
-            key = generate_random_key()
-            val = generate_random_value()
-
-            new_entries = self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
-            evictions = len(new_entries) - 1
-
-            print(f"[ExpiringEntries setup][{i+1}/{n}] key={key:08x} -> evictions {evictions:3}", end="\r")
-
-            if evictions < 0 or evictions >= MAX_LOOPS:
-                continue
-
-            kvs_put = KVS(ts=self.time, op=KVS_OP_PUT, key=key, val=val)
-            send_and_expect(self, kvs_put, CLIENT_PORT)
-
-        print()
-
-    def runTest(self):
-        self.time += EXPIRATION_TIME * 2
-
-        n = 120
-        i = 0
-        while i < n:
-            key = generate_random_key()
-            val = generate_random_value()
-            h = hash1(key)
-
-            if h not in self.cuckoo_hash_table_simulator.table_1:
-                continue
-
-            new_entries = self.cuckoo_hash_table_simulator.add(CuckooHashTableEntry(key=key, val=val, ts=self.time))
-            evictions = len(new_entries) - 1
-
-            print(f"[ExpiringEntries][{i+1}/{n}] key={key:08x} -> evictions {evictions:3}", end="\r")
-
-            if evictions < 0 or evictions >= MAX_LOOPS:
-                continue
-
-            kvs_put = KVS(ts=self.time, op=KVS_OP_PUT, key=key, val=val)
-            kvs_put_res = send_and_expect(self, kvs_put, CLIENT_PORT)
-
-            assert kvs_put_res.op == KVS_OP_PUT, f"Expected PUT operation, but got {kvs_put_res.op}"
-            assert kvs_put_res.key == key, f"Expected key {key}, but got {kvs_put_res.key}"
-            assert kvs_put_res.val == val, f"Expected value {val}, but got {kvs_put_res.val}"
-
-            assert kvs_put_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_put_res.status}"
-
-            kvs_get = KVS(ts=self.time, op=KVS_OP_GET, key=key)
-            kvs_get_res = send_and_expect(self, kvs_get, CLIENT_PORT)
-
-            assert kvs_get_res.op == KVS_OP_GET, f"Expected GET operation, but got {kvs_get_res.op}"
-            assert kvs_get_res.key == key, f"Expected key {key}, but got {kvs_get_res.key}"
-            assert kvs_get_res.val == val, f"Expected value {val}, but got {kvs_get_res.val}"
-            assert kvs_get_res.status == KVS_STATUS_OK, f"Expected status OK, but got {kvs_get_res.status}"
-
-            (key1, val1, ts1), _ = self.cuckoo_hash_table.read(h)
-
-            assert key1 == key, f"Expected {key1:08x} == {key:08x}"
-            assert val1 == val, f"Expected {val1:08x} == {val:08x}"
-            assert ts1 == self.time, f"Expected {ts1} == {self.time}"
-
-            i += 1
-        print()
-
-    def tearDown(self):
-        self.cuckoo_hash_table.clear()
-        self.cuckoo_hash_bloom_filter.clear()
-        super().tearDown()
-
-
-class StorageServerAnswersShouldBeSentToClient(BfRuntimeTest):
-    def setUp(self):
-        client_id = 0
-        BfRuntimeTest.setUp(self, client_id, PROGRAM)
-        self.bfrt_info = self.interface.bfrt_info_get(PROGRAM)
-
-        ingress_port_to_nf_dev = IngressPortToNFDev(self.bfrt_info)
-        forward_nf_dev = ForwardNFDev(self.bfrt_info)
-
-        ingress_port_to_nf_dev.setup()
-        forward_nf_dev.setup()
-
-    def runTest(self):
-        key = generate_random_key()
-        val = generate_random_value()
-        kvs = KVS(ts=0, op=KVS_OP_GET, key=key, val=val, status=KVS_STATUS_OK, client_port=CLIENT_NF_DEV)
-
-        send_and_expect(self, kvs, CLIENT_PORT, send_to_port=STORAGE_SERVER_PORT)
+        kvs = KVS(op=KVS_OP_GET, key=key, val=val, status=KVS_STATUS_OK, client_port=CLIENT_2_NF_DEV)
+        send_and_expect(self, kvs, STORAGE_SERVER_PORT, send_to_port=CLIENT_2_PORT, verbose=True)
