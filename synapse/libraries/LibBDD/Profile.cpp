@@ -237,9 +237,9 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
   const std::vector<u16> devices       = bdd->get_devices();
 
-  root->visit_nodes([&bdd_profile, devices](const BDDNode *node) {
+  root->visit_nodes([bdd, &bdd_profile, devices](const BDDNode *node) {
     assert(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end() && "BDDNode counter not found");
-    u64 current_counter = bdd_profile.counters[node->get_id()];
+    const u64 current_counter = bdd_profile.counters[node->get_id()];
 
     switch (node->get_type()) {
     case BDDNodeType::Branch: {
@@ -251,8 +251,8 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
       assert(on_true && "Branch node without on_true");
       assert(on_false && "Branch node without on_false");
 
-      u64 on_true_counter  = SingletonRandomEngine::generate() % (current_counter + 1);
-      u64 on_false_counter = current_counter - on_true_counter;
+      const u64 on_true_counter  = SingletonRandomEngine::generate() % (current_counter + 1);
+      const u64 on_false_counter = current_counter - on_true_counter;
 
       bdd_profile.counters[on_true->get_id()]  = on_true_counter;
       bdd_profile.counters[on_false->get_id()] = on_false_counter;
@@ -305,8 +305,125 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
           assert(std::find(devices.begin(), devices.end(), device) != devices.end() && "Invalid device");
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
         } else {
-          const u16 device                                           = devices[SingletonRandomEngine::generate() % devices.size()];
+          const klee::ConstraintManager constraints = bdd->get_constraints(node);
+
+          std::vector<u16> candidate_devices;
+          for (const u16 dev : devices) {
+            klee::ref<klee::Expr> handles_port =
+                solver_toolbox.exprBuilder->Eq(dst_device, solver_toolbox.exprBuilder->Constant(dev, dst_device->getWidth()));
+            if (solver_toolbox.is_expr_maybe_true(constraints, handles_port)) {
+              candidate_devices.push_back(dev);
+            }
+          }
+
+          assert(!candidate_devices.empty() && "No candidate devices found for forwarding");
+          for (const u16 dev : candidate_devices) {
+            bdd_profile.forwarding_stats[node->get_id()].ports[dev] = current_counter / candidate_devices.size();
+          }
+        }
+      } break;
+      }
+    } break;
+    }
+
+    return BDDNodeVisitAction::Continue;
+  });
+
+  return bdd_profile;
+}
+
+bdd_profile_t build_uniform_bdd_profile(const BDD *bdd) {
+  bdd_profile_t bdd_profile;
+
+  bdd_profile.meta.pkts  = bdd->get_root()->get_leaves().size() * 1000;
+  bdd_profile.meta.bytes = bdd_profile.meta.pkts * std::max(MIN_PKT_SIZE_BYTES, SingletonRandomEngine::generate() % MAX_PKT_SIZE_BYTES);
+
+  const BDDNode *root                  = bdd->get_root();
+  bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
+  const std::vector<u16> devices       = bdd->get_devices();
+
+  root->visit_nodes([bdd, &bdd_profile, &devices](const BDDNode *node) {
+    const u64 current_counter = bdd_profile.counters.at(node->get_id());
+
+    switch (node->get_type()) {
+    case BDDNodeType::Branch: {
+      const Branch *branch = dynamic_cast<const Branch *>(node);
+
+      const BDDNode *on_true  = branch->get_on_true();
+      const BDDNode *on_false = branch->get_on_false();
+
+      assert(on_true && "Branch node without on_true");
+      assert(on_false && "Branch node without on_false");
+
+      const u64 on_true_counter  = current_counter / 2;
+      const u64 on_false_counter = current_counter - on_true_counter;
+
+      bdd_profile.counters[on_true->get_id()]  = on_true_counter;
+      bdd_profile.counters[on_false->get_id()] = on_false_counter;
+    } break;
+    case BDDNodeType::Call: {
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const call_t &call    = call_node->get_call();
+
+      if (call.function_name == "map_get" || call.function_name == "map_put" || call.function_name == "map_erase") {
+        klee::ref<klee::Expr> map_addr = call.args.at("map").expr;
+
+        bdd_profile_t::map_stats_t::node_t map_stats;
+        map_stats.node  = node->get_id();
+        map_stats.pkts  = current_counter;
+        map_stats.flows = current_counter == 0 ? 0 : std::max(1ul, SingletonRandomEngine::generate() % current_counter);
+
+        u64 avg_pkts_per_flow = map_stats.flows == 0 ? 0 : current_counter / map_stats.flows;
+        for (u64 i = 0; i < map_stats.flows; i++) {
+          map_stats.pkts_per_flow.push_back(avg_pkts_per_flow);
+        }
+
+        bdd_profile.stats_per_map[expr_addr_to_obj_addr(map_addr)].nodes.push_back(map_stats);
+      }
+
+      if (node->get_next()) {
+        const BDDNode *next                  = node->get_next();
+        bdd_profile.counters[next->get_id()] = current_counter;
+      }
+    } break;
+    case BDDNodeType::Route: {
+      if (node->get_next()) {
+        const BDDNode *next                  = node->get_next();
+        bdd_profile.counters[next->get_id()] = current_counter;
+      }
+
+      const Route *route_node = dynamic_cast<const Route *>(node);
+      const RouteOp operation = route_node->get_operation();
+
+      switch (operation) {
+      case RouteOp::Drop: {
+        bdd_profile.forwarding_stats[node->get_id()].drop = current_counter;
+      } break;
+      case RouteOp::Broadcast: {
+        bdd_profile.forwarding_stats[node->get_id()].flood = current_counter;
+      } break;
+      case RouteOp::Forward: {
+        klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
+        if (is_constant(dst_device)) {
+          const u16 device = solver_toolbox.value_from_expr(dst_device);
+          assert(std::find(devices.begin(), devices.end(), device) != devices.end() && "Invalid device");
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
+        } else {
+          const klee::ConstraintManager constraints = bdd->get_constraints(node);
+
+          std::vector<u16> candidate_devices;
+          for (const u16 dev : devices) {
+            klee::ref<klee::Expr> handles_port =
+                solver_toolbox.exprBuilder->Eq(dst_device, solver_toolbox.exprBuilder->Constant(dev, dst_device->getWidth()));
+            if (solver_toolbox.is_expr_maybe_true(constraints, handles_port)) {
+              candidate_devices.push_back(dev);
+            }
+          }
+
+          assert(!candidate_devices.empty() && "No candidate devices found for forwarding");
+          for (const u16 dev : candidate_devices) {
+            bdd_profile.forwarding_stats[node->get_id()].ports[dev] = current_counter / candidate_devices.size();
+          }
         }
       } break;
       }

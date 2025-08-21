@@ -77,5 +77,6 @@ struct bdd_profile_t {
 
 bdd_profile_t parse_bdd_profile(const std::filesystem::path &filename);
 bdd_profile_t build_random_bdd_profile(const BDD *bdd);
+bdd_profile_t build_uniform_bdd_profile(const BDD *bdd);
 
 } // namespace LibBDD

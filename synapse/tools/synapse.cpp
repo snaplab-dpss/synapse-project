@@ -31,6 +31,7 @@ struct args_t {
   search_config_t search_config;
   u32 seed;
   bool assume_uniform_forwarding_distribution{false};
+  bool random_uniform_profile{false};
   bool show_prof{false};
   bool show_ep{false};
   bool show_ss{false};
@@ -57,6 +58,7 @@ struct args_t {
     std::cout << "\n";
     std::cout << "Profiler:\n";
     std::cout << "  Assume uniform fwd: " << assume_uniform_forwarding_distribution << "\n";
+    std::cout << "  Random uniform:     " << random_uniform_profile << "\n";
     std::cout << "Search:\n";
     std::cout << "  No reorder:         " << search_config.no_reorder << "\n";
     std::cout << "  Peek:               [";
@@ -206,6 +208,20 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   out_hr_report.close();
 }
 
+bdd_profile_t build_bdd_profile(const BDD &bdd, const args_t &args) {
+  bdd_profile_t bdd_profile;
+  if (args.profile_file.empty()) {
+    if (args.random_uniform_profile) {
+      bdd_profile = build_uniform_bdd_profile(&bdd);
+    } else {
+      bdd_profile = build_random_bdd_profile(&bdd);
+    }
+  } else {
+    bdd_profile = parse_bdd_profile(args.profile_file);
+  }
+  return bdd_profile;
+}
+
 int main(int argc, char **argv) {
   CLI::App app{"Synapse"};
 
@@ -230,6 +246,7 @@ int main(int argc, char **argv) {
   app.add_flag("--not-greedy", args.search_config.not_greedy, "Don't stop on first solution.");
   app.add_flag("--assume-uniform-fwd", args.assume_uniform_forwarding_distribution,
                "Assume uniform distribution of forwarding decisions across all active ports.");
+  app.add_flag("--random-uniform-profile", args.random_uniform_profile, "Use a random uniform profile for the BDD.");
   app.add_flag("--skip-synthesis", args.skip_synthesis, "Skip synthesis step (only search).");
   app.add_flag("--dry-run", args.dry_run, "Don't run search.");
 
@@ -254,7 +271,7 @@ int main(int argc, char **argv) {
   SymbolManager symbol_manager;
   const BDD bdd(args.input_bdd_file, &symbol_manager);
   const targets_config_t targets_config(args.targets_config_file);
-  const bdd_profile_t bdd_profile = args.profile_file.empty() ? build_random_bdd_profile(&bdd) : parse_bdd_profile(args.profile_file);
+  const bdd_profile_t bdd_profile = build_bdd_profile(bdd, args);
   const Profiler profiler         = Profiler(&bdd, bdd_profile, args.assume_uniform_forwarding_distribution);
 
   if (args.show_prof) {
