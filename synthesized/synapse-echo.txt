@@ -1,0 +1,36 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     echo.bdd
+  Name:               synapse-echo
+  Targets config:     tofino2.toml
+  Heuristic:          dfs
+  Profile file:       
+  Seed:               0
+  Targets:
+    Tofino (26 modules)
+    Ctrl (71 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+  Assume uniform fwd: 0
+
+Winner:
+  Score: <1>
+  Tput: 2.56 Tbps (313.92 Mpps)
+
+Stateful Implementations:
+
+Search Metadata:
+  Elapsed time:       0 seconds
+  Steps:              1
+  Backtracks:         0
+  Search space size:  1
+  Unfinished EPs:     0
+  Finished EPs:       1
+  Avg BDD size:       1
+  Branching factor:   0
+  Total SS size est.: 0
+  Avg children per node:
+    Node 0: 0
+
+========================================================

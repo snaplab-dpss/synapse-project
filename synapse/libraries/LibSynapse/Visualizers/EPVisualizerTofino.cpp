@@ -56,12 +56,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
-  int port                = node->get_recirc_port();
+  const TargetType target = node->get_target();
 
-  label_builder << "Recirculate (";
-  label_builder << port;
-  label_builder << ")";
+  label_builder << "Recirculate";
 
   function_call(ep_node, bdd_node, target, label_builder.str());
 

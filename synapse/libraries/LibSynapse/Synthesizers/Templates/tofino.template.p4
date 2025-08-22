@@ -17,7 +17,7 @@
 #define bswap32(x) (x[7:0] ++ x[15:8] ++ x[23:16] ++ x[31:24])
 #define bswap16(x) (x[7:0] ++ x[15:8])
 
-const bit<16> CUCKOO_CODE_PATH = 0x0000;
+const bit<16> CUCKOO_CODE_PATH = 0xffff;
 
 enum bit<8> cuckoo_ops_t {
   LOOKUP  = 0x00,
@@ -185,19 +185,6 @@ control Ingress(
     fwd(port);
   }
 
-  action set_ingress_dev(bit<32> nf_dev) { meta.dev = nf_dev; }
-  table ingress_port_to_nf_dev {
-    key = { ig_intr_md.ingress_port: exact; }
-    actions = { set_ingress_dev; drop; }
-    size = 32;
-    const default_action = drop();
-  }
-
-  action fwd_nf_dev(bit<16> port) {
-    hdr.recirc.setInvalid();
-    ig_tm_md.ucast_egress_port = port[8:0];
-  }
-
   action set_ingress_dev(bit<32> nf_dev) {
     meta.dev = nf_dev;
   }
@@ -214,11 +201,9 @@ control Ingress(
     actions = {
       set_ingress_dev;
       set_ingress_dev_from_recirculation;
-      drop;
     }
 
     size = 64;
-    const default_action = drop();
   }
 
   fwd_op_t fwd_op = fwd_op_t.FORWARD_NF_DEV;
@@ -254,7 +239,7 @@ control Ingress(
     fwd(CPU_PCIE_PORT);
   }
 
-  action recirculate(bit<16> code_path) {
+  action build_recirc_hdr(bit<16> code_path) {
     hdr.recirc.setValid();
     hdr.recirc.ingress_port = meta.ingress_port;
     hdr.recirc.dev = meta.dev;

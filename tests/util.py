@@ -45,10 +45,14 @@ class KVSHeader(Packet):
 
     @staticmethod
     def guess_payload_class(pkt, **kargs):
-        return KVSHeader if isinstance(pkt, UDP) and pkt.dport == KVS_PORT else None
+        # This is the ONLY mechanism to decide if KVSHeader should be parsed
+        if isinstance(pkt, UDP) and (pkt.dport == KVS_PORT or pkt.sport == KVS_PORT):
+            return KVSHeader
+        return None
 
 
-bind_layers(UDP, KVSHeader)
+bind_layers(UDP, KVSHeader, dport=KVS_PORT)
+bind_layers(UDP, KVSHeader, sport=KVS_PORT)
 
 
 def pkt_to_string(pkt: Packet) -> str:
@@ -263,23 +267,12 @@ def build_flow(
 
 
 def build_kvs_hdr(
-    op: Optional[int] = None,
-    key: Optional[bytes] = None,
-    value: Optional[bytes] = None,
-    status: Optional[int] = None,
-    port: Optional[int] = None,
+    op: int = KVS_OP_PUT,
+    key: bytes = bytes(getrandbits(8) for _ in range(KVS_KEY_SIZE_BYTES)),
+    value: bytes = bytes(getrandbits(8) for _ in range(KVS_VALUE_SIZE_BYTES)),
+    status: int = KVS_STATUS_FAIL,
+    port: int = 0,
 ) -> KVSHeader:
-    if op is None:
-        op = KVS_OP_PUT
-    if key is None:
-        key = bytes(getrandbits(8) for _ in range(KVS_KEY_SIZE_BYTES))
-    if value is None:
-        value = bytes(getrandbits(8) for _ in range(KVS_VALUE_SIZE_BYTES))
-    if status is None:
-        status = KVS_STATUS_FAIL
-    if port is None:
-        port = 0
-
     return KVSHeader(op=op, key=key, value=value, status=status, port=port)
 
 

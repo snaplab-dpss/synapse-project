@@ -1,0 +1,131 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     nat.bdd
+  Name:               synapse-nat
+  Targets config:     tofino2.toml
+  Heuristic:          max-tput
+  Profile file:       
+  Seed:               0
+  Targets:
+    Tofino (26 modules)
+    Ctrl (71 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+  Assume uniform fwd: 0
+
+Winner:
+  Score: <89,10'077,-4>
+  Tput: 83.10 Mbps (10.17 Kpps)
+  Spec: 82.31 Mbps (10.08 Kpps)
+  Stages: 4
+
+Stateful Implementations:
+  1074103432: Tofino::VectorTable
+  1074067632: Tofino::VectorTable
+  1074053808: Tofino::GuardedMapTable
+  1074086216: Tofino::VectorTable
+  1074085792: Tofino::DchainTable
+
+Search Metadata:
+  Elapsed time:       67 seconds
+  Steps:              92
+  Backtracks:         0
+  Search space size:  461
+  Unfinished EPs:     369
+  Finished EPs:       1
+  Avg BDD size:       73
+  Branching factor:   5
+  Total SS size est.: 3'270'676'473'981'345'792
+  Avg children per node:
+    Node 187: 0
+    Node 186: 0
+    Node 188: 0
+    Node 185: 0
+    Node 157: 5
+    Node 156: 5
+    Node 184: 0
+    Node 158: 5
+    Node 155: 6
+    Node 183: 0
+    Node 154: 6
+    Node 199: 5
+    Node 198: 10
+    Node 309: 0
+    Node 182: 0
+    Node 190: 6
+    Node 189: 14
+    Node 171: 0
+    Node 142: 2
+    Node 201: 4
+    Node 297: 6
+    Node 170: 0
+    Node 141: 6
+    Node 200: 5
+    Node 133: 2
+    Node 192: 11
+    Node 163: 6
+    Node 134: 2
+    Node 193: 6
+    Node 164: 12
+    Node 135: 2
+    Node 194: 6
+    Node 165: 6
+    Node 136: 2
+    Node 195: 6
+    Node 143: 6
+    Node 202: 2
+    Node 146: 7
+    Node 205: 2
+    Node 204: 2
+    Node 145: 6
+    Node 295: 6
+    Node 168: 8
+    Node 139: 7
+    Node 137: 2
+    Node 196: 6
+    Node 144: 7
+    Node 203: 2
+    Node 296: 6
+    Node 169: 8.5
+    Node 140: 11
+    Node 167: 8
+    Node 138: 2
+    Node 197: 12
+    Node 302: 6
+    Node 175: 0
+    Node 191: 7
+    Node 147: 6
+    Node 166: 10
+    Node 172: 0
+    Node 303: 0
+    Node 176: 0
+    Node 148: 12
+    Node 159: 6
+    Node 173: 0
+    Node 304: 0
+    Node 177: 0
+    Node 276: 12
+    Node 149: 12
+    Node 160: 6
+    Node 301: 6
+    Node 174: 0
+    Node 305: 0
+    Node 178: 0
+    Node 277: 6
+    Node 150: 12
+    Node 161: 6
+    Node 306: 0
+    Node 179: 0
+    Node 278: 12
+    Node 151: 6
+    Node 162: 5
+    Node 307: 0
+    Node 180: 0
+    Node 279: 10
+    Node 152: 11
+    Node 308: 0
+    Node 181: 0
+    Node 153: 6
+
+========================================================

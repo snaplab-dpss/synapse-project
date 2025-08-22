@@ -15,6 +15,8 @@ using LibCore::solver_toolbox;
 
 namespace {
 
+constexpr const u16 CUCKOO_CODE_PATH = 0xffff;
+
 constexpr const char *const MARKER_CPU_HEADER                   = "CPU_HEADER";
 constexpr const char *const MARKER_RECIRC_HEADER                = "RECIRCULATION_HEADER";
 constexpr const char *const MARKER_CUSTOM_HEADERS               = "CUSTOM_HEADERS";
@@ -62,14 +64,14 @@ bool natural_compare(const std::string &a, const std::string &b) {
 
   while (i < a.size() && j < b.size()) {
     if (std::isdigit(a[i]) && std::isdigit(b[j])) {
-      size_t start_i = i, start_j = j;
+      const size_t start_i = i, start_j = j;
       while (i < a.size() && std::isdigit(a[i]))
         ++i;
       while (j < b.size() && std::isdigit(b[j]))
         ++j;
 
-      int num_a = std::stoi(a.substr(start_i, i - start_i));
-      int num_b = std::stoi(b.substr(start_j, j - start_j));
+      const int num_a = std::stoi(a.substr(start_i, i - start_i));
+      const int num_b = std::stoi(b.substr(start_j, j - start_j));
 
       if (num_a != num_b)
         return num_a < num_b;
@@ -1619,7 +1621,7 @@ TofinoSynthesizer::var_t TofinoSynthesizer::alloc_var(const code_t &proposed_nam
 }
 
 code_path_t TofinoSynthesizer::alloc_recirc_coder() {
-  size_t size = recirc_coders.size();
+  const size_t size = recirc_coders.size();
   recirc_coders.emplace_back();
   return size;
 }
@@ -1629,9 +1631,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const Symbols &symbols = node->get_symbols();
 
   ingress_apply.indent();
-  ingress_apply << "send_to_controller(";
-  ingress_apply << ep_node->get_id();
-  ingress_apply << ");\n";
+  ingress_apply << "fwd_op = fwd_op_t.FORWARD_TO_CPU;\n";
+  ingress_apply.indent();
+  ingress_apply << "build_cpu_hdr(" << ep_node->get_id() << ");\n";
 
   for (const symbol_t &symbol : symbols.get()) {
     std::optional<var_t> var = ingress_vars.get(symbol.expr);
@@ -1674,15 +1676,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &recirc        = get(MARKER_INGRESS_CONTROL_APPLY_RECIRC);
 
   // 1. Allocate a new recirculation code path
-  code_path_t code_path = alloc_recirc_coder();
+  const code_path_t code_path = alloc_recirc_coder();
 
   // 2. Build the recirculation header and populate it with the current stack
   ingress_apply.indent();
-  ingress_apply << "meta.recirculate = true;\n";
+  ingress_apply << "fwd_op = fwd_op_t.RECIRCULATE;\n";
   ingress_apply.indent();
-  ingress_apply << "hdr.recirc.setValid();\n";
-  ingress_apply.indent();
-  ingress_apply << "hdr.recirc.code_path = " << code_path << ";\n";
+  ingress_apply << "build_recirc_hdr(" << code_path << ");\n";
 
   Stacks stack_backup = ingress_vars;
   Stack first_stack   = ingress_vars.get_first_stack();
@@ -1714,15 +1714,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << ";\n";
   }
 
-  // 3. Forward to recirculation port
-  u16 port = node->get_recirc_port();
-  ingress_apply.indent();
-  ingress_apply << "fwd(" << port << ");\n";
-
-  // 4. Replace the ingress apply coder with the recirc coder
+  // 3. Replace the ingress apply coder with the recirc coder
   active_recirc_code_path = code_path;
 
-  // 5. Clear the stack, rebuild it with hdr.recirc fields, and setup the recirculation code block
+  // 4. Clear the stack, rebuild it with hdr.recirc fields, and setup the recirculation code block
   ingress_vars.clear();
   ingress_vars.push();
   for (const var_t &var : recirc_vars) {
@@ -1741,7 +1736,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   recirc.indent();
   recirc << "}\n";
 
-  // 6. Revert the state back to before the recirculation was made
+  // 5. Revert the state back to before the recirculation was made
   active_recirc_code_path.reset();
   ingress_vars = stack_backup;
 
@@ -1851,8 +1846,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   ingress.indent();
   ingress << "nf_dev[15:0] = " << transpiler.transpile(dst_device, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) << ";\n";
-  ingress.indent();
-  ingress << "trigger_forward = true;\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1861,7 +1854,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
 
   ingress.indent();
-  ingress << "drop();\n";
+  ingress << "fwd_op = fwd_op_t.DROP;\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -2237,7 +2230,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const DS_ID id              = node->get_id();
   klee::ref<klee::Expr> index = node->get_index();
   klee::ref<klee::Expr> value = node->get_value();
-  const bool can_be_inlined   = node->get_can_be_inlined();
 
   const VectorRegister *vector_register = get_tofino_ds<VectorRegister>(ep, id);
 
@@ -2265,15 +2257,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     const klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
     const code_t assignment                = action_name + ".execute(" + transpiler.transpile(index, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) + ")";
 
-    if (can_be_inlined) {
-      const var_t value_var = alloc_var(assignment, entry_expr, EXACT_NAME);
-    } else {
-      const std::string value_prefix_name = "vector_reg_value";
-      const var_t value_var               = alloc_var(value_prefix_name, entry_expr);
+    const std::string value_prefix_name = "vector_reg_value";
+    const var_t value_var               = alloc_var(value_prefix_name, entry_expr);
 
-      ingress << "\n";
-      value_var.declare(ingress_apply, assignment);
-    }
+    ingress << "\n";
+    value_var.declare(ingress_apply, assignment);
 
     offset += reg->value_size;
     i++;

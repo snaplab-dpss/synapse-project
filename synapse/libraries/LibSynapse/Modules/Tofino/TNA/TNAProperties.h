@@ -36,11 +36,13 @@ struct tna_properties_t {
 struct tofino_port_t {
   u16 nf_device;
   u16 front_panel_port;
+  u16 pipe;
   bps_t capacity;
 };
 
 struct tofino_recirculation_port_t {
   u16 dev_port;
+  u16 pipe;
   bps_t capacity;
 };
 

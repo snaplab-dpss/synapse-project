@@ -55,11 +55,6 @@ callgrind.out.*
 gmon.out
 perf.data*
 
-# Some synthesized files that are just too big
-synthesized/*.json
-synthesized/*.dot
-synthesized/*.txt
-
 # Gurobi stuff
 gurobi1202
 gurobi.lic

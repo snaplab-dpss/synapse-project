@@ -58,10 +58,10 @@ typedef bit<32> val_t;
 // Entry Timeout Expiration (units of 65536 ns).
 #define ENTRY_TIMEOUT 16384 // 1 s
 #define MAX_LOOPS 4
-#define CUCKOO_ENTRIES 8192
-#define CUCKOO_IDX_WIDTH 13
-#define BLOOM_ENTRIES CUCKOO_ENTRIES
-#define BLOOM_IDX_WIDTH CUCKOO_IDX_WIDTH
+#define CUCKOO_ENTRIES 4096
+#define CUCKOO_IDX_WIDTH 12
+#define BLOOM_ENTRIES 65536
+#define BLOOM_IDX_WIDTH 16
 
 header cpu_h {
 	bit<16>	code_path;                   // Written by the data plane

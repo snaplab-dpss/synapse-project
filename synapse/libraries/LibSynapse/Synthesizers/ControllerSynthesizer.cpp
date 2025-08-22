@@ -22,6 +22,7 @@ using LibSynapse::Tofino::DS;
 using LibSynapse::Tofino::DS_ID;
 using LibSynapse::Tofino::TNA;
 using LibSynapse::Tofino::tofino_port_t;
+using LibSynapse::Tofino::tofino_recirculation_port_t;
 using LibSynapse::Tofino::TofinoContext;
 
 constexpr const char *const MARKER_STATE_FIELDS           = "STATE_FIELDS";
@@ -728,6 +729,24 @@ void ControllerSynthesizer::synthesize_nf_init() {
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const TNA &tna                  = tofino_ctx->get_tna();
 
+  for (const tofino_recirculation_port_t &recirc_port : tna.tna_config.recirculation_ports) {
+    nf_init.indent();
+    nf_init << "state->ingress_port_to_nf_dev.add_recirc_entry(";
+    nf_init << recirc_port.dev_port;
+    nf_init << ");\n";
+  }
+  nf_init << "\n";
+  nf_init.indent();
+  nf_init << "state->forwarding_tbl.add_fwd_to_cpu_entry();\n";
+  for (const tofino_recirculation_port_t &recirc_port : tna.tna_config.recirculation_ports) {
+    nf_init.indent();
+    nf_init << "state->forwarding_tbl.add_recirc_entry(";
+    nf_init << recirc_port.dev_port;
+    nf_init << ");\n";
+  }
+  nf_init.indent();
+  nf_init << "state->forwarding_tbl.add_drop_entry();\n";
+  nf_init << "\n";
   for (const tofino_port_t &port : tna.tna_config.ports) {
     nf_init.indent();
     nf_init << "state->ingress_port_to_nf_dev.add_entry(";
@@ -736,7 +755,7 @@ void ControllerSynthesizer::synthesize_nf_init() {
     nf_init << ");\n";
 
     nf_init.indent();
-    nf_init << "state->forward_nf_dev.add_entry(";
+    nf_init << "state->forwarding_tbl.add_fwd_nf_dev_entry(";
     nf_init << port.nf_device << ", ";
     nf_init << "asic_get_dev_port(" << port.front_panel_port << ")";
     nf_init << ");\n";

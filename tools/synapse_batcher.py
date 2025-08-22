@@ -15,6 +15,7 @@ PROJECT_DIR = (CURRENT_DIR / "..").resolve()
 
 BDD_DIR = PROJECT_DIR / "bdds"
 SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
+OUT_DIR = SYNTHESIZED_DIR / "build"
 PCAP_DIR = PROJECT_DIR / "pcaps"
 TOOLS_DIR = PROJECT_DIR / "tools"
 PROFILE_DIR = PROJECT_DIR / "profiles"
@@ -26,7 +27,7 @@ SYNAPSE_BUILD_DIR = SYNAPSE_DIR / "build"
 SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
 DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs"]
-DEFAULT_TOTAL_FLOWS = [50_000]
+DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 DEFAULT_HEURISTICS = ["max-tput", "ds-pref-simple", "ds-pref-guardedmaptable", "ds-pref-hhtable", "ds-pref-cuckoo"]
@@ -130,10 +131,10 @@ def run_synapse(
     ]
 
     files_produced = [
-        SYNTHESIZED_DIR / synapse_bdd_dot,
-        SYNTHESIZED_DIR / synapse_ep_dot,
-        SYNTHESIZED_DIR / synapse_ss_dot,
-        SYNTHESIZED_DIR / synapse_report_json,
+        OUT_DIR / synapse_bdd_dot,
+        OUT_DIR / synapse_ep_dot,
+        OUT_DIR / synapse_ss_dot,
+        OUT_DIR / synapse_report_json,
     ]
 
     profile_visualizer_cmd = f"{SYNAPSE_BIN_DIR / 'synapse'}"
@@ -143,7 +144,7 @@ def run_synapse(
     profile_visualizer_cmd += f" --seed {seed}"
     profile_visualizer_cmd += f" --profile {PROFILE_DIR / profile_report}"
     profile_visualizer_cmd += f" --name {name}"
-    profile_visualizer_cmd += f" --out {SYNTHESIZED_DIR}"
+    profile_visualizer_cmd += f" --out {OUT_DIR}"
     profile_visualizer_cmd += " --skip-synthesis" if skip_synthesis else ""
 
     return Task(
@@ -172,7 +173,7 @@ def plot_estimated_tput_synapse_nfs(
 
     reports = [f"{get_pcap_base_name(nf, total_flows, s, c)}-h{heuristic}.json" for s, c in product(zipf_params, churns_fpm)]
 
-    files_consumed = [SYNTHESIZED_DIR / report for report in reports]
+    files_consumed = [OUT_DIR / report for report in reports]
 
     # Force replotting every time
     files_produced = []

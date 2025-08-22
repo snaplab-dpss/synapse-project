@@ -4,12 +4,16 @@
 #include <LibSynapse/Modules/Tofino/TNA/TNAProperties.h>
 #include <LibSynapse/Modules/Tofino/TNA/Parser.h>
 #include <LibSynapse/Modules/Tofino/TNA/Pipeline.h>
+#include <LibBDD/BDD.h>
 #include <LibCore/Types.h>
 
 #include <unordered_map>
 
 namespace LibSynapse {
 namespace Tofino {
+
+using LibBDD::BDD;
+using LibBDD::BDDNode;
 
 struct TNA {
   // Actually, we usually only get around 90% of usage from the dataplane tables.
@@ -29,6 +33,8 @@ struct TNA {
   // Tofino compiler complains if we access more than 4 bytes of the packet on
   // the same if statement.
   bool condition_meets_phv_limit(klee::ref<klee::Expr> expr) const;
+
+  std::vector<tofino_port_t> plausible_ingress_ports_in_bdd_node(const BDD *bdd, const BDDNode *node) const;
 
   void debug() const;
 };

@@ -5,8 +5,7 @@ from time import sleep, time
 
 from util import *
 
-RECIRCULATION_PORT = 6
-PORTS = [p for p in range(3, 33)]
+PORTS = [p for p in range(1, 33)]
 LAN_PORTS = [p for p in PORTS if p % 2 != 0]
 WAN_PORTS = [p for p in PORTS if p not in LAN_PORTS]
 CONNECTIONS = {p: (p + 1 if p % 2 != 0 else p - 1) for p in PORTS}

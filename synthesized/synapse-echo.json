@@ -1,0 +1,38 @@
+{
+  "bdd": "echo.bdd",
+  "heuristic": {
+    "meta": [
+      {
+        "description": "2.56 Tbps (313.92 Mpps)",
+        "name": "Tput"
+      }
+    ],
+    "score": [
+      1
+    ]
+  },
+  "implementations": [],
+  "name": "synapse-echo",
+  "profile_file": "",
+  "search_meta": {
+    "avg_bdd_size": 1,
+    "avg_children_per_node": [
+      {
+        "avg": 0.0,
+        "node_id": 0
+      }
+    ],
+    "backtracks": 0,
+    "branching_factor": 0.0,
+    "elapsed_time_seconds": 0,
+    "finished_eps": 1,
+    "ss_size": 1,
+    "steps": 1,
+    "total_ss_size_estimation": 0.0,
+    "unfinished_eps": 0
+  },
+  "seed": 0,
+  "targets_config_file": "tofino2.toml",
+  "tput_estimation_bps": 2564120997496,
+  "tput_estimation_pps": 313922747
+}

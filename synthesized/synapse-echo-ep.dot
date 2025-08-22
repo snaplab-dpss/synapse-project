@@ -1,0 +1,3 @@
+digraph G {
+	"0"[label="[EPNode=0,BDDNode=0]\nForward (DEVICE)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+}

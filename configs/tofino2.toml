@@ -8,161 +8,193 @@ model = "AS9516-32D"
 [[switch.front_panel_ports]]
 vport        = 0
 pport        = 1
+pipe         = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 1
 pport        = 2
+pipe         = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 2
 pport        = 3
+pipe         = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 3
 pport        = 4
+pipe         = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 4
 pport        = 5
+pipe         = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 5
 pport        = 6
+pipe         = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 6
 pport        = 7
+pipe         = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 7
 pport        = 8
+pipe         = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 8
 pport        = 9
+pipe         = 2
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 9
 pport        = 10
+pipe         = 2
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 10
 pport        = 11
+pipe         = 2
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 11
 pport        = 12
+pipe         = 2
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 12
 pport        = 13
+pipe         = 2
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 13
 pport        = 14
+pipe         = 2
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 14
 pport        = 15
+pipe         = 2
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 15
 pport        = 16
+pipe         = 2
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 16
 pport        = 17
+pipe         = 3
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 17
 pport        = 18
+pipe         = 3
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 18
 pport        = 19
+pipe         = 3
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 19
 pport        = 20
+pipe         = 3
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 20
 pport        = 21
+pipe         = 3
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 21
 pport        = 22
+pipe         = 3
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 22
 pport        = 23
+pipe         = 3
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 23
 pport        = 24
+pipe         = 3
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 24
 pport        = 25
+pipe         = 0
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 25
 pport        = 26
+pipe         = 0
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 26
 pport        = 27
+pipe         = 0
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 27
 pport        = 28
+pipe         = 0
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 28
 pport        = 29
+pipe         = 0
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 29
 pport        = 30
+pipe         = 0
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 30
 pport        = 31
+pipe         = 0
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
 vport        = 31
 pport        = 32
+pipe         = 0
 capacity_bps = 100_000_000_000 # 100G
 
 ########################################################
@@ -171,18 +203,22 @@ capacity_bps = 100_000_000_000 # 100G
 
 [[switch.recirculation_ports]]
 dev_port     = 6
+pipe         = 0
 capacity_bps = 125_000_000_000 # 125G
 
 [[switch.recirculation_ports]]
-dev_port     = 134
+dev_port     = 128
+pipe         = 1
 capacity_bps = 125_000_000_000 # 125G
 
 [[switch.recirculation_ports]]
 dev_port     = 256
+pipe         = 2
 capacity_bps = 125_000_000_000 # 125G
 
 [[switch.recirculation_ports]]
 dev_port     = 384
+pipe         = 3
 capacity_bps = 125_000_000_000 # 125G
 
 ########################################################

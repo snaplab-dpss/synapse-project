@@ -2,10 +2,9 @@
 
 from os import geteuid
 
-from util import Ports, build_flow, build_packet, expect_packet_from_port
+from util import *
 
-RECIRCULATION_PORT = 6
-PORTS = [p for p in range(3, 33)]
+PORTS = [p for p in range(1, 33)]
 
 
 def main():

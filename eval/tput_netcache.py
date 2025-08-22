@@ -22,12 +22,12 @@ from utils.constants import *
 EXPERIMENT_NAME = "NetCache throughput"
 DATA_FILE_NAME = "tput_netcache.csv"
 STORAGE_SERVER_DELAY_NS = 0
-TOTAL_FLOWS = 50_000
+TOTAL_FLOWS = 40_000
 KVS_GET_RATIO = 0.99
 
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2]
-ITERATIONS = 3
+ITERATIONS = 5
 
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.2]

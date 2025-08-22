@@ -4,11 +4,11 @@ using namespace sycon;
 
 struct state_t : public nf_state_t {
   IngressPortToNFDev ingress_port_to_nf_dev;
-  ForwardNFDev forward_nf_dev;
+  ForwardingTbl forwarding_tbl;
 /*@{STATE_FIELDS}@*/
   state_t()
     : ingress_port_to_nf_dev(),
-      forward_nf_dev()/*@{STATE_MEMBER_INIT_LIST}@*/
+      forwarding_tbl()/*@{STATE_MEMBER_INIT_LIST}@*/
     {}
 };
 
@@ -17,6 +17,7 @@ state_t *state = nullptr;
 void sycon::nf_init() {
   nf_state = std::make_unique<state_t>();
   state    = dynamic_cast<state_t *>(nf_state.get());
+  
 /*@{NF_INIT}@*/
 }
 

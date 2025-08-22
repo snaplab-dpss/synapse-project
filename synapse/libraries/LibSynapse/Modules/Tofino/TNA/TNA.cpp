@@ -20,5 +20,20 @@ bool TNA::condition_meets_phv_limit(klee::ref<klee::Expr> expr) const {
 
 void TNA::debug() const { pipeline.debug(); }
 
+std::vector<tofino_port_t> TNA::plausible_ingress_ports_in_bdd_node(const BDD *bdd, const BDDNode *node) const {
+  std::vector<tofino_port_t> plausible_ports;
+
+  const klee::ConstraintManager constraints = bdd->get_constraints(node);
+  for (const tofino_port_t port : tna_config.ports) {
+    klee::ref<klee::Expr> handles_port = solver_toolbox.exprBuilder->Eq(
+        bdd->get_device().expr, solver_toolbox.exprBuilder->Constant(port.nf_device, bdd->get_device().expr->getWidth()));
+    if (solver_toolbox.is_expr_maybe_true(constraints, handles_port)) {
+      plausible_ports.push_back(port);
+    }
+  }
+
+  return plausible_ports;
+}
+
 } // namespace Tofino
 } // namespace LibSynapse

@@ -77,10 +77,6 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  // If the value is ignored everywhere but in the header modification, we will transpile it to a vector lookup during the header
-  // modification.
-  const bool can_be_inlined = call_node->get_vector_borrow_value_future_usage() <= 1;
-
   const vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), call_node);
 
   if (!ep->get_ctx().can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
@@ -93,8 +89,8 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  Module *module  = new VectorRegisterLookup(node, vector_register->id, vector_register_data.obj, vector_register_data.index,
-                                             vector_register_data.value, can_be_inlined);
+  Module *module =
+      new VectorRegisterLookup(node, vector_register->id, vector_register_data.obj, vector_register_data.index, vector_register_data.value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -131,17 +127,13 @@ std::unique_ptr<Module> VectorRegisterLookupFactory::create(const BDD *bdd, cons
     return {};
   }
 
-  // If the value is ignored everywhere but in the header modification, we will transpile it to a vector lookup during the header
-  // modification.
-  const bool can_be_inlined = call_node->get_vector_borrow_value_future_usage() <= 1;
-
   const std::unordered_set<DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(vector_register_data.obj);
   assert(ds.size() == 1);
   assert((*ds.begin())->type == DSType::VectorRegister);
   VectorRegister *vector_register = dynamic_cast<VectorRegister *>(*ds.begin());
 
   return std::make_unique<VectorRegisterLookup>(node, vector_register->id, vector_register_data.obj, vector_register_data.index,
-                                                vector_register_data.value, can_be_inlined);
+                                                vector_register_data.value);
 }
 
 } // namespace Tofino

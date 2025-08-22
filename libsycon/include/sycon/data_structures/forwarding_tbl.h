@@ -83,7 +83,7 @@ public:
     ASSERT_BF_STATUS(bf_status);
   }
 
-  void add_recirculate_entry(u16 pipe, u16 dev_port) {
+  void add_recirc_entry(u16 dev_port) {
     bf_status_t bf_status;
 
     const table_field_t fwd_op_field       = get_key_field("fwd_op");
@@ -99,7 +99,10 @@ public:
     bf_status = key->setValueandMask(nf_dev_field.id, 0, 0);
     ASSERT_BF_STATUS(bf_status);
 
-    bf_status = key->setValueandMask(ingress_port_field.id, pipe << 7, 0b110000000);
+    const u16 pipe_mask    = 0b110000000;
+    const u16 pipe_masking = dev_port & pipe_mask;
+
+    bf_status = key->setValueandMask(ingress_port_field.id, pipe_masking, pipe_mask);
     ASSERT_BF_STATUS(bf_status);
 
     const table_action_t fwd = get_action("Ingress.fwd");

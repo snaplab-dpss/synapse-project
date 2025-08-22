@@ -21,10 +21,10 @@ void sycon::nf_init() {
   state->ingress_port_to_nf_dev.add_recirc_entry(384);
 
   state->forwarding_tbl.add_fwd_to_cpu_entry();
-  state->forwarding_tbl.add_recirculate_entry(0, 6);
-  state->forwarding_tbl.add_recirculate_entry(1, 128);
-  state->forwarding_tbl.add_recirculate_entry(2, 256);
-  state->forwarding_tbl.add_recirculate_entry(3, 384);
+  state->forwarding_tbl.add_recirc_entry(6);
+  state->forwarding_tbl.add_recirc_entry(128);
+  state->forwarding_tbl.add_recirc_entry(256);
+  state->forwarding_tbl.add_recirc_entry(384);
   state->forwarding_tbl.add_drop_entry();
 
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(1), 0);

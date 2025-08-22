@@ -55,6 +55,7 @@ targets_config_t::targets_config_t(const std::filesystem::path &targets_config_f
   for (auto &&elem : *config["switch"]["front_panel_ports"].as_array()) {
     int virtual_port  = *elem.at_path("vport").value<int>();
     int physical_port = *elem.at_path("pport").value<int>();
+    int pipe          = *elem.at_path("pipe").value<int>();
     bps_t capacity    = *elem.at_path("capacity_bps").value<bps_t>();
 
     if (virtual_port < 0) {
@@ -75,6 +76,7 @@ targets_config_t::targets_config_t(const std::filesystem::path &targets_config_f
     Tofino::tofino_port_t port{
         .nf_device        = static_cast<u16>(virtual_port),
         .front_panel_port = static_cast<u16>(physical_port),
+        .pipe             = static_cast<u16>(pipe),
         .capacity         = capacity,
     };
 
@@ -85,6 +87,7 @@ targets_config_t::targets_config_t(const std::filesystem::path &targets_config_f
 
   for (auto &&elem : *config["switch"]["recirculation_ports"].as_array()) {
     int dev_port   = *elem.at_path("dev_port").value<int>();
+    int pipe       = *elem.at_path("pipe").value<int>();
     bps_t capacity = *elem.at_path("capacity_bps").value<bps_t>();
 
     if (dev_port < 0) {
@@ -99,6 +102,7 @@ targets_config_t::targets_config_t(const std::filesystem::path &targets_config_f
 
     Tofino::tofino_recirculation_port_t recirc_port{
         .dev_port = static_cast<u16>(dev_port),
+        .pipe     = static_cast<u16>(pipe),
         .capacity = capacity,
     };
 
