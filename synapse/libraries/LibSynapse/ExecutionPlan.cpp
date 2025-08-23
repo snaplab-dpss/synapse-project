@@ -984,7 +984,7 @@ pps_t EP::estimate_tput_pps() const {
 
 port_ingress_t EP::get_node_egress(hit_rate_t hr, const EPNode *node) const {
   port_ingress_t egress;
-  if (node->get_module()->get_target() == TargetType::Controller) {
+  if (node->get_module()->get_target().type == TargetArchitecture::Controller) {
     egress.controller = hr;
     return egress;
   }

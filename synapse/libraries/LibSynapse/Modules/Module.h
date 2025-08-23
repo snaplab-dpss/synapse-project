@@ -2,6 +2,7 @@
 
 #include <LibBDD/BDD.h>
 #include <LibSynapse/Visitor.h>
+#include <LibSynapse/Target.h>
 
 // For debugging
 #include <LibCore/Debug.h>
@@ -15,9 +16,8 @@ using LibBDD::BDDNode;
 
 class EP;
 class EPNode;
-enum class TargetType;
 
-enum class ModuleType {
+enum class ModuleCategory {
   InvalidModule,
 
   // ========================================
@@ -176,111 +176,120 @@ enum class ModuleType {
   x86_TokenBucketExpire,
 };
 
+struct ModuleType {
+  ModuleCategory type;
+  std::string instance_id;
+
+  ModuleType(ModuleCategory _type, const std::string &_instance_id) : type(_type), instance_id(_instance_id) {}
+  bool operator==(const ModuleType &other) const { return type == other.type && instance_id == other.instance_id; }
+};
+
 inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
-  switch (type) {
-  case ModuleType::InvalidModule:
+  os << type.instance_id << ": ";
+  switch (type.type) {
+  case ModuleCategory::InvalidModule:
     os << "InvalidModule";
     break;
-  case ModuleType::Tofino_SendToController:
+  case ModuleCategory::Tofino_SendToController:
     os << "Tofino_SendToController";
     break;
-  case ModuleType::Tofino_Ignore:
+  case ModuleCategory::Tofino_Ignore:
     os << "Tofino_Ignore";
     break;
-  case ModuleType::Tofino_If:
+  case ModuleCategory::Tofino_If:
     os << "Tofino_If";
     break;
-  case ModuleType::Tofino_ParserExtraction:
+  case ModuleCategory::Tofino_ParserExtraction:
     os << "Tofino_ParserExtraction";
     break;
-  case ModuleType::Tofino_ParserCondition:
+  case ModuleCategory::Tofino_ParserCondition:
     os << "Tofino_ParserCondition";
     break;
-  case ModuleType::Tofino_ParserReject:
+  case ModuleCategory::Tofino_ParserReject:
     os << "Tofino_ParserReject";
     break;
-  case ModuleType::Tofino_Then:
+  case ModuleCategory::Tofino_Then:
     os << "Tofino_Then";
     break;
-  case ModuleType::Tofino_Else:
+  case ModuleCategory::Tofino_Else:
     os << "Tofino_Else";
     break;
-  case ModuleType::Tofino_Forward:
+  case ModuleCategory::Tofino_Forward:
     os << "Tofino_Forward";
     break;
-  case ModuleType::Tofino_Drop:
+  case ModuleCategory::Tofino_Drop:
     os << "Tofino_Drop";
     break;
-  case ModuleType::Tofino_Broadcast:
+  case ModuleCategory::Tofino_Broadcast:
     os << "Tofino_Broadcast";
     break;
-  case ModuleType::Tofino_ModifyHeader:
+  case ModuleCategory::Tofino_ModifyHeader:
     os << "Tofino_ModifyHeader";
     break;
-  case ModuleType::Tofino_MapTableLookup:
+  case ModuleCategory::Tofino_MapTableLookup:
     os << "Tofino_MapTableLookup";
     break;
-  case ModuleType::Tofino_GuardedMapTableLookup:
+  case ModuleCategory::Tofino_GuardedMapTableLookup:
     os << "Tofino_GuardedMapTableLookup";
     break;
-  case ModuleType::Tofino_GuardedMapTableGuardCheck:
+  case ModuleCategory::Tofino_GuardedMapTableGuardCheck:
     os << "Tofino_GuardedMapTableGuardCheck";
     break;
-  case ModuleType::Tofino_DchainTableLookup:
+  case ModuleCategory::Tofino_DchainTableLookup:
     os << "Tofino_DchainTableLookup";
     break;
-  case ModuleType::Tofino_VectorTableLookup:
+  case ModuleCategory::Tofino_VectorTableLookup:
     os << "Tofino_VectorTableLookup";
     break;
-  case ModuleType::Tofino_VectorRegisterLookup:
+  case ModuleCategory::Tofino_VectorRegisterLookup:
     os << "Tofino_VectorRegisterLookup";
     break;
-  case ModuleType::Tofino_VectorRegisterUpdate:
+  case ModuleCategory::Tofino_VectorRegisterUpdate:
     os << "Tofino_VectorRegisterUpdate";
     break;
-  case ModuleType::Tofino_FCFSCachedTableRead:
+  case ModuleCategory::Tofino_FCFSCachedTableRead:
     os << "Tofino_FCFSCachedTableRead";
     break;
-  case ModuleType::Tofino_FCFSCachedTableReadWrite:
+  case ModuleCategory::Tofino_FCFSCachedTableReadWrite:
     os << "Tofino_FCFSCachedTableReadWrite";
     break;
-  case ModuleType::Tofino_FCFSCachedTableWrite:
+  case ModuleCategory::Tofino_FCFSCachedTableWrite:
     os << "Tofino_FCFSCachedTableWrite";
     break;
-  case ModuleType::Tofino_FCFSCachedTableDelete:
+  case ModuleCategory::Tofino_FCFSCachedTableDelete:
     os << "Tofino_FCFSCachedTableDelete";
     break;
-  case ModuleType::Tofino_MeterUpdate:
+  case ModuleCategory::Tofino_MeterUpdate:
     os << "Tofino_MeterUpdate";
     break;
-  case ModuleType::Tofino_HHTableRead:
+  case ModuleCategory::Tofino_HHTableRead:
     os << "Tofino_HHTableRead";
     break;
-  case ModuleType::Tofino_HHTableOutOfBandUpdate:
+  case ModuleCategory::Tofino_HHTableOutOfBandUpdate:
     os << "Tofino_HHTableOutOfBandUpdate";
     break;
-  case ModuleType::Tofino_IntegerAllocatorRejuvenate:
+  case ModuleCategory::Tofino_IntegerAllocatorRejuvenate:
     os << "Tofino_IntegerAllocatorRejuvenate";
     break;
-  case ModuleType::Tofino_IntegerAllocatorAllocate:
+  case ModuleCategory::Tofino_IntegerAllocatorAllocate:
     os << "Tofino_IntegerAllocatorAllocate";
     break;
-  case ModuleType::Tofino_IntegerAllocatorIsAllocated:
+  case ModuleCategory::Tofino_IntegerAllocatorIsAllocated:
     os << "Tofino_IntegerAllocatorIsAllocated";
     break;
-  case ModuleType::Tofino_CMSQuery:
+  case ModuleCategory::Tofino_CMSQuery:
     os << "Tofino_CMSQuery";
     break;
-  case ModuleType::Tofino_CMSIncrement:
+  case ModuleCategory::Tofino_CMSIncrement:
     os << "Tofino_CMSIncrement";
     break;
-  case ModuleType::Tofino_CMSIncAndQuery:
+  case ModuleCategory::Tofino_CMSIncAndQuery:
     os << "Tofino_CMSIncAndQuery";
     break;
-  case ModuleType::Tofino_Recirculate:
+  case ModuleCategory::Tofino_Recirculate:
     os << "Tofino_Recirculate";
     break;
-  case ModuleType::Tofino_LPMLookup:
+  case ModuleCategory::Tofino_LPMLookup:
     os << "Tofino_LPMLookup";
     break;
   case ModuleType::Tofino_CuckooHashTableReadWrite:
@@ -289,109 +298,109 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_Ignore:
     os << "Controller_Ignore";
     break;
-  case ModuleType::Controller_ParseHeader:
+  case ModuleCategory::Controller_ParseHeader:
     os << "Controller_ParseHeader";
     break;
-  case ModuleType::Controller_ModifyHeader:
+  case ModuleCategory::Controller_ModifyHeader:
     os << "Controller_ModifyHeader";
     break;
-  case ModuleType::Controller_ChecksumUpdate:
+  case ModuleCategory::Controller_ChecksumUpdate:
     os << "Controller_ChecksumUpdate";
     break;
-  case ModuleType::Controller_If:
+  case ModuleCategory::Controller_If:
     os << "Controller_If";
     break;
-  case ModuleType::Controller_Then:
+  case ModuleCategory::Controller_Then:
     os << "Controller_Then";
     break;
-  case ModuleType::Controller_Else:
+  case ModuleCategory::Controller_Else:
     os << "Controller_Else";
     break;
-  case ModuleType::Controller_Forward:
+  case ModuleCategory::Controller_Forward:
     os << "Controller_Forward";
     break;
-  case ModuleType::Controller_Broadcast:
+  case ModuleCategory::Controller_Broadcast:
     os << "Controller_Broadcast";
     break;
-  case ModuleType::Controller_Drop:
+  case ModuleCategory::Controller_Drop:
     os << "Controller_Drop";
     break;
-  case ModuleType::Controller_AbortTransaction:
+  case ModuleCategory::Controller_AbortTransaction:
     os << "Controller_AbortTransaction";
     break;
-  case ModuleType::Controller_DataplaneMapTableAllocate:
+  case ModuleCategory::Controller_DataplaneMapTableAllocate:
     os << "Controller_DataplaneMapTableAllocate";
     break;
-  case ModuleType::Controller_DataplaneMapTableLookup:
+  case ModuleCategory::Controller_DataplaneMapTableLookup:
     os << "Controller_DataplaneMapTableLookup";
     break;
-  case ModuleType::Controller_DataplaneMapTableUpdate:
+  case ModuleCategory::Controller_DataplaneMapTableUpdate:
     os << "Controller_DataplaneMapTableUpdate";
     break;
-  case ModuleType::Controller_DataplaneMapTableDelete:
+  case ModuleCategory::Controller_DataplaneMapTableDelete:
     os << "Controller_DataplaneMapTableDelete";
     break;
-  case ModuleType::Controller_DataplaneGuardedMapTableAllocate:
+  case ModuleCategory::Controller_DataplaneGuardedMapTableAllocate:
     os << "Controller_DataplaneGuardedMapTableAllocate";
     break;
-  case ModuleType::Controller_DataplaneGuardedMapTableLookup:
+  case ModuleCategory::Controller_DataplaneGuardedMapTableLookup:
     os << "Controller_DataplaneGuardedMapTableLookup";
     break;
-  case ModuleType::Controller_DataplaneGuardedMapTableUpdate:
+  case ModuleCategory::Controller_DataplaneGuardedMapTableUpdate:
     os << "Controller_DataplaneGuardedMapTableUpdate";
     break;
-  case ModuleType::Controller_DataplaneGuardedMapTableDelete:
+  case ModuleCategory::Controller_DataplaneGuardedMapTableDelete:
     os << "Controller_DataplaneGuardedMapTableDelete";
     break;
-  case ModuleType::Controller_DataplaneGuardedMapTableGuardCheck:
+  case ModuleCategory::Controller_DataplaneGuardedMapTableGuardCheck:
     os << "Controller_DataplaneGuardedMapTableGuardCheck";
     break;
-  case ModuleType::Controller_DataplaneDchainTableAllocate:
+  case ModuleCategory::Controller_DataplaneDchainTableAllocate:
     os << "Controller_DataplaneDchainTableAllocate";
     break;
-  case ModuleType::Controller_DataplaneDchainTableIsIndexAllocated:
+  case ModuleCategory::Controller_DataplaneDchainTableIsIndexAllocated:
     os << "Controller_DataplaneDchainTableIsIndexAllocated";
     break;
-  case ModuleType::Controller_DataplaneDchainTableAllocateNewIndex:
+  case ModuleCategory::Controller_DataplaneDchainTableAllocateNewIndex:
     os << "Controller_DataplaneDchainTableAllocateNewIndex";
     break;
-  case ModuleType::Controller_DataplaneDchainTableFreeIndex:
+  case ModuleCategory::Controller_DataplaneDchainTableFreeIndex:
     os << "Controller_DataplaneDchainTableFreeIndex";
     break;
-  case ModuleType::Controller_DataplaneDchainTableRefreshIndex:
+  case ModuleCategory::Controller_DataplaneDchainTableRefreshIndex:
     os << "Controller_DataplaneDchainTableRefreshIndex";
     break;
-  case ModuleType::Controller_DataplaneVectorTableAllocate:
+  case ModuleCategory::Controller_DataplaneVectorTableAllocate:
     os << "Controller_DataplaneVectorTableAllocate";
     break;
-  case ModuleType::Controller_DataplaneVectorTableLookup:
+  case ModuleCategory::Controller_DataplaneVectorTableLookup:
     os << "Controller_DataplaneVectorTableLookup";
     break;
-  case ModuleType::Controller_DataplaneVectorTableUpdate:
+  case ModuleCategory::Controller_DataplaneVectorTableUpdate:
     os << "Controller_DataplaneVectorTableUpdate";
     break;
-  case ModuleType::Controller_DataplaneFCFSCachedTableAllocate:
+  case ModuleCategory::Controller_DataplaneFCFSCachedTableAllocate:
     os << "Controller_DataplaneFCFSCachedTableAllocate";
     break;
-  case ModuleType::Controller_DataplaneFCFSCachedTableRead:
+  case ModuleCategory::Controller_DataplaneFCFSCachedTableRead:
     os << "Controller_DataplaneFCFSCachedTableRead";
     break;
-  case ModuleType::Controller_DataplaneFCFSCachedTableWrite:
+  case ModuleCategory::Controller_DataplaneFCFSCachedTableWrite:
     os << "Controller_DataplaneFCFSCachedTableWrite";
     break;
-  case ModuleType::Controller_DataplaneFCFSCachedTableDelete:
+  case ModuleCategory::Controller_DataplaneFCFSCachedTableDelete:
     os << "Controller_DataplaneFCFSCachedTableDelete";
     break;
-  case ModuleType::Controller_DataplaneHHTableAllocate:
+  case ModuleCategory::Controller_DataplaneHHTableAllocate:
     os << "Controller_DataplaneHHTableAllocate";
     break;
-  case ModuleType::Controller_DataplaneHHTableRead:
+  case ModuleCategory::Controller_DataplaneHHTableRead:
     os << "Controller_DataplaneHHTableRead";
     break;
-  case ModuleType::Controller_DataplaneHHTableUpdate:
+  case ModuleCategory::Controller_DataplaneHHTableUpdate:
     os << "Controller_DataplaneHHTableUpdate";
     break;
-  case ModuleType::Controller_DataplaneHHTableIsIndexAllocated:
+  case ModuleCategory::Controller_DataplaneHHTableIsIndexAllocated:
     os << "Controller_DataplaneHHTableIsIndexAllocated";
     break;
   case ModuleType::Controller_DataplaneHHTableOutOfBandUpdate:
@@ -400,106 +409,106 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_DataplaneHHTableDelete:
     os << "Controller_DataplaneHHTableDelete";
     break;
-  case ModuleType::Controller_DchainAllocate:
+  case ModuleCategory::Controller_DchainAllocate:
     os << "Controller_DchainAllocate";
     break;
-  case ModuleType::Controller_DchainAllocateNewIndex:
+  case ModuleCategory::Controller_DchainAllocateNewIndex:
     os << "Controller_DchainAllocateNewIndex";
     break;
-  case ModuleType::Controller_DchainRejuvenateIndex:
+  case ModuleCategory::Controller_DchainRejuvenateIndex:
     os << "Controller_DchainRejuvenateIndex";
     break;
-  case ModuleType::Controller_DchainIsIndexAllocated:
+  case ModuleCategory::Controller_DchainIsIndexAllocated:
     os << "Controller_DchainIsIndexAllocated";
     break;
-  case ModuleType::Controller_DchainFreeIndex:
+  case ModuleCategory::Controller_DchainFreeIndex:
     os << "Controller_DchainFreeIndex";
     break;
-  case ModuleType::Controller_DataplaneIntegerAllocatorAllocate:
+  case ModuleCategory::Controller_DataplaneIntegerAllocatorAllocate:
     os << "Controller_DataplaneIntegerAllocatorAllocate";
     break;
-  case ModuleType::Controller_DataplaneIntegerAllocatorFreeIndex:
+  case ModuleCategory::Controller_DataplaneIntegerAllocatorFreeIndex:
     os << "Controller_DataplaneIntegerAllocatorFreeIndex";
     break;
-  case ModuleType::Controller_DataplaneCMSAllocate:
+  case ModuleCategory::Controller_DataplaneCMSAllocate:
     os << "Controller_DataplaneCMSAllocate";
     break;
-  case ModuleType::Controller_DataplaneCMSQuery:
+  case ModuleCategory::Controller_DataplaneCMSQuery:
     os << "Controller_DataplaneCMSQuery";
     break;
-  case ModuleType::Controller_VectorAllocate:
+  case ModuleCategory::Controller_VectorAllocate:
     os << "Controller_VectorAllocate";
     break;
-  case ModuleType::Controller_VectorRead:
+  case ModuleCategory::Controller_VectorRead:
     os << "Controller_VectorRead";
     break;
-  case ModuleType::Controller_VectorWrite:
+  case ModuleCategory::Controller_VectorWrite:
     os << "Controller_VectorWrite";
     break;
-  case ModuleType::Controller_MapAllocate:
+  case ModuleCategory::Controller_MapAllocate:
     os << "Controller_MapAllocate";
     break;
-  case ModuleType::Controller_MapGet:
+  case ModuleCategory::Controller_MapGet:
     os << "Controller_MapGet";
     break;
-  case ModuleType::Controller_MapPut:
+  case ModuleCategory::Controller_MapPut:
     os << "Controller_MapPut";
     break;
-  case ModuleType::Controller_MapErase:
+  case ModuleCategory::Controller_MapErase:
     os << "Controller_MapErase";
     break;
-  case ModuleType::Controller_ChtAllocate:
+  case ModuleCategory::Controller_ChtAllocate:
     os << "Controller_ChtAllocate";
     break;
-  case ModuleType::Controller_ChtFindBackend:
+  case ModuleCategory::Controller_ChtFindBackend:
     os << "Controller_ChtFindBackend";
     break;
-  case ModuleType::Controller_HashObj:
+  case ModuleCategory::Controller_HashObj:
     os << "Controller_HashObj";
     break;
-  case ModuleType::Controller_DataplaneVectorRegisterAllocate:
+  case ModuleCategory::Controller_DataplaneVectorRegisterAllocate:
     os << "Controller_DataplaneVectorRegisterAllocate";
     break;
-  case ModuleType::Controller_DataplaneVectorRegisterLookup:
+  case ModuleCategory::Controller_DataplaneVectorRegisterLookup:
     os << "Controller_DataplaneVectorRegisterLookup";
     break;
-  case ModuleType::Controller_DataplaneVectorRegisterUpdate:
+  case ModuleCategory::Controller_DataplaneVectorRegisterUpdate:
     os << "Controller_DataplaneVectorRegisterUpdate";
     break;
-  case ModuleType::Controller_TokenBucketAllocate:
+  case ModuleCategory::Controller_TokenBucketAllocate:
     os << "Controller_TokenBucketAllocate";
     break;
-  case ModuleType::Controller_TokenBucketIsTracing:
+  case ModuleCategory::Controller_TokenBucketIsTracing:
     os << "Controller_TokenBucketIsTracing";
     break;
-  case ModuleType::Controller_TokenBucketTrace:
+  case ModuleCategory::Controller_TokenBucketTrace:
     os << "Controller_TokenBucketTrace";
     break;
-  case ModuleType::Controller_TokenBucketUpdateAndCheck:
+  case ModuleCategory::Controller_TokenBucketUpdateAndCheck:
     os << "Controller_TokenBucketUpdateAndCheck";
     break;
-  case ModuleType::Controller_TokenBucketExpire:
+  case ModuleCategory::Controller_TokenBucketExpire:
     os << "Controller_TokenBucketExpire";
     break;
-  case ModuleType::Controller_DataplaneMeterAllocate:
+  case ModuleCategory::Controller_DataplaneMeterAllocate:
     os << "Controller_DataplaneMeterAllocate";
     break;
-  case ModuleType::Controller_DataplaneMeterInsert:
+  case ModuleCategory::Controller_DataplaneMeterInsert:
     os << "Controller_DataplaneMeterInsert";
     break;
-  case ModuleType::Controller_CMSAllocate:
+  case ModuleCategory::Controller_CMSAllocate:
     os << "Controller_CMSAllocate";
     break;
-  case ModuleType::Controller_CMSUpdate:
+  case ModuleCategory::Controller_CMSUpdate:
     os << "Controller_CMSUpdate";
     break;
-  case ModuleType::Controller_CMSQuery:
+  case ModuleCategory::Controller_CMSQuery:
     os << "Controller_CMSQuery";
     break;
-  case ModuleType::Controller_CMSIncrement:
+  case ModuleCategory::Controller_CMSIncrement:
     os << "Controller_CMSIncrement";
     break;
-  case ModuleType::Controller_CMSCountMin:
+  case ModuleCategory::Controller_CMSCountMin:
     os << "Controller_CMSCountMin";
     break;
   case ModuleType::Controller_DataplaneCuckooHashTableAllocate:
@@ -508,91 +517,91 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::x86_Ignore:
     os << "x86_Ignore";
     break;
-  case ModuleType::x86_If:
+  case ModuleCategory::x86_If:
     os << "x86_If";
     break;
-  case ModuleType::x86_Then:
+  case ModuleCategory::x86_Then:
     os << "x86_Then";
     break;
-  case ModuleType::x86_Else:
+  case ModuleCategory::x86_Else:
     os << "x86_Else";
     break;
-  case ModuleType::x86_Forward:
+  case ModuleCategory::x86_Forward:
     os << "x86_Forward";
     break;
-  case ModuleType::x86_ParseHeader:
+  case ModuleCategory::x86_ParseHeader:
     os << "x86_ParseHeader";
     break;
-  case ModuleType::x86_ModifyHeader:
+  case ModuleCategory::x86_ModifyHeader:
     os << "x86_ModifyHeader";
     break;
-  case ModuleType::x86_MapGet:
+  case ModuleCategory::x86_MapGet:
     os << "x86_MapGet";
     break;
-  case ModuleType::x86_MapPut:
+  case ModuleCategory::x86_MapPut:
     os << "x86_MapPut";
     break;
-  case ModuleType::x86_MapErase:
+  case ModuleCategory::x86_MapErase:
     os << "x86_MapErase";
     break;
-  case ModuleType::x86_VectorRead:
+  case ModuleCategory::x86_VectorRead:
     os << "x86_VectorRead";
     break;
-  case ModuleType::x86_VectorWrite:
+  case ModuleCategory::x86_VectorWrite:
     os << "x86_VectorWrite";
     break;
-  case ModuleType::x86_DchainAllocateNewIndex:
+  case ModuleCategory::x86_DchainAllocateNewIndex:
     os << "x86_DchainAllocateNewIndex";
     break;
-  case ModuleType::x86_DchainRejuvenateIndex:
+  case ModuleCategory::x86_DchainRejuvenateIndex:
     os << "x86_DchainRejuvenateIndex";
     break;
-  case ModuleType::x86_DchainIsIndexAllocated:
+  case ModuleCategory::x86_DchainIsIndexAllocated:
     os << "x86_DchainIsIndexAllocated";
     break;
-  case ModuleType::x86_DchainFreeIndex:
+  case ModuleCategory::x86_DchainFreeIndex:
     os << "x86_DchainFreeIndex";
     break;
-  case ModuleType::x86_CMSIncrement:
+  case ModuleCategory::x86_CMSIncrement:
     os << "x86_CMSIncrement";
     break;
-  case ModuleType::x86_CMSCountMin:
+  case ModuleCategory::x86_CMSCountMin:
     os << "x86_CMSCountMin";
     break;
-  case ModuleType::x86_CMSPeriodicCleanup:
+  case ModuleCategory::x86_CMSPeriodicCleanup:
     os << "x86_CMSPeriodicCleanup";
     break;
-  case ModuleType::x86_Drop:
+  case ModuleCategory::x86_Drop:
     os << "x86_Drop";
     break;
-  case ModuleType::x86_Broadcast:
+  case ModuleCategory::x86_Broadcast:
     os << "x86_Broadcast";
     break;
-  case ModuleType::x86_ExpireItemsSingleMap:
+  case ModuleCategory::x86_ExpireItemsSingleMap:
     os << "x86_ExpireItemsSingleMap";
     break;
-  case ModuleType::x86_ExpireItemsSingleMapIteratively:
+  case ModuleCategory::x86_ExpireItemsSingleMapIteratively:
     os << "x86_ExpireItemsSingleMapIteratively";
     break;
-  case ModuleType::x86_ChecksumUpdate:
+  case ModuleCategory::x86_ChecksumUpdate:
     os << "x86_ChecksumUpdate";
     break;
-  case ModuleType::x86_ChtFindBackend:
+  case ModuleCategory::x86_ChtFindBackend:
     os << "x86_ChtFindBackend";
     break;
-  case ModuleType::x86_HashObj:
+  case ModuleCategory::x86_HashObj:
     os << "x86_HashObj";
     break;
-  case ModuleType::x86_TokenBucketIsTracing:
+  case ModuleCategory::x86_TokenBucketIsTracing:
     os << "x86_TokenBucketIsTracing";
     break;
-  case ModuleType::x86_TokenBucketTrace:
+  case ModuleCategory::x86_TokenBucketTrace:
     os << "x86_TokenBucketTrace";
     break;
-  case ModuleType::x86_TokenBucketUpdateAndCheck:
+  case ModuleCategory::x86_TokenBucketUpdateAndCheck:
     os << "x86_TokenBucketUpdateAndCheck";
     break;
-  case ModuleType::x86_TokenBucketExpire:
+  case ModuleCategory::x86_TokenBucketExpire:
     os << "x86_TokenBucketExpire";
     break;
   }
@@ -641,3 +650,11 @@ public:
 };
 
 } // namespace LibSynapse
+
+namespace std {
+template <> struct hash<LibSynapse::ModuleType> {
+  std::size_t operator()(const LibSynapse::ModuleType &mt) const {
+    return std::hash<int>()(static_cast<int>(mt.type)) ^ std::hash<std::string>()(mt.instance_id);
+  }
+};
+} // namespace std

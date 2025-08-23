@@ -82,9 +82,9 @@ namespace LibSynapse {
 namespace Controller {
 
 struct ControllerTarget : public Target {
-  ControllerTarget()
+  ControllerTarget(const std::string &instance_id)
       : Target(
-            TargetType::Controller,
+            TargetType(TargetArchitecture::Controller, instance_id),
             []() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
               f.push_back(std::make_unique<IgnoreFactory>());

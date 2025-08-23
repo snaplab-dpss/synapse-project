@@ -10,7 +10,7 @@ namespace Controller {
 
 class ControllerModule : public Module {
 public:
-  ControllerModule(ModuleType _type, const std::string &_name, const BDDNode *_node) : Module(_type, TargetType::Controller, _name, _node) {}
+  ControllerModule(ModuleType _type, const std::string &_name, const BDDNode *_node) : Module(_type, TargetType(TargetArchitecture::Controller, _type.instance_id), _name, _node) {}
 };
 
 class ControllerModuleFactory : public ModuleFactory {
@@ -19,7 +19,7 @@ protected:
   TargetType target;
 
 public:
-  ControllerModuleFactory(ModuleType _type, const std::string &_name) : ModuleFactory(_type, TargetType::Controller, _name) {}
+  ControllerModuleFactory(ModuleType _type, const std::string &_name) : ModuleFactory(_type, TargetType(TargetArchitecture::Controller, _type.instance_id), _name) {}
 
 protected:
   const Tofino::TofinoContext *get_tofino_ctx(const EP *ep) const;
