@@ -13,14 +13,23 @@ PLOTS_DIR = CURRENT_DIR / "plots"
 DATA_DIR = CURRENT_DIR / ".." / "eval" / "data"
 
 NFS = [
+    # {
+    #     "title": "MapTable",
+    #     "data_file": DATA_DIR / "tput_map_table.csv",
+    #     "bps_output_file": PLOTS_DIR / "tput_map_table_bps.pdf",
+    #     "pps_output_file": PLOTS_DIR / "tput_map_table_pps.pdf",
+    #     "bps_scatter_output_file": PLOTS_DIR / "tput_map_table_bps_scatter.pdf",
+    #     "pps_scatter_output_file": PLOTS_DIR / "tput_map_table_pps_scatter.pdf",
+    #     "heatmap_output_file": PLOTS_DIR / "tput_map_table_heatmap.pdf",
+    # },
     {
-        "title": "MapTable",
-        "data_file": DATA_DIR / "tput_map_table.csv",
-        "bps_output_file": PLOTS_DIR / "tput_map_table_bps.pdf",
-        "pps_output_file": PLOTS_DIR / "tput_map_table_pps.pdf",
-        "bps_scatter_output_file": PLOTS_DIR / "tput_map_table_bps_scatter.pdf",
-        "pps_scatter_output_file": PLOTS_DIR / "tput_map_table_pps_scatter.pdf",
-        "heatmap_output_file": PLOTS_DIR / "tput_map_table_heatmap.pdf",
+        "title": "CuckooHashTable",
+        "data_file": DATA_DIR / "tput_cuckoo_hash_table.csv",
+        "bps_output_file": PLOTS_DIR / "tput_cuckoo_hash_table_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_cuckoo_hash_table_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_cuckoo_hash_table_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_cuckoo_hash_table_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_cuckoo_hash_table_heatmap.pdf",
     },
 ]
 

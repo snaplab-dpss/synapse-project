@@ -61,11 +61,11 @@ typedef bit<VAL_WIDTH>		val_t;
 #define MAX_LOOPS			4
 
 // Cuckoo Table Size.
-#define CUCKOO_ENTRIES		8192
-#define CUCKOO_IDX_WIDTH	13
+#define CUCKOO_ENTRIES		4096
+#define CUCKOO_IDX_WIDTH	12
 
 // Swap Bloom Table Size.
-#define BLOOM_ENTRIES		CUCKOO_ENTRIES
-#define BLOOM_IDX_WIDTH		CUCKOO_IDX_WIDTH
+#define BLOOM_ENTRIES		65536
+#define BLOOM_IDX_WIDTH		16
 
 #endif

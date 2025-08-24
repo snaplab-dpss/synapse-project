@@ -14,19 +14,23 @@ from typing import Optional
 
 from experiments.tput import ThroughputHosts
 from experiments.experiment import Experiment, ExperimentTracker
+from hosts.kvs_server import KVSServer
 from hosts.pktgen import TrafficDist
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
-TOTAL_FLOWS = 50_000
+STORAGE_SERVER_DELAY_NS = 0
+KVS_GET_RATIO = 0.99
 
+TOTAL_FLOWS = 40_000
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
-ITERATIONS = 10
 
+# TOTAL_FLOWS = 40_000
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.2]
-# ITERATIONS = 3
+
+ITERATIONS = 10
 
 
 @dataclass
@@ -36,27 +40,31 @@ class NF:
     data_out: Path
     tofino: Path
     controller: Path
+    kvs_mode: bool
 
 
 NFS = [
-    NF(
-        name="map_table",
-        description="MapTable",
-        data_out=Path("tput_map_table.csv"),
-        tofino=Path("tofino/data_structures/map_table/map_table.p4"),
-        controller=Path("tofino/data_structures/map_table/map_table.cpp"),
-    ),
+    # NF(
+    #     name="map_table",
+    #     description="MapTable",
+    #     data_out=Path("tput_map_table.csv"),
+    #     tofino=Path("tofino/data_structures/map_table/map_table.p4"),
+    #     controller=Path("tofino/data_structures/map_table/map_table.cpp"),
+    #     kvs_mode=False,
+    # ),
     NF(
         name="cuckoo_hash_table",
         description="CuckooHashTable",
-        data_out=Path("tput_map_table.csv"),
+        data_out=Path("tput_cuckoo_hash_table.csv"),
         tofino=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.p4"),
         controller=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.cpp"),
+        kvs_mode=True,
     ),
 ]
 
 
 class Throughput(Experiment):
+
     def __init__(
         self,
         # Experiment parameters
@@ -64,6 +72,7 @@ class Throughput(Experiment):
         save_name: Path,
         # Hosts
         tput_hosts: ThroughputHosts,
+        kvs_server: Optional[KVSServer],
         # TG controller
         tg_dut_ports: list[int],
         # NF
@@ -85,6 +94,7 @@ class Throughput(Experiment):
 
         # Hosts
         self.tput_hosts = tput_hosts
+        self.kvs_server = kvs_server
 
         # TG controller
         self.tg_dut_ports = tg_dut_ports
@@ -192,6 +202,12 @@ class Throughput(Experiment):
 
             step_progress.update(task_id, description=description)
 
+            if self.kvs_server:
+                self.log(f"Launching KVS server (delay={STORAGE_SERVER_DELAY_NS}ns)")
+                self.kvs_server.kill_server()
+                self.kvs_server.launch(delay_ns=STORAGE_SERVER_DELAY_NS)
+                self.kvs_server.wait_launch()
+
             self.log("Waiting for controller")
             self.tput_hosts.dut_controller.relaunch_and_wait(
                 src_in_repo=self.controller_src_in_repo,
@@ -204,6 +220,8 @@ class Throughput(Experiment):
                 nb_flows=self.total_flows,
                 traffic_dist=TrafficDist.ZIPF,
                 zipf_param=s,
+                kvs_mode=self.kvs_server is not None,
+                kvs_get_ratio=KVS_GET_RATIO,
             )
 
             self.tput_hosts.pktgen.wait_launch()
@@ -231,6 +249,8 @@ class Throughput(Experiment):
 
         self.tput_hosts.pktgen.close()
         self.tput_hosts.dut_controller.quit()
+        if self.kvs_server:
+            self.kvs_server.kill_server()
 
         step_progress.update(task_id, visible=False)
 
@@ -254,21 +274,35 @@ def main():
         use_accelerator=False,
     )
 
+    kvs_server = KVSServer(
+        hostname=config["hosts"]["server"],
+        repo=config["repo"]["server"],
+        pcie_dev=config["devices"]["server"]["dev"],
+        log_file=config["logs"]["server"],
+    )
+
     tg_dut_ports = config["devices"]["switch_tg"]["dut_ports"]
     dut_ports = config["devices"]["switch_dut"]["client_ports"]
+    server_port = config["devices"]["switch_dut"]["server_port"]
 
     exp_tracker = ExperimentTracker()
 
     for nf in NFS:
+        nf_dut_ports = dut_ports.copy()
+        if nf.kvs_mode:
+            nf_dut_ports.append(server_port)
+            nf_dut_ports = sorted(nf_dut_ports)
+
         exp_tracker.add_experiment(
             Throughput(
                 name=nf.description,
                 save_name=DATA_DIR / nf.data_out,
                 tput_hosts=tput_hosts,
+                kvs_server=kvs_server if nf.kvs_mode else None,
                 tg_dut_ports=tg_dut_ports,
                 p4_src_in_repo=nf.tofino,
                 controller_src_in_repo=nf.controller,
-                dut_ports=dut_ports,
+                dut_ports=nf_dut_ports,
                 total_flows=TOTAL_FLOWS,
                 zipf_params=ZIPF_PARAMS,
                 churn_values_fpm=CHURN_FPM,
