@@ -231,7 +231,7 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   bdd_profile_t bdd_profile;
 
   bdd_profile.meta.pkts  = 100'000;
-  bdd_profile.meta.bytes = bdd_profile.meta.pkts * std::max(MIN_PKT_SIZE_BYTES, SingletonRandomEngine::generate() % MAX_PKT_SIZE_BYTES);
+  bdd_profile.meta.bytes = bdd_profile.meta.pkts * 250; // 250B size packets
 
   const BDDNode *root                  = bdd->get_root();
   bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
@@ -336,7 +336,7 @@ bdd_profile_t build_uniform_bdd_profile(const BDD *bdd) {
   bdd_profile_t bdd_profile;
 
   bdd_profile.meta.pkts  = bdd->get_root()->get_leaves().size() * 1000;
-  bdd_profile.meta.bytes = bdd_profile.meta.pkts * std::max(MIN_PKT_SIZE_BYTES, SingletonRandomEngine::generate() % MAX_PKT_SIZE_BYTES);
+  bdd_profile.meta.bytes = bdd_profile.meta.pkts * 250; // 250B size packets
 
   const BDDNode *root                  = bdd->get_root();
   bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;

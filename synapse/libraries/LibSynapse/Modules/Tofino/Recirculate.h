@@ -8,22 +8,20 @@ namespace Tofino {
 class Recirculate : public TofinoModule {
 private:
   Symbols symbols;
-  u16 recirc_port;
   u32 code_path;
 
 public:
-  Recirculate(const BDDNode *_node, Symbols _symbols, u16 _recirc_port, u32 _code_path)
-      : TofinoModule(ModuleType::Tofino_Recirculate, "Recirculate", _node), symbols(_symbols), recirc_port(_recirc_port), code_path(_code_path) {}
+  Recirculate(const BDDNode *_node, Symbols _symbols, u32 _code_path)
+      : TofinoModule(ModuleType::Tofino_Recirculate, "Recirculate", _node), symbols(_symbols), code_path(_code_path) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    Recirculate *cloned = new Recirculate(node, symbols, recirc_port, code_path);
+    Recirculate *cloned = new Recirculate(node, symbols, code_path);
     return cloned;
   }
 
   const Symbols &get_symbols() const { return symbols; }
-  u16 get_recirc_port() const { return recirc_port; }
   u32 get_code_path() const { return code_path; }
 };
 

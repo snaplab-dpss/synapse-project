@@ -22,11 +22,19 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode
 
   klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
 
+  const EPNode *leaf_node = ep->get_leaf_ep_node_from_bdd_node(node);
+
   Context new_ctx             = ctx;
   const fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(node);
   assert(fwd_stats.operation == RouteOp::Forward);
   for (const auto &[device, dev_hr] : fwd_stats.ports) {
-    new_ctx.get_mutable_perf_oracle().add_fwd_traffic(device, dev_hr);
+    port_ingress_t node_egress;
+    if (leaf_node) {
+      node_egress = ep->get_node_egress(dev_hr, leaf_node);
+    } else {
+      node_egress.global = dev_hr;
+    }
+    new_ctx.get_mutable_perf_oracle().add_fwd_traffic(device, node_egress);
   }
 
   return spec_impl_t(decide(ep, node), new_ctx);

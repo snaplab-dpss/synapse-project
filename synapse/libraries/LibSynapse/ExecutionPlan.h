@@ -113,12 +113,12 @@ public:
 
   bool has_target(TargetType type) const;
   const BDDNode *get_next_node() const;
+  const EPNode *get_leaf_ep_node_from_bdd_node(const BDDNode *node) const;
   EPLeaf get_active_leaf() const { return active_leaves.front(); }
   bool has_active_leaf() const { return !active_leaves.empty(); }
   TargetType get_active_target() const;
   hit_rate_t get_active_leaf_hit_rate() const;
   port_ingress_t get_node_egress(hit_rate_t hr, const EPNode *node) const;
-  port_ingress_t get_node_egress(hit_rate_t hr, std::vector<int> past_recirculations) const;
   pps_t estimate_tput_pps() const;
 
   // Sources of error:

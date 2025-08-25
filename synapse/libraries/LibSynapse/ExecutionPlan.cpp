@@ -52,10 +52,8 @@ pps_t find_stable_tput(pps_t ingress, std::function<tput_estimation_t(pps_t)> es
     tput_estimation_t estimation = estimator(ingress);
 
     prev_ingress = ingress;
-    egress       = estimation.egress_estimation + estimation.unavoidable_drop;
+    egress       = std::min(ingress, estimation.egress_estimation + estimation.unavoidable_drop);
     delta        = ingress - egress;
-
-    assert(egress <= ingress);
 
     if (delta <= STABLE_TPUT_PRECISION) {
       floor = ingress;
@@ -440,6 +438,8 @@ void EP::debug() const {
   debug_active_leaves();
   debug_speculations();
   ctx.debug();
+  std::cerr << "Tput estimation: " << tput2str(estimate_tput_pps(), "pps") << "\n";
+  std::cerr << "Tput speculation: " << tput2str(speculate_tput_pps(), "pps") << "\n";
 }
 
 void EP::debug_placements() const {
@@ -494,7 +494,7 @@ void EP::assert_integrity() const {
 
     for (const EPNode *child : node->get_children()) {
       assert_or_panic(child, "Null child");
-      assert_or_panic(child->get_prev() == node, "Child without the correct parent");
+      assert_or_panic(child->get_prev() == node, "Child (%s) without the correct parent (%s)", child->dump().c_str(), node->dump().c_str());
       nodes.push_back(child);
     }
   }
@@ -881,29 +881,6 @@ pps_t EP::estimate_tput_pps() const {
   return egress;
 }
 
-port_ingress_t EP::get_node_egress(hit_rate_t hr, std::vector<int> past_recirculations) const {
-  port_ingress_t egress;
-
-  if (past_recirculations.empty()) {
-    egress.global = hr;
-  } else {
-    const int rport = past_recirculations[0];
-    int depth       = 1;
-
-    for (size_t i = 1; i < past_recirculations.size(); i++) {
-      if (past_recirculations[i] == rport) {
-        depth++;
-      } else {
-        break;
-      }
-    }
-
-    egress.recirc[{rport, depth}] = hr;
-  }
-
-  return egress;
-}
-
 port_ingress_t EP::get_node_egress(hit_rate_t hr, const EPNode *node) const {
   port_ingress_t egress;
   if (node->get_module()->get_target() == TargetType::Controller) {
@@ -911,23 +888,12 @@ port_ingress_t EP::get_node_egress(hit_rate_t hr, const EPNode *node) const {
     return egress;
   }
 
-  std::vector<u16> past_recirculations = node->get_past_recirculations();
+  const u8 past_recirculations = node->count_past_recirculations();
 
-  if (past_recirculations.empty()) {
+  if (past_recirculations == 0) {
     egress.global = hr;
   } else {
-    const u16 rport = past_recirculations[0];
-    int depth       = 1;
-
-    for (size_t i = 1; i < past_recirculations.size(); i++) {
-      if (past_recirculations[i] == rport) {
-        depth++;
-      } else {
-        break;
-      }
-    }
-
-    egress.recirc[{rport, depth}] = hr;
+    egress.recirc[past_recirculations] = hr;
   }
 
   return egress;
@@ -937,6 +903,18 @@ void EP::clear_caches() const {
   cached_speculations.reset();
   cached_tput_estimation.reset();
   cached_tput_speculation.reset();
+}
+
+const EPNode *EP::get_leaf_ep_node_from_bdd_node(const BDDNode *node) const {
+  while (node) {
+    for (const EPLeaf &leaf : active_leaves) {
+      if (leaf.next == node) {
+        return leaf.node;
+      }
+    }
+    node = node->get_prev();
+  }
+  return nullptr;
 }
 
 } // namespace LibSynapse

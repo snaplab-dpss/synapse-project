@@ -134,7 +134,6 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode
 
   HHTable *hh_table =
       build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, HHTable::CMS_WIDTH, HHTable::CMS_HEIGHT);
-
   if (!hh_table) {
     return {};
   }
@@ -147,6 +146,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode
 
   if (!update_map_get_success_hit_rate(new_ep.get(), new_ep->get_mutable_ctx(), map_get, table_data.obj, table_data.key, table_data.capacity, mpsc)) {
     delete ep_node;
+    delete hh_table;
     return {};
   }
 

@@ -15,7 +15,7 @@ CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__))).resolve()
 PROJECT_DIR = CURRENT_DIR.parent
 
 PLOTS_DIR = PROJECT_DIR / "plots" / "plots"
-DATA_DIR = PROJECT_DIR / "synthesized"
+DATA_DIR = PROJECT_DIR / "synthesized" / "build"
 
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]

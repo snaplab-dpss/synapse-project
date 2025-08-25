@@ -451,6 +451,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
 
   if (initial_controller_logic.head) {
     s2c_node->set_children(initial_controller_logic.head);
+    initial_controller_logic.head->set_prev(s2c_node);
     ep_node_leaf = initial_controller_logic.tail;
     assert(ep_node_leaf && "Leaf is not supposed to be null");
   }

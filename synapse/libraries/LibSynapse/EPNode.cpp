@@ -167,24 +167,19 @@ void EPNode::visit_mutable_nodes(std::function<EPNodeVisitAction(EPNode *)> fn) 
   }
 }
 
-std::vector<u16> EPNode::get_past_recirculations() const {
-  std::vector<u16> past_recirculations;
+u8 EPNode::count_past_recirculations() const {
+  u8 count = 0;
 
   const EPNode *node = this;
-  while ((node = node->get_prev())) {
+  while (node) {
     const Module *node_module = node->get_module();
-
-    if (!node_module) {
-      continue;
+    if (node_module && node_module->get_type() == ModuleType::Tofino_Recirculate) {
+      count++;
     }
-
-    if (node_module->get_type() == ModuleType::Tofino_Recirculate) {
-      const Tofino::Recirculate *recirc_module = dynamic_cast<const Tofino::Recirculate *>(node_module);
-      past_recirculations.push_back(recirc_module->get_recirc_port());
-    }
+    node = node->get_prev();
   }
 
-  return past_recirculations;
+  return count;
 }
 
 bool EPNode::forwarding_decision_already_made() const {

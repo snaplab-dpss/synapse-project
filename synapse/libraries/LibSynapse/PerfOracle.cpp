@@ -1,5 +1,6 @@
 #include <LibSynapse/PerfOracle.h>
 #include <LibCore/Debug.h>
+#include <LibCore/Math.h>
 
 #include <cmath>
 #include <iomanip>
@@ -7,42 +8,10 @@
 namespace LibSynapse {
 
 using LibCore::bps2pps;
+using LibCore::newton_root_finder;
 using LibCore::pps2bps;
 
 namespace {
-
-constexpr const int NEWTON_MAX_ITERATIONS{10};
-constexpr const double NEWTON_PRECISION{1e-3};
-
-// Coefficients are in increasing order: x^0, x^1, x^2, ...
-// min and max are inclusive
-double newton_root_finder(const std::vector<double> &coefficients, u64 min, u64 max) {
-  double x = (min + max) / 2.0;
-
-  double f     = 0;
-  double df_dx = 0;
-
-  for (int i = 0; i < NEWTON_MAX_ITERATIONS; i++) {
-    // It's very important to compute each term in this order, otherwise we don't converge (precision loss).
-    for (int c = coefficients.size() - 1; c >= 0; c--) {
-      f += coefficients[c] * pow(x, c);
-
-      if (c > 0) {
-        df_dx += c * coefficients[c] * pow(x, c - 1);
-      }
-    }
-
-    if (std::abs(f) <= NEWTON_PRECISION) {
-      break;
-    }
-
-    x -= f / df_dx;
-  }
-
-  assert(f <= NEWTON_PRECISION && "Newton's method did not converge");
-
-  return x;
-}
 
 std::unordered_map<u16, bps_t> get_front_panel_port_capacities(const Tofino::tna_config_t tna_config) {
   std::unordered_map<u16, bps_t> capacities;
@@ -85,14 +54,13 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
   global     = global + other.global;
   controller = controller + other.controller;
 
-  for (const auto &[rport_depth_pair, hr] : other.recirc) {
-    assert(rport_depth_pair.first >= 0 && "Recirculation port must be non-negative");
-    assert(rport_depth_pair.second >= 1 && "Recirculation depth must be at least 1");
+  for (const auto &[recirc_depth, hr] : other.recirc) {
+    assert(recirc_depth >= 1 && "Recirculation depth must be at least 1");
 
-    if (recirc.find(rport_depth_pair) == recirc.end()) {
-      recirc.insert({rport_depth_pair, hr});
+    if (recirc.find(recirc_depth) == recirc.end()) {
+      recirc.insert({recirc_depth, hr});
     } else {
-      hit_rate_t &recirc_hr = recirc.at(rport_depth_pair);
+      hit_rate_t &recirc_hr = recirc.at(recirc_depth);
       recirc_hr             = recirc_hr + hr;
     }
   }
@@ -102,31 +70,27 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
 
 hit_rate_t port_ingress_t::get_total_hr() const {
   hit_rate_t total_hr = global + controller;
-
-  for (const auto &[rport_depth_pair, hr] : recirc) {
+  for (const auto &[_, hr] : recirc) {
     total_hr = total_hr + hr;
   }
-
   return total_hr;
 }
 
-int port_ingress_t::get_max_recirc_depth() const {
-  int max_depth = 0;
-
-  for (const auto &[rport_depth_pair, hr] : recirc) {
-    max_depth = std::max(max_depth, rport_depth_pair.second);
+u8 port_ingress_t::get_max_recirc_depth() const {
+  u8 max_depth = 0;
+  for (const auto &[rport_depth, hr] : recirc) {
+    max_depth = std::max(max_depth, rport_depth);
   }
-
   return max_depth;
 }
 
-hit_rate_t port_ingress_t::get_hr_at_recirc_depth(int depth) const {
+hit_rate_t port_ingress_t::get_hr_at_recirc_depth(u8 depth) const {
   assert(depth > 0 && "Recirculation depth must be at least 1");
 
   hit_rate_t total_hr = 0_hr;
 
-  for (const auto &[rport_depth_pair, hr] : recirc) {
-    if (rport_depth_pair.second == depth) {
+  for (const auto &[rport_depth, hr] : recirc) {
+    if (rport_depth == depth) {
       total_hr = total_hr + hr;
     }
   }
@@ -141,10 +105,6 @@ PerfOracle::PerfOracle(const targets_config_t &targets_config, bytes_t _avg_pkt_
       avg_pkt_size(_avg_pkt_size), unaccounted_ingress(1), dropped_ingress(0), controller_dropped_ingress(0) {
   for (auto [port, capacity] : front_panel_ports_capacities) {
     ports_ingress[port] = port_ingress_t();
-  }
-
-  for (auto [dev_port, capacity] : recirculation_ports_capacities) {
-    recirc_ports_ingress[dev_port] = port_ingress_t();
   }
 }
 
@@ -223,88 +183,156 @@ void PerfOracle::add_controller_traffic(hit_rate_t hr) {
   add_controller_traffic(ingress);
 }
 
-void PerfOracle::add_recirculated_traffic(u16 port, const port_ingress_t &ingress) {
-  assert(recirc_ports_ingress.find(port) != recirc_ports_ingress.end() && "Invalid port");
-  recirc_ports_ingress[port] += ingress;
-}
+void PerfOracle::add_recirculated_traffic(const port_ingress_t &ingress) { recirc_ports_ingress += ingress; }
 
-void PerfOracle::add_recirculated_traffic(u16 port, hit_rate_t hr) {
-  assert(recirc_ports_ingress.find(port) != recirc_ports_ingress.end() && "Invalid port");
+void PerfOracle::add_recirculated_traffic(hit_rate_t hr) {
   port_ingress_t ingress;
   ingress.global = hr;
-  add_recirculated_traffic(port, ingress);
+  add_recirculated_traffic(ingress);
 }
 
-std::vector<pps_t> PerfOracle::get_recirculated_egress(u16 port, pps_t global_ingress) const {
-  assert(recirc_ports_ingress.find(port) != recirc_ports_ingress.end() && "Invalid port");
-  assert(recirculation_ports_capacities.find(port) != recirculation_ports_capacities.end() && "Invalid port");
-
-  const port_ingress_t &usage = recirc_ports_ingress.at(port);
-
-  const bps_t Tin = pps2bps(global_ingress * usage.global.value, avg_pkt_size);
-  const bps_t Cr  = recirculation_ports_capacities.at(port);
+std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) const {
+  const bps_t Tin = pps2bps(global_ingress * recirc_ports_ingress.global.value, avg_pkt_size) / recirculation_ports_capacities.size();
 
   if (Tin == 0) {
     return {0};
   }
 
-  const int max_depth = usage.get_max_recirc_depth();
+  // We assume a uniform distribution of traffic throughout pipes.
+  // As such, we decompose this into a calculation of recirculation traffic for each pipe, and
+  // add them all up at the end.
+
+  const u8 max_depth = recirc_ports_ingress.get_max_recirc_depth();
 
   // First element is the Tout component from the first recirculation (i.e.
   // comming directly from global ingress). The rest are the Tout components
   // from the surplus recirculations (i.e. recirculation depth >= 1).
-  std::vector<bps_t> Tout(1 + max_depth);
+  std::vector<bps_t> Tout(1 + max_depth, 0);
 
-  switch (max_depth) {
-  case 0: {
-    // Single recirculation, easy.
-    // Receiving traffic only from global ingress, no surplus.
-    Tout[0] = std::min(Tin, Cr);
-  } break;
-  case 1: {
-    // Recirculation surplus.
-    // s is relative to the first recirculation.
+  for (const auto &[port, Cr] : recirculation_ports_capacities) {
+    switch (max_depth) {
+    case 0: {
+      // Single recirculation, easy.
+      // Receiving traffic only from global ingress, no surplus.
+      Tout[0] += std::min(Tin, Cr);
+    } break;
+    case 1: {
+      // Recirculation surplus.
+      // s is relative to the first recirculation.
 
-    const double s = usage.get_hr_at_recirc_depth(1) / usage.global;
-    const pps_t Ts = (-Tin + sqrt(Tin * Tin + 4 * Cr * (Tin * s))) / 2;
+      const double s = recirc_ports_ingress.get_hr_at_recirc_depth(1) / recirc_ports_ingress.global;
+      const pps_t Ts = (-Tin + sqrt(Tin * Tin + 4 * Cr * (Tin * s))) / 2;
 
-    Tout[0] = (Tin / static_cast<double>(Tin + Ts)) * Cr * (1.0 - s);
-    Tout[1] = (Ts / static_cast<double>(Tin + Ts)) * Cr;
-  } break;
-  case 2: {
-    // s1 is relative to s0
-    // s0 is relative to the first recirculation
+      Tout[0] += (Tin / static_cast<double>(Tin + Ts)) * Cr * (1.0 - s);
+      Tout[1] += (Ts / static_cast<double>(Tin + Ts)) * Cr;
+    } break;
+    case 2: {
+      // s1 is relative to s0
+      // s0 is relative to the first recirculation
 
-    const hit_rate_t hr_depth_1 = usage.get_hr_at_recirc_depth(1);
-    const hit_rate_t hr_depth_2 = usage.get_hr_at_recirc_depth(2);
+      const hit_rate_t hr_depth_1 = recirc_ports_ingress.get_hr_at_recirc_depth(1);
+      const hit_rate_t hr_depth_2 = recirc_ports_ingress.get_hr_at_recirc_depth(2);
 
-    if (hr_depth_1 == 0) {
-      // Nothing to recirculate actually
-      Tout[0] = 0;
-      Tout[1] = 0;
-      Tout[2] = 0;
-      break;
+      if (hr_depth_1 == 0) {
+        // Nothing to recirculate actually
+        break;
+      }
+
+      const double s0 = hr_depth_1 / recirc_ports_ingress.global;
+      const double s1 = hr_depth_2 / hr_depth_1;
+
+      const double a = (s1 / s0) * (1.0 / Tin);
+      const double b = 1;
+      const double c = Tin;
+      const double d = -1.0 * Tin * Cr * s0;
+
+      const std::vector<double> Ts0_coefficients = {d, c, b, a};
+      const double Ts0                           = newton_root_finder(Ts0_coefficients, 0, Cr);
+      const double Ts1                           = Ts0 * Ts0 * (1.0 / Tin) * (s1 / s0);
+
+      Tout[0] += (Tin / static_cast<double>(Tin + Ts0 + Ts1)) * Cr * (1.0 - s0);
+      Tout[1] += (Ts0 / static_cast<double>(Tin + Ts0 + Ts1)) * Cr * (1.0 - s1);
+      Tout[2] += (Ts1 / static_cast<double>(Tin + Ts0 + Ts1)) * Cr;
+    } break;
+    default: {
+      // s0 is relative to the first recirculation
+      // s1 is relative to s0
+      // s2 is relative to s1
+      // ...
+
+      bool nothing_to_recirculate = false;
+      if (recirc_ports_ingress.global <= 0) {
+        nothing_to_recirculate = true;
+      }
+
+      for (u8 i = 1; !nothing_to_recirculate && i < max_depth; i++) {
+        if (recirc_ports_ingress.get_hr_at_recirc_depth(i) <= 0) {
+          nothing_to_recirculate = true;
+          break;
+        }
+      }
+
+      if (nothing_to_recirculate) {
+        break;
+      }
+
+      if (max_depth > 10) {
+        debug();
+        dbg_pause();
+      }
+
+      std::vector<double> s(max_depth);
+      for (u8 i = 0; i < max_depth; i++) {
+        if (i == 0) {
+          s[i] = recirc_ports_ingress.get_hr_at_recirc_depth(i + 1) / recirc_ports_ingress.global;
+        } else {
+          s[i] = recirc_ports_ingress.get_hr_at_recirc_depth(i + 1) / recirc_ports_ingress.get_hr_at_recirc_depth(i);
+        }
+      }
+
+      std::vector<double> Ts0_coefficients;
+
+      Ts0_coefficients.push_back(-1.0 * Tin * Cr * s[0]);
+      Ts0_coefficients.push_back(Tin);
+      Ts0_coefficients.push_back(1.0);
+
+      for (u8 i = 1; i < max_depth; i++) {
+        double coefficient = 1.0;
+        for (u8 j = 1; j <= i; j++) {
+          coefficient *= s[j];
+        }
+        coefficient /= pow(Tin * s[0], i);
+        Ts0_coefficients.push_back(coefficient);
+      }
+
+      std::vector<double> Ts(max_depth);
+      for (u8 i = 0; i < max_depth; i++) {
+        if (i == 0) {
+          Ts[0] = newton_root_finder(Ts0_coefficients, 0, Cr);
+        } else {
+          Ts[i] = pow(Ts[0], i + 1) * (1.0 / pow(Tin * s[0], i));
+          for (u8 j = 1; j <= i; j++) {
+            Ts[i] *= s[j];
+          }
+        }
+      }
+
+      double Ts_sum = 0;
+      for (u8 i = 0; i < max_depth; i++) {
+        Ts_sum += Ts[i];
+      }
+
+      for (u8 i = 0; i < max_depth + 1; i++) {
+        if (i == 0) {
+          Tout[i] += (Tin / (Tin + Ts_sum)) * Cr * (1.0 - s[i]);
+        } else if (i < max_depth) {
+          Tout[i] += (Ts[i - 1] / (Tin + Ts_sum)) * Cr * (1.0 - s[i]);
+        } else {
+          Tout[i] += (Tin / (Tin + Ts_sum)) * Cr;
+        }
+      }
     }
-
-    const double s0 = hr_depth_1 / usage.global;
-    const double s1 = hr_depth_2 / hr_depth_1;
-
-    const double a = (s1 / s0) * (1.0 / Tin);
-    const double b = 1;
-    const double c = Tin;
-    const double d = -1.0 * Tin * Cr * s0;
-
-    const std::vector<double> Ts0_coefficients = {d, c, b, a};
-    const double Ts0                           = newton_root_finder(Ts0_coefficients, 0, Cr);
-    const double Ts1                           = Ts0 * Ts0 * (1.0 / Tin) * (s1 / s0);
-
-    Tout[0] = (Tin / static_cast<double>(Tin + Ts0 + Ts1)) * Cr * (1.0 - s0);
-    Tout[1] = (Ts0 / static_cast<double>(Tin + Ts0 + Ts1)) * Cr * (1.0 - s1);
-    Tout[2] = (Ts1 / static_cast<double>(Tin + Ts0 + Ts1)) * Cr;
-  } break;
-  default: {
-    panic("TODO: arbitrary recirculation depth");
-  }
+    }
   }
 
   std::vector<pps_t> Tout_pps(Tout.size());
@@ -325,23 +353,17 @@ bps_t PerfOracle::get_max_input_bps() const {
 pps_t PerfOracle::get_max_input_pps() const { return bps2pps(get_max_input_bps(), avg_pkt_size); }
 
 pps_t PerfOracle::estimate_tput(pps_t ingress) const {
-  // 1. First we calculate the recirculation egress for each recirculation port and recirculation depth.
+  // 1. First we calculate the recirculation egress for each recirculation depth.
   // Recirculation traffic can only come from global ingress and other recirculation ports.
-  std::unordered_map<int, std::vector<pps_t>> recirc_egress;
-  for (auto [rport, _] : recirc_ports_ingress) {
-    recirc_egress[rport] = get_recirculated_egress(rport, ingress);
-  }
+  const std::vector<pps_t> recirc_egress = get_recirculated_egress(ingress);
 
   // 2. Then we calculate the controller throughput (as it can be a bottleneck).
   // The controller can receive traffic from both global ingress and recirculation ports.
   pps_t controller_tput = ingress * controller_ingress.global.value;
-  for (const auto &[port_depth_pair, hr] : controller_ingress.recirc) {
-    int rport = port_depth_pair.first;
-    int depth = port_depth_pair.second;
-    assert(rport >= 0 && "Invalid recirculation port");
-    assert(depth > 0 && "Invalid recirculation depth");
-    assert(depth <= (int)recirc_egress[rport].size() && "Invalid recirculation depth");
-    controller_tput += recirc_egress[rport][depth - 1] * hr.value;
+  for (const auto &[recirc_depth, hr] : controller_ingress.recirc) {
+    assert(recirc_depth > 0 && "Invalid recirculation depth");
+    assert(recirc_depth <= (int)recirc_egress.size() && "Invalid recirculation depth");
+    controller_tput += recirc_egress.at(recirc_depth - 1) * hr.value;
   }
 
   controller_tput = std::min(controller_tput, controller_capacity);
@@ -361,13 +383,10 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
       unaccounted_controller_hr = unaccounted_controller_hr - port_ingress.controller;
     }
 
-    for (const auto &[port_depth_pair, hr] : port_ingress.recirc) {
-      int rport = port_depth_pair.first;
-      int depth = port_depth_pair.second;
-      assert(rport >= 0 && "Invalid recirculation port");
-      assert(depth > 0 && "Invalid recirculation depth");
-      assert(depth <= (int)recirc_egress[rport].size() && "Invalid recirculation depth");
-      port_tput += recirc_egress[rport][depth - 1] * hr.value;
+    for (const auto &[recirc_depth, hr] : port_ingress.recirc) {
+      assert(recirc_depth > 0 && "Invalid recirculation depth");
+      assert(recirc_depth <= (int)recirc_egress.size() && "Invalid recirculation depth");
+      port_tput += recirc_egress.at(recirc_depth - 1) * hr.value;
     }
 
     const pps_t port_capacity = bps2pps(front_panel_ports_capacities.at(fwd_port), avg_pkt_size);
@@ -426,12 +445,9 @@ std::ostream &operator<<(std::ostream &os, const port_ingress_t &ingress) {
   os << "global=" << ingress.global;
   os << ",ctrl=" << ingress.controller;
   os << ",[";
-  for (const auto &[rport_depth_pair, hr] : ingress.recirc) {
-    int rport = rport_depth_pair.first;
-    int depth = rport_depth_pair.second;
+  for (const auto &[recirc_depth, hr] : ingress.recirc) {
     os << "(";
-    os << "rport=" << rport;
-    os << ",depth=" << depth;
+    os << "depth=" << static_cast<int>(recirc_depth);
     os << ",hr=" << hr;
     os << ")";
   }
@@ -459,14 +475,7 @@ void PerfOracle::debug() const {
   std::cerr << "Dropped ingress: " << dropped_ingress << "\n";
   std::cerr << "Unaccounted ingress: " << unaccounted_ingress << "\n";
   std::cerr << "Controller: " << controller_ingress << "\n";
-  std::cerr << "Recirculation ports:\n";
-  for (const auto &[port, ingress] : recirc_ports_ingress) {
-    std::cerr << "  ";
-    std::cerr << std::setw(3) << std::right << port;
-    std::cerr << ": ";
-    std::cerr << ingress;
-    std::cerr << "\n";
-  }
+  std::cerr << "Recirculation ports: " << recirc_ports_ingress << "\n";
   std::cerr << "==========================================================\n";
 }
 
