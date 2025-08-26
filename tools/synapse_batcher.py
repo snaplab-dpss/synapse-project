@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from itertools import product
 
-from orchestrator import Orchestrator, Task
+from helpers.orchestrator import Orchestrator, Task
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PROJECT_DIR = (CURRENT_DIR / "..").resolve()

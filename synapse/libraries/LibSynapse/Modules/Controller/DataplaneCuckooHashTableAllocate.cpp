@@ -1,4 +1,4 @@
-#include <LibSynapse/Modules/Controller/DataplaneHHTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneCuckooHashTableAllocate.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
@@ -12,14 +12,14 @@ using LibCore::solver_toolbox;
 
 namespace {
 
-struct hh_table_allocation_data_t {
+struct cuckoo_hash_table_allocation_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key_size;
   klee::ref<klee::Expr> value_size;
   klee::ref<klee::Expr> capacity;
 };
 
-hh_table_allocation_data_t get_hh_table_allocation_data(const Call *map_allocate) {
+cuckoo_hash_table_allocation_data_t get_cuckoo_hash_table_allocation_data(const Call *map_allocate) {
   const call_t &call = map_allocate->get_call();
   assert(call.function_name == "map_allocate");
 
@@ -35,7 +35,7 @@ hh_table_allocation_data_t get_hh_table_allocation_data(const Call *map_allocate
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneHHTableAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneCuckooHashTableAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -47,7 +47,7 @@ std::optional<spec_impl_t> DataplaneHHTableAllocateFactory::speculate(const EP *
     return {};
   }
 
-  const hh_table_allocation_data_t table_data = get_hh_table_allocation_data(map_allocate);
+  const cuckoo_hash_table_allocation_data_t table_data = get_cuckoo_hash_table_allocation_data(map_allocate);
 
   const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
@@ -61,7 +61,7 @@ std::optional<spec_impl_t> DataplaneHHTableAllocateFactory::speculate(const EP *
   return spec_impl_t(decide(ep, node), ctx);
 }
 
-std::vector<impl_t> DataplaneHHTableAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> DataplaneCuckooHashTableAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -73,7 +73,7 @@ std::vector<impl_t> DataplaneHHTableAllocateFactory::process_node(const EP *ep, 
     return {};
   }
 
-  const hh_table_allocation_data_t table_data = get_hh_table_allocation_data(map_allocate);
+  const cuckoo_hash_table_allocation_data_t table_data = get_cuckoo_hash_table_allocation_data(map_allocate);
 
   const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
@@ -84,7 +84,7 @@ std::vector<impl_t> DataplaneHHTableAllocateFactory::process_node(const EP *ep, 
     return {};
   }
 
-  Module *module  = new DataplaneHHTableAllocate(node, table_data.obj, table_data.key_size, table_data.value_size, table_data.capacity);
+  Module *module  = new DataplaneCuckooHashTableAllocate(node, table_data.obj, table_data.key_size, table_data.value_size, table_data.capacity);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -97,7 +97,7 @@ std::vector<impl_t> DataplaneHHTableAllocateFactory::process_node(const EP *ep, 
   return impls;
 }
 
-std::unique_ptr<Module> DataplaneHHTableAllocateFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+std::unique_ptr<Module> DataplaneCuckooHashTableAllocateFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -109,7 +109,7 @@ std::unique_ptr<Module> DataplaneHHTableAllocateFactory::create(const BDD *bdd, 
     return {};
   }
 
-  const hh_table_allocation_data_t table_data = get_hh_table_allocation_data(map_allocate);
+  const cuckoo_hash_table_allocation_data_t table_data = get_cuckoo_hash_table_allocation_data(map_allocate);
 
   const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
   if (!map_objs.has_value()) {
@@ -120,7 +120,7 @@ std::unique_ptr<Module> DataplaneHHTableAllocateFactory::create(const BDD *bdd, 
     return {};
   }
 
-  return std::make_unique<DataplaneHHTableAllocate>(node, table_data.obj, table_data.key_size, table_data.value_size, table_data.capacity);
+  return std::make_unique<DataplaneCuckooHashTableAllocate>(node, table_data.obj, table_data.key_size, table_data.value_size, table_data.capacity);
 }
 
 } // namespace Controller

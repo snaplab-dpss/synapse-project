@@ -14,6 +14,7 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/DchainTable.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/VectorRegister.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/GuardedMapTable.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/CuckooHashTable.h>
 
 #include <LibCore/Debug.h>
 

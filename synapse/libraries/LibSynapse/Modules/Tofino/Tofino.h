@@ -38,6 +38,7 @@
 #include <LibSynapse/Modules/Tofino/CMSIncrement.h>
 #include <LibSynapse/Modules/Tofino/CMSIncAndQuery.h>
 #include <LibSynapse/Modules/Tofino/LPMLookup.h>
+#include <LibSynapse/Modules/Tofino/CuckooHashTableReadWrite.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -72,7 +73,7 @@ struct TofinoTarget : public Target {
               // f.push_back(std::make_unique<FCFSCachedTableReadWriteFactory>());
               // f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
               // f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>());
-              // f.push_back(std::make_unique<MeterUpdateFactory>());
+              f.push_back(std::make_unique<MeterUpdateFactory>());
               f.push_back(std::make_unique<HHTableReadFactory>());
               f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>());
@@ -82,6 +83,7 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<CMSIncrementFactory>());
               f.push_back(std::make_unique<CMSIncAndQueryFactory>());
               f.push_back(std::make_unique<LPMLookupFactory>());
+              // f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
               return f;
             }(),
             std::make_unique<TofinoContext>(tna_config)) {}

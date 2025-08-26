@@ -49,19 +49,16 @@ bool kvs_cache_lookup(struct State *state, time_ns_t now, enum kvs_op op, kv_key
 
   dchain_rejuvenate_index(state->heap, *index, now);
 
-  switch (op) {
-  case KVS_OP_GET: {
+  if (op == KVS_OP_GET) {
     void *curr_value;
     vector_borrow(state->values, *index, (void **)&curr_value);
     memcpy(value, curr_value, sizeof(kv_value_t));
     vector_return(state->values, *index, curr_value);
-  } break;
-  case KVS_OP_PUT: {
+  } else {
     void *curr_value;
     vector_borrow(state->values, *index, (void **)&curr_value);
     memcpy(curr_value, value, sizeof(kv_value_t));
     vector_return(state->values, *index, curr_value);
-  } break;
   }
 
   return true;

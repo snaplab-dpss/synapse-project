@@ -187,6 +187,11 @@ std::ostream &operator<<(std::ostream &os, const ProfilerNode &node) {
     os << "}";
   }
 
+  if (!node.flows_stats.empty()) {
+    os << ", ";
+    os << "|flows_stats|=" << node.flows_stats.size();
+  }
+
   os << ">";
 
   return os;
@@ -345,7 +350,6 @@ ProfilerNode *Profiler::get_node(const std::vector<klee::ref<klee::Expr>> &const
       }
       std::cerr << "Current constraints:\n";
       std::cerr << "  " << pretty_print_expr(current->constraint, true) << "\n";
-      debug();
       panic("Could find profiler node (invalid constraints).");
     }
 

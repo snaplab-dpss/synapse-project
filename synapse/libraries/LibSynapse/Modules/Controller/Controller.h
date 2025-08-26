@@ -75,6 +75,7 @@
 #include <LibSynapse/Modules/Controller/CMSQuery.h>
 #include <LibSynapse/Modules/Controller/CMSIncrement.h>
 #include <LibSynapse/Modules/Controller/CMSCountMin.h>
+#include <LibSynapse/Modules/Controller/DataplaneCuckooHashTableAllocate.h>
 
 namespace LibSynapse {
 namespace Controller {
@@ -156,6 +157,7 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<CMSQueryFactory>());
               f.push_back(std::make_unique<CMSIncrementFactory>());
               f.push_back(std::make_unique<CMSCountMinFactory>());
+              f.push_back(std::make_unique<DataplaneCuckooHashTableAllocateFactory>());
               return f;
             }(),
             std::make_unique<ControllerContext>()) {}

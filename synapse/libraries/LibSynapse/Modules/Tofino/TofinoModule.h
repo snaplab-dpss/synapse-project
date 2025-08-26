@@ -141,6 +141,15 @@ public:
 
   static LPM *build_lpm(const EP *ep, const BDDNode *node, addr_t obj);
   static bool can_build_lpm(const EP *ep, const BDDNode *node, addr_t obj);
+
+  // ======================================================================
+  //  Cuckoo Hash Table
+  // ======================================================================
+
+  static bool can_build_or_reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity);
+  static CuckooHashTable *build_or_reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity);
+  static hit_rate_t get_cuckoo_hash_table_hit_success_rate(const EP *ep, const Context &ctx, const BDDNode *node, addr_t map,
+                                                           klee::ref<klee::Expr> key, u32 capacity);
 };
 
 } // namespace Tofino

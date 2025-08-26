@@ -58,6 +58,7 @@ enum class ModuleType {
   Tofino_CMSIncrement,
   Tofino_CMSIncAndQuery,
   Tofino_LPMLookup,
+  Tofino_CuckooHashTableReadWrite,
 
   // ========================================
   // Controller
@@ -110,6 +111,7 @@ enum class ModuleType {
   Controller_DataplaneGuardedMapTableGuardCheck,
   Controller_DataplaneCMSAllocate,
   Controller_DataplaneCMSQuery,
+  Controller_DataplaneCuckooHashTableAllocate,
 
   Controller_DchainAllocate,
   Controller_DchainAllocateNewIndex,
@@ -279,6 +281,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_LPMLookup:
     os << "Tofino_LPMLookup";
+    break;
+  case ModuleType::Tofino_CuckooHashTableReadWrite:
+    os << "Tofino_CuckooHashTableReadWrite";
     break;
   case ModuleType::Controller_Ignore:
     os << "Controller_Ignore";
@@ -492,6 +497,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_CMSCountMin:
     os << "Controller_CMSCountMin";
+    break;
+  case ModuleType::Controller_DataplaneCuckooHashTableAllocate:
+    os << "Controller_DataplaneCuckooHashTableAllocate";
     break;
   case ModuleType::x86_Ignore:
     os << "x86_Ignore";

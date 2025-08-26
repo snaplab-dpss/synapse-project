@@ -42,6 +42,7 @@ class CMSQuery;
 class CMSIncrement;
 class CMSIncAndQuery;
 class LPMLookup;
+class CuckooHashTableReadWrite;
 } // namespace Tofino
 
 namespace Controller {
@@ -93,6 +94,7 @@ class DataplaneIntegerAllocatorAllocate;
 class DataplaneIntegerAllocatorFreeIndex;
 class DataplaneCMSAllocate;
 class DataplaneCMSQuery;
+class DataplaneCuckooHashTableAllocate;
 
 class DchainAllocate;
 class DchainAllocateNewIndex;
@@ -205,6 +207,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncrement *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *m) { return Action::doChildren; }
 
   // ========================================
   // Controller
@@ -281,6 +284,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSQuery *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSIncrement *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSCountMin *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCuckooHashTableAllocate *m) { return Action::doChildren; }
 
   // ========================================
   // x86

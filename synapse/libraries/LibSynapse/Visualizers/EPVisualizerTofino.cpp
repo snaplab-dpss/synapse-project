@@ -400,4 +400,6 @@ SHOW_MODULE_NAME(Tofino::CMSQuery)
 SHOW_MODULE_NAME(Tofino::CMSIncrement)
 SHOW_MODULE_NAME(Tofino::CMSIncAndQuery)
 
+SHOW_MODULE_NAME(Tofino::CuckooHashTableReadWrite)
+
 } // namespace LibSynapse

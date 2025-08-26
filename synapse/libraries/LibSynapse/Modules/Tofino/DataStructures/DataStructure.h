@@ -34,6 +34,7 @@ enum class DSType {
   HHTable,
   CountMinSketch,
   LPM,
+  CuckooHashTable,
 };
 
 inline std::string ds_type_to_string(DSType type) {
@@ -66,6 +67,8 @@ inline std::string ds_type_to_string(DSType type) {
     return "CountMinSketch";
   case DSType::LPM:
     return "LPM";
+  case DSType::CuckooHashTable:
+    return "CuckooHashTable";
   }
 }
 

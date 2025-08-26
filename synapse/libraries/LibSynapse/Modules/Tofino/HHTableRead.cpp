@@ -37,7 +37,7 @@ struct hh_table_data_t {
 
 bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
                                      const branch_direction_t &mgsc) {
-  const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, map_get, map, key, capacity);
+  const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, mgsc.branch, map, key, capacity);
 
   assert(mgsc.branch && "No branch checking map_get success");
   const BDDNode *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();

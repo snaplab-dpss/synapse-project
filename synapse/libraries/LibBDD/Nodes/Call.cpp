@@ -260,8 +260,9 @@ branch_direction_t Call::get_map_get_success_check() const {
     return success_check;
   }
 
-  klee::ref<klee::Expr> key = call.args.at("key").in;
-  symbol_t map_has_this_key = get_local_symbol("map_has_this_key");
+  klee::ref<klee::Expr> key       = call.args.at("key").in;
+  const symbol_t map_has_this_key = get_local_symbol("map_has_this_key");
+
   klee::ref<klee::Expr> key_not_found_cond =
       solver_toolbox.exprBuilder->Eq(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
 
@@ -273,11 +274,11 @@ branch_direction_t Call::get_map_get_success_check() const {
     const Branch *branch            = dynamic_cast<const Branch *>(node);
     klee::ref<klee::Expr> condition = branch->get_condition();
 
-    bool is_key_not_found_cond     = solver_toolbox.are_exprs_always_equal(condition, key_not_found_cond);
-    bool is_not_key_not_found_cond = solver_toolbox.are_exprs_always_equal(solver_toolbox.exprBuilder->Not(condition), key_not_found_cond);
+    const bool is_key_not_found_cond     = solver_toolbox.are_exprs_always_equal(condition, key_not_found_cond);
+    const bool is_not_key_not_found_cond = solver_toolbox.are_exprs_always_equal(solver_toolbox.exprBuilder->Not(condition), key_not_found_cond);
 
     if (!is_key_not_found_cond && !is_not_key_not_found_cond) {
-      return BDDNodeVisitAction::SkipChildren;
+      return BDDNodeVisitAction::Continue;
     }
 
     success_check.branch    = branch;

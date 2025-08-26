@@ -314,6 +314,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Tofino_CMSQuery:
     case ModuleType::Tofino_CMSIncrement:
     case ModuleType::Tofino_CMSIncAndQuery:
+    case ModuleType::Tofino_CuckooHashTableReadWrite:
     case ModuleType::Controller_Ignore:
     case ModuleType::Controller_ParseHeader:
     case ModuleType::Controller_ModifyHeader:
@@ -359,6 +360,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_DataplaneMeterAllocate:
     case ModuleType::Controller_DataplaneMeterInsert:
     case ModuleType::Controller_DataplaneCMSAllocate:
+    case ModuleType::Controller_DataplaneCuckooHashTableAllocate:
     case ModuleType::Controller_DataplaneCMSQuery:
     case ModuleType::Controller_DchainAllocate:
     case ModuleType::Controller_DchainAllocateNewIndex:

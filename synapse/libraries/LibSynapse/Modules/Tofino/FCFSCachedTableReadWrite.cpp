@@ -95,7 +95,7 @@ void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, BDD *bdd, con
 
 std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, const BDDNode *on_success, const map_coalescing_objs_t &map_objs,
                                                                klee::ref<klee::Expr> key) {
-  std::vector<const Call *> coalescing_nodes = on_success->get_coalescing_nodes_from_key(key, map_objs);
+  const std::vector<const Call *> coalescing_nodes = on_success->get_coalescing_nodes_from_key(key, map_objs);
 
   std::vector<const BDDNode *> nodes_to_ignore;
   for (const Call *coalescing_node : coalescing_nodes) {
@@ -329,7 +329,6 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
 
   std::vector<const BDDNode *> ignore_nodes = get_nodes_to_speculatively_ignore(ep, map_get, map_objs.value(), cached_table_data.key);
-
   for (const BDDNode *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
   }
