@@ -7,7 +7,6 @@
 
 namespace LibClone {
 class PhysicalNetwork;
-
 } // namespace LibClone
 
 namespace LibSynapse {

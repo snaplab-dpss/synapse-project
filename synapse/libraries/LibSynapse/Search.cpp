@@ -182,7 +182,7 @@ search_report_t SearchEngine::search() {
       for (const std::unique_ptr<ModuleFactory> &factory : target->module_factories) {
         std::vector<impl_t> implementations = factory->implement(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
 
-        if (target->type == TargetType::Tofino) {
+        if (target->type.type == TargetArchitecture::Tofino) {
           children += implementations.size();
         }
 

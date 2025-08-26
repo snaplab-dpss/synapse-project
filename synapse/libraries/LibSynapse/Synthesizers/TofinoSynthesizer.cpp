@@ -1487,7 +1487,7 @@ void TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const Module *module = ep_node->get_module();
-  if (module->get_target() == TargetType::Tofino) {
+  if (module->get_target().type == TargetArchitecture::Tofino) {
     ingress_apply.indent();
     ingress_apply << "// EP node  " << ep_node->get_id() << ":" << module->get_name() << "\n";
     ingress_apply.indent();

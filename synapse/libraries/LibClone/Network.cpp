@@ -474,6 +474,10 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
     store_cloned_and_translated_init_symbols(bdd, root, nf->get_bdd().get_init());
     translate_symbols(bdd.get_mutable_symbol_manager(), root);
   } break;
+  case NetworkNodeType::Device: {
+    panic("Consolidation file contains a device node, which is not supported");
+    break;
+  }
   }
 
   assert(root && "Root node should not be null");
@@ -638,6 +642,10 @@ ClusterViz Network::build_clusterviz() const {
       case NetworkNodeType::NF: {
         nf_clusters.at(node->get_nf()->get_id()).nodes.insert(source_cluster_node);
       } break;
+      case NetworkNodeType::Device: {
+        panic("Consolidation file contains a device node, which is not supported");
+        break;
+      }
       }
 
       const Port destination_port         = destination.first;
@@ -651,6 +659,10 @@ ClusterViz Network::build_clusterviz() const {
       case NetworkNodeType::NF: {
         nf_clusters.at(destination_node->get_nf()->get_id()).nodes.insert(destination_cluster_node);
       } break;
+      case NetworkNodeType::Device: {
+        panic("Consolidation file contains a device node, which is not supported");
+        break;
+      }
       }
 
       Edge edge(source_cluster_node.id, destination_cluster_node.id);
