@@ -136,7 +136,8 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
 SearchEngine::SearchEngine(const BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler, const targets_config_t &_targets_config,
                            const search_config_t &_search_config, const LibClone::PhysicalNetwork &_physical_network)
     : targets_config(_targets_config), search_config(_search_config), bdd(_bdd), targets(Targets(_targets_config, _physical_network)),
-      profiler(_profiler), heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
+      profiler(_profiler), heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)),
+      physical_network(_physical_network) {}
 
 search_report_t SearchEngine::search() {
   const auto start_search                   = std::chrono::steady_clock::now();

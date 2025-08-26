@@ -8,13 +8,11 @@
 #include <LibBDD/BDD.h>
 #include <LibCore/Types.h>
 
+#include <LibClone/PhysicalNetwork.h>
+
 #include <memory>
 #include <vector>
 #include <unordered_set>
-
-namespace LibClone {
-class PhysicalNetwork;
-} // namespace LibClone
 
 namespace LibSynapse {
 
@@ -71,7 +69,7 @@ private:
   Profiler profiler;
   std::unique_ptr<Heuristic> heuristic;
 
-  LibClone::PhysicalNetwork physical_network;
+  const LibClone::PhysicalNetwork &physical_network;
 
 public:
   SearchEngine(const BDD &bdd, HeuristicOption hopt, const Profiler &profiler, const targets_config_t &targets_config,
