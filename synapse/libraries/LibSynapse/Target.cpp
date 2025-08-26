@@ -9,6 +9,10 @@
 
 #include <sstream>
 
+namespace LibClone {
+class PhysicalNetwork;
+}
+
 namespace LibSynapse {
 
 targets_config_t::targets_config_t(const std::filesystem::path &targets_config_file) {

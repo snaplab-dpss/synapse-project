@@ -12,10 +12,10 @@ using LibCore::Graphviz::Node;
 using LibCore::Graphviz::Shape;
 
 namespace {
-const std::unordered_map<TargetType, Color> node_colors = {
-    {TargetType::Tofino, Color::Literal::CornflowerBlue},
-    {TargetType::Controller, Color::Literal::LightCoral},
-    {TargetType::x86, Color::Literal::Orange},
+const std::unordered_map<TargetArchitecture, Color> node_colors = {
+    {TargetArchitecture::Tofino, Color::Literal::CornflowerBlue},
+    {TargetArchitecture::Controller, Color::Literal::LightCoral},
+    {TargetArchitecture::x86, Color::Literal::Orange},
 };
 
 const Color selected_color = Color::Literal::Chartreuse1;
@@ -102,7 +102,7 @@ void SSViz::dump_to_file(const SearchSpace *search_space, const EP *highlight, c
 
 void SSViz::visit_definitions(const SSNode *ssnode) {
   std::stringstream label;
-  label << "<table bgcolor=\"" << node_colors.at(ssnode->target) << "\"";
+  label << "<table bgcolor=\"" << node_colors.at(ssnode->target.type) << "\"";
   if (should_highlight(ssnode, highlight)) {
     label << " border=\"4\"";
     label << " color=\"" << selected_color << "\"";
@@ -165,7 +165,7 @@ void SSViz::visit_definitions(const SSNode *ssnode) {
   Node tree_node  = treeviz.get_default_node();
   tree_node.id    = std::to_string(ssnode->node_id);
   tree_node.label = label.str();
-  tree_node.color = node_colors.at(ssnode->target);
+  tree_node.color = node_colors.at(ssnode->target.type);
   treeviz.add_node(tree_node);
 
   for (const SSNode *next : ssnode->children) {
