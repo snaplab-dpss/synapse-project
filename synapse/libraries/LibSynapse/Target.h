@@ -5,6 +5,11 @@
 #include <memory>
 #include <vector>
 
+namespace LibClone {
+class PhysicalNetwork;
+
+} // namespace LibClone
+
 namespace LibSynapse {
 
 class ModuleFactory;
@@ -66,7 +71,7 @@ struct TargetsView {
 struct Targets {
   std::vector<std::unique_ptr<Target>> elements;
 
-  Targets(const targets_config_t &config);
+  Targets(const targets_config_t &config, const LibClone::PhysicalNetwork &physical_network);
   Targets(const Targets &other) = delete;
   Targets(Targets &&other)      = delete;
 

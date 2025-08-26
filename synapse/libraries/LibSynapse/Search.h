@@ -12,6 +12,10 @@
 #include <vector>
 #include <unordered_set>
 
+namespace LibClone {
+class PhysicalNetwork;
+} // namespace LibClone
+
 namespace LibSynapse {
 
 struct search_meta_t {
@@ -67,9 +71,11 @@ private:
   Profiler profiler;
   std::unique_ptr<Heuristic> heuristic;
 
+  LibClone::PhysicalNetwork physical_network;
+
 public:
   SearchEngine(const BDD &bdd, HeuristicOption hopt, const Profiler &profiler, const targets_config_t &targets_config,
-               const search_config_t &search_config);
+               const search_config_t &search_config, const LibClone::PhysicalNetwork &physical_network);
 
   SearchEngine(const SearchEngine &)            = delete;
   SearchEngine(SearchEngine &&)                 = delete;
