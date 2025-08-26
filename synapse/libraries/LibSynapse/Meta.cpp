@@ -29,9 +29,9 @@ void EPMeta::update(const EPLeaf &leaf, const EPNode *new_node, bool should_proc
     module_counter_it->second++;
   }
 
-  auto steps_per_target_it = steps_per_target.find(target);
+  auto steps_per_target_it = steps_per_target.find(target.type);
   if (steps_per_target_it == steps_per_target.end()) {
-    steps_per_target[target] = 1;
+    steps_per_target[target.type] = 1;
   } else {
     steps_per_target_it->second++;
   }
