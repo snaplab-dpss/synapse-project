@@ -15,7 +15,7 @@ namespace LibClone {
 using Port          = u32;
 using NetworkNodeId = std::string;
 
-enum class NetworkNodeType { GLOBAL_PORT, NF };
+enum class NetworkNodeType { GLOBAL_PORT, NF, DEVICE };
 
 class NetworkNode {
 private:

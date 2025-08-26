@@ -162,13 +162,13 @@ TargetView TargetsView::get_initial_target() const {
 Targets::Targets(const targets_config_t &targets_config, const LibClone::PhysicalNetwork &physical_network) {
   for (const auto &[_, device] : physical_network.get_devices()) {
     switch (device->get_architecture()) {
-    case TargetType::Tofino: {
+    case TargetArchitecture::Tofino: {
       elements.push_back(std::make_unique<Tofino::TofinoTarget>(targets_config.tofino_config, device->get_id()));
     } break;
-    case TargetType::Controller: {
+    case TargetArchitecture::Controller: {
       elements.push_back(std::make_unique<Controller::ControllerTarget>(device->get_id()));
     } break;
-    case TargetType::x86: {
+    case TargetArchitecture::x86: {
       elements.push_back(std::make_unique<x86::x86Target>(device->get_id()));
     } break;
     default: {

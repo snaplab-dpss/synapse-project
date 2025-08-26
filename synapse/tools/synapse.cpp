@@ -13,6 +13,7 @@
 using namespace LibCore;
 using namespace LibBDD;
 using namespace LibSynapse;
+using namespace LibClone;
 
 std::string nf_name_from_bdd(const std::string &bdd_fname) {
   std::string nf_name = bdd_fname;
@@ -41,7 +42,7 @@ struct args_t {
 
   void print() const {
     const targets_config_t targets_config(targets_config_file);
-    const Targets targets(targets_config);
+    const Targets targets(targets_config, LibClone::PhysicalNetwork::parse(physical_infrastructure_file));
 
     std::cout << "====================== Args ======================\n";
     std::cout << "Input BDD file:       " << input_bdd_file.string() << "\n";
@@ -165,7 +166,7 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   out_hr_report << "  Seed:               " << args.seed << "\n";
   out_hr_report << "  Targets:\n";
   const targets_config_t targets_config(args.targets_config_file);
-  const Targets targets(targets_config);
+  const Targets targets(targets_config, LibClone::PhysicalNetwork::parse(args.physical_infrastructure_file));
   for (const TargetView &target : targets.get_view().elements) {
     out_hr_report << "    " << target.type << " (" << target.module_factories.size() << " modules)\n";
   }
@@ -276,9 +277,9 @@ int main(int argc, char **argv) {
     ProfilerViz::visualize(&bdd, profiler, true);
   }
 
-  const LibClone::PhysicalNetwork physical_network = Libclone::PhysicalNetwork::parse(args.physical_infrastructure_file);
+  const LibClone::PhysicalNetwork physical_network = LibClone::PhysicalNetwork::parse(args.physical_infrastructure_file);
 
-  SearchEngine engine(bdd, args.heuristic_opt, profiler, targets_config, args.search_config, LibClone::Physicaargs.physical_infrastructure_file);
+  SearchEngine engine(bdd, args.heuristic_opt, profiler, targets_config, args.search_config, physical_network);
   const search_report_t report = engine.search();
 
   if (args.show_ep) {
