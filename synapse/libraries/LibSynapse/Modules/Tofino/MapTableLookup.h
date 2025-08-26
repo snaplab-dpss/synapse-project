@@ -15,15 +15,14 @@ private:
   std::optional<symbol_t> hit;
 
 public:
-  MapTableLookup(const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _original_key, const std::vector<klee::ref<klee::Expr>> &_keys,
-                 klee::ref<klee::Expr> _value, std::optional<symbol_t> _hit)
-      : TofinoModule(ModuleType::Tofino_MapTableLookup, "MapTableLookup", _node), id(_id), obj(_obj), original_key(_original_key), keys(_keys),
-        value(_value), hit(_hit) {}
+  MapTableLookup(ModuleType _type, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _original_key,
+                 const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value, std::optional<symbol_t> _hit)
+      : TofinoModule(_type, "MapTableLookup", _node), id(_id), obj(_obj), original_key(_original_key), keys(_keys), value(_value), hit(_hit) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new MapTableLookup(node, id, obj, original_key, keys, value, hit);
+    Module *cloned = new MapTableLookup(type, node, id, obj, original_key, keys, value, hit);
     return cloned;
   }
 
@@ -39,7 +38,8 @@ public:
 
 class MapTableLookupFactory : public TofinoModuleFactory {
 public:
-  MapTableLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_MapTableLookup, "MapTableLookup") {}
+  MapTableLookupFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_MapTableLookup, _instance_id), "MapTableLookup") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

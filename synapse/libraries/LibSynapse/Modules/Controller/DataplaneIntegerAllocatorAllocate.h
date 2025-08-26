@@ -11,14 +11,13 @@ private:
   klee::ref<klee::Expr> index_range;
 
 public:
-  DataplaneIntegerAllocatorAllocate(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index_range)
-      : ControllerModule(ModuleType::Controller_DataplaneIntegerAllocatorAllocate, "DataplaneIntegerAllocatorAllocate", _node),
-        dchain_addr(_dchain_addr), index_range(_index_range) {}
+  DataplaneIntegerAllocatorAllocate(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index_range)
+      : ControllerModule(_type, "DataplaneIntegerAllocatorAllocate", _node), dchain_addr(_dchain_addr), index_range(_index_range) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneIntegerAllocatorAllocate(node, dchain_addr, index_range);
+    Module *cloned = new DataplaneIntegerAllocatorAllocate(type, node, dchain_addr, index_range);
     return cloned;
   }
 
@@ -28,8 +27,9 @@ public:
 
 class DataplaneIntegerAllocatorAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneIntegerAllocatorAllocateFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneIntegerAllocatorAllocate, "DataplaneIntegerAllocatorAllocate") {}
+  DataplaneIntegerAllocatorAllocateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneIntegerAllocatorAllocate, _instance_id),
+                                "DataplaneIntegerAllocatorAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

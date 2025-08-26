@@ -72,7 +72,7 @@ std::vector<impl_t> DataplaneDchainTableRefreshIndexFactory::process_node(const 
     return {};
   }
 
-  Module *module  = new DataplaneDchainTableRefreshIndex(node, data.obj, data.index);
+  Module *module  = new DataplaneDchainTableRefreshIndex(type, node, data.obj, data.index);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -103,7 +103,7 @@ std::unique_ptr<Module> DataplaneDchainTableRefreshIndexFactory::create(const BD
     return {};
   }
 
-  return std::make_unique<DataplaneDchainTableRefreshIndex>(node, data.obj, data.index);
+  return std::make_unique<DataplaneDchainTableRefreshIndex>(type, node, data.obj, data.index);
 }
 
 } // namespace Controller

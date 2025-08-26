@@ -13,15 +13,14 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneHHTableAllocate(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _value_size,
+  DataplaneHHTableAllocate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _value_size,
                            klee::ref<klee::Expr> _capacity)
-      : ControllerModule(ModuleType::Controller_DataplaneHHTableAllocate, "DataplaneHHTableAllocate", _node), obj(_obj), key_size(_key_size),
-        value_size(_value_size), capacity(_capacity) {}
+      : ControllerModule(_type, "DataplaneHHTableAllocate", _node), obj(_obj), key_size(_key_size), value_size(_value_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneHHTableAllocate(node, obj, key_size, value_size, capacity);
+    Module *cloned = new DataplaneHHTableAllocate(type, node, obj, key_size, value_size, capacity);
     return cloned;
   }
 
@@ -33,7 +32,8 @@ public:
 
 class DataplaneHHTableAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneHHTableAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_DataplaneHHTableAllocate, "DataplaneHHTableAllocate") {}
+  DataplaneHHTableAllocateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneHHTableAllocate, _instance_id), "DataplaneHHTableAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

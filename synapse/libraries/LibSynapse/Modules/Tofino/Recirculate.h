@@ -27,7 +27,8 @@ public:
 
 class RecirculateFactory : public TofinoModuleFactory {
 public:
-  RecirculateFactory() : TofinoModuleFactory(ModuleType::Tofino_Recirculate, "Recirculate") {}
+  RecirculateFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_Recirculate, _instance_id), "Recirculate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

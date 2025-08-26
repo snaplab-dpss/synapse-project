@@ -64,7 +64,7 @@ std::vector<impl_t> DchainAllocateNewIndexFactory::process_node(const EP *ep, co
     return {};
   }
 
-  Module *module  = new DchainAllocateNewIndex(node, dchain_addr, time, index_out, not_out_of_space);
+  Module *module  = new DchainAllocateNewIndex(type, node, dchain_addr, time, index_out, not_out_of_space);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -98,7 +98,7 @@ std::unique_ptr<Module> DchainAllocateNewIndexFactory::create(const BDD *bdd, co
     return {};
   }
 
-  return std::make_unique<DchainAllocateNewIndex>(node, dchain_addr, time, index_out, not_out_of_space);
+  return std::make_unique<DchainAllocateNewIndex>(type, node, dchain_addr, time, index_out, not_out_of_space);
 }
 
 } // namespace x86

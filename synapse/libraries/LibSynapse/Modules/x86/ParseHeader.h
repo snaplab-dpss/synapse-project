@@ -12,13 +12,13 @@ private:
   klee::ref<klee::Expr> length;
 
 public:
-  ParseHeader(const BDDNode *_node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
-      : x86Module(ModuleType::x86_ParseHeader, "ParseHeader", _node), chunk_addr(_chunk_addr), chunk(_chunk), length(_length) {}
+  ParseHeader(ModuleType _type, const BDDNode *_node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
+      : x86Module(_type, "ParseHeader", _node), chunk_addr(_chunk_addr), chunk(_chunk), length(_length) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    ParseHeader *cloned = new ParseHeader(node, chunk_addr, chunk, length);
+    ParseHeader *cloned = new ParseHeader(type, node, chunk_addr, chunk, length);
     return cloned;
   }
 
@@ -29,7 +29,7 @@ public:
 
 class ParseHeaderFactory : public x86ModuleFactory {
 public:
-  ParseHeaderFactory() : x86ModuleFactory(ModuleType::x86_ParseHeader, "ParseHeader") {}
+  ParseHeaderFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_ParseHeader, _instance_id), "ParseHeader") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

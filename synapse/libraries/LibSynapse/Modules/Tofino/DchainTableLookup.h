@@ -18,13 +18,13 @@ private:
   std::optional<symbol_t> hit;
 
 public:
-  DchainTableLookup(const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key, std::optional<symbol_t> _hit)
-      : TofinoModule(ModuleType::Tofino_DchainTableLookup, "DchainTableLookup", _node), id(_id), obj(_obj), key(_key), hit(_hit) {}
+  DchainTableLookup(ModuleType _type, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key, std::optional<symbol_t> _hit)
+      : TofinoModule(_type, "DchainTableLookup", _node), id(_id), obj(_obj), key(_key), hit(_hit) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DchainTableLookup(node, id, obj, key, hit);
+    Module *cloned = new DchainTableLookup(type, node, id, obj, key, hit);
     return cloned;
   }
 
@@ -38,7 +38,8 @@ public:
 
 class DchainTableLookupFactory : public TofinoModuleFactory {
 public:
-  DchainTableLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_DchainTableLookup, "DchainTableLookup") {}
+  DchainTableLookupFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_DchainTableLookup, _instance_id), "DchainTableLookup") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

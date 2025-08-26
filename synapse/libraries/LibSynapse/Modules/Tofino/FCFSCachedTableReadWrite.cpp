@@ -194,7 +194,10 @@ std::unique_ptr<EP> concretize_cached_table_cond_write(const EP *ep, const BDDNo
 
   klee::ref<klee::Expr> cache_write_success_condition = build_cache_write_success_condition(cache_write_failed);
 
-  Module *module = new FCFSCachedTableReadWrite(node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj,
+  const std::string &instance_id = ep->get_active_target().instance_id;
+  ModuleType type                = ModuleType(ModuleCategory::Tofino_FCFSCachedTableReadWrite, instance_id);
+
+  Module *module = new FCFSCachedTableReadWrite(type, node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj,
                                                 fcfs_cached_table_data.key, fcfs_cached_table_data.read_value, fcfs_cached_table_data.write_value,
                                                 fcfs_cached_table_data.map_has_this_key, cache_write_failed);
   EPNode *cached_table_cond_write_node = new EPNode(module);
@@ -210,12 +213,12 @@ std::unique_ptr<EP> concretize_cached_table_cond_write(const EP *ep, const BDDNo
       branch_bdd_on_cache_write_success(new_ep.get(), node, fcfs_cached_table_data, cache_write_success_condition, map_objs, on_cache_write_success,
                                         on_cache_write_failed, deleted_branch_constraints);
 
-  Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
+  Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node, ep->get_active_target());
 
-  Module *if_module                 = new If(node, cache_write_success_condition, {cache_write_success_condition});
-  Module *then_module               = new Then(node);
-  Module *else_module               = new Else(node);
-  Module *send_to_controller_module = new SendToController(on_cache_write_failed, symbols);
+  Module *if_module                 = new If(type, node, cache_write_success_condition, {cache_write_success_condition});
+  Module *then_module               = new Then(type, node);
+  Module *else_module               = new Else(type, node);
+  Module *send_to_controller_module = new SendToController(type, on_cache_write_failed, symbols);
 
   EPNode *if_node                 = new EPNode(if_module);
   EPNode *then_node               = new EPNode(then_module);
@@ -408,7 +411,7 @@ std::unique_ptr<Module> FCFSCachedTableReadWriteFactory::create(const BDD *bdd, 
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedTableReadWrite>(node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id, cached_table_data.obj,
+  return std::make_unique<FCFSCachedTableReadWrite>(type, node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id, cached_table_data.obj,
                                                     cached_table_data.key, cached_table_data.read_value, cached_table_data.write_value,
                                                     cached_table_data.map_has_this_key, mock_cache_write_failed);
 }

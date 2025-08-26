@@ -221,7 +221,7 @@ std::unique_ptr<Module> HHTableReadFactory::create(const BDD *bdd, const Context
   assert(ds.size() == 1 && "Expected exactly one DS");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(*ds.begin());
 
-  return std::make_unique<HHTableRead>(node, hh_table->id, table_data.obj, table_data.key, table_data.table_keys, table_data.read_value,
+  return std::make_unique<HHTableRead>(type, node, hh_table->id, table_data.obj, table_data.key, table_data.table_keys, table_data.read_value,
                                        table_data.map_has_this_key);
 }
 

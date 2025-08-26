@@ -58,7 +58,7 @@ std::vector<impl_t> MapGetFactory::process_node(const EP *ep, const BDDNode *nod
     return {};
   }
 
-  Module *module  = new MapGet(node, map_addr, key_addr, key, value_out, success, map_has_this_key);
+  Module *module  = new MapGet(type, node, map_addr, key_addr, key, value_out, success, map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -99,7 +99,7 @@ std::unique_ptr<Module> MapGetFactory::create(const BDD *bdd, const Context &ctx
     return {};
   }
 
-  return std::make_unique<MapGet>(node, map_addr, key_addr, key, value_out, success, map_has_this_key);
+  return std::make_unique<MapGet>(type, node, map_addr, key_addr, key, value_out, success, map_has_this_key);
 }
 
 } // namespace Controller

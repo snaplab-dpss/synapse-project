@@ -122,7 +122,10 @@ std::unique_ptr<EP> concretize_cached_table_delete(const EP *ep, const Call *map
 
   klee::ref<klee::Expr> cache_delete_success_condition = build_cache_delete_success_condition(cache_delete_failed);
 
-  Module *module = new FCFSCachedTableDelete(map_erase, cached_table->id, cached_table_data.obj, cached_table_data.key, cache_delete_failed);
+  const std::string &instance_id = ep->get_active_target().instance_id;
+  ModuleType type                = ModuleType(ModuleCategory::Tofino_FCFSCachedTableReadWrite, instance_id);
+
+  Module *module = new FCFSCachedTableDelete(type, map_erase, cached_table->id, cached_table_data.obj, cached_table_data.key, cache_delete_failed);
   EPNode *cached_table_delete_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -134,12 +137,12 @@ std::unique_ptr<EP> concretize_cached_table_delete(const EP *ep, const Call *map
   std::unique_ptr<BDD> new_bdd = branch_bdd_on_cache_delete_success(new_ep.get(), map_erase, cached_table_data, cache_delete_success_condition,
                                                                     on_cache_delete_success, on_cache_delete_failed, deleted_branch_constraints);
 
-  Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, map_erase);
+  Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, map_erase, ep->get_active_target());
 
-  Module *if_module                 = new If(map_erase, cache_delete_success_condition, {cache_delete_success_condition});
-  Module *then_module               = new Then(map_erase);
-  Module *else_module               = new Else(map_erase);
-  Module *send_to_controller_module = new SendToController(on_cache_delete_failed, symbols);
+  Module *if_module                 = new If(type, map_erase, cache_delete_success_condition, {cache_delete_success_condition});
+  Module *then_module               = new Then(type, map_erase);
+  Module *else_module               = new Else(type, map_erase);
+  Module *send_to_controller_module = new SendToController(type, on_cache_delete_failed, symbols);
 
   EPNode *if_node                 = new EPNode(if_module);
   EPNode *then_node               = new EPNode(then_module);
@@ -332,7 +335,8 @@ std::unique_ptr<Module> FCFSCachedTableDeleteFactory::create(const BDD *bdd, con
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedTableDelete>(node, fcfs_cached_table->id, cached_table_data.obj, cached_table_data.key, mock_cache_delete_failed);
+  return std::make_unique<FCFSCachedTableDelete>(type, node, fcfs_cached_table->id, cached_table_data.obj, cached_table_data.key,
+                                                 mock_cache_delete_failed);
 }
 
 } // namespace Tofino

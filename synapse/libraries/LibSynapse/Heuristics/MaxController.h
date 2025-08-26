@@ -39,7 +39,7 @@ public:
 private:
   size_t get_tofino_nodes(const EP *ep) const {
     const EPMeta &meta   = ep->get_meta();
-    auto tofino_nodes_it = meta.steps_per_target.find(TargetType::Tofino);
+    auto tofino_nodes_it = meta.steps_per_target.find(TargetArchitecture::Tofino);
     if (tofino_nodes_it != meta.steps_per_target.end()) {
       return tofino_nodes_it->second;
     }
@@ -48,7 +48,7 @@ private:
 
   size_t get_total_send_to_controller_nodes(const EP *ep) const {
     const EPMeta &meta                 = ep->get_meta();
-    auto send_to_controller_counter_it = meta.modules_counter.find(ModuleType::Tofino_SendToController);
+    auto send_to_controller_counter_it = meta.modules_counter.find(ModuleCategory::Tofino_SendToController);
     if (send_to_controller_counter_it != meta.modules_counter.end()) {
       return send_to_controller_counter_it->second;
     }

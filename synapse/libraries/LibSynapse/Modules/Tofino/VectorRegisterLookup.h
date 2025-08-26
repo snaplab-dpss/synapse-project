@@ -13,13 +13,13 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorRegisterLookup(const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
-      : TofinoModule(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup", _node), id(_id), obj(_obj), index(_index), value(_value) {}
+  VectorRegisterLookup(ModuleType _type, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
+      : TofinoModule(_type, "VectorRegisterLookup", _node), id(_id), obj(_obj), index(_index), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorRegisterLookup(node, id, obj, index, value);
+    Module *cloned = new VectorRegisterLookup(type, node, id, obj, index, value);
     return cloned;
   }
 
@@ -33,7 +33,8 @@ public:
 
 class VectorRegisterLookupFactory : public TofinoModuleFactory {
 public:
-  VectorRegisterLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_VectorRegisterLookup, "VectorRegisterLookup") {}
+  VectorRegisterLookupFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_VectorRegisterLookup, _instance_id), "VectorRegisterLookup") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

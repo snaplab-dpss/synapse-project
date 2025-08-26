@@ -74,7 +74,7 @@ std::unique_ptr<Module> DataplaneCMSAllocateFactory::create(const BDD *bdd, cons
     return {};
   }
 
-  return std::make_unique<DataplaneCMSAllocate>(node, data.obj, data.height, data.width, data.key_size, data.cleanup_internal);
+  return std::make_unique<DataplaneCMSAllocate>(type, node, data.obj, data.height, data.width, data.key_size, data.cleanup_internal);
 }
 
 } // namespace Controller

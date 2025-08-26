@@ -14,13 +14,13 @@ private:
   std::vector<expr_mod_t> changes;
 
 public:
-  ModifyHeader(const BDDNode *_node, addr_t _chunk_addr, const std::vector<expr_mod_t> &_changes)
-      : x86Module(ModuleType::x86_ModifyHeader, "ModifyHeader", _node), chunk_addr(_chunk_addr), changes(_changes) {}
+  ModifyHeader(ModuleType _type, const BDDNode *_node, addr_t _chunk_addr, const std::vector<expr_mod_t> &_changes)
+      : x86Module(_type, "ModifyHeader", _node), chunk_addr(_chunk_addr), changes(_changes) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    ModifyHeader *cloned = new ModifyHeader(node, chunk_addr, changes);
+    ModifyHeader *cloned = new ModifyHeader(type, node, chunk_addr, changes);
     return cloned;
   }
 
@@ -30,7 +30,8 @@ public:
 
 class ModifyHeaderFactory : public x86ModuleFactory {
 public:
-  ModifyHeaderFactory() : x86ModuleFactory(ModuleType::x86_ModifyHeader, "ModifyHeader") {}
+  ModifyHeaderFactory(const std::string &_instance_id)
+      : x86ModuleFactory(ModuleType(ModuleCategory::x86_ModifyHeader, _instance_id), "ModifyHeader") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -11,13 +11,13 @@ private:
   klee::ref<klee::Expr> time;
 
 public:
-  TokenBucketExpire(const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
-      : ControllerModule(ModuleType::Controller_TokenBucketExpire, "TokenBucketExpire", _node), tb_addr(_tb_addr), time(_time) {}
+  TokenBucketExpire(ModuleType _type, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
+      : ControllerModule(_type, "TokenBucketExpire", _node), tb_addr(_tb_addr), time(_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new TokenBucketExpire(node, tb_addr, time);
+    Module *cloned = new TokenBucketExpire(type, node, tb_addr, time);
     return cloned;
   }
 
@@ -27,7 +27,8 @@ public:
 
 class TokenBucketExpireFactory : public ControllerModuleFactory {
 public:
-  TokenBucketExpireFactory() : ControllerModuleFactory(ModuleType::Controller_TokenBucketExpire, "TokenBucketExpire") {}
+  TokenBucketExpireFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_TokenBucketExpire, _instance_id), "TokenBucketExpire") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -7,19 +7,19 @@ namespace x86 {
 
 class Drop : public x86Module {
 public:
-  Drop(const BDDNode *_node) : x86Module(ModuleType::x86_Drop, "Drop", _node) {}
+  Drop(ModuleType _type, const BDDNode *_node) : x86Module(_type, "Drop", _node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    Drop *cloned = new Drop(node);
+    Drop *cloned = new Drop(type, node);
     return cloned;
   }
 };
 
 class DropFactory : public x86ModuleFactory {
 public:
-  DropFactory() : x86ModuleFactory(ModuleType::x86_Drop, "Drop") {}
+  DropFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_Drop, _instance_id), "Drop") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -14,15 +14,15 @@ private:
   time_ns_t cleanup_internal;
 
 public:
-  DataplaneCMSAllocate(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
+  DataplaneCMSAllocate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
                        klee::ref<klee::Expr> _key_size, time_ns_t _cleanup_internal)
-      : ControllerModule(ModuleType::Controller_DataplaneCMSAllocate, "DataplaneCMSAllocate", _node), obj(_obj), height(_height), width(_width),
-        key_size(_key_size), cleanup_internal(_cleanup_internal) {}
+      : ControllerModule(_type, "DataplaneCMSAllocate", _node), obj(_obj), height(_height), width(_width), key_size(_key_size),
+        cleanup_internal(_cleanup_internal) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneCMSAllocate(node, obj, height, width, key_size, cleanup_internal);
+    Module *cloned = new DataplaneCMSAllocate(type, node, obj, height, width, key_size, cleanup_internal);
     return cloned;
   }
 
@@ -35,7 +35,8 @@ public:
 
 class DataplaneCMSAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneCMSAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_DataplaneCMSAllocate, "DataplaneCMSAllocate") {}
+  DataplaneCMSAllocateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneCMSAllocate, _instance_id), "DataplaneCMSAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -53,7 +53,7 @@ std::vector<impl_t> ChtAllocateFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  Module *module  = new ChtAllocate(node, cht_addr, cht_height, capacity);
+  Module *module  = new ChtAllocate(type, node, cht_addr, cht_height, capacity);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -90,7 +90,7 @@ std::unique_ptr<Module> ChtAllocateFactory::create(const BDD *bdd, const Context
     return {};
   }
 
-  return std::make_unique<ChtAllocate>(node, cht_addr, cht_height, capacity);
+  return std::make_unique<ChtAllocate>(type, node, cht_addr, cht_height, capacity);
 }
 
 } // namespace Controller

@@ -71,7 +71,7 @@ std::unique_ptr<Module> DataplaneDchainTableAllocateFactory::create(const BDD *b
     return {};
   }
 
-  return std::make_unique<DataplaneDchainTableAllocate>(node, data.obj, data.key_size, data.capacity, data.expiration_time);
+  return std::make_unique<DataplaneDchainTableAllocate>(type, node, data.obj, data.key_size, data.capacity, data.expiration_time);
 }
 
 } // namespace Controller

@@ -85,7 +85,7 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const BDDNod
   if (changes.empty()) {
     new_ep->process_leaf(node->get_next());
   } else {
-    Module *module  = new ModifyHeader(node, hdr_addr, borrowed, changes, swaps);
+    Module *module  = new ModifyHeader(type, node, hdr_addr, borrowed, changes, swaps);
     EPNode *ep_node = new EPNode(module);
     EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
@@ -118,7 +118,7 @@ std::unique_ptr<Module> ModifyHeaderFactory::create(const BDD *bdd, const Contex
     return {};
   }
 
-  return std::make_unique<ModifyHeader>(node, hdr_addr, borrowed, changes, swaps);
+  return std::make_unique<ModifyHeader>(type, node, hdr_addr, borrowed, changes, swaps);
 }
 
 } // namespace Tofino

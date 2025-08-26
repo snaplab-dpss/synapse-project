@@ -50,7 +50,7 @@ std::vector<impl_t> DchainAllocateFactory::process_node(const EP *ep, const BDDN
     return {};
   }
 
-  Module *module  = new DchainAllocate(node, dchain_addr);
+  Module *module  = new DchainAllocate(type, node, dchain_addr);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -84,7 +84,7 @@ std::unique_ptr<Module> DchainAllocateFactory::create(const BDD *bdd, const Cont
     return {};
   }
 
-  return std::make_unique<DchainAllocate>(node, dchain_addr);
+  return std::make_unique<DchainAllocate>(type, node, dchain_addr);
 }
 
 } // namespace Controller

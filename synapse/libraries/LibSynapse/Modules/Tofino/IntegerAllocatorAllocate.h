@@ -14,14 +14,14 @@ private:
   symbol_t not_out_of_space;
 
 public:
-  IntegerAllocatorAllocate(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
+  IntegerAllocatorAllocate(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
                            const symbol_t &_out_of_space)
-      : TofinoModule(ModuleType::Tofino_IntegerAllocatorAllocate, "IntegerAllocatorAllocate", _node), dchain_addr(_dchain_addr), time(_time),
-        index_out(_index_out), not_out_of_space(_out_of_space) {}
+      : TofinoModule(_type, "IntegerAllocatorAllocate", _node), dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
+        not_out_of_space(_out_of_space) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
-  virtual Module *clone() const override { return new IntegerAllocatorAllocate(node, dchain_addr, time, index_out, not_out_of_space); }
+  virtual Module *clone() const override { return new IntegerAllocatorAllocate(type, node, dchain_addr, time, index_out, not_out_of_space); }
 
   addr_t get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
@@ -37,7 +37,8 @@ public:
 
 class IntegerAllocatorAllocateFactory : public TofinoModuleFactory {
 public:
-  IntegerAllocatorAllocateFactory() : TofinoModuleFactory(ModuleType::Tofino_IntegerAllocatorAllocate, "IntegerAllocatorAllocate") {}
+  IntegerAllocatorAllocateFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_IntegerAllocatorAllocate, _instance_id), "IntegerAllocatorAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

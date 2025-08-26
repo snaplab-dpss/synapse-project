@@ -7,19 +7,19 @@ namespace x86 {
 
 class Then : public x86Module {
 public:
-  Then(const BDDNode *_node) : x86Module(ModuleType::x86_Then, "Then", _node) {}
+  Then(ModuleType _type, const BDDNode *_node) : x86Module(_type, "Then", _node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Then *cloned = new Then(node);
+    Then *cloned = new Then(type, node);
     return cloned;
   }
 };
 
 class ThenFactory : public x86ModuleFactory {
 public:
-  ThenFactory() : x86ModuleFactory(ModuleType::x86_Then, "Then") {}
+  ThenFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_Then, _instance_id), "Then") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

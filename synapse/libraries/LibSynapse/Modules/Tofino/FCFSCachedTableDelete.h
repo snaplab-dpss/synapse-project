@@ -13,14 +13,15 @@ private:
   symbol_t cached_delete_failed;
 
 public:
-  FCFSCachedTableDelete(const BDDNode *_node, DS_ID _cached_table_id, addr_t _obj, klee::ref<klee::Expr> _key, const symbol_t &_cached_delete_failed)
-      : TofinoModule(ModuleType::Tofino_FCFSCachedTableDelete, "FCFSCachedTableDelete", _node), cached_table_id(_cached_table_id), obj(_obj),
-        key(_key), cached_delete_failed(_cached_delete_failed) {}
+  FCFSCachedTableDelete(ModuleType _type, const BDDNode *_node, DS_ID _cached_table_id, addr_t _obj, klee::ref<klee::Expr> _key,
+                        const symbol_t &_cached_delete_failed)
+      : TofinoModule(_type, "FCFSCachedTableDelete", _node), cached_table_id(_cached_table_id), obj(_obj), key(_key),
+        cached_delete_failed(_cached_delete_failed) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new FCFSCachedTableDelete(node, cached_table_id, obj, key, cached_delete_failed);
+    Module *cloned = new FCFSCachedTableDelete(type, node, cached_table_id, obj, key, cached_delete_failed);
     return cloned;
   }
 
@@ -34,7 +35,8 @@ public:
 
 class FCFSCachedTableDeleteFactory : public TofinoModuleFactory {
 public:
-  FCFSCachedTableDeleteFactory() : TofinoModuleFactory(ModuleType::Tofino_FCFSCachedTableDelete, "FCFSCachedTableDelete") {}
+  FCFSCachedTableDeleteFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_FCFSCachedTableDelete, _instance_id), "FCFSCachedTableDelete") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

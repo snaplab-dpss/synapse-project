@@ -17,15 +17,15 @@ private:
   std::vector<expr_mod_t> modifications;
 
 public:
-  DataplaneVectorRegisterUpdate(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, addr_t _value_addr, klee::ref<klee::Expr> _old_value,
-                                klee::ref<klee::Expr> _new_value, const std::vector<expr_mod_t> &_modifications)
-      : ControllerModule(ModuleType::Controller_DataplaneVectorRegisterUpdate, "DataplaneVectorRegisterUpdate", _node), obj(_obj), index(_index),
-        value_addr(_value_addr), old_value(_old_value), new_value(_new_value), modifications(_modifications) {}
+  DataplaneVectorRegisterUpdate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, addr_t _value_addr,
+                                klee::ref<klee::Expr> _old_value, klee::ref<klee::Expr> _new_value, const std::vector<expr_mod_t> &_modifications)
+      : ControllerModule(_type, "DataplaneVectorRegisterUpdate", _node), obj(_obj), index(_index), value_addr(_value_addr), old_value(_old_value),
+        new_value(_new_value), modifications(_modifications) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneVectorRegisterUpdate(node, obj, index, value_addr, old_value, new_value, modifications);
+    Module *cloned = new DataplaneVectorRegisterUpdate(type, node, obj, index, value_addr, old_value, new_value, modifications);
     return cloned;
   }
 
@@ -39,8 +39,9 @@ public:
 
 class DataplaneVectorRegisterUpdateFactory : public ControllerModuleFactory {
 public:
-  DataplaneVectorRegisterUpdateFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneVectorRegisterUpdate, "DataplaneVectorRegisterUpdate") {}
+  DataplaneVectorRegisterUpdateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterUpdate, _instance_id), "DataplaneVectorRegisterUpdate") {
+  }
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

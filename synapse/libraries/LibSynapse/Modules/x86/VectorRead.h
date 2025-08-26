@@ -13,14 +13,14 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorRead(const BDDNode *_node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr, klee::ref<klee::Expr> _value)
-      : x86Module(ModuleType::x86_VectorRead, "VectorRead", _node), vector_addr(_vector_addr), index(_index), value_addr(_value_addr), value(_value) {
-  }
+  VectorRead(ModuleType _type, const BDDNode *_node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr,
+             klee::ref<klee::Expr> _value)
+      : x86Module(_type, "VectorRead", _node), vector_addr(_vector_addr), index(_index), value_addr(_value_addr), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorRead(node, vector_addr, index, value_addr, value);
+    Module *cloned = new VectorRead(type, node, vector_addr, index, value_addr, value);
     return cloned;
   }
 
@@ -32,7 +32,7 @@ public:
 
 class VectorReadFactory : public x86ModuleFactory {
 public:
-  VectorReadFactory() : x86ModuleFactory(ModuleType::x86_VectorRead, "VectorRead") {}
+  VectorReadFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_VectorRead, _instance_id), "VectorRead") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

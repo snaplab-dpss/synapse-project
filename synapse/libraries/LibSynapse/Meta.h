@@ -25,8 +25,8 @@ struct EPMeta {
   size_t nodes;
   size_t reordered_nodes;
 
-  std::unordered_map<TargetType, size_t> steps_per_target;
-  std::unordered_map<ModuleType, size_t> modules_counter;
+  std::unordered_map<TargetArchitecture, size_t> steps_per_target;
+  std::unordered_map<ModuleCategory, size_t> modules_counter;
   std::unordered_set<ep_node_id_t> processed_leaves;
   std::unordered_set<ep_node_id_t> visited_ep_nodes;
   bdd_node_ids_t processed_nodes;
@@ -37,7 +37,7 @@ struct EPMeta {
   EPMeta(const BDD *bdd, const TargetsView &targets)
       : total_bdd_nodes(bdd->size()), depth(0), nodes(0), reordered_nodes(0), random_number(SingletonRandomEngine::generate()) {
     for (const TargetView &target : targets.elements) {
-      steps_per_target[target.type] = 0;
+      steps_per_target[target.type.type] = 0;
     }
   }
 

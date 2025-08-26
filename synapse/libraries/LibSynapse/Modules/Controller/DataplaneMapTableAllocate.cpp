@@ -65,7 +65,7 @@ std::unique_ptr<Module> DataplaneMapTableAllocateFactory::create(const BDD *bdd,
     return {};
   }
 
-  return std::make_unique<DataplaneMapTableAllocate>(node, data.obj, data.key_size, data.value_size, data.capacity);
+  return std::make_unique<DataplaneMapTableAllocate>(type, node, data.obj, data.key_size, data.value_size, data.capacity);
 }
 
 } // namespace Controller

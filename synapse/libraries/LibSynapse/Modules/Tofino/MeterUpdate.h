@@ -15,15 +15,14 @@ private:
   klee::ref<klee::Expr> pass;
 
 public:
-  MeterUpdate(const BDDNode *_node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _pkt_len,
-              klee::ref<klee::Expr> _hit, klee::ref<klee::Expr> _pass)
-      : TofinoModule(ModuleType::Tofino_MeterUpdate, "MeterUpdate", _node), table_id(_table_id), obj(_obj), keys(_keys), pkt_len(_pkt_len), hit(_hit),
-        pass(_pass) {}
+  MeterUpdate(ModuleType _type, const BDDNode *_node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+              klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _hit, klee::ref<klee::Expr> _pass)
+      : TofinoModule(_type, "MeterUpdate", _node), table_id(_table_id), obj(_obj), keys(_keys), pkt_len(_pkt_len), hit(_hit), pass(_pass) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new MeterUpdate(node, table_id, obj, keys, pkt_len, hit, pass);
+    Module *cloned = new MeterUpdate(type, node, table_id, obj, keys, pkt_len, hit, pass);
     return cloned;
   }
 
@@ -39,7 +38,8 @@ public:
 
 class MeterUpdateFactory : public TofinoModuleFactory {
 public:
-  MeterUpdateFactory() : TofinoModuleFactory(ModuleType::Tofino_MeterUpdate, "MeterUpdate") {}
+  MeterUpdateFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_MeterUpdate, _instance_id), "MeterUpdate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

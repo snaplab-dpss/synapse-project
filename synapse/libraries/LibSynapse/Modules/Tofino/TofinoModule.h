@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LibSynapse/Target.h"
 #include <LibSynapse/Modules/Module.h>
 #include <LibSynapse/Modules/ModuleFactory.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
@@ -10,10 +11,11 @@ namespace Tofino {
 
 class TofinoModule : public Module {
 public:
-  TofinoModule(ModuleType _type, const std::string &_name, const BDDNode *_node) : Module(_type, TargetType::Tofino, _name, _node) {}
+  TofinoModule(ModuleType _type, const std::string &_name, const BDDNode *_node)
+      : Module(_type, TargetType(TargetArchitecture::Tofino, _type.instance_id), _name, _node) {}
 
   TofinoModule(ModuleType _type, TargetType _next_type, const std::string &_name, const BDDNode *_node)
-      : Module(_type, TargetType::Tofino, _next_type, _name, _node) {}
+      : Module(_type, TargetType(TargetArchitecture::Tofino, _type.instance_id), _next_type, _name, _node) {}
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const { return {}; }
 };
@@ -57,7 +59,8 @@ protected:
   TargetType target;
 
 public:
-  TofinoModuleFactory(ModuleType _type, const std::string &_name) : ModuleFactory(_type, TargetType::Tofino, _name) {}
+  TofinoModuleFactory(ModuleType _type, const std::string &_name)
+      : ModuleFactory(_type, TargetType(TargetArchitecture::Tofino, _type.instance_id), _name) {}
 
   bool was_ds_already_used(const EPNode *leaf, DS_ID ds_id) const;
 
@@ -67,7 +70,7 @@ public:
   static const TNA &get_tna(const EP *ep);
   static TNA &get_mutable_tna(EP *ep);
 
-  static Symbols get_relevant_dataplane_state(const EP *ep, const BDDNode *node);
+  static Symbols get_relevant_dataplane_state(const EP *ep, const BDDNode *node, TargetType type);
   static bool expr_fits_in_action(klee::ref<klee::Expr> expr);
 
   // ======================================================================

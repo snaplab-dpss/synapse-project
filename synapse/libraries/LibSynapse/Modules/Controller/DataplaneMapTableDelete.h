@@ -11,13 +11,13 @@ private:
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  DataplaneMapTableDelete(const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
-      : ControllerModule(ModuleType::Controller_DataplaneMapTableDelete, "DataplaneMapTableDelete", _node), obj(_obj), keys(_keys) {}
+  DataplaneMapTableDelete(ModuleType _type, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
+      : ControllerModule(type, "DataplaneMapTableDelete", _node), obj(_obj), keys(_keys) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneMapTableDelete *cloned = new DataplaneMapTableDelete(node, obj, keys);
+    DataplaneMapTableDelete *cloned = new DataplaneMapTableDelete(type, node, obj, keys);
     return cloned;
   }
 
@@ -27,7 +27,8 @@ public:
 
 class DataplaneMapTableDeleteFactory : public ControllerModuleFactory {
 public:
-  DataplaneMapTableDeleteFactory() : ControllerModuleFactory(ModuleType::Controller_DataplaneMapTableDelete, "DataplaneMapTableDelete") {}
+  DataplaneMapTableDeleteFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneMapTableDelete, _instance_id), "DataplaneMapTableDelete") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

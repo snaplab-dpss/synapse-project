@@ -13,15 +13,14 @@ private:
   std::optional<symbol_t> found;
 
 public:
-  DataplaneGuardedMapTableLookup(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
+  DataplaneGuardedMapTableLookup(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
                                  std::optional<symbol_t> _found)
-      : ControllerModule(ModuleType::Controller_DataplaneGuardedMapTableLookup, "DataplaneGuardedMapTableLookup", _node), obj(_obj), key(_key),
-        value(_value), found(_found) {}
+      : ControllerModule(_type, "DataplaneGuardedMapTableLookup", _node), obj(_obj), key(_key), value(_value), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneGuardedMapTableLookup(node, obj, key, value, found);
+    Module *cloned = new DataplaneGuardedMapTableLookup(type, node, obj, key, value, found);
     return cloned;
   }
 
@@ -33,8 +32,9 @@ public:
 
 class DataplaneGuardedMapTableLookupFactory : public ControllerModuleFactory {
 public:
-  DataplaneGuardedMapTableLookupFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneGuardedMapTableLookup, "DataplaneGuardedMapTableLookup") {}
+  DataplaneGuardedMapTableLookupFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableLookup, _instance_id),
+                                "DataplaneGuardedMapTableLookup") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

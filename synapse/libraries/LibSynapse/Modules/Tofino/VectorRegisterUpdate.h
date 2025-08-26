@@ -14,15 +14,14 @@ private:
   klee::ref<klee::Expr> write_value;
 
 public:
-  VectorRegisterUpdate(const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _read_value,
-                       klee::ref<klee::Expr> _write_value)
-      : TofinoModule(ModuleType::Tofino_VectorRegisterUpdate, "VectorRegisterUpdate", _node), id(_id), obj(_obj), index(_index),
-        read_value(_read_value), write_value(_write_value) {}
+  VectorRegisterUpdate(ModuleType _type, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index,
+                       klee::ref<klee::Expr> _read_value, klee::ref<klee::Expr> _write_value)
+      : TofinoModule(_type, "VectorRegisterUpdate", _node), id(_id), obj(_obj), index(_index), read_value(_read_value), write_value(_write_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorRegisterUpdate(node, id, obj, index, read_value, write_value);
+    Module *cloned = new VectorRegisterUpdate(type, node, id, obj, index, read_value, write_value);
     return cloned;
   }
 
@@ -37,7 +36,8 @@ public:
 
 class VectorRegisterUpdateFactory : public TofinoModuleFactory {
 public:
-  VectorRegisterUpdateFactory() : TofinoModuleFactory(ModuleType::Tofino_VectorRegisterUpdate, "VectorRegisterUpdate") {}
+  VectorRegisterUpdateFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_VectorRegisterUpdate, _instance_id), "VectorRegisterUpdate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

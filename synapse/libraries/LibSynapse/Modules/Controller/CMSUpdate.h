@@ -11,13 +11,13 @@ private:
   klee::ref<klee::Expr> key;
 
 public:
-  CMSUpdate(const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
-      : ControllerModule(ModuleType::Controller_CMSUpdate, "CMSUpdate", _node), cms_addr(_cms_addr), key(_key) {}
+  CMSUpdate(ModuleType _type, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
+      : ControllerModule(_type, "CMSUpdate", _node), cms_addr(_cms_addr), key(_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new CMSUpdate(node, cms_addr, key);
+    Module *cloned = new CMSUpdate(type, node, cms_addr, key);
     return cloned;
   }
 
@@ -27,7 +27,8 @@ public:
 
 class CMSUpdateFactory : public ControllerModuleFactory {
 public:
-  CMSUpdateFactory() : ControllerModuleFactory(ModuleType::Controller_CMSUpdate, "CMSUpdate") {}
+  CMSUpdateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_CMSUpdate, _instance_id), "CMSUpdate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

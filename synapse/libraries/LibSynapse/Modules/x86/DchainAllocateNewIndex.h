@@ -13,14 +13,12 @@ private:
   std::optional<symbol_t> not_out_of_space;
 
 public:
-  DchainAllocateNewIndex(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
+  DchainAllocateNewIndex(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
                          const symbol_t &_out_of_space)
-      : x86Module(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocate", _node), dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
-        not_out_of_space(_out_of_space) {}
+      : x86Module(_type, "DchainAllocate", _node), dchain_addr(_dchain_addr), time(_time), index_out(_index_out), not_out_of_space(_out_of_space) {}
 
-  DchainAllocateNewIndex(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
-      : x86Module(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocate", _node), dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
-        not_out_of_space(std::nullopt) {}
+  DchainAllocateNewIndex(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
+      : x86Module(_type, "DchainAllocate", _node), dchain_addr(_dchain_addr), time(_time), index_out(_index_out), not_out_of_space(std::nullopt) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
@@ -28,9 +26,9 @@ public:
     Module *cloned;
 
     if (not_out_of_space.has_value()) {
-      cloned = new DchainAllocateNewIndex(node, dchain_addr, time, index_out, *not_out_of_space);
+      cloned = new DchainAllocateNewIndex(type, node, dchain_addr, time, index_out, *not_out_of_space);
     } else {
-      cloned = new DchainAllocateNewIndex(node, dchain_addr, time, index_out);
+      cloned = new DchainAllocateNewIndex(type, node, dchain_addr, time, index_out);
     }
 
     return cloned;
@@ -44,7 +42,8 @@ public:
 
 class DchainAllocateNewIndexFactory : public x86ModuleFactory {
 public:
-  DchainAllocateNewIndexFactory() : x86ModuleFactory(ModuleType::x86_DchainAllocateNewIndex, "DchainAllocateNewIndex") {}
+  DchainAllocateNewIndexFactory(const std::string &_instance_id)
+      : x86ModuleFactory(ModuleType(ModuleCategory::x86_DchainAllocateNewIndex, _instance_id), "DchainAllocateNewIndex") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

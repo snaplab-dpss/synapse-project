@@ -145,7 +145,7 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  Module *module  = new MeterUpdate(node, data.id, data.obj, data.keys, data.pkt_len, data.hit, data.pass);
+  Module *module  = new MeterUpdate(type, node, data.id, data.obj, data.keys, data.pkt_len, data.hit, data.pass);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -190,7 +190,7 @@ std::unique_ptr<Module> MeterUpdateFactory::create(const BDD *bdd, const Context
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Meter *meter = dynamic_cast<const Meter *>(*ds.begin());
 
-  return std::make_unique<MeterUpdate>(node, meter->id, data.obj, data.keys, data.pkt_len, data.hit, data.pass);
+  return std::make_unique<MeterUpdate>(type, node, meter->id, data.obj, data.keys, data.pkt_len, data.hit, data.pass);
 }
 
 } // namespace Tofino

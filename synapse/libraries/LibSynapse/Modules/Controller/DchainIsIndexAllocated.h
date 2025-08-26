@@ -12,14 +12,13 @@ private:
   symbol_t is_allocated;
 
 public:
-  DchainIsIndexAllocated(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
-      : ControllerModule(ModuleType::Controller_DchainIsIndexAllocated, "DchainIsIndexAllocated", _node), dchain_addr(_dchain_addr), index(_index),
-        is_allocated(_is_allocated) {}
+  DchainIsIndexAllocated(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
+      : ControllerModule(_type, "DchainIsIndexAllocated", _node), dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DchainIsIndexAllocated(node, dchain_addr, index, is_allocated);
+    Module *cloned = new DchainIsIndexAllocated(type, node, dchain_addr, index, is_allocated);
     return cloned;
   }
 
@@ -30,7 +29,8 @@ public:
 
 class DchainIsIndexAllocatedFactory : public ControllerModuleFactory {
 public:
-  DchainIsIndexAllocatedFactory() : ControllerModuleFactory(ModuleType::Controller_DchainIsIndexAllocated, "DchainIsIndexAllocated") {}
+  DchainIsIndexAllocatedFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DchainIsIndexAllocated, _instance_id), "DchainIsIndexAllocated") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -66,7 +66,7 @@ std::vector<impl_t> LPMLookupFactory::process_node(const EP *ep, const BDDNode *
     return {};
   }
 
-  Module *module  = new LPMLookup(node, lpm->id, obj, addr, device, match);
+  Module *module  = new LPMLookup(type, node, lpm->id, obj, addr, device, match);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -112,7 +112,7 @@ std::unique_ptr<Module> LPMLookupFactory::create(const BDD *bdd, const Context &
   assert(ds.size() == 1 && "Expected exactly one DS");
   const LPM *lpm = dynamic_cast<const LPM *>(*ds.begin());
 
-  return std::make_unique<LPMLookup>(node, lpm->id, obj, addr, device, match);
+  return std::make_unique<LPMLookup>(type, node, lpm->id, obj, addr, device, match);
 }
 
 } // namespace Tofino

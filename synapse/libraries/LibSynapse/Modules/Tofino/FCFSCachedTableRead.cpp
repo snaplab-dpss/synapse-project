@@ -38,8 +38,11 @@ std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *no
     return nullptr;
   }
 
-  Module *module  = new FCFSCachedTableRead(node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj, cached_table_data.key,
-                                            cached_table_data.read_value, cached_table_data.map_has_this_key);
+  const std::string &instance_id = ep->get_active_target().instance_id;
+  ModuleType type                = ModuleType(ModuleCategory::Tofino_FCFSCachedTableReadWrite, instance_id);
+
+  Module *module = new FCFSCachedTableRead(type, node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj, cached_table_data.key,
+                                           cached_table_data.read_value, cached_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -161,7 +164,7 @@ std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const BDD *bdd, const
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedTableRead>(node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id, cached_table_data.obj,
+  return std::make_unique<FCFSCachedTableRead>(type, node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id, cached_table_data.obj,
                                                cached_table_data.key, cached_table_data.read_value, cached_table_data.map_has_this_key);
 }
 

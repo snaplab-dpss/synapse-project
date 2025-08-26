@@ -186,7 +186,7 @@ u8 EPNode::count_past_recirculations() const {
   const EPNode *node = this;
   while (node) {
     const Module *node_module = node->get_module();
-    if (node_module && node_module->get_type() == ModuleType::Tofino_Recirculate) {
+    if (node_module && node_module->get_type() == ModuleCategory::Tofino_Recirculate) {
       count++;
     }
     node = node->get_prev();
@@ -204,8 +204,8 @@ bool EPNode::forwarding_decision_already_made() const {
       continue;
     }
 
-    if (node_module->get_type() == ModuleType::Tofino_Forward || node_module->get_type() == ModuleType::Tofino_Drop ||
-        node_module->get_type() == ModuleType::Tofino_Broadcast) {
+    if (node_module->get_type().type == ModuleCategory::Tofino_Forward || node_module->get_type().type == ModuleCategory::Tofino_Drop ||
+        node_module->get_type().type == ModuleCategory::Tofino_Broadcast) {
       return true;
     }
   }

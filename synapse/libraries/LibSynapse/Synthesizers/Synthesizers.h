@@ -16,20 +16,20 @@ void synthesize(const EP *ep, std::string name, const std::filesystem::path &out
   }
 
   for (const TargetView &target : targets.elements) {
-    switch (target.type) {
-    case TargetType::Tofino: {
+    switch (target.type.type) {
+    case TargetArchitecture::Tofino: {
       std::cerr << "\n************** Synthesizing Tofino **************\n";
-      std::filesystem::path out_file(out_dir / (name + ".p4"));
+      std::filesystem::path out_file(out_dir / (name + "_" + target.type.instance_id + ".p4"));
       Tofino::TofinoSynthesizer synthesizer(ep, out_file);
       synthesizer.synthesize();
     } break;
-    case TargetType::Controller: {
+    case TargetArchitecture::Controller: {
       std::cerr << "\n************ Synthesizing Controller ************\n";
-      std::filesystem::path out_file(out_dir / (name + ".cpp"));
+      std::filesystem::path out_file(out_dir / (name + "_" + target.type.instance_id + ".cpp"));
       Controller::ControllerSynthesizer synthesizer(ep, out_file);
       synthesizer.synthesize();
     } break;
-    case TargetType::x86: {
+    case TargetArchitecture::x86: {
       // panic("TODO");
     } break;
     }

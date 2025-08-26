@@ -148,9 +148,9 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const BDD
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *if_module   = new ParserCondition(node, original_condition);
-  Module *then_module = new Then(node);
-  Module *else_module = new Else(node);
+  Module *if_module   = new ParserCondition(type, node, original_condition);
+  Module *then_module = new Then(type, node);
+  Module *else_module = new Else(type, node);
 
   EPNode *if_node   = new EPNode(if_module);
   EPNode *then_node = new EPNode(then_module);
@@ -182,7 +182,7 @@ std::unique_ptr<Module> ParserConditionFactory::create(const BDD *bdd, const Con
   }
 
   klee::ref<klee::Expr> condition = branch_node->get_condition();
-  return std::make_unique<ParserCondition>(node, condition);
+  return std::make_unique<ParserCondition>(type, node, condition);
 }
 
 } // namespace Tofino

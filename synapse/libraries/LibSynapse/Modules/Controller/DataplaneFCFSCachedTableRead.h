@@ -16,15 +16,14 @@ private:
   std::optional<symbol_t> found;
 
 public:
-  DataplaneFCFSCachedTableRead(const BDDNode *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+  DataplaneFCFSCachedTableRead(ModuleType _type, const BDDNode *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
                                klee::ref<klee::Expr> _value, std::optional<symbol_t> _found)
-      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedTableRead, "DataplaneFCFSCachedTableRead", _node), id(_id), obj(_obj), keys(_keys),
-        value(_value), found(_found) {}
+      : ControllerModule(_type, "DataplaneFCFSCachedTableRead", _node), id(_id), obj(_obj), keys(_keys), value(_value), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneFCFSCachedTableRead(node, id, obj, keys, value, found);
+    Module *cloned = new DataplaneFCFSCachedTableRead(type, node, id, obj, keys, value, found);
     return cloned;
   }
 
@@ -37,8 +36,8 @@ public:
 
 class DataplaneFCFSCachedTableReadFactory : public ControllerModuleFactory {
 public:
-  DataplaneFCFSCachedTableReadFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneFCFSCachedTableRead, "DataplaneFCFSCachedTableRead") {}
+  DataplaneFCFSCachedTableReadFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableRead, _instance_id), "DataplaneFCFSCachedTableRead") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -39,7 +39,7 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const BDDNode *node,
     return {};
   }
 
-  Module *module  = new Drop(node);
+  Module *module  = new Drop(type, node);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -68,7 +68,7 @@ std::unique_ptr<Module> DropFactory::create(const BDD *bdd, const Context &ctx, 
     return {};
   }
 
-  return std::make_unique<Drop>(node);
+  return std::make_unique<Drop>(type, node);
 }
 
 } // namespace Controller

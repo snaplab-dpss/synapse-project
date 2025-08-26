@@ -91,7 +91,7 @@ std::vector<impl_t> GuardedMapTableLookupFactory::process_node(const EP *ep, con
     return {};
   }
 
-  Module *module  = new GuardedMapTableLookup(node, guarded_map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
+  Module *module  = new GuardedMapTableLookup(type, node, guarded_map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -132,7 +132,7 @@ std::unique_ptr<Module> GuardedMapTableLookupFactory::create(const BDD *bdd, con
 
   const GuardedMapTable *guarded_map_table = dynamic_cast<const GuardedMapTable *>(*ds.begin());
 
-  return std::make_unique<GuardedMapTableLookup>(node, guarded_map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
+  return std::make_unique<GuardedMapTableLookup>(type, node, guarded_map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
 }
 
 } // namespace Tofino

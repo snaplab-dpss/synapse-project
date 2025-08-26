@@ -12,14 +12,13 @@ private:
   symbol_t is_allocated;
 
 public:
-  DataplaneHHTableIsIndexAllocated(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
-      : ControllerModule(ModuleType::Controller_DataplaneHHTableIsIndexAllocated, "DataplaneHHTableIsIndexAllocated", _node), obj(_obj),
-        index(_index), is_allocated(_is_allocated) {}
+  DataplaneHHTableIsIndexAllocated(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
+      : ControllerModule(_type, "DataplaneHHTableIsIndexAllocated", _node), obj(_obj), index(_index), is_allocated(_is_allocated) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneHHTableIsIndexAllocated(node, obj, index, is_allocated);
+    Module *cloned = new DataplaneHHTableIsIndexAllocated(type, node, obj, index, is_allocated);
     return cloned;
   }
 
@@ -30,8 +29,9 @@ public:
 
 class DataplaneHHTableIsIndexAllocatedFactory : public ControllerModuleFactory {
 public:
-  DataplaneHHTableIsIndexAllocatedFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneHHTableIsIndexAllocated, "DataplaneHHTableIsIndexAllocated") {}
+  DataplaneHHTableIsIndexAllocatedFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneHHTableIsIndexAllocated, _instance_id),
+                                "DataplaneHHTableIsIndexAllocated") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
