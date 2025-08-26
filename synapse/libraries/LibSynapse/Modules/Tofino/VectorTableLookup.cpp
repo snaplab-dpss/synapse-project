@@ -95,7 +95,7 @@ std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const B
     return {};
   }
 
-  Module *module  = new VectorTableLookup(node, vector_table->id, data.obj, data.key, data.value);
+  Module *module  = new VectorTableLookup(type, node, vector_table->id, data.obj, data.key, data.value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -140,7 +140,7 @@ std::unique_ptr<Module> VectorTableLookupFactory::create(const BDD *bdd, const C
 
   const VectorTable *vector_table = dynamic_cast<const VectorTable *>(*ds.begin());
 
-  return std::make_unique<VectorTableLookup>(node, vector_table->id, data.obj, data.key, data.value);
+  return std::make_unique<VectorTableLookup>(type, node, vector_table->id, data.obj, data.key, data.value);
 }
 
 } // namespace Tofino

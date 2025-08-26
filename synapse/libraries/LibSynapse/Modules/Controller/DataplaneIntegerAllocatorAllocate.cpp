@@ -54,7 +54,7 @@ std::vector<impl_t> DataplaneIntegerAllocatorAllocateFactory::process_node(const
     return {};
   }
 
-  Module *module  = new DataplaneIntegerAllocatorAllocate(node, dchain_addr, index_range);
+  Module *module  = new DataplaneIntegerAllocatorAllocate(type, node, dchain_addr, index_range);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -88,7 +88,7 @@ std::unique_ptr<Module> DataplaneIntegerAllocatorAllocateFactory::create(const B
     return {};
   }
 
-  return std::make_unique<DataplaneIntegerAllocatorAllocate>(node, dchain_addr, index_range);
+  return std::make_unique<DataplaneIntegerAllocatorAllocate>(type, node, dchain_addr, index_range);
 }
 
 } // namespace Controller

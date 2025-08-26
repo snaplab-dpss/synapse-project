@@ -77,7 +77,7 @@ std::vector<impl_t> DataplaneHHTableIsIndexAllocatedFactory::process_node(const 
 
   const symbol_t is_allocated = dchain_is_index_allocated->get_local_symbol("is_index_allocated");
 
-  Module *module  = new DataplaneHHTableIsIndexAllocated(node, obj, index, is_allocated);
+  Module *module  = new DataplaneHHTableIsIndexAllocated(type, node, obj, index, is_allocated);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -113,7 +113,7 @@ std::unique_ptr<Module> DataplaneHHTableIsIndexAllocatedFactory::create(const BD
 
   const symbol_t is_allocated = dchain_is_index_allocated->get_local_symbol("is_index_allocated");
 
-  return std::make_unique<DataplaneHHTableIsIndexAllocated>(node, obj, index, is_allocated);
+  return std::make_unique<DataplaneHHTableIsIndexAllocated>(type, node, obj, index, is_allocated);
 }
 
 } // namespace Controller

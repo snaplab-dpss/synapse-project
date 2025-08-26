@@ -13,15 +13,15 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneFCFSCachedTableAllocate(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _value_size,
-                                   klee::ref<klee::Expr> _capacity)
-      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedTableAllocate, "DataplaneFCFSCachedTableAllocate", _node), obj(_obj),
-        key_size(_key_size), value_size(_value_size), capacity(_capacity) {}
+  DataplaneFCFSCachedTableAllocate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
+                                   klee::ref<klee::Expr> _value_size, klee::ref<klee::Expr> _capacity)
+      : ControllerModule(_type, "DataplaneFCFSCachedTableAllocate", _node), obj(_obj), key_size(_key_size), value_size(_value_size),
+        capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneFCFSCachedTableAllocate *cloned = new DataplaneFCFSCachedTableAllocate(node, obj, key_size, value_size, capacity);
+    DataplaneFCFSCachedTableAllocate *cloned = new DataplaneFCFSCachedTableAllocate(type, node, obj, key_size, value_size, capacity);
     return cloned;
   }
 
@@ -33,8 +33,9 @@ public:
 
 class DataplaneFCFSCachedTableAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneFCFSCachedTableAllocateFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneFCFSCachedTableAllocate, "DataplaneFCFSCachedTableAllocate") {}
+  DataplaneFCFSCachedTableAllocateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableAllocate, _instance_id),
+                                "DataplaneFCFSCachedTableAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

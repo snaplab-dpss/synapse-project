@@ -7,19 +7,20 @@ namespace Controller {
 
 class AbortTransaction : public ControllerModule {
 public:
-  AbortTransaction(const BDDNode *_node) : ControllerModule(ModuleType::Controller_AbortTransaction, "AbortTransaction", _node) {}
+  AbortTransaction(ModuleType _type, const BDDNode *_node) : ControllerModule(_type, "AbortTransaction", _node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    AbortTransaction *cloned = new AbortTransaction(node);
+    AbortTransaction *cloned = new AbortTransaction(type, node);
     return cloned;
   }
 };
 
 class AbortTransactionFactory : public ControllerModuleFactory {
 public:
-  AbortTransactionFactory() : ControllerModuleFactory(ModuleType::Controller_AbortTransaction, "AbortTransaction") {}
+  AbortTransactionFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_AbortTransaction, _instance_id), "AbortTransaction") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

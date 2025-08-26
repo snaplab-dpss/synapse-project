@@ -55,7 +55,7 @@ std::vector<impl_t> TokenBucketIsTracingFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  Module *module  = new TokenBucketIsTracing(node, tb_addr, key, index_out, is_tracing);
+  Module *module  = new TokenBucketIsTracing(type, node, tb_addr, key, index_out, is_tracing);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -89,7 +89,7 @@ std::unique_ptr<Module> TokenBucketIsTracingFactory::create(const BDD *bdd, cons
   klee::ref<klee::Expr> index_out  = call.args.at("index_out").out;
   klee::ref<klee::Expr> is_tracing = call.ret;
 
-  return std::make_unique<TokenBucketIsTracing>(node, tb_addr, key, index_out, is_tracing);
+  return std::make_unique<TokenBucketIsTracing>(type, node, tb_addr, key, index_out, is_tracing);
 }
 
 } // namespace x86

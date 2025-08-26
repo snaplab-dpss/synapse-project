@@ -12,14 +12,13 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneVectorRegisterLookup(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
-      : ControllerModule(ModuleType::Controller_DataplaneVectorRegisterLookup, "DataplaneVectorRegisterLookup", _node), obj(_obj), index(_index),
-        value(_value) {}
+  DataplaneVectorRegisterLookup(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
+      : ControllerModule(_type, "DataplaneVectorRegisterLookup", _node), obj(_obj), index(_index), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneVectorRegisterLookup(node, obj, index, value);
+    Module *cloned = new DataplaneVectorRegisterLookup(type, node, obj, index, value);
     return cloned;
   }
 
@@ -30,8 +29,9 @@ public:
 
 class DataplaneVectorRegisterLookupFactory : public ControllerModuleFactory {
 public:
-  DataplaneVectorRegisterLookupFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneVectorRegisterLookup, "DataplaneVectorRegisterLookup") {}
+  DataplaneVectorRegisterLookupFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterLookup, _instance_id), "DataplaneVectorRegisterLookup") {
+  }
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

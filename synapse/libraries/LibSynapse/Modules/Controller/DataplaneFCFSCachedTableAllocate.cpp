@@ -78,7 +78,7 @@ std::vector<impl_t> DataplaneFCFSCachedTableAllocateFactory::process_node(const 
     return {};
   }
 
-  Module *module  = new DataplaneFCFSCachedTableAllocate(node, data.obj, data.key_size, data.value_size, data.capacity);
+  Module *module  = new DataplaneFCFSCachedTableAllocate(type, node, data.obj, data.key_size, data.value_size, data.capacity);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -109,7 +109,7 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableAllocateFactory::create(const BD
     return {};
   }
 
-  return std::make_unique<DataplaneFCFSCachedTableAllocate>(node, data.obj, data.key_size, data.value_size, data.capacity);
+  return std::make_unique<DataplaneFCFSCachedTableAllocate>(type, node, data.obj, data.key_size, data.value_size, data.capacity);
 }
 
 } // namespace Controller

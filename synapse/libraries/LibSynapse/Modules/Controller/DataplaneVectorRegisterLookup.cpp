@@ -61,7 +61,7 @@ std::vector<impl_t> DataplaneVectorRegisterLookupFactory::process_node(const EP 
     return {};
   }
 
-  Module *module  = new DataplaneVectorRegisterLookup(node, vector_addr, index, value);
+  Module *module  = new DataplaneVectorRegisterLookup(type, node, vector_addr, index, value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -100,7 +100,7 @@ std::unique_ptr<Module> DataplaneVectorRegisterLookupFactory::create(const BDD *
     return {};
   }
 
-  return std::make_unique<DataplaneVectorRegisterLookup>(node, vector_addr, index, value);
+  return std::make_unique<DataplaneVectorRegisterLookup>(type, node, vector_addr, index, value);
 }
 
 } // namespace Controller

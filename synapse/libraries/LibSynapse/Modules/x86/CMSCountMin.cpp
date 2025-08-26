@@ -63,7 +63,7 @@ std::vector<impl_t> CMSCountMinFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  Module *module  = new CMSCountMin(node, cms_addr, key, min_estimate.expr);
+  Module *module  = new CMSCountMin(type, node, cms_addr, key, min_estimate.expr);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -96,7 +96,7 @@ std::unique_ptr<Module> CMSCountMinFactory::create(const BDD *bdd, const Context
     return {};
   }
 
-  return std::make_unique<CMSCountMin>(node, cms_addr, key, min_estimate.expr);
+  return std::make_unique<CMSCountMin>(type, node, cms_addr, key, min_estimate.expr);
 }
 
 } // namespace x86

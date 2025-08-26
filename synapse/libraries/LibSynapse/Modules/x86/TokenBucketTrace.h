@@ -15,15 +15,15 @@ private:
   klee::ref<klee::Expr> successfuly_tracing;
 
 public:
-  TokenBucketTrace(const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _time,
-                   klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
-      : x86Module(ModuleType::x86_TokenBucketTrace, "TokenBucketTrace", _node), tb_addr(_tb_addr), key(_key), pkt_len(_pkt_len), time(_time),
-        index_out(_index_out), successfuly_tracing(_is_tracing) {}
+  TokenBucketTrace(ModuleType _type, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _pkt_len,
+                   klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
+      : x86Module(_type, "TokenBucketTrace", _node), tb_addr(_tb_addr), key(_key), pkt_len(_pkt_len), time(_time), index_out(_index_out),
+        successfuly_tracing(_is_tracing) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new TokenBucketTrace(node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
+    Module *cloned = new TokenBucketTrace(type, node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
     return cloned;
   }
 
@@ -37,7 +37,8 @@ public:
 
 class TokenBucketTraceFactory : public x86ModuleFactory {
 public:
-  TokenBucketTraceFactory() : x86ModuleFactory(ModuleType::x86_TokenBucketTrace, "TokenBucketTrace") {}
+  TokenBucketTraceFactory(const std::string &_instance_id)
+      : x86ModuleFactory(ModuleType(ModuleCategory::x86_TokenBucketTrace, _instance_id), "TokenBucketTrace") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -13,13 +13,13 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorTableLookup(const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
-      : TofinoModule(ModuleType::Tofino_VectorTableLookup, "VectorTableLookup", _node), id(_id), obj(_obj), key(_key), value(_value) {}
+  VectorTableLookup(ModuleType _type, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
+      : TofinoModule(_type, "VectorTableLookup", _node), id(_id), obj(_obj), key(_key), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorTableLookup(node, id, obj, key, value);
+    Module *cloned = new VectorTableLookup(type, node, id, obj, key, value);
     return cloned;
   }
 
@@ -33,7 +33,8 @@ public:
 
 class VectorTableLookupFactory : public TofinoModuleFactory {
 public:
-  VectorTableLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_VectorTableLookup, "VectorTableLookup") {}
+  VectorTableLookupFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_VectorTableLookup, _instance_id), "VectorTableLookup") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

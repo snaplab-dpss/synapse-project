@@ -233,7 +233,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cac
   std::unique_ptr<BDD> new_bdd =
       rebuild_bdd(new_ep.get(), node, fcfs_cached_table_data, cache_hit, cache_hit_condition, cache_capacity, on_cache_hit, on_cache_miss);
 
-  Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
+  Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node, ep->get_active_target());
 
   Module *if_module                 = new If(node, cache_hit_condition, {cache_hit_condition});
   Module *then_module               = new Then(node);

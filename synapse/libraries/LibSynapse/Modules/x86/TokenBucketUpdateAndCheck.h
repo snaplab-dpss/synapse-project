@@ -14,15 +14,14 @@ private:
   klee::ref<klee::Expr> pass;
 
 public:
-  TokenBucketUpdateAndCheck(const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _pkt_len,
+  TokenBucketUpdateAndCheck(ModuleType _type, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _pkt_len,
                             klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _pass)
-      : x86Module(ModuleType::x86_TokenBucketUpdateAndCheck, "TokenBucketUpdateAndCheck", _node), tb_addr(_tb_addr), index(_index), pkt_len(_pkt_len),
-        time(_time), pass(_pass) {}
+      : x86Module(_type, "TokenBucketUpdateAndCheck", _node), tb_addr(_tb_addr), index(_index), pkt_len(_pkt_len), time(_time), pass(_pass) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new TokenBucketUpdateAndCheck(node, tb_addr, index, pkt_len, time, pass);
+    Module *cloned = new TokenBucketUpdateAndCheck(type, node, tb_addr, index, pkt_len, time, pass);
     return cloned;
   }
 
@@ -35,7 +34,8 @@ public:
 
 class TokenBucketUpdateAndCheckFactory : public x86ModuleFactory {
 public:
-  TokenBucketUpdateAndCheckFactory() : x86ModuleFactory(ModuleType::x86_TokenBucketUpdateAndCheck, "TokenBucketUpdateAndCheck") {}
+  TokenBucketUpdateAndCheckFactory(const std::string &_instance_id)
+      : x86ModuleFactory(ModuleType(ModuleCategory::x86_TokenBucketUpdateAndCheck, _instance_id), "TokenBucketUpdateAndCheck") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

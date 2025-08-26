@@ -76,7 +76,7 @@ std::vector<impl_t> DataplaneCMSQueryFactory::process_node(const EP *ep, const B
     return {};
   }
 
-  Module *module  = new DataplaneCMSQuery(node, cms_data.obj, cms_data.key, cms_data.min_estimate);
+  Module *module  = new DataplaneCMSQuery(type, node, cms_data.obj, cms_data.key, cms_data.min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -107,7 +107,7 @@ std::unique_ptr<Module> DataplaneCMSQueryFactory::create(const BDD *bdd, const C
     return {};
   }
 
-  return std::make_unique<DataplaneCMSQuery>(node, cms_data.obj, cms_data.key, cms_data.min_estimate);
+  return std::make_unique<DataplaneCMSQuery>(type, node, cms_data.obj, cms_data.key, cms_data.min_estimate);
 }
 
 } // namespace Controller

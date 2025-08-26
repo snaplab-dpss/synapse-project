@@ -209,7 +209,7 @@ void Context::bdd_pre_processing_get_structural_fields(const BDD *bdd) {
 }
 
 void Context::bdd_pre_processing_build_tofino_parser(const BDD *bdd) {
-  const TargetType type = TargetType::Tofino;
+  const TargetArchitecture type = TargetArchitecture::Tofino;
 
   if (target_ctxs.find(type) == target_ctxs.end()) {
     return;

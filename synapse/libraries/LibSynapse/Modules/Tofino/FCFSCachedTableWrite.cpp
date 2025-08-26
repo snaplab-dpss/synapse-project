@@ -198,12 +198,12 @@ std::unique_ptr<EP> concretize_cached_table_write(const EP *ep, const BDDNode *n
       branch_bdd_on_cache_write_success(new_ep.get(), node, fcfs_cached_table_data, cache_write_success, cache_write_success_condition,
                                         on_cache_write_success, on_cache_write_failed, deleted_branch_constraints);
 
-  Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
+  Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node, ep->get_active_target());
 
-  Module *if_module                 = new If(node, cache_write_success_condition, {cache_write_success_condition});
-  Module *then_module               = new Then(node);
-  Module *else_module               = new Else(node);
-  Module *send_to_controller_module = new SendToController(on_cache_write_failed, symbols);
+  Module *if_module                 = new If(type, node, cache_write_success_condition, {cache_write_success_condition});
+  Module *then_module               = new Then(type, node);
+  Module *else_module               = new Else(type, node);
+  Module *send_to_controller_module = new SendToController(type, on_cache_write_failed, symbols);
 
   EPNode *if_node                 = new EPNode(if_module);
   EPNode *then_node               = new EPNode(then_module);

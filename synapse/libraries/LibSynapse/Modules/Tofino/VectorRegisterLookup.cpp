@@ -101,7 +101,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   }
 
   Module *module =
-      new VectorRegisterLookup(node, vector_register->id, vector_register_data.obj, vector_register_data.index, vector_register_data.value);
+      new VectorRegisterLookup(type, node, vector_register->id, vector_register_data.obj, vector_register_data.index, vector_register_data.value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -143,7 +143,7 @@ std::unique_ptr<Module> VectorRegisterLookupFactory::create(const BDD *bdd, cons
   assert((*ds.begin())->type == DSType::VectorRegister);
   VectorRegister *vector_register = dynamic_cast<VectorRegister *>(*ds.begin());
 
-  return std::make_unique<VectorRegisterLookup>(node, vector_register->id, vector_register_data.obj, vector_register_data.index,
+  return std::make_unique<VectorRegisterLookup>(type, node, vector_register->id, vector_register_data.obj, vector_register_data.index,
                                                 vector_register_data.value);
 }
 

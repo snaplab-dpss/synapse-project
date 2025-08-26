@@ -87,7 +87,7 @@ std::vector<impl_t> DataplaneHHTableReadFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  Module *module  = new DataplaneHHTableRead(node, table_data.obj, table_data.key, table_data.read_value, table_data.map_has_this_key);
+  Module *module  = new DataplaneHHTableRead(type, node, table_data.obj, table_data.key, table_data.read_value, table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -123,7 +123,7 @@ std::unique_ptr<Module> DataplaneHHTableReadFactory::create(const BDD *bdd, cons
     return {};
   }
 
-  return std::make_unique<DataplaneHHTableRead>(node, table_data.obj, table_data.key, table_data.read_value, table_data.map_has_this_key);
+  return std::make_unique<DataplaneHHTableRead>(type, node, table_data.obj, table_data.key, table_data.read_value, table_data.map_has_this_key);
 }
 
 } // namespace Controller

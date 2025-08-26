@@ -57,7 +57,7 @@ std::vector<impl_t> TokenBucketTraceFactory::process_node(const EP *ep, const BD
     return {};
   }
 
-  Module *module  = new TokenBucketTrace(node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
+  Module *module  = new TokenBucketTrace(type, node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -97,7 +97,7 @@ std::unique_ptr<Module> TokenBucketTraceFactory::create(const BDD *bdd, const Co
     return {};
   }
 
-  return std::make_unique<TokenBucketTrace>(node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
+  return std::make_unique<TokenBucketTrace>(type, node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
 }
 
 } // namespace x86

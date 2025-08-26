@@ -34,8 +34,8 @@ public:
 
 class DataplaneFCFSCachedTableReadFactory : public ControllerModuleFactory {
 public:
-  DataplaneFCFSCachedTableReadFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneFCFSCachedTableRead, "DataplaneFCFSCachedTableRead") {}
+  DataplaneFCFSCachedTableReadFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableRead, _instance_id), "DataplaneFCFSCachedTableRead") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -52,7 +52,7 @@ std::vector<impl_t> DataplaneIntegerAllocatorFreeIndexFactory::process_node(cons
     return {};
   }
 
-  Module *module  = new DataplaneIntegerAllocatorFreeIndex(node, dchain_addr, index);
+  Module *module  = new DataplaneIntegerAllocatorFreeIndex(type, node, dchain_addr, index);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -86,7 +86,7 @@ std::unique_ptr<Module> DataplaneIntegerAllocatorFreeIndexFactory::create(const 
     return {};
   }
 
-  return std::make_unique<DataplaneIntegerAllocatorFreeIndex>(node, dchain_addr, index);
+  return std::make_unique<DataplaneIntegerAllocatorFreeIndex>(type, node, dchain_addr, index);
 }
 
 } // namespace Controller

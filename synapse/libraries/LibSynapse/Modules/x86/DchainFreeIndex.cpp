@@ -62,7 +62,7 @@ std::vector<impl_t> DchainFreeIndexFactory::process_node(const EP *ep, const BDD
     return {};
   }
 
-  Module *module  = new DchainFreeIndex(node, dchain_addr, index);
+  Module *module  = new DchainFreeIndex(type, node, dchain_addr, index);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -94,7 +94,7 @@ std::unique_ptr<Module> DchainFreeIndexFactory::create(const BDD *bdd, const Con
     return {};
   }
 
-  return std::make_unique<DchainFreeIndex>(node, dchain_addr, index);
+  return std::make_unique<DchainFreeIndex>(type, node, dchain_addr, index);
 }
 
 } // namespace x86

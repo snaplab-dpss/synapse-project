@@ -53,7 +53,7 @@ std::vector<impl_t> TokenBucketExpireFactory::process_node(const EP *ep, const B
     return {};
   }
 
-  Module *module  = new TokenBucketExpire(node, tb_addr, time);
+  Module *module  = new TokenBucketExpire(type, node, tb_addr, time);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -89,7 +89,7 @@ std::unique_ptr<Module> TokenBucketExpireFactory::create(const BDD *bdd, const C
     return {};
   }
 
-  return std::make_unique<TokenBucketExpire>(node, tb_addr, time);
+  return std::make_unique<TokenBucketExpire>(type, node, tb_addr, time);
 }
 
 } // namespace x86

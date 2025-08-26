@@ -55,7 +55,7 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const BDDNode *no
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module   = new Forward(node, dst_device);
+  Module *module   = new Forward(type, node, dst_device);
   EPNode *fwd_node = new EPNode(module);
 
   const EPLeaf leaf(fwd_node, node->get_next());
@@ -92,7 +92,7 @@ std::unique_ptr<Module> ForwardFactory::create(const BDD *bdd, const Context &ct
     return {};
   }
 
-  return std::make_unique<Forward>(node, dst_device);
+  return std::make_unique<Forward>(type, node, dst_device);
 }
 
 } // namespace Controller

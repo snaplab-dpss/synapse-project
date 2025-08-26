@@ -47,13 +47,13 @@ public:
   If(const BDDNode *_node, klee::ref<klee::Expr> _original_condition, const std::vector<condition_t> &_conditions)
       : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions(_conditions) {}
 
-  If(const BDDNode *_node, klee::ref<klee::Expr> _original_condition)
-      : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions({_original_condition}) {}
+  If(ModuleType _type, const BDDNode *_node, klee::ref<klee::Expr> _original_condition)
+      : TofinoModule(_type, "If", _node), original_condition(_original_condition), conditions({_original_condition}) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    If *cloned = new If(node, original_condition, conditions);
+    If *cloned = new If(type, node, original_condition, conditions);
     return cloned;
   }
 
@@ -63,7 +63,7 @@ public:
 
 class IfFactory : public TofinoModuleFactory {
 public:
-  IfFactory() : TofinoModuleFactory(ModuleType::Tofino_If, "If") {}
+  IfFactory(const std::string &_instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_If, _instance_id), "If") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

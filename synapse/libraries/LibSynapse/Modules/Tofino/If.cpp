@@ -213,9 +213,9 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
   assert(branch_node->get_on_true() && "Branch node without on_true");
   assert(branch_node->get_on_false() && "Branch node without on_false");
 
-  Module *if_module   = new If(node, condition, conditions);
-  Module *then_module = new Then(node);
-  Module *else_module = new Else(node);
+  Module *if_module   = new If(type, node, condition, conditions);
+  Module *then_module = new Then(type, node);
+  Module *else_module = new Else(type, node);
 
   EPNode *if_node   = new EPNode(if_module);
   EPNode *then_node = new EPNode(then_module);
@@ -271,7 +271,7 @@ std::unique_ptr<Module> IfFactory::create(const BDD *bdd, const Context &ctx, co
     }
   }
 
-  return std::make_unique<If>(node, condition, conditions);
+  return std::make_unique<If>(type, node, condition, conditions);
 }
 
 } // namespace Tofino

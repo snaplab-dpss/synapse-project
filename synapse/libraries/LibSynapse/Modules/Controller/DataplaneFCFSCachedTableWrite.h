@@ -32,8 +32,9 @@ public:
 
 class DataplaneFCFSCachedTableWriteFactory : public ControllerModuleFactory {
 public:
-  DataplaneFCFSCachedTableWriteFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneFCFSCachedTableWrite, "DataplaneFCFSCachedTableWrite") {}
+  DataplaneFCFSCachedTableWriteFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableWrite, _instance_id), "DataplaneFCFSCachedTableWrite") {
+  }
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

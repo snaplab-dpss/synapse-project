@@ -10,12 +10,12 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  If(const BDDNode *_node, klee::ref<klee::Expr> _condition) : x86Module(ModuleType::x86_If, "If", _node), condition(_condition) {}
+  If(ModuleType _type, const BDDNode *_node, klee::ref<klee::Expr> _condition) : x86Module(_type, "If", _node), condition(_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    If *cloned = new If(node, condition);
+    If *cloned = new If(type, node, condition);
     return cloned;
   }
 
@@ -24,7 +24,7 @@ public:
 
 class IfFactory : public x86ModuleFactory {
 public:
-  IfFactory() : x86ModuleFactory(ModuleType::x86_If, "If") {}
+  IfFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_If, _instance_id), "If") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

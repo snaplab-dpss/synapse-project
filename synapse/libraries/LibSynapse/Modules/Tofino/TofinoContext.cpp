@@ -123,11 +123,11 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const B
   while (ep_node) {
     const Module *module = ep_node->get_module();
 
-    if (module->get_target() != TargetType::Tofino) {
+    if (module->get_target().type != TargetArchitecture::Tofino) {
       break;
     }
 
-    if (module->get_type() == ModuleType::Tofino_Recirculate) {
+    if (module->get_type().type == ModuleCategory::Tofino_Recirculate) {
       break;
     }
 
@@ -186,13 +186,13 @@ void TofinoContext::debug() const {
 } // namespace Tofino
 
 template <> const Tofino::TofinoContext *Context::get_target_ctx<Tofino::TofinoContext>() const {
-  const TargetType type = TargetType::Tofino;
+  const TargetArchitecture type = TargetArchitecture::Tofino;
   assert(target_ctxs.find(type) != target_ctxs.end() && "No context for target");
   return dynamic_cast<const Tofino::TofinoContext *>(target_ctxs.at(type));
 }
 
 template <> const Tofino::TofinoContext *Context::get_target_ctx_if_available<Tofino::TofinoContext>() const {
-  const TargetType type = TargetType::Tofino;
+  const TargetArchitecture type = TargetArchitecture::Tofino;
   if (target_ctxs.find(type) == target_ctxs.end()) {
     return nullptr;
   }
@@ -200,7 +200,7 @@ template <> const Tofino::TofinoContext *Context::get_target_ctx_if_available<To
 }
 
 template <> Tofino::TofinoContext *Context::get_mutable_target_ctx<Tofino::TofinoContext>() {
-  const TargetType type = TargetType::Tofino;
+  const TargetArchitecture type = TargetArchitecture::Tofino;
   assert(target_ctxs.find(type) != target_ctxs.end() && "No context for target");
   return dynamic_cast<Tofino::TofinoContext *>(target_ctxs.at(type));
 }

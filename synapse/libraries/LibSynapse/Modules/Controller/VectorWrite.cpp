@@ -72,7 +72,7 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const BDDNode
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new VectorWrite(node, vector_addr, index, value_addr, changes);
+  Module *module  = new VectorWrite(type, node, vector_addr, index, value_addr, changes);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -119,7 +119,7 @@ std::unique_ptr<Module> VectorWriteFactory::create(const BDD *bdd, const Context
     return {};
   }
 
-  return std::make_unique<VectorWrite>(node, vector_addr, index, value_addr, changes);
+  return std::make_unique<VectorWrite>(type, node, vector_addr, index, value_addr, changes);
 }
 
 } // namespace Controller

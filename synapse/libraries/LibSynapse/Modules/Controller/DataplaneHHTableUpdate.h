@@ -12,13 +12,14 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneHHTableUpdate(const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value)
-      : ControllerModule(ModuleType::Controller_DataplaneHHTableUpdate, "DataplaneHHTableUpdate", _node), obj(_obj), keys(_keys), value(_value) {}
+  DataplaneHHTableUpdate(ModuleType _type, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+                         klee::ref<klee::Expr> _value)
+      : ControllerModule(_type, "DataplaneHHTableUpdate", _node), obj(_obj), keys(_keys), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneHHTableUpdate(node, obj, keys, value);
+    Module *cloned = new DataplaneHHTableUpdate(type, node, obj, keys, value);
     return cloned;
   }
 
@@ -29,7 +30,8 @@ public:
 
 class DataplaneHHTableUpdateFactory : public ControllerModuleFactory {
 public:
-  DataplaneHHTableUpdateFactory() : ControllerModuleFactory(ModuleType::Controller_DataplaneHHTableUpdate, "DataplaneHHTableUpdate") {}
+  DataplaneHHTableUpdateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneHHTableUpdate, _instance_id), "DataplaneHHTableUpdate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

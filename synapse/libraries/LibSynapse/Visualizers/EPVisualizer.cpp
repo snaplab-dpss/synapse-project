@@ -26,22 +26,22 @@ using LibCore::Graphviz::Node;
 using LibCore::Graphviz::Shape;
 
 namespace {
-const std::unordered_map<TargetType, Color> node_colors = {
-    {TargetType::Tofino, Color::Literal::CornflowerBlue},
-    {TargetType::Controller, Color::Literal::LightCoral},
-    {TargetType::x86, Color::Literal::Orange},
+const std::unordered_map<TargetArchitecture, Color> node_colors = {
+    {TargetArchitecture::Tofino, Color::Literal::CornflowerBlue},
+    {TargetArchitecture::Controller, Color::Literal::LightCoral},
+    {TargetArchitecture::x86, Color::Literal::Orange},
 };
 
-const std::unordered_set<ModuleType> modules_to_ignore{
-    ModuleType::x86_Ignore,
-    ModuleType::Tofino_Ignore,
-    ModuleType::Controller_Ignore,
+const std::unordered_set<ModuleCategory> modules_to_ignore{
+    ModuleCategory::x86_Ignore,
+    ModuleCategory::Tofino_Ignore,
+    ModuleCategory::Controller_Ignore,
 };
 
 bool should_ignore_node(const EPNode *node) {
   const Module *module  = node->get_module();
   const ModuleType type = module->get_type();
-  return modules_to_ignore.find(type) != modules_to_ignore.end();
+  return modules_to_ignore.find(type.type) != modules_to_ignore.end();
 }
 
 void log_visualization(const EP *ep, const std::string &fname) {
@@ -85,7 +85,7 @@ void EPViz::function_call(const EPNode *ep_node, const BDDNode *node, TargetType
   Node tree_node  = treeviz.get_default_node();
   tree_node.id    = std::to_string(ep_node->get_id());
   tree_node.label = ss.str();
-  tree_node.color = node_colors.at(target);
+  tree_node.color = node_colors.at(target.type);
   treeviz.add_node(tree_node);
 }
 
@@ -103,7 +103,7 @@ void EPViz::branch(const EPNode *ep_node, const BDDNode *node, TargetType target
   Node tree_node  = treeviz.get_default_node();
   tree_node.id    = std::to_string(ep_node->get_id());
   tree_node.label = ss.str();
-  tree_node.color = node_colors.at(target);
+  tree_node.color = node_colors.at(target.type);
   tree_node.shape = Shape::Ellipse;
   treeviz.add_node(tree_node);
 }

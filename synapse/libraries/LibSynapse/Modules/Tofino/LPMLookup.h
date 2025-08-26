@@ -14,14 +14,14 @@ private:
   klee::ref<klee::Expr> match;
 
 public:
-  LPMLookup(const BDDNode *_node, DS_ID _lpm_id, addr_t _obj, klee::ref<klee::Expr> _addr, klee::ref<klee::Expr> _device,
+  LPMLookup(ModuleType _type, const BDDNode *_node, DS_ID _lpm_id, addr_t _obj, klee::ref<klee::Expr> _addr, klee::ref<klee::Expr> _device,
             klee::ref<klee::Expr> _match)
-      : TofinoModule(ModuleType::Tofino_LPMLookup, "LPMLookup", _node), lpm_id(_lpm_id), obj(_obj), addr(_addr), device(_device), match(_match) {}
+      : TofinoModule(_type, "LPMLookup", _node), lpm_id(_lpm_id), obj(_obj), addr(_addr), device(_device), match(_match) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new LPMLookup(node, lpm_id, obj, addr, device, match);
+    Module *cloned = new LPMLookup(type, node, lpm_id, obj, addr, device, match);
     return cloned;
   }
 
@@ -36,7 +36,7 @@ public:
 
 class LPMLookupFactory : public TofinoModuleFactory {
 public:
-  LPMLookupFactory() : TofinoModuleFactory(ModuleType::Tofino_LPMLookup, "LPMLookup") {}
+  LPMLookupFactory(const std::string &_instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_LPMLookup, _instance_id), "LPMLookup") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

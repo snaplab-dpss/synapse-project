@@ -43,10 +43,10 @@ namespace LibSynapse {
 namespace Tofino {
 
 struct TofinoTarget : public Target {
-  TofinoTarget(const tna_config_t &tna_config)
+  TofinoTarget(const tna_config_t &tna_config, const std::string &instance_id)
       : Target(
-            TargetType::Tofino,
-            []() -> std::vector<std::unique_ptr<ModuleFactory>> {
+            TargetType(TargetArchitecture::Tofino, instance_id),
+            [instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
               f.push_back(std::make_unique<RecirculateFactory>());
               f.push_back(std::make_unique<ForwardFactory>());
@@ -76,12 +76,12 @@ struct TofinoTarget : public Target {
               // f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorIsAllocatedFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorRejuvenateFactory>());
-              f.push_back(std::make_unique<CMSQueryFactory>());
-              f.push_back(std::make_unique<CMSIncrementFactory>());
-              f.push_back(std::make_unique<CMSIncAndQueryFactory>());
-              f.push_back(std::make_unique<LPMLookupFactory>());
-              f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
-              f.push_back(std::make_unique<SendToControllerFactory>());
+              f.push_back(std::make_unique<CMSQueryFactory>(instance_id));
+              f.push_back(std::make_unique<CMSIncrementFactory>(instance_id));
+              f.push_back(std::make_unique<CMSIncAndQueryFactory>(instance_id));
+              f.push_back(std::make_unique<LPMLookupFactory>(instance_id));
+              f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>(instance_id));
+              f.push_back(std::make_unique<SendToControllerFactory>(instance_id));
               return f;
             }(),
             std::make_unique<TofinoContext>(tna_config)) {}

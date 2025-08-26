@@ -84,7 +84,7 @@ struct ControllerTarget : public Target {
   ControllerTarget(const std::string &instance_id)
       : Target(
             TargetType(TargetArchitecture::Controller, instance_id),
-            []() -> std::vector<std::unique_ptr<ModuleFactory>> {
+            [instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
               f.push_back(std::make_unique<IgnoreFactory>());
               f.push_back(std::make_unique<ParseHeaderFactory>());

@@ -11,13 +11,13 @@ private:
   addr_t obj;
 
 public:
-  HHTableOutOfBandUpdate(const BDDNode *_node, DS_ID _hh_table_id, addr_t _obj)
-      : TofinoModule(ModuleType::Tofino_HHTableOutOfBandUpdate, "HHTableOutOfBandUpdate", _node), hh_table_id(_hh_table_id), obj(_obj) {}
+  HHTableOutOfBandUpdate(ModuleType _type, const BDDNode *_node, DS_ID _hh_table_id, addr_t _obj)
+      : TofinoModule(_type, "HHTableOutOfBandUpdate", _node), hh_table_id(_hh_table_id), obj(_obj) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new HHTableOutOfBandUpdate(node, hh_table_id, obj);
+    Module *cloned = new HHTableOutOfBandUpdate(type, node, hh_table_id, obj);
     return cloned;
   }
 
@@ -29,7 +29,8 @@ public:
 
 class HHTableOutOfBandUpdateFactory : public TofinoModuleFactory {
 public:
-  HHTableOutOfBandUpdateFactory() : TofinoModuleFactory(ModuleType::Tofino_HHTableOutOfBandUpdate, "HHTableOutOfBandUpdate") {}
+  HHTableOutOfBandUpdateFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_HHTableOutOfBandUpdate, _instance_id), "HHTableOutOfBandUpdate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -53,7 +53,7 @@ std::vector<impl_t> MapAllocateFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  Module *module  = new MapAllocate(node, map_addr, capacity, key_size);
+  Module *module  = new MapAllocate(type, node, map_addr, capacity, key_size);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -90,7 +90,7 @@ std::unique_ptr<Module> MapAllocateFactory::create(const BDD *bdd, const Context
     return {};
   }
 
-  return std::make_unique<MapAllocate>(node, map_addr, capacity, key_size);
+  return std::make_unique<MapAllocate>(type, node, map_addr, capacity, key_size);
 }
 
 } // namespace Controller

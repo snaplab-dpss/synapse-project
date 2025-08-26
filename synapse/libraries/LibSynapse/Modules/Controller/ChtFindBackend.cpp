@@ -59,7 +59,7 @@ std::vector<impl_t> ChtFindBackendFactory::process_node(const EP *ep, const BDDN
     return {};
   }
 
-  Module *module  = new ChtFindBackend(node, cht_addr, backends_addr, hash, height, capacity, backend, backend_found);
+  Module *module  = new ChtFindBackend(type, node, cht_addr, backends_addr, hash, height, capacity, backend, backend_found);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -102,7 +102,7 @@ std::unique_ptr<Module> ChtFindBackendFactory::create(const BDD *bdd, const Cont
     return {};
   }
 
-  return std::make_unique<ChtFindBackend>(node, cht_addr, backends_addr, hash, height, capacity, backend, backend_found);
+  return std::make_unique<ChtFindBackend>(type, node, cht_addr, backends_addr, hash, height, capacity, backend, backend_found);
 }
 
 } // namespace Controller

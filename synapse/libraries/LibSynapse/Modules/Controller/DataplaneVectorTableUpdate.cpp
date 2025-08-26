@@ -83,7 +83,7 @@ std::vector<impl_t> DataplaneVectorTableUpdateFactory::process_node(const EP *ep
     return {};
   }
 
-  Module *module  = new DataplaneVectorTableUpdate(node, data.obj, data.key, data.value);
+  Module *module  = new DataplaneVectorTableUpdate(type, node, data.obj, data.key, data.value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -118,7 +118,7 @@ std::unique_ptr<Module> DataplaneVectorTableUpdateFactory::create(const BDD *bdd
     return {};
   }
 
-  return std::make_unique<DataplaneVectorTableUpdate>(node, data.obj, data.key, data.value);
+  return std::make_unique<DataplaneVectorTableUpdate>(type, node, data.obj, data.key, data.value);
 }
 
 } // namespace Controller

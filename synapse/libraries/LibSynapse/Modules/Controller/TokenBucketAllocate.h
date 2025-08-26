@@ -14,15 +14,15 @@ private:
   klee::ref<klee::Expr> key_size;
 
 public:
-  TokenBucketAllocate(const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _rate,
+  TokenBucketAllocate(ModuleType _type, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _rate,
                       klee::ref<klee::Expr> _burst, klee::ref<klee::Expr> _key_size)
-      : ControllerModule(ModuleType::Controller_TokenBucketAllocate, "TokenBucketAllocate", _node), tb_addr(_tb_addr), capacity(_capacity),
-        rate(_rate), burst(_burst), key_size(_key_size) {}
+      : ControllerModule(_type, "TokenBucketAllocate", _node), tb_addr(_tb_addr), capacity(_capacity), rate(_rate), burst(_burst),
+        key_size(_key_size) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new TokenBucketAllocate(node, tb_addr, capacity, rate, burst, key_size);
+    Module *cloned = new TokenBucketAllocate(type, node, tb_addr, capacity, rate, burst, key_size);
     return cloned;
   }
 
@@ -35,7 +35,8 @@ public:
 
 class TokenBucketAllocateFactory : public ControllerModuleFactory {
 public:
-  TokenBucketAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_TokenBucketAllocate, "TokenBucketAllocate") {}
+  TokenBucketAllocateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_TokenBucketAllocate, _instance_id), "TokenBucketAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -82,7 +82,7 @@ std::vector<impl_t> DataplaneMapTableLookupFactory::process_node(const EP *ep, c
     return {};
   }
 
-  Module *module  = new DataplaneMapTableLookup(node, data.obj, data.key, data.value, data.found);
+  Module *module  = new DataplaneMapTableLookup(type, node, data.obj, data.key, data.value, data.found);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -113,7 +113,7 @@ std::unique_ptr<Module> DataplaneMapTableLookupFactory::create(const BDD *bdd, c
     return {};
   }
 
-  return std::make_unique<DataplaneMapTableLookup>(node, data.obj, data.key, data.value, data.found);
+  return std::make_unique<DataplaneMapTableLookup>(type, node, data.obj, data.key, data.value, data.found);
 }
 
 } // namespace Controller

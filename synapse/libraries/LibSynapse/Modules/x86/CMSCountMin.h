@@ -12,13 +12,13 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSCountMin(const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
-      : x86Module(ModuleType::x86_CMSCountMin, "CMSCountMin", _node), cms_addr(_cms_addr), key(_key), min_estimate(_min_estimate) {}
+  CMSCountMin(ModuleType _type, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
+      : x86Module(_type, "CMSCountMin", _node), cms_addr(_cms_addr), key(_key), min_estimate(_min_estimate) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new CMSCountMin(node, cms_addr, key, min_estimate);
+    Module *cloned = new CMSCountMin(type, node, cms_addr, key, min_estimate);
     return cloned;
   }
 
@@ -29,7 +29,7 @@ public:
 
 class CMSCountMinFactory : public x86ModuleFactory {
 public:
-  CMSCountMinFactory() : x86ModuleFactory(ModuleType::x86_CMSCountMin, "CMSCountMin") {}
+  CMSCountMinFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_CMSCountMin, _instance_id), "CMSCountMin") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

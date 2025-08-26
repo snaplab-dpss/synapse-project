@@ -42,7 +42,7 @@ bool guarded_map_table_guard_check_already_performed(const EP *ep, addr_t obj) {
     const Module *module = node->get_module();
     assert(module);
 
-    if (module->get_type() == ModuleType::Tofino_GuardedMapTableGuardCheck) {
+    if (module->get_type().type == ModuleCategory::Tofino_GuardedMapTableGuardCheck) {
       const GuardedMapTableGuardCheck *guarded_map_table_guard_check = dynamic_cast<const GuardedMapTableGuardCheck *>(module);
       if (guarded_map_table_guard_check->get_obj() == obj) {
         return true;
@@ -285,7 +285,7 @@ std::unique_ptr<Module> GuardedMapTableGuardCheckFactory::create(const BDD *bdd,
   const symbol_t mock_guard_symbol;
   klee::ref<klee::Expr> mock_condition;
 
-  return std::make_unique<GuardedMapTableGuardCheck>(node, guarded_map_table->id, obj, mock_guard_symbol, mock_condition);
+  return std::make_unique<GuardedMapTableGuardCheck>(type, node, guarded_map_table->id, obj, mock_guard_symbol, mock_condition);
 }
 
 } // namespace Tofino

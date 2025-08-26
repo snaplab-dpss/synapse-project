@@ -75,7 +75,7 @@ std::vector<impl_t> DataplaneHHTableUpdateFactory::process_node(const EP *ep, co
 
   const table_data_t table_data(ep->get_ctx(), map_put);
 
-  Module *module  = new DataplaneHHTableUpdate(node, table_data.obj, table_data.table_keys, table_data.value);
+  Module *module  = new DataplaneHHTableUpdate(type, node, table_data.obj, table_data.table_keys, table_data.value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -109,7 +109,7 @@ std::unique_ptr<Module> DataplaneHHTableUpdateFactory::create(const BDD *bdd, co
 
   const table_data_t table_data(ctx, map_put);
 
-  return std::make_unique<DataplaneHHTableUpdate>(node, table_data.obj, table_data.table_keys, table_data.value);
+  return std::make_unique<DataplaneHHTableUpdate>(type, node, table_data.obj, table_data.table_keys, table_data.value);
 }
 
 } // namespace Controller

@@ -12,14 +12,14 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneVectorRegisterAllocate(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity)
-      : ControllerModule(ModuleType::Controller_DataplaneVectorRegisterAllocate, "DataplaneVectorRegisterAllocate", _node), obj(_obj),
-        elem_size(_elem_size), capacity(_capacity) {}
+  DataplaneVectorRegisterAllocate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size,
+                                  klee::ref<klee::Expr> _capacity)
+      : ControllerModule(_type, "DataplaneVectorRegisterAllocate", _node), obj(_obj), elem_size(_elem_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneVectorRegisterAllocate(node, obj, elem_size, capacity);
+    Module *cloned = new DataplaneVectorRegisterAllocate(type, node, obj, elem_size, capacity);
     return cloned;
   }
 
@@ -30,8 +30,9 @@ public:
 
 class DataplaneVectorRegisterAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneVectorRegisterAllocateFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneVectorRegisterAllocate, "DataplaneVectorRegisterAllocate") {}
+  DataplaneVectorRegisterAllocateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterAllocate, _instance_id),
+                                "DataplaneVectorRegisterAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -131,14 +131,15 @@ TargetView Target::get_view() const {
 }
 
 std::ostream &operator<<(std::ostream &os, TargetType target) {
-  switch (target) {
-  case TargetType::Controller:
+  os << target.instance_id << ": ";
+  switch (target.type) {
+  case TargetArchitecture::Controller:
     os << "Ctrl";
     break;
-  case TargetType::Tofino:
+  case TargetArchitecture::Tofino:
     os << "Tofino";
     break;
-  case TargetType::x86:
+  case TargetArchitecture::x86:
     os << "x86";
     break;
   }

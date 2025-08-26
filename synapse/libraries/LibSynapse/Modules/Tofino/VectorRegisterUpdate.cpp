@@ -166,7 +166,7 @@ std::unique_ptr<Module> VectorRegisterUpdateFactory::create(const BDD *bdd, cons
   assert((*ds.begin())->type == DSType::VectorRegister);
   VectorRegister *vector_register = dynamic_cast<VectorRegister *>(*ds.begin());
 
-  return std::make_unique<VectorRegisterUpdate>(node, vector_register->id, vector_register_data.obj, vector_register_data.index,
+  return std::make_unique<VectorRegisterUpdate>(type, node, vector_register->id, vector_register_data.obj, vector_register_data.index,
                                                 vector_register_data.value, vector_register_data.write_value);
 }
 

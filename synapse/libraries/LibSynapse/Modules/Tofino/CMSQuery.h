@@ -13,14 +13,13 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSQuery(const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys,
+  CMSQuery(ModuleType _type, const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys,
            klee::ref<klee::Expr> _min_estimate)
-      : TofinoModule(ModuleType::Tofino_CMSQuery, "CMSQuery", _node), cms_id(_cms_id), cms_addr(_cms_addr), keys(_keys), min_estimate(_min_estimate) {
-  }
+      : TofinoModule(_type, "CMSQuery", _node), cms_id(_cms_id), cms_addr(_cms_addr), keys(_keys), min_estimate(_min_estimate) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
-  virtual Module *clone() const override { return new CMSQuery(node, cms_id, cms_addr, keys, min_estimate); }
+  virtual Module *clone() const override { return new CMSQuery(type, node, cms_id, cms_addr, keys, min_estimate); }
 
   DS_ID get_cms_id() const { return cms_id; }
   addr_t get_cms_addr() const { return cms_addr; }
@@ -32,7 +31,7 @@ public:
 
 class CMSQueryFactory : public TofinoModuleFactory {
 public:
-  CMSQueryFactory() : TofinoModuleFactory(ModuleType::Tofino_CMSQuery, "CMSQuery") {}
+  CMSQueryFactory(const std::string &_instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_CMSQuery, _instance_id), "CMSQuery") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -47,7 +47,7 @@ std::vector<impl_t> HashObjFactory::process_node(const EP *ep, const BDDNode *no
 
   const addr_t obj_addr = expr_addr_to_obj_addr(obj_addr_expr);
 
-  Module *module  = new HashObj(node, obj_addr, size, hash);
+  Module *module  = new HashObj(type, node, obj_addr, size, hash);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -74,7 +74,7 @@ std::unique_ptr<Module> HashObjFactory::create(const BDD *bdd, const Context &ct
 
   const addr_t obj_addr = expr_addr_to_obj_addr(obj_addr_expr);
 
-  return std::make_unique<HashObj>(node, obj_addr, size, hash);
+  return std::make_unique<HashObj>(type, node, obj_addr, size, hash);
 }
 
 } // namespace x86

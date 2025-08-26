@@ -12,13 +12,13 @@ private:
   klee::ref<klee::Expr> key_size;
 
 public:
-  MapAllocate(const BDDNode *_node, addr_t _map_addr, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _key_size)
-      : ControllerModule(ModuleType::Controller_MapAllocate, "MapAllocate", _node), map_addr(_map_addr), capacity(_capacity), key_size(_key_size) {}
+  MapAllocate(ModuleType _type, const BDDNode *_node, addr_t _map_addr, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _key_size)
+      : ControllerModule(_type, "MapAllocate", _node), map_addr(_map_addr), capacity(_capacity), key_size(_key_size) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new MapAllocate(node, map_addr, capacity, key_size);
+    Module *cloned = new MapAllocate(type, node, map_addr, capacity, key_size);
     return cloned;
   }
 
@@ -29,7 +29,8 @@ public:
 
 class MapAllocateFactory : public ControllerModuleFactory {
 public:
-  MapAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_MapAllocate, "MapAllocate") {}
+  MapAllocateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_MapAllocate, _instance_id), "MapAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -12,13 +12,13 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  VectorAllocate(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity)
-      : ControllerModule(ModuleType::Controller_VectorAllocate, "VectorAllocate", _node), obj(_obj), elem_size(_elem_size), capacity(_capacity) {}
+  VectorAllocate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity)
+      : ControllerModule(_type, "VectorAllocate", _node), obj(_obj), elem_size(_elem_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorAllocate(node, obj, elem_size, capacity);
+    Module *cloned = new VectorAllocate(type, node, obj, elem_size, capacity);
     return cloned;
   }
 
@@ -29,7 +29,8 @@ public:
 
 class VectorAllocateFactory : public ControllerModuleFactory {
 public:
-  VectorAllocateFactory() : ControllerModuleFactory(ModuleType::Controller_VectorAllocate, "VectorAllocate") {}
+  VectorAllocateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_VectorAllocate, _instance_id), "VectorAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

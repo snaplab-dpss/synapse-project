@@ -20,7 +20,7 @@ bool is_parser_reject(const EP *ep) {
   const EPNode *prev   = node->get_prev();
   const Module *module = prev->get_module();
 
-  return (module->get_type() == ModuleType::Tofino_ParserCondition);
+  return (module->get_type().type == ModuleCategory::Tofino_ParserCondition);
 }
 
 } // namespace
@@ -63,7 +63,7 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const BDDNode *node,
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new Drop(node);
+  Module *module  = new Drop(type, node);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -90,7 +90,7 @@ std::unique_ptr<Module> DropFactory::create(const BDD *bdd, const Context &ctx, 
     return {};
   }
 
-  return std::make_unique<Drop>(node);
+  return std::make_unique<Drop>(type, node);
 }
 
 } // namespace Tofino

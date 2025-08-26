@@ -13,13 +13,13 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  MapPut(const BDDNode *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
-      : ControllerModule(ModuleType::Controller_MapPut, "MapPut", _node), map_addr(_map_addr), key_addr(_key_addr), key(_key), value(_value) {}
+  MapPut(ModuleType _type, const BDDNode *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
+      : ControllerModule(_type, "MapPut", _node), map_addr(_map_addr), key_addr(_key_addr), key(_key), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new MapPut(node, map_addr, key_addr, key, value);
+    Module *cloned = new MapPut(type, node, map_addr, key_addr, key, value);
     return cloned;
   }
 
@@ -31,7 +31,7 @@ public:
 
 class MapPutFactory : public ControllerModuleFactory {
 public:
-  MapPutFactory() : ControllerModuleFactory(ModuleType::Controller_MapPut, "MapPut") {}
+  MapPutFactory(const std::string &_instance_id) : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_MapPut, _instance_id), "MapPut") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

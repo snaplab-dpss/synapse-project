@@ -85,7 +85,7 @@ std::vector<impl_t> DataplaneVectorTableLookupFactory::process_node(const EP *ep
     return {};
   }
 
-  Module *module  = new DataplaneVectorTableLookup(node, data.obj, data.index, data.value);
+  Module *module  = new DataplaneVectorTableLookup(type, node, data.obj, data.index, data.value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -120,7 +120,7 @@ std::unique_ptr<Module> DataplaneVectorTableLookupFactory::create(const BDD *bdd
     return {};
   }
 
-  return std::make_unique<DataplaneVectorTableLookup>(node, data.obj, data.index, data.value);
+  return std::make_unique<DataplaneVectorTableLookup>(type, node, data.obj, data.index, data.value);
 }
 
 } // namespace Controller

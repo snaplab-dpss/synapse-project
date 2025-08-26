@@ -11,13 +11,13 @@ private:
   klee::ref<klee::Expr> index;
 
 public:
-  DchainFreeIndex(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
-      : x86Module(ModuleType::x86_DchainFreeIndex, "DchainFreeIndex", _node), dchain_addr(_dchain_addr), index(_index) {}
+  DchainFreeIndex(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
+      : x86Module(_type, "DchainFreeIndex", _node), dchain_addr(_dchain_addr), index(_index) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DchainFreeIndex(node, dchain_addr, index);
+    Module *cloned = new DchainFreeIndex(type, node, dchain_addr, index);
     return cloned;
   }
 
@@ -27,7 +27,8 @@ public:
 
 class DchainFreeIndexFactory : public x86ModuleFactory {
 public:
-  DchainFreeIndexFactory() : x86ModuleFactory(ModuleType::x86_DchainFreeIndex, "DchainFreeIndex") {}
+  DchainFreeIndexFactory(const std::string &_instance_id)
+      : x86ModuleFactory(ModuleType(ModuleCategory::x86_DchainFreeIndex, _instance_id), "DchainFreeIndex") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

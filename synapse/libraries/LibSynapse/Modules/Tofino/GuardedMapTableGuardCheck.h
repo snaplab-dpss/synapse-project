@@ -40,14 +40,15 @@ private:
   klee::ref<klee::Expr> guard_allow_condition;
 
 public:
-  GuardedMapTableGuardCheck(const BDDNode *_node, DS_ID _id, addr_t _obj, const symbol_t &_guard_allow, klee::ref<klee::Expr> _guard_allow_condition)
-      : TofinoModule(ModuleType::Tofino_GuardedMapTableGuardCheck, "GuardedMapTableGuardCheck", _node), id(_id), obj(_obj), guard_allow(_guard_allow),
+  GuardedMapTableGuardCheck(ModuleType _type, const BDDNode *_node, DS_ID _id, addr_t _obj, const symbol_t &_guard_allow,
+                            klee::ref<klee::Expr> _guard_allow_condition)
+      : TofinoModule(_type, "GuardedMapTableGuardCheck", _node), id(_id), obj(_obj), guard_allow(_guard_allow),
         guard_allow_condition(_guard_allow_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new GuardedMapTableGuardCheck(node, id, obj, guard_allow, guard_allow_condition);
+    Module *cloned = new GuardedMapTableGuardCheck(type, node, id, obj, guard_allow, guard_allow_condition);
     return cloned;
   }
 
@@ -61,7 +62,8 @@ public:
 
 class GuardedMapTableGuardCheckFactory : public TofinoModuleFactory {
 public:
-  GuardedMapTableGuardCheckFactory() : TofinoModuleFactory(ModuleType::Tofino_GuardedMapTableGuardCheck, "GuardedMapTableGuardCheck") {}
+  GuardedMapTableGuardCheckFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_GuardedMapTableGuardCheck, _instance_id), "GuardedMapTableGuardCheck") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

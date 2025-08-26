@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LibSynapse/Target.h"
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
 
 namespace LibSynapse {
@@ -10,13 +11,13 @@ private:
   Symbols symbols;
 
 public:
-  SendToController(const BDDNode *_node, Symbols _symbols)
-      : TofinoModule(ModuleType::Tofino_SendToController, TargetType::Controller, "SendToController", _node), symbols(_symbols) {}
+  SendToController(ModuleType _type, const BDDNode *_node, Symbols _symbols)
+      : TofinoModule(_type, TargetType(TargetArchitecture::Controller, _type.instance_id), "SendToController", _node), symbols(_symbols) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    SendToController *cloned = new SendToController(node, symbols);
+    SendToController *cloned = new SendToController(type, node, symbols);
     return cloned;
   }
 
@@ -25,7 +26,8 @@ public:
 
 class SendToControllerFactory : public TofinoModuleFactory {
 public:
-  SendToControllerFactory() : TofinoModuleFactory(ModuleType::Tofino_SendToController, "SendToController") {}
+  SendToControllerFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_SendToController, _instance_id), "SendToController") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

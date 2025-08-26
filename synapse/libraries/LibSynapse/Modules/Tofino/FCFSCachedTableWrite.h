@@ -35,7 +35,8 @@ public:
 
 class FCFSCachedTableWriteFactory : public TofinoModuleFactory {
 public:
-  FCFSCachedTableWriteFactory() : TofinoModuleFactory(ModuleType::Tofino_FCFSCachedTableWrite, "FCFSCachedTableWrite") {}
+  FCFSCachedTableWriteFactory(const std::string &_instance_id)
+      : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_FCFSCachedTableWrite, _instance_id), "FCFSCachedTableWrite") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;
