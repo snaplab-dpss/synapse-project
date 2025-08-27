@@ -9,6 +9,7 @@
 #include <set>
 #include <iostream>
 #include <optional>
+#include <list>
 
 namespace LibBDD {
 
@@ -1556,6 +1557,34 @@ bool BDD::is_map_get_followed_by_map_puts_on_miss(const Call *map_get, std::vect
   return true;
 }
 
+bool BDD::is_map_get_and_branch_checking_success(const Call *map_get, const BDDNode *branch_checking_map_get_success, bool &success_direction) const {
+  if (map_get == nullptr || branch_checking_map_get_success == nullptr) {
+    return false;
+  }
+
+  const symbol_t map_has_this_key = map_get->get_local_symbol("map_has_this_key");
+
+  if (branch_checking_map_get_success->get_type() != BDDNodeType::Branch) {
+    return false;
+  }
+
+  const Branch *branch            = dynamic_cast<const Branch *>(branch_checking_map_get_success);
+  klee::ref<klee::Expr> condition = branch->get_condition();
+
+  const bool is_success_condition = solver_toolbox.are_exprs_always_equal(
+      condition, solver_toolbox.exprBuilder->Ne(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth())));
+  const bool is_failure_condition = solver_toolbox.are_exprs_always_equal(
+      condition, solver_toolbox.exprBuilder->Eq(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth())));
+
+  if (!is_success_condition && !is_failure_condition) {
+    return false;
+  }
+
+  success_direction = is_success_condition;
+
+  return true;
+}
+
 bool BDD::is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing, const Call *&tb_update_and_check) const {
   assert_or_panic(tb_is_tracing, "tb_is_tracing cannot be null");
   const call_t &is_tracing_call = tb_is_tracing->get_call();
@@ -1587,6 +1616,168 @@ bool BDD::is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_traci
   }
 
   return tb_update_and_check != nullptr;
+}
+
+bool BDD::is_dchain_used_for_index_allocation_queries(addr_t dchain) const {
+  bool result = false;
+
+  root->visit_nodes([&result, dchain](const BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const Call *call_node = dynamic_cast<const Call *>(node);
+    const call_t &call    = call_node->get_call();
+
+    if (call.function_name != "dchain_is_index_allocated") {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    klee::ref<klee::Expr> chain = call.args.at("chain").expr;
+    const addr_t obj            = expr_addr_to_obj_addr(chain);
+
+    if (obj != dchain) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    result = true;
+    return BDDNodeVisitAction::Stop;
+  });
+
+  return result;
+}
+
+bool BDD::is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const {
+  std::vector<const Call *> dchain_allocate_new_index_nodes;
+  root->visit_nodes([&dchain_allocate_new_index_nodes, dchain](const BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const Call *call_node = dynamic_cast<const Call *>(node);
+    const call_t &call    = call_node->get_call();
+
+    if (call.function_name != "dchain_allocate_new_index") {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    klee::ref<klee::Expr> chain = call.args.at("chain").expr;
+    const addr_t obj            = expr_addr_to_obj_addr(chain);
+
+    if (obj != dchain) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    dchain_allocate_new_index_nodes.push_back(call_node);
+    return BDDNodeVisitAction::Stop;
+  });
+
+  bool result = true;
+  for (const Call *dchain_allocate_new_index : dchain_allocate_new_index_nodes) {
+    if (!dchain_allocate_new_index->get_next()) {
+      continue;
+    }
+
+    const symbol_t index_out = dchain_allocate_new_index->get_local_symbol("new_index");
+
+    auto expr_uses_dchain_index = [index_out](klee::ref<klee::Expr> expr) {
+      const std::unordered_set<std::string> symbols = symbol_t::get_symbols_names(expr);
+      return symbols.find(index_out.name) != symbols.end();
+    };
+
+    dchain_allocate_new_index->get_next()->visit_nodes([&result, expr_uses_dchain_index](const BDDNode *node) {
+      switch (node->get_type()) {
+      case BDDNodeType::Branch: {
+        const Branch *branch_node       = dynamic_cast<const Branch *>(node);
+        klee::ref<klee::Expr> condition = branch_node->get_condition();
+
+        if (expr_uses_dchain_index(condition)) {
+          result = false;
+          return BDDNodeVisitAction::Stop;
+        }
+      } break;
+      case BDDNodeType::Call: {
+        const Call *call_node = dynamic_cast<const Call *>(node);
+        const call_t &call    = call_node->get_call();
+
+        for (const auto &[arg_name, arg] : call.args) {
+          if ((call.function_name == "map_get" && arg_name == "value") || (call.function_name == "map_put" && arg_name == "value") ||
+              (call.function_name == "vector_borrow" && arg_name == "index") || (call.function_name == "vector_return" && arg_name == "index")) {
+            continue;
+          }
+
+          if (expr_uses_dchain_index(arg.expr)) {
+            result = false;
+            return BDDNodeVisitAction::Stop;
+          }
+
+          if (expr_uses_dchain_index(arg.in)) {
+            result = false;
+            return BDDNodeVisitAction::Stop;
+          }
+        }
+      } break;
+      case BDDNodeType::Route: {
+        const Route *route_node = dynamic_cast<const Route *>(node);
+        if (route_node->get_operation() == RouteOp::Forward && expr_uses_dchain_index(route_node->get_dst_device())) {
+          result = false;
+          return BDDNodeVisitAction::Stop;
+        }
+      } break;
+      }
+
+      return BDDNodeVisitAction::Continue;
+    });
+  }
+
+  return result;
+}
+
+bool BDD::are_subtrees_equal(const BDDNode *n0, const BDDNode *n1) const {
+  std::list<const BDDNode *> n0_nodes{n0};
+  std::list<const BDDNode *> n1_nodes{n1};
+
+  while (!n0_nodes.empty()) {
+    n0 = n0_nodes.front();
+    n0_nodes.pop_front();
+
+    n1 = n1_nodes.front();
+    n1_nodes.pop_front();
+
+    if (!n0->equals(n1)) {
+      return false;
+    }
+
+    if (n0->get_type() == BDDNodeType::Branch) {
+      const Branch *b0 = dynamic_cast<const Branch *>(n0);
+      const Branch *b1 = dynamic_cast<const Branch *>(n1);
+
+      if ((b0->get_on_true() && !b1->get_on_true()) || (!b0->get_on_true() && b1->get_on_true())) {
+        return false;
+      }
+
+      if ((b0->get_on_false() && !b1->get_on_false()) || (!b0->get_on_false() && b1->get_on_false())) {
+        return false;
+      }
+
+      n0_nodes.push_back(b0->get_on_true());
+      n0_nodes.push_back(b0->get_on_false());
+
+      n1_nodes.push_back(b1->get_on_true());
+      n1_nodes.push_back(b1->get_on_false());
+    } else {
+      if ((n0->get_next() && !n1->get_next()) || (!n0->get_next() && n1->get_next())) {
+        return false;
+      }
+
+      if (n0->get_next() && n1->get_next()) {
+        n0_nodes.push_back(n0->get_next());
+        n1_nodes.push_back(n1->get_next());
+      }
+    }
+  }
+
+  return true;
 }
 
 } // namespace LibBDD

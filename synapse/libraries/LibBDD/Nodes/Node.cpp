@@ -810,4 +810,85 @@ Route *BDDNode::get_mutable_latest_routing_decision() {
   return nullptr;
 }
 
+bool BDDNode::equals(const BDDNode *other) const {
+  if (other == nullptr) {
+    return false;
+  }
+
+  if (type != other->type) {
+    return false;
+  }
+
+  switch (type) {
+  case BDDNodeType::Call: {
+    const Call *this_call_node  = dynamic_cast<const Call *>(this);
+    const Call *other_call_node = dynamic_cast<const Call *>(other);
+
+    const call_t &this_call  = this_call_node->get_call();
+    const call_t &other_call = other_call_node->get_call();
+
+    if (this_call.function_name != other_call.function_name) {
+      return false;
+    }
+
+    for (const auto &[arg_name, this_arg] : this_call.args) {
+      if (other_call.args.find(arg_name) == other_call.args.end()) {
+        return false;
+      }
+
+      const arg_t &other_arg = other_call.args.at(arg_name);
+      if (!solver_toolbox.are_exprs_always_equal(this_arg.expr, other_arg.expr)) {
+        return false;
+      }
+      if (!solver_toolbox.are_exprs_always_equal(this_arg.in, other_arg.in)) {
+        return false;
+      }
+      if (!solver_toolbox.are_exprs_always_equal(this_arg.out, other_arg.out)) {
+        return false;
+      }
+    }
+
+    for (const auto &[extra_var_name, extra_var] : this_call.extra_vars) {
+      if (other_call.extra_vars.find(extra_var_name) == other_call.extra_vars.end()) {
+        return false;
+      }
+
+      const auto &other_extra_var = other_call.extra_vars.at(extra_var_name);
+      if (!solver_toolbox.are_exprs_always_equal(extra_var.first, other_extra_var.first)) {
+        return false;
+      }
+      if (!solver_toolbox.are_exprs_always_equal(extra_var.second, other_extra_var.second)) {
+        return false;
+      }
+    }
+
+    if (!solver_toolbox.are_exprs_always_equal(this_call.ret, other_call.ret)) {
+      return false;
+    }
+  } break;
+  case BDDNodeType::Branch: {
+    const Branch *this_branch_node  = dynamic_cast<const Branch *>(this);
+    const Branch *other_branch_node = dynamic_cast<const Branch *>(other);
+
+    if (!solver_toolbox.are_exprs_always_equal(this_branch_node->get_condition(), other_branch_node->get_condition())) {
+      return false;
+    }
+  } break;
+  case BDDNodeType::Route: {
+    const Route *this_route_node  = dynamic_cast<const Route *>(this);
+    const Route *other_route_node = dynamic_cast<const Route *>(other);
+
+    if (this_route_node->get_operation() != other_route_node->get_operation()) {
+      return false;
+    }
+
+    if (!solver_toolbox.are_exprs_always_equal(this_route_node->get_dst_device(), other_route_node->get_dst_device())) {
+      return false;
+    }
+  } break;
+  }
+
+  return true;
+}
+
 } // namespace LibBDD

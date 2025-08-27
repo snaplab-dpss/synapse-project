@@ -83,6 +83,7 @@ public:
   void recursive_free_children(BDDNodeManager &manager);
   std::string recursive_dump(int lvl = 0) const;
 
+  bool equals(const BDDNode *other) const;
   bool is_reachable(bdd_node_id_t id) const;
   bool is_packet_drop_code_path() const;
   std::string hash(bool recursive) const;

@@ -6,6 +6,7 @@ namespace LibSynapse {
 namespace Tofino {
 namespace {
 
+using LibBDD::Branch;
 using LibBDD::branch_direction_t;
 using LibBDD::Call;
 using LibBDD::call_t;
@@ -36,6 +37,18 @@ struct cuckoo_hash_table_data_t {
   }
 };
 
+symbol_t create_cuckoo_success_symbol(DS_ID id, SymbolManager *symbol_manager, const BDDNode *node) {
+  const std::string name = id + "_" + std::to_string(node->get_id());
+  const bits_t size      = 8;
+  return symbol_manager->create_symbol(name, size);
+}
+
+klee::ref<klee::Expr> build_cuckoo_success_condition(const symbol_t &cuckoo_success_symbol) {
+  const bits_t width               = cuckoo_success_symbol.expr->getWidth();
+  const klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, width);
+  return solver_toolbox.exprBuilder->Ne(cuckoo_success_symbol.expr, zero);
+}
+
 bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
                                      const branch_direction_t &mgsc) {
   const hit_rate_t success_rate = TofinoModuleFactory::get_cuckoo_hash_table_hit_success_rate(ep, ctx, mgsc.branch, map, key, capacity);
@@ -59,35 +72,184 @@ bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *
   return true;
 }
 
-std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, const BDDNode *on_success, const map_coalescing_objs_t &map_objs,
-                                                               klee::ref<klee::Expr> key) {
-  const std::vector<const Call *> coalescing_nodes = on_success->get_coalescing_nodes_from_key(key, map_objs);
+struct read_write_pattern_t {
+  klee::ref<klee::Expr> cuckoo_update_condition;
+  const BDDNode *on_read_success;
+  const BDDNode *on_read_failure;
+  const BDDNode *on_write_success;
+  const BDDNode *on_write_failure;
+  const BDDNode *on_write_success2;
+};
 
-  std::vector<const BDDNode *> nodes_to_ignore;
-  for (const Call *coalescing_node : coalescing_nodes) {
-    nodes_to_ignore.push_back(coalescing_node);
-
-    const call_t &call = coalescing_node->get_call();
-
-    if (call.function_name == "dchain_allocate_new_index") {
-      const branch_direction_t index_alloc_check = ep->get_bdd()->find_branch_checking_index_alloc(coalescing_node);
-
-      // FIXME: We ignore all logic happening when the index is not
-      // successfuly allocated. This is a major simplification, as the NF
-      // might be doing something useful here. We never encountered a scenario
-      // where this was the case, but it could happen nonetheless.
-      if (index_alloc_check.branch) {
-        nodes_to_ignore.push_back(index_alloc_check.branch);
-
-        const BDDNode *next = index_alloc_check.direction ? index_alloc_check.branch->get_on_false() : index_alloc_check.branch->get_on_true();
-
-        next->visit_nodes([&nodes_to_ignore](const BDDNode *node) {
-          nodes_to_ignore.push_back(node);
-          return BDDNodeVisitAction::Continue;
-        });
-      }
+bool is_read_write_pattern_on_condition(const BDD *bdd, const BDDNode *node, const map_coalescing_objs_t &map_objs,
+                                        read_write_pattern_t &read_write_pattern) {
+  auto is_map_op = [map_objs](const BDDNode *map_node, const std::string &map_op_fname) {
+    if (map_node->get_type() != BDDNodeType::Call) {
+      return false;
     }
+    const Call *call_node = dynamic_cast<const Call *>(map_node);
+    const call_t &call    = call_node->get_call();
+    if (call.function_name != map_op_fname) {
+      return false;
+    }
+    return expr_addr_to_obj_addr(call.args.at("map").expr) == map_objs.map;
+  };
+
+  auto is_vector_op = [map_objs](const BDDNode *vector_node, const std::string &vector_op_fname) {
+    if (vector_node->get_type() != BDDNodeType::Call) {
+      return false;
+    }
+    const Call *call_node = dynamic_cast<const Call *>(vector_node);
+    const call_t &call    = call_node->get_call();
+    if (call.function_name != vector_op_fname) {
+      return false;
+    }
+    return map_objs.vectors.find(expr_addr_to_obj_addr(call.args.at("vector").expr)) != map_objs.vectors.end();
+  };
+
+  auto is_dchain_op = [map_objs](const BDDNode *dchain_node, const std::string &dchain_op_fname) {
+    if (dchain_node->get_type() != BDDNodeType::Call) {
+      return false;
+    }
+    const Call *call_node = dynamic_cast<const Call *>(dchain_node);
+    const call_t &call    = call_node->get_call();
+    if (call.function_name != dchain_op_fname) {
+      return false;
+    }
+    return expr_addr_to_obj_addr(call.args.at("chain").expr) == map_objs.dchain;
+  };
+
+  if (!is_map_op(node, "map_get")) {
+    return false;
   }
+
+  const Call *map_get = dynamic_cast<const Call *>(node);
+
+  bool map_get_success_direction;
+  if (!bdd->is_map_get_and_branch_checking_success(map_get, node->get_next(), map_get_success_direction)) {
+    return false;
+  }
+
+  const Branch *branch_checking_map_get_success = dynamic_cast<const Branch *>(node->get_next());
+
+  const BDDNode *on_map_get_success =
+      map_get_success_direction ? branch_checking_map_get_success->get_on_true() : branch_checking_map_get_success->get_on_false();
+  const BDDNode *on_map_get_failure =
+      map_get_success_direction ? branch_checking_map_get_success->get_on_false() : branch_checking_map_get_success->get_on_true();
+
+  const Branch *on_map_get_success_branch = nullptr;
+  const Branch *on_map_get_failure_branch = nullptr;
+
+  while (on_map_get_success) {
+    on_map_get_success = on_map_get_success->get_next();
+
+    if (is_dchain_op(on_map_get_success, "dchain_rejuvenate_index")) {
+      continue;
+    }
+
+    if (is_vector_op(on_map_get_success, "vector_borrow")) {
+      continue;
+    }
+
+    if (on_map_get_success->get_type() == BDDNodeType::Branch) {
+      on_map_get_success_branch = dynamic_cast<const Branch *>(on_map_get_success);
+    }
+
+    break;
+  }
+
+  if (on_map_get_failure->get_type() == BDDNodeType::Branch) {
+    on_map_get_failure_branch = dynamic_cast<const Branch *>(on_map_get_failure);
+  }
+
+  if (on_map_get_success_branch == nullptr || on_map_get_failure_branch == nullptr) {
+    return false;
+  }
+
+  if (!solver_toolbox.are_exprs_always_equal(on_map_get_success_branch->get_condition(), on_map_get_failure_branch->get_condition())) {
+    return false;
+  }
+
+  read_write_pattern.cuckoo_update_condition = on_map_get_failure_branch->get_condition();
+
+  const bool update_on_true_condition  = is_dchain_op(on_map_get_failure_branch->get_on_true(), "dchain_allocate_new_index");
+  const bool update_on_false_condition = is_dchain_op(on_map_get_failure_branch->get_on_false(), "dchain_allocate_new_index");
+
+  if (!update_on_true_condition && !update_on_false_condition) {
+    return false;
+  }
+
+  read_write_pattern.on_read_failure =
+      update_on_true_condition ? on_map_get_failure_branch->get_on_false() : on_map_get_failure_branch->get_on_true();
+
+  const BDDNode *on_insert = update_on_true_condition ? on_map_get_failure_branch->get_on_true() : on_map_get_failure_branch->get_on_false();
+
+  const BDDNode *vector_update = update_on_true_condition ? on_map_get_success_branch->get_on_true() : on_map_get_success_branch->get_on_false();
+  const BDDNode *vector_read   = update_on_true_condition ? on_map_get_success_branch->get_on_false() : on_map_get_success_branch->get_on_true();
+
+  if (!is_vector_op(vector_update, "vector_return") || !is_vector_op(vector_read, "vector_return")) {
+    return false;
+  }
+
+  if (!dynamic_cast<const Call *>(vector_update)->is_vector_write() || !dynamic_cast<const Call *>(vector_read)->is_vector_read()) {
+    return false;
+  }
+
+  if (!vector_update->get_next() || !vector_read->get_next()) {
+    return false;
+  }
+
+  read_write_pattern.on_write_success = vector_update->get_next();
+  read_write_pattern.on_read_success  = vector_read->get_next();
+
+  const branch_direction_t branch_checking_index_alloc = bdd->find_branch_checking_index_alloc(dynamic_cast<const Call *>(on_insert));
+  if (on_insert->get_next() != branch_checking_index_alloc.branch) {
+    return false;
+  }
+
+  read_write_pattern.on_write_failure =
+      branch_checking_index_alloc.direction ? branch_checking_index_alloc.branch->get_on_false() : branch_checking_index_alloc.branch->get_on_true();
+  on_insert =
+      branch_checking_index_alloc.direction ? branch_checking_index_alloc.branch->get_on_true() : branch_checking_index_alloc.branch->get_on_false();
+
+  if (!is_map_op(on_insert, "map_put")) {
+    return false;
+  }
+
+  on_insert = on_insert->get_next();
+
+  if (!is_vector_op(on_insert, "vector_borrow")) {
+    return false;
+  }
+
+  on_insert = on_insert->get_next();
+
+  if (!is_vector_op(on_insert, "vector_return") || !dynamic_cast<const Call *>(on_insert)->is_vector_write()) {
+    return false;
+  }
+
+  on_insert = on_insert->get_next();
+
+  if (!bdd->are_subtrees_equal(read_write_pattern.on_write_success, on_insert)) {
+    return false;
+  }
+
+  read_write_pattern.on_write_success2 = on_insert;
+
+  return true;
+}
+
+std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, const BDDNode *map_get, const read_write_pattern_t &read_write_pattern) {
+  std::vector<const BDDNode *> nodes_to_ignore;
+
+  map_get->get_next()->visit_nodes([&nodes_to_ignore, read_write_pattern](const BDDNode *node) {
+    if (node == read_write_pattern.on_read_success || node == read_write_pattern.on_read_failure || node == read_write_pattern.on_write_success ||
+        node == read_write_pattern.on_write_failure || node == read_write_pattern.on_write_success2) {
+      return BDDNodeVisitAction::SkipChildren;
+    }
+    nodes_to_ignore.push_back(node);
+    return BDDNodeVisitAction::Continue;
+  });
 
   return nodes_to_ignore;
 }
@@ -108,12 +270,26 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
 
   const cuckoo_hash_table_data_t cuckoo_hash_table_data(ep->get_ctx(), map_get, future_map_puts);
 
+  if (cuckoo_hash_table_data.key->getWidth() != CuckooHashTable::SUPPORTED_KEY_SIZE ||
+      (!cuckoo_hash_table_data.read_value.isNull() && cuckoo_hash_table_data.read_value->getWidth() != CuckooHashTable::SUPPORTED_VALUE_SIZE) ||
+      (!cuckoo_hash_table_data.write_value.isNull() && cuckoo_hash_table_data.write_value->getWidth() != CuckooHashTable::SUPPORTED_VALUE_SIZE)) {
+    return {};
+  }
+
   const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(cuckoo_hash_table_data.obj);
   if (!map_objs.has_value()) {
     return {};
   }
 
   if (map_objs->vectors.size() != 1) {
+    return {};
+  }
+
+  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
+    return {};
+  }
+
+  if (ep->get_bdd()->is_dchain_used_for_index_allocation_queries(map_objs->dchain)) {
     return {};
   }
 
@@ -141,9 +317,20 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
+  read_write_pattern_t read_write_pattern;
+  if (!is_read_write_pattern_on_condition(ep->get_bdd(), node, map_objs.value(), read_write_pattern)) {
+    return {};
+  }
+
+  // std::cerr << "cuckoo_update_condition: " << LibCore::expr_to_string(read_write_pattern.cuckoo_update_condition, true) << "\n";
+  // std::cerr << "on_read_success: " << read_write_pattern.on_read_success->dump(true) << "\n";
+  // std::cerr << "on_read_failure: " << read_write_pattern.on_read_failure->dump(true) << "\n";
+  // std::cerr << "on_write_success: " << read_write_pattern.on_write_success->dump(true) << "\n";
+  // std::cerr << "on_write_failure: " << read_write_pattern.on_write_failure->dump(true) << "\n";
+
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
-  std::vector<const BDDNode *> ignore_nodes = get_nodes_to_speculatively_ignore(ep, map_get, map_objs.value(), cuckoo_hash_table_data.key);
+  std::vector<const BDDNode *> ignore_nodes = get_nodes_to_speculatively_ignore(ep, map_get, read_write_pattern);
   for (const BDDNode *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
   }
@@ -165,8 +352,26 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
 
   const cuckoo_hash_table_data_t cuckoo_hash_table_data(ep->get_ctx(), map_get, future_map_puts);
 
+  if (cuckoo_hash_table_data.key->getWidth() != CuckooHashTable::SUPPORTED_KEY_SIZE ||
+      (!cuckoo_hash_table_data.read_value.isNull() && cuckoo_hash_table_data.read_value->getWidth() != CuckooHashTable::SUPPORTED_VALUE_SIZE) ||
+      (!cuckoo_hash_table_data.write_value.isNull() && cuckoo_hash_table_data.write_value->getWidth() != CuckooHashTable::SUPPORTED_VALUE_SIZE)) {
+    return {};
+  }
+
   const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(cuckoo_hash_table_data.obj);
   if (!map_objs.has_value()) {
+    return {};
+  }
+
+  if (map_objs->vectors.size() != 1) {
+    return {};
+  }
+
+  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
+    return {};
+  }
+
+  if (ep->get_bdd()->is_dchain_used_for_index_allocation_queries(map_objs->dchain)) {
     return {};
   }
 
@@ -187,6 +392,9 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
     return {};
   }
 
+  const symbol_t cuckoo_success_symbol                 = create_cuckoo_success_symbol(cuckoo_hash_table->id, symbol_manager, node);
+  const klee::ref<klee::Expr> cuckoo_success_condition = build_cuckoo_success_condition(cuckoo_success_symbol);
+
   Module *module  = new CuckooHashTableReadWrite(node, cuckoo_hash_table->id, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key,
                                                  cuckoo_hash_table_data.read_value, cuckoo_hash_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
@@ -203,6 +411,9 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable);
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_CuckooHashTable);
   new_ep->get_mutable_ctx().save_ds_impl(*map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable);
+
+  std::cerr << "Checkpoint!\n";
+  dbg_pause();
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, map_objs->map, cuckoo_hash_table);

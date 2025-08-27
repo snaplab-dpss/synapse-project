@@ -52,6 +52,7 @@ static inline struct kvs_hdr *nf_then_get_kvs_header(void *udp_hdr_, uint8_t **p
   uint16_t client_port = hdr->client_port;
   klee_assume((client_port >= 0) AND(client_port < dev_count) AND(client_port != config.server_dev) AND(client_port != DROP)
                   AND(client_port != FLOOD));
+  klee_assume((hdr->op == KVS_OP_GET) OR(hdr->op == KVS_OP_PUT));
 #endif
 
   return hdr;

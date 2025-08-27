@@ -52,11 +52,13 @@ ProfilerNode *build_profiler_tree(const BDDNode *node, const bdd_profile_t *bdd_
       prof_node           = new ProfilerNode(condition, hr, node->get_id());
 
       if (on_true) {
-        prof_node->on_true = build_profiler_tree(on_true, bdd_profile, max_count);
+        prof_node->on_true       = build_profiler_tree(on_true, bdd_profile, max_count);
+        prof_node->on_true->prev = prof_node;
       }
 
       if (on_false) {
-        prof_node->on_false = build_profiler_tree(on_false, bdd_profile, max_count);
+        prof_node->on_false       = build_profiler_tree(on_false, bdd_profile, max_count);
+        prof_node->on_false->prev = prof_node;
       }
 
       node = nullptr;
@@ -304,7 +306,7 @@ Profiler::Profiler(const Profiler &other)
 Profiler::Profiler(Profiler &&other)
     : bdd_profile(std::move(other.bdd_profile)), assume_uniform_forwarding_distribution(std::move(other.assume_uniform_forwarding_distribution)),
       root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size), cache(std::move(other.cache)) {
-  other.root = nullptr;
+  other.root.reset();
 }
 
 Profiler &Profiler::operator=(const Profiler &other) {
@@ -312,8 +314,8 @@ Profiler &Profiler::operator=(const Profiler &other) {
     return *this;
   }
 
-  assert(assume_uniform_forwarding_distribution == other.assume_uniform_forwarding_distribution);
   assert(bdd_profile == other.bdd_profile);
+  assert(assume_uniform_forwarding_distribution == other.assume_uniform_forwarding_distribution);
 
   root         = other.root;
   avg_pkt_size = other.avg_pkt_size;
@@ -496,13 +498,13 @@ void Profiler::remove(ProfilerNode *node) {
 
   family.sibling->prev = family.grandparent;
 
-  family.parent->on_true  = nullptr;
-  family.parent->on_false = nullptr;
-  delete family.parent;
+  if (family.parent->on_true == family.sibling) {
+    family.parent->on_true = nullptr;
+  } else {
+    family.parent->on_false = nullptr;
+  }
 
-  node->on_true  = nullptr;
-  node->on_false = nullptr;
-  delete node;
+  delete family.parent;
 
   const hit_rate_t old_fraction = family.sibling->fraction;
   const hit_rate_t new_fraction = parent_fraction;

@@ -14,7 +14,7 @@ digraph G {
 	"28"[label="28:packet_return_chunk(\l  p:1074028624,\l  the_chunk:1073760928[packet_chunks[778:780]++1++packet_chunks[768:777]])",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"41"[label="41:vector_return(\l  vector:1073954840,\l  index:allocated_index,\l  value:1073968736[packet_chunks[773:777]])",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"17"[label="17:!not_out_of_space_2",shape=ellipse,style="filled,",fillcolor="yellow",border=0,];
-	"40"[label="40:packet_chunks[768]",shape=ellipse,style="filled,",fillcolor="yellow",border=0,];
+	"40"[label="40:(1 == packet_chunks[768])",shape=ellipse,style="filled,",fillcolor="yellow",border=0,];
 	"65"[label="65:packet_return_chunk(\l  p:1074028624,\l  the_chunk:1073760160[packet_chunks])",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"7"[label="7:packet_borrow_next_chunk(\l  p:1074028624,\l  length:20,\l  chunk:1074040064[ -> 1073760416])\l=>{packet_chunks}",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"30"[label="30:packet_return_chunk(\l  p:1074028624,\l  the_chunk:1073760416[packet_chunks[268:272]++packet_chunks[272:276]++packet_chunks[256:268]])",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];

@@ -83,7 +83,7 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<CMSIncrementFactory>());
               f.push_back(std::make_unique<CMSIncAndQueryFactory>());
               f.push_back(std::make_unique<LPMLookupFactory>());
-              // f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
+              f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
               return f;
             }(),
             std::make_unique<TofinoContext>(tna_config)) {}

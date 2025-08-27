@@ -111,6 +111,10 @@ public:
   bool is_fwd_pattern_depending_on_lpm(const BDDNode *node, std::vector<const BDDNode *> &fwd_logic) const;
   bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing, const Call *&tb_update_and_check) const;
   void delete_vector_key_operations(addr_t map);
+  bool is_dchain_used_for_index_allocation_queries(addr_t dchain) const;
+  bool is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const;
+  bool is_map_get_and_branch_checking_success(const Call *map_get, const BDDNode *branch_checking_map_get_success, bool &success_direction) const;
+  bool are_subtrees_equal(const BDDNode *n0, const BDDNode *n1) const;
 
   // Tries to find the pattern of a map_get followed by map_puts, but only when
   // the map_get is not successful (i.e. the key is not found).

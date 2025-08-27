@@ -33,10 +33,10 @@ run() {
 	$BDD_VISUALIZER --in $BDDS_DIR/$nf.bdd --out $BDDS_DIR/$nf.dot 2>/dev/null
 }
 
-run "echo"
-run "fwd"
-run "fw"
-run "nat"
+# run "echo"
+# run "fwd"
+# run "fw"
+# run "nat"
 run "kvs"
 # run "pol"
 # run "cl"

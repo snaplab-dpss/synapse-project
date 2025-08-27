@@ -75,7 +75,7 @@ symbol_t Call::get_local_symbol(const std::string &base) const {
   assert(!base.empty() && "Empty base");
   assert(!generated_symbols.empty() && "No symbols");
 
-  Symbols filtered = generated_symbols.filter_by_base(base);
+  const Symbols filtered = generated_symbols.filter_by_base(base);
 
   assert(!filtered.empty() && "Symbol not found");
   assert(filtered.size() == 1 && "Multiple symbols found");
