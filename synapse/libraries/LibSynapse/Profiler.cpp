@@ -7,6 +7,7 @@
 #include <LibCore/Net.h>
 
 #include <iomanip>
+#include <list>
 
 namespace LibSynapse {
 
@@ -331,20 +332,43 @@ bytes_t Profiler::get_avg_pkt_bytes() const { return avg_pkt_size; }
 ProfilerNode *Profiler::get_node(const std::vector<klee::ref<klee::Expr>> &constraints) const {
   ProfilerNode *current = root.get();
 
-  for (klee::ref<klee::Expr> cnstr : constraints) {
+  std::unordered_set<size_t> index_of_used_constraints;
+  while (index_of_used_constraints.size() != constraints.size()) {
     if (!current) {
       return nullptr;
     }
 
     assert(!current->constraint.isNull() && "Invalid profiler node");
 
-    klee::ConstraintManager manager;
-    manager.addConstraint(current->constraint);
+    bool found = false;
+    for (size_t i = 0; i < constraints.size(); ++i) {
+      if (index_of_used_constraints.contains(i)) {
+        continue;
+      }
 
-    const bool always_true  = solver_toolbox.is_expr_always_true(manager, cnstr);
-    const bool always_false = solver_toolbox.is_expr_always_false(manager, cnstr);
+      klee::ref<klee::Expr> cnstr = constraints[i];
 
-    if (!always_true && !always_false) {
+      klee::ConstraintManager manager;
+      manager.addConstraint(current->constraint);
+
+      const bool always_true  = solver_toolbox.is_expr_always_true(manager, cnstr);
+      const bool always_false = solver_toolbox.is_expr_always_false(manager, cnstr);
+
+      if (!always_true && !always_false) {
+        continue;
+      }
+
+      if (always_true) {
+        current = current->on_true;
+      } else {
+        current = current->on_false;
+      }
+
+      found = true;
+      index_of_used_constraints.insert(i);
+    }
+
+    if (!found) {
       std::cerr << "\n";
       std::cerr << "Constraints:\n";
       for (const klee::ref<klee::Expr> &c : constraints) {
@@ -352,13 +376,7 @@ ProfilerNode *Profiler::get_node(const std::vector<klee::ref<klee::Expr>> &const
       }
       std::cerr << "Current constraints:\n";
       std::cerr << "  " << pretty_print_expr(current->constraint, true) << "\n";
-      panic("Could find profiler node (invalid constraints).");
-    }
-
-    if (always_true) {
-      current = current->on_true;
-    } else {
-      current = current->on_false;
+      panic("Could find profiler node (invalid constraints)");
     }
   }
 
@@ -373,8 +391,8 @@ ProfilerNode *Profiler::get_node(const BDDNode *node) const {
     return found_it->second;
   }
 
-  std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
-  ProfilerNode *profiler_node                    = get_node(constraints);
+  const std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
+  ProfilerNode *profiler_node                          = get_node(constraints);
 
   if (!profiler_node) {
     panic("Profiler node not found");
@@ -515,10 +533,31 @@ void Profiler::remove(ProfilerNode *node) {
   recursive_update_fractions(family.sibling->on_false, old_fraction, new_fraction);
 }
 
+void Profiler::remove_until(ProfilerNode *target, ProfilerNode *stopping_node) {
+  assert(target != nullptr);
+  assert(stopping_node != nullptr);
+
+  ProfilerNode *parent = target->prev;
+  assert(parent);
+
+  while (stopping_node->prev && stopping_node->prev != parent) {
+    ProfilerNode *sibling = stopping_node->get_family().sibling;
+    assert(sibling);
+    remove(sibling);
+  }
+}
+
 void Profiler::remove(const std::vector<klee::ref<klee::Expr>> &constraints) {
   clone_tree_if_shared();
   ProfilerNode *node = get_node(constraints);
   remove(node);
+}
+
+void Profiler::remove_until(const std::vector<klee::ref<klee::Expr>> &target, const std::vector<klee::ref<klee::Expr>> &stopping_constraints) {
+  clone_tree_if_shared();
+  ProfilerNode *target_node   = get_node(target);
+  ProfilerNode *stopping_node = get_node(stopping_constraints);
+  remove_until(target_node, stopping_node);
 }
 
 void Profiler::insert_relative(const std::vector<klee::ref<klee::Expr>> &constraints, klee::ref<klee::Expr> constraint,

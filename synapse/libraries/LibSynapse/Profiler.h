@@ -28,6 +28,16 @@ struct flow_stats_t {
   u64 pkts;
   u64 flows;
   std::vector<u64> pkts_per_flow;
+
+  hit_rate_t calculate_top_k_hit_rate(size_t k) const {
+    u64 top_k = 0;
+    for (size_t i = 0; i <= k && i < pkts_per_flow.size(); i++) {
+      top_k += pkts_per_flow[i];
+    }
+
+    assert(top_k <= pkts && "Invalid top_k");
+    return hit_rate_t(top_k, pkts);
+  }
 };
 
 struct fwd_stats_t {
@@ -161,6 +171,7 @@ public:
   void translate(SymbolManager *symbol_manager, const BDDNode *reordered_node, const std::vector<symbol_translation_t> &translated_symbols);
   void replace_constraint(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> cnstr);
   void remove(const std::vector<klee::ref<klee::Expr>> &constraints);
+  void remove_until(const std::vector<klee::ref<klee::Expr>> &target, const std::vector<klee::ref<klee::Expr>> &stopping_constraints);
   void scale(const std::vector<klee::ref<klee::Expr>> &constraints, double factor);
   bool can_set(const std::vector<klee::ref<klee::Expr>> &constraints) const;
   void set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t new_hr);
@@ -188,6 +199,7 @@ private:
   void clone_tree_if_shared();
   void append(ProfilerNode *node, klee::ref<klee::Expr> cnstr, hit_rate_t hr);
   void remove(ProfilerNode *node);
+  void remove_until(ProfilerNode *target, ProfilerNode *stopping_node);
   void replace_root(klee::ref<klee::Expr> cnstr, hit_rate_t hr);
   void replace_constraint(ProfilerNode *node, klee::ref<klee::Expr> cnstr);
 

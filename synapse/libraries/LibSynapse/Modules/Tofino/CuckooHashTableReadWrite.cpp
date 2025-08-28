@@ -1,6 +1,11 @@
 #include <LibSynapse/Modules/Tofino/CuckooHashTableReadWrite.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Visualizers/ProfilerVisualizer.h>
+#include <LibSynapse/Modules/Tofino/If.h>
+#include <LibSynapse/Modules/Tofino/Then.h>
+#include <LibSynapse/Modules/Tofino/Else.h>
+
+#include <cmath>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -16,29 +21,18 @@ using LibCore::expr_addr_to_obj_addr;
 struct cuckoo_hash_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
-  klee::ref<klee::Expr> read_value;
-  klee::ref<klee::Expr> write_value;
-  symbol_t map_has_this_key;
   u32 capacity;
 
-  cuckoo_hash_table_data_t(const Context &ctx, const Call *map_get, std::vector<const Call *> future_map_puts) {
-    assert(!future_map_puts.empty() && "No future map puts found");
-    const Call *map_put = future_map_puts.front();
-
+  cuckoo_hash_table_data_t(const Context &ctx, const Call *map_get) {
     const call_t &get_call = map_get->get_call();
-    const call_t &put_call = map_put->get_call();
-
-    obj              = expr_addr_to_obj_addr(get_call.args.at("map").expr);
-    key              = get_call.args.at("key").in;
-    read_value       = get_call.args.at("value_out").out;
-    write_value      = put_call.args.at("value").expr;
-    map_has_this_key = map_get->get_local_symbol("map_has_this_key");
-    capacity         = ctx.get_map_config(obj).capacity;
+    obj                    = expr_addr_to_obj_addr(get_call.args.at("map").expr);
+    key                    = get_call.args.at("key").in;
+    capacity               = ctx.get_map_config(obj).capacity;
   }
 };
 
 symbol_t create_cuckoo_success_symbol(DS_ID id, SymbolManager *symbol_manager, const BDDNode *node) {
-  const std::string name = id + "_" + std::to_string(node->get_id());
+  const std::string name = id + "_" + std::to_string(node->get_id()) + "_success";
   const bits_t size      = 8;
   return symbol_manager->create_symbol(name, size);
 }
@@ -49,39 +43,47 @@ klee::ref<klee::Expr> build_cuckoo_success_condition(const symbol_t &cuckoo_succ
   return solver_toolbox.exprBuilder->Ne(cuckoo_success_symbol.expr, zero);
 }
 
-bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
-                                     const branch_direction_t &mgsc) {
-  const hit_rate_t success_rate = TofinoModuleFactory::get_cuckoo_hash_table_hit_success_rate(ep, ctx, mgsc.branch, map, key, capacity);
-
-  assert(mgsc.branch && "No branch checking map_get success");
-  const BDDNode *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
-  const BDDNode *on_failure = mgsc.direction ? mgsc.branch->get_on_false() : mgsc.branch->get_on_true();
-
-  const hit_rate_t branch_hr      = ctx.get_profiler().get_hr(mgsc.branch);
-  const hit_rate_t new_success_hr = hit_rate_t{branch_hr * success_rate};
-  const hit_rate_t new_failure_hr = hit_rate_t{branch_hr * (1 - success_rate)};
-
-  if (!ctx.get_profiler().can_set(on_success->get_ordered_branch_constraints()) ||
-      !ctx.get_profiler().can_set(on_failure->get_ordered_branch_constraints())) {
-    return false;
-  }
-
-  ctx.get_mutable_profiler().set(on_success->get_ordered_branch_constraints(), new_success_hr);
-  ctx.get_mutable_profiler().set(on_failure->get_ordered_branch_constraints(), new_failure_hr);
-
-  return true;
-}
-
 struct read_write_pattern_t {
   klee::ref<klee::Expr> cuckoo_update_condition;
   const BDDNode *on_read_success;
   const BDDNode *on_read_failure;
   const BDDNode *on_write_success;
   const BDDNode *on_write_failure;
-  const BDDNode *on_write_success2;
+  const BDDNode *on_insert_success;
+  symbol_t read_value;
+  hit_rate_t on_read_failure_hr;
+  hit_rate_t on_read_success_hr;
+  hit_rate_t on_write_failure_hr;
+  hit_rate_t on_write_success_hr;
+  hit_rate_t on_insert_success_hr;
+  hit_rate_t get_hr;
+  hit_rate_t put_hr;
 };
 
-bool is_read_write_pattern_on_condition(const BDD *bdd, const BDDNode *node, const map_coalescing_objs_t &map_objs,
+struct avg_recirc_per_packet_t {
+  u32 base_recirculations;
+  hit_rate_t traffic_ratio_recirculating_once_more;
+};
+
+avg_recirc_per_packet_t calculate_expected_average_recirculations_per_packet(const EP *ep, const read_write_pattern_t &read_write_pattern) {
+  const double avg_recirculations = read_write_pattern.on_insert_success_hr.value * CuckooHashTable::MAX_RECIRCULATIONS;
+
+  avg_recirc_per_packet_t avg_recirc_per_packet;
+  avg_recirc_per_packet.base_recirculations                   = static_cast<u32>(std::floor(avg_recirculations));
+  avg_recirc_per_packet.traffic_ratio_recirculating_once_more = hit_rate_t(avg_recirculations - avg_recirc_per_packet.base_recirculations);
+
+  return avg_recirc_per_packet;
+}
+
+hit_rate_t calculate_cache_hit_rate(const EP *ep, const BDDNode *node, const read_write_pattern_t &read_write_pattern, klee::ref<klee::Expr> key,
+                                    u32 capacity) {
+  const std::vector<klee::ref<klee::Expr>> constraints  = node->get_ordered_branch_constraints();
+  const flow_stats_t flow_stats                         = ep->get_ctx().get_profiler().get_flow_stats(constraints, key);
+  const hit_rate_t probability_of_finding_item_in_table = flow_stats.calculate_top_k_hit_rate(capacity);
+  return probability_of_finding_item_in_table;
+}
+
+bool is_read_write_pattern_on_condition(const EP *ep, const BDDNode *node, const map_coalescing_objs_t &map_objs,
                                         read_write_pattern_t &read_write_pattern) {
   auto is_map_op = [map_objs](const BDDNode *map_node, const std::string &map_op_fname) {
     if (map_node->get_type() != BDDNodeType::Call) {
@@ -126,7 +128,7 @@ bool is_read_write_pattern_on_condition(const BDD *bdd, const BDDNode *node, con
   const Call *map_get = dynamic_cast<const Call *>(node);
 
   bool map_get_success_direction;
-  if (!bdd->is_map_get_and_branch_checking_success(map_get, node->get_next(), map_get_success_direction)) {
+  if (!ep->get_bdd()->is_map_get_and_branch_checking_success(map_get, node->get_next(), map_get_success_direction)) {
     return false;
   }
 
@@ -148,6 +150,7 @@ bool is_read_write_pattern_on_condition(const BDD *bdd, const BDDNode *node, con
     }
 
     if (is_vector_op(on_map_get_success, "vector_borrow")) {
+      read_write_pattern.read_value = dynamic_cast<const Call *>(on_map_get_success)->get_local_symbol("vector_data");
       continue;
     }
 
@@ -202,7 +205,7 @@ bool is_read_write_pattern_on_condition(const BDD *bdd, const BDDNode *node, con
   read_write_pattern.on_write_success = vector_update->get_next();
   read_write_pattern.on_read_success  = vector_read->get_next();
 
-  const branch_direction_t branch_checking_index_alloc = bdd->find_branch_checking_index_alloc(dynamic_cast<const Call *>(on_insert));
+  const branch_direction_t branch_checking_index_alloc = ep->get_bdd()->find_branch_checking_index_alloc(dynamic_cast<const Call *>(on_insert));
   if (on_insert->get_next() != branch_checking_index_alloc.branch) {
     return false;
   }
@@ -228,30 +231,141 @@ bool is_read_write_pattern_on_condition(const BDD *bdd, const BDDNode *node, con
     return false;
   }
 
-  on_insert = on_insert->get_next();
+  on_insert                            = on_insert->get_next();
+  read_write_pattern.on_insert_success = on_insert;
 
-  if (!bdd->are_subtrees_equal(read_write_pattern.on_write_success, on_insert)) {
+  if (!ep->get_bdd()->are_subtrees_equal(read_write_pattern.on_write_success, read_write_pattern.on_insert_success)) {
     return false;
   }
 
-  read_write_pattern.on_write_success2 = on_insert;
+  const Profiler &profiler = ep->get_ctx().get_profiler();
+
+  read_write_pattern.on_read_success_hr   = profiler.get_hr(read_write_pattern.on_read_success);
+  read_write_pattern.on_read_failure_hr   = profiler.get_hr(read_write_pattern.on_read_failure);
+  read_write_pattern.on_write_success_hr  = profiler.get_hr(read_write_pattern.on_write_success);
+  read_write_pattern.on_write_failure_hr  = profiler.get_hr(read_write_pattern.on_write_failure);
+  read_write_pattern.on_insert_success_hr = profiler.get_hr(read_write_pattern.on_insert_success);
+
+  read_write_pattern.get_hr = read_write_pattern.on_read_success_hr + read_write_pattern.on_read_failure_hr;
+  read_write_pattern.put_hr =
+      read_write_pattern.on_write_success_hr + read_write_pattern.on_write_failure_hr + read_write_pattern.on_insert_success_hr;
 
   return true;
 }
 
-std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, const BDDNode *map_get, const read_write_pattern_t &read_write_pattern) {
-  std::vector<const BDDNode *> nodes_to_ignore;
+std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const BDDNode *old_map_get, const read_write_pattern_t &read_write_pattern,
+                                 const symbol_t &cuckoo_success_symbol, klee::ref<klee::Expr> cuckoo_success_condition) {
+  const BDD *old_bdd           = ep->get_bdd();
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
 
-  map_get->get_next()->visit_nodes([&nodes_to_ignore, read_write_pattern](const BDDNode *node) {
-    if (node == read_write_pattern.on_read_success || node == read_write_pattern.on_read_failure || node == read_write_pattern.on_write_success ||
-        node == read_write_pattern.on_write_failure || node == read_write_pattern.on_write_success2) {
-      return BDDNodeVisitAction::SkipChildren;
-    }
-    nodes_to_ignore.push_back(node);
-    return BDDNodeVisitAction::Continue;
-  });
+  Call *map_get = dynamic_cast<Call *>(new_bdd->get_mutable_node_by_id(old_map_get->get_id()));
+  map_get->add_local_symbol(cuckoo_success_symbol);
+  map_get->add_local_symbol(read_write_pattern.read_value);
 
-  return nodes_to_ignore;
+  const bdd_node_ids_t stopping_nodes_ids{
+      read_write_pattern.on_read_success->get_id(),
+      read_write_pattern.on_read_failure->get_id(),
+      read_write_pattern.on_write_success->get_id(),
+      read_write_pattern.on_write_failure->get_id(),
+  };
+
+  const std::vector<LibBDD::BDDNode *> stopping_nodes = new_bdd->delete_until(old_map_get->get_next()->get_id(), stopping_nodes_ids);
+
+  auto get_from_stopping_nodes = [&stopping_nodes](bdd_node_id_t id) {
+    auto found_it = std::find_if(stopping_nodes.begin(), stopping_nodes.end(), [id](const LibBDD::BDDNode *n) { return n->get_id() == id; });
+    assert(found_it != stopping_nodes.end());
+    return *found_it;
+  };
+
+  BDDNode *on_read_success  = get_from_stopping_nodes(read_write_pattern.on_read_success->get_id());
+  BDDNode *on_read_failure  = get_from_stopping_nodes(read_write_pattern.on_read_failure->get_id());
+  BDDNode *on_write_success = get_from_stopping_nodes(read_write_pattern.on_write_success->get_id());
+  BDDNode *on_write_failure = get_from_stopping_nodes(read_write_pattern.on_write_failure->get_id());
+
+  Branch *cuckoo_update_condition_branch    = new_bdd->create_new_branch(read_write_pattern.cuckoo_update_condition);
+  Branch *cuckoo_success_condition_branch_0 = new_bdd->create_new_branch(cuckoo_success_condition);
+  Branch *cuckoo_success_condition_branch_1 = new_bdd->create_new_branch(cuckoo_success_condition);
+
+  map_get->set_next(cuckoo_update_condition_branch);
+  cuckoo_update_condition_branch->set_prev(map_get);
+
+  cuckoo_update_condition_branch->set_on_true(cuckoo_success_condition_branch_0);
+  cuckoo_update_condition_branch->set_on_false(cuckoo_success_condition_branch_1);
+
+  cuckoo_success_condition_branch_0->set_prev(cuckoo_update_condition_branch);
+  cuckoo_success_condition_branch_1->set_prev(cuckoo_update_condition_branch);
+
+  cuckoo_success_condition_branch_0->set_on_true(on_write_success);
+  cuckoo_success_condition_branch_0->set_on_false(on_write_failure);
+
+  on_write_success->set_prev(cuckoo_success_condition_branch_0);
+  on_write_failure->set_prev(cuckoo_success_condition_branch_0);
+
+  cuckoo_success_condition_branch_1->set_on_true(on_read_success);
+  cuckoo_success_condition_branch_1->set_on_false(on_read_failure);
+
+  on_read_success->set_prev(cuckoo_success_condition_branch_1);
+  on_read_failure->set_prev(cuckoo_success_condition_branch_1);
+
+  return new_bdd;
+}
+
+void update_profiler(Profiler &profiler, const BDD *new_bdd, const BDDNode *old_map_get, const read_write_pattern_t &read_write_pattern,
+                     klee::ref<klee::Expr> cuckoo_success_condition, hit_rate_t cache_hit_rate) {
+  const std::vector<klee::ref<klee::Expr>> map_get_constraints = old_map_get->get_ordered_branch_constraints();
+
+  profiler.insert_relative(map_get_constraints, read_write_pattern.cuckoo_update_condition,
+                           hit_rate_t(read_write_pattern.put_hr / (read_write_pattern.get_hr + read_write_pattern.put_hr)));
+
+  std::vector<klee::ref<klee::Expr>> on_update_true_constraints = map_get_constraints;
+  on_update_true_constraints.push_back(read_write_pattern.cuckoo_update_condition);
+
+  std::vector<klee::ref<klee::Expr>> on_update_false_constraints = map_get_constraints;
+  on_update_false_constraints.push_back(solver_toolbox.exprBuilder->Not(read_write_pattern.cuckoo_update_condition));
+
+  std::cerr << "cache_hit_rate: " << cache_hit_rate << "\n";
+  std::cerr << "cache_hit_rate: " << cache_hit_rate << "\n";
+  std::cerr << "get hr: " << read_write_pattern.get_hr << "\n";
+
+  hit_rate_t cache_miss = (1_hr - cache_hit_rate) * 2;
+
+  std::cerr << "cache_miss: " << cache_miss << "\n";
+
+  profiler.insert_relative(on_update_true_constraints, cuckoo_success_condition, 1_hr - cache_miss);
+  profiler.insert_relative(on_update_false_constraints, cuckoo_success_condition, 1_hr - cache_miss);
+
+  std::vector<klee::ref<klee::Expr>> target_for_deletion;
+  std::vector<klee::ref<klee::Expr>> stopping_point;
+
+  target_for_deletion = on_update_true_constraints;
+  target_for_deletion.push_back(cuckoo_success_condition);
+  stopping_point = read_write_pattern.on_write_success->get_ordered_branch_constraints();
+  stopping_point.push_back(read_write_pattern.cuckoo_update_condition);
+  stopping_point.push_back(cuckoo_success_condition);
+  profiler.remove_until(target_for_deletion, stopping_point);
+
+  target_for_deletion = on_update_true_constraints;
+  target_for_deletion.push_back(solver_toolbox.exprBuilder->Not(cuckoo_success_condition));
+  stopping_point = read_write_pattern.on_write_failure->get_ordered_branch_constraints();
+  stopping_point.push_back(read_write_pattern.cuckoo_update_condition);
+  stopping_point.push_back(solver_toolbox.exprBuilder->Not(cuckoo_success_condition));
+  profiler.remove_until(target_for_deletion, stopping_point);
+
+  target_for_deletion = on_update_false_constraints;
+  target_for_deletion.push_back(cuckoo_success_condition);
+  stopping_point = read_write_pattern.on_read_success->get_ordered_branch_constraints();
+  stopping_point.push_back(solver_toolbox.exprBuilder->Not(read_write_pattern.cuckoo_update_condition));
+  stopping_point.push_back(cuckoo_success_condition);
+  profiler.remove_until(target_for_deletion, stopping_point);
+
+  target_for_deletion = on_update_false_constraints;
+  target_for_deletion.push_back(solver_toolbox.exprBuilder->Not(cuckoo_success_condition));
+  stopping_point = read_write_pattern.on_read_failure->get_ordered_branch_constraints();
+  stopping_point.push_back(solver_toolbox.exprBuilder->Not(read_write_pattern.cuckoo_update_condition));
+  stopping_point.push_back(solver_toolbox.exprBuilder->Not(cuckoo_success_condition));
+  profiler.remove_until(target_for_deletion, stopping_point);
+
+  ProfilerViz::visualize(new_bdd, profiler, true);
 }
 
 } // namespace
@@ -268,11 +382,9 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
-  const cuckoo_hash_table_data_t cuckoo_hash_table_data(ep->get_ctx(), map_get, future_map_puts);
+  const cuckoo_hash_table_data_t cuckoo_hash_table_data(ep->get_ctx(), map_get);
 
-  if (cuckoo_hash_table_data.key->getWidth() != CuckooHashTable::SUPPORTED_KEY_SIZE ||
-      (!cuckoo_hash_table_data.read_value.isNull() && cuckoo_hash_table_data.read_value->getWidth() != CuckooHashTable::SUPPORTED_VALUE_SIZE) ||
-      (!cuckoo_hash_table_data.write_value.isNull() && cuckoo_hash_table_data.write_value->getWidth() != CuckooHashTable::SUPPORTED_VALUE_SIZE)) {
+  if (cuckoo_hash_table_data.key->getWidth() != CuckooHashTable::SUPPORTED_KEY_SIZE) {
     return {};
   }
 
@@ -298,6 +410,15 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
+  read_write_pattern_t read_write_pattern;
+  if (!is_read_write_pattern_on_condition(ep, node, map_objs.value(), read_write_pattern)) {
+    return {};
+  }
+
+  if (read_write_pattern.read_value.expr->getWidth() != CuckooHashTable::SUPPORTED_VALUE_SIZE) {
+    return {};
+  }
+
   const branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
     return {};
@@ -312,28 +433,17 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
   new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_CuckooHashTable);
   new_ctx.save_ds_impl(*map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable);
 
-  if (!update_map_get_success_hit_rate(ep, new_ctx, map_get, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key, cuckoo_hash_table_data.capacity,
-                                       mpsc)) {
-    return {};
-  }
-
-  read_write_pattern_t read_write_pattern;
-  if (!is_read_write_pattern_on_condition(ep->get_bdd(), node, map_objs.value(), read_write_pattern)) {
-    return {};
-  }
-
-  // std::cerr << "cuckoo_update_condition: " << LibCore::expr_to_string(read_write_pattern.cuckoo_update_condition, true) << "\n";
-  // std::cerr << "on_read_success: " << read_write_pattern.on_read_success->dump(true) << "\n";
-  // std::cerr << "on_read_failure: " << read_write_pattern.on_read_failure->dump(true) << "\n";
-  // std::cerr << "on_write_success: " << read_write_pattern.on_write_success->dump(true) << "\n";
-  // std::cerr << "on_write_failure: " << read_write_pattern.on_write_failure->dump(true) << "\n";
-
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
-  std::vector<const BDDNode *> ignore_nodes = get_nodes_to_speculatively_ignore(ep, map_get, read_write_pattern);
-  for (const BDDNode *op : ignore_nodes) {
-    spec_impl.skip.insert(op->get_id());
-  }
+  map_get->get_next()->visit_nodes([&spec_impl, read_write_pattern](const BDDNode *future_node) {
+    if (future_node == read_write_pattern.on_read_success || future_node == read_write_pattern.on_read_failure ||
+        future_node == read_write_pattern.on_write_success || future_node == read_write_pattern.on_write_failure ||
+        future_node == read_write_pattern.on_insert_success) {
+      return BDDNodeVisitAction::SkipChildren;
+    }
+    spec_impl.skip.insert(future_node->get_id());
+    return BDDNodeVisitAction::Continue;
+  });
 
   return spec_impl;
 }
@@ -350,11 +460,9 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
     return {};
   }
 
-  const cuckoo_hash_table_data_t cuckoo_hash_table_data(ep->get_ctx(), map_get, future_map_puts);
+  const cuckoo_hash_table_data_t cuckoo_hash_table_data(ep->get_ctx(), map_get);
 
-  if (cuckoo_hash_table_data.key->getWidth() != CuckooHashTable::SUPPORTED_KEY_SIZE ||
-      (!cuckoo_hash_table_data.read_value.isNull() && cuckoo_hash_table_data.read_value->getWidth() != CuckooHashTable::SUPPORTED_VALUE_SIZE) ||
-      (!cuckoo_hash_table_data.write_value.isNull() && cuckoo_hash_table_data.write_value->getWidth() != CuckooHashTable::SUPPORTED_VALUE_SIZE)) {
+  if (cuckoo_hash_table_data.key->getWidth() != CuckooHashTable::SUPPORTED_KEY_SIZE) {
     return {};
   }
 
@@ -381,6 +489,15 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
     return {};
   }
 
+  read_write_pattern_t read_write_pattern;
+  if (!is_read_write_pattern_on_condition(ep, node, map_objs.value(), read_write_pattern)) {
+    return {};
+  }
+
+  if (read_write_pattern.read_value.expr->getWidth() != CuckooHashTable::SUPPORTED_VALUE_SIZE) {
+    return {};
+  }
+
   const branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
     return {};
@@ -395,72 +512,98 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
   const symbol_t cuckoo_success_symbol                 = create_cuckoo_success_symbol(cuckoo_hash_table->id, symbol_manager, node);
   const klee::ref<klee::Expr> cuckoo_success_condition = build_cuckoo_success_condition(cuckoo_success_symbol);
 
-  Module *module  = new CuckooHashTableReadWrite(node, cuckoo_hash_table->id, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key,
-                                                 cuckoo_hash_table_data.read_value, cuckoo_hash_table_data.map_has_this_key);
-  EPNode *ep_node = new EPNode(module);
+  Module *cuckoo_read_write_module =
+      new CuckooHashTableReadWrite(node, cuckoo_hash_table->id, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key,
+                                   read_write_pattern.read_value.expr, read_write_pattern.cuckoo_update_condition, cuckoo_success_condition);
+
+  Module *if_cuckoo_update_module   = new If(node, read_write_pattern.cuckoo_update_condition);
+  Module *then_cuckoo_update_module = new Then(node);
+  Module *else_cuckoo_update_module = new Else(node);
+
+  Module *if_cuckoo_success_on_cuckoo_update_module   = new If(node, cuckoo_success_condition);
+  Module *then_cuckoo_success_on_cuckoo_update_module = new Then(node);
+  Module *else_cuckoo_success_on_cuckoo_update_module = new Else(node);
+
+  Module *if_cuckoo_success_on_cuckoo_read_module   = new If(node, cuckoo_success_condition);
+  Module *then_cuckoo_success_on_cuckoo_read_module = new Then(node);
+  Module *else_cuckoo_success_on_cuckoo_read_module = new Else(node);
+
+  EPNode *cuckoo_read_write_ep_node = new EPNode(cuckoo_read_write_module);
+
+  EPNode *if_cuckoo_update_ep_node   = new EPNode(if_cuckoo_update_module);
+  EPNode *then_cuckoo_update_ep_node = new EPNode(then_cuckoo_update_module);
+  EPNode *else_cuckoo_update_ep_node = new EPNode(else_cuckoo_update_module);
+
+  EPNode *if_cuckoo_success_on_cuckoo_update_ep_node   = new EPNode(if_cuckoo_success_on_cuckoo_update_module);
+  EPNode *then_cuckoo_success_on_cuckoo_update_ep_node = new EPNode(then_cuckoo_success_on_cuckoo_update_module);
+  EPNode *else_cuckoo_success_on_cuckoo_update_ep_node = new EPNode(else_cuckoo_success_on_cuckoo_update_module);
+
+  EPNode *if_cuckoo_success_on_cuckoo_read_ep_node   = new EPNode(if_cuckoo_success_on_cuckoo_read_module);
+  EPNode *then_cuckoo_success_on_cuckoo_read_ep_node = new EPNode(then_cuckoo_success_on_cuckoo_read_module);
+  EPNode *else_cuckoo_success_on_cuckoo_read_ep_node = new EPNode(else_cuckoo_success_on_cuckoo_read_module);
+
+  cuckoo_read_write_ep_node->set_children(if_cuckoo_update_ep_node);
+  if_cuckoo_update_ep_node->set_prev(cuckoo_read_write_ep_node);
+
+  if_cuckoo_update_ep_node->set_children(read_write_pattern.cuckoo_update_condition, then_cuckoo_update_ep_node, else_cuckoo_update_ep_node);
+  then_cuckoo_update_ep_node->set_prev(if_cuckoo_update_ep_node);
+  else_cuckoo_update_ep_node->set_prev(if_cuckoo_update_ep_node);
+
+  then_cuckoo_update_ep_node->set_children(if_cuckoo_success_on_cuckoo_update_ep_node);
+  if_cuckoo_success_on_cuckoo_update_ep_node->set_prev(then_cuckoo_update_ep_node);
+
+  else_cuckoo_update_ep_node->set_children(if_cuckoo_success_on_cuckoo_read_ep_node);
+  if_cuckoo_success_on_cuckoo_read_ep_node->set_prev(else_cuckoo_update_ep_node);
+
+  if_cuckoo_success_on_cuckoo_update_ep_node->set_children(cuckoo_success_condition, then_cuckoo_success_on_cuckoo_update_ep_node,
+                                                           else_cuckoo_success_on_cuckoo_update_ep_node);
+  then_cuckoo_success_on_cuckoo_update_ep_node->set_prev(if_cuckoo_success_on_cuckoo_update_ep_node);
+  else_cuckoo_success_on_cuckoo_update_ep_node->set_prev(if_cuckoo_success_on_cuckoo_update_ep_node);
+
+  if_cuckoo_success_on_cuckoo_read_ep_node->set_children(cuckoo_success_condition, then_cuckoo_success_on_cuckoo_read_ep_node,
+                                                         else_cuckoo_success_on_cuckoo_read_ep_node);
+  then_cuckoo_success_on_cuckoo_read_ep_node->set_prev(if_cuckoo_success_on_cuckoo_read_ep_node);
+  else_cuckoo_success_on_cuckoo_read_ep_node->set_prev(if_cuckoo_success_on_cuckoo_read_ep_node);
+
+  std::unique_ptr<BDD> new_bdd = rebuild_bdd(ep, node, read_write_pattern, cuckoo_success_symbol, cuckoo_success_condition);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  if (!update_map_get_success_hit_rate(new_ep.get(), new_ep->get_mutable_ctx(), map_get, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key,
-                                       cuckoo_hash_table_data.capacity, mpsc)) {
-    delete ep_node;
-    delete cuckoo_hash_table;
-    return {};
-  }
+  const hit_rate_t cache_hit_rate =
+      calculate_cache_hit_rate(ep, node, read_write_pattern, cuckoo_hash_table_data.key, cuckoo_hash_table_data.capacity);
+  update_profiler(new_ep->get_mutable_ctx().get_mutable_profiler(), new_bdd.get(), node, read_write_pattern, cuckoo_success_condition,
+                  cache_hit_rate);
+
+  const avg_recirc_per_packet_t avg_recirc_per_packet = calculate_expected_average_recirculations_per_packet(ep, read_write_pattern);
+  std::cerr << "Base recirculations: " << avg_recirc_per_packet.base_recirculations << "\n";
+  std::cerr << "Traffic ratio (recirculating once more): " << avg_recirc_per_packet.traffic_ratio_recirculating_once_more << "\n";
 
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable);
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_CuckooHashTable);
   new_ep->get_mutable_ctx().save_ds_impl(*map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable);
 
-  std::cerr << "Checkpoint!\n";
-  dbg_pause();
-
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, map_objs->map, cuckoo_hash_table);
 
-  EPLeaf leaf(ep_node, node->get_next());
-  new_ep->process_leaf(ep_node, {leaf});
+  EPLeaf then_cuckoo_success_on_cuckoo_update_leaf(then_cuckoo_success_on_cuckoo_update_ep_node,
+                                                   new_bdd->get_node_by_id(read_write_pattern.on_write_success->get_id()));
+  EPLeaf else_cuckoo_success_on_cuckoo_update_leaf(else_cuckoo_success_on_cuckoo_update_ep_node,
+                                                   new_bdd->get_node_by_id(read_write_pattern.on_write_failure->get_id()));
+  EPLeaf then_cuckoo_success_on_cuckoo_read_leaf(then_cuckoo_success_on_cuckoo_read_ep_node,
+                                                 new_bdd->get_node_by_id(read_write_pattern.on_read_success->get_id()));
+  EPLeaf else_cuckoo_success_on_cuckoo_read_leaf(else_cuckoo_success_on_cuckoo_read_ep_node,
+                                                 new_bdd->get_node_by_id(read_write_pattern.on_read_failure->get_id()));
+  new_ep->process_leaf(cuckoo_read_write_ep_node, {then_cuckoo_success_on_cuckoo_update_leaf, else_cuckoo_success_on_cuckoo_update_leaf,
+                                                   then_cuckoo_success_on_cuckoo_read_leaf, else_cuckoo_success_on_cuckoo_read_leaf});
+
+  new_ep->replace_bdd(std::move(new_bdd));
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;
 }
 
-std::unique_ptr<Module> CuckooHashTableReadWriteFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
-  if (node->get_type() != BDDNodeType::Call) {
-    return {};
-  }
-
-  const Call *map_get = dynamic_cast<const Call *>(node);
-
-  std::vector<const Call *> future_map_puts;
-  if (!bdd->is_map_get_followed_by_map_puts_on_miss(map_get, future_map_puts)) {
-    return {};
-  }
-
-  const cuckoo_hash_table_data_t cuckoo_hash_table_data(ctx, map_get, future_map_puts);
-
-  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(cuckoo_hash_table_data.obj);
-  if (!map_objs.has_value()) {
-    return {};
-  }
-
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable) || !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_CuckooHashTable)) {
-    return {};
-  }
-
-  const branch_direction_t mpsc = map_get->get_map_get_success_check();
-  if (!mpsc.branch) {
-    return {};
-  }
-
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(map_objs->map);
-  assert(ds.size() == 1 && "Expected exactly one DS");
-  const CuckooHashTable *cuckoo_hash_table = dynamic_cast<const CuckooHashTable *>(*ds.begin());
-
-  return std::make_unique<CuckooHashTableReadWrite>(node, cuckoo_hash_table->id, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key,
-                                                    cuckoo_hash_table_data.read_value, cuckoo_hash_table_data.map_has_this_key);
-}
+std::unique_ptr<Module> CuckooHashTableReadWriteFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const { return {}; }
 
 } // namespace Tofino
 } // namespace LibSynapse

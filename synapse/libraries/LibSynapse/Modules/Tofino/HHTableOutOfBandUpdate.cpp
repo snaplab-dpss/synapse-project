@@ -47,7 +47,10 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const BDDNode *node, const branch
   const BDD *old_bdd       = ep->get_bdd();
   std::unique_ptr<BDD> bdd = std::make_unique<BDD>(*old_bdd);
 
-  new_next_node = bdd->delete_branch(index_alloc_check.branch->get_id(), !index_alloc_check.direction);
+  const BDD::BranchDeletionAction branch_deletion_action =
+      !index_alloc_check.direction ? BDD::BranchDeletionAction::KeepOnTrue : BDD::BranchDeletionAction::KeepOnFalse;
+
+  new_next_node = bdd->delete_branch(index_alloc_check.branch->get_id(), branch_deletion_action);
 
   return bdd;
 }

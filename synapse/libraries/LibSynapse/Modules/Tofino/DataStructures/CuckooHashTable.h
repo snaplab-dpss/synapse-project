@@ -18,6 +18,8 @@ namespace Tofino {
 struct CuckooHashTable : public DS {
   static const std::vector<u32> HASH_SALTS;
 
+  static constexpr const u8 MAX_RECIRCULATIONS{4};
+
   static constexpr const u32 CMS_WIDTH{1024};
   static constexpr const u32 CMS_HEIGHT{4};
 

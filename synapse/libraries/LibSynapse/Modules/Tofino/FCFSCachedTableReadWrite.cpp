@@ -143,15 +143,16 @@ void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, BDDNode *on_succ
 
         klee::ref<klee::Expr> extra_constraint = index_alloc_check.branch->get_condition();
 
-        // If we want to keep the direction on true, we must remove the on
-        // false.
+        // If we want to keep the direction on true, we must remove the on false.
         if (index_alloc_check.direction) {
           extra_constraint = solver_toolbox.exprBuilder->Not(extra_constraint);
         }
 
         deleted_branch_constraints->push_back(extra_constraint);
 
-        bdd->delete_branch(index_alloc_check.branch->get_id(), index_alloc_check.direction);
+        const BDD::BranchDeletionAction branch_deletion_action =
+            index_alloc_check.direction ? BDD::BranchDeletionAction::KeepOnTrue : BDD::BranchDeletionAction::KeepOnFalse;
+        bdd->delete_branch(index_alloc_check.branch->get_id(), branch_deletion_action);
       }
     }
 

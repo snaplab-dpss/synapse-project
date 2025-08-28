@@ -116,16 +116,8 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, cons
   const bdd_profile_t *bdd_profile                     = ctx.get_profiler().get_bdd_profile();
   const hit_rate_t node_hr                             = ctx.get_profiler().get_hr(node);
 
-  u64 top_k = 0;
-  for (size_t k = 0; k <= capacity && k < flow_stats.pkts_per_flow.size(); k++) {
-    top_k += flow_stats.pkts_per_flow[k];
-  }
-
-  assert(top_k <= flow_stats.pkts && "Invalid top_k");
-  const hit_rate_t steady_state_hit_rate(top_k, flow_stats.pkts);
-
-  const double rate = node_hr.value * ep->estimate_tput_pps();
-
+  const hit_rate_t steady_state_hit_rate = flow_stats.calculate_top_k_hit_rate(capacity);
+  const double rate                      = node_hr.value * ep->estimate_tput_pps();
   const fpm_t churn_top_k_flows          = bdd_profile->churn_top_k_flows(map, capacity);
   const double churn_top_k_flows_per_sec = churn_top_k_flows / 60.0;
 

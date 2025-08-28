@@ -133,15 +133,24 @@ public:
   SymbolManager *get_mutable_symbol_manager() { return symbol_manager; }
   const SymbolManager *get_symbol_manager() const { return symbol_manager; }
 
+  enum class BranchDeletionAction { KeepOnTrue, KeepOnFalse, DeleteBoth };
+
   void delete_init_node(bdd_node_id_t target_id);
   BDDNode *delete_non_branch(bdd_node_id_t target_id);
-  BDDNode *delete_branch(bdd_node_id_t target_id, bool direction_to_keep);
+  BDDNode *delete_branch(bdd_node_id_t target_id, BranchDeletionAction branch_deletion_action);
+  std::vector<BDDNode *> delete_until(bdd_node_id_t target_id, const bdd_node_ids_t &stopping_points);
+
+  Branch *create_new_branch(klee::ref<klee::Expr> condition);
+  Call *create_new_call(const BDDNode *current, const call_t &call, const Symbols &generated_symbols);
+
   Call *add_new_symbol_generator_function(bdd_node_id_t target_id, const std::string &fn_name, const Symbols &symbols);
   BDDNode *add_cloned_non_branches(bdd_node_id_t target_id, const std::vector<const BDDNode *> &new_nodes);
   Branch *add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> condition);
 
   static BDDNode *delete_non_branch(BDDNode *target, BDDNodeManager &manager);
-  static BDDNode *delete_branch(BDDNode *target, bool direction_to_keep, BDDNodeManager &manager);
+  static BDDNode *delete_branch(BDDNode *target, BranchDeletionAction branch_deletion_action, BDDNodeManager &manager);
 };
+
+std::ostream &operator<<(std::ostream &os, const BDD::inspection_report_t &report);
 
 } // namespace LibBDD

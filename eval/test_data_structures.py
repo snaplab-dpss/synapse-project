@@ -16,7 +16,7 @@ from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
 STORAGE_SERVER_DELAY_NS = 0
-KVS_GET_RATIO = 0.99
+KVS_GET_RATIO = 0.5
 
 TOTAL_FLOWS = 40_000
 CHURN_FPM = 0

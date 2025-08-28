@@ -11,18 +11,19 @@ private:
   addr_t obj;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
-  symbol_t map_has_this_key;
+  klee::ref<klee::Expr> cuckoo_update_condition;
+  klee::ref<klee::Expr> cuckoo_success_condition;
 
 public:
   CuckooHashTableReadWrite(const BDDNode *_node, DS_ID _cuckoo_hash_table_id, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
-                           const symbol_t &_map_has_this_key)
+                           klee::ref<klee::Expr> _cuckoo_update_condition, klee::ref<klee::Expr> _cuckoo_success_condition)
       : TofinoModule(ModuleType::Tofino_CuckooHashTableReadWrite, "CuckooHashTableReadWrite", _node), cuckoo_hash_table_id(_cuckoo_hash_table_id),
-        obj(_obj), key(_key), value(_value), map_has_this_key(_map_has_this_key) {}
+        obj(_obj), key(_key), value(_value), cuckoo_update_condition(_cuckoo_update_condition), cuckoo_success_condition(_cuckoo_success_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new CuckooHashTableReadWrite(node, cuckoo_hash_table_id, obj, key, value, map_has_this_key);
+    Module *cloned = new CuckooHashTableReadWrite(node, cuckoo_hash_table_id, obj, key, value, cuckoo_update_condition, cuckoo_success_condition);
     return cloned;
   }
 
@@ -30,7 +31,8 @@ public:
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_value() const { return value; }
-  const symbol_t &get_hit() const { return map_has_this_key; }
+  klee::ref<klee::Expr> get_cuckoo_update_condition() const { return cuckoo_update_condition; }
+  klee::ref<klee::Expr> get_cuckoo_success_condition() const { return cuckoo_success_condition; }
 
   virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {cuckoo_hash_table_id}; }
 };

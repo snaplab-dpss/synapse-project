@@ -125,7 +125,9 @@ void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, BDDNode *on_succ
 
         deleted_branch_constraints->push_back(extra_constraint);
 
-        bdd->delete_branch(index_alloc_check.branch->get_id(), index_alloc_check.direction);
+        const BDD::BranchDeletionAction branch_deletion_action =
+            index_alloc_check.direction ? BDD::BranchDeletionAction::KeepOnTrue : BDD::BranchDeletionAction::KeepOnFalse;
+        bdd->delete_branch(index_alloc_check.branch->get_id(), branch_deletion_action);
       }
     }
 

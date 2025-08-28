@@ -32,7 +32,7 @@ public:
   symbol_t get_local_symbol(const std::string &base) const;
   const Symbols &get_local_symbols() const;
   bool has_local_symbol(const std::string &base) const;
-
+  void add_local_symbol(const symbol_t &symbol) { generated_symbols.add(symbol); }
   void set_local_symbols(const Symbols &new_generated_symbols) { generated_symbols = new_generated_symbols; }
 
   BDDNode *clone(BDDNodeManager &manager, bool recursive = false) const override final;

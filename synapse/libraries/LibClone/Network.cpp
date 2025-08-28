@@ -184,7 +184,9 @@ BDDNode *stitch_bdd_sections(BDD &bdd, const NF *nf, const std::vector<bdd_vecto
   BDDNodeManager &manager = bdd.get_mutable_manager();
   BDDNode *new_root       = nf->get_bdd().get_root()->clone(manager, true);
   for (const bdd_vector_t vector : sections) {
-    BDD::delete_branch(new_root->get_mutable_node_by_id(vector.node->get_id()), vector.direction, manager);
+    const BDD::BranchDeletionAction branch_deletion_action =
+        vector.direction ? BDD::BranchDeletionAction::KeepOnTrue : BDD::BranchDeletionAction::KeepOnFalse;
+    BDD::delete_branch(new_root->get_mutable_node_by_id(vector.node->get_id()), branch_deletion_action, manager);
   }
   new_root->recursive_update_ids(bdd.get_mutable_id());
   return new_root;

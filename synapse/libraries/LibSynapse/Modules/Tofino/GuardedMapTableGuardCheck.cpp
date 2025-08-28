@@ -101,8 +101,11 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Call *dchain_allocate_new_i
   new_bdd_nodes.success_index_alloc_on_guard_disallow_constraints =
       index_alloc_check_on_guard_disallow.get_success_node()->get_ordered_branch_constraints();
 
+  const BDD::BranchDeletionAction branch_deletion_action =
+      !index_alloc_check_on_guard_disallow.direction ? BDD::BranchDeletionAction::KeepOnTrue : BDD::BranchDeletionAction::KeepOnFalse;
+
   new_bdd->delete_non_branch(on_guard_disallow->get_id());
-  new_bdd->delete_branch(index_alloc_check_on_guard_disallow.branch->get_id(), !index_alloc_check_on_guard_disallow.direction);
+  new_bdd->delete_branch(index_alloc_check_on_guard_disallow.branch->get_id(), branch_deletion_action);
 
   return new_bdd;
 }

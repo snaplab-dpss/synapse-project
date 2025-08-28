@@ -419,22 +419,6 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
   return root;
 }
 
-Branch *create_new_branch(BDD *bdd, const BDDNode *current, klee::ref<klee::Expr> condition) {
-  bdd_node_id_t &id       = bdd->get_mutable_id();
-  BDDNodeManager &manager = bdd->get_mutable_manager();
-  Branch *new_branch      = new Branch(id++, bdd->get_mutable_symbol_manager(), condition);
-  manager.add_node(new_branch);
-  return new_branch;
-}
-
-Call *create_new_call(BDD *bdd, const BDDNode *current, const call_t &call, const Symbols &generated_symbols) {
-  bdd_node_id_t &id       = bdd->get_mutable_id();
-  BDDNodeManager &manager = bdd->get_mutable_manager();
-  Call *new_call          = new Call(id++, bdd->get_mutable_symbol_manager(), call, generated_symbols);
-  manager.add_node(new_call);
-  return new_call;
-}
-
 struct next_t {
   struct obj_op_t {
     addr_t obj;
@@ -763,8 +747,81 @@ void BDD::delete_init_node(bdd_node_id_t target_id) {
 
 BDDNode *BDD::delete_non_branch(bdd_node_id_t target_id) { return delete_non_branch(get_mutable_node_by_id(target_id), manager); }
 
-BDDNode *BDD::delete_branch(bdd_node_id_t target_id, bool direction_to_keep) {
-  return delete_branch(get_mutable_node_by_id(target_id), direction_to_keep, manager);
+BDDNode *BDD::delete_branch(bdd_node_id_t target_id, BranchDeletionAction branch_deletion_action) {
+  return delete_branch(get_mutable_node_by_id(target_id), branch_deletion_action, manager);
+}
+
+std::vector<BDDNode *> BDD::delete_until(bdd_node_id_t target_id, const bdd_node_ids_t &stopping_points) {
+  BDDNode *target_node = get_mutable_node_by_id(target_id);
+  if (target_node == nullptr) {
+    panic("Target node not found (id=%lu)", target_id);
+  }
+
+  if (target_node->get_prev()) {
+    BDDNode *prev = target_node->get_mutable_prev();
+    if (prev->get_type() == BDDNodeType::Branch) {
+      Branch *prev_branch_node = dynamic_cast<Branch *>(prev);
+      assert(prev_branch_node->get_on_true() == target_node || prev_branch_node->get_on_false() == target_node);
+      if (prev_branch_node->get_on_true() == target_node) {
+        prev_branch_node->set_on_true(nullptr);
+      } else {
+        prev_branch_node->set_on_false(nullptr);
+      }
+    } else {
+      prev->set_next(nullptr);
+    }
+  }
+
+  std::vector<BDDNode *> stopping_nodes;
+  std::list<BDDNode *> nodes_target_for_deletion{target_node};
+  while (!nodes_target_for_deletion.empty()) {
+    BDDNode *node = nodes_target_for_deletion.front();
+    nodes_target_for_deletion.pop_front();
+
+    if (stopping_points.contains(node->get_id())) {
+      stopping_nodes.push_back(node);
+      continue;
+    }
+
+    if (node->get_type() == BDDNodeType::Branch) {
+      Branch *branch_node = dynamic_cast<Branch *>(node);
+      BDDNode *on_true    = branch_node->get_mutable_on_true();
+      BDDNode *on_false   = branch_node->get_mutable_on_false();
+
+      if (on_true) {
+        nodes_target_for_deletion.push_back(on_true);
+      }
+
+      if (on_false) {
+        nodes_target_for_deletion.push_back(on_false);
+      }
+    } else {
+      BDDNode *next = node->get_mutable_next();
+      if (next) {
+        nodes_target_for_deletion.push_back(next);
+      }
+    }
+
+    manager.free_node(node);
+  }
+
+  for (BDDNode *stopping_node : stopping_nodes) {
+    stopping_node->set_prev(nullptr);
+  }
+
+  return stopping_nodes;
+}
+
+Branch *BDD::create_new_branch(klee::ref<klee::Expr> condition) {
+  Branch *new_branch = new Branch(id++, symbol_manager, condition);
+  manager.add_node(new_branch);
+  return new_branch;
+}
+
+Call *BDD::create_new_call(const BDDNode *current, const call_t &call, const Symbols &generated_symbols) {
+  Call *new_call = new Call(id++, symbol_manager, call, generated_symbols);
+  manager.add_node(new_call);
+  return new_call;
 }
 
 BDDNode *BDD::add_cloned_non_branches(bdd_node_id_t target_id, const std::vector<const BDDNode *> &new_nodes) {
@@ -845,7 +902,7 @@ Branch *BDD::add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> co
   BDDNode *on_false_cond = anchor_next->clone(manager, true);
   on_false_cond->recursive_update_ids(id);
 
-  Branch *new_branch = create_new_branch(this, current, condition);
+  Branch *new_branch = create_new_branch(condition);
 
   new_branch->set_on_true(on_true_cond);
   new_branch->set_on_false(on_false_cond);
@@ -894,7 +951,7 @@ Call *BDD::add_new_symbol_generator_function(bdd_node_id_t target_id, const std:
       .ret           = {},
   };
 
-  Call *new_node = create_new_call(this, current, call, symbols);
+  Call *new_node = create_new_call(current, call, symbols);
 
   bdd_node_id_t anchor_id = prev->get_id();
   BDDNode *anchor         = get_mutable_node_by_id(anchor_id);
@@ -1385,7 +1442,7 @@ BDDNode *BDD::delete_non_branch(BDDNode *anchor_next, BDDNodeManager &manager) {
   return new_current;
 }
 
-BDDNode *BDD::delete_branch(BDDNode *target, bool direction_to_keep, BDDNodeManager &manager) {
+BDDNode *BDD::delete_branch(BDDNode *target, BranchDeletionAction branch_deletion_action, BDDNodeManager &manager) {
   assert(target && "BDDNode not found");
   assert(target->get_type() == BDDNodeType::Branch && "Unexpected branch node");
 
@@ -1397,16 +1454,26 @@ BDDNode *BDD::delete_branch(BDDNode *target, bool direction_to_keep, BDDNodeMana
   BDDNode *target_on_true  = anchor_next->get_mutable_on_true();
   BDDNode *target_on_false = anchor_next->get_mutable_on_false();
 
-  BDDNode *new_current;
+  BDDNode *new_current = nullptr;
 
-  if (direction_to_keep) {
+  switch (branch_deletion_action) {
+  case BranchDeletionAction::KeepOnTrue: {
     new_current = target_on_true;
     target_on_false->recursive_free_children(manager);
     manager.free_node(target_on_false);
-  } else {
+  } break;
+  case BranchDeletionAction::KeepOnFalse: {
     new_current = target_on_false;
     target_on_true->recursive_free_children(manager);
     manager.free_node(target_on_true);
+  } break;
+  case BranchDeletionAction::DeleteBoth: {
+    new_current = nullptr;
+    target_on_false->recursive_free_children(manager);
+    target_on_true->recursive_free_children(manager);
+    manager.free_node(target_on_true);
+    manager.free_node(target_on_false);
+  } break;
   }
 
   switch (anchor->get_type()) {
@@ -1431,7 +1498,10 @@ BDDNode *BDD::delete_branch(BDDNode *target, bool direction_to_keep, BDDNodeMana
   } break;
   }
 
-  new_current->set_prev(anchor);
+  if (new_current) {
+    new_current->set_prev(anchor);
+  }
+
   manager.free_node(anchor_next);
 
   return new_current;
@@ -1778,6 +1848,41 @@ bool BDD::are_subtrees_equal(const BDDNode *n0, const BDDNode *n1) const {
   }
 
   return true;
+}
+
+std::ostream &operator<<(std::ostream &os, const BDD::inspection_report_t &report) {
+  os << "report{status=";
+  switch (report.status) {
+  case BDD::InspectionStatus::Ok:
+    os << "Ok";
+    break;
+  case BDD::InspectionStatus::MissingRootNode:
+    os << "MissingRootNode";
+    break;
+  case BDD::InspectionStatus::HasNullNode:
+    os << "HasNullNode";
+    break;
+  case BDD::InspectionStatus::BranchWithoutChildren:
+    os << "BranchWithoutChildren";
+    break;
+  case BDD::InspectionStatus::BrokenLink:
+    os << "BrokenLink";
+    break;
+  case BDD::InspectionStatus::MissingSymbol:
+    os << "MissingSymbol";
+    break;
+  case BDD::InspectionStatus::DanglingInitNode:
+    os << "DanglingInitNode";
+    break;
+  case BDD::InspectionStatus::HasCycle:
+    os << "HasCycle";
+    break;
+  case BDD::InspectionStatus::UnmanagedNode:
+    os << "UnmanagedNode";
+    break;
+  }
+  os << ", msg=" << report.message << "}";
+  return os;
 }
 
 } // namespace LibBDD

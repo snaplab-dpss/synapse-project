@@ -488,6 +488,8 @@ control CuckooHashBloomFilter(inout cuckoo_h cuckoo, out fwd_op_t fwd_op) {
 			if (swap_transient_read.execute(old_key_hash)) {
 				// Cache miss.
 				cuckoo.op = cuckoo_ops_t.DONE;
+			} else {
+				cuckoo.recirc_cntr = 0;
 			}
 		} else if (cuckoo.op == cuckoo_ops_t.UPDATE) {
 			if (cuckoo.recirc_cntr >= MAX_LOOPS) {
