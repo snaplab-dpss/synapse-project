@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
   if (output_file.has_parent_path()) {
     std::filesystem::create_directories(output_file.parent_path());
   }
-  BDDSynthesizer synthesizer(&bdd, target, output_file);
+  BDDSynthesizer synthesizer(&bdd, target, output_file, LibSynapse::TargetType(LibSynapse::TargetArchitecture::x86, ""));
   synthesizer.synthesize();
   std::cerr << "Output written to " << output_file << ".\n";
 
