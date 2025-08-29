@@ -1191,8 +1191,8 @@ bool BDD::is_fwd_pattern_depending_on_lpm(const BDDNode *node, std::vector<const
   return pattern_found;
 }
 
-std::vector<u16> BDD::get_devices() const {
-  std::vector<u16> devices;
+std::unordered_set<u16> BDD::get_devices() const {
+  std::unordered_set<u16> devices;
 
   if (!root) {
     return devices;
@@ -1205,7 +1205,7 @@ std::vector<u16> BDD::get_devices() const {
     if (!valid_device_value) {
       break;
     } else {
-      devices.push_back(device_value);
+      devices.insert(device_value);
     }
   }
 
@@ -1883,6 +1883,33 @@ std::ostream &operator<<(std::ostream &os, const BDD::inspection_report_t &repor
   }
   os << ", msg=" << report.message << "}";
   return os;
+}
+
+std::unordered_set<u16> BDD::get_candidate_fwd_devs(const Route *route) const {
+  std::unordered_set<u16> candidate_devs;
+
+  switch (route->get_operation()) {
+  case RouteOp::Drop: {
+  } break;
+  case RouteOp::Broadcast: {
+    candidate_devs = get_devices();
+  } break;
+  case RouteOp::Forward: {
+    klee::ref<klee::Expr> dst_dev             = route->get_dst_device();
+    const klee::ConstraintManager constraints = get_constraints(route);
+
+    const std::unordered_set<u16> devs = get_devices();
+    for (const u16 dev : devs) {
+      klee::ref<klee::Expr> is_valid_candidate =
+          solver_toolbox.exprBuilder->Eq(dst_dev, solver_toolbox.exprBuilder->Constant(dev, dst_dev->getWidth()));
+      if (solver_toolbox.is_expr_maybe_true(constraints, is_valid_candidate)) {
+        candidate_devs.insert(dev);
+      }
+    }
+  } break;
+  }
+
+  return candidate_devs;
 }
 
 } // namespace LibBDD

@@ -50,6 +50,14 @@ struct tna_config_t {
   tna_properties_t properties;
   std::vector<tofino_port_t> ports;
   std::vector<tofino_recirculation_port_t> recirculation_ports;
+
+  std::unordered_set<u16> get_available_devs() const {
+    std::unordered_set<u16> available_devs;
+    for (const auto &port : ports) {
+      available_devs.insert(port.nf_device);
+    }
+    return available_devs;
+  }
 };
 
 } // namespace Tofino

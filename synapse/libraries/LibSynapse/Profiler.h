@@ -111,6 +111,11 @@ struct ProfilerNode {
   std::optional<fwd_stats_t> forwarding_stats;
   std::optional<fwd_stats_t> original_forwarding_stats;
 
+  // During search, sometimes we need to rebalance the forwarding statistics. Additionally, sometimes we want to extrapolate forwarding statistics
+  // (for example, a uniform distribution across _valid_ ports). For that, we need to actually know which ports are valid. This is the main purpose of
+  // this "candidate_fwd_ports". It contains all the _valid_ candidate ports for a specific forwarding node on the NF.
+  std::unordered_set<u16> candidate_fwd_ports;
+
   ProfilerNode *on_true;
   ProfilerNode *on_false;
   ProfilerNode *prev;
@@ -137,7 +142,6 @@ struct ProfilerNode {
 class Profiler {
 private:
   const std::shared_ptr<bdd_profile_t> bdd_profile;
-  const bool assume_uniform_forwarding_distribution;
 
   std::shared_ptr<ProfilerNode> root;
   bytes_t avg_pkt_size;
@@ -152,7 +156,7 @@ private:
   } cache;
 
 public:
-  Profiler(const BDD *bdd, const bdd_profile_t &bdd_profile, bool assume_uniform_forwarding_distribution);
+  Profiler(const BDD *bdd, const bdd_profile_t &bdd_profile, const std::unordered_set<u16> &available_devs);
 
   Profiler(const Profiler &other);
   Profiler(Profiler &&other);
@@ -173,14 +177,17 @@ public:
   void remove(const std::vector<klee::ref<klee::Expr>> &constraints);
   void remove_until(const std::vector<klee::ref<klee::Expr>> &target, const std::vector<klee::ref<klee::Expr>> &stopping_constraints);
   void scale(const std::vector<klee::ref<klee::Expr>> &constraints, double factor);
-  bool can_set(const std::vector<klee::ref<klee::Expr>> &constraints) const;
   void set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t new_hr);
+  void set_relative(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t parent_relative_hr);
 
   hit_rate_t get_hr(const EPNode *node) const;
   hit_rate_t get_hr(const BDDNode *node) const;
 
   fwd_stats_t get_fwd_stats(const EPNode *node) const;
   fwd_stats_t get_fwd_stats(const BDDNode *node) const;
+
+  std::unordered_set<u16> get_candidate_fwd_ports(const EPNode *node) const;
+  std::unordered_set<u16> get_candidate_fwd_ports(const BDDNode *node) const;
 
   flow_stats_t get_flow_stats(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> flow) const;
   rw_fractions_t get_cond_map_put_rw_profile_fractions(const Call *map_get) const;
@@ -202,6 +209,7 @@ private:
   void remove_until(ProfilerNode *target, ProfilerNode *stopping_node);
   void replace_root(klee::ref<klee::Expr> cnstr, hit_rate_t hr);
   void replace_constraint(ProfilerNode *node, klee::ref<klee::Expr> cnstr);
+  void set(ProfilerNode *node, hit_rate_t new_hr);
 
   bool can_update_fractions(ProfilerNode *node) const;
   bool can_recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_old_fraction) const;

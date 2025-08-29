@@ -87,8 +87,6 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
     return {};
   }
 
-  spec_impl_t spec_impl(decide(ep, node), ctx);
-
   // Get all nodes executed on a successful index allocation.
   const branch_direction_t index_alloc_check = ep->get_bdd()->find_branch_checking_index_alloc(dchain_allocate_new_index);
   assert(index_alloc_check.branch && "Branch checking index allocation not found");
@@ -100,6 +98,8 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
 
   const BDDNode *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true() : index_alloc_check.branch->get_on_false();
   std::vector<const Call *> targets = on_hh->get_coalescing_nodes_from_key(table_data.key, map_objs);
+
+  spec_impl_t spec_impl(decide(ep, node), ctx);
 
   // Ignore all coalescing nodes if the index allocation is successful (i.e. it is a heavy hitter).
   for (const BDDNode *tgt : targets) {

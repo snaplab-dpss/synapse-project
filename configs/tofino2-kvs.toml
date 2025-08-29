@@ -12,7 +12,7 @@ pipe         = 1
 capacity_bps = 50_000_000_000 # Storage server capacity (bottleneck)
 
 [[switch.front_panel_ports]]
-vport        = 1
+vport        = -1              # Unused port
 pport        = 2
 pipe         = 1
 capacity_bps = 100_000_000_000 # 100G

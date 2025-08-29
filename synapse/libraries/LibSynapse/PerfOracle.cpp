@@ -144,7 +144,7 @@ PerfOracle &PerfOracle::operator=(const PerfOracle &other) {
 }
 
 void PerfOracle::add_fwd_traffic(u16 port, const port_ingress_t &ingress) {
-  assert_or_panic(front_panel_ports_capacities.find(port) != front_panel_ports_capacities.end(), "Unknown port %u", port);
+  assert_or_panic(front_panel_ports_capacities.contains(port), "Unknown port %u", port);
 
   if (ingress.get_total_hr() == 0) {
     return;
@@ -169,7 +169,7 @@ void PerfOracle::add_fwd_traffic(u16 port, hit_rate_t hr) {
     return;
   }
 
-  assert(front_panel_ports_capacities.find(port) != front_panel_ports_capacities.end() && "Invalid port");
+  assert(front_panel_ports_capacities.contains(port) && "Invalid port");
   port_ingress_t ingress;
   ingress.global = hr;
   add_fwd_traffic(port, ingress);

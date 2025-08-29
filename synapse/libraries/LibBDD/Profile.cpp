@@ -233,9 +233,9 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   bdd_profile.meta.pkts  = 100'000;
   bdd_profile.meta.bytes = bdd_profile.meta.pkts * 250; // 250B size packets
 
-  const BDDNode *root                  = bdd->get_root();
-  bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
-  const std::vector<u16> devices       = bdd->get_devices();
+  const BDDNode *root                   = bdd->get_root();
+  bdd_profile.counters[root->get_id()]  = bdd_profile.meta.pkts;
+  const std::unordered_set<u16> devices = bdd->get_devices();
 
   root->visit_nodes([bdd, &bdd_profile, devices](const BDDNode *node) {
     assert(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end() && "BDDNode counter not found");
@@ -338,9 +338,9 @@ bdd_profile_t build_uniform_bdd_profile(const BDD *bdd) {
   bdd_profile.meta.pkts  = bdd->get_root()->get_leaves().size() * 1000;
   bdd_profile.meta.bytes = bdd_profile.meta.pkts * 250; // 250B size packets
 
-  const BDDNode *root                  = bdd->get_root();
-  bdd_profile.counters[root->get_id()] = bdd_profile.meta.pkts;
-  const std::vector<u16> devices       = bdd->get_devices();
+  const BDDNode *root                   = bdd->get_root();
+  bdd_profile.counters[root->get_id()]  = bdd_profile.meta.pkts;
+  const std::unordered_set<u16> devices = bdd->get_devices();
 
   root->visit_nodes([bdd, &bdd_profile, &devices](const BDDNode *node) {
     const u64 current_counter = bdd_profile.counters.at(node->get_id());
@@ -406,17 +406,17 @@ bdd_profile_t build_uniform_bdd_profile(const BDD *bdd) {
         klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
         if (is_constant(dst_device)) {
           const u16 device = solver_toolbox.value_from_expr(dst_device);
-          assert(std::find(devices.begin(), devices.end(), device) != devices.end() && "Invalid device");
+          assert(devices.contains(device) && "Invalid device");
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
         } else {
           const klee::ConstraintManager constraints = bdd->get_constraints(node);
 
-          std::vector<u16> candidate_devices;
+          std::unordered_set<u16> candidate_devices;
           for (const u16 dev : devices) {
             klee::ref<klee::Expr> handles_port =
                 solver_toolbox.exprBuilder->Eq(dst_device, solver_toolbox.exprBuilder->Constant(dev, dst_device->getWidth()));
             if (solver_toolbox.is_expr_maybe_true(constraints, handles_port)) {
-              candidate_devices.push_back(dev);
+              candidate_devices.insert(dev);
             }
           }
 

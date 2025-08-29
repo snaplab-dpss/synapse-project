@@ -60,27 +60,13 @@ struct read_write_pattern_t {
   hit_rate_t put_hr;
 };
 
-struct avg_recirc_per_packet_t {
-  u32 base_recirculations;
-  hit_rate_t traffic_ratio_recirculating_once_more;
-};
-
-avg_recirc_per_packet_t calculate_expected_average_recirculations_per_packet(const EP *ep, const read_write_pattern_t &read_write_pattern) {
-  const double avg_recirculations = read_write_pattern.on_insert_success_hr.value * CuckooHashTable::MAX_RECIRCULATIONS;
-
-  avg_recirc_per_packet_t avg_recirc_per_packet;
-  avg_recirc_per_packet.base_recirculations                   = static_cast<u32>(std::floor(avg_recirculations));
-  avg_recirc_per_packet.traffic_ratio_recirculating_once_more = hit_rate_t(avg_recirculations - avg_recirc_per_packet.base_recirculations);
-
-  return avg_recirc_per_packet;
-}
-
-hit_rate_t calculate_cache_hit_rate(const EP *ep, const BDDNode *node, const read_write_pattern_t &read_write_pattern, klee::ref<klee::Expr> key,
-                                    u32 capacity) {
+hit_rate_t calculate_expected_cache_hit_rate(const EP *ep, const BDDNode *node, const read_write_pattern_t &read_write_pattern,
+                                             klee::ref<klee::Expr> key, u32 capacity) {
   const std::vector<klee::ref<klee::Expr>> constraints  = node->get_ordered_branch_constraints();
   const flow_stats_t flow_stats                         = ep->get_ctx().get_profiler().get_flow_stats(constraints, key);
   const hit_rate_t probability_of_finding_item_in_table = flow_stats.calculate_top_k_hit_rate(capacity);
-  return probability_of_finding_item_in_table;
+  const hit_rate_t expected_cache_hit_rate              = 1_hr - ((1_hr - probability_of_finding_item_in_table) * 1.7);
+  return expected_cache_hit_rate;
 }
 
 bool is_read_write_pattern_on_condition(const EP *ep, const BDDNode *node, const map_coalescing_objs_t &map_objs,
@@ -311,7 +297,7 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const BDDNode *old_map_get, const
 }
 
 void update_profiler(Profiler &profiler, const BDD *new_bdd, const BDDNode *old_map_get, const read_write_pattern_t &read_write_pattern,
-                     klee::ref<klee::Expr> cuckoo_success_condition, hit_rate_t cache_hit_rate) {
+                     klee::ref<klee::Expr> cuckoo_success_condition, hit_rate_t expected_cache_hit_rate) {
   const std::vector<klee::ref<klee::Expr>> map_get_constraints = old_map_get->get_ordered_branch_constraints();
 
   profiler.insert_relative(map_get_constraints, read_write_pattern.cuckoo_update_condition,
@@ -323,16 +309,8 @@ void update_profiler(Profiler &profiler, const BDD *new_bdd, const BDDNode *old_
   std::vector<klee::ref<klee::Expr>> on_update_false_constraints = map_get_constraints;
   on_update_false_constraints.push_back(solver_toolbox.exprBuilder->Not(read_write_pattern.cuckoo_update_condition));
 
-  std::cerr << "cache_hit_rate: " << cache_hit_rate << "\n";
-  std::cerr << "cache_hit_rate: " << cache_hit_rate << "\n";
-  std::cerr << "get hr: " << read_write_pattern.get_hr << "\n";
-
-  hit_rate_t cache_miss = (1_hr - cache_hit_rate) * 2;
-
-  std::cerr << "cache_miss: " << cache_miss << "\n";
-
-  profiler.insert_relative(on_update_true_constraints, cuckoo_success_condition, 1_hr - cache_miss);
-  profiler.insert_relative(on_update_false_constraints, cuckoo_success_condition, 1_hr - cache_miss);
+  profiler.insert_relative(on_update_true_constraints, cuckoo_success_condition, expected_cache_hit_rate);
+  profiler.insert_relative(on_update_false_constraints, cuckoo_success_condition, expected_cache_hit_rate);
 
   std::vector<klee::ref<klee::Expr>> target_for_deletion;
   std::vector<klee::ref<klee::Expr>> stopping_point;
@@ -365,7 +343,7 @@ void update_profiler(Profiler &profiler, const BDD *new_bdd, const BDDNode *old_
   stopping_point.push_back(solver_toolbox.exprBuilder->Not(cuckoo_success_condition));
   profiler.remove_until(target_for_deletion, stopping_point);
 
-  ProfilerViz::visualize(new_bdd, profiler, true);
+  // ProfilerViz::visualize(new_bdd, profiler, true);
 }
 
 } // namespace
@@ -432,6 +410,14 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
   new_ctx.save_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable);
   new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_CuckooHashTable);
   new_ctx.save_ds_impl(*map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable);
+
+  const hit_rate_t expected_cache_hit_rate =
+      calculate_expected_cache_hit_rate(ep, node, read_write_pattern, cuckoo_hash_table_data.key, cuckoo_hash_table_data.capacity);
+
+  new_ctx.get_mutable_profiler().set(read_write_pattern.on_read_failure->get_ordered_branch_constraints(),
+                                     hit_rate_t(read_write_pattern.get_hr * (1 - expected_cache_hit_rate)));
+  new_ctx.get_mutable_profiler().set(read_write_pattern.on_write_failure->get_ordered_branch_constraints(),
+                                     hit_rate_t(read_write_pattern.put_hr * (1 - expected_cache_hit_rate)));
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
@@ -569,14 +555,10 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  const hit_rate_t cache_hit_rate =
-      calculate_cache_hit_rate(ep, node, read_write_pattern, cuckoo_hash_table_data.key, cuckoo_hash_table_data.capacity);
+  const hit_rate_t expected_cache_hit_rate =
+      calculate_expected_cache_hit_rate(ep, node, read_write_pattern, cuckoo_hash_table_data.key, cuckoo_hash_table_data.capacity);
   update_profiler(new_ep->get_mutable_ctx().get_mutable_profiler(), new_bdd.get(), node, read_write_pattern, cuckoo_success_condition,
-                  cache_hit_rate);
-
-  const avg_recirc_per_packet_t avg_recirc_per_packet = calculate_expected_average_recirculations_per_packet(ep, read_write_pattern);
-  std::cerr << "Base recirculations: " << avg_recirc_per_packet.base_recirculations << "\n";
-  std::cerr << "Traffic ratio (recirculating once more): " << avg_recirc_per_packet.traffic_ratio_recirculating_once_more << "\n";
+                  expected_cache_hit_rate);
 
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable);
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_CuckooHashTable);

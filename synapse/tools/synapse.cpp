@@ -30,7 +30,6 @@ struct args_t {
   std::filesystem::path profile_file;
   search_config_t search_config;
   u32 seed;
-  bool assume_uniform_forwarding_distribution{false};
   bool random_uniform_profile{false};
   bool show_prof{false};
   bool show_ep{false};
@@ -57,7 +56,6 @@ struct args_t {
     }
     std::cout << "\n";
     std::cout << "Profiler:\n";
-    std::cout << "  Assume uniform fwd: " << assume_uniform_forwarding_distribution << "\n";
     std::cout << "  Random uniform:     " << random_uniform_profile << "\n";
     std::cout << "Search:\n";
     std::cout << "  No reorder:         " << search_config.no_reorder << "\n";
@@ -172,7 +170,6 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   }
   out_hr_report << "  No reorder:         " << args.search_config.no_reorder << "\n";
   out_hr_report << "  Not greedy:         " << args.search_config.not_greedy << "\n";
-  out_hr_report << "  Assume uniform fwd: " << args.assume_uniform_forwarding_distribution << "\n";
   out_hr_report << "\n";
 
   out_hr_report << "Winner:\n";
@@ -244,8 +241,6 @@ int main(int argc, char **argv) {
   app.add_flag("--show-bdd", args.show_bdd, "Show the BDD's solution.");
   app.add_flag("--backtrack", args.search_config.pause_and_show_on_backtrack, "Pause on backtrack.");
   app.add_flag("--not-greedy", args.search_config.not_greedy, "Don't stop on first solution.");
-  app.add_flag("--assume-uniform-fwd", args.assume_uniform_forwarding_distribution,
-               "Assume uniform distribution of forwarding decisions across all active ports.");
   app.add_flag("--random-uniform-profile", args.random_uniform_profile, "Use a random uniform profile for the BDD.");
   app.add_flag("--skip-synthesis", args.skip_synthesis, "Skip synthesis step (only search).");
   app.add_flag("--dry-run", args.dry_run, "Don't run search.");
@@ -272,7 +267,7 @@ int main(int argc, char **argv) {
   const BDD bdd(args.input_bdd_file, &symbol_manager);
   const targets_config_t targets_config(args.targets_config_file);
   const bdd_profile_t bdd_profile = build_bdd_profile(bdd, args);
-  const Profiler profiler         = Profiler(&bdd, bdd_profile, args.assume_uniform_forwarding_distribution);
+  const Profiler profiler         = Profiler(&bdd, bdd_profile, targets_config.tofino_config.get_available_devs());
 
   if (args.show_prof) {
     profiler.debug();

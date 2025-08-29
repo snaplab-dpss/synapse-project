@@ -35,27 +35,14 @@ struct hh_table_data_t {
   }
 };
 
-bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
+void update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
                                      const branch_direction_t &mgsc) {
   const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, mgsc.branch, map, key, capacity);
 
   assert(mgsc.branch && "No branch checking map_get success");
   const BDDNode *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
-  const BDDNode *on_failure = mgsc.direction ? mgsc.branch->get_on_false() : mgsc.branch->get_on_true();
 
-  const hit_rate_t branch_hr      = ctx.get_profiler().get_hr(mgsc.branch);
-  const hit_rate_t new_success_hr = hit_rate_t{branch_hr * success_rate};
-  const hit_rate_t new_failure_hr = hit_rate_t{branch_hr * (1 - success_rate)};
-
-  if (!ctx.get_profiler().can_set(on_success->get_ordered_branch_constraints()) ||
-      !ctx.get_profiler().can_set(on_failure->get_ordered_branch_constraints())) {
-    return false;
-  }
-
-  ctx.get_mutable_profiler().set(on_success->get_ordered_branch_constraints(), new_success_hr);
-  ctx.get_mutable_profiler().set(on_failure->get_ordered_branch_constraints(), new_failure_hr);
-
-  return true;
+  ctx.get_mutable_profiler().set_relative(on_success->get_ordered_branch_constraints(), success_rate);
 }
 
 } // namespace
@@ -96,9 +83,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const BDD
   new_ctx.save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
   new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
 
-  if (!update_map_get_success_hit_rate(ep, new_ctx, map_get, table_data.obj, table_data.key, table_data.capacity, mpsc)) {
-    return {};
-  }
+  update_map_get_success_hit_rate(ep, new_ctx, map_get, table_data.obj, table_data.key, table_data.capacity, mpsc);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -144,11 +129,7 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  if (!update_map_get_success_hit_rate(new_ep.get(), new_ep->get_mutable_ctx(), map_get, table_data.obj, table_data.key, table_data.capacity, mpsc)) {
-    delete ep_node;
-    delete hh_table;
-    return {};
-  }
+  update_map_get_success_hit_rate(new_ep.get(), new_ep->get_mutable_ctx(), map_get, table_data.obj, table_data.key, table_data.capacity, mpsc);
 
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);

@@ -20,20 +20,26 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode
     return {};
   }
 
-  klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
-
   const EPNode *leaf_node = ep->get_leaf_ep_node_from_bdd_node(node);
 
-  Context new_ctx             = ctx;
-  const fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(node);
+  Context new_ctx = ctx;
+
+  const fwd_stats_t fwd_stats                       = ctx.get_profiler().get_fwd_stats(node);
+  const std::unordered_set<u16> candidate_fwd_ports = ctx.get_profiler().get_candidate_fwd_ports(node);
   assert(fwd_stats.operation == RouteOp::Forward);
-  for (const auto &[device, dev_hr] : fwd_stats.ports) {
+  for (const u16 device : candidate_fwd_ports) {
+    const hit_rate_t dev_hr = fwd_stats.ports.at(device);
+    if (dev_hr == 0_hr) {
+      continue;
+    }
+
     port_ingress_t node_egress;
     if (leaf_node) {
       node_egress = ep->get_node_egress(dev_hr, leaf_node);
     } else {
       node_egress.global = dev_hr;
     }
+
     new_ctx.get_mutable_perf_oracle().add_fwd_traffic(device, node_egress);
   }
 
@@ -62,9 +68,15 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const BDDNode *no
   const EPLeaf leaf(fwd_node, node->get_next());
   new_ep->process_leaf(fwd_node, {leaf});
 
-  const fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
+  const fwd_stats_t fwd_stats                       = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
+  const std::unordered_set<u16> candidate_fwd_ports = new_ep->get_ctx().get_profiler().get_candidate_fwd_ports(node);
   assert(fwd_stats.operation == RouteOp::Forward);
-  for (const auto &[device, dev_hr] : fwd_stats.ports) {
+  for (const u16 device : candidate_fwd_ports) {
+    const hit_rate_t dev_hr = fwd_stats.ports.at(device);
+    if (dev_hr == 0_hr) {
+      continue;
+    }
+
     const port_ingress_t fwd_node_egress = new_ep->get_node_egress(dev_hr, fwd_node);
     new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_fwd_traffic(device, fwd_node_egress);
   }

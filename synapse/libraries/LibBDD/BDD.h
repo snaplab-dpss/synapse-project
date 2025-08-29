@@ -71,7 +71,7 @@ public:
 
   std::string hash() const { return root->hash(true); }
   size_t size() const { return root->count_children(true) + 1; }
-  std::vector<u16> get_devices() const;
+  std::unordered_set<u16> get_devices() const;
 
   Symbols get_generated_symbols(const BDDNode *node) const;
   void visit(BDDVisitor &visitor) const;
@@ -115,6 +115,7 @@ public:
   bool is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const;
   bool is_map_get_and_branch_checking_success(const Call *map_get, const BDDNode *branch_checking_map_get_success, bool &success_direction) const;
   bool are_subtrees_equal(const BDDNode *n0, const BDDNode *n1) const;
+  std::unordered_set<u16> get_candidate_fwd_devs(const Route *route) const;
 
   // Tries to find the pattern of a map_get followed by map_puts, but only when
   // the map_get is not successful (i.e. the key is not found).

@@ -68,10 +68,15 @@ private:
   Context ctx;
   EPMeta meta;
 
+  struct complete_speculation_t {
+    std::vector<spec_impl_t> speculations_per_node;
+    Context final_ctx;
+  };
+
   mutable EPStats ep_stats;
   mutable std::optional<pps_t> cached_tput_estimation;
   mutable std::optional<pps_t> cached_tput_speculation;
-  mutable std::optional<std::vector<spec_impl_t>> cached_speculations;
+  mutable std::optional<complete_speculation_t> cached_speculations;
 
 public:
   EP(const BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
@@ -143,11 +148,6 @@ public:
 private:
   void sort_leaves();
   std::list<const BDDNode *> get_nodes_targeted_for_speculation() const;
-
-  struct complete_speculation_t {
-    std::vector<spec_impl_t> speculations_per_node;
-    Context final_ctx;
-  };
 
   enum class Lookahead {
     WithLookahead,

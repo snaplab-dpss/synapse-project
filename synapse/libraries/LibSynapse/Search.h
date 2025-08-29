@@ -49,6 +49,7 @@ struct search_report_t {
 struct search_config_t {
   bool no_reorder;
   std::vector<ep_id_t> peek;
+  std::vector<ep_id_t> peek_speculation;
   bool pause_and_show_on_backtrack;
   bool not_greedy;
   bool no_deadends;

@@ -116,10 +116,7 @@ void update_profiler(EP *new_ep, double guard_allow_probability, const new_bdd_n
   new_profiler.insert_relative(new_bdd_nodes.guard_check_branch->get_ordered_branch_constraints(), new_bdd_nodes.guard_check_branch->get_condition(),
                                hit_rate_t{guard_allow_probability});
   new_profiler.remove(new_bdd_nodes.success_index_alloc_on_guard_disallow_constraints);
-
-  const hit_rate_t hr = new_profiler.get_hr(new_bdd_nodes.guard_check_branch);
   new_profiler.set(new_bdd_nodes.index_alloc_check_on_guard_allow.get_failure_node()->get_ordered_branch_constraints(), 0_hr);
-  new_profiler.set(new_bdd_nodes.index_alloc_check_on_guard_allow.get_success_node()->get_ordered_branch_constraints(), hr * guard_allow_probability);
 }
 
 } // namespace

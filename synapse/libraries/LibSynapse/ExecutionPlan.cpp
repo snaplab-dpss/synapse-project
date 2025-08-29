@@ -469,9 +469,37 @@ void EP::debug_active_leaves() const {
 }
 
 void EP::debug_speculations() const {
-  if (cached_speculations.has_value()) {
-    std::cerr << speculations2str(this, cached_speculations.value());
+  if (!cached_speculations.has_value()) {
+    speculate_tput_pps();
+    assert(cached_speculations.has_value());
   }
+
+  auto egress_estimation_from_ingress = [this](pps_t tput) -> tput_estimation_t {
+    const PerfOracle &perf_oracle = cached_speculations->final_ctx.get_perf_oracle();
+
+    const tput_estimation_t estimation = {
+        .ingress           = tput,
+        .egress_estimation = perf_oracle.estimate_tput(tput),
+        .unavoidable_drop  = static_cast<pps_t>(tput * perf_oracle.get_dropped_ingress().value),
+    };
+
+    return estimation;
+  };
+
+  const pps_t ingress = estimate_tput_pps();
+  const pps_t egress  = find_stable_tput(ingress, egress_estimation_from_ingress);
+
+  std::cerr << speculations2str(this, cached_speculations->speculations_per_node);
+  std::cerr << "Speculative context:\n";
+  cached_speculations->final_ctx.debug();
+  std::cerr << "Ingress: " << tput2str(pps2bps(ingress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true) << "\n";
+  std::cerr << "Egress from ingress: "
+            << tput2str(pps2bps(egress_estimation_from_ingress(ingress).egress_estimation, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true)
+            << "\n";
+  std::cerr << "Stable egress: " << tput2str(pps2bps(egress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true) << "\n";
+
+  std::cerr << "BDD profiled with speculative decisions:\n";
+  ProfilerViz::visualize(bdd.get(), cached_speculations->final_ctx.get_profiler(), false);
 }
 
 void EP::assert_integrity() const {
@@ -735,19 +763,20 @@ spec_impl_t EP::get_best_speculation(const BDDNode *node, TargetType current_tar
     }
 
     for (const ModuleFactory *modgen : target.module_factories) {
-      std::optional<spec_impl_t> spec = modgen->speculate(this, node, spec_ctx);
+      const std::optional<spec_impl_t> spec = modgen->speculate(this, node, spec_ctx);
 
       if (!spec.has_value()) {
         continue;
       }
 
-      // if (id == 47 && node->get_id() == 46) {
+      // if (node->get_id() == 52) {
       //   std::cerr << "Speculation for " << node->dump(true) << "\n";
       //   std::cerr << "  " << spec2str(*spec, bdd.get()) << "\n";
       //   if (best.has_value()) {
-      //     auto is_better = is_better_speculation(*best, *spec, node, current_target, ingress, speculation_target_nodes);
+      //     auto is_better = is_better_speculation(*best, *spec, node, current_target, ingress, speculation_target_nodes, lookahead);
       //     std::cerr << "  is better than " << spec2str(*best, bdd.get()) << "? " << is_better << "\n";
       //   }
+      //   dbg_pause();
       // }
 
       if (!best.has_value()) {
@@ -836,22 +865,7 @@ pps_t EP::speculate_tput_pps() const {
   const pps_t egress = find_stable_tput(ingress, egress_estimation_from_ingress);
 
   cached_tput_speculation = egress;
-  cached_speculations     = complete_speculation.speculations_per_node;
-
-  // if (id == 47 || id == 54) {
-  //   std::cerr << speculations2str(this, speculations);
-  //   spec_ctx.debug();
-  //   std::cerr << "Ingress: " << tput2str(pps2bps(ingress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true) << "\n";
-  //   std::cerr << "Egress from ingress: "
-  //             << tput2str(pps2bps(egress_estimation_from_ingress(ingress).egress_estimation, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true)
-  //             << "\n";
-  //   std::cerr << "Stable egress: " << tput2str(pps2bps(egress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true) << "\n";
-  //   // BDDViz::visualize(bdd.get(), false);
-  //   // EPViz::visualize(this, false);
-  //   // ProfilerViz::visualize(bdd.get(), spec_ctx.get_profiler(), false);
-  //   // debug_active_leaves();
-  //   dbg_pause();
-  // }
+  cached_speculations     = complete_speculation;
 
   return egress;
 }

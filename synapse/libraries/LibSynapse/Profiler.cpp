@@ -29,7 +29,8 @@ using LibCore::symbol_t;
 
 namespace {
 
-ProfilerNode *build_profiler_tree(const BDDNode *node, const bdd_profile_t *bdd_profile, u64 max_count) {
+ProfilerNode *build_profiler_tree(const BDD *bdd, const BDDNode *node, const bdd_profile_t *bdd_profile, u64 max_count,
+                                  const std::unordered_set<u16> available_devs) {
   ProfilerNode *prof_node = nullptr;
 
   while (node) {
@@ -53,12 +54,12 @@ ProfilerNode *build_profiler_tree(const BDDNode *node, const bdd_profile_t *bdd_
       prof_node           = new ProfilerNode(condition, hr, node->get_id());
 
       if (on_true) {
-        prof_node->on_true       = build_profiler_tree(on_true, bdd_profile, max_count);
+        prof_node->on_true       = build_profiler_tree(bdd, on_true, bdd_profile, max_count, available_devs);
         prof_node->on_true->prev = prof_node;
       }
 
       if (on_false) {
-        prof_node->on_false       = build_profiler_tree(on_false, bdd_profile, max_count);
+        prof_node->on_false       = build_profiler_tree(bdd, on_false, bdd_profile, max_count, available_devs);
         prof_node->on_false->prev = prof_node;
       }
 
@@ -108,6 +109,12 @@ ProfilerNode *build_profiler_tree(const BDDNode *node, const bdd_profile_t *bdd_
 
       assert(prof_node->forwarding_stats->calculate_total_hr() == hr && "ProfilerNode forwarding stats do not match the node's hr");
 
+      for (const u16 dev : bdd->get_candidate_fwd_devs(route)) {
+        if (available_devs.contains(dev)) {
+          prof_node->candidate_fwd_ports.insert(dev);
+        }
+      }
+
       node = node->get_next();
     } break;
     }
@@ -146,6 +153,7 @@ ProfilerNode *ProfilerNode::clone(bool keep_bdd_info) const {
   new_node->flows_stats               = flows_stats;
   new_node->forwarding_stats          = forwarding_stats;
   new_node->original_forwarding_stats = original_forwarding_stats;
+  new_node->candidate_fwd_ports       = candidate_fwd_ports;
 
   if (on_true) {
     new_node->on_true       = on_true->clone(keep_bdd_info);
@@ -260,15 +268,26 @@ fwd_stats_t Profiler::get_fwd_stats(const BDDNode *node) const {
   return profiler_node->forwarding_stats.value();
 }
 
-Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, bool _assume_uniform_forwarding_distribution)
-    : bdd_profile(new bdd_profile_t(_bdd_profile)), assume_uniform_forwarding_distribution(_assume_uniform_forwarding_distribution), root(nullptr),
-      avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
+std::unordered_set<u16> Profiler::get_candidate_fwd_ports(const EPNode *node) const {
+  ProfilerNode *profiler_node = get_node(node);
+  assert(profiler_node && "Profiler node not found");
+  return profiler_node->candidate_fwd_ports;
+}
+
+std::unordered_set<u16> Profiler::get_candidate_fwd_ports(const BDDNode *node) const {
+  ProfilerNode *profiler_node = get_node(node);
+  assert(profiler_node && "Profiler node not found");
+  return profiler_node->candidate_fwd_ports;
+}
+
+Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, const std::unordered_set<u16> &available_devs)
+    : bdd_profile(new bdd_profile_t(_bdd_profile)), root(nullptr), avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
   const BDDNode *bdd_root = bdd->get_root();
 
   assert(bdd_profile->counters.find(bdd_root->get_id()) != bdd_profile->counters.end() && "Root node not found");
   const u64 max_count = bdd_profile->counters.at(bdd_root->get_id());
 
-  root = std::shared_ptr<ProfilerNode>(build_profiler_tree(bdd_root, bdd_profile.get(), max_count));
+  root = std::shared_ptr<ProfilerNode>(build_profiler_tree(bdd, bdd_root, bdd_profile.get(), max_count, available_devs));
 
   for (const auto &[map_addr, map_stats] : bdd_profile->stats_per_map) {
     for (const auto &node_map_stats : map_stats.nodes) {
@@ -300,13 +319,10 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, bool _assu
   }
 }
 
-Profiler::Profiler(const Profiler &other)
-    : bdd_profile(other.bdd_profile), assume_uniform_forwarding_distribution(other.assume_uniform_forwarding_distribution), root(other.root),
-      avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}
+Profiler::Profiler(const Profiler &other) : bdd_profile(other.bdd_profile), root(other.root), avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}
 
 Profiler::Profiler(Profiler &&other)
-    : bdd_profile(std::move(other.bdd_profile)), assume_uniform_forwarding_distribution(std::move(other.assume_uniform_forwarding_distribution)),
-      root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size), cache(std::move(other.cache)) {
+    : bdd_profile(std::move(other.bdd_profile)), root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size), cache(std::move(other.cache)) {
   other.root.reset();
 }
 
@@ -316,7 +332,6 @@ Profiler &Profiler::operator=(const Profiler &other) {
   }
 
   assert(bdd_profile == other.bdd_profile);
-  assert(assume_uniform_forwarding_distribution == other.assume_uniform_forwarding_distribution);
 
   root         = other.root;
   avg_pkt_size = other.avg_pkt_size;
@@ -581,28 +596,23 @@ void Profiler::scale(const std::vector<klee::ref<klee::Expr>> &constraints, doub
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
 }
 
-bool Profiler::can_set(const std::vector<klee::ref<klee::Expr>> &constraints) const {
-  ProfilerNode *node = get_node(constraints);
-
-  if (!can_update_fractions(node)) {
-    return false;
-  }
-
-  const hit_rate_t old_fraction = node->fraction;
-  return can_recursive_update_fractions(node->on_true, old_fraction) && can_recursive_update_fractions(node->on_false, old_fraction);
-}
-
 void Profiler::set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t new_hr) {
   clone_tree_if_shared();
+  set(get_node(constraints), new_hr);
+}
+
+void Profiler::set_relative(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t parent_relative_hr) {
+  clone_tree_if_shared();
+
   ProfilerNode *node = get_node(constraints);
+  assert(node);
 
-  const hit_rate_t old_fraction = node->fraction;
-  const hit_rate_t new_fraction = new_hr;
+  const ProfilerNode::family_t family = node->get_family();
+  assert(family.parent);
 
-  update_fractions(node, new_fraction);
+  const hit_rate_t new_fraction = hit_rate_t(family.parent->fraction * parent_relative_hr);
 
-  recursive_update_fractions(node->on_true, old_fraction, new_fraction);
-  recursive_update_fractions(node->on_false, old_fraction, new_fraction);
+  set(node, new_fraction);
 }
 
 hit_rate_t Profiler::get_hr(const BDDNode *node) const {
@@ -794,27 +804,9 @@ void Profiler::update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
   if (old_fraction != 0_hr) {
     assert(old_fraction == fwd_stats.calculate_total_hr());
 
-    if (assume_uniform_forwarding_distribution) {
-      std::unordered_set<u16> active_ports;
-      for (const auto &[port, hr] : fwd_stats.ports) {
-        if (hr > 0_hr) {
-          active_ports.insert(port);
-        }
-      }
-
-      const hit_rate_t hr_per_port = new_fraction / active_ports.size();
-      for (auto &[port, hr] : fwd_stats.ports) {
-        if (active_ports.find(port) != active_ports.end()) {
-          hr = hr_per_port;
-        } else {
-          hr = 0_hr;
-        }
-      }
-    } else {
-      const hit_rate_t total_fraction = fwd_stats.calculate_total_hr();
-      const double dhr                = new_fraction / total_fraction;
-      fwd_stats                       = original_fwd_stats.scale(dhr);
-    }
+    const hit_rate_t total_fraction = fwd_stats.calculate_total_hr();
+    const double dhr                = new_fraction / total_fraction;
+    fwd_stats                       = original_fwd_stats.scale(dhr);
 
     assert(new_fraction == fwd_stats.calculate_total_hr());
     return;
@@ -833,10 +825,13 @@ void Profiler::update_fractions(ProfilerNode *node, hit_rate_t new_fraction) {
         fwd_stats.ports[port] = 0_hr;
       }
     } else {
-      // There is not enough information to make profiling forwarding decisions.
-      // This is because the original profiler didn't exercise this forwarding path, so we have no idea how to distribute traffic across the ports.
-      panic("Not enough information to make profiling forwarding decisions");
+      assert_or_panic(!node->candidate_fwd_ports.empty(), "Forwarding operation but no valid candidate ports");
+      const hit_rate_t hr_per_port = new_fraction / node->candidate_fwd_ports.size();
+      for (const u16 port : node->candidate_fwd_ports) {
+        fwd_stats.ports[port] = hr_per_port;
+      }
     }
+
   } break;
   }
 }
@@ -903,6 +898,31 @@ void Profiler::recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_
 
   if (node->on_true && node->on_false) {
     assert(node->on_true->fraction + node->on_false->fraction == new_fraction);
+  }
+}
+
+void Profiler::set(ProfilerNode *node, hit_rate_t new_hr) {
+  const ProfilerNode::family_t family = node->get_family();
+
+  const hit_rate_t old_fraction = node->fraction;
+  const hit_rate_t new_fraction = new_hr;
+
+  update_fractions(node, new_fraction);
+
+  recursive_update_fractions(node->on_true, old_fraction, new_fraction);
+  recursive_update_fractions(node->on_false, old_fraction, new_fraction);
+
+  if (family.sibling) {
+    assert(family.parent);
+    assert(family.parent->fraction >= new_fraction);
+
+    const hit_rate_t sibling_old_fraction = family.sibling->fraction;
+    const hit_rate_t sibling_new_fraction = family.parent->fraction - new_fraction;
+
+    update_fractions(family.sibling, sibling_new_fraction);
+
+    recursive_update_fractions(family.sibling->on_true, sibling_old_fraction, sibling_new_fraction);
+    recursive_update_fractions(family.sibling->on_false, sibling_old_fraction, sibling_new_fraction);
   }
 }
 
