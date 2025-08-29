@@ -4,7 +4,7 @@ from os import geteuid
 
 from util import *
 
-PORTS = [p for p in range(1, 33)]
+PORTS = [p for p in range(3, 33)]
 
 
 def main():
