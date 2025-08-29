@@ -35,6 +35,50 @@ using LibBDD::Call;
 using LibBDD::call_t;
 
 namespace {
+const EPNode *get_ep_node_from_bdd_node(const EP *ep, const BDDNode *node) {
+  std::vector<const EPNode *> ep_nodes;
+  for (const EPLeaf &leaf : ep->get_active_leaves()) {
+    if (leaf.node) {
+      ep_nodes.push_back(leaf.node);
+    }
+  }
+
+  while (!ep_nodes.empty()) {
+    const EPNode *ep_node = ep_nodes[0];
+    ep_nodes.erase(ep_nodes.begin());
+
+    const Module *module = ep_node->get_module();
+    assert(module && "Module not found");
+
+    if (module->get_node() == node) {
+      return ep_node;
+    }
+
+    const EPNode *prev = ep_node->get_prev();
+    if (prev) {
+      ep_nodes.push_back(prev);
+    }
+  }
+
+  return nullptr;
+}
+
+const EPNode *get_ep_node_leaf_from_future_bdd_node(const EP *ep, const BDDNode *node) {
+  const std::list<EPLeaf> &active_leaves = ep->get_active_leaves();
+
+  while (node) {
+    for (const EPLeaf &leaf : active_leaves) {
+      if (leaf.next == node) {
+        return leaf.node;
+      }
+    }
+
+    node = node->get_prev();
+  }
+
+  return nullptr;
+}
+
 std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node, const BDDNode *&next) {
   std::vector<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
   std::vector<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
@@ -69,7 +113,16 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
   const hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(hr);
 
-  const std::string &instance_id = ep->get_active_target().instance_id;
+  const EPNode *ep_node = get_ep_node_from_bdd_node(ep, node);
+  if (!ep_node) {
+    ep_node = get_ep_node_leaf_from_future_bdd_node(ep, node);
+
+    if (!ep_node) {
+      panic("Could not find EPNode corresponding to BDDNode");
+    }
+  }
+
+  const std::string &instance_id = ep_node->get_module()->get_target().instance_id;
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
   spec_impl.next_target = TargetType(TargetArchitecture::Controller, instance_id);

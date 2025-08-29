@@ -118,7 +118,8 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const B
     }
   }
 
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const TargetType target         = ep_node->get_module()->get_target();
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(target);
 
   while (ep_node) {
     const Module *module = ep_node->get_module();
@@ -153,7 +154,17 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const B
 }
 
 void TofinoContext::place(EP *ep, const BDDNode *node, addr_t obj, DS *ds) {
-  const Tofino::TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const EPNode *ep_node = get_ep_node_from_bdd_node(ep, node);
+  if (!ep_node) {
+    ep_node = get_ep_node_leaf_from_future_bdd_node(ep, node);
+
+    if (!ep_node) {
+      panic("Could not find EPNode corresponding to BDDNode");
+    }
+  }
+
+  const TargetType target                 = ep_node->get_module()->get_target();
+  const Tofino::TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(target);
   const std::unordered_set<DS_ID> deps    = tofino_ctx->get_stateful_deps(ep, node);
 
   if (!data_structures.has(ds->id)) {
@@ -164,7 +175,17 @@ void TofinoContext::place(EP *ep, const BDDNode *node, addr_t obj, DS *ds) {
 }
 
 bool TofinoContext::can_place(const EP *ep, const BDDNode *node, const DS *ds) const {
-  const std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
+  const EPNode *ep_node = get_ep_node_from_bdd_node(ep, node);
+  if (!ep_node) {
+    ep_node = get_ep_node_leaf_from_future_bdd_node(ep, node);
+
+    if (!ep_node) {
+      panic("Could not find EPNode corresponding to BDDNode");
+    }
+  }
+
+  const TargetType target              = ep_node->get_module()->get_target();
+  const std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>(target)->get_stateful_deps(ep, node);
   const PlacementStatus status         = tna.pipeline.can_place(ds, deps);
 
   if (status != PlacementStatus::Success) {
@@ -185,22 +206,19 @@ void TofinoContext::debug() const {
 
 } // namespace Tofino
 
-template <> const Tofino::TofinoContext *Context::get_target_ctx<Tofino::TofinoContext>() const {
-  const TargetArchitecture type = TargetArchitecture::Tofino;
+template <> const Tofino::TofinoContext *Context::get_target_ctx<Tofino::TofinoContext>(const TargetType type) const {
   assert(target_ctxs.find(type) != target_ctxs.end() && "No context for target");
   return dynamic_cast<const Tofino::TofinoContext *>(target_ctxs.at(type));
 }
 
-template <> const Tofino::TofinoContext *Context::get_target_ctx_if_available<Tofino::TofinoContext>() const {
-  const TargetArchitecture type = TargetArchitecture::Tofino;
+template <> const Tofino::TofinoContext *Context::get_target_ctx_if_available<Tofino::TofinoContext>(const TargetType type) const {
   if (target_ctxs.find(type) == target_ctxs.end()) {
     return nullptr;
   }
   return dynamic_cast<const Tofino::TofinoContext *>(target_ctxs.at(type));
 }
 
-template <> Tofino::TofinoContext *Context::get_mutable_target_ctx<Tofino::TofinoContext>() {
-  const TargetArchitecture type = TargetArchitecture::Tofino;
+template <> Tofino::TofinoContext *Context::get_mutable_target_ctx<Tofino::TofinoContext>(const TargetType type) {
   assert(target_ctxs.find(type) != target_ctxs.end() && "No context for target");
   return dynamic_cast<Tofino::TofinoContext *>(target_ctxs.at(type));
 }

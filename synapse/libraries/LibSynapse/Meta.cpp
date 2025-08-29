@@ -22,16 +22,16 @@ void EPMeta::update(const EPLeaf &leaf, const EPNode *new_node, bool should_proc
   const TargetType target = module->get_target();
   const ModuleType type   = module->get_type();
 
-  auto module_counter_it = modules_counter.find(type.type);
+  auto module_counter_it = modules_counter.find(type);
   if (module_counter_it == modules_counter.end()) {
-    modules_counter[type.type] = 1;
+    modules_counter[type] = 1;
   } else {
     module_counter_it->second++;
   }
 
-  auto steps_per_target_it = steps_per_target.find(target.type);
+  auto steps_per_target_it = steps_per_target.find(target);
   if (steps_per_target_it == steps_per_target.end()) {
-    steps_per_target[target.type] = 1;
+    steps_per_target[target] = 1;
   } else {
     steps_per_target_it->second++;
   }

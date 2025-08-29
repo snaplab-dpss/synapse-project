@@ -13,8 +13,8 @@ using Tofino::DS_ID;
 using Tofino::Table;
 
 namespace {
-DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
-  const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>();
+DS_ID get_cached_table_id(const Context &ctx, addr_t obj, TargetType type) {
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>(TargetType(TargetArchitecture::Tofino, type.instance_id));
   const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_data_structures().get_ds(obj);
   assert(data_structures.size() == 1 && "Multiple data structures found");
   Tofino::DS *ds = *data_structures.begin();
@@ -84,7 +84,7 @@ std::vector<impl_t> DataplaneFCFSCachedTableReadFactory::process_node(const EP *
     return {};
   }
 
-  const DS_ID id = get_cached_table_id(ep->get_ctx(), obj);
+  const DS_ID id = get_cached_table_id(ep->get_ctx(), obj, target);
 
   Module *module  = new DataplaneFCFSCachedTableRead(type, node, id, obj, keys, value, found);
   EPNode *ep_node = new EPNode(module);
@@ -121,7 +121,8 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableReadFactory::create(const BDD *b
     return {};
   }
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<Tofino::TofinoContext>()->get_data_structures().get_ds(obj);
+  const std::unordered_set<Tofino::DS *> ds =
+      ctx.get_target_ctx<Tofino::TofinoContext>(TargetType(TargetArchitecture::Tofino, target.instance_id))->get_data_structures().get_ds(obj);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Tofino::FCFSCachedTable *fcfs_cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(*ds.begin());
 

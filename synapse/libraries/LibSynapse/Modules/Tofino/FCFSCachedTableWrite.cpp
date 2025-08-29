@@ -157,20 +157,18 @@ std::unique_ptr<BDD> branch_bdd_on_cache_write_success(const EP *ep, const BDDNo
   return new_bdd;
 }
 
-std::unique_ptr<EP> concretize_cached_table_write(const EP *ep, const BDDNode *node, const map_coalescing_objs_t &map_objs,
-                                                  const fcfs_cached_table_data_t &cached_table_data, const symbol_t &cache_write_failed,
-                                                  u32 cache_capacity, const std::vector<const Call *> &future_map_puts) {
-  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key,
-                                                                                        cached_table_data.capacity, cache_capacity);
+std::unique_ptr<EP> concretize_cached_table_write(const EP *ep, const BDDNode *node, const TargetType target, const ModuleType type,
+                                                  const map_coalescing_objs_t &map_objs, const fcfs_cached_table_data_t &cached_table_data,
+                                                  const symbol_t &cache_write_failed, u32 cache_capacity,
+                                                  const std::vector<const Call *> &future_map_puts) {
+  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
+      ep, node, target, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
   }
 
   klee::ref<klee::Expr> cache_write_success_condition = build_cache_write_success_condition(cache_write_failed);
-
-  const std::string &instance_id = ep->get_active_target().instance_id;
-  ModuleType type                = ModuleType(ModuleCategory::Tofino_FCFSCachedTableReadWrite, instance_id);
 
   Module *module = new FCFSCachedTableWrite(type, node, cached_table->id, cached_table_data.obj, cached_table_data.key, cached_table_data.write_value,
                                             cache_write_failed);
@@ -223,7 +221,7 @@ std::unique_ptr<EP> concretize_cached_table_write(const EP *ep, const BDDNode *n
     ctx.get_mutable_profiler().remove(deleted_branch_constraints.value());
   }
 
-  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
+  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get(), target);
   tofino_ctx->place(new_ep.get(), node, map_objs.map, cached_table);
 
   EPLeaf on_cache_write_success_leaf(then_node, on_cache_write_success);
@@ -276,7 +274,8 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
   for (u32 cache_capacity : allowed_cache_capacities) {
     const hit_rate_t success_estimation = get_cache_success_estimation_rel(ep, node, future_map_puts[0], cached_table_data.key, cache_capacity);
 
-    if (!can_get_or_build_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity, cache_capacity)) {
+    if (!can_get_or_build_fcfs_cached_table(ep, node, target, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity,
+                                            cache_capacity)) {
       break;
     }
 
@@ -351,7 +350,7 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
     std::unique_ptr<EP> new_ep =
-        concretize_cached_table_write(ep, node, map_objs, cached_table_data, cache_write_failed, cache_capacity, future_map_puts);
+        concretize_cached_table_write(ep, node, target, type, map_objs, cached_table_data, cache_write_failed, cache_capacity, future_map_puts);
     if (new_ep) {
       impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(std::move(impl));
@@ -387,7 +386,7 @@ std::unique_ptr<Module> FCFSCachedTableWriteFactory::create(const BDD *bdd, cons
   fcfs_cached_table_data_t cached_table_data(ctx, future_map_puts);
   symbol_t mock_cache_write_failed;
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(map_objs.map);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_ds(map_objs.map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 

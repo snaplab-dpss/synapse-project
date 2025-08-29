@@ -103,7 +103,7 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  VectorRegister *vector_register = build_or_reuse_vector_register(ep, vector_borrow, vector_register_data);
+  VectorRegister *vector_register = build_or_reuse_vector_register(ep, vector_borrow, target, vector_register_data);
 
   if (!vector_register) {
     return {};
@@ -123,7 +123,7 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get(), target);
   tofino_ctx->place(new_ep.get(), node, vector_register_data.obj, vector_register);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -161,7 +161,7 @@ std::unique_ptr<Module> VectorRegisterUpdateFactory::create(const BDD *bdd, cons
     return {};
   }
 
-  const std::unordered_set<DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(vector_register_data.obj);
+  const std::unordered_set<DS *> ds = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_ds(vector_register_data.obj);
   assert(ds.size() == 1);
   assert((*ds.begin())->type == DSType::VectorRegister);
   VectorRegister *vector_register = dynamic_cast<VectorRegister *>(*ds.begin());

@@ -10,6 +10,49 @@ using LibBDD::call_t;
 using LibCore::expr_addr_to_obj_addr;
 
 namespace {
+const EPNode *get_ep_node_from_bdd_node(const EP *ep, const BDDNode *node) {
+  std::vector<const EPNode *> ep_nodes;
+  for (const EPLeaf &leaf : ep->get_active_leaves()) {
+    if (leaf.node) {
+      ep_nodes.push_back(leaf.node);
+    }
+  }
+
+  while (!ep_nodes.empty()) {
+    const EPNode *ep_node = ep_nodes[0];
+    ep_nodes.erase(ep_nodes.begin());
+
+    const Module *module = ep_node->get_module();
+    assert(module && "Module not found");
+
+    if (module->get_node() == node) {
+      return ep_node;
+    }
+
+    const EPNode *prev = ep_node->get_prev();
+    if (prev) {
+      ep_nodes.push_back(prev);
+    }
+  }
+
+  return nullptr;
+}
+
+const EPNode *get_ep_node_leaf_from_future_bdd_node(const EP *ep, const BDDNode *node) {
+  const std::list<EPLeaf> &active_leaves = ep->get_active_leaves();
+
+  while (node) {
+    for (const EPLeaf &leaf : active_leaves) {
+      if (leaf.next == node) {
+        return leaf.node;
+      }
+    }
+
+    node = node->get_prev();
+  }
+
+  return nullptr;
+}
 
 struct tb_data_t {
   addr_t obj;
@@ -54,7 +97,18 @@ Meter *build_meter(const EP *ep, const BDDNode *node, DS_ID id, const tb_config_
 
   Meter *meter = new Meter(id, cfg.capacity, cfg.rate, cfg.burst, keys_size);
 
-  const TofinoContext *tofino_ctx = TofinoModuleFactory::get_tofino_ctx(ep);
+  const EPNode *module_ep_node = get_ep_node_from_bdd_node(ep, node);
+  if (!module_ep_node) {
+    module_ep_node = get_ep_node_leaf_from_future_bdd_node(ep, node);
+
+    if (!module_ep_node) {
+      panic("Could not find EPNode corresponding to BDDNode");
+    }
+  }
+
+  const TargetType target = module_ep_node->get_module()->get_target();
+
+  const TofinoContext *tofino_ctx = TofinoModuleFactory::get_tofino_ctx(ep, target);
   if (!tofino_ctx->can_place(ep, node, meter)) {
     delete meter;
     return nullptr;
@@ -156,7 +210,7 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const BDDNode
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(data.obj, DSImpl::Tofino_Meter);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get(), target);
   tofino_ctx->place(new_ep.get(), node, data.obj, meter);
 
   const EPLeaf leaf(ep_node, new_next);
@@ -186,7 +240,7 @@ std::unique_ptr<Module> MeterUpdateFactory::create(const BDD *bdd, const Context
     return {};
   }
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_ds(data.obj);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Meter *meter = dynamic_cast<const Meter *>(*ds.begin());
 

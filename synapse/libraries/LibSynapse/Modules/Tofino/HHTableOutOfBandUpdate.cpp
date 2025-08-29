@@ -155,7 +155,7 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
   assert(map_put && "map_put not found");
 
   const hh_table_data_t table_data(ep->get_ctx(), map_put);
-  const HHTable *hh_table = get_tofino_ctx(ep)->get_data_structures().get_single_ds<HHTable>(table_data.obj);
+  const HHTable *hh_table = get_tofino_ctx(ep, target)->get_data_structures().get_single_ds<HHTable>(table_data.obj);
 
   Module *module  = new HHTableOutOfBandUpdate(type, node, hh_table->id, table_data.obj);
   EPNode *ep_node = new EPNode(module);

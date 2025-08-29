@@ -6,13 +6,13 @@ namespace Controller {
 
 const Tofino::TofinoContext *ControllerModuleFactory::get_tofino_ctx(const EP *ep) const {
   const Context &ctx                      = ep->get_ctx();
-  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>(TargetType(TargetArchitecture::Tofino, target.instance_id));
   return tofino_ctx;
 }
 
 Tofino::TofinoContext *ControllerModuleFactory::get_mutable_tofino_ctx(EP *ep) const {
   Context &ctx                      = ep->get_mutable_ctx();
-  Tofino::TofinoContext *tofino_ctx = ctx.get_mutable_target_ctx<Tofino::TofinoContext>();
+  Tofino::TofinoContext *tofino_ctx = ctx.get_mutable_target_ctx<Tofino::TofinoContext>(TargetType(TargetArchitecture::Tofino, target.instance_id));
   return tofino_ctx;
 }
 

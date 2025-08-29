@@ -24,7 +24,7 @@ using LibCore::Template;
 
 class TofinoSynthesizer : public EPVisitor {
 public:
-  TofinoSynthesizer(const EP *ep, std::filesystem::path _out_file);
+  TofinoSynthesizer(const EP *ep, std::filesystem::path _out_path, const TargetType type);
 
   void synthesize();
 

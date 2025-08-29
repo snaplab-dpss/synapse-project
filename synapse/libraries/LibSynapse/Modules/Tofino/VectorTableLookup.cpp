@@ -57,7 +57,7 @@ std::optional<spec_impl_t> VectorTableLookupFactory::speculate(const EP *ep, con
     return {};
   }
 
-  if (!can_build_or_reuse_vector_table(ep, node, data)) {
+  if (!can_build_or_reuse_vector_table(ep, node, target, data)) {
     return {};
   }
 
@@ -89,7 +89,7 @@ std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const B
     return {};
   }
 
-  VectorTable *vector_table = build_or_reuse_vector_table(ep, node, data);
+  VectorTable *vector_table = build_or_reuse_vector_table(ep, node, target, data);
 
   if (!vector_table) {
     return {};
@@ -103,7 +103,7 @@ std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const B
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(data.obj, DSImpl::Tofino_VectorTable);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get(), target);
   tofino_ctx->place(new_ep.get(), node, data.obj, vector_table);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -136,7 +136,7 @@ std::unique_ptr<Module> VectorTableLookupFactory::create(const BDD *bdd, const C
     return {};
   }
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_ds(data.obj);
 
   const VectorTable *vector_table = dynamic_cast<const VectorTable *>(*ds.begin());
 

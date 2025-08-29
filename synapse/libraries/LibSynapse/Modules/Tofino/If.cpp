@@ -249,7 +249,7 @@ std::unique_ptr<Module> IfFactory::create(const BDD *bdd, const Context &ctx, co
   }
 
   klee::ref<klee::Expr> condition = branch_node->get_condition();
-  const Tofino::TNA &tna          = ctx.get_target_ctx<TofinoContext>()->get_tna();
+  const Tofino::TNA &tna          = ctx.get_target_ctx<TofinoContext>(target)->get_tna();
 
   std::vector<If::condition_t> conditions;
   for (klee::ref<klee::Expr> sub_condition : split_condition(condition)) {
