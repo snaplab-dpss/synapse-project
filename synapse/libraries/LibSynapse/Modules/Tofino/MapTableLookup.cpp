@@ -57,7 +57,7 @@ std::optional<spec_impl_t> MapTableLookupFactory::speculate(const EP *ep, const 
     return {};
   }
 
-  if (!can_build_or_reuse_map_table(ep, node, data)) {
+  if (!can_build_or_reuse_map_table(ep, node, target, data)) {
     return {};
   }
 
@@ -85,7 +85,7 @@ std::vector<impl_t> MapTableLookupFactory::process_node(const EP *ep, const BDDN
     return {};
   }
 
-  MapTable *map_table = build_or_reuse_map_table(ep, node, data);
+  MapTable *map_table = build_or_reuse_map_table(ep, node, target, data);
 
   if (!map_table) {
     return {};
@@ -99,7 +99,7 @@ std::vector<impl_t> MapTableLookupFactory::process_node(const EP *ep, const BDDN
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(data.obj, DSImpl::Tofino_MapTable);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get(), target);
   tofino_ctx->place(new_ep.get(), node, data.obj, map_table);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -128,7 +128,7 @@ std::unique_ptr<Module> MapTableLookupFactory::create(const BDD *bdd, const Cont
     return {};
   }
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_ds(data.obj);
   const MapTable *map_table                 = dynamic_cast<const MapTable *>(*ds.begin());
 
   return std::make_unique<MapTableLookup>(type, node, map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);

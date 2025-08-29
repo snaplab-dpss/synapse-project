@@ -135,9 +135,9 @@ public:
   const std::optional<expiration_data_t> &get_expiration_data() const;
   const std::vector<expr_struct_t> &get_expr_structs() const;
 
-  template <class TCtx> const TCtx *get_target_ctx() const;
-  template <class TCtx> const TCtx *get_target_ctx_if_available() const;
-  template <class TCtx> TCtx *get_mutable_target_ctx();
+  template <class TCtx> const TCtx *get_target_ctx(const TargetType type) const;
+  template <class TCtx> const TCtx *get_target_ctx_if_available(const TargetType type) const;
+  template <class TCtx> TCtx *get_mutable_target_ctx(const TargetType type);
 
   const std::unordered_map<addr_t, DSImpl> &get_ds_impls() const;
   void save_ds_impl(addr_t obj, DSImpl impl);
@@ -165,5 +165,5 @@ private:
   namespace NAMESPACE {                                                                                                                              \
   class TARGET_CTX;                                                                                                                                  \
   }                                                                                                                                                  \
-  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;                                                   \
-  template <> NAMESPACE::TARGET_CTX *Context::get_mutable_target_ctx<NAMESPACE::TARGET_CTX>();
+  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>(const TargetType type) const;                              \
+  template <> NAMESPACE::TARGET_CTX *Context::get_mutable_target_ctx<NAMESPACE::TARGET_CTX>(const TargetType type);

@@ -57,7 +57,7 @@ std::optional<spec_impl_t> GuardedMapTableLookupFactory::speculate(const EP *ep,
     return {};
   }
 
-  if (!can_build_or_reuse_guarded_map_table(ep, node, data)) {
+  if (!can_build_or_reuse_guarded_map_table(ep, node, target, data)) {
     return {};
   }
 
@@ -85,7 +85,7 @@ std::vector<impl_t> GuardedMapTableLookupFactory::process_node(const EP *ep, con
     return {};
   }
 
-  GuardedMapTable *guarded_map_table = build_or_reuse_guarded_map_table(ep, node, data);
+  GuardedMapTable *guarded_map_table = build_or_reuse_guarded_map_table(ep, node, target, data);
 
   if (!guarded_map_table) {
     return {};
@@ -99,7 +99,7 @@ std::vector<impl_t> GuardedMapTableLookupFactory::process_node(const EP *ep, con
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(data.obj, DSImpl::Tofino_GuardedMapTable);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get(), target);
   tofino_ctx->place(new_ep.get(), node, data.obj, guarded_map_table);
 
   EPLeaf leaf(ep_node, node->get_next());
@@ -128,7 +128,7 @@ std::unique_ptr<Module> GuardedMapTableLookupFactory::create(const BDD *bdd, con
     return {};
   }
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(data.obj);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_ds(data.obj);
 
   const GuardedMapTable *guarded_map_table = dynamic_cast<const GuardedMapTable *>(*ds.begin());
 

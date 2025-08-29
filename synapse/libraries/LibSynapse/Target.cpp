@@ -5,13 +5,11 @@
 #include <LibSynapse/Modules/Controller/Controller.h>
 #include <LibSynapse/Modules/Tofino/Tofino.h>
 
+#include <LibClone/PhysicalNetwork.h>
+
 #include <toml++/toml.hpp>
 
 #include <sstream>
-
-namespace LibClone {
-class PhysicalNetwork;
-}
 
 namespace LibSynapse {
 

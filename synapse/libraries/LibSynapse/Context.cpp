@@ -359,13 +359,17 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const targets_confi
     target_ctxs[target.type] = target.base_ctx->clone();
   }
 
-  const Tofino::TofinoContext *tofino_ctx = get_target_ctx_if_available<Tofino::TofinoContext>();
-  if (tofino_ctx && expiration_data.has_value()) {
-    const time_ns_t expiration_time     = expiration_data->expiration_time;
-    const time_ns_t min_expiration_time = tofino_ctx->get_tna().tna_config.properties.min_expiration_time * MILLION;
+  for (const TargetView &target : targets.elements) {
+    if (target.type == TargetArchitecture::Tofino) {
+      const Tofino::TofinoContext *tofino_ctx = get_target_ctx_if_available<Tofino::TofinoContext>(target.type);
+      if (tofino_ctx && expiration_data.has_value()) {
+        const time_ns_t expiration_time     = expiration_data->expiration_time;
+        const time_ns_t min_expiration_time = tofino_ctx->get_tna().tna_config.properties.min_expiration_time * MILLION;
 
-    if (expiration_time < min_expiration_time) {
-      panic("Expiration time is too low (%luns < %luns)", expiration_time, min_expiration_time);
+        if (expiration_time < min_expiration_time) {
+          panic("Expiration time is too low (%luns < %luns)", expiration_time, min_expiration_time);
+        }
+      }
     }
   }
 

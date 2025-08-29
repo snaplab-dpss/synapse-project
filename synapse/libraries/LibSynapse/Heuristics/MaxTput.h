@@ -90,7 +90,7 @@ private:
   i64 get_tput_speculation(const EP *ep) const { return ep->speculate_tput_pps(); }
 
   i64 get_pipeline_usage(const EP *ep) const {
-    const Tofino::TNA &tna = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_tna();
+    const Tofino::TNA &tna = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>(ep->get_active_target())->get_tna();
     return tna.pipeline.get_used_stages();
   }
 

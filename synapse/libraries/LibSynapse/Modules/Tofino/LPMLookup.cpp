@@ -27,7 +27,7 @@ std::optional<spec_impl_t> LPMLookupFactory::speculate(const EP *ep, const BDDNo
     return {};
   }
 
-  if (!can_build_lpm(ep, node, obj)) {
+  if (!can_build_lpm(ep, node, target, obj)) {
     return {};
   }
 
@@ -60,7 +60,7 @@ std::vector<impl_t> LPMLookupFactory::process_node(const EP *ep, const BDDNode *
     return {};
   }
 
-  LPM *lpm = build_lpm(ep, node, obj);
+  LPM *lpm = build_lpm(ep, node, target, obj);
 
   if (!lpm) {
     return {};
@@ -74,7 +74,7 @@ std::vector<impl_t> LPMLookupFactory::process_node(const EP *ep, const BDDNode *
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(obj, DSImpl::Tofino_LPM);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get(), target);
   tofino_ctx->place(new_ep.get(), node, obj, lpm);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -108,7 +108,7 @@ std::unique_ptr<Module> LPMLookupFactory::create(const BDD *bdd, const Context &
     return {};
   }
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(obj);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_ds(obj);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const LPM *lpm = dynamic_cast<const LPM *>(*ds.begin());
 

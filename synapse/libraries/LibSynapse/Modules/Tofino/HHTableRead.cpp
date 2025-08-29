@@ -217,7 +217,7 @@ std::unique_ptr<Module> HHTableReadFactory::create(const BDD *bdd, const Context
     return {};
   }
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(map_objs->map);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_ds(map_objs->map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const HHTable *hh_table = dynamic_cast<const HHTable *>(*ds.begin());
 

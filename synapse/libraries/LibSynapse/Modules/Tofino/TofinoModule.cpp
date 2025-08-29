@@ -102,21 +102,21 @@ bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) c
 
 TofinoContext *TofinoModuleFactory::get_mutable_tofino_ctx(EP *ep) {
   Context &ctx = ep->get_mutable_ctx();
-  return ctx.get_mutable_target_ctx<TofinoContext>();
+  return ctx.get_mutable_target_ctx<TofinoContext>(type);
 }
 
-const TofinoContext *TofinoModuleFactory::get_tofino_ctx(const EP *ep) {
+const TofinoContext *TofinoModuleFactory::get_tofino_ctx(const EP *ep, TargetType type) {
   const Context &ctx = ep->get_ctx();
-  return ctx.get_target_ctx<TofinoContext>();
+  return ctx.get_target_ctx<TofinoContext>(type);
 }
 
-TNA &TofinoModuleFactory::get_mutable_tna(EP *ep) {
-  TofinoContext *ctx = get_mutable_tofino_ctx(ep);
+TNA &TofinoModuleFactory::get_mutable_tna(EP *ep, TargetType type) {
+  TofinoContext *ctx = get_mutable_tofino_ctx(ep, type);
   return ctx->get_mutable_tna();
 }
 
-const TNA &TofinoModuleFactory::get_tna(const EP *ep) {
-  const TofinoContext *ctx = get_tofino_ctx(ep);
+const TNA &TofinoModuleFactory::get_tna(const EP *ep, TargetType type) {
+  const TofinoContext *ctx = get_tofino_ctx(ep, type);
   return ctx->get_tna();
 }
 

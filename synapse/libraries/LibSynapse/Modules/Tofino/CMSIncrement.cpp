@@ -50,7 +50,7 @@ std::optional<spec_impl_t> CMSIncrementFactory::speculate(const EP *ep, const BD
 
   const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
 
-  if (!can_build_or_reuse_cms(ep, node, cms_data.obj, cms_data.keys, cfg.width, cfg.height)) {
+  if (!can_build_or_reuse_cms(ep, node, target, cms_data.obj, cms_data.keys, cfg.width, cfg.height)) {
     return {};
   }
 
@@ -86,7 +86,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNod
 
   const cms_config_t &cfg = ep->get_ctx().get_cms_config(cms_data.obj);
 
-  CountMinSketch *cms = build_or_reuse_cms(ep, node, cms_data.obj, cms_data.keys, cfg.width, cfg.height);
+  CountMinSketch *cms = build_or_reuse_cms(ep, node, target, cms_data.obj, cms_data.keys, cfg.width, cfg.height);
 
   if (!cms) {
     return {};
@@ -105,7 +105,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNod
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(cms_data.obj, DSImpl::Tofino_CountMinSketch);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get(), target);
   tofino_ctx->place(new_ep.get(), node, cms_data.obj, cms);
 
   EPLeaf leaf(ep_node, node->get_next());
@@ -134,7 +134,7 @@ std::unique_ptr<Module> CMSIncrementFactory::create(const BDD *bdd, const Contex
     return {};
   }
 
-  const CountMinSketch *cms = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_single_ds<CountMinSketch>(cms_data.obj);
+  const CountMinSketch *cms = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_single_ds<CountMinSketch>(cms_data.obj);
 
   return std::make_unique<CMSIncrement>(type, node, cms->id, cms_data.obj, cms_data.keys);
 }
