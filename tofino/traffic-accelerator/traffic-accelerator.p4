@@ -193,7 +193,6 @@ control Ingress(
 		swap32(hdr.ipv4.src_addr, hdr.ipv4.dst_addr);
 		swap16(hdr.udp.src_port, hdr.udp.dst_port);
 		forward(ig_intr_md.ingress_port);
-		bypass_egress();
 	}
 
 	table router_tbl {

@@ -202,7 +202,7 @@ class Experiment:
             nb_tx_bits = 0
 
             for port, stats in port_stats.items():
-                if port in tg_controller.broadcast_ports:
+                if port in tg_controller.broadcast_ports or port in tg_controller.symmetric_ports:
                     nb_rx_pkts += stats.rx_pkts
                     nb_rx_bits += stats.rx_bytes * 8
                     nb_tx_pkts += stats.tx_pkts

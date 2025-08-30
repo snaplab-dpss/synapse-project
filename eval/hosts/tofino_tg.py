@@ -66,6 +66,7 @@ class TofinoTGController:
         self.sde = Path(sde)
         self.app_name = APP_NAME
         self.broadcast_ports = []
+        self.symmetric_ports = []
 
         sde_install = f"{self.sde}/install"
         python_path: Optional[str] = None
@@ -102,6 +103,7 @@ class TofinoTGController:
         route: list[Tuple[int, int]],
     ) -> None:
         self.broadcast_ports = broadcast
+        self.symmetric_ports = symmetric
 
         target_dir = self.repo / "tofino" / self.app_name
 

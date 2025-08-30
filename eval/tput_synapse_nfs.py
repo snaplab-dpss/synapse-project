@@ -21,7 +21,7 @@ from utils.constants import *
 
 STORAGE_SERVER_DELAY_NS = 0
 KVS_GET_RATIO = 0.99
-TOTAL_FLOWS = 25_000
+TOTAL_FLOWS = 40_000
 
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
@@ -108,8 +108,8 @@ SYNAPSE_NFS = [
         kvs_mode=False,
         tofino=Path("synthesized/synapse-fw.p4"),
         controller=Path("synthesized/synapse-fw.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
         route=lambda _: [],
     ),
 ]

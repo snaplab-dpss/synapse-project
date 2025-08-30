@@ -16,17 +16,17 @@ from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import *
 
 STORAGE_SERVER_DELAY_NS = 0
-TOTAL_FLOWS = 25_000
 KVS_GET_RATIO = 0.99
-CHURN_FPM = 0
-ZIPF_PARAM = 1
+
+TOTAL_FLOWS = 40_000
+CHURN_FPM = 10_000
+ZIPF_PARAM = 0
 
 
 @dataclass
 class SynapseNF:
     name: str
     description: str
-    data_out: Path
     kvs_mode: bool
     tofino: Path
     controller: Path
@@ -39,7 +39,6 @@ NFS = [
     # SynapseNF(
     #     name="echo",
     #     description="Synapse echo",
-    #     data_out=Path("tput_synapse_echo.csv"),
     #     kvs_mode=False,
     #     tofino=Path("synthesized/synapse-echo.p4"),
     #     controller=Path("synthesized/synapse-echo.cpp"),
@@ -50,7 +49,6 @@ NFS = [
     # SynapseNF(
     #     name="fwd",
     #     description="Synapse forwarder",
-    #     data_out=Path("tput_synapse_fwd.csv"),
     #     kvs_mode=False,
     #     tofino=Path("synthesized/synapse-fwd.p4"),
     #     controller=Path("synthesized/synapse-fwd.cpp"),
@@ -58,21 +56,19 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
-    SynapseNF(
-        name="synapse-kvs-hhtable",
-        description="Synapse KVS HHTable",
-        data_out=Path("tput_synapse_kvs_hhtable.csv"),
-        kvs_mode=True,
-        tofino=Path("synthesized/synapse-kvs-hhtable.p4"),
-        controller=Path("synthesized/synapse-kvs-hhtable.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
-    ),
+    # SynapseNF(
+    #     name="synapse-kvs-hhtable",
+    #     description="Synapse KVS HHTable",
+    #     kvs_mode=True,
+    #     tofino=Path("synthesized/synapse-kvs-hhtable.p4"),
+    #     controller=Path("synthesized/synapse-kvs-hhtable.cpp"),
+    #     broadcast=lambda ports: ports,
+    #     symmetric=lambda _: [],
+    #     route=lambda _: [],
+    # ),
     # SynapseNF(
     #     name="synapse-kvs-maptable",
     #     description="Synapse KVS MapTable",
-    #     data_out=Path("tput_synapse_kvs_maptable.csv"),
     #     kvs_mode=True,
     #     tofino=Path("synthesized/synapse-kvs-maptable.p4"),
     #     controller=Path("synthesized/synapse-kvs-maptable.cpp"),
@@ -83,7 +79,6 @@ NFS = [
     # SynapseNF(
     #     name="synapse-kvs-guardedmaptable",
     #     description="Synapse KVS GuardedMapTable",
-    #     data_out=Path("tput_synapse_kvs_guardedmaptable.csv"),
     #     kvs_mode=True,
     #     tofino=Path("synthesized/synapse-kvs-guardedmaptable.p4"),
     #     controller=Path("synthesized/synapse-kvs-guardedmaptable.cpp"),
@@ -91,6 +86,16 @@ NFS = [
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
+    SynapseNF(
+        name="synapse-fw",
+        description="Synapse FW",
+        kvs_mode=False,
+        tofino=Path("synthesized/synapse-fw.p4"),
+        controller=Path("synthesized/synapse-fw.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+    ),
 ]
 
 
