@@ -126,9 +126,8 @@ private:
   std::unordered_map<uint16_t, pcap_t *> pcaps;
   std::unordered_map<uint16_t, bool> assume_ip;
   std::unordered_map<uint16_t, long> pcaps_start;
-  std::unordered_map<uint16_t, pkt_t> pending_pkts_per_dev;
+  std::map<uint16_t, pkt_t> pending_pkts_per_dev;
   int64_t last_ts;
-  std::unordered_set<uint16_t> last_devs;
   
   // Meta
   uint64_t total_packets;
@@ -207,22 +206,13 @@ public:
         continue;
       }
 
-      if (chosen && last_devs.find(pending_dev) != last_devs.end()) {
-        continue;
-      }
-
       dev = pending_dev;
       pkt = pending_pkt;
 
       chosen = true;
     }
 
-    if (last_ts != ts || last_devs.size() == pending_pkts_per_dev.size()) {
-      last_devs.clear();
-    }
-
     last_ts = ts;
-    last_devs.insert(dev);
 
     update_and_show_progress();
 

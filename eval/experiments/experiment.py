@@ -25,7 +25,7 @@ PORT_SETUP_PRECISION = 0.1  # 10%
 PORT_SETUP_TIME_SEC = 5
 PORT_SETUP_RATE = 1  # 1 Mbps
 WARMUP_TIME_SEC = 10
-WARMUP_RATE = 1_000  # 1 Gbps
+WARMUP_RATE = 10_000  # 10 Gbps
 REST_TIME_SEC = 6
 BOGUS_RETRIES = 1
 
@@ -185,10 +185,10 @@ class Experiment:
             pktgen.start()
             sleep(WARMUP_TIME_SEC)
             pktgen.set_rate(current_rate)
+            pktgen.set_churn(churn)
             sleep(WARMUP_TIME_SEC)
             tg_controller.reset_stats()
             pktgen.reset_stats()
-            pktgen.set_churn(churn)
             sleep(ITERATION_DURATION_SEC)
             pktgen.stop()
             sleep(REST_TIME_SEC)

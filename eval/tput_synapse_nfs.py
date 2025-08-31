@@ -21,15 +21,16 @@ from utils.constants import *
 
 STORAGE_SERVER_DELAY_NS = 0
 KVS_GET_RATIO = 0.99
-TOTAL_FLOWS = 40_000
 
+TOTAL_FLOWS = 40_000
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
-ITERATIONS = 5
 
+# TOTAL_FLOWS = 40_000
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.0]
-# ITERATIONS = 1
+
+ITERATIONS = 10
 
 
 @dataclass
@@ -277,6 +278,11 @@ class SynapseThroughput(Experiment):
                 self.kvs_server.wait_launch()
 
             self.log("Waiting for the Synapse controller")
+            self.tput_hosts.dut_controller.stop()
+            self.tput_hosts.dut_controller.launch(
+                src_in_repo=self.controller_src_in_repo,
+                ports=self.dut_ports,
+            )
             self.tput_hosts.dut_controller.wait_ready()
 
             self.log("Launching pktgen")
@@ -313,7 +319,7 @@ class SynapseThroughput(Experiment):
             step_progress.update(task_id, description=description, advance=1)
 
         self.tput_hosts.pktgen.close()
-        self.tput_hosts.dut_controller.quit()
+        self.tput_hosts.dut_controller.stop()
 
         if self.kvs_mode:
             assert self.kvs_server is not None

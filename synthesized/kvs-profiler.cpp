@@ -126,9 +126,8 @@ private:
   std::unordered_map<uint16_t, pcap_t *> pcaps;
   std::unordered_map<uint16_t, bool> assume_ip;
   std::unordered_map<uint16_t, long> pcaps_start;
-  std::unordered_map<uint16_t, pkt_t> pending_pkts_per_dev;
+  std::map<uint16_t, pkt_t> pending_pkts_per_dev;
   int64_t last_ts;
-  std::unordered_set<uint16_t> last_devs;
   
   // Meta
   uint64_t total_packets;
@@ -207,22 +206,13 @@ public:
         continue;
       }
 
-      if (chosen && last_devs.find(pending_dev) != last_devs.end()) {
-        continue;
-      }
-
       dev = pending_dev;
       pkt = pending_pkt;
 
       chosen = true;
     }
 
-    if (last_ts != ts || last_devs.size() == pending_pkts_per_dev.size()) {
-      last_devs.clear();
-    }
-
     last_ts = ts;
-    last_devs.insert(dev);
 
     update_and_show_progress();
 
@@ -750,19 +740,22 @@ bool nf_init() {
   if (!is_dchain_allocated) {
     return false;
   }
-  ports.push_back(0);
-  ports.push_back(1);
-  ports.push_back(2);
-  ports.push_back(3);
-  ports.push_back(4);
-  ports.push_back(5);
-  ports.push_back(6);
-  ports.push_back(7);
-  ports.push_back(8);
-  ports.push_back(9);
-  ports.push_back(10);
-  ports.push_back(11);
+  ports.push_back(31);
+  ports.push_back(30);
+  ports.push_back(29);
   ports.push_back(12);
+  ports.push_back(11);
+  ports.push_back(10);
+  ports.push_back(9);
+  ports.push_back(8);
+  ports.push_back(7);
+  ports.push_back(6);
+  ports.push_back(5);
+  ports.push_back(4);
+  ports.push_back(3);
+  ports.push_back(2);
+  ports.push_back(1);
+  ports.push_back(0);
   ports.push_back(13);
   ports.push_back(14);
   ports.push_back(15);
@@ -779,9 +772,6 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  ports.push_back(29);
-  ports.push_back(30);
-  ports.push_back(31);
   stats_per_map[1073923800].init(24);
   stats_per_map[1073923800].init(13);
   forwarding_stats_per_route_op.insert({66, PortStats{}});
@@ -1024,7 +1014,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             vector_borrow(vector2, value, (void**)&vector_value_out3);
             // BDDNode 40
             inc_path_counter(40);
-            if ((0) != (*(hdr4+0))) {
+            if ((1) == (*(hdr4+0))) {
               // BDDNode 41
               inc_path_counter(41);
               uint32_t hdr4_slice3 = *(uint32_t*)(hdr4+5);
@@ -1118,7 +1108,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               inc_path_counter(52);
               forwarding_stats_per_route_op[52].inc_fwd(device & 65535);
               return device & 65535;
-            } // (0) != (*(hdr4+0))
+            } // (1) == (*(hdr4+0))
           } // (0) == (map_hit)
         } else {
           // BDDNode 53

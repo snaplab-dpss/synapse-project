@@ -34,25 +34,21 @@ std::vector<flow_t> get_base_flows(const TrafficGenerator::config_t &config) {
 
 class PortAllocator {
 private:
-  std::vector<device_t> available_ports;
-  std::unordered_map<flow_t, u64, flow_t::flow_hash_t> flow_to_port;
+  std::vector<u16> available_ports;
+  std::unordered_map<flow_t, u16, flow_t::flow_hash_t> flow_to_port;
 
 public:
-  PortAllocator() {
-    device_t port = UINT16_MAX;
-    while (1) {
-      available_ports.push_back(port);
-      if (port == 0) {
-        break;
-      }
-      port--;
+  PortAllocator(size_t capacity) : available_ports(capacity) {
+    assert(capacity <= UINT16_MAX + 1);
+    for (size_t i = 0; i < capacity; i++) {
+      available_ports[i] = UINT16_MAX - i;
     }
   }
 
   void allocate(const flow_t &flow) {
     assert(!available_ports.empty());
     assert(!flow_to_port.contains(flow));
-    device_t port = available_ports.back();
+    const u16 port = available_ports.back();
     available_ports.pop_back();
     flow_to_port[flow] = port;
   }
@@ -62,15 +58,14 @@ public:
 
   bool has(const flow_t &flow) const { return flow_to_port.contains(flow); }
 
-  device_t get(const flow_t &flow) { return flow_to_port.at(flow); }
+  u16 get(const flow_t &flow) { return flow_to_port.at(flow); }
 
   bool free(const flow_t &flow) {
     if (!flow_to_port.contains(flow)) {
       return false;
     }
 
-    device_t port = get(flow);
-    available_ports.insert(available_ports.begin(), port);
+    available_ports.push_back(get(flow));
     flow_to_port.erase(flow);
 
     return true;
@@ -79,7 +74,7 @@ public:
 
 class NATTrafficGenerator : public TrafficGenerator {
 private:
-  static constexpr const u32 PUBLIC_IP = 0xffffffff;
+  static constexpr const u32 PUBLIC_IP = 0x01020304;
 
   const std::vector<std::pair<device_t, device_t>> lan_wan_pairs;
   const std::unordered_map<device_t, device_t> connections;
@@ -93,7 +88,7 @@ public:
   NATTrafficGenerator(const config_t &_config, const std::vector<std::pair<device_t, device_t>> &_lan_wan_pairs,
                       const std::vector<flow_t> &_base_flows)
       : TrafficGenerator("nat", _config, true), lan_wan_pairs(_lan_wan_pairs), connections(build_connections(_lan_wan_pairs)),
-        lan_devs(build_lan_devices(_lan_wan_pairs)), flows(_base_flows) {
+        lan_devs(build_lan_devices(_lan_wan_pairs)), flows(_base_flows), port_allocator(65536) {
     assert(flows.size() <= 65536 && "Too many flows for a NAT (max 65536).");
     reset_client_dev();
   }
@@ -117,7 +112,7 @@ public:
     const flow_t &flow = flows.at(flow_idx);
 
     if (lan_devs.contains(dev)) {
-      if (allocated_flows.find(flow) == allocated_flows.end()) {
+      if (!allocated_flows.contains(flow)) {
         allocated_flows.insert(flow);
         port_allocator.allocate(flow);
         assert(port_allocator.allocated() <= flows.size());
@@ -136,8 +131,8 @@ public:
       return {};
     }
 
-    const flow_t inverted_flow    = flow.invert();
-    const device_t allocated_port = port_allocator.get(flow);
+    const flow_t inverted_flow = flow.invert();
+    const u16 allocated_port   = port_allocator.get(flow);
 
     pkt_t pkt            = template_packet;
     pkt.ip_hdr.src_addr  = inverted_flow.five_tuple.src_ip;

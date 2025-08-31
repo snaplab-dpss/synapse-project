@@ -243,6 +243,7 @@ if __name__ == "__main__":
     orchestrator.add_task(
         build_synapse(
             debug=args.debug,
+            skip_execution=args.dry_run,
             show_cmds_output=args.show_cmds_output,
             show_cmds=args.show_cmds,
             silence=args.silence,
@@ -262,7 +263,7 @@ if __name__ == "__main__":
                     churn,
                     heuristic,
                     args.seed,
-                    skip_synthesis=not args.synthesize,
+                    skip_synthesis=not args.synthesize or args.dry_run,
                     show_cmds_output=args.show_cmds_output,
                     show_cmds=args.show_cmds,
                     silence=args.silence,
@@ -299,9 +300,6 @@ if __name__ == "__main__":
 
     if args.show_execution_plan:
         orchestrator.visualize()
-
-    if args.dry_run:
-        exit(0)
 
     orchestrator.run(
         skip_if_already_produced=not args.force,

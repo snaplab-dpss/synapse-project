@@ -28,8 +28,8 @@ SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 DEVICES = list(range(2, 32))
 
 DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs"]
-DEFAULT_RATE = [100_000_000]  # 0.1 Gbps
-DEFAULT_TOTAL_PACKETS = [20_000_000]
+DEFAULT_RATE = [1_000_000_000]  # 1 Gbps
+DEFAULT_TOTAL_PACKETS = [40_000_000]
 DEFAULT_PACKET_SIZE = [64]
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
@@ -399,6 +399,7 @@ if __name__ == "__main__":
         build_synapse(
             nfs=[NFs[nf_name] for nf_name in args.nfs],
             debug=args.debug,
+            skip_execution=args.dry_run,
             show_cmds_output=args.show_cmds_output,
             show_cmds=args.show_cmds,
             silence=args.silence,
@@ -413,7 +414,7 @@ if __name__ == "__main__":
         orchestrator.add_task(
             generate_profiler(
                 nf,
-                skip_execution=args.skip_profiler_generation,
+                skip_execution=args.skip_profiler_generation or args.dry_run,
                 show_cmds_output=args.show_cmds_output,
                 show_cmds=args.show_cmds,
                 silence=args.silence,
@@ -423,6 +424,7 @@ if __name__ == "__main__":
         orchestrator.add_task(
             compile_profiler(
                 nf,
+                skip_execution=args.dry_run,
                 show_cmds_output=args.show_cmds_output,
                 show_cmds=args.show_cmds,
                 silence=args.silence,
@@ -439,7 +441,7 @@ if __name__ == "__main__":
                     total_flows,
                     zipf_param,
                     churn,
-                    skip_execution=args.skip_pcap_generation,
+                    skip_execution=args.skip_pcap_generation or args.dry_run,
                     show_cmds_output=args.show_cmds_output,
                     show_cmds=args.show_cmds,
                     silence=args.silence,
@@ -452,6 +454,7 @@ if __name__ == "__main__":
                     total_flows,
                     zipf_param,
                     churn,
+                    skip_execution=args.dry_run,
                     show_cmds_output=args.show_cmds_output,
                     show_cmds=args.show_cmds,
                     silence=args.silence,
@@ -464,6 +467,7 @@ if __name__ == "__main__":
                     total_flows,
                     zipf_param,
                     churn,
+                    skip_execution=args.dry_run,
                     show_cmds_output=args.show_cmds_output,
                     show_cmds=args.show_cmds,
                     silence=args.silence,
@@ -476,6 +480,7 @@ if __name__ == "__main__":
                     total_flows,
                     zipf_param,
                     churn,
+                    skip_execution=args.dry_run,
                     show_cmds_output=args.show_cmds_output,
                     show_cmds=args.show_cmds,
                     silence=args.silence,
@@ -498,9 +503,6 @@ if __name__ == "__main__":
 
     if args.show_execution_plan:
         orchestrator.visualize()
-
-    if args.dry_run:
-        exit(0)
 
     orchestrator.run(
         skip_if_already_produced=not args.force,

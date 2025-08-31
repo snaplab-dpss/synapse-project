@@ -67,7 +67,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
         .protocol = rte_ipv4_header->next_proto_id,
     };
 
-    NF_DEBUG("Device %" PRIu16 " is internal (not %" PRIu16 ")", device, config.wan_device);
+    NF_DEBUG("Device %" PRIu16 " is internal", device);
 
     uint16_t external_port;
     if (!flow_manager_get_internal(flow_manager, &id, now, &external_port)) {

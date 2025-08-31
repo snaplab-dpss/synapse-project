@@ -14,27 +14,27 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <84,49'211'605,-4>
-  Tput: 34.65 Gbps (49.21 Mpps)
-  Spec: 34.64 Gbps (49.21 Mpps)
+  Score: <83,2'249'999'990,-4>
+  Tput: 1.58 Tbps (2.25 Gpps)
+  Spec: 1.58 Tbps (2.25 Gpps)
   Stages: 4
 
 Stateful Implementations:
-  1074076736: Tofino::DchainTable
   1074094376: Tofino::VectorTable
+  1074076736: Tofino::DchainTable
   1074044752: Tofino::MapTable
   1074077160: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       4 seconds
-  Steps:              85
+  Elapsed time:       2 seconds
+  Steps:              84
   Backtracks:         0
-  Search space size:  232
-  Unfinished EPs:     147
+  Search space size:  227
+  Unfinished EPs:     143
   Finished EPs:       1
   Avg BDD size:       67
   Branching factor:   2
-  Total SS size est.: 211'270'701'452
+  Total SS size est.: 37'678'307'483
   Avg children per node:
     Node 184: 0
     Node 183: 0
@@ -46,19 +46,20 @@ Search Metadata:
     Node 170: 0
     Node 195: 2
     Node 194: 2
-    Node 277: 0
-    Node 150: 7
+    Node 150: 5
+    Node 273: 3
     Node 146: 3
-    Node 187: 4
-    Node 276: 0
-    Node 149: 10
+    Node 187: 6
+    Node 149: 4
+    Node 272: 3
     Node 145: 3
-    Node 186: 5
+    Node 186: 4
     Node 161: 2
-    Node 275: 0
-    Node 148: 6
+    Node 275: 3
+    Node 148: 5
+    Node 271: 3
     Node 144: 3
-    Node 160: 3
+    Node 160: 4
     Node 159: 5
     Node 162: 0
     Node 133: 2
@@ -74,11 +75,11 @@ Search Metadata:
     Node 140: 4
     Node 135: 3
     Node 269: 3
-    Node 142: 4
+    Node 142: 3
     Node 201: 2
     Node 136: 3
     Node 270: 3
-    Node 143: 5
+    Node 143: 4
     Node 137: 4
     Node 196: 2
     Node 265: 3
@@ -89,20 +90,19 @@ Search Metadata:
     Node 198: 3
     Node 173: 0
     Node 188: 5
-    Node 274: 0
+    Node 274: 3
     Node 147: 2
-    Node 278: 0
-    Node 151: 6
+    Node 151: 3
     Node 164: 0
     Node 174: 0
-    Node 189: 3
+    Node 189: 5
     Node 279: 0
-    Node 152: 6
+    Node 152: 3
     Node 165: 0
     Node 175: 0
     Node 190: 3
     Node 280: 0
-    Node 153: 5
+    Node 153: 3
     Node 166: 0
     Node 176: 0
     Node 191: 3
@@ -111,13 +111,12 @@ Search Metadata:
     Node 167: 0
     Node 177: 0
     Node 282: 0
-    Node 155: 4
+    Node 155: 3
     Node 158: 2
     Node 168: 0
     Node 178: 0
     Node 283: 0
-    Node 156: 3
-    Node 284: 0
+    Node 156: 2
     Node 157: 2
     Node 169: 0
     Node 172: 0
