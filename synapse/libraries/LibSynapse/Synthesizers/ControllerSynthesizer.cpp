@@ -86,7 +86,7 @@ time_ns_t get_expiration_time(const Context &ctx) {
 
 ControllerSynthesizer::Transpiler::Transpiler(const ControllerSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
-ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt) {
+code_t ControllerSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt) {
   loaded_opt = opt;
 
   std::cerr << "Transpiling: " << expr_to_string(expr) << "\n";
@@ -132,7 +132,7 @@ ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::transpile(klee:
   return code;
 }
 
-ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::type_from_size(bits_t size) {
+code_t ControllerSynthesizer::Transpiler::type_from_size(bits_t size) {
   code_t type;
 
   switch (size) {
@@ -158,9 +158,7 @@ ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::type_from_size(
   return type;
 }
 
-ControllerSynthesizer::code_t ControllerSynthesizer::Transpiler::type_from_expr(klee::ref<klee::Expr> expr) {
-  return type_from_size(expr->getWidth());
-}
+code_t ControllerSynthesizer::Transpiler::type_from_expr(klee::ref<klee::Expr> expr) { return type_from_size(expr->getWidth()); }
 
 klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitRead(const klee::ReadExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ReadExpr *>(&e);
@@ -504,7 +502,7 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSge(const klee
   return Action::skipChildren();
 }
 
-ControllerSynthesizer::code_t ControllerSynthesizer::var_t::get_slice(bits_t offset, bits_t size, transpiler_opt_t opt) const {
+code_t ControllerSynthesizer::var_t::get_slice(bits_t offset, bits_t size, transpiler_opt_t opt) const {
   assert(offset + size <= expr->getWidth() && "Out of bounds");
 
   coder_t coder;
@@ -548,7 +546,7 @@ ControllerSynthesizer::code_t ControllerSynthesizer::var_t::get_slice(bits_t off
   return coder.dump();
 }
 
-ControllerSynthesizer::code_t ControllerSynthesizer::var_t::get_stem() const {
+code_t ControllerSynthesizer::var_t::get_stem() const {
   size_t pos = name.find_last_of('.');
   if (pos == std::string::npos) {
     return name;
@@ -683,23 +681,22 @@ void ControllerSynthesizer::Stacks::clear() { stacks.clear(); }
 std::vector<ControllerSynthesizer::Stack> ControllerSynthesizer::Stacks::get_all() const { return stacks; }
 
 ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::path _out_file)
-    : Synthesizer(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
-                  {
-                      {MARKER_STATE_FIELDS, 1},
-                      {MARKER_STATE_MEMBER_INIT_LIST, 3},
-                      {MARKER_NF_INIT, 1},
-                      {MARKER_NF_EXIT, 1},
-                      {MARKER_NF_ARGS, 1},
-                      {MARKER_NF_USER_SIGNAL_HANDLER, 1},
-                      {MARKER_NF_PROCESS, 1},
-                      {MARKER_CPU_HDR_EXTRA, 1},
-                  },
-                  _out_file),
+    : out_file(_out_file), code_template(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
+                                         {
+                                             {MARKER_STATE_FIELDS, 1},
+                                             {MARKER_STATE_MEMBER_INIT_LIST, 3},
+                                             {MARKER_NF_INIT, 1},
+                                             {MARKER_NF_EXIT, 1},
+                                             {MARKER_NF_ARGS, 1},
+                                             {MARKER_NF_USER_SIGNAL_HANDLER, 1},
+                                             {MARKER_NF_PROCESS, 1},
+                                             {MARKER_CPU_HDR_EXTRA, 1},
+                                         }),
       target_ep(_ep), transpiler(this) {}
 
-ControllerSynthesizer::coder_t &ControllerSynthesizer::get_current_coder() { return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS); }
+coder_t &ControllerSynthesizer::get_current_coder() { return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS); }
 
-ControllerSynthesizer::coder_t &ControllerSynthesizer::get(const std::string &marker) { return Synthesizer::get(marker); }
+coder_t &ControllerSynthesizer::get(const std::string &marker) { return code_template.get(marker); }
 
 void ControllerSynthesizer::synthesize() {
   synthesize_nf_init();
@@ -718,7 +715,10 @@ void ControllerSynthesizer::synthesize() {
 
   synthesize_nf_process();
   synthesize_state_member_init_list();
-  Synthesizer::dump();
+
+  std::ofstream ofs(out_file);
+  ofs << code_template.dump();
+  ofs.close();
 }
 
 void ControllerSynthesizer::synthesize_nf_init() {
@@ -1800,7 +1800,7 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
   return var;
 }
 
-ControllerSynthesizer::code_t ControllerSynthesizer::create_unique_name(const code_t &prefix) {
+code_t ControllerSynthesizer::create_unique_name(const code_t &prefix) {
   if (reserved_var_names.find(prefix) == reserved_var_names.end()) {
     reserved_var_names[prefix] = 0;
   }
@@ -1815,7 +1815,7 @@ ControllerSynthesizer::code_t ControllerSynthesizer::create_unique_name(const co
   return coder.dump();
 }
 
-ControllerSynthesizer::code_t ControllerSynthesizer::assert_unique_name(const code_t &name) {
+code_t ControllerSynthesizer::assert_unique_name(const code_t &name) {
   if (reserved_var_names.find(name) == reserved_var_names.end()) {
     reserved_var_names[name] = 0;
   }

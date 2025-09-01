@@ -1,6 +1,7 @@
 #pragma once
 
-#include <LibCore/Synthesizer.h>
+#include <LibCore/Template.h>
+#include <LibCore/Coder.h>
 #include <LibSynapse/Visitor.h>
 #include <LibBDD/BDD.h>
 #include <LibSynapse/Modules/Controller/Controller.h>
@@ -16,13 +17,17 @@
 namespace LibSynapse {
 namespace Controller {
 
-using LibCore::Synthesizer;
+using LibCore::code_t;
+using LibCore::coder_t;
+using LibCore::indent_t;
+using LibCore::marker_t;
+using LibCore::Template;
 
-class ControllerSynthesizer : public Synthesizer, public EPVisitor {
+class ControllerSynthesizer : public EPVisitor {
 public:
   ControllerSynthesizer(const EP *ep, std::filesystem::path out_file);
 
-  virtual void synthesize() override final;
+  void synthesize();
 
   using transpiler_opt_t = u32;
 
@@ -138,6 +143,9 @@ private:
     std::vector<Stack> get_all() const;
   };
 
+  const std::filesystem::path out_file;
+  Template code_template;
+
   Stacks vars;
   std::unordered_map<std::string, int> reserved_var_names;
   std::vector<code_t> synapse_data_structures_instances;
@@ -232,7 +240,7 @@ private:
   bool in_nf_init{true};
   void change_to_process_coder() { in_nf_init = false; }
   coder_t &get_current_coder();
-  coder_t &get(const std::string &marker) override final;
+  coder_t &get(const std::string &marker);
 
   code_t create_unique_name(const code_t &name);
   code_t assert_unique_name(const code_t &name);

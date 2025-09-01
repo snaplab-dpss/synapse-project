@@ -1,8 +1,9 @@
 #pragma once
 
-#include <LibCore/Synthesizer.h>
-#include <LibSynapse/Visitor.h>
+#include <LibCore/Template.h>
+#include <LibCore/Coder.h>
 #include <LibBDD/BDD.h>
+#include <LibSynapse/Visitor.h>
 #include <LibSynapse/Modules/Tofino/Tofino.h>
 
 #include <klee/util/ExprVisitor.h>
@@ -15,13 +16,17 @@
 namespace LibSynapse {
 namespace Tofino {
 
-using LibCore::Synthesizer;
+using LibCore::code_t;
+using LibCore::coder_t;
+using LibCore::indent_t;
+using LibCore::marker_t;
+using LibCore::Template;
 
-class TofinoSynthesizer : public Synthesizer, public EPVisitor {
+class TofinoSynthesizer : public EPVisitor {
 public:
-  TofinoSynthesizer(const EP *ep, std::filesystem::path _out_path);
+  TofinoSynthesizer(const EP *ep, std::filesystem::path _out_file);
 
-  virtual void synthesize() override final;
+  void synthesize();
 
   using transpiler_opt_t = u32;
 
@@ -175,6 +180,9 @@ private:
   static constexpr const alloc_opt_t BUFFER           = 0b010000;
   static constexpr const alloc_opt_t FORCE_BOOL       = 0b100000;
 
+  const std::filesystem::path out_file;
+  Template code_template;
+
   std::unordered_map<code_t, int> var_prefix_usage;
 
   Stacks ingress_vars;
@@ -225,7 +233,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *node) override final;
 
-  coder_t &get(const std::string &marker) override final;
+  coder_t &get(const std::string &marker);
   code_t transpile(klee::ref<klee::Expr> expr);
 
   code_t create_unique_name(const code_t &name);
@@ -253,6 +261,7 @@ private:
   std::vector<code_t> cms_get_hashes_calculators(const CountMinSketch *cms, const EPNode *ep_node);
   void transpile_cms_hash_calculator_decl(const CountMinSketch *cms, const EPNode *ep_node, const std::vector<var_t> &keys_vars);
   void transpile_cms_decl(const CountMinSketch *cms);
+  void transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table);
 
   void dbg_vars() const;
 

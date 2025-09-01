@@ -225,7 +225,7 @@ int main(int argc, char **argv) {
   args_t args;
 
   app.add_option("--in", args.input_bdd_file, "Input file for BDD deserialization.")->required();
-  app.add_option("--out", args.out_dir, "Output directory for every generated file.");
+  app.add_option("--out", args.out_dir, "Output directory for every generated file.")->default_val(".");
   app.add_option("--name", args.name, "Synthesized filenames (without extensions) (defaults to \"synapse-{bdd filename}\").");
   app.add_option("--config", args.targets_config_file, "Configuration file.")->required();
   app.add_option("--heuristic", args.heuristic_opt, "Chosen heuristic.")

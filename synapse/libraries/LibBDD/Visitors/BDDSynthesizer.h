@@ -1,6 +1,7 @@
 #pragma once
 
-#include <LibCore/Synthesizer.h>
+#include <LibCore/Coder.h>
+#include <LibCore/Template.h>
 #include <LibBDD/Nodes/Node.h>
 
 #include <klee/util/ExprVisitor.h>
@@ -11,18 +12,22 @@
 
 namespace LibBDD {
 
-using LibCore::Synthesizer;
+using LibCore::code_t;
+using LibCore::coder_t;
+using LibCore::indent_t;
+using LibCore::marker_t;
+using LibCore::Template;
 
 class BDD;
 class Call;
 
 enum class BDDSynthesizerTarget { NF, Profiler };
 
-class BDDSynthesizer : public Synthesizer {
+class BDDSynthesizer {
 public:
   BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::filesystem::path _out_file);
 
-  virtual void synthesize() override final;
+  void synthesize();
 
 private:
   class Transpiler : public klee::ExprVisitor::ExprVisitor {
@@ -71,8 +76,10 @@ private:
     Action visitSge(const klee::SgeExpr &e);
   };
 
+  const std::filesystem::path out_file;
   const BDD *bdd;
   BDDSynthesizerTarget target;
+  Template code_template;
   Transpiler transpiler;
 
   struct var_t {

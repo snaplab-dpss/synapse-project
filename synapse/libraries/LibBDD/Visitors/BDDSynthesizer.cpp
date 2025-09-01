@@ -46,7 +46,7 @@ std::filesystem::path template_from_type(BDDSynthesizerTarget target) {
 
 BDDSynthesizer::Transpiler::Transpiler(BDDSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
-BDDSynthesizer::code_t BDDSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
+code_t BDDSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
   coders.emplace();
   coder_t &coder = coders.top();
 
@@ -77,7 +77,7 @@ BDDSynthesizer::code_t BDDSynthesizer::Transpiler::transpile(klee::ref<klee::Exp
   return code;
 }
 
-BDDSynthesizer::code_t BDDSynthesizer::Transpiler::type_from_size(bits_t size) {
+code_t BDDSynthesizer::Transpiler::type_from_size(bits_t size) {
   code_t type;
 
   switch (size) {
@@ -103,7 +103,7 @@ BDDSynthesizer::code_t BDDSynthesizer::Transpiler::type_from_size(bits_t size) {
   return type;
 }
 
-BDDSynthesizer::code_t BDDSynthesizer::Transpiler::type_from_expr(klee::ref<klee::Expr> expr) { return type_from_size(expr->getWidth()); }
+code_t BDDSynthesizer::Transpiler::type_from_expr(klee::ref<klee::Expr> expr) { return type_from_size(expr->getWidth()); }
 
 klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitRead(const klee::ReadExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ReadExpr *>(&e);
@@ -601,49 +601,48 @@ klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitSge(const klee::SgeEx
   { #FNAME, std::bind(&BDDSynthesizer::FNAME, this, std::placeholders::_1, std::placeholders::_2) }
 
 BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::filesystem::path _out_file)
-    : Synthesizer(template_from_type(_target),
-                  {
-                      {MARKER_NF_STATE, 0},
-                      {MARKER_NF_INIT, 0},
-                      {MARKER_NF_PROCESS, 0},
-                  },
-                  _out_file),
-      bdd(_bdd), target(_target), transpiler(this), function_synthesizers({
-                                                        POPULATE_SYNTHESIZER(map_allocate),
-                                                        POPULATE_SYNTHESIZER(vector_allocate),
-                                                        POPULATE_SYNTHESIZER(dchain_allocate),
-                                                        POPULATE_SYNTHESIZER(cms_allocate),
-                                                        POPULATE_SYNTHESIZER(tb_allocate),
-                                                        POPULATE_SYNTHESIZER(lpm_allocate),
-                                                        POPULATE_SYNTHESIZER(packet_borrow_next_chunk),
-                                                        POPULATE_SYNTHESIZER(packet_return_chunk),
-                                                        POPULATE_SYNTHESIZER(nf_set_rte_ipv4_udptcp_checksum),
-                                                        POPULATE_SYNTHESIZER(expire_items_single_map),
-                                                        POPULATE_SYNTHESIZER(expire_items_single_map_iteratively),
-                                                        POPULATE_SYNTHESIZER(map_get),
-                                                        POPULATE_SYNTHESIZER(map_put),
-                                                        POPULATE_SYNTHESIZER(map_erase),
-                                                        POPULATE_SYNTHESIZER(map_size),
-                                                        POPULATE_SYNTHESIZER(vector_borrow),
-                                                        POPULATE_SYNTHESIZER(vector_return),
-                                                        POPULATE_SYNTHESIZER(vector_clear),
-                                                        POPULATE_SYNTHESIZER(vector_sample_lt),
-                                                        POPULATE_SYNTHESIZER(dchain_allocate_new_index),
-                                                        POPULATE_SYNTHESIZER(dchain_rejuvenate_index),
-                                                        POPULATE_SYNTHESIZER(dchain_expire_one),
-                                                        POPULATE_SYNTHESIZER(dchain_is_index_allocated),
-                                                        POPULATE_SYNTHESIZER(dchain_free_index),
-                                                        POPULATE_SYNTHESIZER(cms_increment),
-                                                        POPULATE_SYNTHESIZER(cms_count_min),
-                                                        POPULATE_SYNTHESIZER(cms_periodic_cleanup),
-                                                        POPULATE_SYNTHESIZER(tb_is_tracing),
-                                                        POPULATE_SYNTHESIZER(tb_trace),
-                                                        POPULATE_SYNTHESIZER(tb_update_and_check),
-                                                        POPULATE_SYNTHESIZER(tb_expire),
-                                                        POPULATE_SYNTHESIZER(lpm_lookup),
-                                                        POPULATE_SYNTHESIZER(lpm_update),
-                                                        POPULATE_SYNTHESIZER(lpm_from_file),
-                                                    }) {}
+    : out_file(_out_file), bdd(_bdd), target(_target), code_template(template_from_type(_target),
+                                                                     {
+                                                                         {MARKER_NF_STATE, 0},
+                                                                         {MARKER_NF_INIT, 0},
+                                                                         {MARKER_NF_PROCESS, 0},
+                                                                     }),
+      transpiler(this), function_synthesizers({
+                            POPULATE_SYNTHESIZER(map_allocate),
+                            POPULATE_SYNTHESIZER(vector_allocate),
+                            POPULATE_SYNTHESIZER(dchain_allocate),
+                            POPULATE_SYNTHESIZER(cms_allocate),
+                            POPULATE_SYNTHESIZER(tb_allocate),
+                            POPULATE_SYNTHESIZER(lpm_allocate),
+                            POPULATE_SYNTHESIZER(packet_borrow_next_chunk),
+                            POPULATE_SYNTHESIZER(packet_return_chunk),
+                            POPULATE_SYNTHESIZER(nf_set_rte_ipv4_udptcp_checksum),
+                            POPULATE_SYNTHESIZER(expire_items_single_map),
+                            POPULATE_SYNTHESIZER(expire_items_single_map_iteratively),
+                            POPULATE_SYNTHESIZER(map_get),
+                            POPULATE_SYNTHESIZER(map_put),
+                            POPULATE_SYNTHESIZER(map_erase),
+                            POPULATE_SYNTHESIZER(map_size),
+                            POPULATE_SYNTHESIZER(vector_borrow),
+                            POPULATE_SYNTHESIZER(vector_return),
+                            POPULATE_SYNTHESIZER(vector_clear),
+                            POPULATE_SYNTHESIZER(vector_sample_lt),
+                            POPULATE_SYNTHESIZER(dchain_allocate_new_index),
+                            POPULATE_SYNTHESIZER(dchain_rejuvenate_index),
+                            POPULATE_SYNTHESIZER(dchain_expire_one),
+                            POPULATE_SYNTHESIZER(dchain_is_index_allocated),
+                            POPULATE_SYNTHESIZER(dchain_free_index),
+                            POPULATE_SYNTHESIZER(cms_increment),
+                            POPULATE_SYNTHESIZER(cms_count_min),
+                            POPULATE_SYNTHESIZER(cms_periodic_cleanup),
+                            POPULATE_SYNTHESIZER(tb_is_tracing),
+                            POPULATE_SYNTHESIZER(tb_trace),
+                            POPULATE_SYNTHESIZER(tb_update_and_check),
+                            POPULATE_SYNTHESIZER(tb_expire),
+                            POPULATE_SYNTHESIZER(lpm_lookup),
+                            POPULATE_SYNTHESIZER(lpm_update),
+                            POPULATE_SYNTHESIZER(lpm_from_file),
+                        }) {}
 
 void BDDSynthesizer::synthesize() {
   // Global state
@@ -653,11 +652,13 @@ void BDDSynthesizer::synthesize() {
   process();
   init_post_process();
 
-  Synthesizer::dump();
+  std::ofstream ofs(out_file);
+  ofs << code_template.dump();
+  ofs.close();
 }
 
 void BDDSynthesizer::init_pre_process() {
-  coder_t &coder = get(MARKER_NF_INIT);
+  coder_t &coder = code_template.get(MARKER_NF_INIT);
 
   coder << "bool nf_init() {\n";
   coder.inc();
@@ -690,7 +691,7 @@ void BDDSynthesizer::init_pre_process() {
 }
 
 void BDDSynthesizer::init_post_process() {
-  coder_t &coder = get(MARKER_NF_INIT);
+  coder_t &coder = code_template.get(MARKER_NF_INIT);
 
   if (target == BDDSynthesizerTarget::Profiler) {
     for (const auto &[node_id, map_addr] : nodes_to_map) {
@@ -721,7 +722,7 @@ void BDDSynthesizer::init_post_process() {
 }
 
 void BDDSynthesizer::process() {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = code_template.get(MARKER_NF_PROCESS);
 
   symbol_t device = bdd->get_device();
   symbol_t len    = bdd->get_packet_len();
@@ -752,7 +753,7 @@ void BDDSynthesizer::process() {
 }
 
 void BDDSynthesizer::synthesize(const BDDNode *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = code_template.get(MARKER_NF_PROCESS);
 
   node->visit_nodes([this, &coder](const BDDNode *future_node) {
     BDDNodeVisitAction action = BDDNodeVisitAction::Continue;
@@ -1030,7 +1031,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::map_allocate(coder_t &coder,
   var_t map_out_var = build_var("map", map_out);
   var_t success_var = build_var("map_allocation_succeeded", success.expr);
 
-  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_t &coder_nf_state = code_template.get(MARKER_NF_STATE);
   coder_nf_state.indent();
   coder_nf_state << "struct Map *";
   coder_nf_state << map_out_var.name;
@@ -1222,7 +1223,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::vector_allocate(coder_t &cod
   var_t vector_out_var = build_var("vector", vector_out);
   var_t success_var    = build_var("vector_alloc_success", success.expr);
 
-  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_t &coder_nf_state = code_template.get(MARKER_NF_STATE);
   coder_nf_state.indent();
   coder_nf_state << "struct Vector *";
   coder_nf_state << vector_out_var.name;
@@ -1385,7 +1386,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_allocate(coder_t &cod
   var_t chain_out_var = build_var("dchain", chain_out);
   var_t success_var   = build_var("is_dchain_allocated", success.expr);
 
-  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_t &coder_nf_state = code_template.get(MARKER_NF_STATE);
   coder_nf_state.indent();
   coder_nf_state << "struct DoubleChain *";
   coder_nf_state << chain_out_var.name;
@@ -1514,7 +1515,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::cms_allocate(coder_t &coder,
   var_t cms_out_var = build_var("cms", cms_out);
   var_t success_var = build_var("cms_allocation_succeeded", success.expr);
 
-  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_t &coder_nf_state = code_template.get(MARKER_NF_STATE);
   coder_nf_state.indent();
   coder_nf_state << "struct CMS *";
   coder_nf_state << cms_out_var.name;
@@ -1629,7 +1630,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::tb_allocate(coder_t &coder, 
   var_t tb_out_var  = build_var("tb", tb_out);
   var_t success_var = build_var("tb_allocation_succeeded", success.expr);
 
-  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_t &coder_nf_state = code_template.get(MARKER_NF_STATE);
   coder_nf_state.indent();
   coder_nf_state << "struct TokenBucket *";
   coder_nf_state << tb_out_var.name;
@@ -1658,7 +1659,7 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_allocate(coder_t &coder,
   var_t lpm_out_var = build_var("lpm", lpm_out);
   var_t success_var = build_var("lpm_alloc_success", success.expr);
 
-  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_t &coder_nf_state = code_template.get(MARKER_NF_STATE);
   coder_nf_state.indent();
   coder_nf_state << "struct LPM *";
   coder_nf_state << lpm_out_var.name;
@@ -1917,7 +1918,7 @@ BDDSynthesizer::var_t BDDSynthesizer::stack_get(klee::ref<klee::Expr> expr) {
   panic("Variable not found in stack: %s\n", expr_to_string(expr).c_str());
 }
 
-BDDSynthesizer::code_t BDDSynthesizer::slice_var(const var_t &var, bits_t offset, bits_t size) const {
+code_t BDDSynthesizer::slice_var(const var_t &var, bits_t offset, bits_t size) const {
   assert(offset + size <= var.expr->getWidth() && "Out of bounds");
 
   coder_t coder;
