@@ -65,6 +65,7 @@ protected:
   const config_t config;
   const bool assume_ip;
   const pkt_t template_packet;
+  const time_ns_t dt;
 
   std::unordered_map<device_t, PcapWriter> warmup_writers;
   std::unordered_map<device_t, PcapWriter> writers;
@@ -154,7 +155,10 @@ protected:
     return *pkt;
   }
 
-  void tick() {
+  void tick() { current_time += dt; }
+
+private:
+  static time_ns_t compute_dt(const config_t &config) {
     // To obtain the time in seconds:
     // (pkt.size * 8) / (gbps * 1e9)
     // We want in ns, not seconds, so we multiply by 1e9.
@@ -163,13 +167,9 @@ protected:
     // Also, don't forget to take the inter packet gap and CRC into consideration.
     const bytes_t wire_bytes = PREAMBLE_SIZE_BYTES + config.packet_size_without_crc + CRC_SIZE_BYTES + IPG_SIZE_BYTES;
     const time_ns_t dt       = (BILLION * wire_bytes * 8) / config.rate;
-    current_time += dt;
-    if (alarm_tick > 0 && alarm_tick < dt) {
-      panic("Churn is too high: alarm tick (%luns) is smaller than the time step (%luns)\n", alarm_tick, dt);
-    }
+    return dt;
   }
 
-private:
   flow_idx_t get_next_flow_idx() {
     flow_idx_t flow_idx = 0;
     switch (config.traffic_type) {

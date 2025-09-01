@@ -3,8 +3,8 @@
 namespace LibCore {
 
 TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_config, bool _assume_ip)
-    : nf(_nf), config(_config), assume_ip(_assume_ip), template_packet(build_pkt_template()), seeds_random_engine(config.random_seed),
-      churn_random_engine(seeds_random_engine.generate(), 0, config.total_flows - 1),
+    : nf(_nf), config(_config), assume_ip(_assume_ip), template_packet(build_pkt_template()), dt(compute_dt(config)),
+      seeds_random_engine(config.random_seed), churn_random_engine(seeds_random_engine.generate(), 0, config.total_flows - 1),
       flows_random_engine_uniform(seeds_random_engine.generate(), 0, config.total_flows - 1),
       flows_random_engine_zipf(seeds_random_engine.generate(), config.zipf_param, 0, config.total_flows - 1), pd(NULL), pdumper(NULL),
       client_dev_it(0), counters(config.total_flows, 0), flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
@@ -20,6 +20,9 @@ TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_conf
   if (config.churn > 0) {
     alarm_tick = 60 * BILLION / config.churn;
     next_alarm = alarm_tick;
+    if (alarm_tick < dt) {
+      panic("Churn is too high: alarm tick (%luns) is smaller than the time step (%luns)\n", alarm_tick, dt);
+    }
   }
 
   reset_client_dev();

@@ -223,6 +223,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncrement *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *node) override final;
 
   coder_t &get(const std::string &marker) override final;
   code_t transpile(klee::ref<klee::Expr> expr);

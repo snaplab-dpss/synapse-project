@@ -110,13 +110,19 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const Call *dchain_allocate_new_i
   return new_bdd;
 }
 
-void update_profiler(EP *new_ep, double guard_allow_probability, const new_bdd_nodes_t &new_bdd_nodes) {
+bool update_profiler(EP *new_ep, double guard_allow_probability, const new_bdd_nodes_t &new_bdd_nodes) {
   Profiler &new_profiler = new_ep->get_mutable_ctx().get_mutable_profiler();
 
   new_profiler.insert_relative(new_bdd_nodes.guard_check_branch->get_ordered_branch_constraints(), new_bdd_nodes.guard_check_branch->get_condition(),
                                hit_rate_t{guard_allow_probability});
   new_profiler.remove(new_bdd_nodes.success_index_alloc_on_guard_disallow_constraints);
+
+  if (!new_profiler.can_set(new_bdd_nodes.index_alloc_check_on_guard_allow.get_failure_node()->get_ordered_branch_constraints(), 0_hr)) {
+    return false;
+  }
+
   new_profiler.set(new_bdd_nodes.index_alloc_check_on_guard_allow.get_failure_node()->get_ordered_branch_constraints(), 0_hr);
+  return true;
 }
 
 } // namespace
@@ -222,6 +228,15 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
   const double guard_allow_probability              = get_guard_allow_probability(ep, branch_direction);
   const klee::ref<klee::Expr> guard_allow_condition = build_guard_allow_condition(guard_check_symbol);
 
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
+
+  new_bdd_nodes_t new_bdd_nodes;
+  std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep.get(), dchain_allocate_new_index, guard_check_symbol, guard_allow_condition, new_bdd_nodes);
+
+  if (!update_profiler(new_ep.get(), guard_allow_probability, new_bdd_nodes)) {
+    return {};
+  }
+
   Module *guard_check_module = new GuardedMapTableGuardCheck(node, guarded_map_table->id, obj, guard_check_symbol, guard_allow_condition);
   Module *if_module          = new If(node, guard_allow_condition);
   Module *then_module        = new Then(node);
@@ -238,12 +253,6 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
   if_ep_node->set_children(guard_allow_condition, then_ep_node, else_ep_node);
   then_ep_node->set_prev(if_ep_node);
   else_ep_node->set_prev(if_ep_node);
-
-  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
-
-  new_bdd_nodes_t new_bdd_nodes;
-  std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep.get(), dchain_allocate_new_index, guard_check_symbol, guard_allow_condition, new_bdd_nodes);
-  update_profiler(new_ep.get(), guard_allow_probability, new_bdd_nodes);
 
   EPLeaf then_leaf(then_ep_node, new_bdd_nodes.guard_check_branch->get_on_true());
   EPLeaf else_leaf(else_ep_node, new_bdd_nodes.guard_check_branch->get_on_false());

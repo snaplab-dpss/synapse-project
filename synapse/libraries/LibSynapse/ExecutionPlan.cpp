@@ -49,7 +49,7 @@ pps_t find_stable_tput(pps_t ingress, std::function<tput_estimation_t(pps_t)> es
   // Algorithm for converging to a stable throughput (basically a binary search).
   // Hopefully this won't take many iterations...
   while (precision > STABLE_TPUT_PRECISION) {
-    tput_estimation_t estimation = estimator(ingress);
+    const tput_estimation_t estimation = estimator(ingress);
 
     prev_ingress = ingress;
     egress       = std::min(ingress, estimation.egress_estimation + estimation.unavoidable_drop);

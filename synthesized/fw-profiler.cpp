@@ -418,10 +418,6 @@ struct Stats {
   }
 };
 
-
-
-
-
 struct MapStats {
   struct epoch_t {
     Stats stats;
@@ -445,14 +441,9 @@ struct MapStats {
       epochs.emplace_back(now, warmup);
     }
 
-    if (!warmup) {
-      stats_per_node.at(op).update(key, len);
-      epochs.back().stats.update(key, len);
-    }
-
-    if (!epochs.empty()) {
-      epochs.back().end = now;
-    }
+    stats_per_node.at(op).update(key, len);
+    epochs.back().stats.update(key, len);
+    epochs.back().end = now;
   }
 };
 

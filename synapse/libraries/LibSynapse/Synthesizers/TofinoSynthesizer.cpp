@@ -20,7 +20,6 @@ constexpr const u16 CUCKOO_CODE_PATH = 0xffff;
 constexpr const char *const MARKER_CPU_HEADER                   = "CPU_HEADER";
 constexpr const char *const MARKER_RECIRC_HEADER                = "RECIRCULATION_HEADER";
 constexpr const char *const MARKER_CUSTOM_HEADERS               = "CUSTOM_HEADERS";
-constexpr const char *const MARKER_CONTROL_BLOCKS               = "CONTROL_BLOCKS";
 constexpr const char *const MARKER_INGRESS_HEADERS              = "INGRESS_HEADERS";
 constexpr const char *const MARKER_INGRESS_METADATA             = "INGRESS_METADATA";
 constexpr const char *const MARKER_INGRESS_PARSER               = "INGRESS_PARSER";
@@ -32,14 +31,12 @@ constexpr const char *const MARKER_INGRESS_DEPARSER_APPLY       = "INGRESS_DEPAR
 constexpr const char *const MARKER_EGRESS_HEADERS               = "EGRESS_HEADERS";
 constexpr const char *const MARKER_EGRESS_METADATA              = "EGRESS_METADATA";
 
-namespace CuckooHashTableTemplateMarkers {
-constexpr const char *const MARKER_CUCKOO_IDX_WIDTH = "CUCKOO_IDX_WIDTH";
-constexpr const char *const MARKER_CUCKOO_ENTRIES   = "CUCKOO_ENTRIES";
-constexpr const char *const MARKER_ENTRY_TIMEOUT    = "ENTRY_TIMEOUT";
-constexpr const char *const MARKER_BLOOM_IDX_WIDTH  = "BLOOM_IDX_WIDTH";
-constexpr const char *const MARKER_BLOOM_ENTRIES    = "BLOOM_ENTRIES";
-constexpr const char *const MARKER_MAX_LOOPS        = "MAX_LOOPS";
-} // namespace CuckooHashTableTemplateMarkers
+constexpr const char *const MARKER_CUCKOO_IDX_WIDTH       = "CUCKOO_IDX_WIDTH";
+constexpr const char *const MARKER_CUCKOO_ENTRIES         = "CUCKOO_ENTRIES";
+constexpr const char *const MARKER_CUCKOO_ENTRY_TIMEOUT   = "CUCKOO_ENTRY_TIMEOUT";
+constexpr const char *const MARKER_CUCKOO_BLOOM_IDX_WIDTH = "CUCKOO_BLOOM_IDX_WIDTH";
+constexpr const char *const MARKER_CUCKOO_BLOOM_ENTRIES   = "CUCKOO_BLOOM_ENTRIES";
+constexpr const char *const MARKER_CUCKOO_MAX_LOOPS       = "CUCKOO_MAX_LOOPS";
 
 constexpr const char *const TEMPLATE_FILENAME                   = "tofino.template.p4";
 constexpr const char *const TEMPLATE_CUCKOO_HASH_TABLE_FILENAME = "cuckoo_hash_table.template.p4";
@@ -1371,21 +1368,25 @@ std::vector<TofinoSynthesizer::Stack> TofinoSynthesizer::Stacks::get_all() const
 
 TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_path)
     : Synthesizer(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
-                  {
-                      {MARKER_CPU_HEADER, 1},
-                      {MARKER_RECIRC_HEADER, 1},
-                      {MARKER_CUSTOM_HEADERS, 0},
-                      {MARKER_INGRESS_HEADERS, 1},
-                      {MARKER_INGRESS_METADATA, 1},
-                      {MARKER_INGRESS_PARSER, 1},
-                      {MARKER_INGRESS_CONTROL, 1},
-                      {MARKER_INGRESS_CONTROL_APPLY, 3},
-                      {MARKER_INGRESS_CONTROL_APPLY_RECIRC, 3},
-                      {MARKER_INGRESS_DEPARSER, 1},
-                      {MARKER_INGRESS_DEPARSER_APPLY, 2},
-                      {MARKER_EGRESS_HEADERS, 1},
-                      {MARKER_EGRESS_METADATA, 1},
-                  },
+                  {{MARKER_CPU_HEADER, 1},
+                   {MARKER_RECIRC_HEADER, 1},
+                   {MARKER_CUSTOM_HEADERS, 0},
+                   {MARKER_INGRESS_HEADERS, 1},
+                   {MARKER_INGRESS_METADATA, 1},
+                   {MARKER_INGRESS_PARSER, 1},
+                   {MARKER_INGRESS_CONTROL, 1},
+                   {MARKER_INGRESS_CONTROL_APPLY, 3},
+                   {MARKER_INGRESS_CONTROL_APPLY_RECIRC, 3},
+                   {MARKER_INGRESS_DEPARSER, 1},
+                   {MARKER_INGRESS_DEPARSER_APPLY, 2},
+                   {MARKER_EGRESS_HEADERS, 1},
+                   {MARKER_EGRESS_METADATA, 1},
+                   {MARKER_CUCKOO_IDX_WIDTH, 0},
+                   {MARKER_CUCKOO_ENTRIES, 0},
+                   {MARKER_CUCKOO_ENTRY_TIMEOUT, 0},
+                   {MARKER_CUCKOO_BLOOM_IDX_WIDTH, 0},
+                   {MARKER_CUCKOO_BLOOM_ENTRIES, 0},
+                   {MARKER_CUCKOO_MAX_LOOPS, 0}},
                   _out_path),
       target_ep(_ep), transpiler(this) {}
 
@@ -2935,6 +2936,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *node) {
   // Ignore this one, as this is done out of band (as the name implies).
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *node) {
+  // TODO:
   return EPVisitor::Action::doChildren;
 }
 

@@ -116,12 +116,11 @@ class StatsPerMap(Struct):
 
     def get_churn_top_k_flows(self, k: int) -> int:
         avg_churn_fpm = 0
-        total_epochs = self.get_total_non_warmup_epochs()
 
-        for epoch in self.epochs:
-            if epoch.warmup:
-                continue
+        epoch_dt_ns = max([epoch.dt_ns for epoch in self.epochs if not epoch.warmup])
+        chosen_epochs = [epoch for epoch in self.epochs if not epoch.warmup and epoch.dt_ns == epoch_dt_ns]
 
+        for epoch in chosen_epochs:
             i = 0
             j = 0
             top_k_new_flows = 0
@@ -137,8 +136,8 @@ class StatsPerMap(Struct):
                 churn = (60.0 * top_k_new_flows) / (epoch.dt_ns / 1_000_000_000.0)
                 avg_churn_fpm += churn
 
-        if total_epochs > 0:
-            avg_churn_fpm /= total_epochs
+        if len(chosen_epochs) > 0:
+            avg_churn_fpm /= len(chosen_epochs)
 
         return int(avg_churn_fpm)
 

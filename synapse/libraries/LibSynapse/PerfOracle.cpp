@@ -56,8 +56,7 @@ port_ingress_t &port_ingress_t::operator+=(const port_ingress_t &other) {
 
   for (const auto &[recirc_depth, hr] : other.recirc) {
     assert(recirc_depth >= 1 && "Recirculation depth must be at least 1");
-
-    if (recirc.find(recirc_depth) == recirc.end()) {
+    if (!recirc.contains(recirc_depth)) {
       recirc.insert({recirc_depth, hr});
     } else {
       hit_rate_t &recirc_hr = recirc.at(recirc_depth);
@@ -194,10 +193,6 @@ void PerfOracle::add_recirculated_traffic(hit_rate_t hr) {
 std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) const {
   const bps_t Tin = pps2bps(global_ingress * recirc_ports_ingress.global.value, avg_pkt_size) / recirculation_ports_capacities.size();
 
-  if (Tin == 0) {
-    return {0};
-  }
-
   // We assume a uniform distribution of traffic throughout pipes.
   // As such, we decompose this into a calculation of recirculation traffic for each pipe, and
   // add them all up at the end.
@@ -208,6 +203,13 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
   // comming directly from global ingress). The rest are the Tout components
   // from the surplus recirculations (i.e. recirculation depth >= 1).
   std::vector<bps_t> Tout(1 + max_depth, 0);
+
+  if (Tin == 0) {
+    for (bps_t &t : Tout) {
+      t = 0;
+    }
+    return Tout;
+  }
 
   for (const auto &[port, Cr] : recirculation_ports_capacities) {
     switch (max_depth) {
@@ -444,7 +446,7 @@ std::ostream &operator<<(std::ostream &os, const port_ingress_t &ingress) {
   os << std::fixed << std::setprecision(6);
   os << "global=" << ingress.global;
   os << ",ctrl=" << ingress.controller;
-  os << ",[";
+  os << ",recirc=[";
   for (const auto &[recirc_depth, hr] : ingress.recirc) {
     os << "(";
     os << "depth=" << static_cast<int>(recirc_depth);

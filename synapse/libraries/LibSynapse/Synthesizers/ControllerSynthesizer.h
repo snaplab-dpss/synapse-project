@@ -213,6 +213,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCuckooHashTableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketIsTracing *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketTrace *node) override final;

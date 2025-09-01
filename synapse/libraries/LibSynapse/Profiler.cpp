@@ -596,6 +596,10 @@ void Profiler::scale(const std::vector<klee::ref<klee::Expr>> &constraints, doub
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
 }
 
+bool Profiler::can_set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t new_hr) const {
+  return can_set(get_node(constraints), new_hr);
+}
+
 void Profiler::set(const std::vector<klee::ref<klee::Expr>> &constraints, hit_rate_t new_hr) {
   clone_tree_if_shared();
   set(get_node(constraints), new_hr);
@@ -901,17 +905,48 @@ void Profiler::recursive_update_fractions(ProfilerNode *node, hit_rate_t parent_
   }
 }
 
-void Profiler::set(ProfilerNode *node, hit_rate_t new_hr) {
-  const ProfilerNode::family_t family = node->get_family();
+bool Profiler::can_set(ProfilerNode *node, hit_rate_t new_hr) const {
+  if (!node) {
+    return false;
+  }
 
   const hit_rate_t old_fraction = node->fraction;
   const hit_rate_t new_fraction = new_hr;
+
+  if (old_fraction == new_fraction) {
+    return true;
+  }
+
+  if (!can_recursive_update_fractions(node->on_true, old_fraction) || !can_recursive_update_fractions(node->on_false, old_fraction)) {
+    return false;
+  }
+
+  const ProfilerNode::family_t family = node->get_family();
+  if (family.sibling) {
+    const hit_rate_t sibling_old_fraction = family.sibling->fraction;
+    if (!can_recursive_update_fractions(family.sibling->on_true, sibling_old_fraction) ||
+        !can_recursive_update_fractions(family.sibling->on_false, sibling_old_fraction)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void Profiler::set(ProfilerNode *node, hit_rate_t new_hr) {
+  const hit_rate_t old_fraction = node->fraction;
+  const hit_rate_t new_fraction = new_hr;
+
+  if (old_fraction == new_fraction) {
+    return;
+  }
 
   update_fractions(node, new_fraction);
 
   recursive_update_fractions(node->on_true, old_fraction, new_fraction);
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
 
+  const ProfilerNode::family_t family = node->get_family();
   if (family.sibling) {
     assert(family.parent);
     assert(family.parent->fraction >= new_fraction);

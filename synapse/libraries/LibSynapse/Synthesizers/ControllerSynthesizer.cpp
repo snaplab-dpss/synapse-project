@@ -1720,6 +1720,11 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCuckooHashTableAllocate *node) {
+  // Actually, no need to do anything at all. This is a 100% dataplane data structure.
+  return EPVisitor::Action::doChildren;
+}
+
 ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr,
                                                               var_alloc_opt_t opt) {
   if ((opt & EXACT_NAME) && !(opt & IS_CPU_HDR_EXTRA)) {

@@ -414,6 +414,13 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
   const hit_rate_t expected_cache_hit_rate =
       calculate_expected_cache_hit_rate(ep, node, read_write_pattern, cuckoo_hash_table_data.key, cuckoo_hash_table_data.capacity);
 
+  if (!ctx.get_profiler().can_set(read_write_pattern.on_read_failure->get_ordered_branch_constraints(),
+                                  hit_rate_t(read_write_pattern.get_hr * (1 - expected_cache_hit_rate))) ||
+      !ctx.get_profiler().can_set(read_write_pattern.on_write_failure->get_ordered_branch_constraints(),
+                                  hit_rate_t(read_write_pattern.put_hr * (1 - expected_cache_hit_rate)))) {
+    return {};
+  }
+
   new_ctx.get_mutable_profiler().set(read_write_pattern.on_read_failure->get_ordered_branch_constraints(),
                                      hit_rate_t(read_write_pattern.get_hr * (1 - expected_cache_hit_rate)));
   new_ctx.get_mutable_profiler().set(read_write_pattern.on_write_failure->get_ordered_branch_constraints(),

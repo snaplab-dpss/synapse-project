@@ -35,14 +35,19 @@ struct hh_table_data_t {
   }
 };
 
-void update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
+bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
                                      const branch_direction_t &mgsc) {
   const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, mgsc.branch, map, key, capacity);
 
   assert(mgsc.branch && "No branch checking map_get success");
   const BDDNode *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
 
+  if (!ctx.get_profiler().can_set(on_success->get_ordered_branch_constraints(), success_rate)) {
+    return false;
+  }
+
   ctx.get_mutable_profiler().set_relative(on_success->get_ordered_branch_constraints(), success_rate);
+  return true;
 }
 
 } // namespace
@@ -83,7 +88,9 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const BDD
   new_ctx.save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
   new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
 
-  update_map_get_success_hit_rate(ep, new_ctx, map_get, table_data.obj, table_data.key, table_data.capacity, mpsc);
+  if (!update_map_get_success_hit_rate(ep, new_ctx, map_get, table_data.obj, table_data.key, table_data.capacity, mpsc)) {
+    return {};
+  }
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -117,6 +124,12 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
+
+  if (!update_map_get_success_hit_rate(new_ep.get(), new_ep->get_mutable_ctx(), map_get, table_data.obj, table_data.key, table_data.capacity, mpsc)) {
+    return {};
+  }
+
   HHTable *hh_table =
       build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, HHTable::CMS_WIDTH, HHTable::CMS_HEIGHT);
   if (!hh_table) {
@@ -126,10 +139,6 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode
   Module *module =
       new HHTableRead(node, hh_table->id, table_data.obj, table_data.key, table_data.table_keys, table_data.read_value, table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
-
-  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
-
-  update_map_get_success_hit_rate(new_ep.get(), new_ep->get_mutable_ctx(), map_get, table_data.obj, table_data.key, table_data.capacity, mpsc);
 
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
