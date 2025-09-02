@@ -180,6 +180,9 @@ search_report_t SearchEngine::search() {
 
     u64 children = 0;
     for (const std::unique_ptr<Target> &target : targets.elements) {
+      // if (physical_network.get_placement(node->get_id()) != target->type.instance_id) {
+      //   continue;
+      // }
       for (const std::unique_ptr<ModuleFactory> &factory : target->module_factories) {
         std::vector<impl_t> implementations = factory->implement(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
 

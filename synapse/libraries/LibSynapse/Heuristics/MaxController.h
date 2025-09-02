@@ -48,7 +48,7 @@ private:
 
   size_t get_total_send_to_controller_nodes(const EP *ep) const {
     const EPMeta &meta                 = ep->get_meta();
-    auto send_to_controller_counter_it = meta.modules_counter.find(ModuleCategory::Tofino_SendToController);
+    auto send_to_controller_counter_it = meta.modules_counter.find(ModuleType(ModuleCategory::Tofino_SendToController, ""));
     if (send_to_controller_counter_it != meta.modules_counter.end()) {
       return send_to_controller_counter_it->second;
     }

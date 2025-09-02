@@ -158,6 +158,7 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<CMSIncrementFactory>());
               f.push_back(std::make_unique<CMSCountMinFactory>());
               f.push_back(std::make_unique<DataplaneCuckooHashTableAllocateFactory>());
+>>>>>>> a98d89528 (Program running: misses placement considerations)
               return f;
             }(),
             std::make_unique<ControllerContext>()) {}
