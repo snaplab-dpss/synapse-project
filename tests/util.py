@@ -13,7 +13,7 @@ from scapy.packet import Packet, bind_layers
 from scapy.fields import ByteField, StrFixedLenField, ShortField
 
 ETH_P_ALL = 3
-PACKET_RECEIVE_TIMEOUT = 1  # seconds
+PACKET_RECEIVE_TIMEOUT = 0.5  # seconds
 
 SRC_MAC = "02:00:00:DD:EE:FF"
 DST_MAC = "02:00:00:AA:BB:CC"

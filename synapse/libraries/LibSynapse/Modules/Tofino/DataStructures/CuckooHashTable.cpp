@@ -8,14 +8,14 @@ namespace Tofino {
 using LibCore::bits_from_pow2_capacity;
 
 CuckooHashTable::CuckooHashTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _capacity)
-    : DS(DSType::CuckooHashTable, false, _id), capacity(_capacity), cuckoo_index_size(bits_from_pow2_capacity(capacity)),
-      cuckoo_bloom_index_size(bits_from_pow2_capacity(BLOOM_WIDTH)) {
-  assert(capacity > 0);
+    : DS(DSType::CuckooHashTable, false, _id), total_capacity(_capacity), entries_per_cuckoo_table(_capacity / 2),
+      cuckoo_index_size(bits_from_pow2_capacity(entries_per_cuckoo_table)), cuckoo_bloom_index_size(bits_from_pow2_capacity(BLOOM_WIDTH)) {
+  assert(total_capacity > 0);
 }
 
 CuckooHashTable::CuckooHashTable(const CuckooHashTable &other)
-    : DS(other.type, other.primitive, other.id), capacity(other.capacity), cuckoo_index_size(other.cuckoo_index_size),
-      cuckoo_bloom_index_size(other.cuckoo_bloom_index_size) {}
+    : DS(other.type, other.primitive, other.id), total_capacity(other.total_capacity), entries_per_cuckoo_table(other.entries_per_cuckoo_table),
+      cuckoo_index_size(other.cuckoo_index_size), cuckoo_bloom_index_size(other.cuckoo_bloom_index_size) {}
 
 DS *CuckooHashTable::clone() const { return new CuckooHashTable(*this); }
 
@@ -24,7 +24,7 @@ void CuckooHashTable::debug() const {
   std::cerr << "=========== Cuckoo Hash Table ============\n";
   std::cerr << "ID:        " << id << "\n";
   std::cerr << "Primitive: " << primitive << "\n";
-  std::cerr << "Entries:   " << capacity << "\n";
+  std::cerr << "Entries:   " << entries_per_cuckoo_table << "\n";
   std::cerr << "===========================================\n";
 }
 

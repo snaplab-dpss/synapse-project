@@ -30,7 +30,7 @@ ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.0]
 
-ITERATIONS = 10
+ITERATIONS = 5
 
 
 @dataclass
@@ -80,6 +80,17 @@ SYNAPSE_NFS = [
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
+    SynapseNF(
+        name="synapse-kvs-cuckoo",
+        description="Synapse KVS Cuckoo",
+        data_out=Path("tput_synapse_kvs_cuckoo.csv"),
+        kvs_mode=True,
+        tofino=Path("synthesized/synapse-kvs-cuckoo.p4"),
+        controller=Path("synthesized/synapse-kvs-cuckoo.cpp"),
+        broadcast=lambda ports: ports,
+        symmetric=lambda _: [],
+        route=lambda _: [],
+    ),
     # SynapseNF(
     #     name="synapse-kvs-maptable",
     #     description="Synapse KVS MapTable",
@@ -102,13 +113,24 @@ SYNAPSE_NFS = [
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
+    # SynapseNF(
+    #     name="synapse-fw",
+    #     description="Synapse FW",
+    #     data_out=Path("tput_synapse_fw.csv"),
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/synapse-fw.p4"),
+    #     controller=Path("synthesized/synapse-fw.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
     SynapseNF(
-        name="synapse-fw",
-        description="Synapse FW",
-        data_out=Path("tput_synapse_fw.csv"),
+        name="synapse-nat",
+        description="Synapse NAT",
+        data_out=Path("tput_synapse_nat.csv"),
         kvs_mode=False,
-        tofino=Path("synthesized/synapse-fw.p4"),
-        controller=Path("synthesized/synapse-fw.cpp"),
+        tofino=Path("synthesized/synapse-nat.p4"),
+        controller=Path("synthesized/synapse-nat.cpp"),
         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
         route=lambda _: [],

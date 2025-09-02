@@ -54,7 +54,7 @@ std::optional<spec_impl_t> DataplaneCuckooHashTableAllocateFactory::speculate(co
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable)) {
     return {};
   }
 
@@ -66,25 +66,25 @@ std::vector<impl_t> DataplaneCuckooHashTableAllocateFactory::process_node(const 
     return {};
   }
 
-  const Call *map_allocate = dynamic_cast<const Call *>(node);
-  const call_t &call       = map_allocate->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
   if (call.function_name != "map_allocate") {
     return {};
   }
 
-  const cuckoo_hash_table_allocation_data_t table_data = get_cuckoo_hash_table_allocation_data(map_allocate);
+  const addr_t obj = expr_addr_to_obj_addr(call_node->get_obj());
 
-  const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(obj);
   if (!map_objs.has_value()) {
     return {};
   }
 
-  if (!ep->get_ctx().check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ep->get_ctx().check_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable)) {
     return {};
   }
 
-  Module *module  = new DataplaneCuckooHashTableAllocate(node, table_data.obj, table_data.key_size, table_data.value_size, table_data.capacity);
+  Module *module  = new DataplaneCuckooHashTableAllocate(node, obj);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -102,25 +102,25 @@ std::unique_ptr<Module> DataplaneCuckooHashTableAllocateFactory::create(const BD
     return {};
   }
 
-  const Call *map_allocate = dynamic_cast<const Call *>(node);
-  const call_t &call       = map_allocate->get_call();
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
-  if (call.function_name != "map_allocate") {
+  if (call.function_name != "map_allocate" && call.function_name != "vector_allocate" && call.function_name != "dchain_allocate") {
     return {};
   }
 
-  const cuckoo_hash_table_allocation_data_t table_data = get_cuckoo_hash_table_allocation_data(map_allocate);
+  const addr_t obj = expr_addr_to_obj_addr(call_node->get_obj());
 
-  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(obj);
   if (!map_objs.has_value()) {
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable)) {
     return {};
   }
 
-  return std::make_unique<DataplaneCuckooHashTableAllocate>(node, table_data.obj, table_data.key_size, table_data.value_size, table_data.capacity);
+  return std::make_unique<DataplaneCuckooHashTableAllocate>(node, obj);
 }
 
 } // namespace Controller

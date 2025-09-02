@@ -488,7 +488,7 @@ void Table::set_session(const std::shared_ptr<bfrt::BfRtSession> &_session) { se
 void Table::set_notify_mode(time_ms_t timeout, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable) {
   LOG_DEBUG("Set timeouts state for table %s: %ldms (enabled=%d)", name.c_str(), timeout, enable);
 
-  const time_ms_t min_timeout = args.model ? TOFINO_MODEL_MIN_EXPIRATION_TIME : TOFINO_MIN_EXPIRATION_TIME;
+  const time_ms_t min_timeout = TOFINO_MIN_EXPIRATION_TIME;
   if (timeout < min_timeout) {
     LOG_DEBUG("Warning: Timeout value is too low, setting to minimum value %lu ms", min_timeout);
     timeout = min_timeout;

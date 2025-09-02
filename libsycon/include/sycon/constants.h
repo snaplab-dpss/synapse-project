@@ -31,10 +31,9 @@ constexpr const bool DEFAULT_WAIT_FOR_PORTS                   = true;
 constexpr const u16 ALL_PIPES                     = 0xffff;
 constexpr const int SWITCH_PACKET_MAX_BUFFER_SIZE = 10000;
 
-constexpr const time_ms_t TOFINO_MIN_EXPIRATION_TIME       = 100;
-constexpr const time_ms_t TOFINO_MODEL_MIN_EXPIRATION_TIME = 5000;
-constexpr const time_us_t TOFINO_DIGEST_TIMEOUT            = 1;
-constexpr const char TOFINO_NO_ACTION_NAME[]               = "NoAction";
+constexpr const time_ms_t TOFINO_MIN_EXPIRATION_TIME = 100;
+constexpr const time_us_t TOFINO_DIGEST_TIMEOUT      = 1;
+constexpr const char TOFINO_NO_ACTION_NAME[]         = "NoAction";
 
 constexpr const char DATA_FIELD_NAME_ENTRY_HIT_STATE[] = "$ENTRY_HIT_STATE";
 constexpr const char DATA_FIELD_NAME_ENTRY_TTL[]       = "$ENTRY_TTL";

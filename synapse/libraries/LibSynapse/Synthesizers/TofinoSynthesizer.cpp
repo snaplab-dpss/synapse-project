@@ -2779,7 +2779,7 @@ void TofinoSynthesizer::transpile_cuckoo_hash_table_decl(const CuckooHashTable *
                                       });
 
   cuckoo_hash_table_template.get(MARKER_CUCKOO_IDX_WIDTH) << cuckoo_hash_table->cuckoo_index_size;
-  cuckoo_hash_table_template.get(MARKER_CUCKOO_ENTRIES) << cuckoo_hash_table->capacity;
+  cuckoo_hash_table_template.get(MARKER_CUCKOO_ENTRIES) << cuckoo_hash_table->entries_per_cuckoo_table;
   cuckoo_hash_table_template.get(MARKER_CUCKOO_BLOOM_IDX_WIDTH) << cuckoo_hash_table->cuckoo_bloom_index_size;
   cuckoo_hash_table_template.get(MARKER_CUCKOO_BLOOM_ENTRIES) << cuckoo_hash_table->BLOOM_WIDTH;
 
@@ -2964,11 +2964,15 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *node) {
-  const DS_ID cms_id                             = node->get_cuckoo_hash_table_id();
-  klee::ref<klee::Expr> key                      = node->get_key();
-  klee::ref<klee::Expr> value                    = node->get_value();
-  klee::ref<klee::Expr> cuckoo_update_condition  = node->get_cuckoo_update_condition();
-  klee::ref<klee::Expr> cuckoo_success_condition = node->get_cuckoo_success_condition();
+  const DS_ID cms_id                            = node->get_cuckoo_hash_table_id();
+  klee::ref<klee::Expr> key                     = node->get_key();
+  klee::ref<klee::Expr> read_value              = node->get_read_value();
+  klee::ref<klee::Expr> write_value             = node->get_write_value();
+  klee::ref<klee::Expr> cuckoo_update_condition = node->get_cuckoo_update_condition();
+  const symbol_t &cuckoo_success                = node->get_cuckoo_success();
+
+  assert_or_panic(ep_node->get_children().size() == 1, "Expected exactly one child");
+  const EPNode *next_ep_node = ep_node->get_children().at(0);
 
   const CuckooHashTable *cuckoo_hash_table = get_tofino_ds<CuckooHashTable>(ep, cms_id);
 
@@ -2979,7 +2983,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << "if (!hdr.cuckoo.isValid()) {\n";
   ingress_apply.inc();
   ingress_apply.indent();
-  ingress_apply << "build_cuckoo_hdr();\n";
+  ingress_apply << "build_cuckoo_hdr(";
+  ingress_apply << transpiler.transpile(key) << ", " << transpiler.transpile(write_value);
+  ingress_apply << ");\n";
   ingress_apply.indent();
   ingress_apply << "if (" << transpiler.transpile(cuckoo_update_condition) << ") {\n";
   ingress_apply.inc();
@@ -2998,58 +3004,36 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.indent();
   ingress_apply << "}\n";
 
+  const var_t success_var = alloc_var(cuckoo_success.name, cuckoo_success.expr, FORCE_BOOL);
+
+  success_var.declare(ingress_apply);
+
   ingress_apply.indent();
-  ingress_apply << "bool success;\n";
-  ingress_apply.indent();
-  ingress_apply << "cuckoo_hash_table.apply(meta.time, hdr.cuckoo, success);\n";
+  ingress_apply << "cuckoo_hash_table.apply(meta.time, hdr.cuckoo, " << success_var.name << ");\n";
   ingress_apply.indent();
   ingress_apply << "cuckoo_bloom_filter.apply(hdr.cuckoo, fwd_op);\n";
 
+  alloc_var("hdr.cuckoo.val", read_value, EXACT_NAME);
+
+  ingress_apply.indent();
+  ingress_apply << "if (hdr.cuckoo.op != cuckoo_ops_t.DONE) {\n";
+  ingress_apply.inc();
+  ingress_apply.indent();
+  ingress_apply << "build_recirc_hdr(CUCKOO_CODE_PATH);\n";
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "} else {\n";
+  ingress_apply.inc();
+
+  visit(ep, next_ep_node);
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
   code_template.dbg_code();
 
-  /*
-    TODO: synthesize this code:
-    if (!hdr.cuckoo.isValid()) {
-      build_cuckoo_hdr();
-      if (hdr.kvs.op == KVS_OP_GET) {
-        hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
-      } else {
-        hdr.cuckoo.op = cuckoo_ops_t.UPDATE;
-      }
-    }
-
-    bool success;
-    cuckoo_hash_table.apply(meta.time, hdr.cuckoo, success);
-    cuckoo_bloom_filter.apply(hdr.cuckoo, fwd_op);
-
-    hdr.kvs.key = hdr.cuckoo.key;
-    hdr.kvs.val = hdr.cuckoo.val;
-
-    if (hdr.cuckoo.op != cuckoo_ops_t.DONE) {
-      recirculate();
-    } else {
-      if (hdr.kvs.op == KVS_OP_GET) {
-        if (success) {
-          // BDD: on map_get success
-          hdr.kvs.status = KVS_STATUS_HIT;
-          nf_dev = meta.dev;
-        } else {
-          nf_dev = KVS_SERVER_NF_DEV;
-        }
-      } else {
-        if (success) {
-          // BDD: on dchain_allocate_new_index success
-          hdr.kvs.status = KVS_STATUS_HIT;
-          nf_dev = meta.dev;
-        } else {
-          nf_dev = KVS_SERVER_NF_DEV;
-        }
-      }
-    }
-  */
-
-  // todo();
-  return EPVisitor::Action::doChildren;
+  return EPVisitor::Action::skipChildren;
 }
 
 code_t TofinoSynthesizer::create_unique_name(const code_t &prefix) {

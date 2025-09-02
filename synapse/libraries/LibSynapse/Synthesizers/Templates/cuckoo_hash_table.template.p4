@@ -2,6 +2,9 @@
 #define CUCKOO_ENTRY_TIMEOUT 16384 // 1 s
 #define CUCKOO_MAX_LOOPS 4
 
+const bit<32> CUCKOO_HASH_SALT_1 = 0xfbc31fc7;
+const bit<32> CUCKOO_HASH_SALT_2 = 0x2681580b;
+
 control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success) {
 	Hash<bit</*@{CUCKOO_IDX_WIDTH}@*/>>(HashAlgorithm_t.CRC32) cuckoo_hash_func_1;
 	Hash<bit</*@{CUCKOO_IDX_WIDTH}@*/>>(HashAlgorithm_t.CRC32) cuckoo_hash_func_2;
@@ -11,9 +14,9 @@ control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success)
 	bit</*@{CUCKOO_IDX_WIDTH}@*/> cuckoo_hash_2 = 0;
 	bit</*@{CUCKOO_IDX_WIDTH}@*/> cuckoo_hash_2_r = 0;
 
-	action calc_cuckoo_hash_1() { cuckoo_hash_1	= cuckoo_hash_func_1.get({HASH_SALT_1, cuckoo.key}); }
-	action calc_cuckoo_hash_2() { cuckoo_hash_2	= cuckoo_hash_func_2.get({HASH_SALT_2, cuckoo.key}); }
-	action calc_cuckoo_hash_2_r() { cuckoo_hash_2_r = cuckoo_hash_func_2_r.get({HASH_SALT_2, cuckoo.key}); }
+	action calc_cuckoo_hash_1() { cuckoo_hash_1	= cuckoo_hash_func_1.get({CUCKOO_HASH_SALT_1, cuckoo.key}); }
+	action calc_cuckoo_hash_2() { cuckoo_hash_2	= cuckoo_hash_func_2.get({CUCKOO_HASH_SALT_2, cuckoo.key}); }
+	action calc_cuckoo_hash_2_r() { cuckoo_hash_2_r = cuckoo_hash_func_2_r.get({CUCKOO_HASH_SALT_2, cuckoo.key}); }
 
 	Register<bit<32>, bit</*@{CUCKOO_IDX_WIDTH}@*/>>(/*@{CUCKOO_ENTRIES}@*/, 0) reg_k_1;
 	Register<bit<32>, bit</*@{CUCKOO_IDX_WIDTH}@*/>>(/*@{CUCKOO_ENTRIES}@*/, 0) reg_k_2;

@@ -50,6 +50,7 @@ struct read_write_pattern_t {
   const BDDNode *on_write_success;
   const BDDNode *on_write_failure;
   const BDDNode *on_insert_success;
+  klee::ref<klee::Expr> write_value;
   symbol_t read_value;
   hit_rate_t on_read_failure_hr;
   hit_rate_t on_read_success_hr;
@@ -216,6 +217,8 @@ bool is_read_write_pattern_on_condition(const EP *ep, const BDDNode *node, const
   if (!is_vector_op(on_insert, "vector_return") || !dynamic_cast<const Call *>(on_insert)->is_vector_write()) {
     return false;
   }
+
+  read_write_pattern.write_value = dynamic_cast<const Call *>(on_insert)->get_call().args.at("value").in;
 
   on_insert                            = on_insert->get_next();
   read_write_pattern.on_insert_success = on_insert;
@@ -505,9 +508,9 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
   const symbol_t cuckoo_success_symbol                 = create_cuckoo_success_symbol(cuckoo_hash_table->id, symbol_manager, node);
   const klee::ref<klee::Expr> cuckoo_success_condition = build_cuckoo_success_condition(cuckoo_success_symbol);
 
-  Module *cuckoo_read_write_module =
-      new CuckooHashTableReadWrite(node, cuckoo_hash_table->id, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key,
-                                   read_write_pattern.read_value.expr, read_write_pattern.cuckoo_update_condition, cuckoo_success_condition);
+  Module *cuckoo_read_write_module = new CuckooHashTableReadWrite(node, cuckoo_hash_table->id, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key,
+                                                                  read_write_pattern.read_value.expr, read_write_pattern.write_value,
+                                                                  read_write_pattern.cuckoo_update_condition, cuckoo_success_condition);
 
   Module *if_cuckoo_update_module   = new If(node, read_write_pattern.cuckoo_update_condition);
   Module *then_cuckoo_update_module = new Then(node);

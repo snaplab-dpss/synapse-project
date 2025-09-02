@@ -49,11 +49,13 @@ header recirc_h {
 };
 
 header cuckoo_h {
-  bit<8> op;
-  bit<8> recirc_cntr;
+  bit<8>  op;
+  bit<8>  recirc_cntr;
   bit<32> ts;
-  bit<8> old_op;
-  /*@{CUCKOO_HEADER_EXTRA_FIELDS}@*/
+  bit<32> key;
+  bit<32> val;
+  bit<8>  old_op;
+  bit<32> old_key;
 }
 
 /*@{CUSTOM_HEADERS}@*/
@@ -245,6 +247,14 @@ control Ingress(
     hdr.recirc.dev = meta.dev;
     hdr.recirc.code_path = code_path;
   }
+
+  action build_cuckoo_hdr(bit<32> key, bit<32> val) {
+		hdr.cuckoo.setValid();
+		hdr.cuckoo.recirc_cntr = 0;
+		hdr.cuckoo.ts = meta.time;
+		hdr.cuckoo.key = key;
+		hdr.cuckoo.val = val;
+	}
 
 /*@{INGRESS_CONTROL}@*/
   apply {

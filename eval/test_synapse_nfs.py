@@ -19,7 +19,7 @@ STORAGE_SERVER_DELAY_NS = 0
 KVS_GET_RATIO = 0.99
 
 TOTAL_FLOWS = 40_000
-CHURN_FPM = 10_000
+CHURN_FPM = 0
 ZIPF_PARAM = 1.2
 
 
@@ -66,6 +66,16 @@ NFS = [
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
+    SynapseNF(
+        name="synapse-kvs-cuckoo",
+        description="Synapse KVS Cuckoo",
+        kvs_mode=True,
+        tofino=Path("synthesized/synapse-kvs-cuckoo.p4"),
+        controller=Path("synthesized/synapse-kvs-cuckoo.cpp"),
+        broadcast=lambda ports: ports,
+        symmetric=lambda _: [],
+        route=lambda _: [],
+    ),
     # SynapseNF(
     #     name="synapse-kvs-maptable",
     #     description="Synapse KVS MapTable",
@@ -86,16 +96,26 @@ NFS = [
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
-    SynapseNF(
-        name="synapse-fw",
-        description="Synapse FW",
-        kvs_mode=False,
-        tofino=Path("synthesized/synapse-fw.p4"),
-        controller=Path("synthesized/synapse-fw.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-    ),
+    # SynapseNF(
+    #     name="synapse-fw",
+    #     description="Synapse FW",
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/synapse-fw.p4"),
+    #     controller=Path("synthesized/synapse-fw.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
+    # SynapseNF(
+    #     name="synapse-nat",
+    #     description="Synapse NAT",
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/synapse-nat.p4"),
+    #     controller=Path("synthesized/synapse-nat.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
 ]
 
 
