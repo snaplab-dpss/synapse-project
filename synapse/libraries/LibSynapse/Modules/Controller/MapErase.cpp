@@ -53,7 +53,7 @@ std::vector<impl_t> MapEraseFactory::process_node(const EP *ep, const BDDNode *n
     return {};
   }
 
-  Module *module  = new MapErase(type, node, map_addr, key, trash);
+  Module *module  = new MapErase(ep->get_placement(node->get_id()), node, map_addr, key, trash);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -90,7 +90,7 @@ std::unique_ptr<Module> MapEraseFactory::create(const BDD *bdd, const Context &c
     return {};
   }
 
-  return std::make_unique<MapErase>(type, node, map_addr, key, trash);
+  return std::make_unique<MapErase>(get_type().instance_id, node, map_addr, key, trash);
 }
 
 } // namespace Controller

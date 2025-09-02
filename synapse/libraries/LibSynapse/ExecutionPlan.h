@@ -1,5 +1,6 @@
 #pragma once
 
+#include <LibClone/PhysicalNetwork.h>
 #include <LibSynapse/EPNode.h>
 #include <LibSynapse/Meta.h>
 #include <LibSynapse/Context.h>
@@ -22,6 +23,10 @@ using LibBDD::BDDNode;
 using LibBDD::Call;
 using LibBDD::map_coalescing_objs_t;
 using LibBDD::symbol_translation_t;
+
+using LibClone::ComponentId;
+using LibClone::NetworkNodeId;
+using LibClone::PhysicalNetwork;
 
 using translator_t = std::unordered_map<bdd_node_id_t, bdd_node_id_t>;
 using ep_id_t      = u64;
@@ -66,8 +71,11 @@ private:
   mutable std::optional<pps_t> cached_tput_speculation;
   mutable std::optional<complete_speculation_t> cached_speculations;
 
+  const LibClone::PhysicalNetwork &phys_net;
+
 public:
-  EP(const BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
+  EP(const BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler,
+     const LibClone::PhysicalNetwork &phys_net);
   EP(const EP &other, bool is_ancestor = true);
   EP(EP &&other)                 = delete;
   EP &operator=(const EP *other) = delete;
@@ -112,6 +120,8 @@ public:
   hit_rate_t get_active_leaf_hit_rate() const;
   port_ingress_t get_node_egress(hit_rate_t hr, const EPNode *node) const;
   pps_t estimate_tput_pps() const;
+
+  const LibClone::NetworkNodeId get_placement(const LibClone::ComponentId component_id) const { return phys_net.get_placement(component_id); }
 
   // Sources of error:
   // 1. Speculative performance is calculated as we make the speculative decisions, so local speculative decisions don't take into

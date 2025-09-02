@@ -12,13 +12,15 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneMapTableUpdate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
-      : ControllerModule(_type, "DataplaneMapTableUpdate", _node), obj(_obj), key(_key), value(_value) {}
+  DataplaneMapTableUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key,
+                          klee::ref<klee::Expr> _value)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneMapTableUpdate, _instance_id), "DataplaneMapTableUpdate", _node), obj(_obj),
+        key(_key), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneMapTableUpdate *cloned = new DataplaneMapTableUpdate(type, node, obj, key, value);
+    DataplaneMapTableUpdate *cloned = new DataplaneMapTableUpdate(get_type().instance_id, node, obj, key, value);
     return cloned;
   }
 

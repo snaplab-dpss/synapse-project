@@ -32,6 +32,7 @@ public:
   const std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> &get_nodes() const { return nodes; }
   const std::unordered_map<ComponentId, NetworkNodeId> &get_placement_strategy() const { return placement_strategy; }
 
+  const NetworkNodeId get_placement(const ComponentId component_id) const;
   static PhysicalNetwork parse(const std::filesystem::path &file_path);
 
   void debug() const {

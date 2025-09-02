@@ -12,13 +12,15 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneVectorRegisterLookup(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
-      : ControllerModule(_type, "DataplaneVectorRegisterLookup", _node), obj(_obj), index(_index), value(_value) {}
+  DataplaneVectorRegisterLookup(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index,
+                                klee::ref<klee::Expr> _value)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterLookup, _instance_id), "DataplaneVectorRegisterLookup", _node),
+        obj(_obj), index(_index), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneVectorRegisterLookup(type, node, obj, index, value);
+    Module *cloned = new DataplaneVectorRegisterLookup(get_type().instance_id, node, obj, index, value);
     return cloned;
   }
 

@@ -63,7 +63,7 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const BDDNode *node,
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new Drop(type, node);
+  Module *module  = new Drop(ep->get_placement(node->get_id()), node);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -90,7 +90,7 @@ std::unique_ptr<Module> DropFactory::create(const BDD *bdd, const Context &ctx, 
     return {};
   }
 
-  return std::make_unique<Drop>(type, node);
+  return std::make_unique<Drop>(get_type().instance_id, node);
 }
 
 } // namespace Tofino

@@ -155,7 +155,7 @@ private:
   void bdd_pre_processing_get_dchains_failing_to_allocate_new_index_hit_rates(const BDD *bdd);
   void bdd_pre_processing_get_ds_configs(const BDD *bdd);
   void bdd_pre_processing_get_structural_fields(const BDD *bdd);
-  void bdd_pre_processing_build_tofino_parser(const BDD *bdd);
+  void bdd_pre_processing_build_tofino_parser(const BDD *bdd, const TargetType type);
   void bdd_pre_processing_log();
 };
 

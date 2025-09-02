@@ -10,7 +10,7 @@ namespace Controller {
 
 class ControllerModule : public Module {
 public:
-  ControllerModule(ModuleType _type, const std::string &_name, const BDDNode *_node)
+  ControllerModule(const ModuleType _type, const std::string &_name, const BDDNode *_node)
       : Module(_type, TargetType(TargetArchitecture::Controller, _type.instance_id), _name, _node) {}
 };
 

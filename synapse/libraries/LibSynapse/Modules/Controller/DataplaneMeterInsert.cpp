@@ -70,7 +70,7 @@ std::vector<impl_t> DataplaneMeterInsertFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  Module *module  = new DataplaneMeterInsert(type, node, obj, keys, success);
+  Module *module  = new DataplaneMeterInsert(ep->get_placement(node->get_id()), node, obj, keys, success);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -104,7 +104,7 @@ std::unique_ptr<Module> DataplaneMeterInsertFactory::create(const BDD *bdd, cons
     return {};
   }
 
-  return std::make_unique<DataplaneMeterInsert>(type, node, obj, keys, success);
+  return std::make_unique<DataplaneMeterInsert>(get_type().instance_id, node, obj, keys, success);
 }
 
 } // namespace Controller

@@ -16,14 +16,15 @@ private:
   std::vector<expr_mod_t> modifications;
 
 public:
-  VectorWrite(ModuleType _type, const BDDNode *_node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr,
+  VectorWrite(const std::string &_instance_id, const BDDNode *_node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr,
               const std::vector<expr_mod_t> &_modifications)
-      : x86Module(_type, "VectorWrite", _node), vector_addr(_vector_addr), index(_index), value_addr(_value_addr), modifications(_modifications) {}
+      : x86Module(ModuleType(ModuleCategory::x86_VectorWrite, _instance_id), "VectorWrite", _node), vector_addr(_vector_addr), index(_index),
+        value_addr(_value_addr), modifications(_modifications) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorWrite(type, node, vector_addr, index, value_addr, modifications);
+    Module *cloned = new VectorWrite(get_type().instance_id, node, vector_addr, index, value_addr, modifications);
     return cloned;
   }
 

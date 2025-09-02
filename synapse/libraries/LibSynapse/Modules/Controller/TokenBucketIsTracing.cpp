@@ -54,7 +54,7 @@ std::vector<impl_t> TokenBucketIsTracingFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  Module *module  = new TokenBucketIsTracing(type, node, tb_addr, key, index_out, is_tracing);
+  Module *module  = new TokenBucketIsTracing(ep->get_placement(node->get_id()), node, tb_addr, key, index_out, is_tracing);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -92,7 +92,7 @@ std::unique_ptr<Module> TokenBucketIsTracingFactory::create(const BDD *bdd, cons
     return {};
   }
 
-  return std::make_unique<TokenBucketIsTracing>(type, node, tb_addr, key, index_out, is_tracing);
+  return std::make_unique<TokenBucketIsTracing>(get_type().instance_id, node, tb_addr, key, index_out, is_tracing);
 }
 
 } // namespace Controller

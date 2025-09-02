@@ -12,13 +12,15 @@ private:
   klee::ref<klee::Expr> time;
 
 public:
-  DchainRejuvenateIndex(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
-      : x86Module(_type, "DchainRejuvenate", _node), dchain_addr(_dchain_addr), index(_index), time(_time) {}
+  DchainRejuvenateIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+                        klee::ref<klee::Expr> _time)
+      : x86Module(ModuleType(ModuleCategory::x86_DchainRejuvenateIndex, _instance_id), "DchainRejuvenate", _node), dchain_addr(_dchain_addr),
+        index(_index), time(_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DchainRejuvenateIndex(type, node, dchain_addr, index, time);
+    Module *cloned = new DchainRejuvenateIndex(get_type().instance_id, node, dchain_addr, index, time);
     return cloned;
   }
 

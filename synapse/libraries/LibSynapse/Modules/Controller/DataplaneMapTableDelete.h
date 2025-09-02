@@ -11,13 +11,14 @@ private:
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  DataplaneMapTableDelete(ModuleType _type, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
-      : ControllerModule(type, "DataplaneMapTableDelete", _node), obj(_obj), keys(_keys) {}
+  DataplaneMapTableDelete(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneMapTableDelete, _instance_id), "DataplaneMapTableDelete", _node), obj(_obj),
+        keys(_keys) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneMapTableDelete *cloned = new DataplaneMapTableDelete(type, node, obj, keys);
+    DataplaneMapTableDelete *cloned = new DataplaneMapTableDelete(get_type().instance_id, node, obj, keys);
     return cloned;
   }
 

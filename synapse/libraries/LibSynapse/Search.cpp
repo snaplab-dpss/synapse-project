@@ -125,9 +125,10 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
 }
 
 std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, const BDD &bdd, const Targets &targets,
-                                           const targets_config_t &targets_config, const Profiler &profiler) {
+                                           const targets_config_t &targets_config, const Profiler &profiler,
+                                           const LibClone::PhysicalNetwork &physical_network) {
   std::unique_ptr<HeuristicCfg> heuristic_cfg = build_heuristic_cfg(hopt);
-  std::unique_ptr<EP> starting_ep             = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
+  std::unique_ptr<EP> starting_ep             = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler, physical_network);
   std::unique_ptr<Heuristic> heuristic        = std::make_unique<Heuristic>(std::move(heuristic_cfg), std::move(starting_ep), !not_greedy);
   return heuristic;
 }
@@ -136,7 +137,7 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
 SearchEngine::SearchEngine(const BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler, const targets_config_t &_targets_config,
                            const search_config_t &_search_config, const LibClone::PhysicalNetwork &_physical_network)
     : targets_config(_targets_config), search_config(_search_config), bdd(_bdd), targets(Targets(_targets_config, _physical_network)),
-      profiler(_profiler), heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)),
+      profiler(_profiler), heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler, _physical_network)),
       physical_network(_physical_network) {}
 
 search_report_t SearchEngine::search() {
@@ -179,6 +180,9 @@ search_report_t SearchEngine::search() {
 
     u64 children = 0;
     for (const std::unique_ptr<Target> &target : targets.elements) {
+      // if (physical_network.get_placement(node->get_id()) != target->type.instance_id) {
+      //   continue;
+      // }
       for (const std::unique_ptr<ModuleFactory> &factory : target->module_factories) {
         std::vector<impl_t> implementations = factory->implement(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
 

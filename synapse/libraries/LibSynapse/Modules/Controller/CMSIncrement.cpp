@@ -55,7 +55,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNod
     return {};
   }
 
-  Module *module  = new CMSIncrement(type, node, cms_addr, key);
+  Module *module  = new CMSIncrement(ep->get_placement(node->get_id()), node, cms_addr, key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -91,7 +91,7 @@ std::unique_ptr<Module> CMSIncrementFactory::create(const BDD *bdd, const Contex
     return {};
   }
 
-  return std::make_unique<CMSIncrement>(type, node, cms_addr, key);
+  return std::make_unique<CMSIncrement>(get_type().instance_id, node, cms_addr, key);
 }
 
 } // namespace Controller

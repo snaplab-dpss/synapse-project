@@ -13,15 +13,15 @@ private:
   symbol_t cached_delete_failed;
 
 public:
-  FCFSCachedTableDelete(ModuleType _type, const BDDNode *_node, DS_ID _cached_table_id, addr_t _obj, klee::ref<klee::Expr> _key,
+  FCFSCachedTableDelete(const std::string &_instance_id, const BDDNode *_node, DS_ID _cached_table_id, addr_t _obj, klee::ref<klee::Expr> _key,
                         const symbol_t &_cached_delete_failed)
-      : TofinoModule(_type, "FCFSCachedTableDelete", _node), cached_table_id(_cached_table_id), obj(_obj), key(_key),
-        cached_delete_failed(_cached_delete_failed) {}
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_FCFSCachedTableDelete, _instance_id), "FCFSCachedTableDelete", _node),
+        cached_table_id(_cached_table_id), obj(_obj), key(_key), cached_delete_failed(_cached_delete_failed) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new FCFSCachedTableDelete(type, node, cached_table_id, obj, key, cached_delete_failed);
+    Module *cloned = new FCFSCachedTableDelete(get_type().instance_id, node, cached_table_id, obj, key, cached_delete_failed);
     return cloned;
   }
 

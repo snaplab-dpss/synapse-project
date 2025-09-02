@@ -13,15 +13,17 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneFCFSCachedTableAllocate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
+  DataplaneFCFSCachedTableAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
                                    klee::ref<klee::Expr> _value_size, klee::ref<klee::Expr> _capacity)
-      : ControllerModule(_type, "DataplaneFCFSCachedTableAllocate", _node), obj(_obj), key_size(_key_size), value_size(_value_size),
-        capacity(_capacity) {}
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableAllocate, _instance_id), "DataplaneFCFSCachedTableAllocate",
+                         _node),
+        obj(_obj), key_size(_key_size), value_size(_value_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneFCFSCachedTableAllocate *cloned = new DataplaneFCFSCachedTableAllocate(type, node, obj, key_size, value_size, capacity);
+    DataplaneFCFSCachedTableAllocate *cloned =
+        new DataplaneFCFSCachedTableAllocate(get_type().instance_id, node, obj, key_size, value_size, capacity);
     return cloned;
   }
 

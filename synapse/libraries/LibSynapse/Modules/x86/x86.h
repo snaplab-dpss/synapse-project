@@ -38,41 +38,41 @@ namespace LibSynapse {
 namespace x86 {
 
 struct x86Target : public Target {
-  x86Target(const std::string &instance_id)
+  x86Target(const std::string &_instance_id)
       : Target(
-            TargetType(TargetArchitecture::x86, instance_id),
-            [instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
+            TargetType(TargetArchitecture::x86, _instance_id),
+            [_instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
-              f.push_back(std::make_unique<IgnoreFactory>(instance_id));
-              f.push_back(std::make_unique<ForwardFactory>(instance_id));
-              f.push_back(std::make_unique<BroadcastFactory>(instance_id));
-              f.push_back(std::make_unique<DropFactory>(instance_id));
-              f.push_back(std::make_unique<ParseHeaderFactory>(instance_id));
-              f.push_back(std::make_unique<ModifyHeaderFactory>(instance_id));
-              f.push_back(std::make_unique<ChecksumUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<IfFactory>(instance_id));
-              f.push_back(std::make_unique<ThenFactory>(instance_id));
-              f.push_back(std::make_unique<ElseFactory>(instance_id));
-              f.push_back(std::make_unique<ExpireItemsSingleMapFactory>(instance_id));
-              f.push_back(std::make_unique<ExpireItemsSingleMapIterativelyFactory>(instance_id));
-              f.push_back(std::make_unique<MapGetFactory>(instance_id));
-              f.push_back(std::make_unique<MapPutFactory>(instance_id));
-              f.push_back(std::make_unique<MapEraseFactory>(instance_id));
-              f.push_back(std::make_unique<VectorReadFactory>(instance_id));
-              f.push_back(std::make_unique<VectorWriteFactory>(instance_id));
-              f.push_back(std::make_unique<DchainRejuvenateIndexFactory>(instance_id));
-              f.push_back(std::make_unique<DchainAllocateNewIndexFactory>(instance_id));
-              f.push_back(std::make_unique<DchainIsIndexAllocatedFactory>(instance_id));
-              f.push_back(std::make_unique<DchainFreeIndexFactory>(instance_id));
-              f.push_back(std::make_unique<CMSCountMinFactory>(instance_id));
-              f.push_back(std::make_unique<CMSIncrementFactory>(instance_id));
-              f.push_back(std::make_unique<CMSPeriodicCleanupFactory>(instance_id));
-              f.push_back(std::make_unique<HashObjFactory>(instance_id));
-              f.push_back(std::make_unique<ChtFindBackendFactory>(instance_id));
-              f.push_back(std::make_unique<TokenBucketExpireFactory>(instance_id));
-              f.push_back(std::make_unique<TokenBucketIsTracingFactory>(instance_id));
-              f.push_back(std::make_unique<TokenBucketTraceFactory>(instance_id));
-              f.push_back(std::make_unique<TokenBucketUpdateAndCheckFactory>(instance_id));
+              f.push_back(std::make_unique<IgnoreFactory>(_instance_id));
+              f.push_back(std::make_unique<ForwardFactory>(_instance_id));
+              f.push_back(std::make_unique<BroadcastFactory>(_instance_id));
+              f.push_back(std::make_unique<DropFactory>(_instance_id));
+              f.push_back(std::make_unique<ParseHeaderFactory>(_instance_id));
+              f.push_back(std::make_unique<ModifyHeaderFactory>(_instance_id));
+              f.push_back(std::make_unique<ChecksumUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<IfFactory>(_instance_id));
+              f.push_back(std::make_unique<ThenFactory>(_instance_id));
+              f.push_back(std::make_unique<ElseFactory>(_instance_id));
+              f.push_back(std::make_unique<ExpireItemsSingleMapFactory>(_instance_id));
+              f.push_back(std::make_unique<ExpireItemsSingleMapIterativelyFactory>(_instance_id));
+              f.push_back(std::make_unique<MapGetFactory>(_instance_id));
+              f.push_back(std::make_unique<MapPutFactory>(_instance_id));
+              f.push_back(std::make_unique<MapEraseFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorReadFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorWriteFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainRejuvenateIndexFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainAllocateNewIndexFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainIsIndexAllocatedFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainFreeIndexFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSCountMinFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSIncrementFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSPeriodicCleanupFactory>(_instance_id));
+              f.push_back(std::make_unique<HashObjFactory>(_instance_id));
+              f.push_back(std::make_unique<ChtFindBackendFactory>(_instance_id));
+              f.push_back(std::make_unique<TokenBucketExpireFactory>(_instance_id));
+              f.push_back(std::make_unique<TokenBucketIsTracingFactory>(_instance_id));
+              f.push_back(std::make_unique<TokenBucketTraceFactory>(_instance_id));
+              f.push_back(std::make_unique<TokenBucketUpdateAndCheckFactory>(_instance_id));
               return f;
             }(),
             std::make_unique<x86Context>()) {}

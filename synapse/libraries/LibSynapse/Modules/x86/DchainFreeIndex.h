@@ -11,13 +11,14 @@ private:
   klee::ref<klee::Expr> index;
 
 public:
-  DchainFreeIndex(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
-      : x86Module(_type, "DchainFreeIndex", _node), dchain_addr(_dchain_addr), index(_index) {}
+  DchainFreeIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
+      : x86Module(ModuleType(ModuleCategory::x86_DchainFreeIndex, _instance_id), "DchainFreeIndex", _node), dchain_addr(_dchain_addr), index(_index) {
+  }
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DchainFreeIndex(type, node, dchain_addr, index);
+    Module *cloned = new DchainFreeIndex(get_type().instance_id, node, dchain_addr, index);
     return cloned;
   }
 

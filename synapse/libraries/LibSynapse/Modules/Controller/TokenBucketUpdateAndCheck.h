@@ -14,14 +14,15 @@ private:
   klee::ref<klee::Expr> pass;
 
 public:
-  TokenBucketUpdateAndCheck(ModuleType _type, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _pkt_len,
-                            klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _pass)
-      : ControllerModule(_type, "TokenBucketUpdateAndCheck", _node), tb_addr(_tb_addr), index(_index), pkt_len(_pkt_len), time(_time), pass(_pass) {}
+  TokenBucketUpdateAndCheck(const std::string &_instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _index,
+                            klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _pass)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_TokenBucketUpdateAndCheck, _instance_id), "TokenBucketUpdateAndCheck", _node),
+        tb_addr(_tb_addr), index(_index), pkt_len(_pkt_len), time(_time), pass(_pass) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new TokenBucketUpdateAndCheck(type, node, tb_addr, index, pkt_len, time, pass);
+    Module *cloned = new TokenBucketUpdateAndCheck(get_type().instance_id, node, tb_addr, index, pkt_len, time, pass);
     return cloned;
   }
 

@@ -20,7 +20,8 @@ struct TargetType {
   TargetArchitecture type;
   std::string instance_id;
 
-  TargetType(TargetArchitecture _type = TargetArchitecture::x86, const std::string &_instance_id = "") : type(_type), instance_id(_instance_id) {}
+  TargetType() = default;
+  TargetType(TargetArchitecture _type, const std::string &_instance_id) : type(_type), instance_id(_instance_id) {}
   bool operator==(const TargetType &other) const { return type == other.type && instance_id == other.instance_id; }
 };
 

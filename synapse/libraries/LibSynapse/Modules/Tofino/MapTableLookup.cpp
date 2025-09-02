@@ -91,7 +91,8 @@ std::vector<impl_t> MapTableLookupFactory::process_node(const EP *ep, const BDDN
     return {};
   }
 
-  Module *module  = new MapTableLookup(type, node, map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
+  Module *module =
+      new MapTableLookup(ep->get_placement(node->get_id()), node, map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -131,7 +132,7 @@ std::unique_ptr<Module> MapTableLookupFactory::create(const BDD *bdd, const Cont
   const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_ds(data.obj);
   const MapTable *map_table                 = dynamic_cast<const MapTable *>(*ds.begin());
 
-  return std::make_unique<MapTableLookup>(type, node, map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
+  return std::make_unique<MapTableLookup>(get_type().instance_id, node, map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
 }
 
 } // namespace Tofino

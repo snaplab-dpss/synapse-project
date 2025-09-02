@@ -61,7 +61,7 @@ std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const 
     return {};
   }
 
-  Module *module  = new CMSPeriodicCleanup(type, node, cms_addr);
+  Module *module  = new CMSPeriodicCleanup(ep->get_placement(node->get_id()), node, cms_addr);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -92,7 +92,7 @@ std::unique_ptr<Module> CMSPeriodicCleanupFactory::create(const BDD *bdd, const 
     return {};
   }
 
-  return std::make_unique<CMSPeriodicCleanup>(type, node, cms_addr);
+  return std::make_unique<CMSPeriodicCleanup>(get_type().instance_id, node, cms_addr);
 }
 
 } // namespace x86

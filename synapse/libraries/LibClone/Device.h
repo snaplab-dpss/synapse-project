@@ -31,7 +31,14 @@ public:
   const TargetArchitecture &get_architecture() const { return architecture; }
 
   friend std::ostream &operator<<(std::ostream &os, const Device &device) {
-    os << "Device{" << device.id << ", " << LibSynapse::to_string(device.architecture) << "}";
+    os << "Device{" << device.id << ", ";
+    if (device.architecture == TargetArchitecture::x86)
+      os << "x86";
+    else if (device.architecture == TargetArchitecture::Tofino)
+      os << "Tofino";
+    else if (device.architecture == TargetArchitecture::Controller)
+      os << "Controller";
+    os << "}";
     return os;
   }
 };

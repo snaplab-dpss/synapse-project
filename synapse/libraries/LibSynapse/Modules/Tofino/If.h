@@ -47,13 +47,14 @@ public:
   If(const BDDNode *_node, klee::ref<klee::Expr> _original_condition, const std::vector<condition_t> &_conditions)
       : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions(_conditions) {}
 
-  If(ModuleType _type, const BDDNode *_node, klee::ref<klee::Expr> _original_condition)
-      : TofinoModule(_type, "If", _node), original_condition(_original_condition), conditions({_original_condition}) {}
+  If(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _original_condition)
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_If, _instance_id), "If", _node), original_condition(_original_condition),
+        conditions({_original_condition}) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    If *cloned = new If(type, node, original_condition, conditions);
+    If *cloned = new If(get_type().instance_id, node, original_condition, conditions);
     return cloned;
   }
 

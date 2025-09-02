@@ -56,9 +56,9 @@ std::vector<impl_t> DchainAllocateNewIndexFactory::process_node(const EP *ep, co
   Module *module;
   if (call_node->has_local_symbol("not_out_of_space")) {
     symbol_t not_out_of_space = call_node->get_local_symbol("not_out_of_space");
-    module                    = new DchainAllocateNewIndex(type, node, dchain_addr, time, index_out, not_out_of_space);
+    module                    = new DchainAllocateNewIndex(ep->get_placement(node->get_id()), node, dchain_addr, time, index_out, not_out_of_space);
   } else {
-    module = new DchainAllocateNewIndex(type, node, dchain_addr, time, index_out);
+    module = new DchainAllocateNewIndex(ep->get_placement(node->get_id()), node, dchain_addr, time, index_out);
   }
 
   EPNode *ep_node = new EPNode(module);
@@ -98,7 +98,7 @@ std::unique_ptr<Module> DchainAllocateNewIndexFactory::create(const BDD *bdd, co
     return {};
   }
 
-  return std::make_unique<DchainAllocateNewIndex>(type, node, dchain_addr, time, index_out, not_out_of_space);
+  return std::make_unique<DchainAllocateNewIndex>(get_type().instance_id, node, dchain_addr, time, index_out, not_out_of_space);
 }
 
 } // namespace Controller

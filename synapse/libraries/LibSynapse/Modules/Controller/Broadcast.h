@@ -7,12 +7,13 @@ namespace Controller {
 
 class Broadcast : public ControllerModule {
 public:
-  Broadcast(ModuleType _type, const BDDNode *_node) : ControllerModule(_type, "Broadcast", _node) {}
+  Broadcast(const std::string &_instance_id, const BDDNode *_node)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_Broadcast, _instance_id), "Broadcast", _node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    Broadcast *cloned = new Broadcast(type, node);
+    Broadcast *cloned = new Broadcast(get_type().instance_id, node);
     return cloned;
   }
 };

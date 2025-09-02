@@ -208,8 +208,7 @@ void Context::bdd_pre_processing_get_structural_fields(const BDD *bdd) {
   });
 }
 
-void Context::bdd_pre_processing_build_tofino_parser(const BDD *bdd) {
-  const TargetArchitecture type = TargetArchitecture::Tofino;
+void Context::bdd_pre_processing_build_tofino_parser(const BDD *bdd, const TargetType type) {
 
   if (target_ctxs.find(type) == target_ctxs.end()) {
     return;
@@ -360,7 +359,7 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const targets_confi
   }
 
   for (const TargetView &target : targets.elements) {
-    if (target.type == TargetArchitecture::Tofino) {
+    if (target.type.type == TargetArchitecture::Tofino) {
       const Tofino::TofinoContext *tofino_ctx = get_target_ctx_if_available<Tofino::TofinoContext>(target.type);
       if (tofino_ctx && expiration_data.has_value()) {
         const time_ns_t expiration_time     = expiration_data->expiration_time;
@@ -377,7 +376,11 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const targets_confi
   bdd_pre_processing_get_dchains_failing_to_allocate_new_index_hit_rates(bdd);
   bdd_pre_processing_get_ds_configs(bdd);
   bdd_pre_processing_get_structural_fields(bdd);
-  bdd_pre_processing_build_tofino_parser(bdd);
+  for (const TargetView &target : targets.elements) {
+    if (target.type.type == TargetArchitecture::Tofino) {
+      bdd_pre_processing_build_tofino_parser(bdd, target.type);
+    }
+  }
   bdd_pre_processing_log();
 }
 

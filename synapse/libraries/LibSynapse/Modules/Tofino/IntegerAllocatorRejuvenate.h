@@ -15,13 +15,15 @@ private:
   klee::ref<klee::Expr> time;
 
 public:
-  IntegerAllocatorRejuvenate(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
-      : TofinoModule(_type, "IntegerAllocatorRejuvenate", _node), dchain_addr(_dchain_addr), index(_index), time(_time) {}
+  IntegerAllocatorRejuvenate(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+                             klee::ref<klee::Expr> _time)
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_IntegerAllocatorRejuvenate, _instance_id), "IntegerAllocatorRejuvenate", _node),
+        dchain_addr(_dchain_addr), index(_index), time(_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new IntegerAllocatorRejuvenate(type, node, dchain_addr, index, time);
+    Module *cloned = new IntegerAllocatorRejuvenate(get_type().instance_id, node, dchain_addr, index, time);
     return cloned;
   }
 

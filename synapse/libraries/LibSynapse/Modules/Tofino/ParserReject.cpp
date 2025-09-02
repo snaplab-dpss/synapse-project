@@ -19,8 +19,8 @@ bool is_parser_reject(const EP *ep) {
   const EPNode *prev   = node->get_prev();
   const Module *module = prev->get_module();
 
-  ModuleType type = module->get_type().type;
-  return (type == ModuleCategory::Tofino_ParserCondition);
+  ModuleType type = module->get_type();
+  return (type.type == ModuleCategory::Tofino_ParserCondition);
 }
 } // namespace
 
@@ -47,7 +47,7 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const BDDNod
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new ParserReject(type, node);
+  Module *module  = new ParserReject(ep->get_placement(node->get_id()), node);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -73,7 +73,7 @@ std::unique_ptr<Module> ParserRejectFactory::create(const BDD *bdd, const Contex
     return {};
   }
 
-  return std::make_unique<ParserReject>(type, node);
+  return std::make_unique<ParserReject>(get_type().instance_id, node);
 }
 
 } // namespace Tofino

@@ -51,7 +51,7 @@ std::vector<impl_t> ExpireItemsSingleMapFactory::process_node(const EP *ep, cons
   const addr_t vector_addr = expr_addr_to_obj_addr(vector);
   const addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
 
-  Module *module  = new ExpireItemsSingleMap(type, node, dchain_addr, vector_addr, map_addr, time, total_freed);
+  Module *module  = new ExpireItemsSingleMap(ep->get_placement(node->get_id()), node, dchain_addr, vector_addr, map_addr, time, total_freed);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -82,7 +82,7 @@ std::unique_ptr<Module> ExpireItemsSingleMapFactory::create(const BDD *bdd, cons
   const addr_t vector_addr = expr_addr_to_obj_addr(vector);
   const addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
 
-  return std::make_unique<ExpireItemsSingleMap>(type, node, dchain_addr, vector_addr, map_addr, time, total_freed);
+  return std::make_unique<ExpireItemsSingleMap>(get_type().instance_id, node, dchain_addr, vector_addr, map_addr, time, total_freed);
 }
 
 } // namespace x86

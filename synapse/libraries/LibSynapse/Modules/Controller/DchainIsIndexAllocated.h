@@ -12,13 +12,15 @@ private:
   symbol_t is_allocated;
 
 public:
-  DchainIsIndexAllocated(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
-      : ControllerModule(_type, "DchainIsIndexAllocated", _node), dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
+  DchainIsIndexAllocated(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+                         const symbol_t &_is_allocated)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DchainIsIndexAllocated, _instance_id), "DchainIsIndexAllocated", _node),
+        dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DchainIsIndexAllocated(type, node, dchain_addr, index, is_allocated);
+    Module *cloned = new DchainIsIndexAllocated(get_type().instance_id, node, dchain_addr, index, is_allocated);
     return cloned;
   }
 

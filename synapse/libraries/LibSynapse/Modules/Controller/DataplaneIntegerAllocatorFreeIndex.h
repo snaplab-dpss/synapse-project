@@ -11,13 +11,15 @@ private:
   klee::ref<klee::Expr> index;
 
 public:
-  DataplaneIntegerAllocatorFreeIndex(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
-      : ControllerModule(_type, "DataplaneIntegerAllocatorFreeIndex", _node), dchain_addr(_dchain_addr), index(_index) {}
+  DataplaneIntegerAllocatorFreeIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneIntegerAllocatorFreeIndex, _instance_id),
+                         "DataplaneIntegerAllocatorFreeIndex", _node),
+        dchain_addr(_dchain_addr), index(_index) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneIntegerAllocatorFreeIndex(type, node, dchain_addr, index);
+    Module *cloned = new DataplaneIntegerAllocatorFreeIndex(get_type().instance_id, node, dchain_addr, index);
     return cloned;
   }
 

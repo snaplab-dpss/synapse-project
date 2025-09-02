@@ -60,7 +60,7 @@ std::vector<impl_t> TokenBucketAllocateFactory::process_node(const EP *ep, const
     return {};
   }
 
-  Module *module  = new TokenBucketAllocate(type, node, tb_addr, capacity, rate, burst, key_size);
+  Module *module  = new TokenBucketAllocate(ep->get_placement(node->get_id()), node, tb_addr, capacity, rate, burst, key_size);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -99,7 +99,7 @@ std::unique_ptr<Module> TokenBucketAllocateFactory::create(const BDD *bdd, const
     return {};
   }
 
-  return std::make_unique<TokenBucketAllocate>(type, node, tb_addr, capacity, rate, burst, key_size);
+  return std::make_unique<TokenBucketAllocate>(get_type().instance_id, node, tb_addr, capacity, rate, burst, key_size);
 }
 
 } // namespace Controller

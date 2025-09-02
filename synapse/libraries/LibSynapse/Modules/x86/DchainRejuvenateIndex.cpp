@@ -63,7 +63,7 @@ std::vector<impl_t> DchainRejuvenateIndexFactory::process_node(const EP *ep, con
     return {};
   }
 
-  Module *module  = new DchainRejuvenateIndex(type, node, dchain_addr, index, time);
+  Module *module  = new DchainRejuvenateIndex(ep->get_placement(node->get_id()), node, dchain_addr, index, time);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -96,7 +96,7 @@ std::unique_ptr<Module> DchainRejuvenateIndexFactory::create(const BDD *bdd, con
     return {};
   }
 
-  return std::make_unique<DchainRejuvenateIndex>(type, node, dchain_addr, index, time);
+  return std::make_unique<DchainRejuvenateIndex>(get_type().instance_id, node, dchain_addr, index, time);
 }
 
 } // namespace x86

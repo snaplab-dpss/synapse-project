@@ -13,15 +13,16 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneGuardedMapTableAllocate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
+  DataplaneGuardedMapTableAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
                                    klee::ref<klee::Expr> _value_size, klee::ref<klee::Expr> _capacity)
-      : ControllerModule(_type, "DataplaneGuardedMapTableAllocate", _node), obj(_obj), key_size(_key_size), value_size(_value_size),
-        capacity(_capacity) {}
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableAllocate, _instance_id), "DataplaneGuardedMapTableAllocate",
+                         _node),
+        obj(_obj), key_size(_key_size), value_size(_value_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneGuardedMapTableAllocate(type, node, obj, key_size, value_size, capacity);
+    Module *cloned = new DataplaneGuardedMapTableAllocate(get_type().instance_id, node, obj, key_size, value_size, capacity);
     return cloned;
   }
 

@@ -12,14 +12,15 @@ private:
   symbol_t is_allocated;
 
 public:
-  IntegerAllocatorIsAllocated(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+  IntegerAllocatorIsAllocated(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
                               const symbol_t &_is_allocated)
-      : TofinoModule(_type, "IntegerAllocatorIsAllocated", _node), dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_IntegerAllocatorIsAllocated, _instance_id), "IntegerAllocatorIsAllocated", _node),
+        dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new IntegerAllocatorIsAllocated(type, node, dchain_addr, index, is_allocated);
+    Module *cloned = new IntegerAllocatorIsAllocated(get_type().instance_id, node, dchain_addr, index, is_allocated);
     return cloned;
   }
 

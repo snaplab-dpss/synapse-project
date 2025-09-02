@@ -30,9 +30,9 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
   assert(branch_node->get_on_true() && "Branch node has no on_true");
   assert(branch_node->get_on_false() && "Branch node has no on_false");
 
-  Module *if_module   = new If(type, node, condition);
-  Module *then_module = new Then(type, node);
-  Module *else_module = new Else(type, node);
+  Module *if_module   = new If(ep->get_placement(node->get_id()), node, condition);
+  Module *then_module = new Then(ep->get_placement(node->get_id()), node);
+  Module *else_module = new Else(ep->get_placement(node->get_id()), node);
 
   EPNode *if_node   = new EPNode(if_module);
   EPNode *then_node = new EPNode(then_module);
@@ -62,7 +62,7 @@ std::unique_ptr<Module> IfFactory::create(const BDD *bdd, const Context &ctx, co
   const Branch *branch_node       = dynamic_cast<const Branch *>(node);
   klee::ref<klee::Expr> condition = branch_node->get_condition();
 
-  return std::make_unique<If>(type, node, condition);
+  return std::make_unique<If>(get_type().instance_id, node, condition);
 }
 
 } // namespace Controller

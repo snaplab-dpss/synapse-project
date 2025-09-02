@@ -84,7 +84,8 @@ std::vector<impl_t> DataplaneHHTableAllocateFactory::process_node(const EP *ep, 
     return {};
   }
 
-  Module *module  = new DataplaneHHTableAllocate(type, node, table_data.obj, table_data.key_size, table_data.value_size, table_data.capacity);
+  Module *module  = new DataplaneHHTableAllocate(ep->get_placement(node->get_id()), node, table_data.obj, table_data.key_size, table_data.value_size,
+                                                 table_data.capacity);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -120,7 +121,8 @@ std::unique_ptr<Module> DataplaneHHTableAllocateFactory::create(const BDD *bdd, 
     return {};
   }
 
-  return std::make_unique<DataplaneHHTableAllocate>(type, node, table_data.obj, table_data.key_size, table_data.value_size, table_data.capacity);
+  return std::make_unique<DataplaneHHTableAllocate>(get_type().instance_id, node, table_data.obj, table_data.key_size, table_data.value_size,
+                                                    table_data.capacity);
 }
 
 } // namespace Controller

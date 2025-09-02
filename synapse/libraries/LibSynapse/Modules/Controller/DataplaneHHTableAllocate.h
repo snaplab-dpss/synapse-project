@@ -13,14 +13,15 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneHHTableAllocate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _value_size,
-                           klee::ref<klee::Expr> _capacity)
-      : ControllerModule(_type, "DataplaneHHTableAllocate", _node), obj(_obj), key_size(_key_size), value_size(_value_size), capacity(_capacity) {}
+  DataplaneHHTableAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
+                           klee::ref<klee::Expr> _value_size, klee::ref<klee::Expr> _capacity)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneHHTableAllocate, _instance_id), "DataplaneHHTableAllocate", _node), obj(_obj),
+        key_size(_key_size), value_size(_value_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneHHTableAllocate(type, node, obj, key_size, value_size, capacity);
+    Module *cloned = new DataplaneHHTableAllocate(get_type().instance_id, node, obj, key_size, value_size, capacity);
     return cloned;
   }
 

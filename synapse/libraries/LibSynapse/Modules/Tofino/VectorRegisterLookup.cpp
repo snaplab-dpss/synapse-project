@@ -143,8 +143,8 @@ std::unique_ptr<Module> VectorRegisterLookupFactory::create(const BDD *bdd, cons
   assert((*ds.begin())->type == DSType::VectorRegister);
   VectorRegister *vector_register = dynamic_cast<VectorRegister *>(*ds.begin());
 
-  return std::make_unique<VectorRegisterLookup>(type, node, vector_register->id, vector_register_data.obj, vector_register_data.index,
-                                                vector_register_data.value);
+  return std::make_unique<VectorRegisterLookup>(get_type().instance_id, node, vector_register->id, vector_register_data.obj,
+                                                vector_register_data.index, vector_register_data.value);
 }
 
 } // namespace Tofino

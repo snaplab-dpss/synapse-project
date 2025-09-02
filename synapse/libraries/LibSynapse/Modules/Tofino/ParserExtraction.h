@@ -13,14 +13,15 @@ private:
   std::vector<klee::ref<klee::Expr>> hdr_fields_guess;
 
 public:
-  ParserExtraction(ModuleType _type, const BDDNode *_node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, bytes_t _length,
+  ParserExtraction(const std::string &_instance_id, const BDDNode *_node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, bytes_t _length,
                    std::vector<klee::ref<klee::Expr>> _hdr_fields_guess)
-      : TofinoModule(_type, "ParserExtraction", _node), hdr_addr(_hdr_addr), hdr(_hdr), length(_length), hdr_fields_guess(_hdr_fields_guess) {}
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_ParserExtraction, _instance_id), "ParserExtraction", _node), hdr_addr(_hdr_addr), hdr(_hdr),
+        length(_length), hdr_fields_guess(_hdr_fields_guess) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    ParserExtraction *cloned = new ParserExtraction(type, node, hdr_addr, hdr, length, hdr_fields_guess);
+    ParserExtraction *cloned = new ParserExtraction(get_type().instance_id, node, hdr_addr, hdr, length, hdr_fields_guess);
     return cloned;
   }
 

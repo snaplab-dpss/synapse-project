@@ -7,12 +7,12 @@ namespace x86 {
 
 class Else : public x86Module {
 public:
-  Else(ModuleType _type, const BDDNode *_node) : x86Module(_type, "Else", _node) {}
+  Else(const std::string &_instance_id, const BDDNode *_node) : x86Module(ModuleType(ModuleCategory::x86_Else, _instance_id), "Else", _node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Else *cloned = new Else(type, node);
+    Else *cloned = new Else(get_type().instance_id, node);
     return cloned;
   }
 };

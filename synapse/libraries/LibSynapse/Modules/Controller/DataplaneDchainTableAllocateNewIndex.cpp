@@ -76,7 +76,7 @@ std::vector<impl_t> DataplaneDchainTableAllocateNewIndexFactory::process_node(co
     return {};
   }
 
-  Module *module  = new DataplaneDchainTableAllocateNewIndex(type, node, data.obj, data.index, data.success);
+  Module *module  = new DataplaneDchainTableAllocateNewIndex(ep->get_placement(node->get_id()), node, data.obj, data.index, data.success);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -107,7 +107,7 @@ std::unique_ptr<Module> DataplaneDchainTableAllocateNewIndexFactory::create(cons
     return {};
   }
 
-  return std::make_unique<DataplaneDchainTableAllocateNewIndex>(type, node, data.obj, data.index, data.success);
+  return std::make_unique<DataplaneDchainTableAllocateNewIndex>(get_type().instance_id, node, data.obj, data.index, data.success);
 }
 
 } // namespace Controller
