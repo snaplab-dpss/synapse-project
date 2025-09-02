@@ -185,7 +185,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     if (module->get_type().type == ModuleCategory::Tofino_If || module->get_type().type == ModuleCategory::Tofino_ParserExtraction) {
       prev_modules.insert(prev_modules.begin(), prev_module);
       branch_conditions_found = true;
-    } else if (module->get_target() == TargetArchitecture::Tofino) {
+    } else if (module->get_target().type == TargetArchitecture::Tofino) {
       const TofinoModule *tofino_module  = dynamic_cast<const TofinoModule *>(module);
       const std::unordered_set<DS_ID> ds = tofino_module->get_generated_ds();
       if (!ds.empty()) {
@@ -204,9 +204,8 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       klee::ref<klee::Expr> length = solver_toolbox.exprBuilder->Constant(parser_extraction_module->get_length(), 16);
 
-      Controller::ParseHeader *ctrl_parse_header =
-          new Controller::ParseHeader(ModuleType(ModuleCategory::Controller_ParseHeader, instance_id), active_leaf.next,
-                                      parser_extraction_module->get_hdr_addr(), parser_extraction_module->get_hdr(), length);
+      Controller::ParseHeader *ctrl_parse_header = new Controller::ParseHeader(
+          instance_id, active_leaf.next, parser_extraction_module->get_hdr_addr(), parser_extraction_module->get_hdr(), length);
 
       EPNode *parse_header_ep_node = new EPNode(ctrl_parse_header);
       initial_controller_logic.update(parse_header_ep_node);
@@ -236,14 +235,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       initial_controller_logic.extra_symbols.add(if_node->get_used_symbols());
 
-      Controller::If *ctrl_if =
-          new Controller::If(ModuleType(ModuleCategory::Controller_If, prev.module->get_type().instance_id), active_leaf.next, condition);
-      Controller::Then *ctrl_then =
-          new Controller::Then(ModuleType(ModuleCategory::Controller_Then, prev.module->get_type().instance_id), active_leaf.next);
-      Controller::Else *ctrl_else =
-          new Controller::Else(ModuleType(ModuleCategory::Controller_Else, prev.module->get_type().instance_id), active_leaf.next);
-      Controller::AbortTransaction *ctrl_abort_transaction = new Controller::AbortTransaction(
-          ModuleType(ModuleCategory::Controller_AbortTransaction, prev.module->get_type().instance_id), active_leaf.next);
+      Controller::If *ctrl_if                              = new Controller::If(prev.module->get_type().instance_id, active_leaf.next, condition);
+      Controller::Then *ctrl_then                          = new Controller::Then(prev.module->get_type().instance_id, active_leaf.next);
+      Controller::Else *ctrl_else                          = new Controller::Else(prev.module->get_type().instance_id, active_leaf.next);
+      Controller::AbortTransaction *ctrl_abort_transaction = new Controller::AbortTransaction(prev.module->get_type().instance_id, active_leaf.next);
 
       EPNode *if_ep_node                = new EPNode(ctrl_if);
       EPNode *then_ep_node              = new EPNode(ctrl_then);
@@ -279,9 +274,9 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleCategory::Tofino_MapTableLookup: {
       const MapTableLookup *map_table_lookup = dynamic_cast<const MapTableLookup *>(prev.module);
 
-      Controller::DataplaneMapTableLookup *ctrl_map_table_lookup = new Controller::DataplaneMapTableLookup(
-          ModuleType(ModuleCategory::Controller_DataplaneMapTableLookup, prev.module->get_type().instance_id), active_leaf.next,
-          map_table_lookup->get_obj(), map_table_lookup->get_original_key(), map_table_lookup->get_value(), map_table_lookup->get_hit());
+      Controller::DataplaneMapTableLookup *ctrl_map_table_lookup =
+          new Controller::DataplaneMapTableLookup(prev.module->get_type().instance_id, active_leaf.next, map_table_lookup->get_obj(),
+                                                  map_table_lookup->get_original_key(), map_table_lookup->get_value(), map_table_lookup->get_hit());
 
       EPNode *map_table_lookup_ep_node = new EPNode(ctrl_map_table_lookup);
       initial_controller_logic.update(map_table_lookup_ep_node);
@@ -290,9 +285,8 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       const GuardedMapTableLookup *guarded_map_table_lookup = dynamic_cast<const GuardedMapTableLookup *>(prev.module);
 
       Controller::DataplaneGuardedMapTableLookup *ctrl_guarded_map_table_lookup = new Controller::DataplaneGuardedMapTableLookup(
-          ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableLookup, prev.module->get_type().instance_id), active_leaf.next,
-          guarded_map_table_lookup->get_obj(), guarded_map_table_lookup->get_original_key(), guarded_map_table_lookup->get_value(),
-          guarded_map_table_lookup->get_hit());
+          prev.module->get_type().instance_id, active_leaf.next, guarded_map_table_lookup->get_obj(), guarded_map_table_lookup->get_original_key(),
+          guarded_map_table_lookup->get_value(), guarded_map_table_lookup->get_hit());
 
       EPNode *guarded_map_table_lookup_ep_node = new EPNode(ctrl_guarded_map_table_lookup);
       initial_controller_logic.update(guarded_map_table_lookup_ep_node);
@@ -301,9 +295,8 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       const GuardedMapTableGuardCheck *guarded_map_table_guard_check = dynamic_cast<const GuardedMapTableGuardCheck *>(prev.module);
 
       Controller::DataplaneGuardedMapTableGuardCheck *ctrl_guarded_map_table_guard_check = new Controller::DataplaneGuardedMapTableGuardCheck(
-          ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableGuardCheck, prev.module->get_type().instance_id), active_leaf.next,
-          guarded_map_table_guard_check->get_obj(), guarded_map_table_guard_check->get_guard_allow(),
-          guarded_map_table_guard_check->get_guard_allow_condition());
+          prev.module->get_type().instance_id, active_leaf.next, guarded_map_table_guard_check->get_obj(),
+          guarded_map_table_guard_check->get_guard_allow(), guarded_map_table_guard_check->get_guard_allow_condition());
 
       EPNode *guarded_map_table_guard_check_ep_node = new EPNode(ctrl_guarded_map_table_guard_check);
       initial_controller_logic.update(guarded_map_table_guard_check_ep_node);
@@ -311,9 +304,9 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleCategory::Tofino_VectorTableLookup: {
       const VectorTableLookup *vector_table_lookup = dynamic_cast<const VectorTableLookup *>(prev.module);
 
-      Controller::DataplaneVectorTableLookup *ctrl_vector_table_lookup = new Controller::DataplaneVectorTableLookup(
-          ModuleType(ModuleCategory::Controller_DataplaneVectorTableLookup, prev.module->get_type().instance_id), active_leaf.next,
-          vector_table_lookup->get_obj(), vector_table_lookup->get_key(), vector_table_lookup->get_value());
+      Controller::DataplaneVectorTableLookup *ctrl_vector_table_lookup =
+          new Controller::DataplaneVectorTableLookup(prev.module->get_type().instance_id, active_leaf.next, vector_table_lookup->get_obj(),
+                                                     vector_table_lookup->get_key(), vector_table_lookup->get_value());
 
       EPNode *vector_table_lookup_ep_node = new EPNode(ctrl_vector_table_lookup);
       initial_controller_logic.update(vector_table_lookup_ep_node);
@@ -325,9 +318,9 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
         break;
       }
 
-      Controller::DataplaneDchainTableIsIndexAllocated *ctrl_dchain_is_index_allocated = new Controller::DataplaneDchainTableIsIndexAllocated(
-          ModuleType(ModuleCategory::Controller_DataplaneDchainTableIsIndexAllocated, prev.module->get_type().instance_id), active_leaf.next,
-          dchain_table_lookup->get_obj(), dchain_table_lookup->get_key(), dchain_table_lookup->get_hit().value());
+      Controller::DataplaneDchainTableIsIndexAllocated *ctrl_dchain_is_index_allocated =
+          new Controller::DataplaneDchainTableIsIndexAllocated(prev.module->get_type().instance_id, active_leaf.next, dchain_table_lookup->get_obj(),
+                                                               dchain_table_lookup->get_key(), dchain_table_lookup->get_hit().value());
 
       EPNode *dchain_is_index_allocated_ep_node = new EPNode(ctrl_dchain_is_index_allocated);
       initial_controller_logic.update(dchain_is_index_allocated_ep_node);
@@ -338,9 +331,9 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleCategory::Tofino_HHTableRead: {
       const HHTableRead *hh_table_read = dynamic_cast<const HHTableRead *>(prev.module);
 
-      Controller::DataplaneHHTableRead *ctrl_hh_table_read = new Controller::DataplaneHHTableRead(
-          ModuleType(ModuleCategory::Controller_DataplaneHHTableRead, prev.module->get_type().instance_id), active_leaf.next,
-          hh_table_read->get_obj(), hh_table_read->get_original_key(), hh_table_read->get_value(), hh_table_read->get_hit());
+      Controller::DataplaneHHTableRead *ctrl_hh_table_read =
+          new Controller::DataplaneHHTableRead(prev.module->get_type().instance_id, active_leaf.next, hh_table_read->get_obj(),
+                                               hh_table_read->get_original_key(), hh_table_read->get_value(), hh_table_read->get_hit());
 
       EPNode *hh_table_read_ep_node = new EPNode(ctrl_hh_table_read);
       initial_controller_logic.update(hh_table_read_ep_node);
@@ -515,7 +508,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
   symbols.remove("packet_chunks");
   symbols.remove("next_time");
 
-  Module *module   = new SendToController(type, node, symbols);
+  Module *module   = new SendToController(ep->get_placement(node->get_id()), node, symbols);
   EPNode *s2c_node = new EPNode(module);
 
   EPNode *ep_node_leaf = s2c_node;

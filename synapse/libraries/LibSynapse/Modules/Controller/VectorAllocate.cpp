@@ -56,7 +56,7 @@ std::vector<impl_t> VectorAllocateFactory::process_node(const EP *ep, const BDDN
     return {};
   }
 
-  Module *module  = new VectorAllocate(type, node, vector_addr, elem_size, capacity);
+  Module *module  = new VectorAllocate(ep->get_placement(node->get_id()), node, vector_addr, elem_size, capacity);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -93,7 +93,7 @@ std::unique_ptr<Module> VectorAllocateFactory::create(const BDD *bdd, const Cont
     return {};
   }
 
-  return std::make_unique<VectorAllocate>(type, node, vector_addr, elem_size, capacity);
+  return std::make_unique<VectorAllocate>(get_type().instance_id, node, vector_addr, elem_size, capacity);
 }
 
 } // namespace Controller

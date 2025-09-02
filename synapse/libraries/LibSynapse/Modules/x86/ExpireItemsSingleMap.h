@@ -14,15 +14,15 @@ private:
   klee::ref<klee::Expr> total_freed;
 
 public:
-  ExpireItemsSingleMap(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, addr_t _vector_addr, addr_t _map_addr,
+  ExpireItemsSingleMap(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, addr_t _vector_addr, addr_t _map_addr,
                        klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _total_freed)
-      : x86Module(_type, "ExpireItemsSingleMap", _node), dchain_addr(_dchain_addr), vector_addr(_vector_addr), map_addr(_map_addr), time(_time),
-        total_freed(_total_freed) {}
+      : x86Module(ModuleType(ModuleCategory::x86_ExpireItemsSingleMap, _instance_id), "ExpireItemsSingleMap", _node), dchain_addr(_dchain_addr),
+        vector_addr(_vector_addr), map_addr(_map_addr), time(_time), total_freed(_total_freed) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    ExpireItemsSingleMap *cloned = new ExpireItemsSingleMap(type, node, dchain_addr, map_addr, vector_addr, time, total_freed);
+    ExpireItemsSingleMap *cloned = new ExpireItemsSingleMap(get_type().instance_id, node, dchain_addr, map_addr, vector_addr, time, total_freed);
     return cloned;
   }
 

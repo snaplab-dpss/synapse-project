@@ -13,13 +13,13 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  ParserCondition(ModuleType _type, const BDDNode *_node, klee::ref<klee::Expr> _condition)
-      : TofinoModule(_type, "ParserCondition", _node), condition(_condition) {}
+  ParserCondition(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _condition)
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_ParserCondition, _instance_id), "ParserCondition", _node), condition(_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    ParserCondition *cloned = new ParserCondition(type, node, condition);
+    ParserCondition *cloned = new ParserCondition(get_type().instance_id, node, condition);
     return cloned;
   }
 

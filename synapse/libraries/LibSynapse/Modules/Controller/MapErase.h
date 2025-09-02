@@ -12,13 +12,14 @@ private:
   klee::ref<klee::Expr> trash;
 
 public:
-  MapErase(ModuleType _type, const BDDNode *_node, addr_t _map_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _trash)
-      : ControllerModule(_type, "MapErase", _node), map_addr(_map_addr), key(_key), trash(_trash) {}
+  MapErase(const std::string &_instance_id, const BDDNode *_node, addr_t _map_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _trash)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_MapErase, _instance_id), "MapErase", _node), map_addr(_map_addr), key(_key),
+        trash(_trash) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new MapErase(type, node, map_addr, key, trash);
+    Module *cloned = new MapErase(get_type().instance_id, node, map_addr, key, trash);
     return cloned;
   }
 

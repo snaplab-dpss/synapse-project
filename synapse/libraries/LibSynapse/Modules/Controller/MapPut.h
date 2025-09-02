@@ -13,13 +13,15 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  MapPut(ModuleType _type, const BDDNode *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
-      : ControllerModule(_type, "MapPut", _node), map_addr(_map_addr), key_addr(_key_addr), key(_key), value(_value) {}
+  MapPut(const std::string &_instance_id, const BDDNode *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key,
+         klee::ref<klee::Expr> _value)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_MapPut, _instance_id), "MapPut", _node), map_addr(_map_addr), key_addr(_key_addr),
+        key(_key), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new MapPut(type, node, map_addr, key_addr, key, value);
+    Module *cloned = new MapPut(get_type().instance_id, node, map_addr, key_addr, key, value);
     return cloned;
   }
 

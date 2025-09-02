@@ -7,12 +7,12 @@ namespace x86 {
 
 class Ignore : public x86Module {
 public:
-  Ignore(ModuleType _type, const BDDNode *_node) : x86Module(_type, "Ignore", _node) {}
+  Ignore(const std::string &_instance_id, const BDDNode *_node) : x86Module(ModuleType(ModuleCategory::x86_Ignore, _instance_id), "Ignore", _node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    Ignore *cloned = new Ignore(type, node);
+    Ignore *cloned = new Ignore(get_type().instance_id, node);
     return cloned;
   }
 };

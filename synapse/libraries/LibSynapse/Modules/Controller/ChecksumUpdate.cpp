@@ -47,7 +47,7 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const BDDN
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new ChecksumUpdate(type, node, ip_hdr_addr, l4_hdr_addr, checksum);
+  Module *module  = new ChecksumUpdate(ep->get_placement(node->get_id()), node, ip_hdr_addr, l4_hdr_addr, checksum);
   EPNode *ep_node = new EPNode(module);
 
   EPLeaf leaf(ep_node, node->get_next());
@@ -79,7 +79,7 @@ std::unique_ptr<Module> ChecksumUpdateFactory::create(const BDD *bdd, const Cont
   const addr_t ip_hdr_addr = expr_addr_to_obj_addr(ip_hdr_addr_expr);
   const addr_t l4_hdr_addr = expr_addr_to_obj_addr(l4_hdr_addr_expr);
 
-  return std::make_unique<ChecksumUpdate>(type, node, ip_hdr_addr, l4_hdr_addr, checksum);
+  return std::make_unique<ChecksumUpdate>(get_type().instance_id, node, ip_hdr_addr, l4_hdr_addr, checksum);
 }
 
 } // namespace Controller

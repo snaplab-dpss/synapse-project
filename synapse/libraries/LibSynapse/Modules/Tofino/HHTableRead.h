@@ -15,15 +15,15 @@ private:
   symbol_t map_has_this_key;
 
 public:
-  HHTableRead(ModuleType _type, const BDDNode *_node, DS_ID _hh_table_id, addr_t _obj, klee::ref<klee::Expr> _original_key,
+  HHTableRead(const std::string &_instance_id, const BDDNode *_node, DS_ID _hh_table_id, addr_t _obj, klee::ref<klee::Expr> _original_key,
               const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value, const symbol_t &_map_has_this_key)
-      : TofinoModule(_type, "HHTableRead", _node), hh_table_id(_hh_table_id), obj(_obj), original_key(_original_key), keys(_keys), value(_value),
-        map_has_this_key(_map_has_this_key) {}
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_HHTableRead, _instance_id), "HHTableRead", _node), hh_table_id(_hh_table_id), obj(_obj),
+        original_key(_original_key), keys(_keys), value(_value), map_has_this_key(_map_has_this_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new HHTableRead(type, node, hh_table_id, obj, original_key, keys, value, map_has_this_key);
+    Module *cloned = new HHTableRead(get_type().instance_id, node, hh_table_id, obj, original_key, keys, value, map_has_this_key);
     return cloned;
   }
 

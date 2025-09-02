@@ -22,6 +22,8 @@ using LibCore::dbg_mode_active;
 namespace {
 bool can_process_platform(const EP *ep, TargetType target) {
   TargetType current_target = ep->get_active_target();
+
+  std::cout << "Current target: " << current_target << ", module target: " << target << "\n";
   return current_target == target;
 }
 
@@ -132,6 +134,8 @@ std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, 
       internal_decision.result->assert_integrity();
     }
     implementations.push_back(std::move(internal_decision));
+    std::cout << "Target matched: " << target << "\n";
+    std::cout << "Module: " << type << "\n";
   }
 
   if (!reorder_bdd) {

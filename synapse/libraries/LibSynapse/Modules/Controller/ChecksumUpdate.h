@@ -12,13 +12,14 @@ private:
   symbol_t checksum;
 
 public:
-  ChecksumUpdate(ModuleType _type, const BDDNode *_node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr, symbol_t _checksum)
-      : ControllerModule(_type, "SetIpChecksum", _node), ip_hdr_addr(_ip_hdr_addr), l4_hdr_addr(_l4_hdr_addr), checksum(_checksum) {}
+  ChecksumUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr, symbol_t _checksum)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_ChecksumUpdate, _instance_id), "SetIpChecksum", _node), ip_hdr_addr(_ip_hdr_addr),
+        l4_hdr_addr(_l4_hdr_addr), checksum(_checksum) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new ChecksumUpdate(type, node, ip_hdr_addr, l4_hdr_addr, checksum);
+    Module *cloned = new ChecksumUpdate(get_type().instance_id, node, ip_hdr_addr, l4_hdr_addr, checksum);
     return cloned;
   }
 

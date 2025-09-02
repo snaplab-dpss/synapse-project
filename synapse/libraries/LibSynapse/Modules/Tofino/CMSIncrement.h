@@ -12,12 +12,14 @@ private:
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  CMSIncrement(ModuleType _type, const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys)
-      : TofinoModule(_type, "CMSIncrement", _node), cms_id(_cms_id), cms_addr(_cms_addr), keys(_keys) {}
+  CMSIncrement(const std::string &_instance_id, const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr,
+               const std::vector<klee::ref<klee::Expr>> &_keys)
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_CMSIncrement, _instance_id), "CMSIncrement", _node), cms_id(_cms_id), cms_addr(_cms_addr),
+        keys(_keys) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
-  virtual Module *clone() const override { return new CMSIncrement(type, node, cms_id, cms_addr, keys); }
+  virtual Module *clone() const override { return new CMSIncrement(get_type().instance_id, node, cms_id, cms_addr, keys); }
 
   DS_ID get_cms_id() const { return cms_id; }
   addr_t get_cms_addr() const { return cms_addr; }

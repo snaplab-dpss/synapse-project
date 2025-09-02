@@ -138,7 +138,7 @@ std::unique_ptr<Module> CMSQueryFactory::create(const BDD *bdd, const Context &c
 
   const CountMinSketch *cms = ctx.get_target_ctx<TofinoContext>(target)->get_data_structures().get_single_ds<CountMinSketch>(cms_data.obj);
 
-  return std::make_unique<CMSQuery>(type, node, cms->id, cms_data.obj, cms_data.keys, cms_data.min_estimate);
+  return std::make_unique<CMSQuery>(get_type().instance_id, node, cms->id, cms_data.obj, cms_data.keys, cms_data.min_estimate);
 }
 
 } // namespace Tofino

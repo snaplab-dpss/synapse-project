@@ -55,7 +55,7 @@ std::vector<impl_t> MapPutFactory::process_node(const EP *ep, const BDDNode *nod
     return {};
   }
 
-  Module *module  = new MapPut(type, node, map_addr, key_addr, key, value);
+  Module *module  = new MapPut(ep->get_placement(node->get_id()), node, map_addr, key_addr, key, value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -94,7 +94,7 @@ std::unique_ptr<Module> MapPutFactory::create(const BDD *bdd, const Context &ctx
     return {};
   }
 
-  return std::make_unique<MapPut>(type, node, map_addr, key_addr, key, value);
+  return std::make_unique<MapPut>(get_type().instance_id, node, map_addr, key_addr, key, value);
 }
 
 } // namespace Controller

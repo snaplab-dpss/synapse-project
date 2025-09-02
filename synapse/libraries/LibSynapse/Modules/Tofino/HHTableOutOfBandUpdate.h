@@ -11,13 +11,14 @@ private:
   addr_t obj;
 
 public:
-  HHTableOutOfBandUpdate(ModuleType _type, const BDDNode *_node, DS_ID _hh_table_id, addr_t _obj)
-      : TofinoModule(_type, "HHTableOutOfBandUpdate", _node), hh_table_id(_hh_table_id), obj(_obj) {}
+  HHTableOutOfBandUpdate(const std::string &_instance_id, const BDDNode *_node, DS_ID _hh_table_id, addr_t _obj)
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_HHTableOutOfBandUpdate, _instance_id), "HHTableOutOfBandUpdate", _node),
+        hh_table_id(_hh_table_id), obj(_obj) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new HHTableOutOfBandUpdate(type, node, hh_table_id, obj);
+    Module *cloned = new HHTableOutOfBandUpdate(get_type().instance_id, node, hh_table_id, obj);
     return cloned;
   }
 

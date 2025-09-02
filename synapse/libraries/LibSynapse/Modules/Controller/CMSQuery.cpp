@@ -53,7 +53,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const BDDNode *n
     return {};
   }
 
-  Module *module  = new CMSQuery(type, node, cms_addr, key, min_estimate.expr);
+  Module *module  = new CMSQuery(ep->get_placement(node->get_id()), node, cms_addr, key, min_estimate.expr);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -88,7 +88,7 @@ std::unique_ptr<Module> CMSQueryFactory::create(const BDD *bdd, const Context &c
     return {};
   }
 
-  return std::make_unique<CMSQuery>(type, node, cms_addr, key, min_estimate.expr);
+  return std::make_unique<CMSQuery>(get_type().instance_id, node, cms_addr, key, min_estimate.expr);
 }
 
 } // namespace Controller

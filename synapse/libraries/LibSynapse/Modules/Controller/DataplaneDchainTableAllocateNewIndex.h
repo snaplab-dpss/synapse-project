@@ -12,14 +12,17 @@ private:
   klee::ref<klee::Expr> success;
 
 public:
-  DataplaneDchainTableAllocateNewIndex(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _allocated_index,
+  DataplaneDchainTableAllocateNewIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _allocated_index,
                                        klee::ref<klee::Expr> _success)
-      : ControllerModule(_type, "DataplaneDchainTableAllocateNewIndex", _node), obj(_obj), allocated_index(_allocated_index), success(_success) {}
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneDchainTableAllocateNewIndex, _instance_id),
+                         "DataplaneDchainTableAllocateNewIndex", _node),
+        obj(_obj), allocated_index(_allocated_index), success(_success) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneDchainTableAllocateNewIndex *cloned = new DataplaneDchainTableAllocateNewIndex(type, node, obj, allocated_index, success);
+    DataplaneDchainTableAllocateNewIndex *cloned =
+        new DataplaneDchainTableAllocateNewIndex(get_type().instance_id, node, obj, allocated_index, success);
     return cloned;
   }
 

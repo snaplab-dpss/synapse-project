@@ -17,17 +17,18 @@ private:
   symbol_t cache_write_failed;
 
 public:
-  FCFSCachedTableReadWrite(ModuleType _type, const BDDNode *_node, DS_ID _cached_table_id, DS_ID _used_table_id, addr_t _obj,
+  FCFSCachedTableReadWrite(const std::string &_instance_id, const BDDNode *_node, DS_ID _cached_table_id, DS_ID _used_table_id, addr_t _obj,
                            klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _read_value, klee::ref<klee::Expr> _write_value,
                            const symbol_t &_map_has_this_key, const symbol_t &_cache_write_failed)
-      : TofinoModule(_type, "FCFSCachedTableReadWrite", _node), cached_table_id(_cached_table_id), used_table_id(_used_table_id), obj(_obj),
-        key(_key), read_value(_read_value), write_value(_write_value), map_has_this_key(_map_has_this_key), cache_write_failed(_cache_write_failed) {}
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_FCFSCachedTableReadWrite, _instance_id), "FCFSCachedTableReadWrite", _node),
+        cached_table_id(_cached_table_id), used_table_id(_used_table_id), obj(_obj), key(_key), read_value(_read_value), write_value(_write_value),
+        map_has_this_key(_map_has_this_key), cache_write_failed(_cache_write_failed) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new FCFSCachedTableReadWrite(type, node, cached_table_id, used_table_id, obj, key, read_value, write_value, map_has_this_key,
-                                                  cache_write_failed);
+    Module *cloned = new FCFSCachedTableReadWrite(get_type().instance_id, node, cached_table_id, used_table_id, obj, key, read_value, write_value,
+                                                  map_has_this_key, cache_write_failed);
     return cloned;
   }
 

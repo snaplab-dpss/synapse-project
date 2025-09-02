@@ -86,7 +86,7 @@ std::vector<impl_t> DataplaneFCFSCachedTableReadFactory::process_node(const EP *
 
   const DS_ID id = get_cached_table_id(ep->get_ctx(), obj, target);
 
-  Module *module  = new DataplaneFCFSCachedTableRead(type, node, id, obj, keys, value, found);
+  Module *module  = new DataplaneFCFSCachedTableRead(ep->get_placement(node->get_id()), node, id, obj, keys, value, found);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -126,7 +126,7 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableReadFactory::create(const BDD *b
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Tofino::FCFSCachedTable *fcfs_cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<DataplaneFCFSCachedTableRead>(type, node, fcfs_cached_table->id, obj, keys, value, found);
+  return std::make_unique<DataplaneFCFSCachedTableRead>(get_type().instance_id, node, fcfs_cached_table->id, obj, keys, value, found);
 }
 
 } // namespace Controller

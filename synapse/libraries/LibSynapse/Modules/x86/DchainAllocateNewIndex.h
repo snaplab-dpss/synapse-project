@@ -13,12 +13,15 @@ private:
   std::optional<symbol_t> not_out_of_space;
 
 public:
-  DchainAllocateNewIndex(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out,
-                         const symbol_t &_out_of_space)
-      : x86Module(_type, "DchainAllocate", _node), dchain_addr(_dchain_addr), time(_time), index_out(_index_out), not_out_of_space(_out_of_space) {}
+  DchainAllocateNewIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time,
+                         klee::ref<klee::Expr> _index_out, const symbol_t &_out_of_space)
+      : x86Module(ModuleType(ModuleCategory::x86_DchainAllocateNewIndex, _instance_id), "DchainAllocate", _node), dchain_addr(_dchain_addr),
+        time(_time), index_out(_index_out), not_out_of_space(_out_of_space) {}
 
-  DchainAllocateNewIndex(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
-      : x86Module(_type, "DchainAllocate", _node), dchain_addr(_dchain_addr), time(_time), index_out(_index_out), not_out_of_space(std::nullopt) {}
+  DchainAllocateNewIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time,
+                         klee::ref<klee::Expr> _index_out)
+      : x86Module(ModuleType(ModuleCategory::x86_DchainAllocateNewIndex, _instance_id), "DchainAllocate", _node), dchain_addr(_dchain_addr),
+        time(_time), index_out(_index_out), not_out_of_space(std::nullopt) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
@@ -26,9 +29,9 @@ public:
     Module *cloned;
 
     if (not_out_of_space.has_value()) {
-      cloned = new DchainAllocateNewIndex(type, node, dchain_addr, time, index_out, *not_out_of_space);
+      cloned = new DchainAllocateNewIndex(get_type().instance_id, node, dchain_addr, time, index_out, *not_out_of_space);
     } else {
-      cloned = new DchainAllocateNewIndex(type, node, dchain_addr, time, index_out);
+      cloned = new DchainAllocateNewIndex(get_type().instance_id, node, dchain_addr, time, index_out);
     }
 
     return cloned;

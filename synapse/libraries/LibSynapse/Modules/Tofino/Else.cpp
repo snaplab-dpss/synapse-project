@@ -16,7 +16,7 @@ std::vector<impl_t> ElseFactory::process_node(const EP *ep, const BDDNode *node,
 
 std::unique_ptr<Module> ElseFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
   // Never explicitly generate this module from the BDD.
-  return std::make_unique<Else>(type, node);
+  return std::make_unique<Else>(get_type().instance_id, node);
 }
 
 } // namespace Tofino

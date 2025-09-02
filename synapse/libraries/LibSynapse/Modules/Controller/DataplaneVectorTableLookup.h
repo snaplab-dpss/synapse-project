@@ -12,13 +12,15 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneVectorTableLookup(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value)
-      : ControllerModule(_type, "DataplaneVectorTableLookup", _node), obj(_obj), index(_index), value(_value) {}
+  DataplaneVectorTableLookup(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index,
+                             klee::ref<klee::Expr> _value)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneVectorTableLookup, _instance_id), "DataplaneVectorTableLookup", _node),
+        obj(_obj), index(_index), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneVectorTableLookup(type, node, obj, index, value);
+    Module *cloned = new DataplaneVectorTableLookup(get_type().instance_id, node, obj, index, value);
     return cloned;
   }
 

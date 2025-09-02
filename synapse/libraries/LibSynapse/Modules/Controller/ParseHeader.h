@@ -12,13 +12,14 @@ private:
   klee::ref<klee::Expr> length;
 
 public:
-  ParseHeader(ModuleType _type, const BDDNode *_node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
-      : ControllerModule(_type, "ParseHeader", _node), chunk_addr(_chunk_addr), chunk(_chunk), length(_length) {}
+  ParseHeader(const std::string &_instance_id, const BDDNode *_node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_ParseHeader, _instance_id), "ParseHeader", _node), chunk_addr(_chunk_addr),
+        chunk(_chunk), length(_length) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    ParseHeader *cloned = new ParseHeader(type, node, chunk_addr, chunk, length);
+    ParseHeader *cloned = new ParseHeader(get_type().instance_id, node, chunk_addr, chunk, length);
     return cloned;
   }
 

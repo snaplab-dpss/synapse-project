@@ -62,7 +62,7 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const BDDNode *no
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module   = new Forward(type, node, dst_device);
+  Module *module   = new Forward(ep->get_placement(node->get_id()), node, dst_device);
   EPNode *fwd_node = new EPNode(module);
 
   const EPLeaf leaf(fwd_node, node->get_next());
@@ -100,7 +100,7 @@ std::unique_ptr<Module> ForwardFactory::create(const BDD *bdd, const Context &ct
 
   klee::ref<klee::Expr> dst_device = route_node->get_dst_device();
 
-  return std::make_unique<Forward>(type, node, dst_device);
+  return std::make_unique<Forward>(get_type().instance_id, node, dst_device);
 }
 
 } // namespace Tofino

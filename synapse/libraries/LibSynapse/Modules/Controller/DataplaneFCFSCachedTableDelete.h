@@ -14,13 +14,16 @@ private:
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  DataplaneFCFSCachedTableDelete(ModuleType _type, const BDDNode *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
-      : ControllerModule(_type, "DataplaneFCFSCachedTableDelete", _node), id(_id), obj(_obj), keys(_keys) {}
+  DataplaneFCFSCachedTableDelete(const std::string &_instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj,
+                                 const std::vector<klee::ref<klee::Expr>> &_keys)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableDelete, _instance_id), "DataplaneFCFSCachedTableDelete",
+                         _node),
+        id(_id), obj(_obj), keys(_keys) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneFCFSCachedTableDelete *cloned = new DataplaneFCFSCachedTableDelete(type, node, id, obj, keys);
+    DataplaneFCFSCachedTableDelete *cloned = new DataplaneFCFSCachedTableDelete(get_type().instance_id, node, id, obj, keys);
     return cloned;
   }
 

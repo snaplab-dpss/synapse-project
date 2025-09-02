@@ -138,7 +138,7 @@ std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const BDDNode *nod
     return {};
   }
 
-  Module *module  = new Ignore(type, node);
+  Module *module  = new Ignore(ep->get_placement(node->get_id()), node);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -156,7 +156,7 @@ std::unique_ptr<Module> IgnoreFactory::create(const BDD *bdd, const Context &ctx
     return {};
   }
 
-  return std::make_unique<Ignore>(type, node);
+  return std::make_unique<Ignore>(get_type().instance_id, node);
 }
 
 } // namespace Controller

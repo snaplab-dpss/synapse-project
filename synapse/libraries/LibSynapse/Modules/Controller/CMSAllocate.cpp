@@ -63,7 +63,7 @@ std::vector<impl_t> CMSAllocateFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  Module *module  = new CMSAllocate(type, node, cms_addr, height, width, key_size, cleanup_interval);
+  Module *module  = new CMSAllocate(ep->get_placement(node->get_id()), node, cms_addr, height, width, key_size, cleanup_interval);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -102,7 +102,7 @@ std::unique_ptr<Module> CMSAllocateFactory::create(const BDD *bdd, const Context
     return {};
   }
 
-  return std::make_unique<CMSAllocate>(type, node, cms_addr, height, width, key_size, cleanup_interval);
+  return std::make_unique<CMSAllocate>(get_type().instance_id, node, cms_addr, height, width, key_size, cleanup_interval);
 }
 
 } // namespace Controller

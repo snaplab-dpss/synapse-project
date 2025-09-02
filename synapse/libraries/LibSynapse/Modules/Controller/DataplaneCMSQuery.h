@@ -12,12 +12,14 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  DataplaneCMSQuery(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
-      : ControllerModule(_type, "DataplaneCMSQuery", _node), obj(_obj), key(_key), min_estimate(_min_estimate) {}
+  DataplaneCMSQuery(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key,
+                    klee::ref<klee::Expr> _min_estimate)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneCMSQuery, _instance_id), "DataplaneCMSQuery", _node), obj(_obj), key(_key),
+        min_estimate(_min_estimate) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
-  virtual Module *clone() const override { return new DataplaneCMSQuery(type, node, obj, key, min_estimate); }
+  virtual Module *clone() const override { return new DataplaneCMSQuery(get_type().instance_id, node, obj, key, min_estimate); }
 
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_key() const { return key; }

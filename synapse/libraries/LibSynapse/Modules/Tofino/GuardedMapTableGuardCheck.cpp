@@ -285,7 +285,7 @@ std::unique_ptr<Module> GuardedMapTableGuardCheckFactory::create(const BDD *bdd,
   const symbol_t mock_guard_symbol;
   klee::ref<klee::Expr> mock_condition;
 
-  return std::make_unique<GuardedMapTableGuardCheck>(type, node, guarded_map_table->id, obj, mock_guard_symbol, mock_condition);
+  return std::make_unique<GuardedMapTableGuardCheck>(get_type().instance_id, node, guarded_map_table->id, obj, mock_guard_symbol, mock_condition);
 }
 
 } // namespace Tofino

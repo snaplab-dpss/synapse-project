@@ -10,12 +10,13 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  If(ModuleType _type, const BDDNode *_node, klee::ref<klee::Expr> _condition) : ControllerModule(_type, "If", _node), condition(_condition) {}
+  If(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _condition)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_If, _instance_id), "If", _node), condition(_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    If *cloned = new If(type, node, condition);
+    If *cloned = new If(get_type().instance_id, node, condition);
     return cloned;
   }
 

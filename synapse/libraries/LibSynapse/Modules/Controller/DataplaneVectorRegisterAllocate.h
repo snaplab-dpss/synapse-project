@@ -12,14 +12,16 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneVectorRegisterAllocate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size,
+  DataplaneVectorRegisterAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size,
                                   klee::ref<klee::Expr> _capacity)
-      : ControllerModule(_type, "DataplaneVectorRegisterAllocate", _node), obj(_obj), elem_size(_elem_size), capacity(_capacity) {}
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterAllocate, _instance_id), "DataplaneVectorRegisterAllocate",
+                         _node),
+        obj(_obj), elem_size(_elem_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneVectorRegisterAllocate(type, node, obj, elem_size, capacity);
+    Module *cloned = new DataplaneVectorRegisterAllocate(get_type().instance_id, node, obj, elem_size, capacity);
     return cloned;
   }
 

@@ -11,13 +11,13 @@ private:
   klee::ref<klee::Expr> key;
 
 public:
-  CMSUpdate(ModuleType _type, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
-      : ControllerModule(_type, "CMSUpdate", _node), cms_addr(_cms_addr), key(_key) {}
+  CMSUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_CMSUpdate, _instance_id), "CMSUpdate", _node), cms_addr(_cms_addr), key(_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new CMSUpdate(type, node, cms_addr, key);
+    Module *cloned = new CMSUpdate(get_type().instance_id, node, cms_addr, key);
     return cloned;
   }
 

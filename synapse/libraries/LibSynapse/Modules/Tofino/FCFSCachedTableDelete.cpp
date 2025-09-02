@@ -110,7 +110,7 @@ klee::ref<klee::Expr> build_cache_delete_success_condition(const symbol_t &cache
   return solver_toolbox.exprBuilder->Eq(cache_delete_failed.expr, zero);
 }
 
-std::unique_ptr<EP> concretize_cached_table_delete(const EP *ep, const Call *map_erase, const TargetType target, ModuleType type,
+std::unique_ptr<EP> concretize_cached_table_delete(const EP *ep, const Call *map_erase, const TargetType target, const ModuleType type,
                                                    const map_coalescing_objs_t &map_objs, const fcfs_cached_table_data_t &cached_table_data,
                                                    const symbol_t &cache_delete_failed, u32 cache_capacity) {
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
@@ -122,7 +122,8 @@ std::unique_ptr<EP> concretize_cached_table_delete(const EP *ep, const Call *map
 
   klee::ref<klee::Expr> cache_delete_success_condition = build_cache_delete_success_condition(cache_delete_failed);
 
-  Module *module = new FCFSCachedTableDelete(type, map_erase, cached_table->id, cached_table_data.obj, cached_table_data.key, cache_delete_failed);
+  Module *module = new FCFSCachedTableDelete(ep->get_placement(map_erase->get_id()), map_erase, cached_table->id, cached_table_data.obj,
+                                             cached_table_data.key, cache_delete_failed);
   EPNode *cached_table_delete_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -136,10 +137,10 @@ std::unique_ptr<EP> concretize_cached_table_delete(const EP *ep, const Call *map
 
   Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, map_erase, ep->get_active_target());
 
-  Module *if_module                 = new If(type, map_erase, cache_delete_success_condition, {cache_delete_success_condition});
-  Module *then_module               = new Then(type, map_erase);
-  Module *else_module               = new Else(type, map_erase);
-  Module *send_to_controller_module = new SendToController(type, on_cache_delete_failed, symbols);
+  Module *if_module   = new If(ep->get_placement(map_erase->get_id()), map_erase, cache_delete_success_condition, {cache_delete_success_condition});
+  Module *then_module = new Then(ep->get_placement(map_erase->get_id()), map_erase);
+  Module *else_module = new Else(ep->get_placement(map_erase->get_id()), map_erase);
+  Module *send_to_controller_module = new SendToController(ep->get_placement(on_cache_delete_failed->get_id()), on_cache_delete_failed, symbols);
 
   EPNode *if_node                 = new EPNode(if_module);
   EPNode *then_node               = new EPNode(then_module);
@@ -293,8 +294,8 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, con
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-    std::unique_ptr<EP> new_ep =
-        concretize_cached_table_delete(ep, map_erase, target, type, map_objs.value(), cached_table_data, cache_delete_failed, cache_capacity);
+    std::unique_ptr<EP> new_ep = concretize_cached_table_delete(ep, map_erase, get_target(), get_type(), map_objs.value(), cached_table_data,
+                                                                cache_delete_failed, cache_capacity);
     if (new_ep) {
       impl_t impl = implement(ep, map_erase, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(std::move(impl));
@@ -333,7 +334,7 @@ std::unique_ptr<Module> FCFSCachedTableDeleteFactory::create(const BDD *bdd, con
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedTableDelete>(type, node, fcfs_cached_table->id, cached_table_data.obj, cached_table_data.key,
+  return std::make_unique<FCFSCachedTableDelete>(get_type().instance_id, node, fcfs_cached_table->id, cached_table_data.obj, cached_table_data.key,
                                                  mock_cache_delete_failed);
 }
 

@@ -15,15 +15,15 @@ private:
   symbol_t map_has_this_key;
 
 public:
-  MapGet(ModuleType _type, const BDDNode *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value_out,
-         klee::ref<klee::Expr> _success, const symbol_t &_map_has_this_key)
-      : ControllerModule(_type, "MapGet", _node), map_addr(_map_addr), key_addr(_key_addr), key(_key), value_out(_value_out), success(_success),
-        map_has_this_key(_map_has_this_key) {}
+  MapGet(const std::string &_instance_id, const BDDNode *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key,
+         klee::ref<klee::Expr> _value_out, klee::ref<klee::Expr> _success, const symbol_t &_map_has_this_key)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_MapGet, _instance_id), "MapGet", _node), map_addr(_map_addr), key_addr(_key_addr),
+        key(_key), value_out(_value_out), success(_success), map_has_this_key(_map_has_this_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new MapGet(type, node, map_addr, key_addr, key, value_out, success, map_has_this_key);
+    Module *cloned = new MapGet(get_type().instance_id, node, map_addr, key_addr, key, value_out, success, map_has_this_key);
     return cloned;
   }
 

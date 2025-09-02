@@ -14,15 +14,15 @@ private:
   klee::ref<klee::Expr> cleanup_interval;
 
 public:
-  CMSAllocate(ModuleType _type, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
+  CMSAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
               klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _cleanup_interval)
-      : ControllerModule(_type, "CMSAllocate", _node), cms_addr(_cms_addr), height(_height), width(_width), key_size(_key_size),
-        cleanup_interval(_cleanup_interval) {}
+      : ControllerModule(ModuleType(ModuleCategory::Controller_CMSAllocate, _instance_id), "CMSAllocate", _node), cms_addr(_cms_addr),
+        height(_height), width(_width), key_size(_key_size), cleanup_interval(_cleanup_interval) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new CMSAllocate(type, node, cms_addr, height, width, key_size, cleanup_interval);
+    Module *cloned = new CMSAllocate(get_type().instance_id, node, cms_addr, height, width, key_size, cleanup_interval);
     return cloned;
   }
 

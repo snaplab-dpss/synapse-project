@@ -39,8 +39,9 @@ std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *no
     return nullptr;
   }
 
-  Module *module = new FCFSCachedTableRead(type, node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj, cached_table_data.key,
-                                           cached_table_data.read_value, cached_table_data.map_has_this_key);
+  Module *module =
+      new FCFSCachedTableRead(ep->get_placement(node->get_id()), node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj,
+                              cached_table_data.key, cached_table_data.read_value, cached_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -125,7 +126,8 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-    std::unique_ptr<EP> new_ep = concretize_cached_table_read(ep, node, target, type, map_objs.value(), cached_table_data, cache_capacity);
+    std::unique_ptr<EP> new_ep =
+        concretize_cached_table_read(ep, node, get_target(), get_type(), map_objs.value(), cached_table_data, cache_capacity);
     if (new_ep) {
       impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(std::move(impl));
@@ -162,8 +164,9 @@ std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const BDD *bdd, const
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedTableRead>(type, node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id, cached_table_data.obj,
-                                               cached_table_data.key, cached_table_data.read_value, cached_table_data.map_has_this_key);
+  return std::make_unique<FCFSCachedTableRead>(get_type().instance_id, node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id,
+                                               cached_table_data.obj, cached_table_data.key, cached_table_data.read_value,
+                                               cached_table_data.map_has_this_key);
 }
 
 } // namespace Tofino

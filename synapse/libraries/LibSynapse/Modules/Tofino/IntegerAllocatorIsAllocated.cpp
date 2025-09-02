@@ -56,7 +56,7 @@ std::vector<impl_t> IntegerAllocatorIsAllocatedFactory::process_node(const EP *e
   }
 
   const symbol_t is_allocated = call_node->get_local_symbol("is_index_allocated");
-  Module *module              = new IntegerAllocatorIsAllocated(type, node, dchain_addr, index, is_allocated);
+  Module *module              = new IntegerAllocatorIsAllocated(ep->get_placement(node->get_id()), node, dchain_addr, index, is_allocated);
   EPNode *ep_node             = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -93,7 +93,7 @@ std::unique_ptr<Module> IntegerAllocatorIsAllocatedFactory::create(const BDD *bd
     return {};
   }
 
-  return std::make_unique<IntegerAllocatorIsAllocated>(type, node, dchain_addr, index, is_allocated);
+  return std::make_unique<IntegerAllocatorIsAllocated>(get_type().instance_id, node, dchain_addr, index, is_allocated);
 }
 
 } // namespace Tofino

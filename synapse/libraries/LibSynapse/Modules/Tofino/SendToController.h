@@ -11,13 +11,15 @@ private:
   Symbols symbols;
 
 public:
-  SendToController(ModuleType _type, const BDDNode *_node, Symbols _symbols)
-      : TofinoModule(_type, TargetType(TargetArchitecture::Controller, _type.instance_id), "SendToController", _node), symbols(_symbols) {}
+  SendToController(const std::string &_instance_id, const BDDNode *_node, Symbols _symbols)
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_SendToController, _instance_id), TargetType(TargetArchitecture::Controller, _instance_id),
+                     "SendToController", _node),
+        symbols(_symbols) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    SendToController *cloned = new SendToController(type, node, symbols);
+    SendToController *cloned = new SendToController(get_type().instance_id, node, symbols);
     return cloned;
   }
 

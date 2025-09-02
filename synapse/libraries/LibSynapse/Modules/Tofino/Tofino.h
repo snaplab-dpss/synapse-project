@@ -44,46 +44,46 @@ namespace LibSynapse {
 namespace Tofino {
 
 struct TofinoTarget : public Target {
-  TofinoTarget(const tna_config_t &tna_config, const std::string &instance_id)
+  TofinoTarget(const tna_config_t &tna_config, const std::string &_instance_id)
       : Target(
-            TargetType(TargetArchitecture::Tofino, instance_id),
-            [instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
+            TargetType(TargetArchitecture::Tofino, _instance_id),
+            [_instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
-              f.push_back(std::make_unique<RecirculateFactory>(instance_id));
-              f.push_back(std::make_unique<ForwardFactory>(instance_id));
-              f.push_back(std::make_unique<DropFactory>(instance_id));
-              f.push_back(std::make_unique<BroadcastFactory>(instance_id));
-              f.push_back(std::make_unique<IgnoreFactory>(instance_id));
-              f.push_back(std::make_unique<IfFactory>(instance_id));
-              f.push_back(std::make_unique<ThenFactory>(instance_id));
-              f.push_back(std::make_unique<ElseFactory>(instance_id));
-              f.push_back(std::make_unique<ParserExtractionFactory>(instance_id));
-              f.push_back(std::make_unique<ParserConditionFactory>(instance_id));
-              f.push_back(std::make_unique<ParserRejectFactory>(instance_id));
-              f.push_back(std::make_unique<ModifyHeaderFactory>(instance_id));
-              f.push_back(std::make_unique<MapTableLookupFactory>(instance_id));
-              f.push_back(std::make_unique<GuardedMapTableLookupFactory>(instance_id));
-              f.push_back(std::make_unique<GuardedMapTableGuardCheckFactory>(instance_id));
-              f.push_back(std::make_unique<DchainTableLookupFactory>(instance_id));
-              f.push_back(std::make_unique<VectorTableLookupFactory>(instance_id));
-              f.push_back(std::make_unique<VectorRegisterLookupFactory>(instance_id));
-              f.push_back(std::make_unique<VectorRegisterUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<FCFSCachedTableReadFactory>(instance_id));
-              f.push_back(std::make_unique<FCFSCachedTableReadWriteFactory>(instance_id));
-              f.push_back(std::make_unique<FCFSCachedTableWriteFactory>(instance_id));
-              f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>(instance_id));
-              f.push_back(std::make_unique<MeterUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<HHTableReadFactory>(instance_id));
-              f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>(instance_id));
+              f.push_back(std::make_unique<RecirculateFactory>(_instance_id));
+              f.push_back(std::make_unique<ForwardFactory>(_instance_id));
+              f.push_back(std::make_unique<DropFactory>(_instance_id));
+              f.push_back(std::make_unique<BroadcastFactory>(_instance_id));
+              f.push_back(std::make_unique<IgnoreFactory>(_instance_id));
+              f.push_back(std::make_unique<IfFactory>(_instance_id));
+              f.push_back(std::make_unique<ThenFactory>(_instance_id));
+              f.push_back(std::make_unique<ElseFactory>(_instance_id));
+              f.push_back(std::make_unique<ParserExtractionFactory>(_instance_id));
+              f.push_back(std::make_unique<ParserConditionFactory>(_instance_id));
+              f.push_back(std::make_unique<ParserRejectFactory>(_instance_id));
+              f.push_back(std::make_unique<ModifyHeaderFactory>(_instance_id));
+              f.push_back(std::make_unique<MapTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<GuardedMapTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<GuardedMapTableGuardCheckFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorRegisterLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorRegisterUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<FCFSCachedTableReadFactory>(_instance_id));
+              f.push_back(std::make_unique<FCFSCachedTableReadWriteFactory>(_instance_id));
+              f.push_back(std::make_unique<FCFSCachedTableWriteFactory>(_instance_id));
+              f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>(_instance_id));
+              f.push_back(std::make_unique<MeterUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<HHTableReadFactory>(_instance_id));
+              f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>(_instance_id));
               // f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorIsAllocatedFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorRejuvenateFactory>());
-              f.push_back(std::make_unique<CMSQueryFactory>(instance_id));
-              f.push_back(std::make_unique<CMSIncrementFactory>(instance_id));
-              f.push_back(std::make_unique<CMSIncAndQueryFactory>(instance_id));
-              f.push_back(std::make_unique<LPMLookupFactory>(instance_id));
-              f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>(instance_id));
-              f.push_back(std::make_unique<SendToControllerFactory>(instance_id));
+              f.push_back(std::make_unique<CMSQueryFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSIncrementFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSIncAndQueryFactory>(_instance_id));
+              f.push_back(std::make_unique<LPMLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>(_instance_id));
+              f.push_back(std::make_unique<SendToControllerFactory>(_instance_id));
               return f;
             }(),
             std::make_unique<TofinoContext>(tna_config)) {}

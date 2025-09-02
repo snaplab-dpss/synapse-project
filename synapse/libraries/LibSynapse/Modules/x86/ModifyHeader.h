@@ -14,13 +14,13 @@ private:
   std::vector<expr_mod_t> changes;
 
 public:
-  ModifyHeader(ModuleType _type, const BDDNode *_node, addr_t _chunk_addr, const std::vector<expr_mod_t> &_changes)
-      : x86Module(_type, "ModifyHeader", _node), chunk_addr(_chunk_addr), changes(_changes) {}
+  ModifyHeader(const std::string &_instance_id, const BDDNode *_node, addr_t _chunk_addr, const std::vector<expr_mod_t> &_changes)
+      : x86Module(ModuleType(ModuleCategory::x86_ModifyHeader, _instance_id), "ModifyHeader", _node), chunk_addr(_chunk_addr), changes(_changes) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    ModifyHeader *cloned = new ModifyHeader(type, node, chunk_addr, changes);
+    ModifyHeader *cloned = new ModifyHeader(get_type().instance_id, node, chunk_addr, changes);
     return cloned;
   }
 

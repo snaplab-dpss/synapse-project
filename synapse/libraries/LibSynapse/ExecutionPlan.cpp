@@ -148,9 +148,10 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
 
 } // namespace
 
-EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
+EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler,
+       const LibClone::PhysicalNetwork &_phys_net)
     : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(), targets(_targets), ctx(bdd.get(), _targets, _targets_config, _profiler),
-      meta(bdd.get(), targets), ep_stats() {
+      meta(bdd.get(), targets), ep_stats(), phys_net(_phys_net) {
   TargetType initial_target     = targets.get_initial_target().type;
   targets_roots[initial_target] = bdd_node_ids_t({bdd->get_root()->get_id()});
 
@@ -165,8 +166,8 @@ EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_ta
 
 EP::EP(const EP &other, bool is_ancestor)
     : id(ep_id_counter++), bdd(other.bdd), root(other.root ? other.root->clone(true) : nullptr), targets(other.targets),
-      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta),
-      ep_stats(other.ep_stats) {
+      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta), ep_stats(other.ep_stats),
+      phys_net(other.phys_net) {
   if (!root) {
     assert(other.active_leaves.size() == 1 && "No root and multiple leaves.");
     active_leaves.emplace_back(nullptr, bdd->get_root());
@@ -282,6 +283,7 @@ void EP::process_leaf(const BDDNode *next_node) {
 
   if (next_node) {
     active_leaves.emplace_back(active_leaf.node, next_node);
+    std::cout << "Process leaf current target - BDD Node: " << active_leaf.node->get_module()->get_next_target() << "\n";
     sort_leaves();
   }
 }
@@ -290,7 +292,8 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
   clear_caches();
 
   const TargetType current_target = get_active_target();
-  const EPLeaf active_leaf        = pop_active_leaf();
+  std::cout << "Process Leaf - Current Target: " << current_target << "\n";
+  const EPLeaf active_leaf = pop_active_leaf();
 
   if (!root) {
     root = std::unique_ptr<EPNode>(new_node);

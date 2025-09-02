@@ -12,13 +12,15 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  VectorAllocate(ModuleType _type, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity)
-      : ControllerModule(_type, "VectorAllocate", _node), obj(_obj), elem_size(_elem_size), capacity(_capacity) {}
+  VectorAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size,
+                 klee::ref<klee::Expr> _capacity)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_VectorAllocate, _instance_id), "VectorAllocate", _node), obj(_obj),
+        elem_size(_elem_size), capacity(_capacity) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new VectorAllocate(type, node, obj, elem_size, capacity);
+    Module *cloned = new VectorAllocate(get_type().instance_id, node, obj, elem_size, capacity);
     return cloned;
   }
 

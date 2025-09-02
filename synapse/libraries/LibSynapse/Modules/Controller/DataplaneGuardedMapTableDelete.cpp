@@ -74,7 +74,7 @@ std::vector<impl_t> DataplaneGuardedMapTableDeleteFactory::process_node(const EP
     return {};
   }
 
-  Module *module  = new DataplaneGuardedMapTableDelete(type, node, data.obj, data.keys);
+  Module *module  = new DataplaneGuardedMapTableDelete(ep->get_placement(node->get_id()), node, data.obj, data.keys);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -105,7 +105,7 @@ std::unique_ptr<Module> DataplaneGuardedMapTableDeleteFactory::create(const BDD 
     return {};
   }
 
-  return std::make_unique<DataplaneGuardedMapTableDelete>(type, node, data.obj, data.keys);
+  return std::make_unique<DataplaneGuardedMapTableDelete>(get_type().instance_id, node, data.obj, data.keys);
 }
 
 } // namespace Controller

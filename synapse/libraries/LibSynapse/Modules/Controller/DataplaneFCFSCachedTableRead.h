@@ -16,14 +16,15 @@ private:
   std::optional<symbol_t> found;
 
 public:
-  DataplaneFCFSCachedTableRead(ModuleType _type, const BDDNode *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-                               klee::ref<klee::Expr> _value, std::optional<symbol_t> _found)
-      : ControllerModule(_type, "DataplaneFCFSCachedTableRead", _node), id(_id), obj(_obj), keys(_keys), value(_value), found(_found) {}
+  DataplaneFCFSCachedTableRead(const std::string &_instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj,
+                               const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value, std::optional<symbol_t> _found)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableRead, _instance_id), "DataplaneFCFSCachedTableRead", _node),
+        id(_id), obj(_obj), keys(_keys), value(_value), found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneFCFSCachedTableRead(type, node, id, obj, keys, value, found);
+    Module *cloned = new DataplaneFCFSCachedTableRead(get_type().instance_id, node, id, obj, keys, value, found);
     return cloned;
   }
 

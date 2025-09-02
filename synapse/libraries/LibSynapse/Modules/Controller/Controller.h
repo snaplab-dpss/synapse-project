@@ -82,11 +82,12 @@ namespace LibSynapse {
 namespace Controller {
 
 struct ControllerTarget : public Target {
-  ControllerTarget(const std::string &instance_id)
+  ControllerTarget(const std::string &_instance_id)
       : Target(
-            TargetType(TargetArchitecture::Controller, instance_id),
-            [instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
+            TargetType(TargetArchitecture::Controller, _instance_id),
+            [_instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
+<<<<<<< HEAD
               f.push_back(std::make_unique<IgnoreFactory>(instance_id));
               f.push_back(std::make_unique<ParseHeaderFactory>(instance_id));
               f.push_back(std::make_unique<ModifyHeaderFactory>(instance_id));
@@ -160,6 +161,79 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<CMSIncrementFactory>(instance_id));
               f.push_back(std::make_unique<CMSCountMinFactory>(instance_id));
               f.push_back(std::make_unique<DataplaneCuckooHashTableAllocateFactory>(instance_id));
+=======
+              f.push_back(std::make_unique<IgnoreFactory>(_instance_id));
+              f.push_back(std::make_unique<ParseHeaderFactory>(_instance_id));
+              f.push_back(std::make_unique<ModifyHeaderFactory>(_instance_id));
+              f.push_back(std::make_unique<ChecksumUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<IfFactory>(_instance_id));
+              f.push_back(std::make_unique<ThenFactory>(_instance_id));
+              f.push_back(std::make_unique<ElseFactory>(_instance_id));
+              f.push_back(std::make_unique<ForwardFactory>(_instance_id));
+              f.push_back(std::make_unique<BroadcastFactory>(_instance_id));
+              f.push_back(std::make_unique<DropFactory>(_instance_id));
+              f.push_back(std::make_unique<AbortTransactionFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneMapTableAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneMapTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneMapTableUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneMapTableDeleteFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneGuardedMapTableAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneGuardedMapTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneGuardedMapTableGuardCheckFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneGuardedMapTableUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneGuardedMapTableDeleteFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneVectorTableAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneVectorTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneVectorTableUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneDchainTableAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneDchainTableAllocateNewIndexFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneDchainTableFreeIndexFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneDchainTableIsIndexAllocatedFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneDchainTableRefreshIndexFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainAllocateNewIndexFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainIsIndexAllocatedFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainRejuvenateIndexFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainFreeIndexFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorReadFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorWriteFactory>(_instance_id));
+              f.push_back(std::make_unique<MapAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<MapGetFactory>(_instance_id));
+              f.push_back(std::make_unique<MapPutFactory>(_instance_id));
+              f.push_back(std::make_unique<MapEraseFactory>(_instance_id));
+              f.push_back(std::make_unique<ChtAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<ChtFindBackendFactory>(_instance_id));
+              f.push_back(std::make_unique<HashObjFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneVectorRegisterAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneVectorRegisterLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneVectorRegisterUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneFCFSCachedTableAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneFCFSCachedTableReadFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneFCFSCachedTableWriteFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneFCFSCachedTableDeleteFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneHHTableAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneHHTableReadFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneHHTableUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneHHTableIsIndexAllocatedFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneHHTableDeleteFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneCMSAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneCMSQueryFactory>(_instance_id));
+              f.push_back(std::make_unique<TokenBucketAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<TokenBucketIsTracingFactory>(_instance_id));
+              f.push_back(std::make_unique<TokenBucketTraceFactory>(_instance_id));
+              f.push_back(std::make_unique<TokenBucketUpdateAndCheckFactory>(_instance_id));
+              f.push_back(std::make_unique<TokenBucketExpireFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneMeterAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneMeterInsertFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneIntegerAllocatorAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneIntegerAllocatorFreeIndexFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSQueryFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSIncrementFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSCountMinFactory>(_instance_id));
+>>>>>>> 2df2f28ec (Program running: misses placement considerations)
               return f;
             }(),
             std::make_unique<ControllerContext>()) {}

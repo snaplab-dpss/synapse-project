@@ -65,7 +65,7 @@ std::unique_ptr<Module> DataplaneVectorTableAllocateFactory::create(const BDD *b
     return {};
   }
 
-  return std::make_unique<DataplaneVectorTableAllocate>(type, node, data.obj, data.key_size, data.value_size, data.capacity);
+  return std::make_unique<DataplaneVectorTableAllocate>(get_type().instance_id, node, data.obj, data.key_size, data.value_size, data.capacity);
 }
 
 } // namespace Controller

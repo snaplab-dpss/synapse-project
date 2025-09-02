@@ -12,15 +12,16 @@ private:
   klee::ref<klee::Expr> guard_allow_condition;
 
 public:
-  DataplaneGuardedMapTableGuardCheck(ModuleType _type, const BDDNode *_node, addr_t _obj, const symbol_t &_guard_allow,
+  DataplaneGuardedMapTableGuardCheck(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, const symbol_t &_guard_allow,
                                      klee::ref<klee::Expr> _guard_allow_condition)
-      : ControllerModule(_type, "DataplaneGuardedMapTableGuardCheck", _node), obj(_obj), guard_allow(_guard_allow),
-        guard_allow_condition(_guard_allow_condition) {}
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableGuardCheck, _instance_id),
+                         "DataplaneGuardedMapTableGuardCheck", _node),
+        obj(_obj), guard_allow(_guard_allow), guard_allow_condition(_guard_allow_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneGuardedMapTableGuardCheck(type, node, obj, guard_allow, guard_allow_condition);
+    Module *cloned = new DataplaneGuardedMapTableGuardCheck(get_type().instance_id, node, obj, guard_allow, guard_allow_condition);
     return cloned;
   }
 

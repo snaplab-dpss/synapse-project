@@ -89,7 +89,7 @@ std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const B
     return {};
   }
 
-  Module *module  = new DchainTableLookup(type, node, dchain_table->id, data.obj, data.key, data.hit);
+  Module *module  = new DchainTableLookup(ep->get_placement(node->get_id()), node, dchain_table->id, data.obj, data.key, data.hit);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -130,7 +130,7 @@ std::unique_ptr<Module> DchainTableLookupFactory::create(const BDD *bdd, const C
 
   const DchainTable *dchain_table = dynamic_cast<const DchainTable *>(*ds.begin());
 
-  return std::make_unique<DchainTableLookup>(type, node, dchain_table->id, data.obj, data.key, data.hit);
+  return std::make_unique<DchainTableLookup>(get_type().instance_id, node, dchain_table->id, data.obj, data.key, data.hit);
 }
 
 } // namespace Tofino

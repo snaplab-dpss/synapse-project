@@ -103,6 +103,13 @@ void parse_link(const std::vector<std::string> &words, const std::unordered_map<
 }
 } // namespace
 
+const NetworkNodeId PhysicalNetwork::get_placement(const ComponentId component_id) const {
+  if (placement_strategy.find(component_id) == placement_strategy.end()) {
+    panic("Component ID %u not found in placement strategy!", component_id);
+  }
+  return placement_strategy.at(component_id);
+}
+
 PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &network_file) {
   std::ifstream fstream = open_file(network_file);
 
