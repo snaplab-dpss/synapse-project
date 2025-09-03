@@ -215,7 +215,7 @@ def compile_profiler(
     profiler_name = f"{nf.name}-profiler"
 
     files_consumed = [SYNTHESIZED_DIR / f"{profiler_name}.cpp", TOOLS_DIR / "Makefile.dpdk"]
-    files_produced = [SYNTHESIZED_DIR / "build" / profiler_name]
+    files_produced = [SYNTHESIZED_DIR / profiler_name]
 
     compile_profiler_cmd = f"make -f {TOOLS_DIR / 'Makefile.dpdk'}"
 
@@ -258,10 +258,10 @@ def profile_nf_against_pcaps(
         pcap = f"{pcap_base_name}-dev{dev}.pcap"
         pcaps.append(PCAP_DIR / pcap)
 
-    files_consumed = [SYNTHESIZED_DIR / "build" / profiler_name, *warmup_pcaps, *pcaps]
+    files_consumed = [SYNTHESIZED_DIR / profiler_name, *warmup_pcaps, *pcaps]
     files_produced = [PROFILE_DIR / report]
 
-    profile_cmd = f"{SYNTHESIZED_DIR / 'build' / profiler_name}"
+    profile_cmd = f"{SYNTHESIZED_DIR /  profiler_name}"
     profile_cmd += f" {PROFILE_DIR / report}"
     profile_cmd += " "
     profile_cmd += " ".join([f"--warmup {warmup_dev}:{warmup_pcap}" for warmup_dev, warmup_pcap in zip(nf.clients, warmup_pcaps)])

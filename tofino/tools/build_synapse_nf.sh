@@ -34,8 +34,5 @@ if [ ! -f "$cpp_program" ]; then
 fi
 
 APP=$app make -f $TOFINO_MAKEFILE install-tofino2
-
-$LIBSYCON/install.sh
-APP=$app make -f $TOFINO_MAKEFILE clean
 APP=$app make -f $TOFINO_MAKEFILE controller -j
 

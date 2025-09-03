@@ -37,7 +37,7 @@ chosen_workloads = [
     # Key(s=0.6, churn_fpm=0),
     # Key(s=0.6, churn_fpm=100_000),
     Key(s=1.2, churn_fpm=0),
-    Key(s=1.2, churn_fpm=10_000),
+    Key(s=1.2, churn_fpm=1_000_000),
 ]
 
 if all(key.s == chosen_workloads[0].s for key in chosen_workloads):

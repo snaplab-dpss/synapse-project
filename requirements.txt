@@ -7,6 +7,8 @@ crc==6.1.1
 cryptography==41.0.2
 cycler==0.11.0
 fonttools==4.41.0
+graphviz==0.21
+humanize==4.13.0
 kiwisolver==1.4.4
 markdown-it-py==2.2.0
 matplotlib==3.10.1
@@ -28,7 +30,6 @@ pyparsing==3.1.0
 python-dateutil==2.8.2
 rich==13.3.2
 scapy==2.5.0
-setuptools==74.0.0
 six==1.16.0
 tomli==2.0.1
 wcwidth==0.2.13

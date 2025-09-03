@@ -1,0 +1,102 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     kvs.bdd
+  Name:               kvs-f40000-c100000-zipf0_8-hmax-tput
+  Targets config:     tofino2-kvs.toml
+  Heuristic:          max-tput
+  Profile file:       kvs-f40000-c100000-zipf0_8.json
+  Seed:               0
+  Targets:
+    Tofino (28 modules)
+    Ctrl (72 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+
+Winner:
+  Score: <44,131'404'957,0>
+  Tput: 92.51 Gbps (131.40 Mpps)
+  Spec: 92.51 Gbps (131.40 Mpps)
+  Stages: 0
+
+Stateful Implementations:
+  1073954840: Tofino::CuckooHashTable
+  1073971976: Tofino::CuckooHashTable
+  1073923800: Tofino::CuckooHashTable
+
+Search Metadata:
+  Elapsed time:       3 seconds
+  Steps:              44
+  Backtracks:         0
+  Search space size:  130
+  Unfinished EPs:     86
+  Finished EPs:       1
+  Avg BDD size:       47
+  Branching factor:   2
+  Total SS size est.: 1'754'937'210
+  Avg children per node:
+    Node 32: 0
+    Node 31: 0
+    Node 30: 0
+    Node 29: 0
+    Node 56: 3
+    Node 16: 0
+    Node 55: 3
+    Node 15: 0
+    Node 61: 2
+    Node 54: 3
+    Node 14: 0
+    Node 60: 3
+    Node 53: 3
+    Node 13: 6
+    Node 59: 3
+    Node 12: 4
+    Node 64: 2
+    Node 5: 3
+    Node 6: 3
+    Node 65: 3
+    Node 58: 3
+    Node 7: 3
+    Node 66: 2
+    Node 8: 3
+    Node 38: 0
+    Node 9: 3
+    Node 33: 3
+    Node 4: 2
+    Node 63: 3
+    Node 62: 3
+    Node 39: 0
+    Node 10: 4
+    Node 11: 5
+    Node 17: 0
+    Node 34: 3
+    Node 40: 0
+    Node 57: 2
+    Node 18: 3
+    Node 23: 0
+    Node 35: 3
+    Node 41: 0
+    Node 47: 0
+    Node 19: 3
+    Node 24: 0
+    Node 36: 3
+    Node 42: 3
+    Node 48: 3
+    Node 20: 3
+    Node 25: 0
+    Node 37: 2
+    Node 43: 3
+    Node 49: 3
+    Node 21: 3
+    Node 26: 0
+    Node 44: 3
+    Node 50: 3
+    Node 22: 2
+    Node 27: 0
+    Node 45: 3
+    Node 51: 3
+    Node 28: 0
+    Node 46: 2
+    Node 52: 2
+
+========================================================

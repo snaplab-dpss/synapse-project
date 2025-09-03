@@ -1,0 +1,104 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     kvs.bdd
+  Name:               kvs-f40000-c10000-zipf0_6-hds-pref-simple
+  Targets config:     tofino2-kvs.toml
+  Heuristic:          ds-pref-simple
+  Profile file:       kvs-f40000-c10000-zipf0_6.json
+  Seed:               0
+  Targets:
+    Tofino (28 modules)
+    Ctrl (72 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+
+Winner:
+  Score: <62,3,12'886'135>
+  BDD Progress: 62
+  DS Score: 3
+  Tput: 9.07 Gbps (12.89 Mpps)
+  Spec: 9.07 Gbps (12.89 Mpps)
+
+Stateful Implementations:
+  1073954840: Tofino::Register
+  1073971976: Tofino::DchainTable
+  1073923800: Tofino::MapTable
+
+Search Metadata:
+  Elapsed time:       6 seconds
+  Steps:              68
+  Backtracks:         1
+  Search space size:  178
+  Unfinished EPs:     110
+  Finished EPs:       1
+  Avg BDD size:       61
+  Branching factor:   2
+  Total SS size est.: 19'457'163'562
+  Avg children per node:
+    Node 124: 4
+    Node 32: 0
+    Node 31: 0
+    Node 30: 0
+    Node 29: 0
+    Node 56: 3
+    Node 16: 2
+    Node 55: 3
+    Node 15: 4
+    Node 61: 2
+    Node 54: 3
+    Node 14: 3
+    Node 60: 3
+    Node 53: 3
+    Node 13: 6
+    Node 59: 3
+    Node 12: 4
+    Node 64: 2
+    Node 5: 3
+    Node 6: 3
+    Node 65: 3
+    Node 58: 3
+    Node 7: 3
+    Node 66: 2
+    Node 8: 3
+    Node 38: 5
+    Node 9: 3
+    Node 33: 4
+    Node 4: 2
+    Node 63: 3
+    Node 62: 3
+    Node 39: 4
+    Node 10: 4
+    Node 11: 5
+    Node 17: 0
+    Node 34: 4
+    Node 40: 3
+    Node 57: 2
+    Node 18: 0
+    Node 23: 0
+    Node 35: 4
+    Node 41: 3
+    Node 47: 3
+    Node 19: 0
+    Node 24: 0
+    Node 36: 4
+    Node 42: 3
+    Node 48: 3
+    Node 20: 0
+    Node 25: 0
+    Node 37: 3
+    Node 43: 3
+    Node 49: 3
+    Node 21: 0
+    Node 26: 0
+    Node 44: 3
+    Node 50: 3
+    Node 22: 0
+    Node 27: 0
+    Node 45: 3
+    Node 51: 3
+    Node 28: 0
+    Node 46: 2
+    Node 52: 2
+
+========================================================

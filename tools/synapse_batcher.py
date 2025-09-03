@@ -15,8 +15,9 @@ PROJECT_DIR = (CURRENT_DIR / "..").resolve()
 
 BDD_DIR = PROJECT_DIR / "bdds"
 SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
-OUT_DIR = SYNTHESIZED_DIR / "build"
+OUT_DIR = SYNTHESIZED_DIR
 PCAP_DIR = PROJECT_DIR / "pcaps"
+TOFINO_TOOLS_DIR = PROJECT_DIR / "tofino" / "tools"
 TOOLS_DIR = PROJECT_DIR / "tools"
 PROFILE_DIR = PROJECT_DIR / "profiles"
 SYNAPSE_DIR = PROJECT_DIR / "synapse"
@@ -121,6 +122,8 @@ def run_synapse(
     synapse_ep_dot = f"{name}-ep.dot"
     synapse_ss_dot = f"{name}-ss.dot"
     synapse_report_json = f"{name}.json"
+    synapse_cpp = f"{name}.cpp"
+    synapse_p4 = f"{name}.p4"
 
     config = "tofino2-kvs.toml" if nf.name == "kvs" else "tofino2.toml"
 
@@ -136,6 +139,12 @@ def run_synapse(
         OUT_DIR / synapse_ss_dot,
         OUT_DIR / synapse_report_json,
     ]
+
+    if not skip_synthesis:
+        files_produced += [
+            OUT_DIR / synapse_cpp,
+            OUT_DIR / synapse_p4,
+        ]
 
     profile_visualizer_cmd = f"{SYNAPSE_BIN_DIR / 'synapse'}"
     profile_visualizer_cmd += f" --in {BDD_DIR / nf.bdd}"
