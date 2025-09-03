@@ -626,9 +626,14 @@ code_t TofinoSynthesizer::build_register_action_name(const Register *reg, Regist
   case RegisterActionType::IncrementAndReturnNewValue:
     coder << "inc_and_read";
     break;
+  case RegisterActionType::ReadConditionalWrite:
+    coder << "read_conditional_write";
+    break;
   case RegisterActionType::CalculateDiff:
     coder << "diff";
     break;
+  case RegisterActionType::QueryAndRefreshTimestamp:
+    coder << "query_and_refresh";
   }
 
   if (node) {
@@ -973,6 +978,9 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
+  case RegisterActionType::ReadConditionalWrite: {
+    todo();
+  } break;
   case RegisterActionType::CalculateDiff: {
     const code_t value_cmp = action_name + "_cmp";
 
@@ -986,6 +994,9 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.dec();
     ingress.indent();
     ingress << "}\n";
+  } break;
+  case RegisterActionType::QueryAndRefreshTimestamp: {
+    todo();
   } break;
   }
 

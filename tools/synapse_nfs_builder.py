@@ -120,6 +120,47 @@ def build_synthesized_synapse_nf(
     )
 
 
+def extract_synapse_nf_tofino2_resources(
+    nf: NF,
+    total_flows: int,
+    zipf_param: float,
+    churn_fpm: int,
+    heuristic: str,
+    skip_execution: bool = False,
+    show_cmds_output: bool = False,
+    show_cmds: bool = False,
+    silence: bool = False,
+) -> Task:
+    pcap_base_name = get_pcap_base_name(nf, total_flows, zipf_param, churn_fpm)
+    name = f"{pcap_base_name}-h{heuristic}"
+
+    p4_file = f"{name}.p4"
+    tof2_resources_file = f"{name}-resources.txt"
+
+    files_consumed = [
+        OUT_DIR / p4_file,
+    ]
+
+    files_produced = [
+        OUT_DIR / tof2_resources_file,
+    ]
+
+    build_synapse_nf_cmd = f"{TOFINO_TOOLS_DIR / 'get_resources_tofino2.sh'} {p4_file}"
+
+    return Task(
+        f"extract_synapse_nf_tofino2_resources_{name}",
+        build_synapse_nf_cmd,
+        env_vars={"SDE": os.environ["SDE"], "SDE_INSTALL": os.environ["SDE_INSTALL"]},
+        cwd=SYNTHESIZED_DIR,
+        files_consumed=files_consumed,
+        files_produced=files_produced,
+        skip_execution=skip_execution,
+        show_cmds_output=show_cmds_output,
+        show_cmds=show_cmds,
+        silence=silence,
+    )
+
+
 if __name__ == "__main__":
     for required_env_var in REQUIRED_ENV_VARS:
         if required_env_var not in os.environ:
@@ -160,6 +201,19 @@ if __name__ == "__main__":
         for total_flows, zipf_param, churn, heuristic in combinations:
             orchestrator.add_task(
                 build_synthesized_synapse_nf(
+                    nf,
+                    total_flows,
+                    zipf_param,
+                    churn,
+                    heuristic,
+                    show_cmds_output=args.show_cmds_output,
+                    show_cmds=args.show_cmds,
+                    silence=args.silence,
+                )
+            )
+
+            orchestrator.add_task(
+                extract_synapse_nf_tofino2_resources(
                     nf,
                     total_flows,
                     zipf_param,

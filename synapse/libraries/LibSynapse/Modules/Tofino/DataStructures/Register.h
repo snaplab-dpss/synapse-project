@@ -25,14 +25,19 @@ enum class RegisterActionType {
   Decrement,
   SetToOneAndReturnOldValue,
   IncrementAndReturnNewValue,
+  ReadConditionalWrite,
   CalculateDiff,
+  QueryAndRefreshTimestamp,
 };
 
 const std::unordered_set<RegisterActionType> register_action_types_with_out_value = {
     RegisterActionType::Read,
+    RegisterActionType::Swap,
     RegisterActionType::SetToOneAndReturnOldValue,
     RegisterActionType::IncrementAndReturnNewValue,
+    RegisterActionType::ReadConditionalWrite,
     RegisterActionType::CalculateDiff,
+    RegisterActionType::QueryAndRefreshTimestamp,
 };
 
 struct Register : public DS {

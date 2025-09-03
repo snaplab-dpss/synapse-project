@@ -18,24 +18,24 @@ P4C="$SDE_INSTALL/bin/bf-p4c"
 P4_DEBUG_FLAGS="-g --verbose 2 --create-graphs"
 INSTALL_SCRIPT="$SCRIPT_DIR/p4_build.sh"
 
-BUILD_DIR="$SCRIPT_DIR/build"
-RESOURCES_FILE="$BUILD_DIR/pipe/logs/mau.resources.log"
-
-PROGRAM=$1
-
 run() {
 	program=$1
-	report="$program"
-	report="${report%.*}.txt"
 
-	echo "$program => $report"
+	report=$(basename $program)
+	report="${report%.*}-resources.txt"
 
-	mkdir -p $BUILD_DIR
-	$P4C --target tofino2 --arch t2na $P4_DEBUG_FLAGS -o $BUILD_DIR $program
-	mv $RESOURCES_FILE $report
-	rm -rf $BUILD_DIR
+	TEMP_DIR=$(mktemp -d)
+	pushd $TEMP_DIR
+	
+		echo "$program => $report"
+		mkdir -p build
+		$P4C --target tofino2 --arch t2na $P4_DEBUG_FLAGS -o build $program
+	popd
+
+	mv $TEMP_DIR/build/pipe/logs/mau.resources.log $report
+	rm -rf $TEMP_DIR
 }
 
 for program in "$@"; do
-	run "$program"
+	run $(realpath $program)
 done

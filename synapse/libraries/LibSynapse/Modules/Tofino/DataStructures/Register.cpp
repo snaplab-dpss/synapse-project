@@ -64,9 +64,14 @@ void Register::debug() const {
     case RegisterActionType::IncrementAndReturnNewValue:
       ss << "INC_AND_RETURN_NEW_VALUE";
       break;
+    case RegisterActionType::ReadConditionalWrite:
+      ss << "READ_CONDITIONAL_WRITE";
+      break;
     case RegisterActionType::CalculateDiff:
       ss << "CALCULATE_DIFF";
       break;
+    case RegisterActionType::QueryAndRefreshTimestamp:
+      ss << "QUERY_AND_REFRESH_TIMESTAMP";
     }
     first = false;
   }

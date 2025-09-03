@@ -173,7 +173,7 @@ SYNAPSE_NFS = [
             churn=[churn],
             zipf=[s],
         )
-        for churn, s in zip(CHURN_FPM, ZIPF_PARAMS)
+        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
     ],
 ]
 
@@ -281,11 +281,11 @@ class SynapseThroughput(Experiment):
         if completed:
             return
 
-        # self.log("Installing Tofino TG")
-        # self.tput_hosts.tg_switch.install()
+        self.log("Installing Tofino TG")
+        self.tput_hosts.tg_switch.install()
 
-        # self.log("Launching Tofino TG")
-        # self.tput_hosts.tg_switch.launch()
+        self.log("Launching Tofino TG")
+        self.tput_hosts.tg_switch.launch()
 
         self.log("Installing Synapse P4 program")
         self.tput_hosts.dut_switch.install(
@@ -298,23 +298,23 @@ class SynapseThroughput(Experiment):
             ports=self.dut_ports,
         )
 
-        # self.log("Launching pktgen")
-        # self.tput_hosts.pktgen.launch(kvs_mode=self.kvs_mode)
+        self.log("Launching pktgen")
+        self.tput_hosts.pktgen.launch(kvs_mode=self.kvs_mode)
 
-        # self.log("Waiting for Tofino TG")
-        # self.tput_hosts.tg_switch.wait_ready()
+        self.log("Waiting for Tofino TG")
+        self.tput_hosts.tg_switch.wait_ready()
 
-        # self.log("Configuring Tofino TG")
-        # self.tput_hosts.tg_controller.setup(
-        #     broadcast=self.broadcast,
-        #     symmetric=self.symmetric,
-        #     route=self.route,
-        # )
+        self.log("Configuring Tofino TG")
+        self.tput_hosts.tg_controller.setup(
+            broadcast=self.broadcast,
+            symmetric=self.symmetric,
+            route=self.route,
+        )
 
-        # self.log("Waiting for pktgen")
-        # self.tput_hosts.pktgen.wait_launch()
+        self.log("Waiting for pktgen")
+        self.tput_hosts.pktgen.wait_launch()
 
-        # self.log("Starting experiment")
+        self.log("Starting experiment")
 
         for s, churn_fpm in combinations:
             exp_key = (
@@ -325,67 +325,67 @@ class SynapseThroughput(Experiment):
 
             description = f"{self.name} (it={current_iter} s={s} churn={churn_fpm:,}fpm)"
 
-        #     if exp_key in self.experiment_tracker:
-        #         self.console.log(f"[orange1]Skipping: iteration={current_iter} s={s} churn={churn_fpm:,}fpm")
-        #         step_progress.update(task_id, description=description, advance=1)
-        #         continue
+            if exp_key in self.experiment_tracker:
+                self.console.log(f"[orange1]Skipping: iteration={current_iter} s={s} churn={churn_fpm:,}fpm")
+                step_progress.update(task_id, description=description, advance=1)
+                continue
 
-        #     step_progress.update(task_id, description=description)
+            step_progress.update(task_id, description=description)
 
-        #     if self.kvs_mode:
-        #         assert self.kvs_server is not None
-        #         self.log(f"Launching and waiting for KVS server (delay={self.delay_ns:,}ns)")
-        #         self.kvs_server.kill_server()
-        #         self.kvs_server.launch(delay_ns=self.delay_ns)
-        #         self.kvs_server.wait_launch()
+            if self.kvs_mode:
+                assert self.kvs_server is not None
+                self.log(f"Launching and waiting for KVS server (delay={self.delay_ns:,}ns)")
+                self.kvs_server.kill_server()
+                self.kvs_server.launch(delay_ns=self.delay_ns)
+                self.kvs_server.wait_launch()
 
-        #     self.log("Waiting for the Synapse controller")
-        #     self.tput_hosts.dut_controller.stop()
-        #     self.tput_hosts.dut_controller.launch(
-        #         src_in_repo=self.controller_src_in_repo,
-        #         ports=self.dut_ports,
-        #     )
-        #     self.tput_hosts.dut_controller.wait_ready()
+            self.log("Waiting for the Synapse controller")
+            self.tput_hosts.dut_controller.stop()
+            self.tput_hosts.dut_controller.launch(
+                src_in_repo=self.controller_src_in_repo,
+                ports=self.dut_ports,
+            )
+            self.tput_hosts.dut_controller.wait_ready()
 
-        #     self.log("Launching pktgen")
-        #     self.tput_hosts.pktgen.close()
-        #     self.tput_hosts.pktgen.launch(
-        #         nb_flows=self.total_flows,
-        #         traffic_dist=TrafficDist.ZIPF,
-        #         zipf_param=s,
-        #         kvs_mode=True,
-        #         kvs_get_ratio=KVS_GET_RATIO,
-        #     )
+            self.log("Launching pktgen")
+            self.tput_hosts.pktgen.close()
+            self.tput_hosts.pktgen.launch(
+                nb_flows=self.total_flows,
+                traffic_dist=TrafficDist.ZIPF,
+                zipf_param=s,
+                kvs_mode=True,
+                kvs_get_ratio=KVS_GET_RATIO,
+            )
 
-        #     self.tput_hosts.pktgen.wait_launch()
+            self.tput_hosts.pktgen.wait_launch()
 
-        #     report = self.find_stable_throughput(
-        #         tg_controller=self.tput_hosts.tg_controller,
-        #         pktgen=self.tput_hosts.pktgen,
-        #         churn=churn_fpm,
-        #     )
+            report = self.find_stable_throughput(
+                tg_controller=self.tput_hosts.tg_controller,
+                pktgen=self.tput_hosts.pktgen,
+                churn=churn_fpm,
+            )
 
-        #     with open(self.save_name, "a") as f:
-        #         f.write(f"{current_iter}")
-        #         f.write(f",{s}")
-        #         f.write(f",{churn_fpm}")
-        #         f.write(f",{report.requested_bps}")
-        #         f.write(f",{report.pktgen_bps}")
-        #         f.write(f",{report.pktgen_pps}")
-        #         f.write(f",{report.dut_ingress_bps}")
-        #         f.write(f",{report.dut_ingress_pps}")
-        #         f.write(f",{report.dut_egress_bps}")
-        #         f.write(f",{report.dut_egress_pps}")
-        #         f.write(f"\n")
+            with open(self.save_name, "a") as f:
+                f.write(f"{current_iter}")
+                f.write(f",{s}")
+                f.write(f",{churn_fpm}")
+                f.write(f",{report.requested_bps}")
+                f.write(f",{report.pktgen_bps}")
+                f.write(f",{report.pktgen_pps}")
+                f.write(f",{report.dut_ingress_bps}")
+                f.write(f",{report.dut_ingress_pps}")
+                f.write(f",{report.dut_egress_bps}")
+                f.write(f",{report.dut_egress_pps}")
+                f.write(f"\n")
 
-        #     step_progress.update(task_id, description=description, advance=1)
+            step_progress.update(task_id, description=description, advance=1)
 
-        # self.tput_hosts.pktgen.close()
+        self.tput_hosts.pktgen.close()
         self.tput_hosts.dut_controller.stop()
 
-        # if self.kvs_mode:
-        #     assert self.kvs_server is not None
-        #     self.kvs_server.kill_server()
+        if self.kvs_mode:
+            assert self.kvs_server is not None
+            self.kvs_server.kill_server()
 
         step_progress.update(task_id, visible=False)
 
