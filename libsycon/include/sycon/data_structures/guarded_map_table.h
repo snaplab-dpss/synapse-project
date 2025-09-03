@@ -19,14 +19,14 @@ private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
   bool guard_cache;
   std::vector<Table> tables;
-  Register guard;
+  std::optional<Register> guard;
   u32 capacity;
   bits_t key_size;
 
 public:
   GuardedMapTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &guard_name,
                   std::optional<time_ms_t> timeout = std::nullopt)
-      : SynapseDS(_name), guard(guard_name), capacity(0), key_size(0) {
+      : SynapseDS(_name), guard(conditional_build_guard(guard_name)), capacity(0), key_size(0) {
     assert(!table_names.empty() && "Table name must not be empty");
 
     for (const std::string &table_name : table_names) {
@@ -41,7 +41,9 @@ public:
       assert(table.get_effective_capacity() == capacity);
     }
 
-    guard_allow();
+    if (guard.has_value()) {
+      guard_allow();
+    }
 
     if (timeout.has_value()) {
       Table &chosen_expiration_table = tables.front();
@@ -95,7 +97,9 @@ public:
 
     cache.erase(found_it);
 
-    guard_allow();
+    if (guard.has_value()) {
+      guard_allow();
+    }
   }
 
   void dump() const {
@@ -152,13 +156,26 @@ private:
   }
 
   void guard_allow() {
-    guard.set(0, 1);
+    assert(guard.has_value() && "Guard register not initialized");
+    guard->set(0, 1);
     guard_cache = true;
   }
 
   void guard_disallow() {
-    guard.set(0, 0);
+    assert(guard.has_value() && "Guard register not initialized");
+    guard->set(0, 0);
     guard_cache = false;
+  }
+
+  static std::optional<Register> conditional_build_guard(const std::string &name) {
+    const bfrt::BfRtTable *table;
+    if (cfg.info->bfrtTableFromNameGet(name, &table) != BF_SUCCESS) {
+      return {};
+    }
+
+    std::optional<Register> guard;
+    guard.emplace(name);
+    return guard;
   }
 };
 
