@@ -232,7 +232,6 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
 
   new_bdd_nodes_t new_bdd_nodes;
   std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep.get(), dchain_allocate_new_index, guard_check_symbol, guard_allow_condition, new_bdd_nodes);
-
   if (!update_profiler(new_ep.get(), guard_allow_probability, new_bdd_nodes)) {
     return {};
   }

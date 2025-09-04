@@ -40,15 +40,15 @@ NFS = [
     #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_maptable_pps_scatter.pdf",
     #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_maptable_heatmap.pdf",
     # },
-    {
-        "title": "KVS Cuckoo",
-        "data_file": DATA_DIR / "tput_synapse_kvs_cuckoo.csv",
-        "bps_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_bps.pdf",
-        "pps_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_pps.pdf",
-        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_bps_scatter.pdf",
-        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_pps_scatter.pdf",
-        "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_heatmap.pdf",
-    },
+    # {
+    #     "title": "KVS Cuckoo",
+    #     "data_file": DATA_DIR / "tput_synapse_kvs_cuckoo.csv",
+    #     "bps_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_bps.pdf",
+    #     "pps_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_pps.pdf",
+    #     "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_bps_scatter.pdf",
+    #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_pps_scatter.pdf",
+    #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_heatmap.pdf",
+    # },
     # {
     #     "title": "Firewall",
     #     "data_file": DATA_DIR / "tput_synapse_fw.csv",
@@ -67,6 +67,15 @@ NFS = [
     #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_nat_pps_scatter.pdf",
     #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_nat_heatmap.pdf",
     # },
+    {
+        "title": "KVS",
+        "data_file": DATA_DIR / "tput_synapse_kvs.csv",
+        "bps_output_file": PLOTS_DIR / "tput_synapse_kvs_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_synapse_kvs_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_heatmap.pdf",
+    },
 ]
 
 

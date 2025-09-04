@@ -14,11 +14,11 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <62,4,12'452'121>
-  BDD Progress: 62
+  Score: <67,4,85'551'131>
+  BDD Progress: 67
   DS Score: 4
-  Tput: 8.77 Gbps (12.45 Mpps)
-  Spec: 8.77 Gbps (12.45 Mpps)
+  Tput: 60.23 Gbps (85.55 Mpps)
+  Spec: 60.23 Gbps (85.55 Mpps)
 
 Stateful Implementations:
   1073954840: Tofino::Register
@@ -26,23 +26,26 @@ Stateful Implementations:
   1073923800: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       5 seconds
-  Steps:              68
-  Backtracks:         1
-  Search space size:  178
-  Unfinished EPs:     110
+  Elapsed time:       7 seconds
+  Steps:              69
+  Backtracks:         0
+  Search space size:  186
+  Unfinished EPs:     117
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   2
-  Total SS size est.: 19'457'163'562
+  Total SS size est.: 23'186'399'603
   Avg children per node:
+    Node 130: 3
+    Node 129: 3
+    Node 128: 3
     Node 124: 4
     Node 32: 0
     Node 31: 0
     Node 30: 0
     Node 29: 0
     Node 56: 3
-    Node 16: 2
+    Node 16: 2.5
     Node 55: 3
     Node 15: 4
     Node 61: 2
@@ -54,6 +57,7 @@ Search Metadata:
     Node 59: 3
     Node 12: 4
     Node 64: 2
+    Node 132: 2
     Node 5: 3
     Node 6: 3
     Node 65: 3
@@ -64,6 +68,7 @@ Search Metadata:
     Node 38: 5
     Node 9: 3
     Node 33: 4
+    Node 131: 3
     Node 4: 2
     Node 63: 3
     Node 62: 3

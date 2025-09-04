@@ -80,7 +80,7 @@ def main():
 
         print(f"[{client_port}] Sending cached GET requests")
 
-        for i in range(5):
+        for _ in range(5):
             kvs_req = build_kvs_hdr(op=KVS_OP_GET, key=kvs_hdr.key, value=kvs_hdr.value)
             ksv_res = build_kvs_hdr(op=KVS_OP_GET, key=kvs_hdr.key, value=kvs_hdr.value, status=KVS_STATUS_OK)
 
@@ -97,7 +97,7 @@ def main():
 
         print(f"[{client_port}] Sending cached PUT requests")
 
-        for i in range(5):
+        for _ in range(5):
             kvs_req = build_kvs_hdr(op=KVS_OP_PUT, key=kvs_hdr.key)
             ksv_res = build_kvs_hdr(op=KVS_OP_PUT, key=kvs_hdr.key, value=kvs_req.value, status=KVS_STATUS_OK)
 

@@ -917,15 +917,16 @@ bool Profiler::can_set(ProfilerNode *node, hit_rate_t new_hr) const {
     return true;
   }
 
-  if (!can_recursive_update_fractions(node->on_true, old_fraction) || !can_recursive_update_fractions(node->on_false, old_fraction)) {
+  if ((node->on_true && !can_recursive_update_fractions(node->on_true, old_fraction)) ||
+      (node->on_false && !can_recursive_update_fractions(node->on_false, old_fraction))) {
     return false;
   }
 
   const ProfilerNode::family_t family = node->get_family();
   if (family.sibling) {
     const hit_rate_t sibling_old_fraction = family.sibling->fraction;
-    if (!can_recursive_update_fractions(family.sibling->on_true, sibling_old_fraction) ||
-        !can_recursive_update_fractions(family.sibling->on_false, sibling_old_fraction)) {
+    if ((family.sibling->on_true && !can_recursive_update_fractions(family.sibling->on_true, sibling_old_fraction)) ||
+        (family.sibling->on_false && !can_recursive_update_fractions(family.sibling->on_false, sibling_old_fraction))) {
       return false;
     }
   }
