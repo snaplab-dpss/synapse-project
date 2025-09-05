@@ -21,14 +21,20 @@ def build_report(profile: Profile) -> str:
     delta = timedelta(seconds=elapsed_seconds)
     elapsed_hr = humanize.precisedelta(delta, minimum_unit="microseconds")
 
+    total_bytes_on_the_write = (8 + avg_bytes_per_pkt + 12) * total_packets
+    packet_rate_bps = int(total_bytes_on_the_write * 8 / elapsed_seconds)
+    packet_rate_pps = int(total_packets / elapsed_seconds)
+
     table = PrettyTable()
     table.header = False
     table.align = "l"
     table.title = f"Report for profile {profile.fname.name}"
 
     table.add_row(["Total pkts", f"{total_packets:,}"])
-    table.add_row(["Total bytes", f"{total_bytes:,}"])
+    table.add_row(["Total pkt bytes", f"{total_bytes:,}"])
     table.add_row(["Avg pkt size", f"{avg_bytes_per_pkt:,} bytes"])
+    table.add_row(["Bytes on the wire", f"{total_bytes_on_the_write:,}"])
+    table.add_row(["Packet rate", f"{packet_rate_bps:,} bps ({packet_rate_pps:,} pps)"])
     table.add_row(["Elapsed", elapsed_hr])
     table.add_row(["Warmup epochs", f"{total_warmup_epochs:,}"])
     table.add_row(["Epochs", f"{total_non_warmup_epochs:,}"])

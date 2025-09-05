@@ -35,8 +35,10 @@ class Task:
         # File dependencies
         files_consumed: list[Path] | list[str] = [],
         files_produced: list[Path] | list[str] = [],
-        # Metadata
+        # Execution options
         skip_execution: bool = False,
+        ignore_skip_if_already_produced: bool = False,
+        # Metadata
         show_cmds_output: bool = False,
         show_cmds: bool = False,
         silence: bool = False,
@@ -54,6 +56,8 @@ class Task:
         self.files_produced = set([Path(f) for f in files_produced])
 
         self.skip_execution = skip_execution
+        self.ignore_skip_if_already_produced = ignore_skip_if_already_produced
+
         self.show_cmds_output = show_cmds_output
         self.show_cmds = show_cmds
         self.silence = silence
@@ -135,7 +139,7 @@ class Task:
                 return True
 
         all_files_produced = len(self.files_produced) > 0 and all([file.exists() for file in self.files_produced])
-        if all_files_produced and skip_if_already_produced:
+        if not self.ignore_skip_if_already_produced and all_files_produced and skip_if_already_produced:
             self.log("all product files already exist, skipping execution", color=SKIP_COLOR)
             return True
 

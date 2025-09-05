@@ -215,7 +215,7 @@ def compile_profiler(
     profiler_name = f"{nf.name}-profiler"
 
     files_consumed = [SYNTHESIZED_DIR / f"{profiler_name}.cpp", TOOLS_DIR / "Makefile.dpdk"]
-    files_produced = [SYNTHESIZED_DIR / profiler_name]
+    files_produced = [SYNTHESIZED_DIR / "build" / profiler_name]
 
     compile_profiler_cmd = f"make -f {TOOLS_DIR / 'Makefile.dpdk'}"
 
@@ -258,10 +258,10 @@ def profile_nf_against_pcaps(
         pcap = f"{pcap_base_name}-dev{dev}.pcap"
         pcaps.append(PCAP_DIR / pcap)
 
-    files_consumed = [SYNTHESIZED_DIR / profiler_name, *warmup_pcaps, *pcaps]
+    files_consumed = [SYNTHESIZED_DIR / "build" / profiler_name, *warmup_pcaps, *pcaps]
     files_produced = [PROFILE_DIR / report]
 
-    profile_cmd = f"{SYNTHESIZED_DIR /  profiler_name}"
+    profile_cmd = f"{SYNTHESIZED_DIR / 'build' / profiler_name}"
     profile_cmd += f" {PROFILE_DIR / report}"
     profile_cmd += " "
     profile_cmd += " ".join([f"--warmup {warmup_dev}:{warmup_pcap}" for warmup_dev, warmup_pcap in zip(nf.clients, warmup_pcaps)])
@@ -321,6 +321,7 @@ def generate_profile_stats(
     zipf_param: float,
     churn_fpm: int,
     skip_execution: bool = False,
+    ignore_skip_if_already_produced: bool = False,
     show_cmds_output: bool = False,
     show_cmds: bool = False,
     silence: bool = False,
@@ -343,6 +344,7 @@ def generate_profile_stats(
         files_consumed=files_consumed,
         files_produced=files_produced,
         skip_execution=skip_execution,
+        ignore_skip_if_already_produced=ignore_skip_if_already_produced,
         show_cmds_output=show_cmds_output,
         show_cmds=show_cmds,
         silence=silence,
@@ -371,7 +373,9 @@ if __name__ == "__main__":
     parser.add_argument("--show-cmds", action="store_true", default=False, help="Show requested commands during execution")
     parser.add_argument("--show-execution-plan", action="store_true", default=False, help="Show execution plan")
     parser.add_argument("--dry-run", action="store_true", default=False)
-    parser.add_argument("--force", action="store_true", default=False, help="Force execution even if files are already produced")
+
+    parser.add_argument("--force", action="store_true", default=False, help="Force execution **of all tasks** even if files are already produced")
+    parser.add_argument("--force-profile-stats", action="store_true", default=False, help="Force regeneration of profile stats")
 
     parser.add_argument("--silence", action="store_true", default=False, help="Silence all output except errors")
 
@@ -481,6 +485,7 @@ if __name__ == "__main__":
                     zipf_param,
                     churn,
                     skip_execution=args.dry_run,
+                    ignore_skip_if_already_produced=args.force_profile_stats,
                     show_cmds_output=args.show_cmds_output,
                     show_cmds=args.show_cmds,
                     silence=args.silence,
