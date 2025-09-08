@@ -65,6 +65,8 @@ Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type)
 const std::vector<u32> HHTable::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f, 0x1f3a2b4d, 0x7c5e9f8b, 0x3a2b4d1f,
                                               0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
 
+const std::vector<u32> HHTable::CMS_WIDTH_CANDIDATES = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
+
 HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _capacity, const std::vector<bits_t> &_keys_sizes, u32 _cms_width,
                  u32 _cms_height, u8 _digest_type)
     : DS(DSType::HHTable, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), cms_width(_cms_width), cms_height(_cms_height),

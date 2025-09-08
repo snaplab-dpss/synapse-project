@@ -36,8 +36,8 @@ struct hh_table_data_t {
 };
 
 bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
-                                     const branch_direction_t &mgsc) {
-  const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, mgsc.branch, map, key, capacity);
+                                     u32 cms_width, const branch_direction_t &mgsc) {
+  const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, mgsc.branch, map, key, capacity, cms_width);
 
   assert(mgsc.branch && "No branch checking map_get success");
   const BDDNode *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
@@ -47,6 +47,7 @@ bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *
   }
 
   ctx.get_mutable_profiler().set_relative(on_success->get_ordered_branch_constraints(), success_rate);
+
   return true;
 }
 
@@ -80,19 +81,32 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const BDD
     return {};
   }
 
-  if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, HHTable::CMS_WIDTH, HHTable::CMS_HEIGHT)) {
-    return {};
+  u32 chosen_cms_width           = 0;
+  hit_rate_t chosen_success_rate = 0_hr;
+
+  for (const u32 cms_width : HHTable::CMS_WIDTH_CANDIDATES) {
+    const hit_rate_t success_rate =
+        TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, mpsc.branch, table_data.obj, table_data.key, table_data.capacity, cms_width);
+
+    if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, cms_width, HHTable::CMS_HEIGHT)) {
+      continue;
+    }
+
+    if (success_rate > chosen_success_rate) {
+      chosen_success_rate = success_rate;
+      chosen_cms_width    = cms_width;
+    }
   }
 
   Context new_ctx = ctx;
   new_ctx.save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
   new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
 
-  if (!update_map_get_success_hit_rate(ep, new_ctx, map_get, table_data.obj, table_data.key, table_data.capacity, mpsc)) {
+  if (!update_map_get_success_hit_rate(ep, new_ctx, map_get, table_data.obj, table_data.key, table_data.capacity, chosen_cms_width, mpsc)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), new_ctx);
+  return spec_impl_t(decide(ep, node, {{HHTABLE_CMS_WIDTH_PARAM, static_cast<i32>(chosen_cms_width)}}), new_ctx);
 }
 
 std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -124,33 +138,35 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
-
-  if (!update_map_get_success_hit_rate(new_ep.get(), new_ep->get_mutable_ctx(), map_get, table_data.obj, table_data.key, table_data.capacity, mpsc)) {
-    return {};
-  }
-
-  HHTable *hh_table =
-      build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, HHTable::CMS_WIDTH, HHTable::CMS_HEIGHT);
-  if (!hh_table) {
-    return {};
-  }
-
-  Module *module =
-      new HHTableRead(node, hh_table->id, table_data.obj, table_data.key, table_data.table_keys, table_data.read_value, table_data.map_has_this_key);
-  EPNode *ep_node = new EPNode(module);
-
-  new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
-  new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
-
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
-  tofino_ctx->place(new_ep.get(), node, map_objs->map, hh_table);
-
-  EPLeaf leaf(ep_node, node->get_next());
-  new_ep->process_leaf(ep_node, {leaf});
-
   std::vector<impl_t> impls;
-  impls.emplace_back(implement(ep, node, std::move(new_ep)));
+  for (const u32 cms_width : HHTable::CMS_WIDTH_CANDIDATES) {
+    HHTable *hh_table = build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, cms_width, HHTable::CMS_HEIGHT);
+    if (!hh_table) {
+      continue;
+    }
+
+    std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
+    if (!update_map_get_success_hit_rate(new_ep.get(), new_ep->get_mutable_ctx(), map_get, table_data.obj, table_data.key, table_data.capacity,
+                                         cms_width, mpsc)) {
+      continue;
+    }
+
+    Module *module  = new HHTableRead(node, hh_table->id, table_data.obj, table_data.key, table_data.table_keys, table_data.read_value,
+                                      table_data.map_has_this_key);
+    EPNode *ep_node = new EPNode(module);
+
+    new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
+    new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
+
+    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+    tofino_ctx->place(new_ep.get(), node, map_objs->map, hh_table);
+
+    EPLeaf leaf(ep_node, node->get_next());
+    new_ep->process_leaf(ep_node, {leaf});
+
+    impls.emplace_back(implement(ep, node, std::move(new_ep), {{HHTABLE_CMS_WIDTH_PARAM, static_cast<i32>(cms_width)}}));
+  }
+
   return impls;
 }
 

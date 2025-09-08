@@ -31,12 +31,45 @@ struct flow_stats_t {
 
   hit_rate_t calculate_top_k_hit_rate(size_t k) const {
     u64 top_k = 0;
-    for (size_t i = 0; i <= k && i < pkts_per_flow.size(); i++) {
+    for (size_t i = 0; i < k && i < pkts_per_flow.size(); i++) {
       top_k += pkts_per_flow[i];
     }
-
     assert(top_k <= pkts && "Invalid top_k");
     return hit_rate_t(top_k, pkts);
+  }
+
+  hit_rate_t calculate_bottom_k_hit_rate(size_t k) const {
+    u64 bottom_k = 0;
+    for (size_t i = 0; i < k && i < pkts_per_flow.size(); i++) {
+      bottom_k += pkts_per_flow[pkts_per_flow.size() - 1 - i];
+    }
+    assert(bottom_k <= pkts && "Invalid bottom_k");
+    return hit_rate_t(bottom_k, pkts);
+  }
+
+  hit_rate_t calculate_hit_rate_between(size_t low_k, size_t high_k) const {
+    if (low_k > high_k || low_k == 0) {
+      return hit_rate_t(0);
+    }
+    u64 between_k = 0;
+    for (size_t i = low_k - 1; i < high_k && i < pkts_per_flow.size(); i++) {
+      between_k += pkts_per_flow[i];
+    }
+    assert(between_k <= pkts && "Invalid between_k");
+    return hit_rate_t(between_k, pkts);
+  }
+
+  u64 calculate_top_k_flows_with_at_least_n_pkts(u64 n) const {
+    u64 top_k = 0;
+    for (size_t i = 0; i < pkts_per_flow.size(); i++) {
+      if (pkts_per_flow[i] >= n) {
+        top_k++;
+      } else {
+        break;
+      }
+    }
+    assert(top_k <= pkts && "Invalid top_k");
+    return top_k;
   }
 };
 

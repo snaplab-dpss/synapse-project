@@ -124,7 +124,7 @@ public:
   static HHTable *build_or_reuse_hh_table(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity,
                                           u32 cms_width, u32 cms_height);
   static hit_rate_t get_hh_table_hit_success_rate(const EP *ep, const Context &ctx, const BDDNode *node, addr_t map, klee::ref<klee::Expr> key,
-                                                  u32 capacity);
+                                                  u32 capacity, u32 cms_width);
 
   // ======================================================================
   //  Count Min Sketch
