@@ -14,11 +14,11 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <44,6,136'929'426>
+  Score: <44,6,137'079'307>
   BDD Progress: 44
   DS Score: 6
-  Tput: 96.40 Gbps (136.93 Mpps)
-  Spec: 96.40 Gbps (136.93 Mpps)
+  Tput: 96.50 Gbps (137.08 Mpps)
+  Spec: 96.50 Gbps (137.08 Mpps)
 
 Stateful Implementations:
   1073954840: Tofino::CuckooHashTable
@@ -26,7 +26,7 @@ Stateful Implementations:
   1073923800: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       11 seconds
+  Elapsed time:       12 seconds
   Steps:              44
   Backtracks:         0
   Search space size:  138

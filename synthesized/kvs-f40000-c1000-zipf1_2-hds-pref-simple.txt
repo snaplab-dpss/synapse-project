@@ -14,11 +14,11 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <62,3,12'532'346>
+  Score: <62,3,11'538'967>
   BDD Progress: 62
   DS Score: 3
-  Tput: 8.82 Gbps (12.53 Mpps)
-  Spec: 8.82 Gbps (12.53 Mpps)
+  Tput: 8.12 Gbps (11.54 Mpps)
+  Spec: 8.12 Gbps (11.54 Mpps)
 
 Stateful Implementations:
   1073954840: Tofino::Register
@@ -26,7 +26,7 @@ Stateful Implementations:
   1073923800: Tofino::MapTable
 
 Search Metadata:
-  Elapsed time:       9 seconds
+  Elapsed time:       10 seconds
   Steps:              68
   Backtracks:         1
   Search space size:  185

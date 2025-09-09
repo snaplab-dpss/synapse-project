@@ -3,11 +3,11 @@
   "heuristic": {
     "meta": [
       {
-        "description": "527.71 Gbps (749.58 Mpps)",
+        "description": "551.43 Gbps (783.28 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "527.71 Gbps (749.58 Mpps)",
+        "description": "551.43 Gbps (783.28 Mpps)",
         "name": "Spec"
       },
       {
@@ -17,7 +17,7 @@
     ],
     "score": [
       44,
-      749583262,
+      783277922,
       -14
     ]
   },
@@ -304,6 +304,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 527706679808,
-  "tput_estimation_pps": 749583352
+  "tput_estimation_bps": 551427720448,
+  "tput_estimation_pps": 783278012
 }

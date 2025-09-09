@@ -20,21 +20,21 @@ Winner:
   Stages: 4
 
 Stateful Implementations:
-  1074076736: Tofino::DchainTable
   1074094376: Tofino::VectorTable
+  1074076736: Tofino::DchainTable
   1074044752: Tofino::MapTable
   1074077160: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       4 seconds
+  Elapsed time:       15 seconds
   Steps:              79
   Backtracks:         0
-  Search space size:  243
-  Unfinished EPs:     164
+  Search space size:  245
+  Unfinished EPs:     166
   Finished EPs:       1
   Avg BDD size:       67
-  Branching factor:   2
-  Total SS size est.: 694'933'529'405
+  Branching factor:   3
+  Total SS size est.: 849'631'713'087
   Avg children per node:
     Node 184: 0
     Node 183: 0
@@ -50,13 +50,13 @@ Search Metadata:
     Node 150: 6
     Node 273: 3
     Node 146: 3
-    Node 187: 9
-    Node 149: 8
+    Node 187: 4
+    Node 149: 9
     Node 272: 3
     Node 145: 3
     Node 186: 8
     Node 161: 2
-    Node 148: 9
+    Node 148: 6
     Node 271: 3
     Node 144: 3
     Node 160: 6
@@ -75,7 +75,7 @@ Search Metadata:
     Node 140: 4
     Node 135: 3
     Node 269: 3
-    Node 142: 4
+    Node 142: 13
     Node 201: 2
     Node 136: 3
     Node 270: 3

@@ -14,7 +14,7 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <67,4,89'320'027>
+  Score: <67,4,89'319'037>
   BDD Progress: 67
   DS Score: 4
   Tput: 62.88 Gbps (89.32 Mpps)

@@ -27,12 +27,12 @@
   },
   "implementations": [
     {
-      "addr": 1074076736,
-      "implementation": "Tofino::DchainTable"
-    },
-    {
       "addr": 1074094376,
       "implementation": "Tofino::VectorTable"
+    },
+    {
+      "addr": 1074076736,
+      "implementation": "Tofino::DchainTable"
     },
     {
       "addr": 1074044752,
@@ -105,11 +105,11 @@
         "node_id": 146
       },
       {
-        "avg": 9.0,
+        "avg": 4.0,
         "node_id": 187
       },
       {
-        "avg": 8.0,
+        "avg": 9.0,
         "node_id": 149
       },
       {
@@ -129,7 +129,7 @@
         "node_id": 161
       },
       {
-        "avg": 9.0,
+        "avg": 6.0,
         "node_id": 148
       },
       {
@@ -209,7 +209,7 @@
         "node_id": 269
       },
       {
-        "avg": 4.0,
+        "avg": 13.0,
         "node_id": 142
       },
       {
@@ -422,13 +422,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.033707865168539,
-    "elapsed_time_seconds": 5,
+    "branching_factor": 3.056179775280899,
+    "elapsed_time_seconds": 11,
     "finished_eps": 1,
-    "ss_size": 288,
+    "ss_size": 290,
     "steps": 94,
-    "total_ss_size_estimation": 1103840056738.3274,
-    "unfinished_eps": 194
+    "total_ss_size_estimation": 1312270994421.2517,
+    "unfinished_eps": 196
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

@@ -22,7 +22,7 @@
     "score": [
       67,
       4,
-      82911081
+      82911487
     ]
   },
   "implementations": [
@@ -323,7 +323,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.758454106280193,
-    "elapsed_time_seconds": 12,
+    "elapsed_time_seconds": 11,
     "finished_eps": 1,
     "ss_size": 196,
     "steps": 70,
@@ -332,6 +332,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 58369412288,
-  "tput_estimation_pps": 82911097
+  "tput_estimation_bps": 58369707968,
+  "tput_estimation_pps": 82911517
 }

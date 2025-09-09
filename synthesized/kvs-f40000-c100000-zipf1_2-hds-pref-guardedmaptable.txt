@@ -14,38 +14,38 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <67,4,43'431'525>
-  BDD Progress: 67
+  Score: <66,4,79'960'713>
+  BDD Progress: 66
   DS Score: 4
-  Tput: 30.58 Gbps (43.43 Mpps)
-  Spec: 30.58 Gbps (43.43 Mpps)
+  Tput: 56.29 Gbps (79.96 Mpps)
+  Spec: 56.29 Gbps (79.96 Mpps)
 
 Stateful Implementations:
-  1073954840: Tofino::VectorTable
+  1073954840: Tofino::Register
   1073971976: Tofino::DchainTable
   1073923800: Tofino::GuardedMapTable
 
 Search Metadata:
   Elapsed time:       9 seconds
-  Steps:              92
-  Backtracks:         19
-  Search space size:  223
-  Unfinished EPs:     131
+  Steps:              68
+  Backtracks:         0
+  Search space size:  190
+  Unfinished EPs:     122
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   2
-  Total SS size est.: 14'922'612'893
+  Total SS size est.: 53'846'370'202
   Avg children per node:
     Node 130: 3
     Node 129: 3
     Node 128: 3
-    Node 124: 4
+    Node 127: 3
     Node 32: 0
     Node 31: 0
     Node 30: 0
     Node 29: 0
     Node 56: 3
-    Node 16: 2.0625
+    Node 16: 2.5
     Node 55: 3
     Node 15: 4
     Node 61: 2
@@ -57,7 +57,6 @@ Search Metadata:
     Node 59: 3
     Node 12: 4
     Node 64: 2
-    Node 132: 2
     Node 5: 3
     Node 6: 3
     Node 65: 3
@@ -68,11 +67,11 @@ Search Metadata:
     Node 38: 5
     Node 9: 3
     Node 33: 4
-    Node 131: 3
+    Node 131: 2
     Node 4: 2
     Node 63: 3
     Node 62: 3
-    Node 39: 3
+    Node 39: 4
     Node 10: 4
     Node 11: 5
     Node 17: 0
@@ -82,28 +81,28 @@ Search Metadata:
     Node 18: 0
     Node 23: 0
     Node 35: 4
-    Node 41: 2
+    Node 41: 3
     Node 47: 3
     Node 19: 0
     Node 24: 0
     Node 36: 4
-    Node 42: 0
+    Node 42: 3
     Node 48: 3
     Node 20: 0
     Node 25: 0
     Node 37: 3
-    Node 43: 0
+    Node 43: 3
     Node 49: 3
     Node 21: 0
     Node 26: 0
-    Node 44: 0
+    Node 44: 3
     Node 50: 3
     Node 22: 0
     Node 27: 0
-    Node 45: 0
+    Node 45: 3
     Node 51: 3
     Node 28: 0
-    Node 46: 0
+    Node 46: 2
     Node 52: 2
 
 ========================================================

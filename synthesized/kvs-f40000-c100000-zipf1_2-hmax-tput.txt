@@ -14,9 +14,9 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <44,885'796'396,-14>
-  Tput: 623.60 Gbps (885.80 Mpps)
-  Spec: 623.60 Gbps (885.80 Mpps)
+  Score: <44,899'360'206,-14>
+  Tput: 633.15 Gbps (899.36 Mpps)
+  Spec: 633.15 Gbps (899.36 Mpps)
   Stages: 14
 
 Stateful Implementations:

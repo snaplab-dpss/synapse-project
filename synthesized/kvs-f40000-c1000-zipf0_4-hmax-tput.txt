@@ -14,7 +14,7 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <53,115'479'876,-4>
+  Score: <53,115'481'107,-4>
   Tput: 81.30 Gbps (115.48 Mpps)
   Spec: 81.30 Gbps (115.48 Mpps)
   Stages: 4

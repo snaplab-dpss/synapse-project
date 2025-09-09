@@ -14,11 +14,11 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <67,4,83'561'317>
+  Score: <67,4,78'245'251>
   BDD Progress: 67
   DS Score: 4
-  Tput: 58.83 Gbps (83.56 Mpps)
-  Spec: 58.83 Gbps (83.56 Mpps)
+  Tput: 55.08 Gbps (78.25 Mpps)
+  Spec: 55.08 Gbps (78.25 Mpps)
 
 Stateful Implementations:
   1073954840: Tofino::Register

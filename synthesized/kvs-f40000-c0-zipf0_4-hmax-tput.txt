@@ -14,7 +14,7 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <53,115'589'617,-4>
+  Score: <53,115'590'847,-4>
   Tput: 81.38 Gbps (115.59 Mpps)
   Spec: 81.38 Gbps (115.59 Mpps)
   Stages: 4
@@ -25,7 +25,7 @@ Stateful Implementations:
   1073923800: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       8 seconds
+  Elapsed time:       9 seconds
   Steps:              53
   Backtracks:         0
   Search space size:  175

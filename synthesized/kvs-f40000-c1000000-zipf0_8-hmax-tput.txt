@@ -14,9 +14,9 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <44,121'954'384,-14>
-  Tput: 85.86 Gbps (121.95 Mpps)
-  Spec: 85.86 Gbps (121.95 Mpps)
+  Score: <44,124'689'532,-14>
+  Tput: 87.78 Gbps (124.69 Mpps)
+  Spec: 87.78 Gbps (124.69 Mpps)
   Stages: 14
 
 Stateful Implementations:
@@ -25,7 +25,7 @@ Stateful Implementations:
   1073923800: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       16 seconds
+  Elapsed time:       14 seconds
   Steps:              44
   Backtracks:         0
   Search space size:  138
