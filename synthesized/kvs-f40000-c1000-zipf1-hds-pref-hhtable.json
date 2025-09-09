@@ -11,18 +11,18 @@
         "name": "DS Score"
       },
       {
-        "description": "297.97 Gbps (423.26 Mpps)",
+        "description": "180.11 Gbps (255.84 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "297.97 Gbps (423.26 Mpps)",
+        "description": "180.11 Gbps (255.84 Mpps)",
         "name": "Spec"
       }
     ],
     "score": [
       52,
       5,
-      423255977
+      255837363
     ]
   },
   "implementations": [
@@ -97,7 +97,7 @@
         "node_id": 53
       },
       {
-        "avg": 6.0,
+        "avg": 14.0,
         "node_id": 13
       },
       {
@@ -298,16 +298,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.6825396825396823,
-    "elapsed_time_seconds": 4,
+    "branching_factor": 2.8095238095238093,
+    "elapsed_time_seconds": 12,
     "finished_eps": 1,
-    "ss_size": 158,
+    "ss_size": 166,
     "steps": 52,
-    "total_ss_size_estimation": 32176360702.693913,
-    "unfinished_eps": 106
+    "total_ss_size_estimation": 94332144143.3151,
+    "unfinished_eps": 114
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 297972278208,
-  "tput_estimation_pps": 423256077
+  "tput_estimation_bps": 180109524672,
+  "tput_estimation_pps": 255837393
 }

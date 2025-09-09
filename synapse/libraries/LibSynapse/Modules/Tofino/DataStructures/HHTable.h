@@ -31,6 +31,7 @@ struct HHTable : public DS {
 
   std::vector<Table> tables;
   Register cached_counters;
+  Register packet_sampler;
   std::vector<Hash> hashes;
   std::vector<Register> count_min_sketch;
   Register threshold;

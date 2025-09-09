@@ -3,22 +3,22 @@
   "heuristic": {
     "meta": [
       {
-        "description": "69.45 Gbps (98.64 Mpps)",
+        "description": "69.64 Gbps (98.92 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "69.45 Gbps (98.64 Mpps)",
+        "description": "69.64 Gbps (98.92 Mpps)",
         "name": "Spec"
       },
       {
-        "description": "3",
+        "description": "4",
         "name": "Stages"
       }
     ],
     "score": [
       53,
-      98643547,
-      -3
+      98915316,
+      -4
     ]
   },
   "implementations": [
@@ -97,7 +97,7 @@
         "node_id": 53
       },
       {
-        "avg": 6.0,
+        "avg": 14.0,
         "node_id": 13
       },
       {
@@ -298,16 +298,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.78125,
+    "branching_factor": 2.90625,
     "elapsed_time_seconds": 7,
     "finished_eps": 1,
-    "ss_size": 167,
+    "ss_size": 175,
     "steps": 53,
-    "total_ss_size_estimation": 74538395513.7136,
-    "unfinished_eps": 114
+    "total_ss_size_estimation": 207689293322.34518,
+    "unfinished_eps": 122
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 69445068352,
-  "tput_estimation_pps": 98643563
+  "tput_estimation_bps": 69636404288,
+  "tput_estimation_pps": 98915347
 }

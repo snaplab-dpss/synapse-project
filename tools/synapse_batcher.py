@@ -125,7 +125,7 @@ def run_synapse(
     synapse_cpp = f"{name}.cpp"
     synapse_p4 = f"{name}.p4"
 
-    config = "tofino2-kvs-8-servers.toml" if nf.name == "kvs" else "tofino2.toml"
+    config = "tofino2-kvs.toml" if nf.name == "kvs" else "tofino2.toml"
 
     files_consumed = [
         SYNAPSE_BIN_DIR / "synapse",

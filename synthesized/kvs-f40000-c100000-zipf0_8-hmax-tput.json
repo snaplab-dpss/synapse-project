@@ -3,11 +3,11 @@
   "heuristic": {
     "meta": [
       {
-        "description": "92.51 Gbps (131.40 Mpps)",
+        "description": "95.11 Gbps (135.10 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "92.51 Gbps (131.40 Mpps)",
+        "description": "95.11 Gbps (135.10 Mpps)",
         "name": "Spec"
       },
       {
@@ -17,7 +17,7 @@
     ],
     "score": [
       44,
-      131404957,
+      135099596,
       -14
     ]
   },
@@ -93,7 +93,7 @@
         "node_id": 53
       },
       {
-        "avg": 6.0,
+        "avg": 14.0,
         "node_id": 13
       },
       {
@@ -294,16 +294,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.365079365079365,
-    "elapsed_time_seconds": 2,
+    "branching_factor": 2.492063492063492,
+    "elapsed_time_seconds": 10,
     "finished_eps": 1,
-    "ss_size": 130,
+    "ss_size": 138,
     "steps": 44,
-    "total_ss_size_estimation": 1754937210.6727057,
-    "unfinished_eps": 86
+    "total_ss_size_estimation": 5848622620.627444,
+    "unfinished_eps": 94
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 92509104512,
-  "tput_estimation_pps": 131404978
+  "tput_estimation_bps": 95110157824,
+  "tput_estimation_pps": 135099656
 }

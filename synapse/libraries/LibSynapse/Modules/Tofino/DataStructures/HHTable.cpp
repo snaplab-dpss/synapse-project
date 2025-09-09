@@ -46,6 +46,15 @@ std::vector<Register> build_count_min_sketch(const tna_properties_t &properties,
   return count_min_sketch;
 }
 
+Register build_packet_sampler(const tna_properties_t &properties, DS_ID id) {
+  const DS_ID reg_id              = id + "_packet_sampler";
+  const u32 capacity              = 1;
+  const bits_t index_size         = 1;
+  const bits_t value_size         = 8;
+  const RegisterActionType action = RegisterActionType::SampleEveryFourth;
+  return Register(properties, reg_id, capacity, index_size, value_size, {action});
+}
+
 Register build_threshold(const tna_properties_t &properties, DS_ID id) {
   const DS_ID reg_id              = id + "_threshold";
   const u32 capacity              = 1;
@@ -71,7 +80,7 @@ HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _ca
                  u32 _cms_height, u8 _digest_type)
     : DS(DSType::HHTable, false, _id), capacity(_capacity), keys_sizes(_keys_sizes), cms_width(_cms_width), cms_height(_cms_height),
       hash_size(bits_from_pow2_capacity(_cms_width)), cached_counters(build_cached_counters(properties, _id, _capacity)),
-      hashes(build_hashes(_id, _keys_sizes, _cms_height, hash_size)),
+      packet_sampler(build_packet_sampler(properties, _id)), hashes(build_hashes(_id, _keys_sizes, _cms_height, hash_size)),
       count_min_sketch(build_count_min_sketch(properties, _id, _cms_width, _cms_height, hash_size)), threshold(build_threshold(properties, _id)),
       digest(build_digest(_id, _keys_sizes, _digest_type)) {
   assert(_keys_sizes.size() > 0 && "HH Table keys sizes must not be empty");
@@ -81,8 +90,9 @@ HHTable::HHTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _ca
 
 HHTable::HHTable(const HHTable &other)
     : DS(other.type, other.primitive, other.id), capacity(other.capacity), keys_sizes(other.keys_sizes), cms_width(other.cms_width),
-      cms_height(other.cms_height), hash_size(other.hash_size), tables(other.tables), cached_counters(other.cached_counters), hashes(other.hashes),
-      count_min_sketch(other.count_min_sketch), threshold(other.threshold), digest(other.digest) {}
+      cms_height(other.cms_height), hash_size(other.hash_size), tables(other.tables), cached_counters(other.cached_counters),
+      packet_sampler(other.packet_sampler), hashes(other.hashes), count_min_sketch(other.count_min_sketch), threshold(other.threshold),
+      digest(other.digest) {}
 
 DS *HHTable::clone() const { return new HHTable(*this); }
 
@@ -107,6 +117,9 @@ std::vector<std::unordered_set<const DS *>> HHTable::get_internal() const {
 
   internal_ds.emplace_back();
   internal_ds.back().insert(&cached_counters);
+  internal_ds.back().insert(&packet_sampler);
+
+  internal_ds.emplace_back();
   for (const Hash &hash : hashes) {
     internal_ds.back().insert(&hash);
   }

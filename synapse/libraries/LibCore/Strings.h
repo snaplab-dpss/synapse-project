@@ -35,4 +35,35 @@ inline std::string sanitize_html_label(const std::string &label) {
                                  });
 }
 
+// A comparison function that implements "natural order" comparison for strings.
+// That is, it treats sequences of digits as numerical values rather than
+// individual characters. For example, "file2" will be considered less than
+// "file10".
+inline bool natural_compare(const std::string &a, const std::string &b) {
+  size_t i = 0, j = 0;
+
+  while (i < a.size() && j < b.size()) {
+    if (std::isdigit(a[i]) && std::isdigit(b[j])) {
+      const size_t start_i = i, start_j = j;
+      while (i < a.size() && std::isdigit(a[i]))
+        ++i;
+      while (j < b.size() && std::isdigit(b[j]))
+        ++j;
+
+      const int num_a = std::stoi(a.substr(start_i, i - start_i));
+      const int num_b = std::stoi(b.substr(start_j, j - start_j));
+
+      if (num_a != num_b)
+        return num_a < num_b;
+    } else {
+      if (a[i] != b[j])
+        return a[i] < b[j];
+      ++i;
+      ++j;
+    }
+  }
+
+  return a.size() < b.size();
+}
+
 } // namespace LibCore

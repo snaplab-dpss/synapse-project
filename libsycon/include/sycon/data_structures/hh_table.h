@@ -17,7 +17,7 @@ namespace sycon {
 class HHTable : public SynapseDS {
 private:
   constexpr const static u32 TOTAL_PROBES{50};
-  constexpr const static u32 THRESHOLD{16383};
+  constexpr const static u32 THRESHOLD{128};
   constexpr const static time_s_t RESET_TIMER{1};
 
   static const std::vector<u32> HASH_SALTS;

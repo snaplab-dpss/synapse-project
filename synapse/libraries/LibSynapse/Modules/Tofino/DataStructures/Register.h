@@ -27,6 +27,7 @@ enum class RegisterActionType {
   IncrementAndReturnNewValue,
   ReadConditionalWrite,
   CalculateDiff,
+  SampleEveryFourth,
   QueryAndRefreshTimestamp,
 };
 
@@ -37,6 +38,7 @@ const std::unordered_set<RegisterActionType> register_action_types_with_out_valu
     RegisterActionType::IncrementAndReturnNewValue,
     RegisterActionType::ReadConditionalWrite,
     RegisterActionType::CalculateDiff,
+    RegisterActionType::SampleEveryFourth,
     RegisterActionType::QueryAndRefreshTimestamp,
 };
 

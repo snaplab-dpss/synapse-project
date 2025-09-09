@@ -70,6 +70,9 @@ void Register::debug() const {
     case RegisterActionType::CalculateDiff:
       ss << "CALCULATE_DIFF";
       break;
+    case RegisterActionType::SampleEveryFourth:
+      ss << "SAMPLE_EVERY_FOURTH";
+      break;
     case RegisterActionType::QueryAndRefreshTimestamp:
       ss << "QUERY_AND_REFRESH_TIMESTAMP";
     }

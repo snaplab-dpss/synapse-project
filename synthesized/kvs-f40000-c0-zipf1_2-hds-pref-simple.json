@@ -3,7 +3,7 @@
   "heuristic": {
     "meta": [
       {
-        "description": "62",
+        "description": "61",
         "name": "BDD Progress"
       },
       {
@@ -11,18 +11,18 @@
         "name": "DS Score"
       },
       {
-        "description": "8.00 Gbps (11.36 Mpps)",
+        "description": "8.23 Gbps (11.69 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "8.00 Gbps (11.36 Mpps)",
+        "description": "8.23 Gbps (11.69 Mpps)",
         "name": "Spec"
       }
     ],
     "score": [
-      62,
+      61,
       3,
-      11361802
+      11686149
     ]
   },
   "implementations": [
@@ -44,10 +44,6 @@
   "search_meta": {
     "avg_bdd_size": 61,
     "avg_children_per_node": [
-      {
-        "avg": 4.0,
-        "node_id": 124
-      },
       {
         "avg": 0.0,
         "node_id": 32
@@ -101,7 +97,7 @@
         "node_id": 53
       },
       {
-        "avg": 6.0,
+        "avg": 14.0,
         "node_id": 13
       },
       {
@@ -301,17 +297,17 @@
         "node_id": 52
       }
     ],
-    "backtracks": 0,
-    "branching_factor": 2.625,
-    "elapsed_time_seconds": 5,
+    "backtracks": 1,
+    "branching_factor": 2.7301587301587302,
+    "elapsed_time_seconds": 11,
     "finished_eps": 1,
-    "ss_size": 168,
-    "steps": 63,
-    "total_ss_size_estimation": 19457163562.685303,
-    "unfinished_eps": 105
+    "ss_size": 182,
+    "steps": 67,
+    "total_ss_size_estimation": 48425373976.88898,
+    "unfinished_eps": 115
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 7998778304,
-  "tput_estimation_pps": 11361901
+  "tput_estimation_bps": 8227112960,
+  "tput_estimation_pps": 11686240
 }

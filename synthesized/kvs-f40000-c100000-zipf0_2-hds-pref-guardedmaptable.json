@@ -11,24 +11,24 @@
         "name": "DS Score"
       },
       {
-        "description": "62.43 Gbps (88.68 Mpps)",
+        "description": "38.94 Gbps (55.32 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "62.43 Gbps (88.68 Mpps)",
+        "description": "38.94 Gbps (55.32 Mpps)",
         "name": "Spec"
       }
     ],
     "score": [
       67,
       4,
-      88677563
+      55316755
     ]
   },
   "implementations": [
     {
       "addr": 1073954840,
-      "implementation": "Tofino::Register"
+      "implementation": "Tofino::VectorTable"
     },
     {
       "addr": 1073971976,
@@ -81,7 +81,7 @@
         "node_id": 56
       },
       {
-        "avg": 2.5,
+        "avg": 2.1666666666666665,
         "node_id": 16
       },
       {
@@ -113,7 +113,7 @@
         "node_id": 53
       },
       {
-        "avg": 6.0,
+        "avg": 14.0,
         "node_id": 13
       },
       {
@@ -189,7 +189,7 @@
         "node_id": 62
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 39
       },
       {
@@ -229,7 +229,7 @@
         "node_id": 35
       },
       {
-        "avg": 3.0,
+        "avg": 2.0,
         "node_id": 41
       },
       {
@@ -249,7 +249,7 @@
         "node_id": 36
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 42
       },
       {
@@ -269,7 +269,7 @@
         "node_id": 37
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 43
       },
       {
@@ -285,7 +285,7 @@
         "node_id": 26
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 44
       },
       {
@@ -301,7 +301,7 @@
         "node_id": 27
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 45
       },
       {
@@ -313,7 +313,7 @@
         "node_id": 28
       },
       {
-        "avg": 2.0,
+        "avg": 0.0,
         "node_id": 46
       },
       {
@@ -321,17 +321,17 @@
         "node_id": 52
       }
     ],
-    "backtracks": 0,
-    "branching_factor": 2.6449275362318843,
+    "backtracks": 1,
+    "branching_factor": 2.596618357487923,
     "elapsed_time_seconds": 7,
     "finished_eps": 1,
-    "ss_size": 186,
-    "steps": 69,
-    "total_ss_size_estimation": 23186399603.514874,
-    "unfinished_eps": 117
+    "ss_size": 193,
+    "steps": 75,
+    "total_ss_size_estimation": 15124951375.255394,
+    "unfinished_eps": 118
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 62429028288,
-  "tput_estimation_pps": 88677597
+  "tput_estimation_bps": 38943065216,
+  "tput_estimation_pps": 55316854
 }

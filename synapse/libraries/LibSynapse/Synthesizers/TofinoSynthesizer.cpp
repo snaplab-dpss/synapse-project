@@ -1,5 +1,6 @@
 #include <LibSynapse/Synthesizers/TofinoSynthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibCore/Strings.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -10,6 +11,7 @@ using LibCore::is_conditional;
 using LibCore::is_constant;
 using LibCore::is_constant_signed;
 using LibCore::match_endian_swap_pattern;
+using LibCore::natural_compare;
 using LibCore::simplify;
 using LibCore::solver_toolbox;
 
@@ -53,33 +55,6 @@ const Parser &get_tofino_parser(const EP *ep) {
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const TNA &tna                  = tofino_ctx->get_tna();
   return tna.parser;
-}
-
-bool natural_compare(const std::string &a, const std::string &b) {
-  size_t i = 0, j = 0;
-
-  while (i < a.size() && j < b.size()) {
-    if (std::isdigit(a[i]) && std::isdigit(b[j])) {
-      const size_t start_i = i, start_j = j;
-      while (i < a.size() && std::isdigit(a[i]))
-        ++i;
-      while (j < b.size() && std::isdigit(b[j]))
-        ++j;
-
-      const int num_a = std::stoi(a.substr(start_i, i - start_i));
-      const int num_b = std::stoi(b.substr(start_j, j - start_j));
-
-      if (num_a != num_b)
-        return num_a < num_b;
-    } else {
-      if (a[i] != b[j])
-        return a[i] < b[j];
-      ++i;
-      ++j;
-    }
-  }
-
-  return a.size() < b.size();
 }
 
 } // namespace
@@ -632,6 +607,9 @@ code_t TofinoSynthesizer::build_register_action_name(const Register *reg, Regist
   case RegisterActionType::CalculateDiff:
     coder << "diff";
     break;
+  case RegisterActionType::SampleEveryFourth:
+    coder << "sample_every_fourth";
+    break;
   case RegisterActionType::QueryAndRefreshTimestamp:
     coder << "query_and_refresh";
   }
@@ -990,6 +968,39 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
 
     ingress.indent();
     ingress << "out_value = " << value_cmp << " - value;\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+  } break;
+  case RegisterActionType::SampleEveryFourth: {
+    ingress.indent();
+    ingress << "void apply(inout " << value_type << " value, out " << value_type << " out_value) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "out_value = 0;\n";
+
+    ingress.indent();
+    ingress << "if (value < 3) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "value = value + 1;\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "} else {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "value = 0;\n";
+    ingress.indent();
+    ingress << "out_value = 1;\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
 
     ingress.dec();
     ingress.indent();
@@ -2419,6 +2430,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const code_t cached_counters_action_name             = build_register_action_name(&hh_table->cached_counters, cached_counters_action_type, ep_node);
   transpile_register_action_decl(&hh_table->cached_counters, cached_counters_action_name, cached_counters_action_type, {});
 
+  transpile_register_decl(&hh_table->packet_sampler);
+  assert(hh_table->packet_sampler.actions.size() == 1);
+  const RegisterActionType packet_sampler_action_type = *hh_table->packet_sampler.actions.begin();
+  const code_t packet_sampler_action_name             = build_register_action_name(&hh_table->packet_sampler, packet_sampler_action_type, ep_node);
+  transpile_register_action_decl(&hh_table->packet_sampler, packet_sampler_action_name, packet_sampler_action_type, {});
+
   for (const Hash &hash : hh_table->hashes) {
     transpile_hash_decl(&hash);
   }
@@ -2464,6 +2481,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.dec();
   ingress_apply.indent();
   ingress_apply << "} else {\n";
+  ingress_apply.inc();
+
+  const code_t packet_sampler_out_value = packet_sampler_action_name + "_out_value";
+  ingress_apply.indent();
+  ingress_apply << Transpiler::type_from_size(hh_table->packet_sampler.value_size) << " " << packet_sampler_out_value;
+  ingress_apply << " = ";
+  ingress_apply << packet_sampler_action_name << ".execute(0);\n";
+
+  ingress_apply.indent();
+  ingress_apply << "if (" << packet_sampler_out_value << " == 0) {\n";
   ingress_apply.inc();
 
   std::vector<code_t> hashes;
@@ -2567,6 +2594,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   ingress_apply.indent();
   ingress_apply << "ig_dprsr_md.digest_type = " << hh_table->digest.digest_type << ";\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
 
   ingress_apply.dec();
   ingress_apply.indent();
