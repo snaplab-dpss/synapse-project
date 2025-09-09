@@ -227,7 +227,7 @@ u64 bdd_profile_t::threshold_top_k_flows(u64 map, u32 k) const {
   return threshold;
 }
 
-bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
+bdd_profile_t build_random_bdd_profile(const BDD *bdd, const std::unordered_set<u16> &available_devs) {
   bdd_profile_t bdd_profile;
 
   bdd_profile.meta.pkts  = 100'000;
@@ -237,7 +237,7 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   bdd_profile.counters[root->get_id()]  = bdd_profile.meta.pkts;
   const std::unordered_set<u16> devices = bdd->get_devices();
 
-  root->visit_nodes([bdd, &bdd_profile, devices](const BDDNode *node) {
+  root->visit_nodes([bdd, &bdd_profile, &devices, &available_devs](const BDDNode *node) {
     assert(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end() && "BDDNode counter not found");
     const u64 current_counter = bdd_profile.counters[node->get_id()];
 
@@ -311,7 +311,7 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
           for (const u16 dev : devices) {
             klee::ref<klee::Expr> handles_port =
                 solver_toolbox.exprBuilder->Eq(dst_device, solver_toolbox.exprBuilder->Constant(dev, dst_device->getWidth()));
-            if (solver_toolbox.is_expr_maybe_true(constraints, handles_port)) {
+            if (solver_toolbox.is_expr_maybe_true(constraints, handles_port) && (available_devs.empty() || available_devs.contains(dev))) {
               candidate_devices.push_back(dev);
             }
           }
@@ -332,7 +332,7 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd) {
   return bdd_profile;
 }
 
-bdd_profile_t build_uniform_bdd_profile(const BDD *bdd) {
+bdd_profile_t build_uniform_bdd_profile(const BDD *bdd, const std::unordered_set<u16> &available_devs) {
   bdd_profile_t bdd_profile;
 
   bdd_profile.meta.pkts  = bdd->get_root()->get_leaves().size() * 1000;
@@ -342,7 +342,7 @@ bdd_profile_t build_uniform_bdd_profile(const BDD *bdd) {
   bdd_profile.counters[root->get_id()]  = bdd_profile.meta.pkts;
   const std::unordered_set<u16> devices = bdd->get_devices();
 
-  root->visit_nodes([bdd, &bdd_profile, &devices](const BDDNode *node) {
+  root->visit_nodes([bdd, &bdd_profile, &devices, &available_devs](const BDDNode *node) {
     const u64 current_counter = bdd_profile.counters.at(node->get_id());
 
     switch (node->get_type()) {
@@ -415,7 +415,7 @@ bdd_profile_t build_uniform_bdd_profile(const BDD *bdd) {
           for (const u16 dev : devices) {
             klee::ref<klee::Expr> handles_port =
                 solver_toolbox.exprBuilder->Eq(dst_device, solver_toolbox.exprBuilder->Constant(dev, dst_device->getWidth()));
-            if (solver_toolbox.is_expr_maybe_true(constraints, handles_port)) {
+            if (solver_toolbox.is_expr_maybe_true(constraints, handles_port) && (available_devs.empty() || available_devs.contains(dev))) {
               candidate_devices.insert(dev);
             }
           }

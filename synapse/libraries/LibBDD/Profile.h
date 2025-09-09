@@ -76,7 +76,13 @@ struct bdd_profile_t {
 };
 
 bdd_profile_t parse_bdd_profile(const std::filesystem::path &filename);
-bdd_profile_t build_random_bdd_profile(const BDD *bdd);
-bdd_profile_t build_uniform_bdd_profile(const BDD *bdd);
+
+// Build a random BDD profile with some available devices.
+// If the set is empty, consider all devices as available devices.
+bdd_profile_t build_random_bdd_profile(const BDD *bdd, const std::unordered_set<u16> &available_devs = {});
+
+// Build a uniformly distributed BDD profile with some available devices.
+// If the set is empty, consider all devices as available devices.
+bdd_profile_t build_uniform_bdd_profile(const BDD *bdd, const std::unordered_set<u16> &available_devs = {});
 
 } // namespace LibBDD

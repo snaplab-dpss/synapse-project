@@ -40,6 +40,7 @@ private:
 
     code_t transpile(klee::ref<klee::Expr> expr);
 
+    static bool is_primitive_type(bits_t size);
     static code_t type_from_size(bits_t size);
     static code_t type_from_expr(klee::ref<klee::Expr> expr);
 

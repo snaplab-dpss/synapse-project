@@ -77,6 +77,8 @@ code_t BDDSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
   return code;
 }
 
+bool BDDSynthesizer::Transpiler::is_primitive_type(bits_t size) { return size == 1 || size == 8 || size == 16 || size == 32 || size == 64; }
+
 code_t BDDSynthesizer::Transpiler::type_from_size(bits_t size) {
   code_t type;
 
@@ -2104,7 +2106,7 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
   var_t stack_value;
   if (stack_find_or_create_tmp_slice_var(value, coder, stack_value)) {
     const bits_t width = stack_value.expr->getWidth();
-    if (width <= 64) {
+    if (Transpiler::is_primitive_type(width)) {
       coder.indent();
       coder << "*(" << Transpiler::type_from_size(width) << "*)";
       coder << var.name;

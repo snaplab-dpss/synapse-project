@@ -205,13 +205,13 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   out_hr_report.close();
 }
 
-bdd_profile_t build_bdd_profile(const BDD &bdd, const args_t &args) {
+bdd_profile_t build_bdd_profile(const BDD &bdd, const args_t &args, const std::unordered_set<u16> &available_devs) {
   bdd_profile_t bdd_profile;
   if (args.profile_file.empty()) {
     if (args.random_uniform_profile) {
-      bdd_profile = build_uniform_bdd_profile(&bdd);
+      bdd_profile = build_uniform_bdd_profile(&bdd, available_devs);
     } else {
-      bdd_profile = build_random_bdd_profile(&bdd);
+      bdd_profile = build_random_bdd_profile(&bdd, available_devs);
     }
   } else {
     bdd_profile = parse_bdd_profile(args.profile_file);
@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
   SymbolManager symbol_manager;
   const BDD bdd(args.input_bdd_file, &symbol_manager);
   const targets_config_t targets_config(args.targets_config_file);
-  const bdd_profile_t bdd_profile = build_bdd_profile(bdd, args);
+  const bdd_profile_t bdd_profile = build_bdd_profile(bdd, args, targets_config.tofino_config.get_available_devs());
   const Profiler profiler         = Profiler(&bdd, bdd_profile, targets_config.tofino_config.get_available_devs());
 
   if (args.show_prof) {
