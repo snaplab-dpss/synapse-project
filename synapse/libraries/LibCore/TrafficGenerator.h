@@ -41,14 +41,14 @@ public:
     TrafficType traffic_type;
     double zipf_param;
     std::vector<device_t> devices;
-    std::vector<device_t> client_devices;
+    std::vector<device_t> warmup_devices;
     u32 random_seed;
     bool dry_run;
 
     config_t()
         : out_dir(DEFAULT_OUTPUT_DIR), total_packets(DEFAULT_TOTAL_PACKETS), total_flows(DEFAULT_TOTAL_FLOWS),
           packet_size_without_crc(DEFAULT_PACKET_SIZE - CRC_SIZE_BYTES), rate(DEFAULT_RATE), churn(DEFAULT_TOTAL_CHURN_FPM),
-          traffic_type(DEFAULT_TRAFFIC_TYPE), zipf_param(DEFAULT_ZIPF_PARAM), devices(), client_devices(), random_seed(0), dry_run(false) {}
+          traffic_type(DEFAULT_TRAFFIC_TYPE), zipf_param(DEFAULT_ZIPF_PARAM), devices(), warmup_devices(), random_seed(0), dry_run(false) {}
 
     void print() const;
   };
@@ -138,9 +138,9 @@ protected:
     return config.out_dir / ss.str();
   }
 
-  void advance_client_dev() { client_dev_it = (client_dev_it + 1) % config.client_devices.size(); }
+  void advance_client_dev() { client_dev_it = (client_dev_it + 1) % config.warmup_devices.size(); }
   void reset_client_dev() { client_dev_it = 0; }
-  device_t get_current_client_dev() const { return config.client_devices.at(client_dev_it); }
+  device_t get_current_client_dev() const { return config.warmup_devices.at(client_dev_it); }
 
   void report() const;
 

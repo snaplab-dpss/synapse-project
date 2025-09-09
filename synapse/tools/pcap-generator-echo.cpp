@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 
   CLI11_PARSE(app, argc, argv);
 
-  config.client_devices          = config.devices;
+  config.warmup_devices          = config.devices;
   config.packet_size_without_crc = std::max(packet_size, MIN_PKT_SIZE_BYTES) - CRC_SIZE_BYTES;
 
   srand(config.random_seed);

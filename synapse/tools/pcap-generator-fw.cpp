@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
   for (const auto &[lan_dev, wan_dev] : lan_wan_pairs) {
     config.devices.push_back(lan_dev);
     config.devices.push_back(wan_dev);
-    config.client_devices.push_back(lan_dev);
+    config.warmup_devices.push_back(lan_dev);
   }
 
   srand(config.random_seed);

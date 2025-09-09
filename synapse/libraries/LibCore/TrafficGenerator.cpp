@@ -8,9 +8,9 @@ TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_conf
       flows_random_engine_uniform(seeds_random_engine.generate(), 0, config.total_flows - 1),
       flows_random_engine_zipf(seeds_random_engine.generate(), config.zipf_param, 0, config.total_flows - 1), pd(NULL), pdumper(NULL),
       client_dev_it(0), counters(config.total_flows, 0), flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
-  for (device_t client_dev : config.client_devices) {
-    warmup_writers.emplace(client_dev, PcapWriter(get_warmup_pcap_fname(nf, config, client_dev), assume_ip));
-    client_to_active_device.emplace(client_dev, client_dev);
+  for (device_t warmup_dev : config.warmup_devices) {
+    warmup_writers.emplace(warmup_dev, PcapWriter(get_warmup_pcap_fname(nf, config, warmup_dev), assume_ip));
+    client_to_active_device.emplace(warmup_dev, warmup_dev);
   }
 
   for (device_t dev : config.devices) {
@@ -45,13 +45,13 @@ void TrafficGenerator::config_t::print() const {
     printf("zipf param:  %f\n", zipf_param);
     break;
   }
-  printf("devices: [ ");
+  printf("devices:     [ ");
   for (device_t dev : devices) {
     printf("%u ", dev);
   }
   printf("]\n");
-  printf("clients: [ ");
-  for (device_t dev : client_devices) {
+  printf("warmup devs: [ ");
+  for (device_t dev : warmup_devices) {
     printf("%u ", dev);
   }
   printf("]\n");

@@ -32,7 +32,7 @@ std::vector<flow_t> get_base_flows(const config_t &config) {
   return flows;
 }
 
-class FwdTrafficGenerator : public TrafficGenerator {
+class PSDTrafficGenerator : public TrafficGenerator {
 private:
   const std::vector<std::pair<device_t, device_t>> lan_wan_pairs;
   const std::unordered_map<device_t, device_t> connections;
@@ -41,9 +41,9 @@ private:
   std::vector<flow_t> flows;
 
 public:
-  FwdTrafficGenerator(const config_t &_config, const std::vector<std::pair<device_t, device_t>> &_lan_wan_pairs,
+  PSDTrafficGenerator(const config_t &_config, const std::vector<std::pair<device_t, device_t>> &_lan_wan_pairs,
                       const std::vector<flow_t> &_base_flows)
-      : TrafficGenerator("fwd", _config, true), lan_wan_pairs(_lan_wan_pairs), connections(build_connections(_lan_wan_pairs)),
+      : TrafficGenerator("psd", _config, true), lan_wan_pairs(_lan_wan_pairs), connections(build_connections(_lan_wan_pairs)),
         lan_devs(build_lan_devices(_lan_wan_pairs)), flows(_base_flows) {
     reset_client_dev();
   }
@@ -53,6 +53,7 @@ public:
   virtual void random_swap_flow(flow_idx_t flow_idx) override {
     assert(flow_idx < flows.size());
     flows[flow_idx] = random_flow();
+    flows_swapped++;
   }
 
   virtual std::optional<pkt_t> build_packet(device_t dev, flow_idx_t flow_idx) override {
@@ -93,7 +94,7 @@ private:
 };
 
 int main(int argc, char *argv[]) {
-  CLI::App app{"Traffic generator for the fwd nf."};
+  CLI::App app{"Traffic generator for the psd nf."};
 
   config_t config;
   std::vector<std::pair<device_t, device_t>> lan_wan_pairs;
@@ -125,7 +126,7 @@ int main(int argc, char *argv[]) {
   for (const auto &[lan_dev, wan_dev] : lan_wan_pairs) {
     config.devices.push_back(lan_dev);
     config.devices.push_back(wan_dev);
-    config.warmup_devices.push_back(lan_dev);
+    config.warmup_devices.push_back(wan_dev);
   }
 
   srand(config.random_seed);
@@ -136,8 +137,9 @@ int main(int argc, char *argv[]) {
   }
 
   std::vector<flow_t> base_flows = get_base_flows(config);
-  FwdTrafficGenerator generator(config, lan_wan_pairs, base_flows);
+  PSDTrafficGenerator generator(config, lan_wan_pairs, base_flows);
 
+  generator.generate_warmup();
   generator.generate();
 
   return 0;

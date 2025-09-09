@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
   CLI11_PARSE(app, argc, argv);
 
   config.packet_size_without_crc = std::max(KVS_PKT_SIZE + CRC_SIZE_BYTES, MIN_PKT_SIZE_BYTES) - CRC_SIZE_BYTES;
-  config.client_devices          = config.devices;
+  config.warmup_devices          = config.devices;
 
   srand(config.random_seed);
 
