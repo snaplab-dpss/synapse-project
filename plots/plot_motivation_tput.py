@@ -26,7 +26,7 @@ SYSTEM_NAME = "AnonTool"
 nf = "KVS"
 
 solutions = {
-    "Strawman": DATA_DIR / "tput_synapse_kvs_guardedmaptable.csv",
+    "Straw design": DATA_DIR / "tput_synapse_kvs_guardedmaptable.csv",
     "NetCache": DATA_DIR / "tput_netcache.csv",
     "Switcharoo": DATA_DIR / "tput_switcharoo.csv",
     # SYSTEM_NAME: DATA_DIR / "tput_synapse_kvs_hhtable.csv",

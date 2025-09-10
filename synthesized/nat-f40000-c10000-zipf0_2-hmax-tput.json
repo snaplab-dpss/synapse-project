@@ -24,7 +24,7 @@
   "implementations": [
     {
       "addr": 1074067632,
-      "implementation": "Tofino::VectorTable"
+      "implementation": "Tofino::Register"
     },
     {
       "addr": 1074085792,
@@ -415,7 +415,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.2916666666666665,
-    "elapsed_time_seconds": 60,
+    "elapsed_time_seconds": 66,
     "finished_eps": 1,
     "ss_size": 296,
     "steps": 93,

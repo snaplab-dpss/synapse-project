@@ -24,7 +24,7 @@
   "implementations": [
     {
       "addr": 1074067632,
-      "implementation": "Tofino::VectorTable"
+      "implementation": "Tofino::Register"
     },
     {
       "addr": 1074085792,

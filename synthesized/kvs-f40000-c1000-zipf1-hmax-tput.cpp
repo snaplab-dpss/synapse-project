@@ -5,14 +5,10 @@ using namespace sycon;
 struct state_t : public nf_state_t {
   IngressPortToNFDev ingress_port_to_nf_dev;
   ForwardingTbl forwarding_tbl;
-  HHTable hh_table_1073923800;
-  VectorRegister vector_register_1073954840;
 
   state_t()
     : ingress_port_to_nf_dev(),
-      forwarding_tbl(),
-      hh_table_1073923800("hh_table_1073923800",{"Ingress.hh_table_1073923800_table_13", }, "Ingress.hh_table_1073923800_cached_counters", {"Ingress.hh_table_1073923800_cms_row_0", "Ingress.hh_table_1073923800_cms_row_1", "Ingress.hh_table_1073923800_cms_row_2", "Ingress.hh_table_1073923800_cms_row_3", }, "Ingress.hh_table_1073923800_threshold", "IngressDeparser.hh_table_1073923800_digest", 1000LL),
-      vector_register_1073954840("vector_register_1073954840",{"Ingress.vector_register_1073954840_0",})
+      forwarding_tbl()
     {}
 };
 
@@ -97,11 +93,11 @@ void sycon::nf_init() {
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 31);
   state->forwarding_tbl.add_fwd_nf_dev_entry(31, asic_get_dev_port(32));
   // BDD node 0:map_allocate(capacity:(w32 8192), key_size:(w32 4), map_out:(w64 1073923528)[(w64 0) -> (w64 1073923800)])
-  // Module DataplaneHHTableAllocate
+  // Module DataplaneCuckooHashTableAllocate
   // BDD node 2:vector_allocate(elem_size:(w32 4), capacity:(w32 8192), vector_out:(w64 1073923544)[(w64 0) -> (w64 1073954840)])
-  // Module DataplaneVectorRegisterAllocate
+  // Module DataplaneCuckooHashTableAllocate
   // BDD node 3:dchain_allocate(index_range:(w32 8192), chain_out:(w64 1073923552)[ -> (w64 1073971976)])
-  // Module Ignore
+  // Module DataplaneCuckooHashTableAllocate
 
 }
 

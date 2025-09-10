@@ -20,7 +20,7 @@ Winner:
   Stages: 5
 
 Stateful Implementations:
-  1074067632: Tofino::VectorTable
+  1074067632: Tofino::Register
   1074085792: Tofino::DchainTable
   1074103432: Tofino::VectorTable
   1074053808: Tofino::GuardedMapTable

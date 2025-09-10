@@ -28,7 +28,7 @@ Stateful Implementations:
   1074086216: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       38 seconds
+  Elapsed time:       58 seconds
   Steps:              90
   Backtracks:         0
   Search space size:  285

@@ -27,9 +27,11 @@ SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
 DEVICES = list(range(2, 32))
 
-DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs"]
-DEFAULT_RATE = [10_000_000_000]  # 10 Gbps
-DEFAULT_TOTAL_PACKETS = [20_000_000]
+DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd"]
+# DEFAULT_RATE = [100_000_000_000]  # 100 Gbps
+# DEFAULT_TOTAL_PACKETS = [160_000_000]
+DEFAULT_RATE = [20_000_000_000]  # 20 Gbps
+DEFAULT_TOTAL_PACKETS = [32_000_000]
 DEFAULT_PACKET_SIZE = [64]
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
@@ -41,7 +43,7 @@ class NF:
     name: str
     bdd: str
     pcap_generator: str
-    clients: list[int]
+    warmup_devices: list[int]
     unique_devices: list[int]
     fwd_rules: list[Tuple[int, int]]
 
@@ -49,7 +51,11 @@ class NF:
         return SYNAPSE_BIN_DIR / self.pcap_generator
 
 
-def clients_is_every_other_dev():
+def odd_warmup_devices():
+    return [c for c in DEVICES if c % 2 == 1]
+
+
+def even_warmup_devices():
     return [c for c in DEVICES if c % 2 == 0]
 
 
@@ -58,12 +64,13 @@ def connect_every_other_dev():
 
 
 NFs = {
-    "echo": NF("echo", "echo.bdd", "pcap-generator-echo", clients=[], unique_devices=DEVICES[:2], fwd_rules=[]),
-    "fwd": NF("fwd", "fwd.bdd", "pcap-generator-fwd", clients=clients_is_every_other_dev(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
-    "fw": NF("fw", "fw.bdd", "pcap-generator-fw", clients=clients_is_every_other_dev(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
-    "nat": NF("nat", "nat.bdd", "pcap-generator-nat", clients=clients_is_every_other_dev(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
-    "kvs": NF("kvs", "kvs.bdd", "pcap-generator-kvs", clients=DEVICES, unique_devices=DEVICES[:1], fwd_rules=[]),
-    "cl": NF("cl", "cl.bdd", "pcap-generator-cl", clients=clients_is_every_other_dev(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
+    "echo": NF("echo", "echo.bdd", "pcap-generator-echo", warmup_devices=[], unique_devices=DEVICES[:2], fwd_rules=[]),
+    "fwd": NF("fwd", "fwd.bdd", "pcap-generator-fwd", warmup_devices=even_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
+    "fw": NF("fw", "fw.bdd", "pcap-generator-fw", warmup_devices=even_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
+    "nat": NF("nat", "nat.bdd", "pcap-generator-nat", warmup_devices=even_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
+    "kvs": NF("kvs", "kvs.bdd", "pcap-generator-kvs", warmup_devices=DEVICES, unique_devices=DEVICES[:1], fwd_rules=[]),
+    "psd": NF("psd", "psd.bdd", "pcap-generator-psd", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
+    "cl": NF("cl", "cl.bdd", "pcap-generator-cl", warmup_devices=even_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
 }
 
 
@@ -138,9 +145,7 @@ def generate_pcaps(
     files_produced = []
 
     pcap_base_name = get_pcap_base_name(nf, total_flows, zipf_param, churn_fpm)
-    for warmup_dev in nf.clients:
-        if warmup_dev not in nf.unique_devices:
-            continue
+    for warmup_dev in set(nf.warmup_devices) & set(nf.unique_devices):
         warmup_pcap = f"{pcap_base_name}-dev{warmup_dev}-warmup.pcap"
         files_produced.append(PCAP_DIR / warmup_pcap)
     for dev in nf.unique_devices:
@@ -192,9 +197,7 @@ def delete_pcaps(
     pcaps = []
 
     pcap_base_name = get_pcap_base_name(nf, total_flows, zipf_param, churn_fpm)
-    for warmup_dev in nf.clients:
-        if warmup_dev not in nf.unique_devices:
-            continue
+    for warmup_dev in set(nf.warmup_devices) & set(nf.unique_devices):
         warmup_pcap = f"{pcap_base_name}-dev{warmup_dev}-warmup.pcap"
         pcaps.append(PCAP_DIR / warmup_pcap)
     for dev in nf.unique_devices:
@@ -295,9 +298,7 @@ def profile_nf_against_pcaps(
     report = f"{pcap_base_name}.json"
 
     unique_warmup_pcaps = []
-    for warmup_dev in nf.clients:
-        if warmup_dev not in nf.unique_devices:
-            continue
+    for warmup_dev in set(nf.warmup_devices) & set(nf.unique_devices):
         unique_warmup_pcap = f"{pcap_base_name}-dev{warmup_dev}-warmup.pcap"
         unique_warmup_pcaps.append(PCAP_DIR / unique_warmup_pcap)
 
@@ -310,7 +311,7 @@ def profile_nf_against_pcaps(
     files_produced = [PROFILE_DIR / report]
 
     warmup_pcaps = []
-    for i, warmup_dev in enumerate(nf.clients):
+    for i, warmup_dev in enumerate(nf.warmup_devices):
         warmup_pcaps.append(unique_warmup_pcaps[i % len(unique_warmup_pcaps)])
 
     pcaps = []
@@ -320,7 +321,7 @@ def profile_nf_against_pcaps(
     profile_cmd = f"{SYNTHESIZED_DIR / 'build' / profiler_name}"
     profile_cmd += f" {PROFILE_DIR / report}"
     profile_cmd += " "
-    profile_cmd += " ".join([f"--warmup {warmup_dev}:{warmup_pcap}" for warmup_dev, warmup_pcap in zip(nf.clients, warmup_pcaps)])
+    profile_cmd += " ".join([f"--warmup {warmup_dev}:{warmup_pcap}" for warmup_dev, warmup_pcap in zip(nf.warmup_devices, warmup_pcaps)])
     profile_cmd += " "
     profile_cmd += " ".join([f"{dev}:{pcap}" for dev, pcap in zip(DEVICES, pcaps)])
 
