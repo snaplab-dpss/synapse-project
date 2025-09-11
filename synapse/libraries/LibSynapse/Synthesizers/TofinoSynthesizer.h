@@ -173,12 +173,13 @@ private:
 
   using alloc_opt_t = u32;
 
-  static constexpr const alloc_opt_t SKIP_STACK_ALLOC = 0b000001;
-  static constexpr const alloc_opt_t EXACT_NAME       = 0b000010;
-  static constexpr const alloc_opt_t HEADER           = 0b000100;
-  static constexpr const alloc_opt_t HEADER_FIELD     = 0b001000;
-  static constexpr const alloc_opt_t BUFFER           = 0b010000;
-  static constexpr const alloc_opt_t FORCE_BOOL       = 0b100000;
+  static constexpr const alloc_opt_t SKIP_STACK_ALLOC    = 0b0000001;
+  static constexpr const alloc_opt_t EXACT_NAME          = 0b0000010;
+  static constexpr const alloc_opt_t HEADER              = 0b0000100;
+  static constexpr const alloc_opt_t HEADER_FIELD        = 0b0001000;
+  static constexpr const alloc_opt_t BUFFER              = 0b0010000;
+  static constexpr const alloc_opt_t FORCE_BOOL          = 0b0100000;
+  static constexpr const alloc_opt_t IS_INGRESS_METADATA = 0b1000000;
 
   const std::filesystem::path out_file;
   Template code_template;

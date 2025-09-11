@@ -1624,7 +1624,12 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
 TofinoSynthesizer::var_t TofinoSynthesizer::alloc_var(const code_t &proposed_name, klee::ref<klee::Expr> expr, alloc_opt_t option) {
   assert(!expr.isNull());
 
-  const code_t name = (option & EXACT_NAME) ? proposed_name : create_unique_name(proposed_name);
+  code_t name = (option & EXACT_NAME) ? proposed_name : create_unique_name(proposed_name);
+
+  if (option & IS_INGRESS_METADATA) {
+    name = "meta." + name;
+  }
+
   const var_t var(name, expr, expr->getWidth(), option & FORCE_BOOL, option & (HEADER | HEADER_FIELD), option & BUFFER);
 
   if (!(option & SKIP_STACK_ALLOC)) {
@@ -2117,8 +2122,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   if (hit) {
-    const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL);
-    hit_var.declare(ingress_apply, table->id + ".apply().hit");
+    const var_t hit_var       = alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA);
+    coder_t &ingress_metadata = get(MARKER_INGRESS_METADATA);
+    hit_var.declare(ingress_metadata);
+    ingress_apply.indent();
+    ingress_apply << hit_var.name << " = " << table->id << ".apply().hit;\n";
   } else {
     ingress_apply.indent();
     ingress_apply << table->id << ".apply();\n";
@@ -2159,9 +2167,14 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << guard_allow_check << "();\n";
 
   const code_t guard_allow_value = id + "_guard_allow";
-  const var_t guard_allow_var    = alloc_var(guard_allow_value, guard_allow.expr, FORCE_BOOL);
+  const var_t guard_allow_var    = alloc_var(guard_allow_value, guard_allow.expr, FORCE_BOOL | IS_INGRESS_METADATA);
 
-  guard_allow_var.declare(ingress_apply, "false");
+  coder_t &ingress_metadata = get(MARKER_INGRESS_METADATA);
+  guard_allow_var.declare(ingress_metadata);
+
+  ingress_apply.indent();
+  ingress_apply << guard_allow_var.name << " = false;\n";
+
   ingress_apply.indent();
   ingress_apply << "if (" << guard_value_var.name << " != 0) {\n";
 

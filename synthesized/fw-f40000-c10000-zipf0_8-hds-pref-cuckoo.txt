@@ -1,0 +1,144 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     fw.bdd
+  Name:               fw-f40000-c10000-zipf0_8-hds-pref-cuckoo
+  Targets config:     tofino2.toml
+  Heuristic:          ds-pref-cuckoo
+  Profile file:       fw-f40000-c10000-zipf0_8.json
+  Seed:               0
+  Targets:
+    Tofino (28 modules)
+    Ctrl (72 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+
+Winner:
+  Score: <101,4,2'250'011'937>
+  BDD Progress: 101
+  DS Score: 4
+  Tput: 1.58 Tbps (2.25 Gpps)
+  Spec: 1.58 Tbps (2.25 Gpps)
+
+Stateful Implementations:
+  1074094376: Tofino::VectorTable
+  1074076736: Tofino::DchainTable
+  1074044752: Tofino::GuardedMapTable
+  1074077160: Tofino::VectorTable
+
+Search Metadata:
+  Elapsed time:       9 seconds
+  Steps:              103
+  Backtracks:         0
+  Search space size:  287
+  Unfinished EPs:     184
+  Finished EPs:       1
+  Avg BDD size:       67
+  Branching factor:   2
+  Total SS size est.: 269'714'059'241
+  Avg children per node:
+    Node 311: 0
+    Node 184: 0
+    Node 310: 0
+    Node 183: 0
+    Node 312: 0
+    Node 185: 0
+    Node 309: 0
+    Node 182: 0
+    Node 308: 0
+    Node 181: 0
+    Node 307: 3
+    Node 180: 0
+    Node 171: 0
+    Node 170: 0
+    Node 195: 2
+    Node 194: 3
+    Node 277: 3
+    Node 150: 5
+    Node 273: 6
+    Node 146: 3
+    Node 314: 0
+    Node 187: 7
+    Node 149: 4
+    Node 272: 6
+    Node 145: 3
+    Node 313: 0
+    Node 186: 5
+    Node 161: 2.5
+    Node 148: 5
+    Node 271: 3
+    Node 144: 3
+    Node 160: 5
+    Node 286: 2
+    Node 159: 3
+    Node 162: 0
+    Node 133: 2
+    Node 192: 5
+    Node 163: 0
+    Node 134: 3
+    Node 193: 4
+    Node 268: 3
+    Node 141: 3
+    Node 200: 3
+    Node 199: 2
+    Node 267: 3
+    Node 140: 4
+    Node 135: 3
+    Node 269: 3
+    Node 142: 4
+    Node 201: 2
+    Node 136: 3
+    Node 270: 3
+    Node 143: 3
+    Node 137: 4
+    Node 196: 2
+    Node 265: 3
+    Node 138: 6
+    Node 197: 3
+    Node 266: 3
+    Node 139: 8
+    Node 198: 3
+    Node 173: 0
+    Node 315: 0
+    Node 188: 6
+    Node 147: 2
+    Node 278: 3
+    Node 151: 5
+    Node 164: 0
+    Node 174: 0
+    Node 316: 0
+    Node 189: 4
+    Node 279: 3
+    Node 152: 5
+    Node 165: 0
+    Node 302: 3
+    Node 175: 0
+    Node 190: 4
+    Node 280: 3
+    Node 153: 4
+    Node 166: 0
+    Node 303: 3
+    Node 176: 0
+    Node 191: 4
+    Node 281: 3
+    Node 154: 4
+    Node 167: 0
+    Node 304: 3
+    Node 177: 0
+    Node 282: 3
+    Node 155: 3
+    Node 285: 2
+    Node 158: 4
+    Node 168: 0
+    Node 305: 3
+    Node 178: 0
+    Node 283: 3
+    Node 156: 2
+    Node 284: 2
+    Node 157: 2
+    Node 169: 0
+    Node 172: 0
+    Node 306: 3
+    Node 179: 0
+
+========================================================

@@ -1,0 +1,473 @@
+{
+  "bdd": "fw.bdd",
+  "heuristic": {
+    "meta": [
+      {
+        "description": "1.58 Tbps (2.25 Gpps)",
+        "name": "Tput"
+      },
+      {
+        "description": "1.58 Tbps (2.25 Gpps)",
+        "name": "Spec"
+      },
+      {
+        "description": "4",
+        "name": "Stages"
+      }
+    ],
+    "score": [
+      101,
+      2250127087,
+      -4
+    ]
+  },
+  "implementations": [
+    {
+      "addr": 1074094376,
+      "implementation": "Tofino::VectorTable"
+    },
+    {
+      "addr": 1074076736,
+      "implementation": "Tofino::DchainTable"
+    },
+    {
+      "addr": 1074044752,
+      "implementation": "Tofino::GuardedMapTable"
+    },
+    {
+      "addr": 1074077160,
+      "implementation": "Tofino::VectorTable"
+    }
+  ],
+  "name": "fw-f40000-c100000-zipf0_4-hmax-tput",
+  "profile_file": "fw-f40000-c100000-zipf0_4.json",
+  "search_meta": {
+    "avg_bdd_size": 67,
+    "avg_children_per_node": [
+      {
+        "avg": 0.0,
+        "node_id": 311
+      },
+      {
+        "avg": 0.0,
+        "node_id": 184
+      },
+      {
+        "avg": 0.0,
+        "node_id": 310
+      },
+      {
+        "avg": 0.0,
+        "node_id": 183
+      },
+      {
+        "avg": 0.0,
+        "node_id": 312
+      },
+      {
+        "avg": 0.0,
+        "node_id": 185
+      },
+      {
+        "avg": 0.0,
+        "node_id": 309
+      },
+      {
+        "avg": 0.0,
+        "node_id": 182
+      },
+      {
+        "avg": 0.0,
+        "node_id": 308
+      },
+      {
+        "avg": 0.0,
+        "node_id": 181
+      },
+      {
+        "avg": 3.0,
+        "node_id": 307
+      },
+      {
+        "avg": 0.0,
+        "node_id": 180
+      },
+      {
+        "avg": 0.0,
+        "node_id": 171
+      },
+      {
+        "avg": 0.0,
+        "node_id": 170
+      },
+      {
+        "avg": 2.0,
+        "node_id": 195
+      },
+      {
+        "avg": 3.0,
+        "node_id": 194
+      },
+      {
+        "avg": 3.0,
+        "node_id": 277
+      },
+      {
+        "avg": 5.0,
+        "node_id": 150
+      },
+      {
+        "avg": 6.0,
+        "node_id": 273
+      },
+      {
+        "avg": 3.0,
+        "node_id": 146
+      },
+      {
+        "avg": 0.0,
+        "node_id": 314
+      },
+      {
+        "avg": 7.0,
+        "node_id": 187
+      },
+      {
+        "avg": 4.0,
+        "node_id": 149
+      },
+      {
+        "avg": 6.0,
+        "node_id": 272
+      },
+      {
+        "avg": 3.0,
+        "node_id": 145
+      },
+      {
+        "avg": 0.0,
+        "node_id": 313
+      },
+      {
+        "avg": 5.0,
+        "node_id": 186
+      },
+      {
+        "avg": 2.5,
+        "node_id": 161
+      },
+      {
+        "avg": 5.0,
+        "node_id": 148
+      },
+      {
+        "avg": 3.0,
+        "node_id": 271
+      },
+      {
+        "avg": 3.0,
+        "node_id": 144
+      },
+      {
+        "avg": 5.0,
+        "node_id": 160
+      },
+      {
+        "avg": 2.0,
+        "node_id": 286
+      },
+      {
+        "avg": 3.0,
+        "node_id": 159
+      },
+      {
+        "avg": 0.0,
+        "node_id": 162
+      },
+      {
+        "avg": 2.0,
+        "node_id": 133
+      },
+      {
+        "avg": 5.0,
+        "node_id": 192
+      },
+      {
+        "avg": 0.0,
+        "node_id": 163
+      },
+      {
+        "avg": 3.0,
+        "node_id": 134
+      },
+      {
+        "avg": 4.0,
+        "node_id": 193
+      },
+      {
+        "avg": 3.0,
+        "node_id": 268
+      },
+      {
+        "avg": 3.0,
+        "node_id": 141
+      },
+      {
+        "avg": 3.0,
+        "node_id": 200
+      },
+      {
+        "avg": 2.0,
+        "node_id": 199
+      },
+      {
+        "avg": 3.0,
+        "node_id": 267
+      },
+      {
+        "avg": 4.0,
+        "node_id": 140
+      },
+      {
+        "avg": 3.0,
+        "node_id": 135
+      },
+      {
+        "avg": 3.0,
+        "node_id": 269
+      },
+      {
+        "avg": 4.0,
+        "node_id": 142
+      },
+      {
+        "avg": 2.0,
+        "node_id": 201
+      },
+      {
+        "avg": 3.0,
+        "node_id": 136
+      },
+      {
+        "avg": 3.0,
+        "node_id": 270
+      },
+      {
+        "avg": 3.0,
+        "node_id": 143
+      },
+      {
+        "avg": 4.0,
+        "node_id": 137
+      },
+      {
+        "avg": 2.0,
+        "node_id": 196
+      },
+      {
+        "avg": 3.0,
+        "node_id": 265
+      },
+      {
+        "avg": 6.0,
+        "node_id": 138
+      },
+      {
+        "avg": 3.0,
+        "node_id": 197
+      },
+      {
+        "avg": 3.0,
+        "node_id": 266
+      },
+      {
+        "avg": 8.0,
+        "node_id": 139
+      },
+      {
+        "avg": 3.0,
+        "node_id": 198
+      },
+      {
+        "avg": 0.0,
+        "node_id": 173
+      },
+      {
+        "avg": 0.0,
+        "node_id": 315
+      },
+      {
+        "avg": 6.0,
+        "node_id": 188
+      },
+      {
+        "avg": 2.0,
+        "node_id": 147
+      },
+      {
+        "avg": 3.0,
+        "node_id": 278
+      },
+      {
+        "avg": 5.0,
+        "node_id": 151
+      },
+      {
+        "avg": 0.0,
+        "node_id": 164
+      },
+      {
+        "avg": 0.0,
+        "node_id": 174
+      },
+      {
+        "avg": 0.0,
+        "node_id": 316
+      },
+      {
+        "avg": 4.0,
+        "node_id": 189
+      },
+      {
+        "avg": 3.0,
+        "node_id": 279
+      },
+      {
+        "avg": 5.0,
+        "node_id": 152
+      },
+      {
+        "avg": 0.0,
+        "node_id": 165
+      },
+      {
+        "avg": 3.0,
+        "node_id": 302
+      },
+      {
+        "avg": 0.0,
+        "node_id": 175
+      },
+      {
+        "avg": 4.0,
+        "node_id": 190
+      },
+      {
+        "avg": 3.0,
+        "node_id": 280
+      },
+      {
+        "avg": 4.0,
+        "node_id": 153
+      },
+      {
+        "avg": 0.0,
+        "node_id": 166
+      },
+      {
+        "avg": 3.0,
+        "node_id": 303
+      },
+      {
+        "avg": 0.0,
+        "node_id": 176
+      },
+      {
+        "avg": 4.0,
+        "node_id": 191
+      },
+      {
+        "avg": 3.0,
+        "node_id": 281
+      },
+      {
+        "avg": 4.0,
+        "node_id": 154
+      },
+      {
+        "avg": 0.0,
+        "node_id": 167
+      },
+      {
+        "avg": 3.0,
+        "node_id": 304
+      },
+      {
+        "avg": 0.0,
+        "node_id": 177
+      },
+      {
+        "avg": 3.0,
+        "node_id": 282
+      },
+      {
+        "avg": 3.0,
+        "node_id": 155
+      },
+      {
+        "avg": 2.0,
+        "node_id": 285
+      },
+      {
+        "avg": 4.0,
+        "node_id": 158
+      },
+      {
+        "avg": 0.0,
+        "node_id": 168
+      },
+      {
+        "avg": 3.0,
+        "node_id": 305
+      },
+      {
+        "avg": 0.0,
+        "node_id": 178
+      },
+      {
+        "avg": 3.0,
+        "node_id": 283
+      },
+      {
+        "avg": 2.0,
+        "node_id": 156
+      },
+      {
+        "avg": 2.0,
+        "node_id": 284
+      },
+      {
+        "avg": 2.0,
+        "node_id": 157
+      },
+      {
+        "avg": 0.0,
+        "node_id": 169
+      },
+      {
+        "avg": 0.0,
+        "node_id": 172
+      },
+      {
+        "avg": 3.0,
+        "node_id": 306
+      },
+      {
+        "avg": 0.0,
+        "node_id": 179
+      }
+    ],
+    "backtracks": 0,
+    "branching_factor": 2.856382978723404,
+    "elapsed_time_seconds": 14,
+    "finished_eps": 1,
+    "ss_size": 287,
+    "steps": 103,
+    "total_ss_size_estimation": 269714059241.0524,
+    "unfinished_eps": 184
+  },
+  "seed": 0,
+  "targets_config_file": "tofino2.toml",
+  "tput_estimation_bps": 1584089479104,
+  "tput_estimation_pps": 2250127101
+}
