@@ -99,6 +99,7 @@ private:
   std::unordered_map<addr_t, tb_config_t> tb_configs;
 
   std::vector<map_coalescing_objs_t> coalescing_candidates;
+  std::unordered_map<addr_t, std::vector<hit_rate_t>> dchains_failing_to_allocate_new_index_hit_rates;
   std::optional<expiration_data_t> expiration_data;
   std::vector<expr_struct_t> expr_structs;
 
@@ -130,6 +131,7 @@ public:
   const tb_config_t &get_tb_config(addr_t addr) const;
 
   std::optional<map_coalescing_objs_t> get_map_coalescing_objs(addr_t obj) const;
+  const std::vector<hit_rate_t> &get_failing_to_allocate_new_index_hit_rates(addr_t dchain) const;
   const std::optional<expiration_data_t> &get_expiration_data() const;
   const std::vector<expr_struct_t> &get_expr_structs() const;
 
@@ -150,6 +152,7 @@ public:
 
 private:
   void bdd_pre_processing_get_coalescing_candidates(const BDD *bdd);
+  void bdd_pre_processing_get_dchains_failing_to_allocate_new_index_hit_rates(const BDD *bdd);
   void bdd_pre_processing_get_ds_configs(const BDD *bdd);
   void bdd_pre_processing_get_structural_fields(const BDD *bdd);
   void bdd_pre_processing_build_tofino_parser(const BDD *bdd);

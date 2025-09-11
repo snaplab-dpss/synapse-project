@@ -25,6 +25,8 @@ using LibSynapse::Tofino::tofino_port_t;
 using LibSynapse::Tofino::tofino_recirculation_port_t;
 using LibSynapse::Tofino::TofinoContext;
 
+constexpr const char *const TEMPLATE_FILENAME = "controller.template.cpp";
+
 constexpr const char *const MARKER_STATE_FIELDS           = "STATE_FIELDS";
 constexpr const char *const MARKER_STATE_MEMBER_INIT_LIST = "STATE_MEMBER_INIT_LIST";
 constexpr const char *const MARKER_NF_INIT                = "NF_INIT";
@@ -33,7 +35,6 @@ constexpr const char *const MARKER_NF_ARGS                = "NF_ARGS";
 constexpr const char *const MARKER_NF_USER_SIGNAL_HANDLER = "NF_USER_SIGNAL_HANDLER";
 constexpr const char *const MARKER_NF_PROCESS             = "NF_PROCESS";
 constexpr const char *const MARKER_CPU_HDR_EXTRA          = "CPU_HDR_EXTRA";
-constexpr const char *const TEMPLATE_FILENAME             = "controller.template.cpp";
 
 template <class T> std::unordered_set<const T *> get_tofino_ds_from_obj(const EP *ep, addr_t obj) {
   const Context &ctx              = ep->get_ctx();
@@ -211,7 +212,7 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitConcat(const k
   std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
-  panic("TODO: visitConcat");
+  panic("TODO: visitConcat: %s", expr_to_string(expr).c_str());
   return Action::skipChildren();
 }
 
@@ -841,6 +842,10 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   const Symbols &symbols = node->get_symbols();
   for (const symbol_t &symbol : symbols.get()) {
+    if (vars.get(symbol.expr, TRANSPILER_OPT_NO_OPTION).has_value()) {
+      continue;
+    }
+
     const bits_t width = symbol.expr->getWidth();
 
     assert(width % 8 == 0 && "Unexpected width (not a multiple of 8)");

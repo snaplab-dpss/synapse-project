@@ -30,7 +30,7 @@ ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.0]
 
-ITERATIONS = 3
+ITERATIONS = 5
 
 
 @dataclass
@@ -159,22 +159,22 @@ SYNAPSE_NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
-    *[
-        SynapseNF(
-            name=build_synapse_nf_name("kvs", churn, s),
-            description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
-            data_out=Path(f"tput_synapse_kvs.csv"),
-            kvs_mode=True,
-            tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
-            controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
-            broadcast=lambda ports: ports,
-            symmetric=lambda _: [],
-            route=lambda _: [],
-            churn=[churn],
-            zipf=[s],
-        )
-        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
-    ],
+    # *[
+    #     SynapseNF(
+    #         name=build_synapse_nf_name("kvs", churn, s),
+    #         description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
+    #         data_out=Path(f"tput_synapse_kvs.csv"),
+    #         kvs_mode=True,
+    #         tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
+    #         controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
+    #         broadcast=lambda ports: ports,
+    #         symmetric=lambda _: [],
+    #         route=lambda _: [],
+    #         churn=[churn],
+    #         zipf=[s],
+    #     )
+    #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    # ],
 ]
 
 

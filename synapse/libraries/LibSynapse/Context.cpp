@@ -11,6 +11,7 @@ using LibBDD::bdd_node_id_t;
 using LibBDD::BDDNodeType;
 using LibBDD::BDDNodeVisitAction;
 using LibBDD::Branch;
+using LibBDD::branch_direction_t;
 using LibBDD::Call;
 using LibBDD::call_t;
 using LibBDD::cookie_t;
@@ -92,6 +93,17 @@ void Context::bdd_pre_processing_get_coalescing_candidates(const BDD *bdd) {
       if (bdd->get_map_coalescing_objs(addr, candidate)) {
         coalescing_candidates.push_back(candidate);
       }
+    }
+  }
+}
+
+void Context::bdd_pre_processing_get_dchains_failing_to_allocate_new_index_hit_rates(const BDD *bdd) {
+  for (const map_coalescing_objs_t &map_objs : coalescing_candidates) {
+    const std::vector<branch_direction_t> branches_checking_index_alloc = bdd->find_all_branches_checking_index_alloc(map_objs.dchain);
+    for (const branch_direction_t &branch_direction : branches_checking_index_alloc) {
+      const BDDNode *failure_node = branch_direction.get_failure_node();
+      const hit_rate_t failure_hr = profiler.get_hr(failure_node);
+      dchains_failing_to_allocate_new_index_hit_rates[map_objs.dchain].push_back(failure_hr);
     }
   }
 }
@@ -314,6 +326,19 @@ void Context::bdd_pre_processing_log() {
     std::cerr << "]\n";
   }
 
+  std::cerr << "Hit rates of dchains failing to allocate new index:\n";
+  for (const auto &[dchain, hit_rates] : dchains_failing_to_allocate_new_index_hit_rates) {
+    std::cerr << "  dchain=" << dchain << ", hit rates={";
+    size_t i = 0;
+    for (hit_rate_t hr : hit_rates) {
+      if (i++ > 0) {
+        std::cerr << ", ";
+      }
+      std::cerr << hr.to_string();
+    }
+    std::cerr << "}\n";
+  }
+
   std::cerr << "\n";
   std::cerr << "Structural estimations:\n";
   for (const expr_struct_t &expr_struct : expr_structs) {
@@ -345,6 +370,7 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const targets_confi
   }
 
   bdd_pre_processing_get_coalescing_candidates(bdd);
+  bdd_pre_processing_get_dchains_failing_to_allocate_new_index_hit_rates(bdd);
   bdd_pre_processing_get_ds_configs(bdd);
   bdd_pre_processing_get_structural_fields(bdd);
   bdd_pre_processing_build_tofino_parser(bdd);
@@ -354,8 +380,9 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const targets_confi
 Context::Context(const Context &other)
     : profiler(other.profiler), perf_oracle(other.perf_oracle), map_configs(other.map_configs), vector_configs(other.vector_configs),
       dchain_configs(other.dchain_configs), cms_configs(other.cms_configs), cht_configs(other.cht_configs), tb_configs(other.tb_configs),
-      coalescing_candidates(other.coalescing_candidates), expiration_data(other.expiration_data), expr_structs(other.expr_structs),
-      ds_impls(other.ds_impls) {
+      coalescing_candidates(other.coalescing_candidates),
+      dchains_failing_to_allocate_new_index_hit_rates(other.dchains_failing_to_allocate_new_index_hit_rates), expiration_data(other.expiration_data),
+      expr_structs(other.expr_structs), ds_impls(other.ds_impls) {
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }
@@ -365,8 +392,10 @@ Context::Context(Context &&other)
     : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)), map_configs(std::move(other.map_configs)),
       vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)), cms_configs(std::move(other.cms_configs)),
       cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
-      coalescing_candidates(std::move(other.coalescing_candidates)), expiration_data(std::move(other.expiration_data)),
-      expr_structs(std::move(other.expr_structs)), ds_impls(std::move(other.ds_impls)), target_ctxs(std::move(other.target_ctxs)) {}
+      coalescing_candidates(std::move(other.coalescing_candidates)),
+      dchains_failing_to_allocate_new_index_hit_rates(std::move(other.dchains_failing_to_allocate_new_index_hit_rates)),
+      expiration_data(std::move(other.expiration_data)), expr_structs(std::move(other.expr_structs)), ds_impls(std::move(other.ds_impls)),
+      target_ctxs(std::move(other.target_ctxs)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {
@@ -389,18 +418,19 @@ Context &Context::operator=(const Context &other) {
     }
   }
 
-  profiler              = other.profiler;
-  perf_oracle           = other.perf_oracle;
-  map_configs           = other.map_configs;
-  vector_configs        = other.vector_configs;
-  dchain_configs        = other.dchain_configs;
-  cms_configs           = other.cms_configs;
-  cht_configs           = other.cht_configs;
-  tb_configs            = other.tb_configs;
-  coalescing_candidates = other.coalescing_candidates;
-  expiration_data       = other.expiration_data;
-  expr_structs          = other.expr_structs;
-  ds_impls              = other.ds_impls;
+  profiler                                        = other.profiler;
+  perf_oracle                                     = other.perf_oracle;
+  map_configs                                     = other.map_configs;
+  vector_configs                                  = other.vector_configs;
+  dchain_configs                                  = other.dchain_configs;
+  cms_configs                                     = other.cms_configs;
+  cht_configs                                     = other.cht_configs;
+  tb_configs                                      = other.tb_configs;
+  coalescing_candidates                           = other.coalescing_candidates;
+  dchains_failing_to_allocate_new_index_hit_rates = other.dchains_failing_to_allocate_new_index_hit_rates;
+  expiration_data                                 = other.expiration_data;
+  expr_structs                                    = other.expr_structs;
+  ds_impls                                        = other.ds_impls;
 
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
@@ -421,19 +451,20 @@ Context &Context::operator=(Context &&other) {
     }
   }
 
-  profiler              = std::move(other.profiler);
-  perf_oracle           = std::move(other.perf_oracle);
-  map_configs           = std::move(other.map_configs);
-  vector_configs        = std::move(other.vector_configs);
-  dchain_configs        = std::move(other.dchain_configs);
-  cms_configs           = std::move(other.cms_configs);
-  cht_configs           = std::move(other.cht_configs);
-  tb_configs            = std::move(other.tb_configs);
-  coalescing_candidates = std::move(other.coalescing_candidates);
-  expiration_data       = std::move(other.expiration_data);
-  expr_structs          = std::move(other.expr_structs);
-  ds_impls              = std::move(other.ds_impls);
-  target_ctxs           = std::move(other.target_ctxs);
+  profiler                                        = std::move(other.profiler);
+  perf_oracle                                     = std::move(other.perf_oracle);
+  map_configs                                     = std::move(other.map_configs);
+  vector_configs                                  = std::move(other.vector_configs);
+  dchain_configs                                  = std::move(other.dchain_configs);
+  cms_configs                                     = std::move(other.cms_configs);
+  cht_configs                                     = std::move(other.cht_configs);
+  tb_configs                                      = std::move(other.tb_configs);
+  coalescing_candidates                           = std::move(other.coalescing_candidates);
+  dchains_failing_to_allocate_new_index_hit_rates = std::move(other.dchains_failing_to_allocate_new_index_hit_rates);
+  expiration_data                                 = std::move(other.expiration_data);
+  expr_structs                                    = std::move(other.expr_structs);
+  ds_impls                                        = std::move(other.ds_impls);
+  target_ctxs                                     = std::move(other.target_ctxs);
 
   return *this;
 }
@@ -488,6 +519,12 @@ std::optional<map_coalescing_objs_t> Context::get_map_coalescing_objs(addr_t obj
   }
 
   return {};
+}
+
+const std::vector<hit_rate_t> &Context::get_failing_to_allocate_new_index_hit_rates(addr_t dchain) const {
+  auto found_it = dchains_failing_to_allocate_new_index_hit_rates.find(dchain);
+  assert(found_it != dchains_failing_to_allocate_new_index_hit_rates.end() && "Dchain not found");
+  return found_it->second;
 }
 
 const std::optional<expiration_data_t> &Context::get_expiration_data() const { return expiration_data; }

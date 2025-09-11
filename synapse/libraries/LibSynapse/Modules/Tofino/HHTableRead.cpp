@@ -76,6 +76,12 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const BDD
     return {};
   }
 
+  const std::vector<hit_rate_t> &failing_to_allocate_new_index_hit_rates = ctx.get_failing_to_allocate_new_index_hit_rates(map_objs->dchain);
+  if (std::all_of(failing_to_allocate_new_index_hit_rates.begin(), failing_to_allocate_new_index_hit_rates.end(),
+                  [](hit_rate_t index_allocation_failure_hr) { return index_allocation_failure_hr == 0; })) {
+    return {};
+  }
+
   const branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
     return {};
@@ -130,6 +136,13 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode
 
   if (!ep->get_ctx().can_impl_ds(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
       !ep->get_ctx().can_impl_ds(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
+    return {};
+  }
+
+  const std::vector<hit_rate_t> &failing_to_allocate_new_index_hit_rates =
+      ep->get_ctx().get_failing_to_allocate_new_index_hit_rates(map_objs->dchain);
+  if (std::all_of(failing_to_allocate_new_index_hit_rates.begin(), failing_to_allocate_new_index_hit_rates.end(),
+                  [](hit_rate_t index_allocation_failure_hr) { return index_allocation_failure_hr == 0; })) {
     return {};
   }
 
@@ -190,6 +203,12 @@ std::unique_ptr<Module> HHTableReadFactory::create(const BDD *bdd, const Context
   }
 
   if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) || !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
+    return {};
+  }
+
+  const std::vector<hit_rate_t> &failing_to_allocate_new_index_hit_rates = ctx.get_failing_to_allocate_new_index_hit_rates(map_objs->dchain);
+  if (std::all_of(failing_to_allocate_new_index_hit_rates.begin(), failing_to_allocate_new_index_hit_rates.end(),
+                  [](hit_rate_t index_allocation_failure_hr) { return index_allocation_failure_hr == 0; })) {
     return {};
   }
 

@@ -37,8 +37,7 @@ bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
 bool ds_ignore_logic(const Context &ctx, const call_t &call) {
   addr_t obj;
 
-  if (call.function_name == "dchain_rejuvenate_index" || call.function_name == "dchain_allocate_new_index" ||
-      call.function_name == "dchain_free_index") {
+  if (call.function_name == "dchain_rejuvenate_index" || call.function_name == "dchain_free_index") {
     obj = expr_addr_to_obj_addr(call.args.at("chain").expr);
   } else if (call.function_name == "vector_borrow" || call.function_name == "vector_return") {
     obj = expr_addr_to_obj_addr(call.args.at("vector").expr);

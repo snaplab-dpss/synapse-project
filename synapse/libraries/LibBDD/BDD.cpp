@@ -1912,4 +1912,37 @@ std::unordered_set<u16> BDD::get_candidate_fwd_devs(const Route *route) const {
   return candidate_devs;
 }
 
+std::vector<branch_direction_t> BDD::find_all_branches_checking_index_alloc(addr_t dchain_obj) const {
+  std::vector<branch_direction_t> target_branches;
+
+  root->visit_nodes([&target_branches, dchain_obj, this](const BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const Call *call_node = dynamic_cast<const Call *>(node);
+    const call_t &call    = call_node->get_call();
+
+    if (call.function_name != "dchain_allocate_new_index") {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    klee::ref<klee::Expr> chain = call.args.at("chain").expr;
+    const addr_t obj            = expr_addr_to_obj_addr(chain);
+
+    if (obj != dchain_obj) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const branch_direction_t index_alloc_check = find_branch_checking_index_alloc(call_node);
+    if (index_alloc_check.branch) {
+      target_branches.push_back(index_alloc_check);
+    }
+
+    return BDDNodeVisitAction::Continue;
+  });
+
+  return target_branches;
+}
+
 } // namespace LibBDD

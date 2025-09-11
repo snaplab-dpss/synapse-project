@@ -108,6 +108,7 @@ public:
   bool is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new_index) const;
   bool is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) const;
   branch_direction_t find_branch_checking_index_alloc(const Call *dchain_allocate_new_index) const;
+  std::vector<branch_direction_t> find_all_branches_checking_index_alloc(addr_t dchain_obj) const;
   bool is_fwd_pattern_depending_on_lpm(const BDDNode *node, std::vector<const BDDNode *> &fwd_logic) const;
   bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing, const Call *&tb_update_and_check) const;
   void delete_vector_key_operations(addr_t map);
@@ -115,6 +116,7 @@ public:
   bool is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const;
   bool is_map_get_and_branch_checking_success(const Call *map_get, const BDDNode *branch_checking_map_get_success, bool &success_direction) const;
   bool are_subtrees_equal(const BDDNode *n0, const BDDNode *n1) const;
+
   std::unordered_set<u16> get_candidate_fwd_devs(const Route *route) const;
 
   // Tries to find the pattern of a map_get followed by map_puts, but only when
