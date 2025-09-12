@@ -1768,23 +1768,82 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Ignore *node) { return EPVisitor::Action::doChildren; }
 
+void TofinoSynthesizer::transpile_if_condition(const If::condition_t &condition) {
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  switch (condition.phv_limitation_workaround.action_helper) {
+  case If::ConditionActionHelper::None:
+    ingress.indent();
+    ingress << "if (";
+    ingress << transpiler.transpile(condition.expr);
+    ingress << ")";
+    break;
+  case If::ConditionActionHelper::CheckSignBitForLessThan32b:
+    // a < b <=> (a - b)[31:31] == 1
+    ingress.indent();
+    ingress << "calculate_diff_32b(";
+    ingress << transpiler.transpile(condition.phv_limitation_workaround.lhs);
+    ingress << ", ";
+    ingress << transpiler.transpile(condition.phv_limitation_workaround.rhs);
+    ingress << ");\n";
+
+    ingress.indent();
+    ingress << "if (diff_sign_bit == 1)";
+    break;
+  case If::ConditionActionHelper::CheckSignBitForLessThanOrEqual32b:
+    // a <= b <=> (b - a)[31:31] == 0
+    ingress.indent();
+    ingress << "calculate_diff_32b(";
+    ingress << transpiler.transpile(condition.phv_limitation_workaround.rhs);
+    ingress << ", ";
+    ingress << transpiler.transpile(condition.phv_limitation_workaround.lhs);
+    ingress << ");\n";
+
+    ingress.indent();
+    ingress << "if (diff_sign_bit == 0)";
+    break;
+  case If::ConditionActionHelper::CheckSignBitForGreaterThan32b:
+    // a > b <=> (b - a)[31:31] == 1
+    ingress.indent();
+    ingress << "calculate_diff_32b(";
+    ingress << transpiler.transpile(condition.phv_limitation_workaround.rhs);
+    ingress << ", ";
+    ingress << transpiler.transpile(condition.phv_limitation_workaround.lhs);
+    ingress << ");\n";
+
+    ingress.indent();
+    ingress << "if (diff_sign_bit == 1)";
+    break;
+  case If::ConditionActionHelper::CheckSignBitForGreaterThanOrEqual32b:
+    // a >= b <=> (a - b)[31:31] == 0
+    ingress.indent();
+    ingress << "calculate_diff_32b(";
+    ingress << transpiler.transpile(condition.phv_limitation_workaround.lhs);
+    ingress << ", ";
+    ingress << transpiler.transpile(condition.phv_limitation_workaround.rhs);
+    ingress << ");\n";
+
+    ingress.indent();
+    ingress << "if (diff_sign_bit == 0)";
+    break;
+  }
+}
+
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::If *node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  const std::vector<klee::ref<klee::Expr>> &conditions = node->get_conditions();
-  const std::vector<EPNode *> &children                = ep_node->get_children();
+  const std::vector<If::condition_t> &conditions = node->get_conditions();
+  const std::vector<EPNode *> &children          = ep_node->get_children();
   assert(children.size() == 2 && "If node must have 2 children");
 
   const EPNode *then_node = children[0];
   const EPNode *else_node = children[1];
 
   if (conditions.size() == 1) {
-    const klee::ref<klee::Expr> condition = conditions[0];
+    const If::condition_t &condition = conditions[0];
 
-    ingress.indent();
-    ingress << "if (";
-    ingress << transpiler.transpile(condition);
-    ingress << ") {\n";
+    transpile_if_condition(condition);
+    ingress << "{\n";
 
     ingress.inc();
     ingress_vars.push();
@@ -1810,12 +1869,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const var_t cond_var = alloc_var("cond", solver_toolbox.exprBuilder->True(), FORCE_BOOL);
   cond_var.declare(ingress, "false");
 
-  for (klee::ref<klee::Expr> condition : conditions) {
-    ingress.indent();
-    ingress << "if (";
-    ingress << transpiler.transpile(condition);
-    ingress << ") {\n";
-
+  for (const If::condition_t &condition : conditions) {
+    transpile_if_condition(condition);
+    ingress << "{\n";
     ingress.inc();
   }
 
@@ -2805,14 +2861,20 @@ void TofinoSynthesizer::transpile_cms_decl(const CountMinSketch *cms) {
       const code_t &action     = actions.at(action_type)[i];
       const code_t &value      = values.at(action_type)[i];
 
-      transpile_register_action_decl(&row, action, action_type, {});
+      transpile_register_action_decl(&row, reg_action, action_type, {});
 
-      ingress.indent();
-      ingress << Transpiler::type_from_size(row.value_size) << " " << value << ";\n";
+      if (register_action_types_with_out_value.contains(action_type)) {
+        ingress.indent();
+        ingress << Transpiler::type_from_size(row.value_size) << " " << value << ";\n";
+      }
 
       coder_t row_action_body;
       row_action_body.indent();
-      row_action_body << value << " = " << reg_action << ".execute(" << hash << ");\n";
+
+      if (register_action_types_with_out_value.contains(action_type)) {
+        row_action_body << value << " = ";
+      }
+      row_action_body << reg_action << ".execute(" << hash << ");\n";
       transpile_action_decl(action, row_action_body.split_lines());
     }
   }

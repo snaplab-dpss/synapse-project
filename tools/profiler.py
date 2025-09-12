@@ -70,7 +70,7 @@ NFs = {
     "nat": NF("nat", "nat.bdd", "pcap-generator-nat", warmup_devices=even_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
     "kvs": NF("kvs", "kvs.bdd", "pcap-generator-kvs", warmup_devices=DEVICES, unique_devices=DEVICES[:1], fwd_rules=[]),
     "psd": NF("psd", "psd.bdd", "pcap-generator-psd", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
-    "cl": NF("cl", "cl.bdd", "pcap-generator-cl", warmup_devices=even_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
+    "cl": NF("cl", "cl.bdd", "pcap-generator-cl", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
 }
 
 

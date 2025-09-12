@@ -79,6 +79,27 @@ public:
 
 } // namespace
 
+bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) const {
+  while (node) {
+    if (node->get_module()->get_target() == TargetType::Tofino) {
+      const TofinoModule *tofino_module = dynamic_cast<const TofinoModule *>(node->get_module());
+
+      if (tofino_module->get_type() == ModuleType::Tofino_Recirculate) {
+        break;
+      }
+
+      if (tofino_module->get_generated_ds().contains(ds_id)) {
+        // This DS was already generated in an ancestor node targeting Tofino.
+        return true;
+      }
+    }
+
+    node = node->get_prev();
+  }
+
+  return false;
+}
+
 TofinoContext *TofinoModuleFactory::get_mutable_tofino_ctx(EP *ep) {
   Context &ctx = ep->get_mutable_ctx();
   return ctx.get_mutable_target_ctx<TofinoContext>();

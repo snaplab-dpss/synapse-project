@@ -235,13 +235,16 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *node) override final;
 
   coder_t &get(const std::string &marker);
-  code_t transpile(klee::ref<klee::Expr> expr);
 
   code_t create_unique_name(const code_t &name);
   var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, alloc_opt_t option = 0);
   code_path_t alloc_recirc_coder();
 
   code_t build_register_action_name(const Register *reg, RegisterActionType action, const EPNode *node = nullptr) const;
+
+  std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_reg_actions(const CountMinSketch *cms);
+  std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_actions(const CountMinSketch *cms);
+  std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_values(const CountMinSketch *cms);
 
   void transpile_parser(const Parser &parser);
   void transpile_action_decl(const code_t &action_name, const std::vector<code_t> &body);
@@ -254,15 +257,12 @@ private:
   void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
   void transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, klee::ref<klee::Expr> key, klee::ref<klee::Expr> value);
   void transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
-
-  std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_reg_actions(const CountMinSketch *cms);
-  std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_actions(const CountMinSketch *cms);
-  std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_values(const CountMinSketch *cms);
   std::vector<code_t> cms_get_hashes_values(const CountMinSketch *cms);
   std::vector<code_t> cms_get_hashes_calculators(const CountMinSketch *cms, const EPNode *ep_node);
   void transpile_cms_hash_calculator_decl(const CountMinSketch *cms, const EPNode *ep_node, const std::vector<var_t> &keys_vars);
   void transpile_cms_decl(const CountMinSketch *cms);
   void transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table);
+  void transpile_if_condition(const If::condition_t &condition);
 
   void dbg_vars() const;
 

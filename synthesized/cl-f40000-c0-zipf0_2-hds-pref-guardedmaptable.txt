@@ -1,0 +1,116 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     cl.bdd
+  Name:               cl-f40000-c0-zipf0_2-hds-pref-guardedmaptable
+  Targets config:     tofino2.toml
+  Heuristic:          ds-pref-guardedmaptable
+  Profile file:       cl-f40000-c0-zipf0_2.json
+  Seed:               0
+  Targets:
+    Tofino (28 modules)
+    Ctrl (72 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+
+Winner:
+  Score: <72,6,2'250'000'000>
+  BDD Progress: 72
+  DS Score: 6
+  Tput: 1.58 Tbps (2.25 Gpps)
+  Spec: 1.58 Tbps (2.25 Gpps)
+
+Stateful Implementations:
+  1074080976: Tofino::CMS
+  1074080560: Tofino::DchainTable
+  1074110768: Tofino::VectorTable
+  1074048576: Tofino::GuardedMapTable
+  1074093552: Tofino::VectorTable
+
+Search Metadata:
+  Elapsed time:       2 seconds
+  Steps:              73
+  Backtracks:         0
+  Search space size:  192
+  Unfinished EPs:     119
+  Finished EPs:       1
+  Avg BDD size:       60
+  Branching factor:   2
+  Total SS size est.: 650'680'683'479
+  Avg children per node:
+    Node 254: 3
+    Node 257: 3
+    Node 253: 3
+    Node 256: 3
+    Node 252: 3
+    Node 255: 3
+    Node 251: 3
+    Node 169: 0
+    Node 168: 0
+    Node 167: 0
+    Node 149: 0
+    Node 187: 3
+    Node 148: 0
+    Node 186: 3
+    Node 176: 3
+    Node 147: 2
+    Node 185: 6
+    Node 175: 6
+    Node 146: 4
+    Node 184: 6
+    Node 174: 3
+    Node 145: 3
+    Node 183: 8
+    Node 144: 5
+    Node 143: 3
+    Node 193: 2
+    Node 261: 0
+    Node 134: 2
+    Node 262: 0
+    Node 135: 3
+    Node 194: 3
+    Node 265: 0
+    Node 138: 3
+    Node 263: 0
+    Node 136: 3
+    Node 195: 2
+    Node 142: 6
+    Node 139: 4
+    Node 191: 3
+    Node 264: 0
+    Node 137: 3
+    Node 140: 5
+    Node 192: 3
+    Node 141: 9
+    Node 170: 0
+    Node 177: 3
+    Node 188: 9
+    Node 150: 0
+    Node 171: 0
+    Node 178: 3
+    Node 189: 2
+    Node 190: 2
+    Node 151: 0
+    Node 159: 0
+    Node 172: 0
+    Node 179: 3
+    Node 152: 0
+    Node 160: 0
+    Node 173: 0
+    Node 180: 3
+    Node 153: 0
+    Node 161: 0
+    Node 181: 2
+    Node 182: 2
+    Node 154: 0
+    Node 162: 0
+    Node 155: 0
+    Node 163: 0
+    Node 156: 0
+    Node 164: 0
+    Node 157: 0
+    Node 158: 0
+    Node 165: 0
+    Node 166: 0
+
+========================================================

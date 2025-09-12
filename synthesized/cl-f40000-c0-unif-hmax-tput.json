@@ -1,0 +1,361 @@
+{
+  "bdd": "cl.bdd",
+  "heuristic": {
+    "meta": [
+      {
+        "description": "1.58 Tbps (2.25 Gpps)",
+        "name": "Tput"
+      },
+      {
+        "description": "1.58 Tbps (2.25 Gpps)",
+        "name": "Spec"
+      },
+      {
+        "description": "6",
+        "name": "Stages"
+      }
+    ],
+    "score": [
+      72,
+      2250000000,
+      -6
+    ]
+  },
+  "implementations": [
+    {
+      "addr": 1074080976,
+      "implementation": "Tofino::CMS"
+    },
+    {
+      "addr": 1074080560,
+      "implementation": "Tofino::DchainTable"
+    },
+    {
+      "addr": 1074110768,
+      "implementation": "Tofino::VectorTable"
+    },
+    {
+      "addr": 1074048576,
+      "implementation": "Tofino::MapTable"
+    },
+    {
+      "addr": 1074093552,
+      "implementation": "Tofino::VectorTable"
+    }
+  ],
+  "name": "cl-f40000-c0-unif-hmax-tput",
+  "profile_file": "cl-f40000-c0-unif.json",
+  "search_meta": {
+    "avg_bdd_size": 60,
+    "avg_children_per_node": [
+      {
+        "avg": 3.0,
+        "node_id": 254
+      },
+      {
+        "avg": 3.0,
+        "node_id": 257
+      },
+      {
+        "avg": 3.0,
+        "node_id": 253
+      },
+      {
+        "avg": 3.0,
+        "node_id": 256
+      },
+      {
+        "avg": 3.0,
+        "node_id": 252
+      },
+      {
+        "avg": 3.0,
+        "node_id": 255
+      },
+      {
+        "avg": 3.0,
+        "node_id": 251
+      },
+      {
+        "avg": 0.0,
+        "node_id": 169
+      },
+      {
+        "avg": 0.0,
+        "node_id": 168
+      },
+      {
+        "avg": 0.0,
+        "node_id": 167
+      },
+      {
+        "avg": 0.0,
+        "node_id": 149
+      },
+      {
+        "avg": 3.0,
+        "node_id": 187
+      },
+      {
+        "avg": 0.0,
+        "node_id": 148
+      },
+      {
+        "avg": 3.0,
+        "node_id": 186
+      },
+      {
+        "avg": 3.0,
+        "node_id": 176
+      },
+      {
+        "avg": 2.0,
+        "node_id": 147
+      },
+      {
+        "avg": 6.0,
+        "node_id": 185
+      },
+      {
+        "avg": 6.0,
+        "node_id": 175
+      },
+      {
+        "avg": 4.0,
+        "node_id": 146
+      },
+      {
+        "avg": 6.0,
+        "node_id": 184
+      },
+      {
+        "avg": 3.0,
+        "node_id": 174
+      },
+      {
+        "avg": 3.0,
+        "node_id": 145
+      },
+      {
+        "avg": 8.0,
+        "node_id": 183
+      },
+      {
+        "avg": 5.0,
+        "node_id": 144
+      },
+      {
+        "avg": 3.0,
+        "node_id": 143
+      },
+      {
+        "avg": 2.0,
+        "node_id": 193
+      },
+      {
+        "avg": 0.0,
+        "node_id": 261
+      },
+      {
+        "avg": 2.0,
+        "node_id": 134
+      },
+      {
+        "avg": 0.0,
+        "node_id": 262
+      },
+      {
+        "avg": 3.0,
+        "node_id": 135
+      },
+      {
+        "avg": 3.0,
+        "node_id": 194
+      },
+      {
+        "avg": 0.0,
+        "node_id": 265
+      },
+      {
+        "avg": 3.0,
+        "node_id": 138
+      },
+      {
+        "avg": 0.0,
+        "node_id": 263
+      },
+      {
+        "avg": 3.0,
+        "node_id": 136
+      },
+      {
+        "avg": 2.0,
+        "node_id": 195
+      },
+      {
+        "avg": 6.0,
+        "node_id": 142
+      },
+      {
+        "avg": 4.0,
+        "node_id": 139
+      },
+      {
+        "avg": 3.0,
+        "node_id": 191
+      },
+      {
+        "avg": 0.0,
+        "node_id": 264
+      },
+      {
+        "avg": 3.0,
+        "node_id": 137
+      },
+      {
+        "avg": 5.0,
+        "node_id": 140
+      },
+      {
+        "avg": 3.0,
+        "node_id": 192
+      },
+      {
+        "avg": 9.0,
+        "node_id": 141
+      },
+      {
+        "avg": 0.0,
+        "node_id": 170
+      },
+      {
+        "avg": 3.0,
+        "node_id": 177
+      },
+      {
+        "avg": 9.0,
+        "node_id": 188
+      },
+      {
+        "avg": 0.0,
+        "node_id": 150
+      },
+      {
+        "avg": 0.0,
+        "node_id": 171
+      },
+      {
+        "avg": 3.0,
+        "node_id": 178
+      },
+      {
+        "avg": 2.0,
+        "node_id": 189
+      },
+      {
+        "avg": 2.0,
+        "node_id": 190
+      },
+      {
+        "avg": 0.0,
+        "node_id": 151
+      },
+      {
+        "avg": 0.0,
+        "node_id": 159
+      },
+      {
+        "avg": 0.0,
+        "node_id": 172
+      },
+      {
+        "avg": 3.0,
+        "node_id": 179
+      },
+      {
+        "avg": 0.0,
+        "node_id": 152
+      },
+      {
+        "avg": 0.0,
+        "node_id": 160
+      },
+      {
+        "avg": 0.0,
+        "node_id": 173
+      },
+      {
+        "avg": 3.0,
+        "node_id": 180
+      },
+      {
+        "avg": 0.0,
+        "node_id": 153
+      },
+      {
+        "avg": 0.0,
+        "node_id": 161
+      },
+      {
+        "avg": 2.0,
+        "node_id": 181
+      },
+      {
+        "avg": 2.0,
+        "node_id": 182
+      },
+      {
+        "avg": 0.0,
+        "node_id": 154
+      },
+      {
+        "avg": 0.0,
+        "node_id": 162
+      },
+      {
+        "avg": 0.0,
+        "node_id": 155
+      },
+      {
+        "avg": 0.0,
+        "node_id": 163
+      },
+      {
+        "avg": 0.0,
+        "node_id": 156
+      },
+      {
+        "avg": 0.0,
+        "node_id": 164
+      },
+      {
+        "avg": 0.0,
+        "node_id": 157
+      },
+      {
+        "avg": 0.0,
+        "node_id": 158
+      },
+      {
+        "avg": 0.0,
+        "node_id": 165
+      },
+      {
+        "avg": 0.0,
+        "node_id": 166
+      }
+    ],
+    "backtracks": 0,
+    "branching_factor": 2.63768115942029,
+    "elapsed_time_seconds": 1,
+    "finished_eps": 1,
+    "ss_size": 192,
+    "steps": 73,
+    "total_ss_size_estimation": 650680683479.054,
+    "unfinished_eps": 119
+  },
+  "seed": 0,
+  "targets_config_file": "tofino2.toml",
+  "tput_estimation_bps": 1584000000000,
+  "tput_estimation_pps": 2250000000
+}

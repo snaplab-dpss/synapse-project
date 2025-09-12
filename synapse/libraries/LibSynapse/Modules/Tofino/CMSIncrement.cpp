@@ -86,6 +86,11 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNod
     return {};
   }
 
+  const EPNode *ep_node_leaf = ep->get_active_leaf().node;
+  if (ep_node_leaf && was_ds_already_used(ep_node_leaf, cms->id)) {
+    return {};
+  }
+
   Module *module  = new CMSIncrement(node, cms->id, cms_data.obj, cms_data.keys);
   EPNode *ep_node = new EPNode(module);
 

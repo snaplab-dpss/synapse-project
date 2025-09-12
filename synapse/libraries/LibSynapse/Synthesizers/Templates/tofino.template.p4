@@ -235,6 +235,11 @@ control Ingress(
     b = tmp;
   }
 
+  bit<1> diff_sign_bit;
+  action calculate_diff_32b(bit<32> a, bit<32> b) { diff_sign_bit = (a - b)[31:31]; }
+  action calculate_diff_16b(bit<16> a, bit<16> b) { diff_sign_bit = (a - b)[15:15]; }
+  action calculate_diff_8b(bit<8> a, bit<8> b) { diff_sign_bit = (a - b)[7:7]; }
+
   action build_cpu_hdr(bit<16> code_path) {
     hdr.cpu.setValid();
     hdr.cpu.code_path = code_path;

@@ -90,21 +90,8 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   }
 
   const EPNode *ep_node_leaf = ep->get_active_leaf().node;
-  if (ep_node_leaf) {
-    for (const EPNode *ancestor : ep_node_leaf->get_ancestors()) {
-      if (ancestor->get_module()->get_target() == TargetType::Tofino) {
-        const TofinoModule *tofino_module = dynamic_cast<const TofinoModule *>(ancestor->get_module());
-
-        if (tofino_module->get_type() == ModuleType::Tofino_Recirculate) {
-          break;
-        }
-
-        if (tofino_module->get_generated_ds().contains(vector_register->id)) {
-          // This DS was already generated in an ancestor node targeting Tofino.
-          return {};
-        }
-      }
-    }
+  if (ep_node_leaf && was_ds_already_used(ep_node_leaf, vector_register->id)) {
+    return {};
   }
 
   Module *module =

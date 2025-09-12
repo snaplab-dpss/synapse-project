@@ -1,5 +1,6 @@
 #include <LibCore/Types.h>
 #include <LibCore/Net.h>
+#include <LibCore/Math.h>
 
 #include <sstream>
 #include <iostream>
@@ -98,7 +99,7 @@ std::string percent2str(double numerator, double denominator, int precision) {
 }
 
 bits_t bits_from_pow2_capacity(size_t capacity) {
-  assert((capacity & (capacity - 1)) == 0 && "Size must be a power of 2");
+  assert(is_power_of_two(capacity) && "Size must be a power of 2");
   bits_t size = 0;
   while (capacity >>= 1) {
     size++;

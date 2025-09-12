@@ -32,9 +32,9 @@ IGNORE_MODULE(Tofino::Ignore)
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::If *node) {
   std::stringstream label_builder;
 
-  for (klee::ref<klee::Expr> condition : node->get_conditions()) {
+  for (const Tofino::If::condition_t &condition : node->get_conditions()) {
     label_builder << "\\n";
-    label_builder << pretty_print_expr(condition);
+    label_builder << pretty_print_expr(condition.expr);
   }
 
   branch(ep_node, node->get_node(), node->get_target(), label_builder.str());

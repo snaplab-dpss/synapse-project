@@ -147,6 +147,11 @@ std::vector<impl_t> CMSIncAndQueryFactory::process_node(const EP *ep, const BDDN
     return {};
   }
 
+  const EPNode *ep_node_leaf = ep->get_active_leaf().node;
+  if (ep_node_leaf && was_ds_already_used(ep_node_leaf, cms->id)) {
+    return {};
+  }
+
   Module *module  = new CMSIncAndQuery(node, cms->id, cms_data.obj, cms_data.keys, cms_data.min_estimate);
   EPNode *ep_node = new EPNode(module);
 
