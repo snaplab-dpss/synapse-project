@@ -29,6 +29,11 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
+  if (active_leaf.node->get_module()->get_type() == ModuleType::Tofino_Recirculate) {
+    // Don't recirculate twice in a row.
+    return {};
+  }
+
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(ep->get_active_leaf().node);

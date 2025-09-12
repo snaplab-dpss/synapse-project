@@ -82,13 +82,14 @@ def plot(data: dict):
 
     fig, ax = plt.subplots(constrained_layout=True)
 
-    ax.set_ylim(ymin=0, ymax=TPUT_MPPS_MAX)
-    ax.set_ylim(ymin=0)
+    ax.set_ylim(ymin=1, ymax=TPUT_MPPS_MAX)
 
     ax.set_ylabel("Tput (Mpps)")
-    ax.set_yscale("symlog")
 
-    # ax.set_yticks(np.arange(0, TPUT_MPPS_MAX + 1, TPUT_MPPS_MAX / 4))
+    # ax.set_yscale("log")
+    # ax.set_yticks([10, 100, 1_000, 10_000])
+
+    ax.set_yticks(np.arange(0, TPUT_MPPS_MAX + 1, TPUT_MPPS_MAX / 4))
     # ax.set_yticks(np.arange(TPUT_MPPS_MAX / 8, TPUT_MPPS_MAX + 1, TPUT_MPPS_MAX / 8), minor=True)
 
     colors = [
@@ -102,13 +103,12 @@ def plot(data: dict):
     for (sol, throughput_per_workload), hatch, color in zip(data.items(), itertools.cycle(hatch_list), itertools.cycle(colors)):
         y_Mpps = [y / 1e6 for y in throughput_per_workload["y"]]
         yerr_Mpps = [yerr / 1e6 for yerr in throughput_per_workload["yerr"]]
-        print(sol, y_Mpps, yerr_Mpps)
         ax.bar(pos, y_Mpps, bar_width, yerr=yerr_Mpps, label=sol, alpha=0.99, hatch=hatch, error_kw=dict(lw=1, capsize=1, capthick=0.3), color=color)
         pos = pos + bar_width
 
-    ax.set_xticks(ind + (3.0 / 2) * bar_width, labels)
+    ax.set_xticks(ind + bar_width, labels)
 
-    ax.legend(bbox_to_anchor=(0.5, 1.3), loc="upper center", ncols=3)
+    ax.legend(bbox_to_anchor=(0.5, 1.3), loc="upper center", ncols=3, columnspacing=0.75)
     fig.set_size_inches(width / 2, height * 0.5)
 
     print("-> ", OUTPUT_FILE)

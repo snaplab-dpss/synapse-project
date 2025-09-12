@@ -116,7 +116,7 @@ bool read_in_chunk(const symbolic_read_t &read, klee::ref<klee::Expr> chunk) {
 }
 
 bool are_all_symbols_known(klee::ref<klee::Expr> expr, const Symbols &known_symbols) {
-  std::unordered_set<std::string> dependencies = symbol_t::get_symbols_names(expr);
+  const std::unordered_set<std::string> dependencies = symbol_t::get_symbols_names(expr);
 
   if (dependencies.empty()) {
     return true;
@@ -137,12 +137,11 @@ bool are_all_symbols_known(klee::ref<klee::Expr> expr, const Symbols &known_symb
     return true;
   }
 
-  symbolic_reads_t packet_dependencies = get_unique_symbolic_reads(expr, "packet_chunks");
-
+  const symbolic_reads_t packet_dependencies = get_unique_symbolic_reads(expr, "packet_chunks");
   for (const symbolic_read_t &dependency : packet_dependencies) {
     bool filled = false;
     for (const symbol_t &known : known_symbols.get()) {
-      if (known.name == "packet_chunks" && read_in_chunk(dependency, known.expr)) {
+      if (known.base == "packet_chunks" && read_in_chunk(dependency, known.expr)) {
         filled = true;
         break;
       }
@@ -249,13 +248,13 @@ bool get_siblings(const vector_t &anchor, const BDDNode *target, bool find_in_al
 }
 
 bool io_check(const BDDNode *node, const Symbols &anchor_symbols) {
-  bool met = true;
-
   switch (node->get_type()) {
   case BDDNodeType::Branch: {
     const Branch *branch_node       = dynamic_cast<const Branch *>(node);
     klee::ref<klee::Expr> condition = branch_node->get_condition();
-    met &= are_all_symbols_known(condition, anchor_symbols);
+    if (!are_all_symbols_known(condition, anchor_symbols)) {
+      return false;
+    }
   } break;
   case BDDNodeType::Call: {
     const Call *call_node = dynamic_cast<const Call *>(node);
@@ -265,12 +264,12 @@ bool io_check(const BDDNode *node, const Symbols &anchor_symbols) {
       klee::ref<klee::Expr> expr = arg.expr;
       klee::ref<klee::Expr> in   = arg.in;
 
-      if (!expr.isNull()) {
-        met &= are_all_symbols_known(expr, anchor_symbols);
+      if (!expr.isNull() && !are_all_symbols_known(expr, anchor_symbols)) {
+        return false;
       }
 
-      if (!in.isNull()) {
-        met &= are_all_symbols_known(in, anchor_symbols);
+      if (!in.isNull() && !are_all_symbols_known(in, anchor_symbols)) {
+        return false;
       }
     }
   } break;
@@ -279,7 +278,7 @@ bool io_check(const BDDNode *node, const Symbols &anchor_symbols) {
     break;
   }
 
-  return met;
+  return true;
 }
 
 bool io_check(klee::ref<klee::Expr> expr, const Symbols &anchor_symbols) { return are_all_symbols_known(expr, anchor_symbols); }

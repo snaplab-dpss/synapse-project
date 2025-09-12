@@ -191,11 +191,44 @@ void test5() {
   std::cerr << "========================================\n";
 }
 
+void test6() {
+  const std::string query =
+      "array packet_chunks[1280] : w32 -> w8 = symbolic\n"
+      "(query [] false [(ReadLSB w200 (w32 112) packet_chunks)\n(ReadLSB w8 (w32 2048) packet_chunks)\n(ReadLSB w112 (w32 0) packet_chunks)])\n";
+
+  SymbolManager manager;
+  kQuery_t kQuery = parse(query, &manager);
+
+  std::cerr << "\n========================================\n";
+  std::cerr << "Query:\n";
+  std::cerr << query << "\n";
+
+  assert(manager.get_arrays().size() == 1);
+  assert(kQuery.values.size() == 3);
+  assert(kQuery.constraints.size() == 0);
+
+  klee::ref<klee::Expr> expr0 = kQuery.values[0];
+  klee::ref<klee::Expr> expr1 = kQuery.values[1];
+  klee::ref<klee::Expr> expr2 = kQuery.values[2];
+
+  std::cerr << "Expr0: " << expr_to_string(expr0) << "\n";
+  std::cerr << "Expr1: " << expr_to_string(expr1) << "\n";
+  std::cerr << "Expr2: " << expr_to_string(expr2) << "\n";
+
+  Symbols symbols;
+  symbols.add(symbol_t(expr0));
+  symbols.add(symbol_t(expr1));
+  symbols.add(symbol_t(expr2));
+
+  std::cerr << "========================================\n";
+}
+
 int main() {
   // test1();
   // test2();
   // test3();
   // test4();
-  test5();
+  // test5();
+  test6();
   return 0;
 }

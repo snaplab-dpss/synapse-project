@@ -40,6 +40,19 @@ const Module *EPNode::get_module() const { return module; }
 Module *EPNode::get_mutable_module() { return module; }
 
 const std::vector<EPNode *> &EPNode::get_children() const { return children; }
+
+std::vector<const EPNode *> EPNode::get_ancestors() const {
+  std::vector<const EPNode *> ancestors;
+  const EPNode *node = prev;
+
+  while (node) {
+    ancestors.push_back(node);
+    node = node->get_prev();
+  }
+
+  return ancestors;
+}
+
 EPNode *EPNode::get_prev() const { return prev; }
 
 ep_node_id_t EPNode::get_id() const { return id; }

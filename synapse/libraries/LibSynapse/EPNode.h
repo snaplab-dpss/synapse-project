@@ -35,6 +35,7 @@ public:
   Module *get_mutable_module();
 
   const std::vector<EPNode *> &get_children() const;
+  std::vector<const EPNode *> get_ancestors() const;
   EPNode *get_prev() const;
 
   void set_id(ep_node_id_t id);

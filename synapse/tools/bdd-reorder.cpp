@@ -55,6 +55,8 @@ void list_candidates(const BDD *bdd, const anchor_info_t &anchor_info) {
 }
 
 void apply_reordering_ops(const BDD *bdd, const std::vector<std::pair<anchor_info_t, bdd_node_id_t>> &ops) {
+  reordered_bdd_t reordered_bdd;
+
   for (const std::pair<anchor_info_t, bdd_node_id_t> &op : ops) {
     const anchor_info_t anchor_info  = op.first;
     const bdd_node_id_t candidate_id = op.second;
@@ -64,7 +66,7 @@ void apply_reordering_ops(const BDD *bdd, const std::vector<std::pair<anchor_inf
     std::cerr << " candidate=" << candidate_id;
     std::cerr << "\n";
 
-    const reordered_bdd_t reordered_bdd = try_reorder(bdd, anchor_info, candidate_id);
+    reordered_bdd = try_reorder(bdd, anchor_info, candidate_id);
 
     if (reordered_bdd.op.candidate_info.status != ReorderingCandidateStatus::Valid) {
       std::cerr << "Reordering failed: " << reordered_bdd.op.candidate_info.status << "\n";
@@ -73,6 +75,8 @@ void apply_reordering_ops(const BDD *bdd, const std::vector<std::pair<anchor_inf
       assert(reordered_bdd.bdd);
       BDDViz::visualize(reordered_bdd.bdd.get(), true);
     }
+
+    bdd = reordered_bdd.bdd.get();
   }
 }
 
@@ -125,10 +129,11 @@ int main(int argc, char **argv) {
   SymbolManager symbol_manager;
   BDD bdd(input_bdd_file, &symbol_manager);
 
-  list_candidates(&bdd, {139, true});
-  // apply_reordering_ops(&bdd, {
-  //                                {{139, true}, 162},
-  //                            });
+  // list_candidates(&bdd, {139, true});
+  apply_reordering_ops(&bdd, {
+                                 {{174, true}, 176},
+                                 {{176, true}, 177},
+                             });
   // test_reorder(&bdd, 3);
   // estimate(&bdd);
 

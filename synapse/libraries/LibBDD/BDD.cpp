@@ -644,7 +644,16 @@ Symbols BDD::get_generated_symbols(const BDDNode *node) const {
     if (node->get_type() == BDDNodeType::Call) {
       const Call *call_node       = dynamic_cast<const Call *>(node);
       const Symbols &more_symbols = call_node->get_local_symbols();
-      symbols.add(more_symbols);
+      for (const symbol_t &symbol : more_symbols.get()) {
+        if (symbol.base == "packet_chunks") {
+          // HACK: this is the only symbol we expect to see multiple times.
+          symbol_t packet_symbol = symbol;
+          packet_symbol.name     = packet_symbol.name + "_" + std::to_string(node->get_id());
+          symbols.add(packet_symbol);
+        } else {
+          symbols.add(symbol);
+        }
+      }
     }
 
     node = node->get_prev();

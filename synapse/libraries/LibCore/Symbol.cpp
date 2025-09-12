@@ -85,7 +85,11 @@ Symbols::Symbols(const std::vector<symbol_t> &symbols) {
 
 void Symbols::add(const symbol_t &symbol) { data.insert(symbol); }
 
-void Symbols::add(const Symbols &symbols) { data.insert(symbols.data.begin(), symbols.data.end()); }
+void Symbols::add(const Symbols &symbols) {
+  for (const symbol_t &symbol : symbols.data) {
+    add(symbol);
+  }
+}
 
 std::vector<symbol_t> Symbols::get() const {
   std::vector<symbol_t> result;
@@ -94,7 +98,7 @@ std::vector<symbol_t> Symbols::get() const {
 }
 
 bool Symbols::has(const std::string &name) const {
-  auto is_target = [name](const symbol_t &s) { return s.name == name; };
+  auto is_target = [name](const symbol_t &s) { return s.name == name || (name == "packet_chunks" && s.base == "packet_chunks"); };
   return std::find_if(data.begin(), data.end(), is_target) != data.end();
 }
 
