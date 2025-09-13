@@ -40,11 +40,18 @@ NFS = [
     #     controller=Path("tofino/data_structures/map_table/map_table.cpp"),
     #     kvs_mode=False,
     # ),
+    # NF(
+    #     name="cuckoo_hash_table",
+    #     description="CuckooHashTable",
+    #     tofino=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.p4"),
+    #     controller=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.cpp"),
+    #     kvs_mode=True,
+    # ),
     NF(
-        name="cuckoo_hash_table",
-        description="CuckooHashTable",
-        tofino=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.p4"),
-        controller=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.cpp"),
+        name="fcfs_cached_table",
+        description="FCFSCachedTable",
+        tofino=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table.p4"),
+        controller=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table.cpp"),
         kvs_mode=True,
     ),
 ]

@@ -30,7 +30,7 @@ ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.0]
 
-ITERATIONS = 6
+ITERATIONS = 3
 
 
 @dataclass
@@ -120,19 +120,19 @@ SYNAPSE_NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
-    SynapseNF(
-        name="synapse-kvs-guardedmaptable",
-        description="Synapse KVS GuardedMapTable",
-        data_out=Path("tput_synapse_kvs_guardedmaptable.csv"),
-        kvs_mode=True,
-        tofino=Path("synthesized/synapse-kvs-guardedmaptable.p4"),
-        controller=Path("synthesized/synapse-kvs-guardedmaptable.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
-        churn=CHURN_FPM,
-        zipf=ZIPF_PARAMS,
-    ),
+    # SynapseNF(
+    #     name="synapse-kvs-guardedmaptable",
+    #     description="Synapse KVS GuardedMapTable",
+    #     data_out=Path("tput_synapse_kvs_guardedmaptable.csv"),
+    #     kvs_mode=True,
+    #     tofino=Path("synthesized/synapse-kvs-guardedmaptable.p4"),
+    #     controller=Path("synthesized/synapse-kvs-guardedmaptable.cpp"),
+    #     broadcast=lambda ports: ports,
+    #     symmetric=lambda _: [],
+    #     route=lambda _: [],
+    #     churn=CHURN_FPM,
+    #     zipf=ZIPF_PARAMS,
+    # ),
     # SynapseNF(
     #     name="synapse-fw",
     #     description="Synapse FW",
@@ -159,16 +159,32 @@ SYNAPSE_NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
+    # *[
+    #     SynapseNF(
+    #         name=build_synapse_nf_name("kvs", churn, s),
+    #         description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
+    #         data_out=Path(f"tput_synapse_kvs.csv"),
+    #         kvs_mode=True,
+    #         tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
+    #         controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
+    #         broadcast=lambda ports: ports,
+    #         symmetric=lambda _: [],
+    #         route=lambda _: [],
+    #         churn=[churn],
+    #         zipf=[s],
+    #     )
+    #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    # ],
     *[
         SynapseNF(
-            name=build_synapse_nf_name("kvs", churn, s),
-            description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
-            data_out=Path(f"tput_synapse_kvs.csv"),
-            kvs_mode=True,
-            tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
-            controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
-            broadcast=lambda ports: ports,
-            symmetric=lambda _: [],
+            name=build_synapse_nf_name("fw", churn, s),
+            description=f"Synapse {build_synapse_nf_name('fw', churn, s)}",
+            data_out=Path(f"tput_synapse_fw.csv"),
+            kvs_mode=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
             route=lambda _: [],
             churn=[churn],
             zipf=[s],

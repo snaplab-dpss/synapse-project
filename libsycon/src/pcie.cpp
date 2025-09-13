@@ -82,7 +82,7 @@ static bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data, bf_pkt_r
   const time_ns_t now = get_time();
   u8 *packet          = reinterpret_cast<u8 *>(&in_packet);
 
-  LOG_DEBUG("RX tid=%lu t=%lu", now, syscall(__NR_gettid));
+  LOG_DEBUG("RX tid=%lu time=%lu", syscall(__NR_gettid), now);
 
   packet_init(packet_size);
 

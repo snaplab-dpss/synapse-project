@@ -429,14 +429,14 @@ control Ingress(
 		if (hdr.cpu.isValid() && hdr.cpu.trigger_dataplane_execution == 0) {
 			nf_dev[15:0] = hdr.cpu.egress_dev;
 		} else {
+			meta.fcfs_ct_key_0 = hdr.ipv4.src_addr;
+			meta.fcfs_ct_key_1 = hdr.ipv4.dst_addr;
+			meta.fcfs_ct_key_2 = hdr.udp.src_port;
+			meta.fcfs_ct_key_3 = hdr.udp.dst_port;
 			if (fcfs_ct_table.apply().hit) {
 				nf_dev = meta.dev;
 			} else {
 				bool fcfs_ct_cache_hit = true;
-				meta.fcfs_ct_key_0 = hdr.ipv4.src_addr;
-				meta.fcfs_ct_key_1 = hdr.ipv4.dst_addr;
-				meta.fcfs_ct_key_2 = hdr.udp.src_port;
-				meta.fcfs_ct_key_3 = hdr.udp.dst_port;
 				fcfs_ct_calc_hash();
 				fcfs_ct_update_alarm_execute();
 				if (fcfs_ct_valid) {

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from os import geteuid
+from time import sleep
 
 from util import *
 
@@ -14,9 +15,10 @@ def main():
     flow = build_flow()
     pkt = build_packet(flow=flow)
 
-    for _ in range(1):
+    for _ in range(20):
         ports.send(chosen_port, pkt)
         expect_packet_from_port(ports, chosen_port, pkt)
+        sleep(0.5)
 
 
 if __name__ == "__main__":
