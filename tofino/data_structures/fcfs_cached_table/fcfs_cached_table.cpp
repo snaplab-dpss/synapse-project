@@ -130,6 +130,8 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   // packet_hexdump(pkt, size);
   // packet_log(cpu_hdr);
 
+  LOG_DEBUG("CPU packet %u -> %u", bswap16(cpu_hdr_extra->ingress_dev), bswap16(cpu_hdr->egress_dev));
+
   return result;
 }
 

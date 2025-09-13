@@ -46,9 +46,9 @@ enum bit<2> fwd_op_t {
 
 // Entry Timeout Expiration (units of 65536 ns).
 #define ENTRY_TIMEOUT 16384 // 1 s
-#define FCFS_CT_CACHE_CAPACITY 32
+#define FCFS_CT_CACHE_CAPACITY 8
 
-typedef bit<5> fcfs_ct_hash_t;
+typedef bit<3> fcfs_ct_hash_t;
 
 header cpu_h {
 	bit<16>	code_path;                   // Written by the data plane
@@ -202,7 +202,7 @@ struct fcfs_ct_digest_t {
 	bit<16> src_port;
 	bit<16> dst_port;
 	bit<32> value;
-	bit<3> hash_pad;
+	bit<5> hash_pad;
 	fcfs_ct_hash_t hash;
 }
 
@@ -255,11 +255,9 @@ control Ingress(
 		actions = {
 			set_ingress_dev;
 			set_ingress_dev_from_recirculation;
-			drop;
 		}
 
 		size = 64;
-		const default_action = drop();
 	}
 
 	fwd_op_t fwd_op = fwd_op_t.FORWARD_NF_DEV;
@@ -317,14 +315,13 @@ control Ingress(
 	Register<time_t, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_alarm_reg;
 
 	RegisterAction<time_t, fcfs_ct_hash_t, bool>(fcfs_ct_alarm_reg) fcfs_ct_update_alarm = {
-		void apply(inout time_t last_time, out bool alive) {
-			bit<32> diff = meta.time - last_time;
-			if (diff > ENTRY_TIMEOUT) {
+		void apply(inout time_t alarm, out bool alive) {
+			if (meta.time > alarm) {
 				alive = false;
 			} else {
 				alive = true;
 			}
-			last_time = meta.time;
+			alarm = meta.time + ENTRY_TIMEOUT;
 		}
 	};
 
@@ -435,7 +432,7 @@ control Ingress(
 			if (fcfs_ct_table.apply().hit) {
 				nf_dev = meta.dev;
 			} else {
-				bool fcfs_ct_cache_hit = false;
+				bool fcfs_ct_cache_hit = true;
 				meta.fcfs_ct_key_0 = hdr.ipv4.src_addr;
 				meta.fcfs_ct_key_1 = hdr.ipv4.dst_addr;
 				meta.fcfs_ct_key_2 = hdr.udp.src_port;
@@ -448,8 +445,8 @@ control Ingress(
 					fcfs_ct_read_key_2_execute();
 					fcfs_ct_read_key_3_execute();
 					fcfs_ct_read_value_execute();
-					if (fcfs_ct_key_fields_match == 4) {
-						fcfs_ct_cache_hit = true;
+					if (fcfs_ct_key_fields_match != 4) {
+						fcfs_ct_cache_hit = false;
 					}
 				} else {
 					fcfs_ct_write_key_0_execute();
@@ -458,7 +455,6 @@ control Ingress(
 					fcfs_ct_write_key_3_execute();
 					fcfs_ct_write_value_execute();
 					ig_dprsr_md.digest_type = 1;
-					fcfs_ct_cache_hit = true;
 				}
 
 				if (!fcfs_ct_cache_hit) {

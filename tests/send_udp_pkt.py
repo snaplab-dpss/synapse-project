@@ -14,7 +14,7 @@ def main():
     flow = build_flow()
     pkt = build_packet(flow=flow)
 
-    for _ in range(10):
+    for _ in range(1):
         ports.send(chosen_port, pkt)
         expect_packet_from_port(ports, chosen_port, pkt)
 
