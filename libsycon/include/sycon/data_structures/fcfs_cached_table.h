@@ -156,6 +156,10 @@ private:
       LOG_DEBUG("[%s] Digest callback invoked (data=%s key=%s value=%x hash=%x)", fcfs_ct->digest.get_name().c_str(),
                 diggest_buffer.to_string(true).c_str(), key.to_string(true).c_str(), value, hash);
 
+      if (fcfs_ct->cache.find(key) != fcfs_ct->cache.end()) {
+        continue;
+      }
+
       fcfs_ct->put(key, value);
       fcfs_ct->reg_alarm.set(hash, 0);
     }

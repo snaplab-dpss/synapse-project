@@ -14,7 +14,9 @@ def main():
     flow = build_flow()
     pkt = build_packet(flow=flow)
 
-    ports.send(chosen_port, pkt)
+    for _ in range(10):
+        ports.send(chosen_port, pkt)
+        expect_packet_from_port(ports, chosen_port, pkt)
 
 
 if __name__ == "__main__":

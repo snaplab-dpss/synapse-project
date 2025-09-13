@@ -317,18 +317,18 @@ control Ingress(
 	Register<time_t, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_alarm_reg;
 
 	RegisterAction<time_t, fcfs_ct_hash_t, bool>(fcfs_ct_alarm_reg) fcfs_ct_update_alarm = {
-		void apply(inout time_t alarm, out bool alive) {
-			if (meta.time < alarm) {
-				alive = true;
-			} else {
+		void apply(inout time_t last_time, out bool alive) {
+			bit<32> diff = meta.time - last_time;
+			if (diff > ENTRY_TIMEOUT) {
 				alive = false;
+			} else {
+				alive = true;
 			}
-			
-			alarm = meta.time + ENTRY_TIMEOUT;
+			last_time = meta.time;
 		}
 	};
 
-	bool fcfs_ct_valid = false;
+	bool fcfs_ct_valid;
 	action fcfs_ct_update_alarm_execute() { fcfs_ct_valid = fcfs_ct_update_alarm.execute(meta.fcfs_ct_hash); }
 
 	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_0;
@@ -433,7 +433,6 @@ control Ingress(
 			nf_dev[15:0] = hdr.cpu.egress_dev;
 		} else {
 			if (fcfs_ct_table.apply().hit) {
-				hdr.ipv4.src_addr = meta.fcfs_ct_value;
 				nf_dev = meta.dev;
 			} else {
 				bool fcfs_ct_cache_hit = false;
@@ -467,7 +466,6 @@ control Ingress(
 					build_cpu_hdr(0);
 					hdr.cpu.ingress_dev = meta.dev[15:0];
 				} else {
-					hdr.ipv4.src_addr = meta.fcfs_ct_value;
 					nf_dev = meta.dev;
 				}
 			}
