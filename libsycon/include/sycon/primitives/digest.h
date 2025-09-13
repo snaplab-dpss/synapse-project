@@ -30,7 +30,14 @@ private:
 public:
   Digest(const std::string &_name)
       : name(_name), dev_tgt(cfg.dev_tgt), info(cfg.info), session(cfg.session), learn_obj(build_learn_obj(info, name)),
-        fields(build_fields(learn_obj)) {}
+        fields(build_fields(learn_obj)) {
+    LOG_DEBUG("");
+    LOG_DEBUG("Digest: %s", name.c_str());
+    LOG_DEBUG("Fields:");
+    for (auto f : fields) {
+      LOG_DEBUG("  %s (%lu bits) (id=%u)", f.name.c_str(), f.size, f.id);
+    }
+  }
 
   const std::string &get_name() const { return name; }
   const std::vector<digest_field_t> &get_fields() const { return fields; }

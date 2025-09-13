@@ -18,29 +18,16 @@ class GuardedMapTable : public SynapseDS {
 private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
   bool guard_cache;
+
   std::vector<Table> tables;
   std::optional<Register> guard;
-  u32 capacity;
-  bits_t key_size;
+
+  const u32 capacity;
 
 public:
   GuardedMapTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &guard_name,
                   std::optional<time_ms_t> timeout = std::nullopt)
-      : SynapseDS(_name), guard(conditional_build_guard(guard_name)), capacity(0), key_size(0) {
-    assert(!table_names.empty() && "Table name must not be empty");
-
-    for (const std::string &table_name : table_names) {
-      tables.emplace_back(table_name);
-      capacity = tables.back().get_effective_capacity();
-      for (const table_field_t &field : tables.back().get_key_fields()) {
-        key_size += field.size;
-      }
-    }
-
-    for (const Table &table : tables) {
-      assert(table.get_effective_capacity() == capacity);
-    }
-
+      : SynapseDS(_name), tables(build_tables(table_names)), guard(conditional_build_guard(guard_name)), capacity(get_capacity(tables)) {
     if (guard.has_value()) {
       guard_allow();
     }
@@ -165,6 +152,28 @@ private:
     assert(guard.has_value() && "Guard register not initialized");
     guard->set(0, 0);
     guard_cache = false;
+  }
+
+  static std::vector<Table> build_tables(const std::vector<std::string> &table_names) {
+    assert(!table_names.empty() && "Table name must not be empty");
+
+    std::vector<Table> tables;
+    for (const std::string &table_name : table_names) {
+      tables.emplace_back(table_name);
+    }
+
+    return tables;
+  }
+
+  static u32 get_capacity(const std::vector<Table> &tables) {
+    assert(!tables.empty() && "Tables must not be empty");
+
+    const u32 capacity = tables.front().get_effective_capacity();
+    for (const Table &table : tables) {
+      assert(table.get_effective_capacity() == capacity);
+    }
+
+    return capacity;
   }
 
   static std::optional<Register> conditional_build_guard(const std::string &name) {

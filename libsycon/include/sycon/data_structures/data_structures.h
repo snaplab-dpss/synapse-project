@@ -9,3 +9,4 @@
 #include "hh_table.h"
 #include "guarded_map_table.h"
 #include "count_min_sketch.h"
+#include "fcfs_cached_table.h"
