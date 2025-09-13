@@ -46,9 +46,9 @@ enum bit<2> fwd_op_t {
 
 // Entry Timeout Expiration (units of 65536 ns).
 #define ENTRY_TIMEOUT 16384 // 1 s
-#define FCFS_CT_CACHE_CAPACITY 8
+#define FCFS_CT_CACHE_CAPACITY 1024
 
-typedef bit<3> fcfs_ct_hash_t;
+typedef bit<10> fcfs_ct_hash_t;
 
 header cpu_h {
 	bit<16>	code_path;                   // Written by the data plane
@@ -107,7 +107,6 @@ struct metadata_t {
 	bit<32> fcfs_ct_key_1;
 	bit<16> fcfs_ct_key_2;
 	bit<16> fcfs_ct_key_3;
-	fcfs_ct_hash_t fcfs_ct_hash;
 	bit<32> fcfs_ct_value;
 }
 
@@ -202,8 +201,6 @@ struct fcfs_ct_digest_t {
 	bit<16> src_port;
 	bit<16> dst_port;
 	bit<32> value;
-	bit<5> hash_pad;
-	fcfs_ct_hash_t hash;
 }
 
 control Ingress(
@@ -303,8 +300,9 @@ control Ingress(
 
 	Hash<fcfs_ct_hash_t>(HashAlgorithm_t.CRC32) fcfs_ct_hash_calculator;
 
+	fcfs_ct_hash_t fcfs_ct_hash;
 	action fcfs_ct_calc_hash() {
-		meta.fcfs_ct_hash = fcfs_ct_hash_calculator.get({
+		fcfs_ct_hash = fcfs_ct_hash_calculator.get({
 			meta.fcfs_ct_key_0,
 			meta.fcfs_ct_key_1,
 			meta.fcfs_ct_key_2,
@@ -326,7 +324,7 @@ control Ingress(
 	};
 
 	bool fcfs_ct_valid;
-	action fcfs_ct_update_alarm_execute() { fcfs_ct_valid = fcfs_ct_update_alarm.execute(meta.fcfs_ct_hash); }
+	action fcfs_ct_update_alarm_execute() { fcfs_ct_valid = fcfs_ct_update_alarm.execute(fcfs_ct_hash); }
 
 	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_0;
 	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_1;
@@ -381,11 +379,11 @@ control Ingress(
 	};
 
 	bit<8> fcfs_ct_key_fields_match = 0;
-	action fcfs_ct_read_key_0_execute() { fcfs_ct_key_fields_match = fcfs_ct_key_fields_match + fcfs_ct_read_key_0.execute(meta.fcfs_ct_hash); }
-	action fcfs_ct_read_key_1_execute() { fcfs_ct_key_fields_match = fcfs_ct_key_fields_match + fcfs_ct_read_key_1.execute(meta.fcfs_ct_hash); }
-	action fcfs_ct_read_key_2_execute() { fcfs_ct_key_fields_match = fcfs_ct_key_fields_match + fcfs_ct_read_key_2.execute(meta.fcfs_ct_hash); }
-	action fcfs_ct_read_key_3_execute() { fcfs_ct_key_fields_match = fcfs_ct_key_fields_match + fcfs_ct_read_key_3.execute(meta.fcfs_ct_hash); }
-	action fcfs_ct_read_value_execute() { meta.fcfs_ct_value = fcfs_ct_read_value.execute(meta.fcfs_ct_hash); }
+	action fcfs_ct_read_key_0_execute() { fcfs_ct_key_fields_match = fcfs_ct_key_fields_match + fcfs_ct_read_key_0.execute(fcfs_ct_hash); }
+	action fcfs_ct_read_key_1_execute() { fcfs_ct_key_fields_match = fcfs_ct_key_fields_match + fcfs_ct_read_key_1.execute(fcfs_ct_hash); }
+	action fcfs_ct_read_key_2_execute() { fcfs_ct_key_fields_match = fcfs_ct_key_fields_match + fcfs_ct_read_key_2.execute(fcfs_ct_hash); }
+	action fcfs_ct_read_key_3_execute() { fcfs_ct_key_fields_match = fcfs_ct_key_fields_match + fcfs_ct_read_key_3.execute(fcfs_ct_hash); }
+	action fcfs_ct_read_value_execute() { meta.fcfs_ct_value = fcfs_ct_read_value.execute(fcfs_ct_hash); }
 
 	RegisterAction<bit<32>, fcfs_ct_hash_t, void>(fcfs_ct_keys_0) fcfs_ct_write_key_0 = {
 		void apply(inout bit<32> curr_key) {
@@ -417,11 +415,11 @@ control Ingress(
 		}
 	};
 
-	action fcfs_ct_write_key_0_execute() { fcfs_ct_write_key_0.execute(meta.fcfs_ct_hash); }
-	action fcfs_ct_write_key_1_execute() { fcfs_ct_write_key_1.execute(meta.fcfs_ct_hash); }
-	action fcfs_ct_write_key_2_execute() { fcfs_ct_write_key_2.execute(meta.fcfs_ct_hash); }
-	action fcfs_ct_write_key_3_execute() { fcfs_ct_write_key_3.execute(meta.fcfs_ct_hash); }
-	action fcfs_ct_write_value_execute() { fcfs_ct_write_value.execute(meta.fcfs_ct_hash); }
+	action fcfs_ct_write_key_0_execute() { fcfs_ct_write_key_0.execute(fcfs_ct_hash); }
+	action fcfs_ct_write_key_1_execute() { fcfs_ct_write_key_1.execute(fcfs_ct_hash); }
+	action fcfs_ct_write_key_2_execute() { fcfs_ct_write_key_2.execute(fcfs_ct_hash); }
+	action fcfs_ct_write_key_3_execute() { fcfs_ct_write_key_3.execute(fcfs_ct_hash); }
+	action fcfs_ct_write_value_execute() { fcfs_ct_write_value.execute(fcfs_ct_hash); }
 
 	apply {
 		ingress_port_to_nf_dev.apply();
@@ -487,9 +485,7 @@ control IngressDeparser(
 				meta.fcfs_ct_key_1,
 				meta.fcfs_ct_key_2,
 				meta.fcfs_ct_key_3,
-				meta.fcfs_ct_value,
-				0,
-				meta.fcfs_ct_hash
+				meta.fcfs_ct_value
 			});
 		}
 

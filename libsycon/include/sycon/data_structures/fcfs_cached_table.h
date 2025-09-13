@@ -26,12 +26,13 @@ private:
   const u32 cache_capacity;
   const bytes_t key_size;
   const bits_t cache_hash_size;
+  const CRC32 crc32;
 
 public:
   FCFSCachedTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_alarm_name,
                   const std::string &digest_name, std::optional<time_ms_t> timeout = std::nullopt)
       : SynapseDS(_name), tables(build_tables(table_names)), reg_alarm(reg_alarm_name), digest(digest_name), capacity(get_capacity(tables)),
-        cache_capacity(reg_alarm.get_capacity()), key_size(get_key_size(tables)), cache_hash_size(get_cache_hash_size(cache_capacity)) {
+        cache_capacity(reg_alarm.get_capacity()), key_size(get_key_size(tables)), cache_hash_size(get_cache_hash_size(cache_capacity)), crc32() {
     if (timeout.has_value()) {
       Table &chosen_expiration_table = tables.front();
       chosen_expiration_table.set_notify_mode(timeout.value(), this, FCFSCachedTable::expiration_callback, true);
@@ -151,7 +152,7 @@ private:
 
       const buffer_t key = diggest_buffer.get_slice(0, fcfs_ct->key_size);
       const u32 value    = diggest_buffer.get(fcfs_ct->key_size, 4);
-      const u32 hash     = diggest_buffer.get(fcfs_ct->key_size + 4, hash_size_bytes) & hash_mask;
+      const u32 hash     = fcfs_ct->crc32.hash(key) & hash_mask;
 
       LOG_DEBUG("[%s] Digest callback invoked (data=%s key=%s value=%x hash=%x)", fcfs_ct->digest.get_name().c_str(),
                 diggest_buffer.to_string(true).c_str(), key.to_string(true).c_str(), value, hash);
