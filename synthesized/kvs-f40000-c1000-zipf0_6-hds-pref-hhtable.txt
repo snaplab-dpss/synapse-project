@@ -26,7 +26,7 @@ Stateful Implementations:
   1073923800: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       99 seconds
+  Elapsed time:       97 seconds
   Steps:              54
   Backtracks:         1
   Search space size:  174

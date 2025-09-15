@@ -26,7 +26,7 @@ Stateful Implementations:
   1073923800: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       48 seconds
+  Elapsed time:       49 seconds
   Steps:              44
   Backtracks:         0
   Search space size:  138
