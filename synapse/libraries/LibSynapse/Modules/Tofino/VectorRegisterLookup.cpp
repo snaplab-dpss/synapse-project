@@ -58,6 +58,12 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
     return {};
   }
 
+  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
+    if (was_ds_already_used(ep_node_leaf, build_vector_register_id(vector_register_data.obj))) {
+      return {};
+    }
+  }
+
   Context new_ctx = ctx;
   new_ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
 

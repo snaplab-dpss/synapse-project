@@ -143,7 +143,6 @@ std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP 
 
   for (const Call *map_put : future_map_puts) {
     const addr_t obj = expr_addr_to_obj_addr(map_put->get_obj());
-
     if (!ctx.check_ds_impl(obj, DSImpl::Tofino_GuardedMapTable)) {
       return {};
     }
@@ -180,13 +179,7 @@ std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP 
 
   new_ctx.get_mutable_profiler().set(branch_direction.get_failure_node()->get_ordered_branch_constraints(), 0_hr);
 
-  spec_impl_t spec_impl(decide(ep, node), new_ctx);
-
-  for (const BDDNode *op : future_routing_decisions) {
-    spec_impl.skip.insert(op->get_id());
-  }
-
-  return spec_impl;
+  return spec_impl_t(decide(ep, node), new_ctx);
 }
 
 std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

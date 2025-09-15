@@ -424,10 +424,9 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
-  new_ctx.get_mutable_profiler().set(read_write_pattern.on_read_failure->get_ordered_branch_constraints(),
-                                     hit_rate_t(read_write_pattern.get_hr * (1 - expected_cache_hit_rate)));
-  new_ctx.get_mutable_profiler().set(read_write_pattern.on_write_failure->get_ordered_branch_constraints(),
-                                     hit_rate_t(read_write_pattern.put_hr * (1 - expected_cache_hit_rate)));
+  // Just an approximation.
+  new_ctx.get_mutable_profiler().set(read_write_pattern.on_read_failure->get_ordered_branch_constraints(), (1 - expected_cache_hit_rate));
+  new_ctx.get_mutable_profiler().set(read_write_pattern.on_write_failure->get_ordered_branch_constraints(), 0_hr);
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
@@ -437,7 +436,9 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
         future_node == read_write_pattern.on_insert_success) {
       return BDDNodeVisitAction::SkipChildren;
     }
-    spec_impl.skip.insert(future_node->get_id());
+    if (future_node->get_type() != BDDNodeType::Route) {
+      spec_impl.skip.insert(future_node->get_id());
+    }
     return BDDNodeVisitAction::Continue;
   });
 

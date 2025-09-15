@@ -43,7 +43,7 @@ Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"27"[label="27:vector_return(\l  vector:1073954840,\l  index:new_index,\l  value:1073968736[packet_chunks[773:777]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"44"[label="44:packet_return_chunk(\l  p:1074028624,\l  the_chunk:1073760416[packet_chunks[268:272]++packet_chunks[272:276]++packet_chunks[256:268]])\lHR=0.00081944",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"21"[label="21:packet_return_chunk(\l  p:1074028624,\l  the_chunk:1073760160[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"26"[label="26:vector_borrow(\l  vector:1073954840,\l  index:new_index,\l  val_out:1074042440[ -> 1073968736])\l=>{vector_data_r8}\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"26"[label="26:vector_borrow(\l  vector:1073954840,\l  index:new_index,\l  val_out:1074042440[ -> 1073968736])\l=>{vector_data_r15}\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"16"[label="16:dchain_allocate_new_index(\l  chain:1073971976,\l  index_out:1074042384[2880154539 -> new_index],\l  time:next_time) -> not_out_of_space_2\l=>{new_index,not_out_of_space_2}\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"32"[label="32:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
@@ -132,9 +132,9 @@ Fwd={
 	"19" -> "20";
 	"20" -> "21";
 	"21" -> "22";
-	"26" -> "24";
-	"24" -> "27";
-	"27" -> "28";
+	"26" -> "27";
+	"27" -> "24";
+	"24" -> "28";
 	"28" -> "29";
 	"29" -> "30";
 	"30" -> "31";

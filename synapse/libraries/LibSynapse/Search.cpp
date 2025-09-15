@@ -223,7 +223,7 @@ search_report_t SearchEngine::search() {
       const std::filesystem::path ep_path{"deadend-ep.dot"};
       const std::filesystem::path ss_path{"deadend-ss.dot"};
 
-      BDDViz::dump_to_file(ep->get_bdd(), bdd_path);
+      ProfilerViz::dump_to_file(ep->get_bdd(), ep->get_ctx().get_profiler(), bdd_path);
       EPViz::dump_to_file(ep.get(), ep_path);
       SSViz::dump_to_file(search_space.get(), ep.get(), ss_path);
 

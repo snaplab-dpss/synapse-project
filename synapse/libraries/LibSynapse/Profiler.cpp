@@ -942,23 +942,33 @@ void Profiler::set(ProfilerNode *node, hit_rate_t new_hr) {
     return;
   }
 
+  const ProfilerNode::family_t closest_family = node->get_family();
+
+  bool changed_parent_hr        = false;
+  ProfilerNode::family_t family = closest_family;
+  while (family.parent && family.parent->fraction < new_fraction) {
+    family.parent->fraction = new_fraction;
+    family                  = family.parent->get_family();
+    changed_parent_hr       = true;
+  }
+
+  if (changed_parent_hr) {
+    set(family.sibling, family.parent->fraction - new_fraction);
+  }
+
   update_fractions(node, new_fraction);
 
   recursive_update_fractions(node->on_true, old_fraction, new_fraction);
   recursive_update_fractions(node->on_false, old_fraction, new_fraction);
 
-  const ProfilerNode::family_t family = node->get_family();
-  if (family.sibling) {
-    assert(family.parent);
-    assert(family.parent->fraction >= new_fraction);
+  if (closest_family.sibling) {
+    const hit_rate_t sibling_old_fraction = closest_family.sibling->fraction;
+    const hit_rate_t sibling_new_fraction = closest_family.parent->fraction - new_fraction;
 
-    const hit_rate_t sibling_old_fraction = family.sibling->fraction;
-    const hit_rate_t sibling_new_fraction = family.parent->fraction - new_fraction;
+    update_fractions(closest_family.sibling, sibling_new_fraction);
 
-    update_fractions(family.sibling, sibling_new_fraction);
-
-    recursive_update_fractions(family.sibling->on_true, sibling_old_fraction, sibling_new_fraction);
-    recursive_update_fractions(family.sibling->on_false, sibling_old_fraction, sibling_new_fraction);
+    recursive_update_fractions(closest_family.sibling->on_true, sibling_old_fraction, sibling_new_fraction);
+    recursive_update_fractions(closest_family.sibling->on_false, sibling_old_fraction, sibling_new_fraction);
   }
 }
 

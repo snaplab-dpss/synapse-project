@@ -11,13 +11,22 @@
         "name": "Spec"
       },
       {
+        "description": "0",
+        "name": "Recirculations"
+      },
+      {
+        "description": "44 / 47",
+        "name": "BDD Progress"
+      },
+      {
         "description": "14",
         "name": "Stages"
       }
     ],
     "score": [
+      258876000,
+      0,
       44,
-      258876394,
       -14
     ]
   },
@@ -295,7 +304,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.492063492063492,
-    "elapsed_time_seconds": 11,
+    "elapsed_time_seconds": 52,
     "finished_eps": 1,
     "ss_size": 138,
     "steps": 44,

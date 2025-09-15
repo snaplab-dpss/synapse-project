@@ -49,7 +49,6 @@ struct TofinoTarget : public Target {
             TargetType::Tofino,
             []() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
-              f.push_back(std::make_unique<SendToControllerFactory>());
               f.push_back(std::make_unique<RecirculateFactory>());
               f.push_back(std::make_unique<ForwardFactory>());
               f.push_back(std::make_unique<DropFactory>());
@@ -84,6 +83,7 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<CMSIncAndQueryFactory>());
               f.push_back(std::make_unique<LPMLookupFactory>());
               f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
+              f.push_back(std::make_unique<SendToControllerFactory>());
               return f;
             }(),
             std::make_unique<TofinoContext>(tna_config)) {}

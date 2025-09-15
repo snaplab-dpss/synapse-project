@@ -44,6 +44,7 @@ Fwd={
 	"40"[label="40:(1 == packet_chunks[768])\nHR=0.51880608",shape=ellipse,style="filled,",fillcolor="#84007a54",border=0,];
 	"41"[label="41:vector_return(\l  vector:1073954840,\l  index:allocated_index,\l  value:1073968736[packet_chunks[773:777]])\lHR=0.00486264",shape=box,style="filled,",fillcolor="#0100fd54",border=0,];
 	"49"[label="49:packet_return_chunk(\l  p:1074028624,\l  the_chunk:1073760672[packet_chunks[516:520]++packet_chunks[512:514]++packet_chunks[514:516]])\lHR=0.51394343",shape=box,style="filled,",fillcolor="#83007b54",border=0,];
+	"124"[label="124:vector_borrow(\l  vector:1073954840,\l  index:allocated_index,\l  val_out:1074041936[ -> 1073968736])\l=>{vector_data_384}\lHR=0.51394343",shape=box,style="filled,",fillcolor="#83007b54",border=0,];
 	"42"[label="42:packet_return_chunk(\l  p:1074028624,\l  the_chunk:1073760928[packet_chunks[778:780]++1++packet_chunks[768:777]])\lHR=0.00486264",shape=box,style="filled,",fillcolor="#0100fd54",border=0,];
 	"9"[label="9:packet_borrow_next_chunk(\l  p:1074028624,\l  length:8,\l  chunk:1074040720[ -> 1073760672])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"22"[label="22:fwd(0)\lHR=0.00452502
@@ -76,7 +77,7 @@ Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"57"[label="57:fwd(packet_chunks[778:780])\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"11"[label="11:packet_borrow_next_chunk(\l  p:1074028624,\l  length:12,\l  chunk:1074041464[ -> 1073760928])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"39"[label="39:vector_borrow(\l  vector:1073954840,\l  index:allocated_index,\l  val_out:1074041936[ -> 1073968736])\l=>{vector_data_384}\lHR=0.51880608",shape=box,style="filled,",fillcolor="#84007a54",border=0,];
+	"39"[label="39:vector_borrow(\l  vector:1073954840,\l  index:allocated_index,\l  val_out:1074041936[ -> 1073968736])\l=>{vector_data_384}\lHR=0.00486264",shape=box,style="filled,",fillcolor="#0100fd54",border=0,];
 	"4" -> "5";
 	"5" -> "6";
 	"6" -> "7" [label="True"];
@@ -104,15 +105,16 @@ Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"34" -> "35";
 	"35" -> "36";
 	"36" -> "37";
-	"38" -> "39";
-	"39" -> "40";
-	"40" -> "41" [label="True"];
-	"40" -> "47" [label="False"];
+	"38" -> "40";
+	"40" -> "39" [label="True"];
+	"40" -> "124" [label="False"];
+	"39" -> "41";
 	"41" -> "42";
 	"42" -> "43";
 	"43" -> "44";
 	"44" -> "45";
 	"45" -> "46";
+	"124" -> "47";
 	"47" -> "48";
 	"48" -> "49";
 	"49" -> "50";

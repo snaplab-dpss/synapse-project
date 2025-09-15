@@ -4,8 +4,7 @@ namespace LibCore {
 
 TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_config, bool _assume_ip)
     : nf(_nf), config(_config), assume_ip(_assume_ip), template_packet(build_pkt_template()), dt(compute_dt(config)),
-      seeds_random_engine(config.random_seed), churn_random_engine(seeds_random_engine.generate(), 0, config.total_flows - 1),
-      flows_random_engine_uniform(seeds_random_engine.generate(), 0, config.total_flows - 1),
+      seeds_random_engine(config.random_seed), flows_random_engine_uniform(seeds_random_engine.generate(), 0, config.total_flows - 1),
       flows_random_engine_zipf(seeds_random_engine.generate(), config.zipf_param, 0, config.total_flows - 1), pd(NULL), pdumper(NULL),
       client_dev_it(0), counters(config.total_flows, 0), flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
   for (device_t warmup_dev : config.warmup_devices) {
@@ -100,6 +99,7 @@ void TrafficGenerator::generate() {
   }
 
   const device_t first_client_dev = get_current_client_dev();
+  flow_idx_t flow_idx             = get_next_flow_idx();
 
   while (counter < config.total_packets) {
     const device_t client_dev = get_current_client_dev();
@@ -108,17 +108,15 @@ void TrafficGenerator::generate() {
 
     if (client_dev == first_client_dev) {
       tick();
+      flow_idx = get_next_flow_idx();
+      if (next_alarm >= 0 && current_time >= next_alarm) {
+        random_swap_flow(flow_idx);
+        counters[flow_idx] = 0;
+        flows_swapped++;
+        next_alarm += alarm_tick;
+      }
     }
 
-    if (next_alarm >= 0 && current_time >= next_alarm) {
-      flow_idx_t chosen_swap_flow_idx = churn_random_engine.generate();
-      random_swap_flow(chosen_swap_flow_idx);
-      counters[chosen_swap_flow_idx] = 0;
-      flows_swapped++;
-      next_alarm += alarm_tick;
-    }
-
-    const flow_idx_t flow_idx      = get_next_flow_idx();
     const std::optional<pkt_t> pkt = build_packet(dev, flow_idx);
 
     if (std::optional<device_t> res_dev = get_response_dev(dev, flow_idx)) {

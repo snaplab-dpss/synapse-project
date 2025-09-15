@@ -11,13 +11,22 @@
         "name": "Spec"
       },
       {
+        "description": "0",
+        "name": "Recirculations"
+      },
+      {
+        "description": "53 / 53",
+        "name": "BDD Progress"
+      },
+      {
         "description": "4",
         "name": "Stages"
       }
     ],
     "score": [
-      52,
-      147596917,
+      147596000,
+      0,
+      53,
       -4
     ]
   },
@@ -38,8 +47,12 @@
   "name": "kvs-f40000-c1000-zipf0_6-hmax-tput",
   "profile_file": "kvs-f40000-c1000-zipf0_6.json",
   "search_meta": {
-    "avg_bdd_size": 52,
+    "avg_bdd_size": 53,
     "avg_children_per_node": [
+      {
+        "avg": 4.0,
+        "node_id": 124
+      },
       {
         "avg": 0.0,
         "node_id": 32
@@ -293,14 +306,14 @@
         "node_id": 52
       }
     ],
-    "backtracks": 0,
-    "branching_factor": 2.8095238095238093,
-    "elapsed_time_seconds": 11,
+    "backtracks": 1,
+    "branching_factor": 2.828125,
+    "elapsed_time_seconds": 97,
     "finished_eps": 1,
-    "ss_size": 166,
-    "steps": 52,
-    "total_ss_size_estimation": 94332144143.3151,
-    "unfinished_eps": 114
+    "ss_size": 174,
+    "steps": 54,
+    "total_ss_size_estimation": 110008212384.43517,
+    "unfinished_eps": 120
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",

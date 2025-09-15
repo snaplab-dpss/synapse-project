@@ -19,8 +19,6 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode
     return {};
   }
 
-  const EPNode *leaf_node = ep->get_leaf_ep_node_from_bdd_node(node);
-
   Context new_ctx = ctx;
 
   const fwd_stats_t fwd_stats                       = ctx.get_profiler().get_fwd_stats(node);
@@ -33,11 +31,7 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode
     }
 
     port_ingress_t node_egress;
-    if (leaf_node) {
-      node_egress = ep->get_node_egress(dev_hr, leaf_node);
-    } else {
-      node_egress.global = dev_hr;
-    }
+    node_egress.controller = dev_hr;
 
     new_ctx.get_mutable_perf_oracle().add_fwd_traffic(device, node_egress);
   }

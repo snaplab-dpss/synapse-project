@@ -32,8 +32,9 @@ private:
 public:
   MaxTput()
       : HeuristicCfg("MaxTput", {
-                                    BUILD_METRIC(MaxTput, get_bdd_progress, Objective::Max),
                                     BUILD_METRIC(MaxTput, get_tput_speculation, Objective::Max),
+                                    BUILD_METRIC(MaxTput, get_recirculations, Objective::Min),
+                                    BUILD_METRIC(MaxTput, get_bdd_progress, Objective::Max),
                                     BUILD_METRIC(MaxTput, get_pipeline_usage, Objective::Min),
                                 }) {}
 
@@ -66,6 +67,14 @@ public:
         build_meta_tput_estimate(ep),
         build_meta_tput_speculation(ep),
         heuristic_metadata_t{
+            .name        = "Recirculations",
+            .description = std::to_string(get_recirculations(ep)),
+        },
+        heuristic_metadata_t{
+            .name        = "BDD Progress",
+            .description = std::to_string(get_bdd_progress(ep)) + " / " + std::to_string(ep->get_bdd()->size()),
+        },
+        heuristic_metadata_t{
             .name        = "Stages",
             .description = std::to_string(get_pipeline_usage(ep)),
         },
@@ -83,6 +92,14 @@ private:
   i64 get_pipeline_usage(const EP *ep) const {
     const Tofino::TNA &tna = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_tna();
     return tna.pipeline.get_used_stages();
+  }
+
+  i64 get_recirculations(const EP *ep) const {
+    auto found_it = ep->get_meta().modules_counter.find(ModuleType::Tofino_Recirculate);
+    if (found_it != ep->get_meta().modules_counter.end()) {
+      return found_it->second;
+    }
+    return 0;
   }
 };
 

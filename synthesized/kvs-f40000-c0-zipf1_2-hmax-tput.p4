@@ -482,6 +482,10 @@ control Ingress(
     }
   };
 
+  bit<32> vector_reg_value0;
+  action vector_register_1073954840_0_read_849_execute() {
+    vector_reg_value0 = vector_register_1073954840_0_read_849.execute(hh_table_1073923800_table_13_get_value_param0);
+  }
 
 
   RegisterAction<bit<32>, bit<32>, void>(vector_register_1073954840_0) vector_register_1073954840_0_write_2330 = {
@@ -489,6 +493,11 @@ control Ingress(
       value = hdr.hdr3.data2;
     }
   };
+
+  action vector_register_1073954840_0_write_2330_execute() {
+    vector_register_1073954840_0_write_2330.execute(hh_table_1073923800_table_13_get_value_param0);
+  }
+
 
 
   apply {
@@ -595,7 +604,7 @@ control Ingress(
                   // BDD node 38:dchain_rejuvenate_index(chain:(w64 1073971976), index:(ReadLSB w32 (w32 0) allocated_index), time:(ReadLSB w64 (w32 0) next_time))
                   // EP node  849:VectorRegisterLookup
                   // BDD node 39:vector_borrow(vector:(w64 1073954840), index:(ReadLSB w32 (w32 0) allocated_index), val_out:(w64 1074041936)[ -> (w64 1073968736)])
-                  bit<32> vector_reg_value0 = vector_register_1073954840_0_read_849.execute(hh_table_1073923800_table_13_get_value_param0);
+                  vector_register_1073954840_0_read_849_execute();
                   // EP node  933:If
                   // BDD node 40:if ((Eq (w8 1) (Read w8 (w32 768) packet_chunks))
                   if ((8w0x01) == (hdr.hdr3.data0)) {
@@ -603,7 +612,7 @@ control Ingress(
                     // BDD node 40:if ((Eq (w8 1) (Read w8 (w32 768) packet_chunks))
                     // EP node  2330:VectorRegisterUpdate
                     // BDD node 41:vector_return(vector:(w64 1073954840), index:(ReadLSB w32 (w32 0) allocated_index), value:(w64 1073968736)[(ReadLSB w32 (w32 773) packet_chunks)])
-                    vector_register_1073954840_0_write_2330.execute(hh_table_1073923800_table_13_get_value_param0);
+                    vector_register_1073954840_0_write_2330_execute();
                     // EP node  2501:ModifyHeader
                     // BDD node 42:packet_return_chunk(p:(w64 1074028624), the_chunk:(w64 1073760928)[(Concat w96 (Read w8 (w32 779) packet_chunks) (Concat w88 (Read w8 (w32 778) packet_chunks) (Concat w80 (w8 1) (ReadLSB w72 (w32 768) packet_chunks))))])
                     hdr.hdr3.data3 = 8w0x01;

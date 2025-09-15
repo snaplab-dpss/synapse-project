@@ -8,15 +8,15 @@ Args:
   Seed:               0
   Targets:
     Tofino (28 modules)
-    Ctrl (72 modules)
+    Ctrl (73 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <66,4,79'960'713>
-  BDD Progress: 66
-  DS Score: 4
+  Score: <1,79'960'000,67>
+  BDD Progress: 67
+  DS Score: 1
   Tput: 56.29 Gbps (79.96 Mpps)
   Spec: 56.29 Gbps (79.96 Mpps)
 
@@ -26,37 +26,38 @@ Stateful Implementations:
   1073923800: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       8 seconds
-  Steps:              68
-  Backtracks:         0
-  Search space size:  190
-  Unfinished EPs:     122
+  Elapsed time:       132 seconds
+  Steps:              93
+  Backtracks:         6
+  Search space size:  274
+  Unfinished EPs:     181
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   2
-  Total SS size est.: 53'846'370'202
+  Total SS size est.: 61'296'757'083
   Avg children per node:
     Node 130: 3
     Node 129: 3
     Node 128: 3
-    Node 127: 3
+    Node 124: 4
     Node 32: 0
     Node 31: 0
     Node 30: 0
     Node 29: 0
     Node 56: 3
-    Node 16: 2.5
+    Node 16: 2.4
     Node 55: 3
     Node 15: 4
     Node 61: 2
     Node 54: 3
-    Node 14: 3
+    Node 14: 2.5
     Node 60: 3
     Node 53: 3
     Node 13: 14
     Node 59: 3
     Node 12: 4
     Node 64: 2
+    Node 132: 2
     Node 5: 3
     Node 6: 3
     Node 65: 3
@@ -67,11 +68,11 @@ Search Metadata:
     Node 38: 5
     Node 9: 3
     Node 33: 4
-    Node 131: 2
+    Node 131: 3
     Node 4: 2
     Node 63: 3
     Node 62: 3
-    Node 39: 4
+    Node 39: 4.4
     Node 10: 4
     Node 11: 5
     Node 17: 0

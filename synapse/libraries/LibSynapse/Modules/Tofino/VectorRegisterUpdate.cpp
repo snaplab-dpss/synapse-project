@@ -59,10 +59,14 @@ std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, 
     return {};
   }
 
-  bool can_place_ds = can_build_or_reuse_vector_register(ep, vector_borrow, vector_register_data);
-
-  if (!can_place_ds) {
+  if (!can_build_or_reuse_vector_register(ep, vector_borrow, vector_register_data)) {
     return {};
+  }
+
+  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
+    if (was_ds_already_used(ep_node_leaf, build_vector_register_id(vector_register_data.obj))) {
+      return {};
+    }
   }
 
   Context new_ctx = ctx;

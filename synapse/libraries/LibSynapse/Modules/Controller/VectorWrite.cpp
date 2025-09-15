@@ -15,26 +15,20 @@ std::optional<spec_impl_t> VectorWriteFactory::speculate(const EP *ep, const BDD
     return {};
   }
 
-  const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call    = call_node->get_call();
+  const Call *vector_return = dynamic_cast<const Call *>(node);
+  const call_t &call        = vector_return->get_call();
 
   if (call.function_name != "vector_return") {
     return {};
   }
 
-  klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
-  klee::ref<klee::Expr> value            = call.args.at("value").in;
-  const addr_t vector_addr               = expr_addr_to_obj_addr(vector_addr_expr);
-
-  klee::ref<klee::Expr> original_value  = call_node->get_call().extra_vars.at("borrowed_cell").second;
-  const std::vector<expr_mod_t> changes = build_expr_mods(original_value, value);
-
-  // Check the Ignore module.
-  if (changes.empty()) {
+  if (!vector_return->is_vector_write()) {
     return {};
   }
 
-  if (!ctx.can_impl_ds(vector_addr, DSImpl::Controller_Vector)) {
+  const addr_t obj = expr_addr_to_obj_addr(call.args.at("vector").expr);
+
+  if (!ctx.can_impl_ds(obj, DSImpl::Controller_Vector)) {
     return {};
   }
 

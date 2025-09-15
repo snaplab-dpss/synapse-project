@@ -25,21 +25,8 @@ bool is_parser_reject(const EP *ep) {
 } // namespace
 
 std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
-  if (node->get_type() != BDDNodeType::Route) {
-    return {};
-  }
-
-  const Route *route_node = dynamic_cast<const Route *>(node);
-  const RouteOp op        = route_node->get_operation();
-
-  if (op != RouteOp::Drop) {
-    return {};
-  }
-
-  Context new_ctx = ctx;
-  new_ctx.get_mutable_perf_oracle().add_dropped_traffic(new_ctx.get_profiler().get_hr(node));
-
-  return spec_impl_t(decide(ep, node), new_ctx);
+  // No need to speculate this.
+  return {};
 }
 
 std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

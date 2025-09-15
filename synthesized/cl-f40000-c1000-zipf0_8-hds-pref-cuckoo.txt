@@ -8,15 +8,15 @@ Args:
   Seed:               0
   Targets:
     Tofino (28 modules)
-    Ctrl (72 modules)
+    Ctrl (73 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <72,5,2'249'999'999>
-  BDD Progress: 72
-  DS Score: 5
+  Score: <0,2'250'000'000,68>
+  BDD Progress: 68
+  DS Score: 0
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
 
@@ -28,11 +28,11 @@ Stateful Implementations:
   1074093552: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       13 seconds
-  Steps:              75
-  Backtracks:         2
-  Search space size:  195
-  Unfinished EPs:     120
+  Elapsed time:       118 seconds
+  Steps:              70
+  Backtracks:         1
+  Search space size:  193
+  Unfinished EPs:     123
   Finished EPs:       1
   Avg BDD size:       60
   Branching factor:   2
@@ -68,18 +68,14 @@ Search Metadata:
     Node 262: 0
     Node 135: 3
     Node 194: 3
-    Node 265: 0
     Node 138: 3
     Node 263: 0
     Node 136: 3
     Node 195: 2
     Node 142: 6
-    Node 266: 0
     Node 139: 4
     Node 191: 3
-    Node 264: 0
     Node 137: 3
-    Node 267: 0
     Node 140: 5
     Node 192: 3
     Node 141: 9

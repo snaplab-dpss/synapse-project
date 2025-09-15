@@ -138,15 +138,22 @@ std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, 
     return implementations;
   }
 
-  const size_t total_internal_decisions = implementations.size();
-  for (size_t i = 0; i < total_internal_decisions; ++i) {
-    for (std::unique_ptr<EP> &reordered_ep : get_reordered(implementations[i].result.get())) {
-      impl_t new_implementation(implementations[i].decision, std::move(reordered_ep), true);
-      implementations.push_back(std::move(new_implementation));
+  std::vector<impl_t> reordered_implementations;
+  for (const impl_t &impl : implementations) {
+    for (std::unique_ptr<EP> &reordered_ep : get_reordered(impl.result.get())) {
+      impl_t new_implementation(impl.decision, std::move(reordered_ep), true);
+      reordered_implementations.push_back(std::move(new_implementation));
     }
   }
 
-  return implementations;
+  std::vector<impl_t> final_implementations;
+  final_implementations.reserve(implementations.size() + reordered_implementations.size());
+  final_implementations.insert(final_implementations.end(), std::make_move_iterator(implementations.begin()),
+                               std::make_move_iterator(implementations.end()));
+  final_implementations.insert(final_implementations.end(), std::make_move_iterator(reordered_implementations.begin()),
+                               std::make_move_iterator(reordered_implementations.end()));
+
+  return final_implementations;
 }
 
 } // namespace LibSynapse

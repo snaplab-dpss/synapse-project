@@ -8,33 +8,33 @@ Args:
   Seed:               0
   Targets:
     Tofino (28 modules)
-    Ctrl (72 modules)
+    Ctrl (73 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <62,3,13'390'228>
+  Score: <62,3,112'000>
   BDD Progress: 62
   DS Score: 3
-  Tput: 9.43 Gbps (13.39 Mpps)
-  Spec: 9.43 Gbps (13.39 Mpps)
+  Tput: 79.09 Mbps (112.35 Kpps)
+  Spec: 78.85 Mbps (112.00 Kpps)
 
 Stateful Implementations:
-  1073954840: Tofino::Register
+  1073954840: Tofino::VectorTable
   1073971976: Tofino::DchainTable
   1073923800: Tofino::MapTable
 
 Search Metadata:
-  Elapsed time:       4 seconds
-  Steps:              68
+  Elapsed time:       39 seconds
+  Steps:              65
   Backtracks:         1
-  Search space size:  185
-  Unfinished EPs:     117
+  Search space size:  167
+  Unfinished EPs:     102
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   2
-  Total SS size est.: 57'305'777'269
+  Total SS size est.: 12'818'178'112
   Avg children per node:
     Node 124: 4
     Node 32: 0
@@ -67,7 +67,7 @@ Search Metadata:
     Node 4: 2
     Node 63: 3
     Node 62: 3
-    Node 39: 4
+    Node 39: 3
     Node 10: 4
     Node 11: 5
     Node 17: 0
@@ -77,28 +77,28 @@ Search Metadata:
     Node 18: 0
     Node 23: 0
     Node 35: 4
-    Node 41: 3
+    Node 41: 2
     Node 47: 3
     Node 19: 0
     Node 24: 0
     Node 36: 4
-    Node 42: 3
+    Node 42: 0
     Node 48: 3
     Node 20: 0
     Node 25: 0
     Node 37: 3
-    Node 43: 3
+    Node 43: 0
     Node 49: 3
     Node 21: 0
     Node 26: 0
-    Node 44: 3
+    Node 44: 0
     Node 50: 3
     Node 22: 0
     Node 27: 0
-    Node 45: 3
+    Node 45: 0
     Node 51: 3
     Node 28: 0
-    Node 46: 2
+    Node 46: 0
     Node 52: 2
 
 ========================================================

@@ -3,11 +3,11 @@
   "heuristic": {
     "meta": [
       {
-        "description": "52",
+        "description": "53",
         "name": "BDD Progress"
       },
       {
-        "description": "5",
+        "description": "2",
         "name": "DS Score"
       },
       {
@@ -20,9 +20,9 @@
       }
     ],
     "score": [
-      52,
-      5,
-      74619261
+      2,
+      74619000,
+      53
     ]
   },
   "implementations": [
@@ -42,8 +42,12 @@
   "name": "kvs-f40000-c10000-zipf1-hds-pref-hhtable",
   "profile_file": "kvs-f40000-c10000-zipf1.json",
   "search_meta": {
-    "avg_bdd_size": 52,
+    "avg_bdd_size": 53,
     "avg_children_per_node": [
+      {
+        "avg": 4.0,
+        "node_id": 124
+      },
       {
         "avg": 0.0,
         "node_id": 32
@@ -298,13 +302,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.888888888888889,
-    "elapsed_time_seconds": 11,
+    "branching_factor": 2.90625,
+    "elapsed_time_seconds": 91,
     "finished_eps": 1,
-    "ss_size": 171,
-    "steps": 52,
-    "total_ss_size_estimation": 180588929595.38113,
-    "unfinished_eps": 119
+    "ss_size": 175,
+    "steps": 53,
+    "total_ss_size_estimation": 207689293322.34518,
+    "unfinished_eps": 122
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",

@@ -43,9 +43,9 @@ private:
   i64 get_ds_score(const EP *ep) const {
     const std::unordered_map<DSImpl, int> ds_scores{
         {DSImpl::Tofino_MapTable, 1},       {DSImpl::Tofino_GuardedMapTable, 0},  {DSImpl::Tofino_VectorTable, 1},
-        {DSImpl::Tofino_DchainTable, 1},    {DSImpl::Tofino_VectorRegister, 1},   {DSImpl::Tofino_FCFSCachedTable, 0},
+        {DSImpl::Tofino_DchainTable, 1},    {DSImpl::Tofino_VectorRegister, 0},   {DSImpl::Tofino_FCFSCachedTable, 0},
         {DSImpl::Tofino_Meter, 0},          {DSImpl::Tofino_HeavyHitterTable, 0}, {DSImpl::Tofino_IntegerAllocator, 0},
-        {DSImpl::Tofino_CountMinSketch, 1}, {DSImpl::Tofino_CuckooHashTable, 0},  {DSImpl::Tofino_LPM, 1},
+        {DSImpl::Tofino_CountMinSketch, 0}, {DSImpl::Tofino_CuckooHashTable, 0},  {DSImpl::Tofino_LPM, 0},
     };
 
     i64 score = 0;

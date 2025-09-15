@@ -250,7 +250,7 @@ min_expiration_time_ms                     = 100
 max_capacity_pps                           = 2_250_000_000
 
 [controller]
-capacity_pps = 100_000 # pps
+capacity_pps = 1_000 # pps
 
 [x86]
 capacity_pps = 120_000_000 # pps

@@ -71,7 +71,6 @@ protected:
   std::unordered_map<device_t, PcapWriter> writers;
 
   RandomUniformEngine seeds_random_engine;
-  RandomUniformEngine churn_random_engine;
   RandomUniformEngine flows_random_engine_uniform;
   RandomZipfEngine flows_random_engine_zipf;
   std::unordered_map<device_t, device_t> client_to_active_device;

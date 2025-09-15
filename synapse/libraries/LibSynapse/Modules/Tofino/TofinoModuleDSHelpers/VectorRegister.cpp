@@ -21,7 +21,7 @@ VectorRegister *build_vector_register(const EP *ep, const BDDNode *node, const v
     values_sizes.push_back(partition_size);
   }
 
-  const DS_ID id = "vector_register_" + std::to_string(data.obj);
+  const DS_ID id = TofinoModuleFactory::build_vector_register_id(data.obj);
 
   VectorRegister *vector_register = new VectorRegister(properties, id, data.capacity, data.index->getWidth(), values_sizes);
 
@@ -50,6 +50,8 @@ VectorRegister *get_vector_register(const EP *ep, const BDDNode *node, const vec
 }
 
 } // namespace
+
+std::string TofinoModuleFactory::build_vector_register_id(addr_t obj) { return "vector_register_" + std::to_string(obj); }
 
 VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data) {
   VectorRegister *vector_register;

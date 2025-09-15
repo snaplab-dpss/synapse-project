@@ -7,7 +7,7 @@
         "name": "BDD Progress"
       },
       {
-        "description": "5",
+        "description": "2",
         "name": "DS Score"
       },
       {
@@ -15,14 +15,14 @@
         "name": "Tput"
       },
       {
-        "description": "63.68 Gbps (90.46 Mpps)",
+        "description": "63.68 Gbps (90.45 Mpps)",
         "name": "Spec"
       }
     ],
     "score": [
-      53,
-      5,
-      90455527
+      2,
+      90455000,
+      53
     ]
   },
   "implementations": [
@@ -303,7 +303,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.90625,
-    "elapsed_time_seconds": 6,
+    "elapsed_time_seconds": 76,
     "finished_eps": 1,
     "ss_size": 175,
     "steps": 53,

@@ -7,7 +7,7 @@
         "name": "BDD Progress"
       },
       {
-        "description": "4",
+        "description": "1",
         "name": "DS Score"
       },
       {
@@ -20,9 +20,9 @@
       }
     ],
     "score": [
-      67,
-      4,
-      79793794
+      1,
+      79793000,
+      67
     ]
   },
   "implementations": [
@@ -81,7 +81,7 @@
         "node_id": 56
       },
       {
-        "avg": 2.3333333333333335,
+        "avg": 2.4,
         "node_id": 16
       },
       {
@@ -101,7 +101,7 @@
         "node_id": 54
       },
       {
-        "avg": 3.0,
+        "avg": 2.5,
         "node_id": 14
       },
       {
@@ -189,7 +189,7 @@
         "node_id": 62
       },
       {
-        "avg": 4.0,
+        "avg": 4.4,
         "node_id": 39
       },
       {
@@ -321,17 +321,17 @@
         "node_id": 52
       }
     ],
-    "backtracks": 1,
-    "branching_factor": 2.758454106280193,
-    "elapsed_time_seconds": 11,
+    "backtracks": 6,
+    "branching_factor": 2.7579710144927536,
+    "elapsed_time_seconds": 132,
     "finished_eps": 1,
-    "ss_size": 196,
-    "steps": 70,
-    "total_ss_size_estimation": 61547020394.94876,
-    "unfinished_eps": 126
+    "ss_size": 274,
+    "steps": 93,
+    "total_ss_size_estimation": 61296757083.776054,
+    "unfinished_eps": 181
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 56174840128,
-  "tput_estimation_pps": 79793807
+  "tput_estimation_bps": 56174824640,
+  "tput_estimation_pps": 79793785
 }

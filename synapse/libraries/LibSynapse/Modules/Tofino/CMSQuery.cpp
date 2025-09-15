@@ -56,6 +56,12 @@ std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const BDDNod
     return {};
   }
 
+  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
+    if (was_ds_already_used(ep_node_leaf, build_cms_id(cms_data.obj))) {
+      return {};
+    }
+  }
+
   Context new_ctx = ctx;
   new_ctx.save_ds_impl(cms_data.obj, DSImpl::Tofino_CountMinSketch);
 

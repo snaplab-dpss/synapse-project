@@ -10,9 +10,8 @@
 
 namespace LibSynapse {
 
-// Depth values start from 1.
-// A depth 0 value would be global, and does not come from recirculation.
-// Depth 1 would be the first recirculation, depth 2 the second, etc.
+// Depth values start from 0.
+// Depth 0 would be coming from the first recirculation, depth 1 the second, etc.
 using recirculation_depth_t = u8;
 
 struct port_ingress_t {
@@ -29,7 +28,6 @@ struct port_ingress_t {
   port_ingress_t &operator+=(const port_ingress_t &other);
 
   hit_rate_t get_total_hr() const;
-  u8 get_max_recirc_depth() const;
   hit_rate_t get_hr_at_recirc_depth(u8 depth) const;
 };
 

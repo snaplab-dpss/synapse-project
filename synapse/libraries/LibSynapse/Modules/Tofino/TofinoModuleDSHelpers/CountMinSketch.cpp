@@ -12,7 +12,7 @@ namespace {
 CountMinSketch *build_cms(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height) {
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
-  const DS_ID id                     = "cms_" + std::to_string(obj);
+  const DS_ID id                     = TofinoModuleFactory::build_cms_id(obj);
   const tna_properties_t &properties = tofino_ctx->get_tna().tna_config.properties;
 
   std::vector<bits_t> keys_sizes;
@@ -52,6 +52,8 @@ CountMinSketch *reuse_cms(const EP *ep, const BDDNode *node, addr_t obj) {
 }
 
 } // namespace
+
+std::string TofinoModuleFactory::build_cms_id(addr_t obj) { return "cms_" + std::to_string(obj); }
 
 bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
                                                  u32 width, u32 height) {

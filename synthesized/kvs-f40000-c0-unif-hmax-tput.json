@@ -7,8 +7,16 @@
         "name": "Tput"
       },
       {
-        "description": "63.68 Gbps (90.46 Mpps)",
+        "description": "63.68 Gbps (90.45 Mpps)",
         "name": "Spec"
+      },
+      {
+        "description": "0",
+        "name": "Recirculations"
+      },
+      {
+        "description": "53 / 53",
+        "name": "BDD Progress"
       },
       {
         "description": "4",
@@ -16,8 +24,9 @@
       }
     ],
     "score": [
+      90455000,
+      0,
       53,
-      90455527,
       -4
     ]
   },
@@ -299,7 +308,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.90625,
-    "elapsed_time_seconds": 5,
+    "elapsed_time_seconds": 95,
     "finished_eps": 1,
     "ss_size": 175,
     "steps": 53,

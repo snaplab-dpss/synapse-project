@@ -8,15 +8,17 @@ Args:
   Seed:               0
   Targets:
     Tofino (28 modules)
-    Ctrl (72 modules)
+    Ctrl (73 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <52,233'080'987,-4>
+  Score: <233'081'000,0,53,-4>
   Tput: 164.09 Gbps (233.08 Mpps)
   Spec: 164.09 Gbps (233.08 Mpps)
+  Recirculations: 0
+  BDD Progress: 53 / 53
   Stages: 4
 
 Stateful Implementations:
@@ -25,16 +27,17 @@ Stateful Implementations:
   1073923800: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       12 seconds
-  Steps:              52
-  Backtracks:         0
-  Search space size:  166
-  Unfinished EPs:     114
+  Elapsed time:       98 seconds
+  Steps:              54
+  Backtracks:         1
+  Search space size:  174
+  Unfinished EPs:     120
   Finished EPs:       1
-  Avg BDD size:       52
+  Avg BDD size:       53
   Branching factor:   2
-  Total SS size est.: 94'332'144'143
+  Total SS size est.: 110'008'212'384
   Avg children per node:
+    Node 124: 4
     Node 32: 0
     Node 31: 0
     Node 30: 0

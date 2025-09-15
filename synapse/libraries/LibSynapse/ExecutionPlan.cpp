@@ -9,15 +9,15 @@ namespace LibSynapse {
 
 namespace {
 
+constexpr const pps_t STABLE_TPUT_PRECISION{100};
+constexpr const pps_t TPUT_PRECISION{1'000};
+
 using LibBDD::BDDNodeType;
 using LibBDD::BDDNodeVisitAction;
 using LibBDD::call_t;
 using LibCore::expr_addr_to_obj_addr;
 using LibCore::pps2bps;
 using LibCore::tput2str;
-
-constexpr const pps_t STABLE_TPUT_PRECISION        = 100;
-constexpr const double STABLE_TPUT_ACCEPTABLE_LOSS = 0.01;
 
 bdd_node_ids_t filter_away_nodes(const bdd_node_ids_t &nodes, const bdd_node_ids_t &filter) {
   bdd_node_ids_t result;
@@ -426,6 +426,7 @@ void EP::replace_bdd(std::unique_ptr<BDD> new_bdd, const translation_data_t &tra
 }
 
 void EP::debug() const {
+  cached_tput_speculation.reset();
   std::cerr << "\n";
   std::cerr << "ID: " << id << "\n";
   std::cerr << "Ancestors:";
@@ -438,8 +439,6 @@ void EP::debug() const {
   debug_active_leaves();
   debug_speculations();
   ctx.debug();
-  std::cerr << "Tput estimation: " << tput2str(estimate_tput_pps(), "pps") << "\n";
-  std::cerr << "Tput speculation: " << tput2str(speculate_tput_pps(), "pps") << "\n";
 }
 
 void EP::debug_placements() const {
@@ -486,17 +485,21 @@ void EP::debug_speculations() const {
     return estimation;
   };
 
-  const pps_t ingress = estimate_tput_pps();
-  const pps_t egress  = find_stable_tput(ingress, egress_estimation_from_ingress);
+  const pps_t ingress       = ctx.get_perf_oracle().get_max_input_pps();
+  const pps_t egress        = egress_estimation_from_ingress(ingress).egress_estimation;
+  const pps_t stable_egress = find_stable_tput(ingress, egress_estimation_from_ingress);
 
   std::cerr << speculations2str(this, cached_speculations->speculations_per_node);
   std::cerr << "Speculative context:\n";
   cached_speculations->final_ctx.debug();
-  std::cerr << "Ingress: " << tput2str(pps2bps(ingress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true) << "\n";
-  std::cerr << "Egress from ingress: "
-            << tput2str(pps2bps(egress_estimation_from_ingress(ingress).egress_estimation, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true)
-            << "\n";
-  std::cerr << "Stable egress: " << tput2str(pps2bps(egress, ctx.get_profiler().get_avg_pkt_bytes()), "bps", true) << "\n";
+
+  const bps_t ingress_bps = pps2bps(ingress, ctx.get_profiler().get_avg_pkt_bytes());
+  const bps_t egress_bps  = pps2bps(egress, ctx.get_profiler().get_avg_pkt_bytes());
+  const bps_t stable_bps  = pps2bps(stable_egress, ctx.get_profiler().get_avg_pkt_bytes());
+
+  std::cerr << "Ingress: " << ingress_bps << " (" << tput2str(ingress_bps, "bps", true) << ")\n";
+  std::cerr << "Egress:  " << egress_bps << " (" << tput2str(egress_bps, "bps", true) << ")\n";
+  std::cerr << "Stable:  " << stable_bps << " (" << tput2str(stable_bps, "bps", true) << ")\n";
 
   std::cerr << "BDD profiled with speculative decisions:\n";
   ProfilerViz::visualize(bdd.get(), cached_speculations->final_ctx.get_profiler(), false);
@@ -598,59 +601,78 @@ void EP::sort_leaves() {
   active_leaves.sort(prioritize_switch_and_hot_paths);
 }
 
-std::list<const BDDNode *> EP::get_nodes_targeted_for_speculation() const {
-  std::list<const BDDNode *> target_nodes;
+std::list<EP::speculation_target_t> EP::get_nodes_targeted_for_speculation() const {
+  std::list<speculation_target_t> speculation_targets;
+
   const TargetType initial_target = targets.get_initial_target().type;
+
   for (const EPLeaf &leaf : active_leaves) {
-    if (leaf.node && leaf.node->get_module()->get_next_target() != initial_target) {
-      continue;
+    const TargetType target = leaf.node ? leaf.node->get_module()->get_next_target() : initial_target;
+    speculation_targets.emplace_back(leaf.next, target);
+    for (const BDDNode *n : leaf.next->get_reachable_nodes()) {
+      speculation_targets.emplace_back(n, target);
     }
-
-    assert_or_panic(leaf.next, "Active leaf without a next node");
-    leaf.next->visit_nodes([this, &target_nodes](const BDDNode *node) {
-      if (ctx.get_profiler().get_hr(node) == 0) {
-        return BDDNodeVisitAction::Continue;
-      }
-
-      target_nodes.push_back(node);
-      return BDDNodeVisitAction::Continue;
-    });
   }
 
-  return target_nodes;
+  return speculation_targets;
 }
 
-EP::tput_cmp_t EP::compare_speculations_by_ignored_nodes(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const BDDNode *node,
-                                                         TargetType current_target, pps_t ingress,
-                                                         const std::list<const BDDNode *> &speculation_target_nodes) const {
-  std::list<const BDDNode *> old_speculation_target_nodes;
-  std::list<const BDDNode *> new_speculation_target_nodes;
+EP::tput_cmp_t EP::compare_speculations_by_ignored_nodes(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
+                                                         const speculation_target_t &speculation_target, pps_t ingress,
+                                                         const std::list<speculation_target_t> &speculation_target_nodes) const {
+  std::list<speculation_target_t> old_speculation_target_nodes;
+  std::list<speculation_target_t> new_speculation_target_nodes;
 
   const bdd_node_ids_t old_future_nodes = filter_away_nodes(new_speculation.skip, old_speculation.skip);
+  const TargetType old_next_target      = old_speculation.next_target.has_value() ? old_speculation.next_target.value() : speculation_target.target;
   for (const bdd_node_id_t old_future_node : old_future_nodes) {
-    old_speculation_target_nodes.push_back(bdd->get_node_by_id(old_future_node));
+    const BDDNode *old_node = bdd->get_node_by_id(old_future_node);
+    if (old_node->get_type() == BDDNodeType::Route) {
+      // Will be added.
+      continue;
+    }
+    old_speculation_target_nodes.emplace_back(old_node, old_next_target);
   }
 
   const bdd_node_ids_t new_future_nodes = filter_away_nodes(old_speculation.skip, new_speculation.skip);
+  const TargetType new_next_target      = new_speculation.next_target.has_value() ? new_speculation.next_target.value() : speculation_target.target;
   for (const bdd_node_id_t new_future_node : new_future_nodes) {
-    new_speculation_target_nodes.push_back(bdd->get_node_by_id(new_future_node));
+    const BDDNode *next_target_node = bdd->get_node_by_id(new_future_node);
+    if (next_target_node->get_type() == BDDNodeType::Route) {
+      // Will be added.
+      continue;
+    }
+    new_speculation_target_nodes.emplace_back(next_target_node, new_next_target);
   }
 
-  old_speculation_target_nodes.remove(node);
-  new_speculation_target_nodes.remove(node);
+  for (const speculation_target_t &t : speculation_target_nodes) {
+    if (t.node->get_type() == BDDNodeType::Route) {
+      old_speculation_target_nodes.emplace_back(t.node, old_speculation.next_target.has_value() ? old_speculation.next_target.value() : t.target);
+      new_speculation_target_nodes.emplace_back(t.node, new_speculation.next_target.has_value() ? new_speculation.next_target.value() : t.target);
+    }
+  }
 
-  old_speculation_target_nodes.remove_if([&speculation_target_nodes](const BDDNode *child) {
-    return std::find(speculation_target_nodes.begin(), speculation_target_nodes.end(), child) == speculation_target_nodes.end();
-  });
+  old_speculation_target_nodes.remove_if([speculation_target](const speculation_target_t &t) { return t.node == speculation_target.node; });
+  new_speculation_target_nodes.remove_if([speculation_target](const speculation_target_t &t) { return t.node == speculation_target.node; });
 
-  new_speculation_target_nodes.remove_if([&speculation_target_nodes](const BDDNode *child) {
-    return std::find(speculation_target_nodes.begin(), speculation_target_nodes.end(), child) == speculation_target_nodes.end();
-  });
+  // if (id == 1 && speculation_target.node->get_id() == 39) {
+  //   std::cerr << "Speculation target: " << speculation_target.node->dump(true, true) << " -> " << speculation_target.target << "\n";
+  //   std::cerr << "Old speculation: " << spec2str(old_speculation, bdd.get()) << "\n";
+  //   std::cerr << "Old speculation target nodes:\n";
+  //   for (const speculation_target_t &t : old_speculation_target_nodes) {
+  //     std::cerr << "  " << t.node->dump(true, true) << " -> " << t.target << "\n";
+  //   }
+  //   std::cerr << "New speculation: " << spec2str(new_speculation, bdd.get()) << "\n";
+  //   std::cerr << "New speculation target nodes:\n";
+  //   for (const speculation_target_t &t : new_speculation_target_nodes) {
+  //     std::cerr << "  " << t.node->dump(true, true) << " -> " << t.target << "\n";
+  //   }
+  // }
 
   const complete_speculation_t complete_speculation_peek_old =
-      speculate(old_speculation.ctx, old_speculation_target_nodes, current_target, ingress, Lookahead::WithoutLookahead);
+      speculate(old_speculation.ctx, old_speculation_target_nodes, ingress, Lookahead::WithoutLookahead);
   const complete_speculation_t complete_speculation_peek_new =
-      speculate(new_speculation.ctx, new_speculation_target_nodes, current_target, ingress, Lookahead::WithoutLookahead);
+      speculate(new_speculation.ctx, new_speculation_target_nodes, ingress, Lookahead::WithoutLookahead);
 
   const pps_t old_pps = complete_speculation_peek_old.final_ctx.get_perf_oracle().estimate_tput(ingress);
   const pps_t new_pps = complete_speculation_peek_new.final_ctx.get_perf_oracle().estimate_tput(ingress);
@@ -659,28 +681,39 @@ EP::tput_cmp_t EP::compare_speculations_by_ignored_nodes(const spec_impl_t &old_
 }
 
 EP::tput_cmp_t EP::compare_speculations_with_reachable_nodes_lookahead(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
-                                                                       const BDDNode *node, TargetType current_target, pps_t ingress,
-                                                                       const std::list<const BDDNode *> &speculation_target_nodes) const {
-  std::list<const BDDNode *> old_speculation_target_nodes;
-  std::list<const BDDNode *> new_speculation_target_nodes;
+                                                                       const speculation_target_t &speculation_target, pps_t ingress,
+                                                                       const std::list<speculation_target_t> &speculation_target_nodes) const {
+  std::list<speculation_target_t> old_speculation_target_nodes;
+  std::list<speculation_target_t> new_speculation_target_nodes;
 
-  for (const BDDNode *reachable_node : node->get_reachable_nodes()) {
-    old_speculation_target_nodes.push_back(reachable_node);
-    new_speculation_target_nodes.push_back(reachable_node);
+  for (const BDDNode *reachable_node : speculation_target.node->get_reachable_nodes()) {
+    if (reachable_node->get_type() == BDDNodeType::Route) {
+      // Will be added.
+      continue;
+    }
+    old_speculation_target_nodes.emplace_back(reachable_node, speculation_target.target);
+    new_speculation_target_nodes.emplace_back(reachable_node, speculation_target.target);
   }
 
-  old_speculation_target_nodes.remove_if([&old_speculation, node](const BDDNode *child) {
-    return child == node || old_speculation.skip.find(child->get_id()) != old_speculation.skip.end();
+  for (const speculation_target_t &t : speculation_target_nodes) {
+    if (t.node->get_type() == BDDNodeType::Route) {
+      old_speculation_target_nodes.emplace_back(t.node, old_speculation.next_target.has_value() ? old_speculation.next_target.value() : t.target);
+      new_speculation_target_nodes.emplace_back(t.node, new_speculation.next_target.has_value() ? new_speculation.next_target.value() : t.target);
+    }
+  }
+
+  old_speculation_target_nodes.remove_if([&old_speculation, speculation_target](const speculation_target_t &t) {
+    return t.node == speculation_target.node || old_speculation.skip.find(t.node->get_id()) != old_speculation.skip.end();
   });
 
-  new_speculation_target_nodes.remove_if([&new_speculation, node](const BDDNode *child) {
-    return child == node || new_speculation.skip.find(child->get_id()) != new_speculation.skip.end();
+  new_speculation_target_nodes.remove_if([&new_speculation, speculation_target](const speculation_target_t &t) {
+    return t.node == speculation_target.node || new_speculation.skip.find(t.node->get_id()) != new_speculation.skip.end();
   });
 
   const complete_speculation_t complete_speculation_peek_old =
-      speculate(old_speculation.ctx, old_speculation_target_nodes, current_target, ingress, Lookahead::WithoutLookahead);
+      speculate(old_speculation.ctx, old_speculation_target_nodes, ingress, Lookahead::WithoutLookahead);
   const complete_speculation_t complete_speculation_peek_new =
-      speculate(new_speculation.ctx, new_speculation_target_nodes, current_target, ingress, Lookahead::WithoutLookahead);
+      speculate(new_speculation.ctx, new_speculation_target_nodes, ingress, Lookahead::WithoutLookahead);
 
   const pps_t old_pps = complete_speculation_peek_old.final_ctx.get_perf_oracle().estimate_tput(ingress);
   const pps_t new_pps = complete_speculation_peek_new.final_ctx.get_perf_oracle().estimate_tput(ingress);
@@ -689,26 +722,26 @@ EP::tput_cmp_t EP::compare_speculations_with_reachable_nodes_lookahead(const spe
 }
 
 EP::tput_cmp_t EP::compare_speculations_with_unexplored_nodes_lookahead(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
-                                                                        const BDDNode *node, TargetType current_target, pps_t ingress,
-                                                                        const std::list<const BDDNode *> &speculation_target_nodes) const {
-  std::list<const BDDNode *> old_speculation_target_nodes;
-  std::list<const BDDNode *> new_speculation_target_nodes;
+                                                                        const speculation_target_t &speculation_target, pps_t ingress,
+                                                                        const std::list<speculation_target_t> &speculation_target_nodes) const {
+  std::list<speculation_target_t> old_speculation_target_nodes;
+  std::list<speculation_target_t> new_speculation_target_nodes;
 
   old_speculation_target_nodes = speculation_target_nodes;
   new_speculation_target_nodes = speculation_target_nodes;
 
-  old_speculation_target_nodes.remove_if([&old_speculation, node](const BDDNode *child) {
-    return child == node || old_speculation.skip.find(child->get_id()) != old_speculation.skip.end();
+  old_speculation_target_nodes.remove_if([&old_speculation, speculation_target](const speculation_target_t &t) {
+    return t.node == speculation_target.node || old_speculation.skip.find(t.node->get_id()) != old_speculation.skip.end();
   });
 
-  new_speculation_target_nodes.remove_if([&new_speculation, node](const BDDNode *child) {
-    return child == node || new_speculation.skip.find(child->get_id()) != new_speculation.skip.end();
+  new_speculation_target_nodes.remove_if([&new_speculation, speculation_target](const speculation_target_t &t) {
+    return t.node == speculation_target.node || new_speculation.skip.find(t.node->get_id()) != new_speculation.skip.end();
   });
 
   const complete_speculation_t complete_speculation_peek_old =
-      speculate(old_speculation.ctx, old_speculation_target_nodes, current_target, ingress, Lookahead::WithoutLookahead);
+      speculate(old_speculation.ctx, old_speculation_target_nodes, ingress, Lookahead::WithoutLookahead);
   const complete_speculation_t complete_speculation_peek_new =
-      speculate(new_speculation.ctx, new_speculation_target_nodes, current_target, ingress, Lookahead::WithoutLookahead);
+      speculate(new_speculation.ctx, new_speculation_target_nodes, ingress, Lookahead::WithoutLookahead);
 
   const pps_t old_pps = complete_speculation_peek_old.final_ctx.get_perf_oracle().estimate_tput(ingress);
   const pps_t new_pps = complete_speculation_peek_new.final_ctx.get_perf_oracle().estimate_tput(ingress);
@@ -717,66 +750,99 @@ EP::tput_cmp_t EP::compare_speculations_with_unexplored_nodes_lookahead(const sp
 }
 
 // Compare the performance of an old speculation if it were subjected to the nodes ignored by the new speculation, and vise versa.
-bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const BDDNode *node, TargetType current_target,
-                               pps_t ingress, const std::list<const BDDNode *> &speculation_target_nodes, Lookahead lookahead) const {
+bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const speculation_target_t &speculation_target,
+                               pps_t ingress, const std::list<speculation_target_t> &speculation_target_nodes, Lookahead lookahead) const {
   ep_stats.num_phase1_speculations++;
 
   tput_cmp_t tput_cmp =
-      compare_speculations_by_ignored_nodes(old_speculation, new_speculation, node, current_target, ingress, speculation_target_nodes);
+      compare_speculations_by_ignored_nodes(old_speculation, new_speculation, speculation_target, ingress, speculation_target_nodes);
 
-  if (tput_cmp.new_pps <= STABLE_TPUT_PRECISION) {
+  // if (id == 1 && speculation_target.node->get_id() == 39) {
+  //   std::cerr << "\n\n ************************* Speculation for " << speculation_target.node->dump(true) << "\n";
+  //   std::cerr << "Speculation target: " << speculation_target.node->dump(true, true) << " -> " << speculation_target.target << "\n";
+  //   std::cerr << "phase: 1\n";
+  //   std::cerr << "id: " << id << "\n";
+  //   std::cerr << "  old speculation:" << spec2str(old_speculation, bdd.get()) << "\n";
+  //   std::cerr << "  new speculation:" << spec2str(new_speculation, bdd.get()) << "\n";
+  //   std::cerr << "Lookahead? " << (lookahead == Lookahead::WithLookahead ? "WithLookahead" : "WithoutLookahead") << "\n";
+  //   std::cerr << "  is better than " << spec2str(old_speculation, bdd.get()) << "? " << (tput_cmp.new_pps > tput_cmp.old_pps) << "\n";
+  //   std::cerr << "  old pps: " << tput_cmp.old_pps << "\n";
+  //   std::cerr << "  new pps: " << tput_cmp.new_pps << "\n";
+  // }
+
+  if (tput_cmp.new_pps <= TPUT_PRECISION) {
     return false;
   }
 
-  if (tput_cmp.old_pps <= STABLE_TPUT_PRECISION) {
+  if (tput_cmp.old_pps <= TPUT_PRECISION) {
     return true;
   }
 
-  if ((lookahead == Lookahead::WithoutLookahead) || (tput_cmp.old_pps != tput_cmp.new_pps)) {
+  if ((lookahead == Lookahead::WithoutLookahead) || (std::llabs(tput_cmp.old_pps - tput_cmp.new_pps) > TPUT_PRECISION)) {
     return tput_cmp.new_pps > tput_cmp.old_pps;
   }
 
   ep_stats.num_phase2_speculations++;
 
   tput_cmp =
-      compare_speculations_with_reachable_nodes_lookahead(old_speculation, new_speculation, node, current_target, ingress, speculation_target_nodes);
+      compare_speculations_with_reachable_nodes_lookahead(old_speculation, new_speculation, speculation_target, ingress, speculation_target_nodes);
 
-  if (tput_cmp.old_pps != tput_cmp.new_pps) {
+  // if (id == 1 && speculation_target.node->get_id() == 39) {
+  //   std::cerr << "\n\n ************************* Speculation for " << speculation_target.node->dump(true) << "\n";
+  //   std::cerr << "phase: 2\n";
+  //   std::cerr << "id: " << id << "\n";
+  //   std::cerr << "  " << spec2str(old_speculation, bdd.get()) << "\n";
+  //   std::cerr << "  " << spec2str(new_speculation, bdd.get()) << "\n";
+  //   std::cerr << "Lookahead? " << (lookahead == Lookahead::WithLookahead ? "WithLookahead" : "WithoutLookahead") << "\n";
+  //   std::cerr << "  is better than " << spec2str(old_speculation, bdd.get()) << "? " << (tput_cmp.new_pps > tput_cmp.old_pps) << "\n";
+  //   std::cerr << "  old pps: " << tput_cmp.old_pps << "\n";
+  //   std::cerr << "  new pps: " << tput_cmp.new_pps << "\n";
+  // }
+
+  if (std::llabs(tput_cmp.old_pps - tput_cmp.new_pps) > TPUT_PRECISION) {
     return tput_cmp.new_pps > tput_cmp.old_pps;
   }
 
   ep_stats.num_phase3_speculations++;
 
   tput_cmp =
-      compare_speculations_with_unexplored_nodes_lookahead(old_speculation, new_speculation, node, current_target, ingress, speculation_target_nodes);
+      compare_speculations_with_unexplored_nodes_lookahead(old_speculation, new_speculation, speculation_target, ingress, speculation_target_nodes);
 
-  return tput_cmp.new_pps > tput_cmp.old_pps;
+  if (std::llabs(tput_cmp.old_pps - tput_cmp.new_pps) > TPUT_PRECISION) {
+    return tput_cmp.new_pps > tput_cmp.old_pps;
+  }
+
+  return false;
 }
 
-spec_impl_t EP::get_best_speculation(const BDDNode *node, TargetType current_target, const Context &spec_ctx, pps_t ingress,
-                                     const std::list<const BDDNode *> &speculation_target_nodes, Lookahead lookahead) const {
+spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_target, const Context &spec_ctx, pps_t ingress,
+                                     const std::list<speculation_target_t> &speculation_target_nodes, Lookahead lookahead) const {
   std::optional<spec_impl_t> best;
 
   for (const TargetView &target : targets.elements) {
-    if (target.type != current_target) {
+    if (target.type != speculation_target.target) {
       continue;
     }
 
     for (const ModuleFactory *modgen : target.module_factories) {
-      const std::optional<spec_impl_t> spec = modgen->speculate(this, node, spec_ctx);
+      const std::optional<spec_impl_t> spec = modgen->speculate(this, speculation_target.node, spec_ctx);
 
       if (!spec.has_value()) {
         continue;
       }
 
-      // if (node->get_id() == 52) {
-      //   std::cerr << "Speculation for " << node->dump(true) << "\n";
+      // if (id == 1 && speculation_target.node->get_id() == 39) {
+      //   std::cerr << "\n\n ************************* Speculation for " << speculation_target.node->dump(true) << "\n";
+      //   std::cerr << "id: " << id << "\n";
+      //   std::cerr << "Speculation target: " << speculation_target.node->dump(true, true) << " -> " << speculation_target.target << "\n";
       //   std::cerr << "  " << spec2str(*spec, bdd.get()) << "\n";
+      //   spec->ctx.get_perf_oracle().debug();
       //   if (best.has_value()) {
-      //     auto is_better = is_better_speculation(*best, *spec, node, current_target, ingress, speculation_target_nodes, lookahead);
+      //     std::cerr << "Lookahead? " << (lookahead == Lookahead::WithLookahead ? "WithLookahead" : "WithoutLookahead") << "\n";
+      //     auto is_better = is_better_speculation(*best, *spec, speculation_target, ingress, speculation_target_nodes, lookahead);
       //     std::cerr << "  is better than " << spec2str(*best, bdd.get()) << "? " << is_better << "\n";
       //   }
-      //   dbg_pause();
+      //   // dbg_pause();
       // }
 
       if (!best.has_value()) {
@@ -787,7 +853,7 @@ spec_impl_t EP::get_best_speculation(const BDDNode *node, TargetType current_tar
       assert(best.has_value() && "No best speculation");
       assert(spec.has_value() && "No speculation");
 
-      if (is_better_speculation(*best, *spec, node, current_target, ingress, speculation_target_nodes, lookahead)) {
+      if (is_better_speculation(*best, *spec, speculation_target, ingress, speculation_target_nodes, lookahead)) {
         best = *spec;
       }
     }
@@ -802,39 +868,60 @@ spec_impl_t EP::get_best_speculation(const BDDNode *node, TargetType current_tar
           "EP:     %lu\n"
           "Target: %s\n"
           "Node:   %s",
-          id, to_string(current_target).c_str(), node->dump(true).c_str());
+          id, to_string(speculation_target.target).c_str(), speculation_target.node->dump(true).c_str());
   }
 
   return *best;
 }
 
-EP::complete_speculation_t EP::speculate(const Context &current_ctx, std::list<const BDDNode *> speculation_target_nodes, TargetType target,
-                                         pps_t ingress, Lookahead lookahead) const {
+complete_speculation_t EP::speculate(const Context &current_ctx, std::list<speculation_target_t> speculation_target_nodes, pps_t ingress,
+                                     Lookahead lookahead) const {
   complete_speculation_t complete_speculation = {
       .speculations_per_node = {},
       .final_ctx             = current_ctx,
   };
 
   while (!speculation_target_nodes.empty()) {
-    const BDDNode *node = speculation_target_nodes.front();
+    const speculation_target_t speculation_target = speculation_target_nodes.front();
     speculation_target_nodes.pop_front();
 
-    const spec_impl_t speculation = get_best_speculation(node, target, complete_speculation.final_ctx, ingress, speculation_target_nodes, lookahead);
+    const spec_impl_t speculation =
+        get_best_speculation(speculation_target, complete_speculation.final_ctx, ingress, speculation_target_nodes, lookahead);
 
     complete_speculation.speculations_per_node.push_back(speculation);
     complete_speculation.final_ctx = speculation.ctx;
 
     for (const bdd_node_id_t bdd_node_id_to_skip : speculation.skip) {
-      speculation_target_nodes.remove(bdd->get_node_by_id(bdd_node_id_to_skip));
+      speculation_target_nodes.remove_if(
+          [bdd_node_id_to_skip](const speculation_target_t &target) { return target.node->get_id() == bdd_node_id_to_skip; });
     }
 
-    if (speculation.next_target.has_value() && speculation.next_target != target) {
-      // Just ignore if we change the target, we only care about the switch nodes for now.
-      for (const BDDNode *reachable_node : node->get_reachable_nodes()) {
-        speculation_target_nodes.remove(reachable_node);
+    if (speculation.next_target.has_value()) {
+      std::unordered_set<const BDDNode *> affected_nodes;
+      for (const BDDNode *n : speculation_target.node->get_reachable_nodes()) {
+        affected_nodes.insert(n);
+      }
+      for (speculation_target_t &st : speculation_target_nodes) {
+        if (affected_nodes.contains(st.node)) {
+          st.target = speculation.next_target.value();
+        }
       }
     }
   }
+
+  return complete_speculation;
+}
+
+complete_speculation_t EP::speculate() const {
+  if (cached_speculations.has_value()) {
+    return *cached_speculations;
+  }
+
+  const std::list<speculation_target_t> speculation_targets = get_nodes_targeted_for_speculation();
+  const pps_t ingress                                       = estimate_tput_pps();
+  const complete_speculation_t complete_speculation         = speculate(ctx, speculation_targets, ingress, Lookahead::WithLookahead);
+
+  cached_speculations = complete_speculation;
 
   return complete_speculation;
 }
@@ -844,11 +931,7 @@ pps_t EP::speculate_tput_pps() const {
     return *cached_tput_speculation;
   }
 
-  const std::list<const BDDNode *> &speculation_target_nodes = get_nodes_targeted_for_speculation();
-  const TargetType initial_target                            = targets.get_initial_target().type;
-  const pps_t ingress                                        = estimate_tput_pps();
-
-  const complete_speculation_t complete_speculation = speculate(ctx, speculation_target_nodes, initial_target, ingress, Lookahead::WithLookahead);
+  const complete_speculation_t complete_speculation = speculate();
 
   auto egress_estimation_from_ingress = [&complete_speculation](pps_t tput) -> tput_estimation_t {
     const PerfOracle &perf_oracle = complete_speculation.final_ctx.get_perf_oracle();
@@ -862,10 +945,14 @@ pps_t EP::speculate_tput_pps() const {
     return estimation;
   };
 
-  const pps_t egress = find_stable_tput(ingress, egress_estimation_from_ingress);
+  const pps_t ingress = ctx.get_perf_oracle().get_max_input_pps();
+
+  pps_t egress = find_stable_tput(ingress, egress_estimation_from_ingress);
+
+  // Round to the nearest precision to avoid tiny fluctuations.
+  egress = (egress / TPUT_PRECISION) * TPUT_PRECISION;
 
   cached_tput_speculation = egress;
-  cached_speculations     = complete_speculation;
 
   return egress;
 }
@@ -907,7 +994,7 @@ port_ingress_t EP::get_node_egress(hit_rate_t hr, const EPNode *node) const {
   if (past_recirculations == 0) {
     egress.global = hr;
   } else {
-    egress.recirc[past_recirculations] = hr;
+    egress.recirc[past_recirculations - 1] = hr;
   }
 
   return egress;

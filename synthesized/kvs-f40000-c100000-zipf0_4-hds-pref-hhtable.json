@@ -7,7 +7,7 @@
         "name": "BDD Progress"
       },
       {
-        "description": "5",
+        "description": "2",
         "name": "DS Score"
       },
       {
@@ -20,9 +20,9 @@
       }
     ],
     "score": [
-      53,
-      5,
-      98860295
+      2,
+      98860000,
+      53
     ]
   },
   "implementations": [
@@ -303,7 +303,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.90625,
-    "elapsed_time_seconds": 10,
+    "elapsed_time_seconds": 84,
     "finished_eps": 1,
     "ss_size": 175,
     "steps": 53,
