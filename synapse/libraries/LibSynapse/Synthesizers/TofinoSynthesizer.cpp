@@ -1715,8 +1715,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   std::vector<var_t> recirc_vars = first_stack.get_all();
 
   for (const var_t &var : ingress_vars.squash().get_all()) {
-    std::cerr << "var: " << var.name << "\n";
-
     if (first_stack.get_exact(var.expr)) {
       continue;
     }
