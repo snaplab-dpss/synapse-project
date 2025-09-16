@@ -362,20 +362,16 @@ control Ingress(
     size = 72818;
   }
 
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_0;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_1;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_2;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_3;
+  Register<bit<32>,_>(1024, 0) cms_1074080976_row_0;
+  Register<bit<32>,_>(1024, 0) cms_1074080976_row_1;
+  Register<bit<32>,_>(1024, 0) cms_1074080976_row_2;
+  Register<bit<32>,_>(1024, 0) cms_1074080976_row_3;
 
   bit<10> cms_1074080976_hash_0_value;
   bit<10> cms_1074080976_hash_1_value;
   bit<10> cms_1074080976_hash_2_value;
   bit<10> cms_1074080976_hash_3_value;
 
-  Register<bit<32>,_>(1024, 0) cms_1074080976_row_0;
-  Register<bit<32>,_>(1024, 0) cms_1074080976_row_1;
-  Register<bit<32>,_>(1024, 0) cms_1074080976_row_2;
-  Register<bit<32>,_>(1024, 0) cms_1074080976_row_3;
   RegisterAction<bit<32>, bit<10>, bit<32>>(cms_1074080976_row_0) cms_1074080976_row_0_inc_and_read = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       value = value + 1;
@@ -387,6 +383,7 @@ control Ingress(
   action cms_1074080976_row_0_inc_and_read_execute() {
     cms_1074080976_row_0_inc_and_read_value = cms_1074080976_row_0_inc_and_read.execute(cms_1074080976_hash_0_value);
   }
+
   RegisterAction<bit<32>, bit<10>, void>(cms_1074080976_row_0) cms_1074080976_row_0_inc = {
     void apply(inout bit<32> value) {
       value = value + 1;
@@ -396,6 +393,7 @@ control Ingress(
   action cms_1074080976_row_0_inc_execute() {
     cms_1074080976_row_0_inc.execute(cms_1074080976_hash_0_value);
   }
+
   RegisterAction<bit<32>, bit<10>, bit<32>>(cms_1074080976_row_0) cms_1074080976_row_0_read = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       out_value = value;
@@ -406,6 +404,7 @@ control Ingress(
   action cms_1074080976_row_0_read_execute() {
     cms_1074080976_row_0_read_value = cms_1074080976_row_0_read.execute(cms_1074080976_hash_0_value);
   }
+
   RegisterAction<bit<32>, bit<10>, bit<32>>(cms_1074080976_row_1) cms_1074080976_row_1_inc_and_read = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       value = value + 1;
@@ -417,6 +416,7 @@ control Ingress(
   action cms_1074080976_row_1_inc_and_read_execute() {
     cms_1074080976_row_1_inc_and_read_value = cms_1074080976_row_1_inc_and_read.execute(cms_1074080976_hash_1_value);
   }
+
   RegisterAction<bit<32>, bit<10>, void>(cms_1074080976_row_1) cms_1074080976_row_1_inc = {
     void apply(inout bit<32> value) {
       value = value + 1;
@@ -426,6 +426,7 @@ control Ingress(
   action cms_1074080976_row_1_inc_execute() {
     cms_1074080976_row_1_inc.execute(cms_1074080976_hash_1_value);
   }
+
   RegisterAction<bit<32>, bit<10>, bit<32>>(cms_1074080976_row_1) cms_1074080976_row_1_read = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       out_value = value;
@@ -436,6 +437,7 @@ control Ingress(
   action cms_1074080976_row_1_read_execute() {
     cms_1074080976_row_1_read_value = cms_1074080976_row_1_read.execute(cms_1074080976_hash_1_value);
   }
+
   RegisterAction<bit<32>, bit<10>, bit<32>>(cms_1074080976_row_2) cms_1074080976_row_2_inc_and_read = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       value = value + 1;
@@ -447,6 +449,7 @@ control Ingress(
   action cms_1074080976_row_2_inc_and_read_execute() {
     cms_1074080976_row_2_inc_and_read_value = cms_1074080976_row_2_inc_and_read.execute(cms_1074080976_hash_2_value);
   }
+
   RegisterAction<bit<32>, bit<10>, void>(cms_1074080976_row_2) cms_1074080976_row_2_inc = {
     void apply(inout bit<32> value) {
       value = value + 1;
@@ -456,6 +459,7 @@ control Ingress(
   action cms_1074080976_row_2_inc_execute() {
     cms_1074080976_row_2_inc.execute(cms_1074080976_hash_2_value);
   }
+
   RegisterAction<bit<32>, bit<10>, bit<32>>(cms_1074080976_row_2) cms_1074080976_row_2_read = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       out_value = value;
@@ -466,6 +470,7 @@ control Ingress(
   action cms_1074080976_row_2_read_execute() {
     cms_1074080976_row_2_read_value = cms_1074080976_row_2_read.execute(cms_1074080976_hash_2_value);
   }
+
   RegisterAction<bit<32>, bit<10>, bit<32>>(cms_1074080976_row_3) cms_1074080976_row_3_inc_and_read = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       value = value + 1;
@@ -477,6 +482,7 @@ control Ingress(
   action cms_1074080976_row_3_inc_and_read_execute() {
     cms_1074080976_row_3_inc_and_read_value = cms_1074080976_row_3_inc_and_read.execute(cms_1074080976_hash_3_value);
   }
+
   RegisterAction<bit<32>, bit<10>, void>(cms_1074080976_row_3) cms_1074080976_row_3_inc = {
     void apply(inout bit<32> value) {
       value = value + 1;
@@ -486,6 +492,7 @@ control Ingress(
   action cms_1074080976_row_3_inc_execute() {
     cms_1074080976_row_3_inc.execute(cms_1074080976_hash_3_value);
   }
+
   RegisterAction<bit<32>, bit<10>, bit<32>>(cms_1074080976_row_3) cms_1074080976_row_3_read = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       out_value = value;
@@ -496,52 +503,63 @@ control Ingress(
   action cms_1074080976_row_3_read_execute() {
     cms_1074080976_row_3_read_value = cms_1074080976_row_3_read.execute(cms_1074080976_hash_3_value);
   }
+
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_0_2732;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_1_2732;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_2_2732;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_3_2732;
+
   bit<64> cms_1074080976_key_27320 = 64w0;
-  action cms_1074080976_hash_0_calc_2732() {
-    cms_1074080976_hash_0_value = cms_1074080976_hash_0.get({
+  action cms_1074080976_hash_0_2732_calc_2732() {
+    cms_1074080976_hash_0_value = cms_1074080976_hash_0_2732.get({
       cms_1074080976_key_27320,
       32w0xfbc31fc7
     });
   }
-  action cms_1074080976_hash_1_calc_2732() {
-    cms_1074080976_hash_1_value = cms_1074080976_hash_1.get({
+  action cms_1074080976_hash_1_2732_calc_2732() {
+    cms_1074080976_hash_1_value = cms_1074080976_hash_1_2732.get({
       cms_1074080976_key_27320,
       32w0x2681580b
     });
   }
-  action cms_1074080976_hash_2_calc_2732() {
-    cms_1074080976_hash_2_value = cms_1074080976_hash_2.get({
+  action cms_1074080976_hash_2_2732_calc_2732() {
+    cms_1074080976_hash_2_value = cms_1074080976_hash_2_2732.get({
       cms_1074080976_key_27320,
       32w0x486d7e2f
     });
   }
-  action cms_1074080976_hash_3_calc_2732() {
-    cms_1074080976_hash_3_value = cms_1074080976_hash_3.get({
+  action cms_1074080976_hash_3_2732_calc_2732() {
+    cms_1074080976_hash_3_value = cms_1074080976_hash_3_2732.get({
       cms_1074080976_key_27320,
       32w0x1f3a2b4d
     });
   }
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_0_3696;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_1_3696;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_2_3696;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_3_3696;
+
   bit<64> cms_1074080976_key_36960 = 64w0;
-  action cms_1074080976_hash_0_calc_3696() {
-    cms_1074080976_hash_0_value = cms_1074080976_hash_0.get({
+  action cms_1074080976_hash_0_3696_calc_3696() {
+    cms_1074080976_hash_0_value = cms_1074080976_hash_0_3696.get({
       cms_1074080976_key_36960,
       32w0xfbc31fc7
     });
   }
-  action cms_1074080976_hash_1_calc_3696() {
-    cms_1074080976_hash_1_value = cms_1074080976_hash_1.get({
+  action cms_1074080976_hash_1_3696_calc_3696() {
+    cms_1074080976_hash_1_value = cms_1074080976_hash_1_3696.get({
       cms_1074080976_key_36960,
       32w0x2681580b
     });
   }
-  action cms_1074080976_hash_2_calc_3696() {
-    cms_1074080976_hash_2_value = cms_1074080976_hash_2.get({
+  action cms_1074080976_hash_2_3696_calc_3696() {
+    cms_1074080976_hash_2_value = cms_1074080976_hash_2_3696.get({
       cms_1074080976_key_36960,
       32w0x486d7e2f
     });
   }
-  action cms_1074080976_hash_3_calc_3696() {
-    cms_1074080976_hash_3_value = cms_1074080976_hash_3.get({
+  action cms_1074080976_hash_3_3696_calc_3696() {
+    cms_1074080976_hash_3_value = cms_1074080976_hash_3_3696.get({
       cms_1074080976_key_36960,
       32w0x1f3a2b4d
     });
@@ -600,10 +618,11 @@ control Ingress(
       if (hdr.recirc.code_path == 0) {
         // EP node  3696:CMSQuery
         // BDD node 147:cms_count_min(cms:(w64 1074080976), key:(w64 1074226482)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
-        cms_1074080976_hash_0_calc_3696();
-        cms_1074080976_hash_1_calc_3696();
-        cms_1074080976_hash_2_calc_3696();
-        cms_1074080976_hash_3_calc_3696();
+        cms_1074080976_key_36960 = hdr.hdr1.data3;
+        cms_1074080976_hash_0_3696_calc_3696();
+        cms_1074080976_hash_1_3696_calc_3696();
+        cms_1074080976_hash_2_3696_calc_3696();
+        cms_1074080976_hash_3_3696_calc_3696();
         cms_1074080976_row_0_read_execute();
         cms_1074080976_row_1_read_execute();
         cms_1074080976_row_2_read_execute();
@@ -681,10 +700,11 @@ control Ingress(
                 // BDD node 145:if ((Eq (w32 0) (ReadLSB w32 (w32 0) map_has_this_key_r6))
                 // EP node  2732:CMSIncrement
                 // BDD node 146:cms_increment(cms:(w64 1074080976), key:(w64 1074226482)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
-                cms_1074080976_hash_0_calc_2732();
-                cms_1074080976_hash_1_calc_2732();
-                cms_1074080976_hash_2_calc_2732();
-                cms_1074080976_hash_3_calc_2732();
+                cms_1074080976_key_27320 = hdr.hdr1.data3;
+                cms_1074080976_hash_0_2732_calc_2732();
+                cms_1074080976_hash_1_2732_calc_2732();
+                cms_1074080976_hash_2_2732_calc_2732();
+                cms_1074080976_hash_3_2732_calc_2732();
                 cms_1074080976_row_0_inc_execute();
                 cms_1074080976_row_1_inc_execute();
                 cms_1074080976_row_2_inc_execute();

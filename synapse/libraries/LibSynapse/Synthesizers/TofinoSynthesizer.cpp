@@ -2773,7 +2773,7 @@ std::vector<code_t> TofinoSynthesizer::cms_get_hashes_calculators(const CountMin
   std::vector<code_t> hash_calculators;
 
   for (size_t i = 0; i < cms->height; i++) {
-    const code_t &hash           = cms->hashes[i].id;
+    const code_t &hash           = cms->hashes[i].id + "_" + std::to_string(ep_node->get_id());
     const code_t hash_calculator = hash + "_calc_" + std::to_string(ep_node->get_id());
     hash_calculators.push_back(hash_calculator);
   }
@@ -2789,7 +2789,7 @@ void TofinoSynthesizer::transpile_cms_hash_calculator_decl(const CountMinSketch 
     assert(i < CountMinSketch::HASH_SALTS.size());
 
     const bits_t hash_salt_size   = sizeof(CountMinSketch::HASH_SALTS[i]) * 8;
-    const code_t &hash            = cms->hashes[i].id;
+    const code_t &hash            = cms->hashes[i].id + "_" + std::to_string(ep_node->get_id());
     const code_t &hash_calculator = hashes_calculators[i];
     const code_t &hash_value      = hashes_values[i];
 
@@ -2814,73 +2814,75 @@ void TofinoSynthesizer::transpile_cms_hash_calculator_decl(const CountMinSketch 
   }
 }
 
-void TofinoSynthesizer::transpile_cms_decl(const CountMinSketch *cms) {
+void TofinoSynthesizer::transpile_cms_decl(const CountMinSketch *cms, const EPNode *ep_node) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
-
-  if (declared_ds.find(cms->id) != declared_ds.end()) {
-    return;
-  }
-
-  declared_ds.insert(cms->id);
 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> reg_actions = cms_get_rows_reg_actions(cms);
   const std::unordered_map<RegisterActionType, std::vector<code_t>> actions     = cms_get_rows_actions(cms);
   const std::unordered_map<RegisterActionType, std::vector<code_t>> values      = cms_get_rows_values(cms);
   const std::vector<code_t> hashes_values                                       = cms_get_hashes_values(cms);
 
-  for (const Hash &hash : cms->hashes) {
+  if (!declared_ds.contains(cms->id)) {
+    for (size_t i = 0; i < cms->height; i++) {
+      const Register &row = cms->rows[i];
+      transpile_register_decl(&row);
+    }
+
+    ingress << "\n";
+
+    for (size_t i = 0; i < cms->height; i++) {
+      const code_t &hash_value = hashes_values[i];
+      ingress.indent();
+      ingress << Transpiler::type_from_size(cms->hash_size) << " " << hash_value << ";\n";
+    }
+
+    ingress << "\n";
+
+    for (size_t i = 0; i < cms->height; i++) {
+      const Register &row = cms->rows[i];
+      const code_t &hash  = hashes_values[i];
+
+      for (const RegisterActionType &action_type : row.actions) {
+        assert(reg_actions.find(action_type) != reg_actions.end());
+        assert(actions.find(action_type) != actions.end());
+        assert(values.find(action_type) != values.end());
+
+        assert(i < reg_actions.at(action_type).size());
+        assert(i < actions.at(action_type).size());
+        assert(i < values.at(action_type).size());
+
+        const code_t &reg_action = reg_actions.at(action_type)[i];
+        const code_t &action     = actions.at(action_type)[i];
+        const code_t &value      = values.at(action_type)[i];
+
+        transpile_register_action_decl(&row, reg_action, action_type, {});
+
+        if (register_action_types_with_out_value.contains(action_type)) {
+          ingress.indent();
+          ingress << Transpiler::type_from_size(row.value_size) << " " << value << ";\n";
+        }
+
+        coder_t row_action_body;
+        row_action_body.indent();
+
+        if (register_action_types_with_out_value.contains(action_type)) {
+          row_action_body << value << " = ";
+        }
+        row_action_body << reg_action << ".execute(" << hash << ");\n";
+        transpile_action_decl(action, row_action_body.split_lines());
+        ingress << "\n";
+      }
+    }
+
+    declared_ds.insert(cms->id);
+  }
+
+  for (Hash hash : cms->hashes) {
+    hash.id = hash.id + "_" + std::to_string(ep_node->get_id());
     transpile_hash_decl(&hash);
   }
 
   ingress << "\n";
-
-  for (size_t i = 0; i < cms->height; i++) {
-    const code_t &hash_value = hashes_values[i];
-    ingress.indent();
-    ingress << Transpiler::type_from_size(cms->hash_size) << " " << hash_value << ";\n";
-  }
-
-  ingress << "\n";
-
-  for (size_t i = 0; i < cms->height; i++) {
-    const Register &row = cms->rows[i];
-    transpile_register_decl(&row);
-  }
-
-  for (size_t i = 0; i < cms->height; i++) {
-    const Register &row = cms->rows[i];
-    const code_t &hash  = hashes_values[i];
-
-    for (const RegisterActionType &action_type : row.actions) {
-      assert(reg_actions.find(action_type) != reg_actions.end());
-      assert(actions.find(action_type) != actions.end());
-      assert(values.find(action_type) != values.end());
-
-      assert(i < reg_actions.at(action_type).size());
-      assert(i < actions.at(action_type).size());
-      assert(i < values.at(action_type).size());
-
-      const code_t &reg_action = reg_actions.at(action_type)[i];
-      const code_t &action     = actions.at(action_type)[i];
-      const code_t &value      = values.at(action_type)[i];
-
-      transpile_register_action_decl(&row, reg_action, action_type, {});
-
-      if (register_action_types_with_out_value.contains(action_type)) {
-        ingress.indent();
-        ingress << Transpiler::type_from_size(row.value_size) << " " << value << ";\n";
-      }
-
-      coder_t row_action_body;
-      row_action_body.indent();
-
-      if (register_action_types_with_out_value.contains(action_type)) {
-        row_action_body << value << " = ";
-      }
-      row_action_body << reg_action << ".execute(" << hash << ");\n";
-      transpile_action_decl(action, row_action_body.split_lines());
-    }
-  }
 }
 
 void TofinoSynthesizer::transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table) {
@@ -2925,7 +2927,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = cms_get_rows_actions(cms);
   const std::vector<code_t> hashes_calculators                              = cms_get_hashes_calculators(cms, ep_node);
 
-  transpile_cms_decl(cms);
+  transpile_cms_decl(cms, ep_node);
 
   std::vector<var_t> keys_vars;
   for (klee::ref<klee::Expr> key : keys) {
@@ -2936,6 +2938,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   for (const var_t &key : keys_vars) {
     key.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, key.expr->getWidth()));
+    ingress_apply.indent();
+    ingress_apply << key.name << " = " << transpiler.transpile(key.expr) << ";\n";
   }
 
   transpile_cms_hash_calculator_decl(cms, ep_node, keys_vars);
@@ -2970,7 +2974,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> values  = cms_get_rows_values(cms);
   const std::vector<code_t> hashes_calculators                              = cms_get_hashes_calculators(cms, ep_node);
 
-  transpile_cms_decl(cms);
+  transpile_cms_decl(cms, ep_node);
 
   std::vector<var_t> keys_vars;
   for (klee::ref<klee::Expr> key : keys) {
@@ -2981,6 +2985,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   for (const var_t &key : keys_vars) {
     key.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, key.expr->getWidth()));
+    ingress_apply.indent();
+    ingress_apply << key.name << " = " << transpiler.transpile(key.expr) << ";\n";
   }
 
   transpile_cms_hash_calculator_decl(cms, ep_node, keys_vars);
@@ -3031,7 +3037,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> values  = cms_get_rows_values(cms);
   const std::vector<code_t> hashes_calculators                              = cms_get_hashes_calculators(cms, ep_node);
 
-  transpile_cms_decl(cms);
+  transpile_cms_decl(cms, ep_node);
 
   std::vector<var_t> keys_vars;
   for (klee::ref<klee::Expr> key : keys) {
@@ -3042,6 +3048,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   for (const var_t &key : keys_vars) {
     key.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, key.expr->getWidth()));
+    ingress_apply.indent();
+    ingress_apply << key.name << " = " << transpiler.transpile(key.expr) << ";\n";
   }
 
   transpile_cms_hash_calculator_decl(cms, ep_node, keys_vars);

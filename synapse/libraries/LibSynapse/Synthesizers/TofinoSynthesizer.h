@@ -260,7 +260,7 @@ private:
   std::vector<code_t> cms_get_hashes_values(const CountMinSketch *cms);
   std::vector<code_t> cms_get_hashes_calculators(const CountMinSketch *cms, const EPNode *ep_node);
   void transpile_cms_hash_calculator_decl(const CountMinSketch *cms, const EPNode *ep_node, const std::vector<var_t> &keys_vars);
-  void transpile_cms_decl(const CountMinSketch *cms);
+  void transpile_cms_decl(const CountMinSketch *cms, const EPNode *ep_node);
   void transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table);
   void transpile_if_condition(const If::condition_t &condition);
 
