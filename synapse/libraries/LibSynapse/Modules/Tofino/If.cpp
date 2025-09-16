@@ -131,10 +131,11 @@ bool is_simple_expr(klee::ref<klee::Expr> condition) {
   return is_simple;
 }
 
-If::phv_limitation_workaround_t get_phv_limitation_workaround(klee::ref<klee::Expr> expr) {
-  If::phv_limitation_workaround_t workaround;
+std::optional<If::phv_limitation_workaround_t> get_phv_limitation_workaround(klee::ref<klee::Expr> expr) {
 
   static const std::map<std::pair<klee::Expr::Width, klee::Expr::Kind>, If::ConditionActionHelper> kind_to_action_helper{
+      {{klee::Expr::Int32, klee::Expr::Kind::Eq}, If::ConditionActionHelper::None},
+      {{klee::Expr::Int32, klee::Expr::Kind::Ne}, If::ConditionActionHelper::None},
       {{klee::Expr::Int32, klee::Expr::Kind::Sle}, If::ConditionActionHelper::CheckSignBitForLessThanOrEqual32b},
       {{klee::Expr::Int32, klee::Expr::Kind::Slt}, If::ConditionActionHelper::CheckSignBitForLessThan32b},
       {{klee::Expr::Int32, klee::Expr::Kind::Sge}, If::ConditionActionHelper::CheckSignBitForGreaterThanOrEqual32b},
@@ -146,20 +147,18 @@ If::phv_limitation_workaround_t get_phv_limitation_workaround(klee::ref<klee::Ex
   }
 
   if (expr->getNumKids() != 2) {
-    return workaround;
+    return {};
   }
 
   const klee::Expr::Width width = expr->getKid(0)->getWidth();
   const klee::Expr::Kind kind   = expr->getKind();
 
   auto found_it = kind_to_action_helper.find({width, kind});
-  if (found_it != kind_to_action_helper.end()) {
-    workaround.action_helper = found_it->second;
-    workaround.lhs           = expr->getKid(0);
-    workaround.rhs           = expr->getKid(1);
+  if (found_it == kind_to_action_helper.end()) {
+    return {};
   }
 
-  return workaround;
+  return If::phv_limitation_workaround_t(found_it->second, expr->getKid(0), expr->getKid(1));
 }
 
 } // namespace
@@ -200,15 +199,15 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
       return {};
     }
 
-    If::phv_limitation_workaround_t phv_limitation_workaround;
     if (!get_tna(ep).condition_meets_phv_limit(sub_condition)) {
-      phv_limitation_workaround = get_phv_limitation_workaround(simplified);
-      if (phv_limitation_workaround.action_helper == If::ConditionActionHelper::None) {
+      std::optional<If::phv_limitation_workaround_t> phv_limitation_workaround = get_phv_limitation_workaround(simplified);
+      if (!phv_limitation_workaround.has_value()) {
         panic("TODO: deal with this not compatible condition: %s", expr_to_string(simplified, true).c_str());
       }
+      conditions.push_back({simplified, *phv_limitation_workaround});
+    } else {
+      conditions.push_back(simplified);
     }
-
-    conditions.push_back({simplified, phv_limitation_workaround});
   }
 
   assert(branch_node->get_on_true() && "Branch node without on_true");
@@ -261,15 +260,15 @@ std::unique_ptr<Module> IfFactory::create(const BDD *bdd, const Context &ctx, co
       return {};
     }
 
-    If::phv_limitation_workaround_t phv_limitation_workaround;
     if (!tna.condition_meets_phv_limit(sub_condition)) {
-      phv_limitation_workaround = get_phv_limitation_workaround(simplified);
-      if (phv_limitation_workaround.action_helper == If::ConditionActionHelper::None) {
-        panic("TODO: deal with this incompatible condition: %s", expr_to_string(simplified, true).c_str());
+      std::optional<If::phv_limitation_workaround_t> phv_limitation_workaround = get_phv_limitation_workaround(simplified);
+      if (!phv_limitation_workaround.has_value()) {
+        panic("TODO: deal with this not compatible condition: %s", expr_to_string(simplified, true).c_str());
       }
+      conditions.push_back({simplified, *phv_limitation_workaround});
+    } else {
+      conditions.push_back(simplified);
     }
-
-    conditions.push_back({simplified, phv_limitation_workaround});
   }
 
   return std::make_unique<If>(node, condition, conditions);

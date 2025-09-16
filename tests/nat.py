@@ -78,7 +78,7 @@ def main():
         print(f"[{lan_port}<->{wan_port}] Testing flow rejuvenation...")
         elapsed = 0
         start = time()
-        while elapsed < EXPIRATION_TIME_SEC:
+        while elapsed < EXPIRATION_TIME_SEC * 2:
             ports.send(lan_port, lan_egress_pkt)
             expect_packet_from_port(ports, wan_port, wan_ingress_pkt)
             ports.send(wan_port, wan_egress_pkt)

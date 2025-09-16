@@ -6,30 +6,26 @@
 #include "lib/util/boilerplate.h"
 
 struct FlowId {
-  uint16_t src_port;
-  uint16_t dst_port;
   uint32_t src_ip;
   uint32_t dst_ip;
-  uint8_t protocol;
+  uint16_t src_port;
+  uint16_t dst_port;
 } PACKED_FOR_KLEE_VERIFICATION;
 
-#define DEFAULT_FLOWID FlowIdc(0, 0, 0, 0, 0, 0)
-
-#define LOG_FLOWID(obj, p)                                                                                                                 \
-  ;                                                                                                                                        \
-  p("{");                                                                                                                                  \
-  p("src_port: %d", (obj)->src_port);                                                                                                      \
-  p("dst_port: %d", (obj)->dst_port);                                                                                                      \
-  p("src_ip: %d", (obj)->src_ip);                                                                                                          \
-  p("dst_ip: %d", (obj)->dst_ip);                                                                                                          \
-  p("protocol: %d", (obj)->protocol);                                                                                                      \
+#define LOG_FLOWID(obj, p)                                                                                                                           \
+  ;                                                                                                                                                  \
+  p("{");                                                                                                                                            \
+  p("src_ip: %d", (obj)->src_ip);                                                                                                                    \
+  p("dst_ip: %d", (obj)->dst_ip);                                                                                                                    \
+  p("src_port: %d", (obj)->src_port);                                                                                                                \
+  p("dst_port: %d", (obj)->dst_port);                                                                                                                \
   p("}");
 
 #ifdef KLEE_VERIFICATION
 #include <klee/klee.h>
 #include "lib/models/str-descr.h"
 
-extern struct str_field_descr FlowId_descrs[5];
+extern struct str_field_descr FlowId_descrs[4];
 extern struct nested_field_descr FlowId_nests[0];
 #endif // KLEE_VERIFICATION
 

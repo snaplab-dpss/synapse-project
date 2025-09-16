@@ -23,8 +23,9 @@ HHTable::HHTable(const std::string &_name, const std::vector<std::string> &table
 
   reg_threshold.set(0, THRESHOLD);
 
-  Table &chosen_expiration_table = tables.front();
-  chosen_expiration_table.set_notify_mode(timeout, this, HHTable::expiration_callback, true);
+  for (Table &table : tables) {
+    table.set_notify_mode(timeout, this, HHTable::expiration_callback, true);
+  }
 
   digest.register_callback(HHTable::digest_callback, this);
 
@@ -316,7 +317,11 @@ void HHTable::expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfR
     ERROR("Target table %s not found", table_name.c_str());
   }
 
-  hh_table->remove(key_buffer);
+  hh_table->expirations_per_key[key_buffer].insert(table_name);
+  if (hh_table->expirations_per_key[key_buffer].size() == hh_table->tables.size()) {
+    hh_table->remove(key_buffer);
+    hh_table->expirations_per_key.erase(key_buffer);
+  }
 
   cfg.commit_dataplane_notification_transaction();
 }

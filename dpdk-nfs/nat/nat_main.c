@@ -64,7 +64,6 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
         .dst_port = tcpudp_header->dst_port,
         .src_ip   = rte_ipv4_header->src_addr,
         .dst_ip   = rte_ipv4_header->dst_addr,
-        .protocol = rte_ipv4_header->next_proto_id,
     };
 
     NF_DEBUG("Device %" PRIu16 " is internal", device);
@@ -91,8 +90,7 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
       NF_DEBUG("Found internal flow.");
       LOG_FLOWID(&internal_flow, NF_DEBUG);
 
-      if (internal_flow.dst_ip != rte_ipv4_header->src_addr | internal_flow.dst_port != tcpudp_header->src_port |
-          internal_flow.protocol != rte_ipv4_header->next_proto_id) {
+      if (internal_flow.dst_ip != rte_ipv4_header->src_addr | internal_flow.dst_port != tcpudp_header->src_port) {
         NF_DEBUG("Spoofing attempt, dropping.");
         return DROP;
       }

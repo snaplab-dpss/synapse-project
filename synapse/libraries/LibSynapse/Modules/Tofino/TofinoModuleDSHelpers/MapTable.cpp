@@ -21,7 +21,7 @@ MapTable *build_map_table(const EP *ep, const BDDNode *node, const map_table_dat
 
   assert(data.value->getWidth() == klee::Expr::Int32);
 
-  DS_ID id = "map_table_" + std::to_string(data.obj);
+  const DS_ID id = "map_table_" + std::to_string(data.obj);
 
   MapTable *map_table = new MapTable(id, data.capacity, key_size);
   map_table->add_table(node->get_id(), keys_size, data.time_aware);

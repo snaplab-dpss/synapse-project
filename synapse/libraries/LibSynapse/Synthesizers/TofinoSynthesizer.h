@@ -195,6 +195,7 @@ private:
   std::unordered_map<bdd_node_id_t, Stack> parser_vars;
   std::vector<coder_t> recirc_coders;
   std::optional<code_path_t> active_recirc_code_path;
+  std::unordered_set<code_t> ingress_metadata_var_names;
 
   const EP *target_ep;
   Transpiler transpiler;
@@ -264,6 +265,7 @@ private:
   void transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table);
   void transpile_if_condition(const If::condition_t &condition);
 
+  void declare_var_in_ingress_metadata(const var_t &var);
   void dbg_vars() const;
 
   static code_t get_parser_state_name(const ParserState *state, bool state_init);

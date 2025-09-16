@@ -575,6 +575,14 @@ code_t TofinoSynthesizer::get_parser_state_name(const ParserState *state, bool s
   return coder.dump();
 }
 
+void TofinoSynthesizer::declare_var_in_ingress_metadata(const var_t &var) {
+  coder_t &ingress_metadata = get(MARKER_INGRESS_METADATA);
+  if (!ingress_metadata_var_names.contains(var.name)) {
+    var.declare(ingress_metadata);
+  }
+  ingress_metadata_var_names.insert(var.name);
+}
+
 code_t TofinoSynthesizer::build_register_action_name(const Register *reg, RegisterActionType action, const EPNode *node) const {
   coder_t coder;
   coder << reg->id;
@@ -703,14 +711,11 @@ void TofinoSynthesizer::transpile_table_decl(const Table *table, const std::vect
     transpile_action_decl(action_name, values, values_are_buffers);
   }
 
-  for (klee::ref<klee::Expr> key : keys) {
-    const std::string key_name = table->id + "_key";
-    const var_t key_var        = alloc_var(key_name, key, SKIP_STACK_ALLOC);
+  for (size_t i = 0; i < keys.size(); i++) {
+    const std::string key_name = "key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
+    const var_t key_var        = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
     keys_vars.push_back(key_var);
-  }
-
-  for (const var_t &key : keys_vars) {
-    key.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, key.expr->getWidth()));
+    declare_var_in_ingress_metadata(key_var);
   }
 
   ingress.indent();
@@ -2181,9 +2186,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   if (hit) {
-    const var_t hit_var       = alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA);
-    coder_t &ingress_metadata = get(MARKER_INGRESS_METADATA);
-    hit_var.declare(ingress_metadata);
+    const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA);
+    declare_var_in_ingress_metadata(hit_var);
     ingress_apply.indent();
     ingress_apply << hit_var.name << " = " << table->id << ".apply().hit;\n";
   } else {
@@ -2228,8 +2232,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const code_t guard_allow_value = id + "_guard_allow";
   const var_t guard_allow_var    = alloc_var(guard_allow_value, guard_allow.expr, FORCE_BOOL | IS_INGRESS_METADATA);
 
-  coder_t &ingress_metadata = get(MARKER_INGRESS_METADATA);
-  guard_allow_var.declare(ingress_metadata);
+  declare_var_in_ingress_metadata(guard_allow_var);
 
   ingress_apply.indent();
   ingress_apply << guard_allow_var.name << " = false;\n";
@@ -2916,7 +2919,6 @@ void TofinoSynthesizer::transpile_cuckoo_hash_table_decl(const CuckooHashTable *
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncrement *node) {
-  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const DS_ID cms_id                             = node->get_cms_id();
@@ -2930,16 +2932,15 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   transpile_cms_decl(cms, ep_node);
 
   std::vector<var_t> keys_vars;
-  for (klee::ref<klee::Expr> key : keys) {
-    const std::string key_name = cms->id + "_key_" + std::to_string(ep_node->get_id());
-    const var_t key_var        = alloc_var(key_name, key, SKIP_STACK_ALLOC);
+  for (size_t i = 0; i < keys.size(); i++) {
+    const std::string key_name = "key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
+    const var_t key_var        = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
     keys_vars.push_back(key_var);
-  }
 
-  for (const var_t &key : keys_vars) {
-    key.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, key.expr->getWidth()));
+    declare_var_in_ingress_metadata(key_var);
+
     ingress_apply.indent();
-    ingress_apply << key.name << " = " << transpiler.transpile(key.expr) << ";\n";
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
   }
 
   transpile_cms_hash_calculator_decl(cms, ep_node, keys_vars);
@@ -2961,7 +2962,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *node) {
-  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const DS_ID cms_id                             = node->get_cms_id();
@@ -2977,16 +2977,15 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   transpile_cms_decl(cms, ep_node);
 
   std::vector<var_t> keys_vars;
-  for (klee::ref<klee::Expr> key : keys) {
-    const std::string key_name = cms->id + "_key_" + std::to_string(ep_node->get_id());
-    const var_t key_var        = alloc_var(key_name, key, SKIP_STACK_ALLOC);
+  for (size_t i = 0; i < keys.size(); i++) {
+    const std::string key_name = "key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
+    const var_t key_var        = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
     keys_vars.push_back(key_var);
-  }
 
-  for (const var_t &key : keys_vars) {
-    key.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, key.expr->getWidth()));
+    declare_var_in_ingress_metadata(key_var);
+
     ingress_apply.indent();
-    ingress_apply << key.name << " = " << transpiler.transpile(key.expr) << ";\n";
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
   }
 
   transpile_cms_hash_calculator_decl(cms, ep_node, keys_vars);
@@ -3024,7 +3023,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSQuery *node) {
-  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const DS_ID cms_id                             = node->get_cms_id();
@@ -3040,16 +3038,15 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   transpile_cms_decl(cms, ep_node);
 
   std::vector<var_t> keys_vars;
-  for (klee::ref<klee::Expr> key : keys) {
-    const std::string key_name = cms->id + "_key_" + std::to_string(ep_node->get_id());
-    const var_t key_var        = alloc_var(key_name, key, SKIP_STACK_ALLOC);
+  for (size_t i = 0; i < keys.size(); i++) {
+    const std::string key_name = "key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
+    const var_t key_var        = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
     keys_vars.push_back(key_var);
-  }
 
-  for (const var_t &key : keys_vars) {
-    key.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, key.expr->getWidth()));
+    declare_var_in_ingress_metadata(key_var);
+
     ingress_apply.indent();
-    ingress_apply << key.name << " = " << transpiler.transpile(key.expr) << ";\n";
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
   }
 
   transpile_cms_hash_calculator_decl(cms, ep_node, keys_vars);

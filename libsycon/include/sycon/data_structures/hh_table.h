@@ -39,6 +39,7 @@ private:
   std::unordered_map<u32, buffer_t> index_to_key;
   std::unordered_set<u32> free_indices;
   std::unordered_set<u32> used_indices;
+  std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
 
 public:
   HHTable(const std::string &name, const std::vector<std::string> &table_names, const std::string &reg_cached_counters_name,

@@ -16,6 +16,7 @@ class DchainTable : public SynapseDS {
 private:
   std::set<u32> free_indexes;
   std::vector<Table> tables;
+  std::unordered_map<u32, std::unordered_set<std::string>> expirations_per_index;
   u32 capacity;
 
 public:
@@ -32,8 +33,9 @@ public:
       free_indexes.insert(capacity - i - 1);
     }
 
-    Table &chosen_expiration_table = tables.front();
-    chosen_expiration_table.set_notify_mode(timeout, this, DchainTable::expiration_callback, true);
+    for (Table &table : tables) {
+      table.set_notify_mode(timeout, this, DchainTable::expiration_callback, true);
+    }
   }
 
   bool is_index_allocated(u32 index) const {
@@ -154,9 +156,13 @@ private:
     status = key->getValue(key_field.id, &key_value);
     ASSERT_BF_STATUS(status);
 
-    u32 index = static_cast<u32>(key_value);
+    const u32 index = static_cast<u32>(key_value);
 
-    dchain_table->free_index(index);
+    dchain_table->expirations_per_index[index].insert(table_name);
+    if (dchain_table->expirations_per_index[index].size() == dchain_table->tables.size()) {
+      dchain_table->free_index(index);
+      dchain_table->expirations_per_index.erase(index);
+    }
 
     cfg.commit_dataplane_notification_transaction();
   }

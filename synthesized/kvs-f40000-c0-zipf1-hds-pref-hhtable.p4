@@ -102,6 +102,7 @@ struct synapse_ingress_metadata_t {
   bit<16> ingress_port;
   bit<32> dev;
   bit<32> time;
+  bit<32> key_32b_0;
 
 }
 
@@ -358,10 +359,9 @@ control Ingress(
     hh_table_1073923800_table_13_get_value_param0 = _hh_table_1073923800_table_13_get_value_param0;
   }
 
-  bit<32> hh_table_1073923800_table_13_key0 = 32w0;
   table hh_table_1073923800_table_13 {
     key = {
-      hh_table_1073923800_table_13_key0: exact;
+      meta.key_32b_0: exact;
     }
     actions = {
       hh_table_1073923800_table_13_get_value;
@@ -438,28 +438,28 @@ control Ingress(
   bit<15> hh_table_1073923800_hash_calc_0_value;
   action hh_table_1073923800_hash_calc_0_calc() {
     hh_table_1073923800_hash_calc_0_value = hh_table_1073923800_hash_calc_0.get({
-      hh_table_1073923800_table_13_key0,
+      meta.key_32b_0,
       32w0xfbc31fc7
     });
   }
   bit<15> hh_table_1073923800_hash_calc_1_value;
   action hh_table_1073923800_hash_calc_1_calc() {
     hh_table_1073923800_hash_calc_1_value = hh_table_1073923800_hash_calc_1.get({
-      hh_table_1073923800_table_13_key0,
+      meta.key_32b_0,
       32w0x2681580b
     });
   }
   bit<15> hh_table_1073923800_hash_calc_2_value;
   action hh_table_1073923800_hash_calc_2_calc() {
     hh_table_1073923800_hash_calc_2_value = hh_table_1073923800_hash_calc_2.get({
-      hh_table_1073923800_table_13_key0,
+      meta.key_32b_0,
       32w0x486d7e2f
     });
   }
   bit<15> hh_table_1073923800_hash_calc_3_value;
   action hh_table_1073923800_hash_calc_3_calc() {
     hh_table_1073923800_hash_calc_3_value = hh_table_1073923800_hash_calc_3.get({
-      hh_table_1073923800_table_13_key0,
+      meta.key_32b_0,
       32w0x1f3a2b4d
     });
   }
@@ -537,7 +537,7 @@ control Ingress(
                 // BDD node 12:if ((Eq false (Eq (w16 0) (ReadLSB w16 (w32 0) DEVICE)))
                 // EP node  483:HHTableRead
                 // BDD node 13:map_get(map:(w64 1073923800), key:(w64 1073760929)[(ReadLSB w32 (w32 769) packet_chunks) -> (ReadLSB w32 (w32 769) packet_chunks)], value_out:(w64 1074038640)[(w32 2880154539) -> (ReadLSB w32 (w32 0) allocated_index)])
-                hh_table_1073923800_table_13_key0 = hdr.hdr3.data1;
+                meta.key_32b_0 = hdr.hdr3.data1;
                 bool hit0 = hh_table_1073923800_table_13.apply().hit;
                 if (hit0) {
                   hh_table_1073923800_cached_counters_inc_483.execute(hh_table_1073923800_table_13_get_value_param0);

@@ -1,8 +1,8 @@
 +---------------------------------------------------------------------+
 |  Log file: mau.resources.log                                        |
 |  Compiler version: 9.13.4                                           |
-|  Created on: Tue Sep 16 10:25:50 2025                               |
-|  Run ID: 25877732b3ec4fcb                                           |
+|  Created on: Tue Sep 16 20:13:00 2025                               |
+|  Run ID: 413ec6d8a4b845bf                                           |
 +---------------------------------------------------------------------+
 
 
@@ -80,15 +80,15 @@ Allocated Resource Usage
 |                          cond-20                           |   0    |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |                     tbl_build_cpu_hdr                      |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   5    |   1   |   0    |   0    |   1    |
 |                  tbl_build_cpu_hdr$action                  |   0    |    0     |  0   |    0     |  1   |   0   |  0   |   0    |   0   |   0    |   0    |   0    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable422     |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable421     |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |          Ingress.guarded_map_table_1073923800_13           |   1    |    4     |  41  |    0     |  5   |   0   |  0   |   4    |   2   |   1    |   1    |   0    |
 |       Ingress.guarded_map_table_1073923800_13$action       |   1    |    0     |  0   |    0     |  1   |   0   |  0   |   0    |   0   |   0    |   0    |   0    |
 |                          cond-21                           |   1    |    2     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |                          tbl_act                           |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable427     |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable429     |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable601     |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|    tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable601_0    |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable426     |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable428     |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable600     |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|    tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable600_0    |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |             Ingress.dchain_table_1073971976_38             |   2    |    4     |  40  |    0     |  4   |   0   |  8   |   0    |   1   |   1    |   1    |   0    |
 |         Ingress.guarded_map_table_1073923800_guard         |   2    |    0     |  0   |    0     |  2   |   0   |  2   |   0    |   0   |   0    |   0    |   0    |
 |            Ingress.vector_register_1073954840_0            |   2    |    4     |  0   |    0     |  3   |   0   |  3   |   0    |   0   |   0    |   0    |   0    |
@@ -96,15 +96,15 @@ Allocated Resource Usage
 |                          cond-23                           |   2    |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |                          cond-24                           |   2    |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |        tbl_guarded_map_table_1073923800_guard_check        |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable513     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable514     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable515     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable536     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
-| tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable536-gateway |   2    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable560     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable566     |   2    |    4     |  23  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
-| tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable566-gateway |   2    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable593     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable623     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable535     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
+| tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable535-gateway |   2    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable559     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable565     |   2    |    4     |  23  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
+| tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable565-gateway |   2    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable592     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable622     |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                          tbl_swap                          |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                         tbl_swap_1                         |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                        tbl_swap_11                         |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
@@ -112,8 +112,8 @@ Allocated Resource Usage
 |                        tbl_swap_17                         |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                         tbl_swap_5                         |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                          cond-25                           |   3    |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable484     |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable571     |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable483     |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable570     |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                         tbl_swap_0                         |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                        tbl_swap_12                         |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                        tbl_swap_14                         |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
@@ -122,14 +122,14 @@ Allocated Resource Usage
 |                         tbl_swap_6                         |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                          cond-26                           |   4    |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |                    tbl_build_recirc_hdr                    |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable495     |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable494     |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable502     |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable503     |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable504     |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                        tbl_swap_15                         |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                        tbl_swap_19                         |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                         tbl_swap_3                         |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                         tbl_swap_7                         |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable493     |   5    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|     tbl_kvsf40000c1000zipf0_8hdsprefguardedmaptable492     |   5    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                        tbl_swap_16                         |   5    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                        tbl_swap_20                         |   5    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                         tbl_swap_4                         |   5    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |

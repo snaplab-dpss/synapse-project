@@ -102,6 +102,7 @@ struct synapse_ingress_metadata_t {
   bit<16> ingress_port;
   bit<32> dev;
   bit<32> time;
+  bit<32> key_32b_0;
 
 }
 
@@ -358,10 +359,9 @@ control Ingress(
     map_table_1073923800_13_get_value_param0 = _map_table_1073923800_13_get_value_param0;
   }
 
-  bit<32> map_table_1073923800_13_key0 = 32w0;
   table map_table_1073923800_13 {
     key = {
-      map_table_1073923800_13_key0: exact;
+      meta.key_32b_0: exact;
     }
     actions = {
       map_table_1073923800_13_get_value;
@@ -369,10 +369,9 @@ control Ingress(
     size = 9103;
   }
 
-  bit<32> dchain_table_1073971976_38_key0 = 32w0;
   table dchain_table_1073971976_38 {
     key = {
-      dchain_table_1073971976_38_key0: exact;
+      meta.key_32b_0: exact;
     }
     actions = {
        NoAction;
@@ -386,10 +385,9 @@ control Ingress(
     vector_table_1073954840_124_get_value_param0 = _vector_table_1073954840_124_get_value_param0;
   }
 
-  bit<32> vector_table_1073954840_124_key0 = 32w0;
   table vector_table_1073954840_124 {
     key = {
-      vector_table_1073954840_124_key0: exact;
+      meta.key_32b_0: exact;
     }
     actions = {
       vector_table_1073954840_124_get_value;
@@ -439,7 +437,7 @@ control Ingress(
                 // BDD node 12:if ((Eq false (Eq (w16 0) (ReadLSB w16 (w32 0) DEVICE)))
                 // EP node  304:MapTableLookup
                 // BDD node 13:map_get(map:(w64 1073923800), key:(w64 1073760929)[(ReadLSB w32 (w32 769) packet_chunks) -> (ReadLSB w32 (w32 769) packet_chunks)], value_out:(w64 1074038640)[(w32 2880154539) -> (ReadLSB w32 (w32 0) allocated_index)])
-                map_table_1073923800_13_key0 = hdr.hdr3.data1;
+                meta.key_32b_0 = hdr.hdr3.data1;
                 bool hit0 = map_table_1073923800_13.apply().hit;
                 // EP node  574:If
                 // BDD node 14:if ((Eq (w32 0) (ReadLSB w32 (w32 0) map_has_this_key))
@@ -473,7 +471,7 @@ control Ingress(
                   // BDD node 14:if ((Eq (w32 0) (ReadLSB w32 (w32 0) map_has_this_key))
                   // EP node  1416:DchainTableLookup
                   // BDD node 38:dchain_rejuvenate_index(chain:(w64 1073971976), index:(ReadLSB w32 (w32 0) allocated_index), time:(ReadLSB w64 (w32 0) next_time))
-                  dchain_table_1073971976_38_key0 = map_table_1073923800_13_get_value_param0;
+                  meta.key_32b_0 = map_table_1073923800_13_get_value_param0;
                   dchain_table_1073971976_38.apply();
                   // EP node  1538:If
                   // BDD node 40:if ((Eq (w8 1) (Read w8 (w32 768) packet_chunks))
@@ -494,7 +492,7 @@ control Ingress(
                     // BDD node 40:if ((Eq (w8 1) (Read w8 (w32 768) packet_chunks))
                     // EP node  1640:VectorTableLookup
                     // BDD node 124:vector_borrow(vector:(w64 1073954840), index:(ReadLSB w32 (w32 0) allocated_index), val_out:(w64 1074041936)[ -> (w64 1073968736)])
-                    vector_table_1073954840_124_key0 = map_table_1073923800_13_get_value_param0;
+                    meta.key_32b_0 = map_table_1073923800_13_get_value_param0;
                     vector_table_1073954840_124.apply();
                     // EP node  1782:Ignore
                     // BDD node 47:vector_return(vector:(w64 1073954840), index:(ReadLSB w32 (w32 0) allocated_index), value:(w64 1073968736)[(ReadLSB w32 (w32 0) vector_data_384)])

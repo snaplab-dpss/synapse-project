@@ -35,7 +35,7 @@ solutions = {
 
 chosen_workloads = [
     # Key(s=0.6, churn_fpm=0),
-    # Key(s=0.6, churn_fpm=100_000),
+    Key(s=1, churn_fpm=10_000),
     Key(s=1.2, churn_fpm=0),
     Key(s=1.2, churn_fpm=1_000_000),
 ]
