@@ -14,11 +14,11 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <2'250'000'000,0,78,-4>
+  Score: <2'250'000'000,0,79,-4>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
-  BDD Progress: 78 / 81
+  BDD Progress: 79 / 82
   Stages: 4
 
 Stateful Implementations:
@@ -28,15 +28,15 @@ Stateful Implementations:
   1074077160: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       175 seconds
-  Steps:              79
+  Elapsed time:       124 seconds
+  Steps:              80
   Backtracks:         0
-  Search space size:  244
-  Unfinished EPs:     165
+  Search space size:  234
+  Unfinished EPs:     154
   Finished EPs:       1
   Avg BDD size:       67
-  Branching factor:   2
-  Total SS size est.: 768'556'849'541
+  Branching factor:   3
+  Total SS size est.: 849'631'713'087
   Avg children per node:
     Node 184: 0
     Node 183: 0
@@ -50,16 +50,18 @@ Search Metadata:
     Node 194: 2
     Node 277: 0
     Node 150: 6
-    Node 273: 3
+    Node 273: 0
     Node 146: 3
     Node 187: 4
+    Node 276: 0
     Node 149: 9
-    Node 272: 3
+    Node 272: 0
     Node 145: 3
-    Node 186: 8
+    Node 186: 6
     Node 161: 2
+    Node 275: 0
     Node 148: 6
-    Node 271: 3
+    Node 271: 0
     Node 144: 3
     Node 160: 6
     Node 159: 3
@@ -69,18 +71,15 @@ Search Metadata:
     Node 163: 0
     Node 134: 3
     Node 193: 3
-    Node 268: 3
     Node 141: 5
     Node 200: 3
     Node 199: 2
     Node 267: 3
     Node 140: 8
     Node 135: 3
-    Node 269: 3
     Node 142: 4
     Node 201: 2
     Node 136: 3
-    Node 270: 3
     Node 143: 3
     Node 137: 4
     Node 196: 2
@@ -92,24 +91,26 @@ Search Metadata:
     Node 198: 3
     Node 173: 0
     Node 188: 6
+    Node 274: 0
     Node 147: 2
     Node 278: 0
     Node 151: 6
     Node 164: 0
     Node 174: 0
     Node 189: 6
+    Node 279: 0
     Node 152: 6
     Node 165: 0
     Node 175: 0
-    Node 190: 3
+    Node 190: 6
     Node 153: 3
     Node 166: 0
     Node 176: 0
-    Node 191: 3
+    Node 191: 6
     Node 154: 6
     Node 167: 0
     Node 177: 0
-    Node 155: 6
+    Node 155: 3
     Node 158: 2
     Node 168: 0
     Node 178: 0

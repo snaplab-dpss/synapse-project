@@ -59,13 +59,11 @@ bool can_ignore_dchain_rejuvenation(const Context &ctx, const call_t &call) {
   klee::ref<klee::Expr> chain = call.args.at("chain").expr;
   const addr_t chain_addr     = expr_addr_to_obj_addr(chain);
 
-  // These are the data structures that can perform rejuvenations.
-  if (!ctx.check_ds_impl(chain_addr, DSImpl::Tofino_DchainTable) && !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) &&
-      !ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HeavyHitterTable)) {
-    return false;
+  if (ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) || ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HeavyHitterTable)) {
+    return true;
   }
 
-  return true;
+  return false;
 }
 
 bool should_ignore(const Context &ctx, const BDDNode *node) {

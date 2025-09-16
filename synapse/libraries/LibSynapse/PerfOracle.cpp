@@ -391,11 +391,6 @@ bps_t PerfOracle::get_max_input_bps() const {
 pps_t PerfOracle::get_max_input_pps() const { return bps2pps(get_max_input_bps(), avg_pkt_size); }
 
 pps_t PerfOracle::estimate_tput(pps_t ingress) const {
-  // std::cerr << "\n\n\n";
-  // debug();
-  // std::cerr << "ingress: " << tput2str(ingress, "pps") << "\n";
-  // std::cerr << "ingress: " << tput2str(pps2bps(ingress, avg_pkt_size), "bps") << "\n";
-
   // 1. First we calculate the recirculation egress for each recirculation depth.
   // Recirculation traffic can only come from global ingress and other recirculation ports.
   const std::vector<pps_t> recirc_egress = get_recirculated_egress(ingress);
@@ -414,8 +409,6 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
 
   const hit_rate_t total_controller_hr = controller_ingress.get_total_hr();
   hit_rate_t unaccounted_controller_hr = total_controller_hr - controller_dropped_ingress;
-
-  // std::cerr << "total_controller_hr: " << total_controller_hr << "\n";
 
   for (const auto &[fwd_port, port_ingress] : ports_ingress) {
     pps_t port_tput = ingress * port_ingress.global.value;
@@ -442,12 +435,8 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     tput += controller_tput * rel_ctrl_hr;
   }
 
-  // std::cerr << "unaccounted_controller_hr: " << unaccounted_controller_hr << "\n";
-
   const hit_rate_t remaining_hr = unaccounted_ingress - unaccounted_controller_hr;
   tput += ingress * remaining_hr.value;
-
-  // std::cerr << "remaining_hr: " << remaining_hr << "\n";
 
   // We shouldn't need this here, but sometimes it happens...
   // We should investigate why.
@@ -455,9 +444,6 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
 
   // And finally considering the switch bottleneck.
   tput = std::min(tput, max_switch_capacity);
-
-  // std::cerr << "final tput: " << tput2str(tput, "pps") << "\n";
-  // dbg_pause();
 
   return tput;
 }

@@ -41,7 +41,6 @@ header cpu_h {
   @padding bit<31> pad_hit0;
   bool hit0;
   bit<32> dev;
-  bit<64> time;
 
 }
 
@@ -374,7 +373,6 @@ control Ingress(
       guarded_map_table_1073923800_13_get_value;
     }
     size = 9103;
-    idle_timeout = true;
   }
 
   Register<bit<8>,_>(1, 0) guarded_map_table_1073923800_guard;
@@ -430,7 +428,6 @@ control Ingress(
         build_cpu_hdr(8520);
         hdr.cpu.hit0 = hdr.recirc.hit0;
         hdr.cpu.dev = meta.dev;
-        hdr.cpu.time[47:16] = meta.time;
       }
 
     } else {

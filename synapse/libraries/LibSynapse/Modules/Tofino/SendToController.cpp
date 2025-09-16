@@ -446,6 +446,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
   Symbols symbols = get_relevant_dataplane_state(ep, node);
   symbols.add(initial_controller_logic.extra_symbols);
   symbols.remove("packet_chunks");
+  symbols.remove("next_time");
 
   Module *module   = new SendToController(node, symbols);
   EPNode *s2c_node = new EPNode(module);

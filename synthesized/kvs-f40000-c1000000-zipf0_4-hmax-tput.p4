@@ -41,7 +41,6 @@ header cpu_h {
   @padding bit<31> pad_hit0;
   bool hit0;
   bit<32> dev;
-  bit<64> time;
 
 }
 
@@ -369,7 +368,6 @@ control Ingress(
       guarded_map_table_1073923800_13_get_value;
     }
     size = 9103;
-    idle_timeout = true;
   }
 
   Register<bit<8>,_>(1, 0) guarded_map_table_1073923800_guard;
@@ -483,7 +481,6 @@ control Ingress(
                       build_cpu_hdr(7232);
                       hdr.cpu.hit0 = meta.hit0;
                       hdr.cpu.dev = meta.dev;
-                      hdr.cpu.time[47:16] = meta.time;
                     } else {
                       // EP node  2497:Else
                       // BDD node 16:dchain_allocate_new_index(chain:(w64 1073971976), index_out:(w64 1074042384)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index)], time:(ReadLSB w64 (w32 0) next_time))

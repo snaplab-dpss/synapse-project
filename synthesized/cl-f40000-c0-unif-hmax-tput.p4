@@ -41,7 +41,6 @@ header cpu_h {
   bit<32> vector_table_1074093552_141_get_value_param0;
   @padding bit<31> pad_hit0;
   bool hit0;
-  bit<64> time;
   bit<32> dev;
 
 }
@@ -356,7 +355,6 @@ control Ingress(
       map_table_1074048576_144_get_value;
     }
     size = 72818;
-    idle_timeout = true;
   }
 
   Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_0;
@@ -630,7 +628,6 @@ control Ingress(
                 build_cpu_hdr(3361);
                 hdr.cpu.vector_table_1074093552_141_get_value_param0 = vector_table_1074093552_141_get_value_param0;
                 hdr.cpu.hit0 = hit0;
-                hdr.cpu.time[47:16] = meta.time;
                 hdr.cpu.dev = meta.dev;
               } else {
                 // EP node  488:Else

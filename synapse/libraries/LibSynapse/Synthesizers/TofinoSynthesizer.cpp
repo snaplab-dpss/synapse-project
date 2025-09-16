@@ -1708,21 +1708,26 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << "build_recirc_hdr(" << code_path << ");\n";
 
   Stacks stack_backup = ingress_vars;
-  Stack first_stack   = ingress_vars.get_first_stack();
 
+  // The first stack contains the variables set up right at the beginning of the ingress processing.
+  // Every other stack contains variables introduced by modules.
+  Stack first_stack              = ingress_vars.get_first_stack();
   std::vector<var_t> recirc_vars = first_stack.get_all();
+
   for (const var_t &var : ingress_vars.squash().get_all()) {
+    std::cerr << "var: " << var.name << "\n";
+
     if (first_stack.get_exact(var.expr)) {
+      continue;
+    }
+
+    if (var.is_header_field) {
+      recirc_vars.push_back(var);
       continue;
     }
 
     var_t recirc_var = var;
     recirc_var.name  = recirc_var.flatten_name();
-
-    if (var.is_header_field) {
-      recirc_vars.push_back(recirc_var);
-      continue;
-    }
 
     var_t local_recirc_var = recirc_var;
     local_recirc_var.name  = "hdr.recirc." + recirc_var.name;

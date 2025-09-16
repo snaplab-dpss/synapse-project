@@ -130,7 +130,7 @@
         "node_id": 161
       },
       {
-        "avg": 8.0,
+        "avg": 6.0,
         "node_id": 148
       },
       {
@@ -367,13 +367,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.9615384615384617,
-    "elapsed_time_seconds": 140,
+    "branching_factor": 2.9358974358974357,
+    "elapsed_time_seconds": 113,
     "finished_eps": 1,
-    "ss_size": 239,
+    "ss_size": 237,
     "steps": 77,
-    "total_ss_size_estimation": 628103378033.2151,
-    "unfinished_eps": 162
+    "total_ss_size_estimation": 512463568232.96857,
+    "unfinished_eps": 160
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

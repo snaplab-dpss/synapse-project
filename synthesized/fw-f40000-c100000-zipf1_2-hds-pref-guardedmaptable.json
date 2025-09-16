@@ -3,7 +3,7 @@
   "heuristic": {
     "meta": [
       {
-        "description": "96",
+        "description": "98",
         "name": "BDD Progress"
       },
       {
@@ -22,7 +22,7 @@
     "score": [
       1,
       316273000,
-      96
+      98
     ]
   },
   "implementations": [
@@ -63,6 +63,10 @@
       {
         "avg": 0.0,
         "node_id": 183
+      },
+      {
+        "avg": 0.0,
+        "node_id": 312
       },
       {
         "avg": 0.0,
@@ -141,6 +145,10 @@
         "node_id": 145
       },
       {
+        "avg": 0.0,
+        "node_id": 313
+      },
+      {
         "avg": 6.0,
         "node_id": 186
       },
@@ -149,7 +157,7 @@
         "node_id": 161
       },
       {
-        "avg": 8.0,
+        "avg": 6.0,
         "node_id": 148
       },
       {
@@ -325,7 +333,7 @@
         "node_id": 165
       },
       {
-        "avg": 3.0,
+        "avg": 6.0,
         "node_id": 302
       },
       {
@@ -349,7 +357,7 @@
         "node_id": 166
       },
       {
-        "avg": 6.0,
+        "avg": 3.0,
         "node_id": 303
       },
       {
@@ -401,7 +409,7 @@
         "node_id": 168
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 305
       },
       {
@@ -442,13 +450,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.092391304347826,
-    "elapsed_time_seconds": 308,
+    "branching_factor": 3.0714285714285716,
+    "elapsed_time_seconds": 269,
     "finished_eps": 1,
-    "ss_size": 300,
-    "steps": 98,
-    "total_ss_size_estimation": 1729687660910.1892,
-    "unfinished_eps": 202
+    "ss_size": 298,
+    "steps": 100,
+    "total_ss_size_estimation": 1474676606184.7256,
+    "unfinished_eps": 198
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

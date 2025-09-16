@@ -28,15 +28,15 @@ Stateful Implementations:
   1074077160: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       140 seconds
+  Elapsed time:       113 seconds
   Steps:              77
   Backtracks:         0
-  Search space size:  239
-  Unfinished EPs:     162
+  Search space size:  237
+  Unfinished EPs:     160
   Finished EPs:       1
   Avg BDD size:       67
   Branching factor:   2
-  Total SS size est.: 628'103'378'033
+  Total SS size est.: 512'463'568'232
   Avg children per node:
     Node 184: 0
     Node 183: 0
@@ -57,7 +57,7 @@ Search Metadata:
     Node 145: 3
     Node 186: 6
     Node 161: 2
-    Node 148: 8
+    Node 148: 6
     Node 271: 3
     Node 144: 3
     Node 160: 5

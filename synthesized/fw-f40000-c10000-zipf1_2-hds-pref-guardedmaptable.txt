@@ -14,8 +14,8 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <1,2'250'012'000,96>
-  BDD Progress: 96
+  Score: <1,2'250'012'000,98>
+  BDD Progress: 98
   DS Score: 1
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
@@ -27,20 +27,21 @@ Stateful Implementations:
   1074077160: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       378 seconds
-  Steps:              98
+  Elapsed time:       339 seconds
+  Steps:              100
   Backtracks:         0
-  Search space size:  300
-  Unfinished EPs:     202
+  Search space size:  298
+  Unfinished EPs:     198
   Finished EPs:       1
   Avg BDD size:       67
   Branching factor:   3
-  Total SS size est.: 1'729'687'660'910
+  Total SS size est.: 1'474'676'606'184
   Avg children per node:
     Node 311: 0
     Node 184: 0
     Node 310: 0
     Node 183: 0
+    Node 312: 0
     Node 185: 0
     Node 309: 0
     Node 182: 0
@@ -60,9 +61,10 @@ Search Metadata:
     Node 149: 6
     Node 272: 6
     Node 145: 3
+    Node 313: 0
     Node 186: 6
     Node 161: 2.5
-    Node 148: 8
+    Node 148: 6
     Node 271: 6
     Node 144: 3
     Node 160: 5
@@ -106,13 +108,13 @@ Search Metadata:
     Node 279: 3
     Node 152: 3
     Node 165: 0
-    Node 302: 3
+    Node 302: 6
     Node 175: 0
     Node 190: 6
     Node 280: 3
     Node 153: 3
     Node 166: 0
-    Node 303: 6
+    Node 303: 3
     Node 176: 0
     Node 191: 5
     Node 281: 3
@@ -125,7 +127,7 @@ Search Metadata:
     Node 285: 2
     Node 158: 2
     Node 168: 0
-    Node 305: 3
+    Node 305: 0
     Node 178: 0
     Node 283: 3
     Node 156: 2

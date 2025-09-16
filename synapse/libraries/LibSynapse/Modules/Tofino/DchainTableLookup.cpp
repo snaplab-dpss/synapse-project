@@ -18,8 +18,7 @@ dchain_table_data_t get_dchain_table_data(const Context &ctx, const Call *call_n
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
 
-  const addr_t dchain_addr = expr_addr_to_obj_addr(dchain_addr_expr);
-
+  const addr_t dchain_addr   = expr_addr_to_obj_addr(dchain_addr_expr);
   const dchain_config_t &cfg = ctx.get_dchain_config(dchain_addr);
 
   dchain_table_data_t data = {

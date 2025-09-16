@@ -31,7 +31,7 @@ map_table_data_t get_map_table_data(const Context &ctx, const Call *call_node) {
       .keys         = Table::build_keys(key, ctx.get_expr_structs()),
       .value        = value_out,
       .hit          = map_has_this_key,
-      .time_aware   = ctx.get_map_coalescing_objs(obj).has_value() ? TimeAware::Yes : TimeAware::No,
+      .time_aware   = TimeAware::No,
   };
 
   return data;
