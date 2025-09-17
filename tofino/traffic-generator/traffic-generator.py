@@ -148,7 +148,7 @@ class Ports:
                 [
                     gc.DataTuple("$SPEED", str_val=speed_conversion_table[speed]),
                     gc.DataTuple("$FEC", str_val=fec_conversion_table[fec]),
-                    gc.DataTuple("$PORT_ENABLE", bool_val=True),
+                    gc.DataTuple("$PORT_ENABLE", bool_val=False),
                 ]
             )
 
@@ -158,7 +158,7 @@ class Ports:
                 [
                     gc.DataTuple("$SPEED", str_val=speed_conversion_table[speed]),
                     gc.DataTuple("$FEC", str_val=fec_conversion_table[fec]),
-                    gc.DataTuple("$PORT_ENABLE", bool_val=False),
+                    gc.DataTuple("$PORT_ENABLE", bool_val=True),
                 ]
             )
 
