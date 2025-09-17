@@ -198,7 +198,8 @@ class Pktgen:
         self._run_commands("reset")
 
     def close(self) -> None:
-        assert self.pktgen_active
+        if not self.pktgen_active:
+            return
         self._run_commands("quit", wait_from_prompt=False)
         self.pktgen_active = False
         self.host.log("Pktgen exited successfuly.")

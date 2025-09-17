@@ -96,6 +96,10 @@ struct synapse_ingress_metadata_t {
   bit<16> ingress_port;
   bit<32> dev;
   bit<32> time;
+  bit<32> key_32b_0;
+  bit<64> key_64b_1;
+  bit<8> key_8b_2;
+  bit<64> key_64b_0;
 
 }
 
@@ -331,10 +335,9 @@ control Ingress(
     vector_table_1074093552_141_get_value_param0 = _vector_table_1074093552_141_get_value_param0;
   }
 
-  bit<32> vector_table_1074093552_141_key0 = 32w0;
   table vector_table_1074093552_141 {
     key = {
-      vector_table_1074093552_141_key0: exact;
+      meta.key_32b_0: exact;
     }
     actions = {
       vector_table_1074093552_141_get_value;
@@ -347,19 +350,17 @@ control Ingress(
     map_table_1074048576_144_get_value_param0 = _map_table_1074048576_144_get_value_param0;
   }
 
-  bit<32> map_table_1074048576_144_key0 = 32w0;
-  bit<64> map_table_1074048576_144_key1 = 64w0;
-  bit<8> map_table_1074048576_144_key2 = 8w0;
   table map_table_1074048576_144 {
     key = {
-      map_table_1074048576_144_key0: exact;
-      map_table_1074048576_144_key1: exact;
-      map_table_1074048576_144_key2: exact;
+      meta.key_32b_0: exact;
+      meta.key_64b_1: exact;
+      meta.key_8b_2: exact;
     }
     actions = {
       map_table_1074048576_144_get_value;
     }
     size = 72818;
+    idle_timeout = true;
   }
 
   Register<bit<32>,_>(1024, 0) cms_1074080976_row_0;
@@ -509,28 +510,27 @@ control Ingress(
   Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_2_2732;
   Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_3_2732;
 
-  bit<64> cms_1074080976_key_27320 = 64w0;
   action cms_1074080976_hash_0_2732_calc_2732() {
     cms_1074080976_hash_0_value = cms_1074080976_hash_0_2732.get({
-      cms_1074080976_key_27320,
+      meta.key_64b_0,
       32w0xfbc31fc7
     });
   }
   action cms_1074080976_hash_1_2732_calc_2732() {
     cms_1074080976_hash_1_value = cms_1074080976_hash_1_2732.get({
-      cms_1074080976_key_27320,
+      meta.key_64b_0,
       32w0x2681580b
     });
   }
   action cms_1074080976_hash_2_2732_calc_2732() {
     cms_1074080976_hash_2_value = cms_1074080976_hash_2_2732.get({
-      cms_1074080976_key_27320,
+      meta.key_64b_0,
       32w0x486d7e2f
     });
   }
   action cms_1074080976_hash_3_2732_calc_2732() {
     cms_1074080976_hash_3_value = cms_1074080976_hash_3_2732.get({
-      cms_1074080976_key_27320,
+      meta.key_64b_0,
       32w0x1f3a2b4d
     });
   }
@@ -539,28 +539,27 @@ control Ingress(
   Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_2_3696;
   Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080976_hash_3_3696;
 
-  bit<64> cms_1074080976_key_36960 = 64w0;
   action cms_1074080976_hash_0_3696_calc_3696() {
     cms_1074080976_hash_0_value = cms_1074080976_hash_0_3696.get({
-      cms_1074080976_key_36960,
+      meta.key_64b_0,
       32w0xfbc31fc7
     });
   }
   action cms_1074080976_hash_1_3696_calc_3696() {
     cms_1074080976_hash_1_value = cms_1074080976_hash_1_3696.get({
-      cms_1074080976_key_36960,
+      meta.key_64b_0,
       32w0x2681580b
     });
   }
   action cms_1074080976_hash_2_3696_calc_3696() {
     cms_1074080976_hash_2_value = cms_1074080976_hash_2_3696.get({
-      cms_1074080976_key_36960,
+      meta.key_64b_0,
       32w0x486d7e2f
     });
   }
   action cms_1074080976_hash_3_3696_calc_3696() {
     cms_1074080976_hash_3_value = cms_1074080976_hash_3_3696.get({
-      cms_1074080976_key_36960,
+      meta.key_64b_0,
       32w0x1f3a2b4d
     });
   }
@@ -569,10 +568,9 @@ control Ingress(
     vector_table_1074110768_175_get_value_param0 = _vector_table_1074110768_175_get_value_param0;
   }
 
-  bit<32> vector_table_1074110768_175_key0 = 32w0;
   table vector_table_1074110768_175 {
     key = {
-      vector_table_1074110768_175_key0: exact;
+      meta.key_32b_0: exact;
     }
     actions = {
       vector_table_1074110768_175_get_value;
@@ -580,10 +578,9 @@ control Ingress(
     size = 36;
   }
 
-  bit<32> dchain_table_1074080560_174_key0 = 32w0;
   table dchain_table_1074080560_174 {
     key = {
-      dchain_table_1074080560_174_key0: exact;
+      meta.key_32b_0: exact;
     }
     actions = {
        NoAction;
@@ -597,10 +594,9 @@ control Ingress(
     vector_table_1074110768_183_get_value_param0 = _vector_table_1074110768_183_get_value_param0;
   }
 
-  bit<32> vector_table_1074110768_183_key0 = 32w0;
   table vector_table_1074110768_183 {
     key = {
-      vector_table_1074110768_183_key0: exact;
+      meta.key_32b_0: exact;
     }
     actions = {
       vector_table_1074110768_183_get_value;
@@ -618,7 +614,7 @@ control Ingress(
       if (hdr.recirc.code_path == 0) {
         // EP node  3696:CMSQuery
         // BDD node 147:cms_count_min(cms:(w64 1074080976), key:(w64 1074226482)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
-        cms_1074080976_key_36960 = hdr.hdr1.data3;
+        meta.key_64b_0 = hdr.hdr1.data3;
         cms_1074080976_hash_0_3696_calc_3696();
         cms_1074080976_hash_1_3696_calc_3696();
         cms_1074080976_hash_2_3696_calc_3696();
@@ -678,15 +674,15 @@ control Ingress(
           if(hdr.hdr2.isValid()) {
             // EP node  173:VectorTableLookup
             // BDD node 141:vector_borrow(vector:(w64 1074093552), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074225840)[ -> (w64 1074107448)])
-            vector_table_1074093552_141_key0 = meta.dev;
+            meta.key_32b_0 = meta.dev;
             vector_table_1074093552_141.apply();
             // EP node  299:Ignore
             // BDD node 142:vector_return(vector:(w64 1074093552), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074107448)[(ReadLSB w32 (w32 0) vector_data_512)])
             // EP node  370:MapTableLookup
             // BDD node 144:map_get(map:(w64 1074048576), key:(w64 1074223386)[(Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks)))))))))) -> (Concat w104 (Read w8 (w32 265) packet_chunks) (Concat w96 (Read w8 (w32 275) packet_chunks) (Concat w88 (Read w8 (w32 274) packet_chunks) (Concat w80 (Read w8 (w32 273) packet_chunks) (Concat w72 (Read w8 (w32 272) packet_chunks) (Concat w64 (Read w8 (w32 271) packet_chunks) (Concat w56 (Read w8 (w32 270) packet_chunks) (Concat w48 (Read w8 (w32 269) packet_chunks) (Concat w40 (Read w8 (w32 268) packet_chunks) (ReadLSB w32 (w32 512) packet_chunks))))))))))], value_out:(w64 1074226448)[(w32 4294967295) -> (ReadLSB w32 (w32 0) allocated_index_r6)])
-            map_table_1074048576_144_key0 = hdr.hdr2.data0;
-            map_table_1074048576_144_key1 = hdr.hdr1.data3;
-            map_table_1074048576_144_key2 = hdr.hdr1.data1;
+            meta.key_32b_0 = hdr.hdr2.data0;
+            meta.key_64b_1 = hdr.hdr1.data3;
+            meta.key_8b_2 = hdr.hdr1.data1;
             bool hit0 = map_table_1074048576_144.apply().hit;
             // EP node  431:If
             // BDD node 143:if ((Eq (w32 0) (ReadLSB w32 (w32 0) vector_data_512))
@@ -700,7 +696,7 @@ control Ingress(
                 // BDD node 145:if ((Eq (w32 0) (ReadLSB w32 (w32 0) map_has_this_key_r6))
                 // EP node  2732:CMSIncrement
                 // BDD node 146:cms_increment(cms:(w64 1074080976), key:(w64 1074226482)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
-                cms_1074080976_key_27320 = hdr.hdr1.data3;
+                meta.key_64b_0 = hdr.hdr1.data3;
                 cms_1074080976_hash_0_2732_calc_2732();
                 cms_1074080976_hash_1_2732_calc_2732();
                 cms_1074080976_hash_2_2732_calc_2732();
@@ -721,13 +717,13 @@ control Ingress(
                 // BDD node 145:if ((Eq (w32 0) (ReadLSB w32 (w32 0) map_has_this_key_r6))
                 // EP node  763:VectorTableLookup
                 // BDD node 175:vector_borrow(vector:(w64 1074110768), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074231752)[ -> (w64 1074124664)])
-                vector_table_1074110768_175_key0 = meta.dev;
+                meta.key_32b_0 = meta.dev;
                 vector_table_1074110768_175.apply();
                 // EP node  1146:Ignore
                 // BDD node 176:vector_return(vector:(w64 1074110768), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074124664)[(ReadLSB w16 (w32 0) vector_data_r4)])
                 // EP node  1430:DchainTableLookup
                 // BDD node 174:dchain_rejuvenate_index(chain:(w64 1074080560), index:(ReadLSB w32 (w32 0) allocated_index_r6), time:(ReadLSB w64 (w32 0) next_time))
-                dchain_table_1074080560_174_key0 = map_table_1074048576_144_get_value_param0;
+                meta.key_32b_0 = map_table_1074048576_144_get_value_param0;
                 dchain_table_1074080560_174.apply();
                 // EP node  1729:If
                 // BDD node 180:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_r4)))
@@ -750,7 +746,7 @@ control Ingress(
               // BDD node 143:if ((Eq (w32 0) (ReadLSB w32 (w32 0) vector_data_512))
               // EP node  575:VectorTableLookup
               // BDD node 183:vector_borrow(vector:(w64 1074110768), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074233160)[ -> (w64 1074124664)])
-              vector_table_1074110768_183_key0 = meta.dev;
+              meta.key_32b_0 = meta.dev;
               vector_table_1074110768_183.apply();
               // EP node  946:If
               // BDD node 188:if ((Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) vector_data_640)))

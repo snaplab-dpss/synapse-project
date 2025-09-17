@@ -368,6 +368,7 @@ control Ingress(
       guarded_map_table_1073923800_13_get_value;
     }
     size = 9103;
+    idle_timeout = true;
   }
 
   Register<bit<8>,_>(1, 0) guarded_map_table_1073923800_guard;

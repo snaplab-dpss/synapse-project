@@ -410,6 +410,7 @@ control Ingress(
       map_table_1074053168_167_get_value;
     }
     size = 72818;
+    idle_timeout = true;
   }
 
   table dchain_table_1074085152_189 {

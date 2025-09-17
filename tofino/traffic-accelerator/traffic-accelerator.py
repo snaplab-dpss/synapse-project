@@ -154,6 +154,16 @@ class Ports:
 
             self.port_table.entry_add(target, [key], [data])
 
+            data = self.port_table.make_data(
+                [
+                    gc.DataTuple("$SPEED", str_val=speed_conversion_table[speed]),
+                    gc.DataTuple("$FEC", str_val=fec_conversion_table[fec]),
+                    gc.DataTuple("$PORT_ENABLE", bool_val=False),
+                ]
+            )
+
+            self.port_table.entry_add(target, [key], [data])
+
     def add_port(self, front_panel_port, speed):
         self.add_ports([(front_panel_port, speed)])
 

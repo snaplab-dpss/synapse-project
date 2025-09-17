@@ -13,7 +13,7 @@ struct state_t : public nf_state_t {
   state_t()
     : ingress_port_to_nf_dev(),
       forwarding_tbl(),
-      map_table_1074044752("map_table_1074044752",{"Ingress.map_table_1074044752_142","Ingress.map_table_1074044752_159",}),
+      map_table_1074044752("map_table_1074044752",{"Ingress.map_table_1074044752_142","Ingress.map_table_1074044752_159",}, 1000LL),
       dchain_table_1074076736("dchain_table_1074076736",{"Ingress.dchain_table_1074076736_148","Ingress.dchain_table_1074076736_186",}, 1000LL),
       vector_table_1074077160("vector_table_1074077160",{"Ingress.vector_table_1074077160_139",}),
       vector_table_1074094376("vector_table_1074094376",{"Ingress.vector_table_1074094376_187","Ingress.vector_table_1074094376_149",})

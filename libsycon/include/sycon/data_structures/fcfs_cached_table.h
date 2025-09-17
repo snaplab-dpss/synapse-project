@@ -17,6 +17,7 @@ namespace sycon {
 class FCFSCachedTable : public SynapseDS {
 private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
+  std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
 
   std::vector<Table> tables;
   Register reg_alarm;
@@ -34,8 +35,9 @@ public:
       : SynapseDS(_name), tables(build_tables(table_names)), reg_alarm(reg_alarm_name), digest(digest_name), capacity(get_capacity(tables)),
         cache_capacity(reg_alarm.get_capacity()), key_size(get_key_size(tables)), cache_hash_size(get_cache_hash_size(cache_capacity)), crc32() {
     if (timeout.has_value()) {
-      Table &chosen_expiration_table = tables.front();
-      chosen_expiration_table.set_notify_mode(timeout.value(), this, FCFSCachedTable::expiration_callback, true);
+      for (Table &table : tables) {
+        table.set_notify_mode(timeout.value(), this, FCFSCachedTable::expiration_callback, true);
+      }
     }
 
     digest.register_callback(FCFSCachedTable::digest_callback, this);
@@ -130,7 +132,11 @@ private:
       ERROR("Target table %s not found", table_name.c_str());
     }
 
-    fcfs_ct->del(key_buffer);
+    fcfs_ct->expirations_per_key[key_buffer].insert(table_name);
+    if (fcfs_ct->expirations_per_key[key_buffer].size() == fcfs_ct->tables.size()) {
+      fcfs_ct->del(key_buffer);
+      fcfs_ct->expirations_per_key.erase(key_buffer);
+    }
 
     cfg.commit_dataplane_notification_transaction();
   }

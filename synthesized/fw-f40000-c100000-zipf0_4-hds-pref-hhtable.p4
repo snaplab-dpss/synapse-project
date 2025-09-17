@@ -362,6 +362,7 @@ control Ingress(
       map_table_1074044752_142_get_value;
     }
     size = 72818;
+    idle_timeout = true;
   }
 
   bit<16> vector_table_1074094376_149_get_value_param0 = 16w0;
@@ -407,6 +408,7 @@ control Ingress(
       map_table_1074044752_159_get_value;
     }
     size = 72818;
+    idle_timeout = true;
   }
 
   bit<16> vector_table_1074094376_187_get_value_param0 = 16w0;

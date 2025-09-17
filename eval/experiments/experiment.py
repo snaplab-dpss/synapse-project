@@ -14,7 +14,7 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from hosts.tofino_tg import TofinoTGController
+from hosts.tofino_tg import TofinoTGController, TofinoTG
 from hosts.pktgen import Pktgen
 
 MIN_THROUGHPUT = 100  # 1 Gbps
@@ -106,12 +106,12 @@ class Experiment:
         tg_controller.set_acceleration(1)
         pktgen.set_rate(PORT_SETUP_RATE)
 
+        tg_controller.wait_for_ports()
+        meta_port_stats_old = tg_controller.get_port_stats_from_meta_table()
+
         ports_are_ready = False
         while not ports_are_ready:
             ports_are_ready = True
-
-            tg_controller.wait_for_ports()
-            meta_port_stats_old = tg_controller.get_port_stats_from_meta_table()
 
             pktgen.start()
             sleep(PORT_SETUP_TIME_SEC)
@@ -276,22 +276,26 @@ class Experiment:
             search_steps=search_steps,
         )
 
-        bogus_retry = 1
-        while report.requested_bps == 0:
-            if bogus_retry > BOGUS_RETRIES:
-                self.log("Bogus retry limit reached, stopping search.")
-                break
+        # Not really a great ideia, because (1) we take longer to run experiments,
+        # and (2) sometimes the application behaves so badly that we can't even pass the
+        # warmup phase, and we get stuck in a loop. Might as well move on.
 
-            self.log("That was probably a bogus attempt, trying again...")
+        # bogus_retry = 0
+        # while report.requested_bps == 0:
+        #     if bogus_retry > BOGUS_RETRIES:
+        #         self.log("Bogus retry limit reached, stopping search.")
+        #         break
 
-            report = self.__find_stable_throughput(
-                tg_controller=tg_controller,
-                pktgen=pktgen,
-                churn=churn,
-                search_steps=search_steps,
-            )
+        #     self.log("That was probably a bogus attempt, trying again...")
 
-            bogus_retry += 1
+        #     report = self.__find_stable_throughput(
+        #         tg_controller=tg_controller,
+        #         pktgen=pktgen,
+        #         churn=churn,
+        #         search_steps=search_steps,
+        #     )
+
+        #     bogus_retry += 1
 
         return report
 

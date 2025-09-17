@@ -281,7 +281,6 @@ class SynapseThroughput(Experiment):
         current_iter: int,
     ) -> None:
         combinations = list(itertools.product(self.zipf_params, self.churn_values_fpm))
-        task_id = step_progress.add_task(f"{self.name} (it={current_iter})", total=len(combinations))
 
         # Check if we already have everything before running all the programs.
         completed = True
@@ -297,6 +296,8 @@ class SynapseThroughput(Experiment):
         if completed:
             return
 
+        task_id = step_progress.add_task(f"{self.name} (it={current_iter})", total=len(combinations))
+
         self.log("Installing Tofino TG")
         self.tput_hosts.tg_switch.install()
 
@@ -308,27 +309,8 @@ class SynapseThroughput(Experiment):
             src_in_repo=self.p4_src_in_repo,
         )
 
-        self.log("Launching Synapse controller")
-        self.tput_hosts.dut_controller.launch(
-            src_in_repo=self.controller_src_in_repo,
-            ports=self.dut_ports,
-        )
-
-        self.log("Launching pktgen")
-        self.tput_hosts.pktgen.launch(kvs_mode=self.kvs_mode)
-
         self.log("Waiting for Tofino TG")
         self.tput_hosts.tg_switch.wait_ready()
-
-        self.log("Configuring Tofino TG")
-        self.tput_hosts.tg_controller.setup(
-            broadcast=self.broadcast,
-            symmetric=self.symmetric,
-            route=self.route,
-        )
-
-        self.log("Waiting for pktgen")
-        self.tput_hosts.pktgen.wait_launch()
 
         self.log("Starting experiment")
 
@@ -355,13 +337,19 @@ class SynapseThroughput(Experiment):
                 self.kvs_server.launch(delay_ns=self.delay_ns)
                 self.kvs_server.wait_launch()
 
+            self.log("Configuring Tofino TG")
+            self.tput_hosts.tg_controller.setup(
+                broadcast=self.broadcast,
+                symmetric=self.symmetric,
+                route=self.route,
+            )
+
             self.log("Waiting for the Synapse controller")
             self.tput_hosts.dut_controller.stop()
             self.tput_hosts.dut_controller.launch(
                 src_in_repo=self.controller_src_in_repo,
                 ports=self.dut_ports,
             )
-            self.tput_hosts.dut_controller.wait_ready()
 
             self.log("Launching pktgen")
             self.tput_hosts.pktgen.close()
@@ -373,6 +361,7 @@ class SynapseThroughput(Experiment):
                 kvs_get_ratio=KVS_GET_RATIO,
             )
 
+            self.tput_hosts.dut_controller.wait_ready()
             self.tput_hosts.pktgen.wait_launch()
 
             report = self.find_stable_throughput(
@@ -398,6 +387,7 @@ class SynapseThroughput(Experiment):
 
         self.tput_hosts.pktgen.close()
         self.tput_hosts.dut_controller.stop()
+        self.tput_hosts.tg_switch.kill_switchd()
 
         if self.kvs_mode:
             assert self.kvs_server is not None

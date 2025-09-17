@@ -368,7 +368,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.9358974358974357,
-    "elapsed_time_seconds": 189,
+    "elapsed_time_seconds": 104,
     "finished_eps": 1,
     "ss_size": 237,
     "steps": 77,

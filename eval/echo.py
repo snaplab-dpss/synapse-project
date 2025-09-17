@@ -32,7 +32,7 @@ def main():
     hosts.tg_switch.launch()
 
     print("Launching DUT controller")
-    hosts.controller.launch("synthesized/synapse-echo.cpp")
+    hosts.dut_controller.launch("synthesized/synapse-echo.cpp")
 
     print("Launching pktgen")
     hosts.pktgen.launch(pkt_size=1024)
@@ -51,7 +51,7 @@ def main():
     hosts.pktgen.wait_launch()
 
     print("Waiting for DUT controller")
-    hosts.controller.wait_ready()
+    hosts.dut_controller.wait_ready()
 
     print("Finding stable throughput")
     experiment = Experiment("Echo NF")
