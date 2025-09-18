@@ -170,8 +170,8 @@ std::unique_ptr<EP> concretize_cached_table_write(const EP *ep, const BDDNode *n
 
   klee::ref<klee::Expr> cache_write_success_condition = build_cache_write_success_condition(cache_write_failed);
 
-  Module *module = new FCFSCachedTableWrite(ep->get_placement(node->get_id()), node, cached_table->id, cached_table_data.obj, cached_table_data.key,
-                                            cached_table_data.write_value, cache_write_failed);
+  Module *module                  = new FCFSCachedTableWrite(type.instance_id, node, cached_table->id, cached_table_data.obj, cached_table_data.key,
+                                                             cached_table_data.write_value, cache_write_failed);
   EPNode *cached_table_write_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -185,10 +185,10 @@ std::unique_ptr<EP> concretize_cached_table_write(const EP *ep, const BDDNode *n
 
   Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node, ep->get_active_target());
 
-  Module *if_module                 = new If(ep->get_placement(node->get_id()), node, cache_write_success_condition, {cache_write_success_condition});
-  Module *then_module               = new Then(ep->get_placement(node->get_id()), node);
-  Module *else_module               = new Else(ep->get_placement(node->get_id()), node);
-  Module *send_to_controller_module = new SendToController(ep->get_placement(on_cache_write_failed->get_id()), on_cache_write_failed, symbols);
+  Module *if_module                 = new If(type.instance_id, node, cache_write_success_condition, {cache_write_success_condition});
+  Module *then_module               = new Then(type.instance_id, node);
+  Module *else_module               = new Else(type.instance_id, node);
+  Module *send_to_controller_module = new SendToController(type.instance_id, on_cache_write_failed, symbols);
 
   EPNode *if_node                 = new EPNode(if_module);
   EPNode *then_node               = new EPNode(then_module);

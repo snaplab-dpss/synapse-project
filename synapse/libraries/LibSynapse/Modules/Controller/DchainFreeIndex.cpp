@@ -52,7 +52,7 @@ std::vector<impl_t> DchainFreeIndexFactory::process_node(const EP *ep, const BDD
     return {};
   }
 
-  Module *module  = new DchainFreeIndex(ep->get_placement(node->get_id()), node, dchain_addr, index);
+  Module *module  = new DchainFreeIndex(get_type().instance_id, node, dchain_addr, index);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

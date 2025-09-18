@@ -52,7 +52,7 @@ std::vector<impl_t> BroadcastFactory::process_node(const EP *ep, const BDDNode *
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new Broadcast(ep->get_placement(node->get_id()), node);
+  Module *module  = new Broadcast(get_type().instance_id, node);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());

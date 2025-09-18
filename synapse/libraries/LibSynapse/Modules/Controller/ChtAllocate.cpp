@@ -53,7 +53,7 @@ std::vector<impl_t> ChtAllocateFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  Module *module  = new ChtAllocate(ep->get_placement(node->get_id()), node, cht_addr, cht_height, capacity);
+  Module *module  = new ChtAllocate(get_type().instance_id, node, cht_addr, cht_height, capacity);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

@@ -86,7 +86,7 @@ std::vector<impl_t> DataplaneFCFSCachedTableReadFactory::process_node(const EP *
 
   const DS_ID id = get_cached_table_id(ep->get_ctx(), obj, target);
 
-  Module *module  = new DataplaneFCFSCachedTableRead(ep->get_placement(node->get_id()), node, id, obj, keys, value, found);
+  Module *module  = new DataplaneFCFSCachedTableRead(get_type().instance_id, node, id, obj, keys, value, found);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

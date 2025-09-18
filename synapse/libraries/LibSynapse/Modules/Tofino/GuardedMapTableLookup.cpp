@@ -91,8 +91,8 @@ std::vector<impl_t> GuardedMapTableLookupFactory::process_node(const EP *ep, con
     return {};
   }
 
-  Module *module  = new GuardedMapTableLookup(ep->get_placement(node->get_id()), node, guarded_map_table->id, data.obj, data.original_key, data.keys,
-                                              data.value, data.hit);
+  Module *module =
+      new GuardedMapTableLookup(get_type().instance_id, node, guarded_map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

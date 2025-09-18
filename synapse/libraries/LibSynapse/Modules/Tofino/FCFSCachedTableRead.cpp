@@ -39,9 +39,8 @@ std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *no
     return nullptr;
   }
 
-  Module *module =
-      new FCFSCachedTableRead(ep->get_placement(node->get_id()), node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj,
-                              cached_table_data.key, cached_table_data.read_value, cached_table_data.map_has_this_key);
+  Module *module  = new FCFSCachedTableRead(type.instance_id, node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj,
+                                            cached_table_data.key, cached_table_data.read_value, cached_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

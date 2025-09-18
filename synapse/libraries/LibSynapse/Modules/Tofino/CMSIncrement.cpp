@@ -97,7 +97,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNod
     return {};
   }
 
-  Module *module  = new CMSIncrement(node, cms->id, cms_data.obj, cms_data.keys);
+  Module *module  = new CMSIncrement(get_type().instance_id, node, cms->id, cms_data.obj, cms_data.keys);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

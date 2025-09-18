@@ -199,7 +199,7 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  Module *module  = new MeterUpdate(ep->get_placement(node->get_id()), node, data.id, data.obj, data.keys, data.pkt_len, data.hit, data.pass);
+  Module *module  = new MeterUpdate(get_type().instance_id, node, data.id, data.obj, data.keys, data.pkt_len, data.hit, data.pass);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

@@ -87,8 +87,8 @@ std::vector<impl_t> DataplaneHHTableReadFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  Module *module  = new DataplaneHHTableRead(ep->get_placement(node->get_id()), node, table_data.obj, table_data.key, table_data.read_value,
-                                             table_data.map_has_this_key);
+  Module *module =
+      new DataplaneHHTableRead(get_type().instance_id, node, table_data.obj, table_data.key, table_data.read_value, table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

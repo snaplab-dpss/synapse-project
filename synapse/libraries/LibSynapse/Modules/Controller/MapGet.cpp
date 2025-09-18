@@ -58,7 +58,7 @@ std::vector<impl_t> MapGetFactory::process_node(const EP *ep, const BDDNode *nod
     return {};
   }
 
-  Module *module  = new MapGet(ep->get_placement(node->get_id()), node, map_addr, key_addr, key, value_out, success, map_has_this_key);
+  Module *module  = new MapGet(get_type().instance_id, node, map_addr, key_addr, key, value_out, success, map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

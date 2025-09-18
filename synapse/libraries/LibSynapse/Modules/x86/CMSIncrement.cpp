@@ -54,15 +54,17 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNod
   const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
     return {};
   }
 
-  Module *module  = new CMSIncrement(ep->get_placement(node->get_id()), node, cms_addr, key);
+  Module *module  = new CMSIncrement(get_type().instance_id, node, cms_addr, key_addr, key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -86,15 +88,17 @@ std::unique_ptr<Module> CMSIncrementFactory::create(const BDD *bdd, const Contex
   const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::x86_CountMinSketch)) {
     return {};
   }
 
-  return std::make_unique<CMSIncrement>(get_type().instance_id, node, cms_addr, key);
+  return std::make_unique<CMSIncrement>(get_type().instance_id, node, cms_addr, key_addr, key);
 }
 
 } // namespace x86

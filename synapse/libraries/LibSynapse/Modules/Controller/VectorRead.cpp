@@ -63,7 +63,7 @@ std::vector<impl_t> VectorReadFactory::process_node(const EP *ep, const BDDNode 
     return {};
   }
 
-  Module *module  = new VectorRead(ep->get_placement(node->get_id()), node, vector_addr, index, value_addr, value);
+  Module *module  = new VectorRead(get_type().instance_id, node, vector_addr, index, value_addr, value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

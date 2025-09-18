@@ -55,7 +55,7 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const BDDNode *no
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module   = new Forward(ep->get_placement(node->get_id()), node, dst_device);
+  Module *module   = new Forward(get_type().instance_id, node, dst_device);
   EPNode *fwd_node = new EPNode(module);
 
   const EPLeaf leaf(fwd_node, node->get_next());

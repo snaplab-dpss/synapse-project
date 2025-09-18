@@ -8,20 +8,23 @@ namespace x86 {
 class CMSIncrement : public x86Module {
 private:
   addr_t cms_addr;
+  addr_t key_addr;
   klee::ref<klee::Expr> key;
 
 public:
-  CMSIncrement(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
-      : x86Module(ModuleType(ModuleCategory::x86_CMSIncrement, _instance_id), "CMSIncrement", _node), cms_addr(_cms_addr), key(_key) {}
+  CMSIncrement(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, addr_t _key_addr, klee::ref<klee::Expr> _key)
+      : x86Module(ModuleType(ModuleCategory::x86_CMSIncrement, _instance_id), "CMSIncrement", _node), cms_addr(_cms_addr), key_addr(_key_addr),
+        key(_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new CMSIncrement(get_type().instance_id, node, cms_addr, key);
+    Module *cloned = new CMSIncrement(get_type().instance_id, node, cms_addr, key_addr, key);
     return cloned;
   }
 
   addr_t get_cms_addr() const { return cms_addr; }
+  addr_t get_key_addr() const { return key_addr; }
   klee::ref<klee::Expr> get_key() const { return key; }
 };
 

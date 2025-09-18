@@ -229,10 +229,11 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
     return {};
   }
 
-  Module *guard_check_module = new GuardedMapTableGuardCheck(node, guarded_map_table->id, obj, guard_check_symbol, guard_allow_condition);
-  Module *if_module          = new If(node, guard_allow_condition);
-  Module *then_module        = new Then(node);
-  Module *else_module        = new Else(node);
+  Module *guard_check_module =
+      new GuardedMapTableGuardCheck(get_type().instance_id, node, guarded_map_table->id, obj, guard_check_symbol, guard_allow_condition);
+  Module *if_module   = new If(get_type().instance_id, node, guard_allow_condition);
+  Module *then_module = new Then(get_type().instance_id, node);
+  Module *else_module = new Else(get_type().instance_id, node);
 
   EPNode *guard_check_ep_node = new EPNode(guard_check_module);
   EPNode *if_ep_node          = new EPNode(if_module);

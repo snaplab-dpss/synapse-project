@@ -82,7 +82,7 @@ std::vector<impl_t> DataplaneGuardedMapTableLookupFactory::process_node(const EP
     return {};
   }
 
-  Module *module  = new DataplaneGuardedMapTableLookup(ep->get_placement(node->get_id()), node, data.obj, data.key, data.value, data.found);
+  Module *module  = new DataplaneGuardedMapTableLookup(get_type().instance_id, node, data.obj, data.key, data.value, data.found);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

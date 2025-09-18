@@ -10,7 +10,7 @@ std::optional<spec_impl_t> RecirculateFactory::speculate(const EP *ep, const BDD
 }
 
 std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
-  const TofinoContext *tofino_ctx = get_tofino_ctx(ep, target);
+  const TofinoContext *tofino_ctx = get_tofino_ctx(ep, get_target());
   std::unordered_set<DS_ID> deps  = tofino_ctx->get_stateful_deps(ep, node);
 
   const EPLeaf active_leaf = ep->get_active_leaf();

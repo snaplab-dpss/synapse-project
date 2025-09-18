@@ -63,7 +63,7 @@ std::vector<impl_t> DchainIsIndexAllocatedFactory::process_node(const EP *ep, co
   }
 
   symbol_t is_allocated = call_node->get_local_symbol("is_allocated");
-  Module *module        = new DchainIsIndexAllocated(ep->get_placement(node->get_id()), node, dchain_addr, index, is_allocated);
+  Module *module        = new DchainIsIndexAllocated(get_type().instance_id, node, dchain_addr, index, is_allocated);
   EPNode *ep_node       = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

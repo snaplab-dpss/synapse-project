@@ -7,38 +7,28 @@
 
 namespace LibClone {
 
-using LibSynapse::TargetArchitecture;
 using InstanceId = std::string;
 
 class Device {
 private:
-  const InstanceId id;
-  const TargetArchitecture architecture;
+  const LibSynapse::TargetType target;
 
 public:
   Device(const InstanceId &_id, const std::string &_arch)
-      : id(_id), architecture([&] {
+      : target([&] {
           if (_arch == "x86")
-            return TargetArchitecture::x86;
+            return LibSynapse::TargetType(LibSynapse::TargetArchitecture::x86, _id);
           if (_arch == "Tofino")
-            return TargetArchitecture::Tofino;
+            return LibSynapse::TargetType(LibSynapse::TargetArchitecture::Tofino, _id);
           if (_arch == "Controller")
-            return TargetArchitecture::Controller;
+            return LibSynapse::TargetType(LibSynapse::TargetArchitecture::Controller, _id);
           panic("Unknown architecture %s", _arch.c_str());
         }()) {}
 
-  const InstanceId &get_id() const { return id; }
-  const TargetArchitecture &get_architecture() const { return architecture; }
+  const LibSynapse::TargetType &get_target() const { return target; }
 
   friend std::ostream &operator<<(std::ostream &os, const Device &device) {
-    os << "Device{" << device.id << ", ";
-    if (device.architecture == TargetArchitecture::x86)
-      os << "x86";
-    else if (device.architecture == TargetArchitecture::Tofino)
-      os << "Tofino";
-    else if (device.architecture == TargetArchitecture::Controller)
-      os << "Controller";
-    os << "}";
+    os << "Device{" << device.target << "}";
     return os;
   }
 };

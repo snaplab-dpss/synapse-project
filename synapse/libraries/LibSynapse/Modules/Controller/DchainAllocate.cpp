@@ -50,7 +50,7 @@ std::vector<impl_t> DchainAllocateFactory::process_node(const EP *ep, const BDDN
     return {};
   }
 
-  Module *module  = new DchainAllocate(ep->get_placement(node->get_id()), node, dchain_addr);
+  Module *module  = new DchainAllocate(get_type().instance_id, node, dchain_addr);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

@@ -55,7 +55,7 @@ std::vector<impl_t> TokenBucketUpdateAndCheckFactory::process_node(const EP *ep,
     return {};
   }
 
-  Module *module  = new TokenBucketUpdateAndCheck(ep->get_placement(node->get_id()), node, tb_addr, index, pkt_len, time, pass);
+  Module *module  = new TokenBucketUpdateAndCheck(get_type().instance_id, node, tb_addr, index, pkt_len, time, pass);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

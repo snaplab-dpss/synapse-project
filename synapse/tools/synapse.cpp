@@ -278,6 +278,7 @@ int main(int argc, char **argv) {
   }
 
   const LibClone::PhysicalNetwork physical_network = LibClone::PhysicalNetwork::parse(args.physical_infrastructure_file);
+  physical_network.debug();
 
   SearchEngine engine(bdd, args.heuristic_opt, profiler, targets_config, args.search_config, physical_network);
   const search_report_t report = engine.search();

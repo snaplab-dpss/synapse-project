@@ -30,9 +30,9 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
   assert(branch_node->get_on_true() && "Branch node has no on_true");
   assert(branch_node->get_on_false() && "Branch node has no on_false");
 
-  Module *if_module   = new If(ep->get_placement(node->get_id()), node, condition);
-  Module *then_module = new Then(ep->get_placement(node->get_id()), node);
-  Module *else_module = new Else(ep->get_placement(node->get_id()), node);
+  Module *if_module   = new If(get_type().instance_id, node, condition);
+  Module *then_module = new Then(get_type().instance_id, node);
+  Module *else_module = new Else(get_type().instance_id, node);
 
   EPNode *if_node   = new EPNode(if_module);
   EPNode *then_node = new EPNode(then_module);

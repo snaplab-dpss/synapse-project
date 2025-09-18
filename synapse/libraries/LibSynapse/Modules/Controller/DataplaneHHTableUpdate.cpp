@@ -75,7 +75,7 @@ std::vector<impl_t> DataplaneHHTableUpdateFactory::process_node(const EP *ep, co
 
   const table_data_t table_data(ep->get_ctx(), map_put);
 
-  Module *module  = new DataplaneHHTableUpdate(ep->get_placement(node->get_id()), node, table_data.obj, table_data.table_keys, table_data.value);
+  Module *module  = new DataplaneHHTableUpdate(get_type().instance_id, node, table_data.obj, table_data.table_keys, table_data.value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

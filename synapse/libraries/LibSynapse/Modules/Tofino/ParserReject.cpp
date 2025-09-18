@@ -47,7 +47,7 @@ std::vector<impl_t> ParserRejectFactory::process_node(const EP *ep, const BDDNod
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new ParserReject(ep->get_placement(node->get_id()), node);
+  Module *module  = new ParserReject(get_type().instance_id, node);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());

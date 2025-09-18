@@ -8,6 +8,7 @@ namespace x86 {
 class TokenBucketTrace : public x86Module {
 private:
   addr_t tb_addr;
+  addr_t key_addr;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> pkt_len;
   klee::ref<klee::Expr> time;
@@ -15,19 +16,20 @@ private:
   klee::ref<klee::Expr> successfuly_tracing;
 
 public:
-  TokenBucketTrace(const std::string &_instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _pkt_len,
-                   klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
-      : x86Module(ModuleType(ModuleCategory::x86_TokenBucketTrace, _instance_id), "TokenBucketTrace", _node), tb_addr(_tb_addr), key(_key),
-        pkt_len(_pkt_len), time(_time), index_out(_index_out), successfuly_tracing(_is_tracing) {}
+  TokenBucketTrace(const std::string &_instance_id, const BDDNode *_node, addr_t _tb_addr, addr_t _key_addr, klee::ref<klee::Expr> _key,
+                   klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
+      : x86Module(ModuleType(ModuleCategory::x86_TokenBucketTrace, _instance_id), "TokenBucketTrace", _node), tb_addr(_tb_addr), key_addr(_key_addr),
+        key(_key), pkt_len(_pkt_len), time(_time), index_out(_index_out), successfuly_tracing(_is_tracing) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new TokenBucketTrace(get_type().instance_id, node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
+    Module *cloned = new TokenBucketTrace(get_type().instance_id, node, tb_addr, key_addr, key, pkt_len, time, index_out, successfuly_tracing);
     return cloned;
   }
 
   addr_t get_tb_addr() const { return tb_addr; }
+  addr_t get_key_addr() const { return key_addr; }
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_pkt_len() const { return pkt_len; }
   klee::ref<klee::Expr> get_time() const { return time; }

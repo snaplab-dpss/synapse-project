@@ -37,7 +37,7 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const BDDNode *node,
     return {};
   }
 
-  Module *module  = new Drop(ep->get_placement(node->get_id()), node);
+  Module *module  = new Drop(get_type().instance_id, node);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

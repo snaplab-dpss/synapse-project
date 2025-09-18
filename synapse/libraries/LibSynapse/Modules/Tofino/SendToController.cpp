@@ -35,49 +35,6 @@ using LibBDD::Call;
 using LibBDD::call_t;
 
 namespace {
-const EPNode *get_ep_node_from_bdd_node(const EP *ep, const BDDNode *node) {
-  std::vector<const EPNode *> ep_nodes;
-  for (const EPLeaf &leaf : ep->get_active_leaves()) {
-    if (leaf.node) {
-      ep_nodes.push_back(leaf.node);
-    }
-  }
-
-  while (!ep_nodes.empty()) {
-    const EPNode *ep_node = ep_nodes[0];
-    ep_nodes.erase(ep_nodes.begin());
-
-    const Module *module = ep_node->get_module();
-    assert(module && "Module not found");
-
-    if (module->get_node() == node) {
-      return ep_node;
-    }
-
-    const EPNode *prev = ep_node->get_prev();
-    if (prev) {
-      ep_nodes.push_back(prev);
-    }
-  }
-
-  return nullptr;
-}
-
-const EPNode *get_ep_node_leaf_from_future_bdd_node(const EP *ep, const BDDNode *node) {
-  const std::list<EPLeaf> &active_leaves = ep->get_active_leaves();
-
-  while (node) {
-    for (const EPLeaf &leaf : active_leaves) {
-      if (leaf.next == node) {
-        return leaf.node;
-      }
-    }
-
-    node = node->get_prev();
-  }
-
-  return nullptr;
-}
 
 std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node, const BDDNode *&next) {
   std::vector<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
@@ -113,19 +70,8 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
   const hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(hr);
 
-  const EPNode *ep_node = get_ep_node_from_bdd_node(ep, node);
-  if (!ep_node) {
-    ep_node = get_ep_node_leaf_from_future_bdd_node(ep, node);
-
-    if (!ep_node) {
-      panic("Could not find EPNode corresponding to BDDNode");
-    }
-  }
-
-  const std::string &instance_id = ep_node->get_module()->get_target().instance_id;
-
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
-  spec_impl.next_target = TargetType(TargetArchitecture::Controller, instance_id);
+  spec_impl.next_target = TargetType(TargetArchitecture::Controller, get_type().instance_id);
 
   return spec_impl;
 }
@@ -168,8 +114,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
   const EPNode *prev_node = active_leaf.node;
   const EPNode *curr_node = nullptr;
   while (prev_node) {
-    const Module *module    = prev_node->get_module();
-    std::string instance_id = module->get_type().instance_id;
+    const Module *module = prev_node->get_module();
     assert(module && "EPNode without module");
 
     prev_module_t prev_module{.module = module, .chosen_child = 0};
@@ -198,14 +143,14 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
   }
 
   for (const prev_module_t &prev : prev_modules) {
-    std::string instance_id = prev.module->get_type().instance_id;
     if (prev.module->get_type().type == ModuleCategory::Tofino_ParserExtraction) {
       const ParserExtraction *parser_extraction_module = dynamic_cast<const ParserExtraction *>(prev.module);
 
       klee::ref<klee::Expr> length = solver_toolbox.exprBuilder->Constant(parser_extraction_module->get_length(), 16);
 
-      Controller::ParseHeader *ctrl_parse_header = new Controller::ParseHeader(
-          instance_id, active_leaf.next, parser_extraction_module->get_hdr_addr(), parser_extraction_module->get_hdr(), length);
+      Controller::ParseHeader *ctrl_parse_header =
+          new Controller::ParseHeader(prev.module->get_type().instance_id, active_leaf.next, parser_extraction_module->get_hdr_addr(),
+                                      parser_extraction_module->get_hdr(), length);
 
       EPNode *parse_header_ep_node = new EPNode(ctrl_parse_header);
       initial_controller_logic.update(parse_header_ep_node);
@@ -503,12 +448,12 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
 
   const initial_controller_logic_t initial_controller_logic = build_initial_controller_logic(active_leaf);
 
-  Symbols symbols = get_relevant_dataplane_state(ep, node, target);
+  Symbols symbols = get_relevant_dataplane_state(ep, node, get_target());
   symbols.add(initial_controller_logic.extra_symbols);
   symbols.remove("packet_chunks");
   symbols.remove("next_time");
 
-  Module *module   = new SendToController(ep->get_placement(node->get_id()), node, symbols);
+  Module *module   = new SendToController(get_type().instance_id, node, symbols);
   EPNode *s2c_node = new EPNode(module);
 
   EPNode *ep_node_leaf = s2c_node;

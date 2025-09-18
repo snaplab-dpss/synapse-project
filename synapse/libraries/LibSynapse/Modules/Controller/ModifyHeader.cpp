@@ -54,7 +54,7 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const BDDNod
   if (changes.empty()) {
     new_ep->process_leaf(node->get_next());
   } else {
-    Module *module  = new ModifyHeader(ep->get_placement(node->get_id()), node, hdr_addr, changes, swaps);
+    Module *module  = new ModifyHeader(get_type().instance_id, node, hdr_addr, changes, swaps);
     EPNode *ep_node = new EPNode(module);
 
     const EPLeaf leaf(ep_node, node->get_next());

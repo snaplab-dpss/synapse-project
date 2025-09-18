@@ -70,7 +70,7 @@ std::vector<impl_t> DataplaneVectorRegisterUpdateFactory::process_node(const EP 
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module = new DataplaneVectorRegisterUpdate(ep->get_placement(node->get_id()), node, obj, index, value_addr, original_value, value, changes);
+  Module *module  = new DataplaneVectorRegisterUpdate(get_type().instance_id, node, obj, index, value_addr, original_value, value, changes);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());

@@ -122,8 +122,8 @@ std::unique_ptr<EP> concretize_cached_table_delete(const EP *ep, const Call *map
 
   klee::ref<klee::Expr> cache_delete_success_condition = build_cache_delete_success_condition(cache_delete_failed);
 
-  Module *module = new FCFSCachedTableDelete(ep->get_placement(map_erase->get_id()), map_erase, cached_table->id, cached_table_data.obj,
-                                             cached_table_data.key, cache_delete_failed);
+  Module *module =
+      new FCFSCachedTableDelete(type.instance_id, map_erase, cached_table->id, cached_table_data.obj, cached_table_data.key, cache_delete_failed);
   EPNode *cached_table_delete_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -137,10 +137,10 @@ std::unique_ptr<EP> concretize_cached_table_delete(const EP *ep, const Call *map
 
   Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, map_erase, ep->get_active_target());
 
-  Module *if_module   = new If(ep->get_placement(map_erase->get_id()), map_erase, cache_delete_success_condition, {cache_delete_success_condition});
-  Module *then_module = new Then(ep->get_placement(map_erase->get_id()), map_erase);
-  Module *else_module = new Else(ep->get_placement(map_erase->get_id()), map_erase);
-  Module *send_to_controller_module = new SendToController(ep->get_placement(on_cache_delete_failed->get_id()), on_cache_delete_failed, symbols);
+  Module *if_module                 = new If(type.instance_id, map_erase, cache_delete_success_condition, {cache_delete_success_condition});
+  Module *then_module               = new Then(type.instance_id, map_erase);
+  Module *else_module               = new Else(type.instance_id, map_erase);
+  Module *send_to_controller_module = new SendToController(type.instance_id, on_cache_delete_failed, symbols);
 
   EPNode *if_node                 = new EPNode(if_module);
   EPNode *then_node               = new EPNode(then_module);

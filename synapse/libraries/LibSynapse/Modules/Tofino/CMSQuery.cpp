@@ -99,7 +99,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const BDDNode *n
     return {};
   }
 
-  Module *module  = new CMSQuery(node, cms->id, cms_data.obj, cms_data.keys, cms_data.min_estimate);
+  Module *module  = new CMSQuery(get_type().instance_id, node, cms->id, cms_data.obj, cms_data.keys, cms_data.min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

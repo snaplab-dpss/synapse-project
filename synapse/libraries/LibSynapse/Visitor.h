@@ -151,6 +151,7 @@ class CMSCountMin;
 class CMSPeriodicCleanup;
 class ChtFindBackend;
 class HashObj;
+class SendToDevice;
 class TokenBucketIsTracing;
 class TokenBucketTrace;
 class TokenBucketUpdateAndCheck;
@@ -318,6 +319,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainFreeIndex *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ChtFindBackend *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::HashObj *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::SendToDevice *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketIsTracing *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketTrace *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketUpdateAndCheck *m) { return Action::doChildren; }
