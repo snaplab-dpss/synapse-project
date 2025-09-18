@@ -282,7 +282,6 @@ void EP::process_leaf(const BDDNode *next_node) {
 
   if (next_node) {
     active_leaves.emplace_back(active_leaf.node, next_node);
-    std::cout << "Process leaf current target - BDD Node: " << active_leaf.node->get_module()->get_next_target() << "\n";
     sort_leaves();
   }
 }
@@ -291,8 +290,7 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
   clear_caches();
 
   const TargetType current_target = get_active_target();
-  std::cout << "Process Leaf - Current Target: " << current_target << "\n";
-  const EPLeaf active_leaf = pop_active_leaf();
+  const EPLeaf active_leaf        = pop_active_leaf();
 
   if (!root) {
     root = std::unique_ptr<EPNode>(new_node);
