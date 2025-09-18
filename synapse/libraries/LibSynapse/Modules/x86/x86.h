@@ -29,6 +29,7 @@
 #include <LibSynapse/Modules/x86/CMSPeriodicCleanup.h>
 #include <LibSynapse/Modules/x86/HashObj.h>
 #include <LibSynapse/Modules/x86/ChtFindBackend.h>
+#include <LibSynapse/Modules/x86/SendToDevice.h>
 #include <LibSynapse/Modules/x86/TokenBucketExpire.h>
 #include <LibSynapse/Modules/x86/TokenBucketIsTracing.h>
 #include <LibSynapse/Modules/x86/TokenBucketTrace.h>
@@ -69,6 +70,7 @@ struct x86Target : public Target {
               f.push_back(std::make_unique<CMSPeriodicCleanupFactory>(_instance_id));
               f.push_back(std::make_unique<HashObjFactory>(_instance_id));
               f.push_back(std::make_unique<ChtFindBackendFactory>(_instance_id));
+              f.push_back(std::make_unique<SendToDeviceFactory>(_instance_id));
               f.push_back(std::make_unique<TokenBucketExpireFactory>(_instance_id));
               f.push_back(std::make_unique<TokenBucketIsTracingFactory>(_instance_id));
               f.push_back(std::make_unique<TokenBucketTraceFactory>(_instance_id));

@@ -2,6 +2,7 @@
 
 #include <LibCore/Debug.h>
 
+#include <queue>
 #include <fstream>
 #include <sstream>
 
@@ -43,7 +44,7 @@ std::unique_ptr<Device> parse_device(const std::vector<std::string> &words) {
 }
 
 void parse_placement(const std::vector<std::string> &words, const std::unordered_map<InstanceId, std::unique_ptr<Device>> &devices,
-                     std::unordered_map<ComponentId, NetworkNodeId> &placement) {
+                     std::unordered_map<ComponentId, LibSynapse::TargetType> &placement) {
   if (words.size() != LENGTH_PLACEMENT_INPUT) {
     panic("Invalid placement");
   }
@@ -59,7 +60,9 @@ void parse_placement(const std::vector<std::string> &words, const std::unordered
     panic("Component %d is already placed", component_id);
   }
 
-  placement[component_id] = instance;
+  const LibSynapse::TargetType target = devices.at(instance)->get_target();
+
+  placement[component_id] = target;
 }
 
 void parse_link(const std::vector<std::string> &words, const std::unordered_map<NFId, std::unique_ptr<Device>> &devices,
@@ -101,21 +104,82 @@ void parse_link(const std::vector<std::string> &words, const std::unordered_map<
 
   nodes.at(node1_id)->add_link(sport, dport, nodes.at(node2_id).get());
 }
+
+std::unordered_map<NetworkNodeId, Port> dijkstra(const std::unordered_map<NetworkNodeId, std::vector<std::pair<Port, NetworkNodeId>>> &links,
+                                                 const NetworkNodeId &src) {
+  std::unordered_map<NetworkNodeId, int> dist;
+  std::unordered_map<NetworkNodeId, Port> first_hop_port;
+  std::unordered_set<NetworkNodeId> visited;
+
+  using HeapElem = std::pair<int, NetworkNodeId>;
+  std::priority_queue<HeapElem, std::vector<HeapElem>, std::greater<HeapElem>> heap;
+
+  dist[src] = 0;
+  heap.push({0, src});
+
+  while (!heap.empty()) {
+    auto [cur_dist, u] = heap.top();
+    heap.pop();
+    if (visited.count(u))
+      continue;
+    visited.insert(u);
+
+    auto it = links.find(u);
+    if (it == links.end())
+      continue; // no outgoing edges
+
+    for (const auto &[out_port, v] : it->second) {
+      int new_dist = cur_dist + 1;
+      if (!dist.count(v) || new_dist < dist[v]) {
+        dist[v] = new_dist;
+        if (u == src) {
+          first_hop_port[v] = out_port;
+        } else {
+          first_hop_port[v] = first_hop_port[u];
+        }
+        if (v != "global_port")
+          heap.push({new_dist, v});
+      }
+    }
+  }
+
+  return first_hop_port;
+}
+
+std::unordered_map<NetworkNodeId, std::unordered_map<NetworkNodeId, Port>>
+build_forwarding_table(std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> &nodes) {
+  std::unordered_map<NetworkNodeId, std::unordered_map<NetworkNodeId, Port>> routing;
+
+  // Build adjacency list
+  std::unordered_map<NetworkNodeId, std::vector<std::pair<Port, NetworkNodeId>>> links;
+  for (const auto &[node_id, node] : nodes) {
+    for (const auto &[port, link] : node->get_links()) {
+      links[node_id].emplace_back(port, link.second->get_id());
+    }
+  }
+
+  for (const auto &[node_id, _] : nodes) {
+    routing[node_id] = dijkstra(links, node_id);
+  }
+
+  return routing;
+}
+
 } // namespace
 
-const NetworkNodeId PhysicalNetwork::get_placement(const ComponentId component_id) const {
+const LibSynapse::TargetType PhysicalNetwork::get_placement(const ComponentId component_id) const {
   if (placement_strategy.find(component_id) == placement_strategy.end()) {
     panic("Component ID %u not found in placement strategy!", component_id);
   }
   return placement_strategy.at(component_id);
 }
 
-PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &network_file) {
+const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &network_file) {
   std::ifstream fstream = open_file(network_file);
 
   std::unordered_map<InstanceId, std::unique_ptr<Device>> devices;
   std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> nodes;
-  std::unordered_map<ComponentId, NetworkNodeId> placement;
+  std::unordered_map<ComponentId, LibSynapse::TargetType> placement;
 
   std::string line;
   while (getline(fstream, line)) {
@@ -134,9 +198,9 @@ PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &network_file
     const std::string type = words[0];
 
     if (type == TOKEN_DEVICE) {
-      std::unique_ptr<Device> device = parse_device(words);
-      const InstanceId device_id     = device->get_id();
-      devices[device->get_id()]      = std::move(device);
+      std::unique_ptr<Device> device            = parse_device(words);
+      const InstanceId device_id                = device->get_target().instance_id;
+      devices[device->get_target().instance_id] = std::move(device);
     } else if (type == TOKEN_CMD_LINK) {
       parse_link(words, devices, nodes);
     } else if (type == TOKEN_CMD_PLACE) {
@@ -149,7 +213,9 @@ PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &network_file
     }
   }
 
-  return PhysicalNetwork(std::move(devices), std::move(nodes), std::move(placement));
+  std::unordered_map<NetworkNodeId, std::unordered_map<NetworkNodeId, Port>> forwarding_table = build_forwarding_table(nodes);
+
+  return PhysicalNetwork(std::move(devices), std::move(nodes), std::move(placement), std::move(forwarding_table));
 }
 
 } // namespace LibClone

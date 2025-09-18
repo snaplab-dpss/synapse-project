@@ -76,7 +76,7 @@ std::vector<impl_t> DataplaneMeterAllocateFactory::process_node(const EP *ep, co
     return {};
   }
 
-  Module *module = new DataplaneMeterAllocate(ep->get_placement(node->get_id()), node, data.obj, data.capacity, data.rate, data.burst, data.key_size);
+  Module *module  = new DataplaneMeterAllocate(get_type().instance_id, node, data.obj, data.capacity, data.rate, data.burst, data.key_size);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

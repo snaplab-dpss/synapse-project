@@ -72,7 +72,7 @@ std::vector<impl_t> DataplaneDchainTableFreeIndexFactory::process_node(const EP 
     return {};
   }
 
-  Module *module  = new DataplaneDchainTableFreeIndex(ep->get_placement(node->get_id()), node, data.obj, data.index);
+  Module *module  = new DataplaneDchainTableFreeIndex(get_type().instance_id, node, data.obj, data.index);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

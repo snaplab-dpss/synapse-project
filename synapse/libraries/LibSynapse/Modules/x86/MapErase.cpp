@@ -1,6 +1,8 @@
 #include <LibSynapse/Modules/x86/MapErase.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Expr.h>
+#include <klee/Expr.h>
+#include <klee/util/Ref.h>
 
 namespace LibSynapse {
 namespace x86 {
@@ -54,16 +56,18 @@ std::vector<impl_t> MapEraseFactory::process_node(const EP *ep, const BDDNode *n
   const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
   klee::ref<klee::Expr> trash         = call.args.at("trash").out;
 
   const addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
     return {};
   }
 
-  Module *module  = new MapErase(ep->get_placement(node->get_id()), node, map_addr, key, trash);
+  Module *module  = new MapErase(get_type().instance_id, node, map_addr, key_addr, key, trash);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -87,16 +91,18 @@ std::unique_ptr<Module> MapEraseFactory::create(const BDD *bdd, const Context &c
   const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
   klee::ref<klee::Expr> trash         = call.args.at("trash").out;
 
   const addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
+  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ctx.check_ds_impl(map_addr, DSImpl::x86_Map)) {
     return {};
   }
 
-  return std::make_unique<MapErase>(get_type().instance_id, node, map_addr, key, trash);
+  return std::make_unique<MapErase>(get_type().instance_id, node, map_addr, key_addr, key, trash);
 }
 
 } // namespace x86

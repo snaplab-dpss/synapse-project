@@ -54,16 +54,18 @@ std::vector<impl_t> CMSCountMinFactory::process_node(const EP *ep, const BDDNode
   const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   const addr_t cms_addr       = expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t key_addr       = expr_addr_to_obj_addr(key_addr_expr);
   const symbol_t min_estimate = call_node->get_local_symbol("min_estimate");
 
   if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
     return {};
   }
 
-  Module *module  = new CMSCountMin(ep->get_placement(node->get_id()), node, cms_addr, key, min_estimate.expr);
+  Module *module  = new CMSCountMin(get_type().instance_id, node, cms_addr, key_addr, key, min_estimate.expr);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -87,16 +89,18 @@ std::unique_ptr<Module> CMSCountMinFactory::create(const BDD *bdd, const Context
   const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   const addr_t cms_addr       = expr_addr_to_obj_addr(cms_addr_expr);
+  const addr_t key_addr       = expr_addr_to_obj_addr(key_addr_expr);
   const symbol_t min_estimate = call_node->get_local_symbol("min_estimate");
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::x86_CountMinSketch)) {
     return {};
   }
 
-  return std::make_unique<CMSCountMin>(get_type().instance_id, node, cms_addr, key, min_estimate.expr);
+  return std::make_unique<CMSCountMin>(get_type().instance_id, node, cms_addr, key_addr, key, min_estimate.expr);
 }
 
 } // namespace x86

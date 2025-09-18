@@ -89,7 +89,7 @@ std::vector<impl_t> DchainTableLookupFactory::process_node(const EP *ep, const B
     return {};
   }
 
-  Module *module  = new DchainTableLookup(ep->get_placement(node->get_id()), node, dchain_table->id, data.obj, data.key, data.hit);
+  Module *module  = new DchainTableLookup(get_type().instance_id, node, dchain_table->id, data.obj, data.key, data.hit);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

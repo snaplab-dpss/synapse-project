@@ -148,9 +148,9 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const BDD
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *if_module   = new ParserCondition(ep->get_placement(node->get_id()), node, original_condition);
-  Module *then_module = new Then(ep->get_placement(node->get_id()), node);
-  Module *else_module = new Else(ep->get_placement(node->get_id()), node);
+  Module *if_module   = new ParserCondition(get_type().instance_id, node, original_condition);
+  Module *then_module = new Then(get_type().instance_id, node);
+  Module *else_module = new Else(get_type().instance_id, node);
 
   EPNode *if_node   = new EPNode(if_module);
   EPNode *then_node = new EPNode(then_module);

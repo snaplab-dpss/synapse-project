@@ -53,7 +53,7 @@ std::vector<impl_t> MapAllocateFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  Module *module  = new MapAllocate(ep->get_placement(node->get_id()), node, map_addr, capacity, key_size);
+  Module *module  = new MapAllocate(get_type().instance_id, node, map_addr, capacity, key_size);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

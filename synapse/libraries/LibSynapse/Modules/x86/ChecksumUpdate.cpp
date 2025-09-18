@@ -51,7 +51,7 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const BDDN
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new ChecksumUpdate(ep->get_placement(node->get_id()), node, ip_hdr_addr, l4_hdr_addr, checksum);
+  Module *module  = new ChecksumUpdate(get_type().instance_id, node, ip_hdr_addr, l4_hdr_addr, checksum);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());

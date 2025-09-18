@@ -76,7 +76,7 @@ std::vector<impl_t> DataplaneDchainTableAllocateNewIndexFactory::process_node(co
     return {};
   }
 
-  Module *module  = new DataplaneDchainTableAllocateNewIndex(ep->get_placement(node->get_id()), node, data.obj, data.index, data.success);
+  Module *module  = new DataplaneDchainTableAllocateNewIndex(get_type().instance_id, node, data.obj, data.index, data.success);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

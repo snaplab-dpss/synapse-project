@@ -54,7 +54,7 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const BD
     }
   }
 
-  Module *module  = new ParserExtraction(ep->get_placement(node->get_id()), node, hdr_addr, hdr, length, hdr_fields_guess);
+  Module *module  = new ParserExtraction(get_type().instance_id, node, hdr_addr, hdr, length, hdr_fields_guess);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

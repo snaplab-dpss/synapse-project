@@ -91,8 +91,7 @@ std::vector<impl_t> MapTableLookupFactory::process_node(const EP *ep, const BDDN
     return {};
   }
 
-  Module *module =
-      new MapTableLookup(ep->get_placement(node->get_id()), node, map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
+  Module *module  = new MapTableLookup(get_type().instance_id, node, map_table->id, data.obj, data.original_key, data.keys, data.value, data.hit);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

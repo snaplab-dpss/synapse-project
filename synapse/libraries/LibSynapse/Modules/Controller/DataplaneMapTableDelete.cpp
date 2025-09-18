@@ -74,7 +74,7 @@ std::vector<impl_t> DataplaneMapTableDeleteFactory::process_node(const EP *ep, c
     return {};
   }
 
-  Module *module  = new DataplaneMapTableDelete(ep->get_placement(node->get_id()), node, data.obj, data.keys);
+  Module *module  = new DataplaneMapTableDelete(get_type().instance_id, node, data.obj, data.keys);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

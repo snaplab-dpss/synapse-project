@@ -511,6 +511,7 @@ void EP::assert_integrity() const {
 
   while (nodes.size()) {
     const EPNode *node = nodes.back();
+    // std::cerr << "CURRENT NODE: " << node->dump() << "\n";
     nodes.pop_back();
 
     assert_or_panic(node, "Null node");

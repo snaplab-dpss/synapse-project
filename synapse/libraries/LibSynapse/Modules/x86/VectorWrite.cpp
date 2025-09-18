@@ -79,7 +79,7 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const BDDNode
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new VectorWrite(ep->get_placement(node->get_id()), node, vector_addr, index, value_addr, changes);
+  Module *module  = new VectorWrite(get_type().instance_id, node, vector_addr, index, value_addr, changes);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());

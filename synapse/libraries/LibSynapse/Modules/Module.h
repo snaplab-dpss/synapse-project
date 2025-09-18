@@ -168,6 +168,7 @@ enum class ModuleCategory {
   x86_ExpireItemsSingleMapIteratively,
   x86_ChtFindBackend,
   x86_HashObj,
+  x86_SendToDevice,
   x86_TokenBucketIsTracing,
   x86_TokenBucketTrace,
   x86_TokenBucketUpdateAndCheck,
@@ -584,6 +585,9 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
     break;
   case ModuleCategory::x86_HashObj:
     os << "x86_HashObj";
+    break;
+  case ModuleCategory::x86_SendToDevice:
+    os << "x86_SendToDevice";
     break;
   case ModuleCategory::x86_TokenBucketIsTracing:
     os << "x86_TokenBucketIsTracing";

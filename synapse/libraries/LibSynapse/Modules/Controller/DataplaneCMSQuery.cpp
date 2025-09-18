@@ -76,7 +76,7 @@ std::vector<impl_t> DataplaneCMSQueryFactory::process_node(const EP *ep, const B
     return {};
   }
 
-  Module *module  = new DataplaneCMSQuery(ep->get_placement(node->get_id()), node, cms_data.obj, cms_data.key, cms_data.min_estimate);
+  Module *module  = new DataplaneCMSQuery(get_type().instance_id, node, cms_data.obj, cms_data.key, cms_data.min_estimate);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

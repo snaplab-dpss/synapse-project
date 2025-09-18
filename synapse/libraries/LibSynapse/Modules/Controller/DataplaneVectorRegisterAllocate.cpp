@@ -56,7 +56,7 @@ std::vector<impl_t> DataplaneVectorRegisterAllocateFactory::process_node(const E
     return {};
   }
 
-  Module *module  = new DataplaneVectorRegisterAllocate(ep->get_placement(node->get_id()), node, vector_addr, elem_size, capacity);
+  Module *module  = new DataplaneVectorRegisterAllocate(get_type().instance_id, node, vector_addr, elem_size, capacity);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

@@ -35,8 +35,11 @@ std::optional<spec_impl_t> CMSPeriodicCleanupFactory::speculate(const EP *ep, co
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call    = call_node->get_call();
 
-  klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
-  const addr_t cms_addr               = expr_addr_to_obj_addr(cms_addr_expr);
+  klee::ref<klee::Expr> cms_addr_expr   = call.args.at("cms").expr;
+  klee::ref<klee::Expr> time            = call.args.at("time").expr;
+  klee::ref<klee::Expr> cleanup_success = call_node->get_local_symbol("cleanup_success").expr;
+
+  const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
   if (!ctx.can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
     return {};
@@ -53,7 +56,9 @@ std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const 
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call    = call_node->get_call();
 
-  klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> cms_addr_expr   = call.args.at("cms").expr;
+  klee::ref<klee::Expr> time            = call.args.at("time").expr;
+  klee::ref<klee::Expr> cleanup_success = call_node->get_local_symbol("cleanup_success").expr;
 
   const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
@@ -61,7 +66,7 @@ std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const 
     return {};
   }
 
-  Module *module  = new CMSPeriodicCleanup(ep->get_placement(node->get_id()), node, cms_addr);
+  Module *module  = new CMSPeriodicCleanup(get_type().instance_id, node, cms_addr, time, cleanup_success);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -84,7 +89,9 @@ std::unique_ptr<Module> CMSPeriodicCleanupFactory::create(const BDD *bdd, const 
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call    = call_node->get_call();
 
-  klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> cms_addr_expr   = call.args.at("cms").expr;
+  klee::ref<klee::Expr> time            = call.args.at("time").expr;
+  klee::ref<klee::Expr> cleanup_success = call_node->get_local_symbol("cleanup_success").expr;
 
   const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
 
@@ -92,7 +99,7 @@ std::unique_ptr<Module> CMSPeriodicCleanupFactory::create(const BDD *bdd, const 
     return {};
   }
 
-  return std::make_unique<CMSPeriodicCleanup>(get_type().instance_id, node, cms_addr);
+  return std::make_unique<CMSPeriodicCleanup>(get_type().instance_id, node, cms_addr, time, cleanup_success);
 }
 
 } // namespace x86

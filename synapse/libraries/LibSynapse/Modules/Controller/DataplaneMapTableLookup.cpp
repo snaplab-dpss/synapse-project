@@ -82,7 +82,7 @@ std::vector<impl_t> DataplaneMapTableLookupFactory::process_node(const EP *ep, c
     return {};
   }
 
-  Module *module  = new DataplaneMapTableLookup(ep->get_placement(node->get_id()), node, data.obj, data.key, data.value, data.found);
+  Module *module  = new DataplaneMapTableLookup(get_type().instance_id, node, data.obj, data.key, data.value, data.found);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

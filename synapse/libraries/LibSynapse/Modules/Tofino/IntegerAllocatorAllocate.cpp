@@ -60,7 +60,7 @@ std::vector<impl_t> IntegerAllocatorAllocateFactory::process_node(const EP *ep, 
 
   // TODO: implement the actual data structure.
 
-  Module *module  = new IntegerAllocatorAllocate(ep->get_placement(node->get_id()), node, dchain_addr, time, index_out, not_out_of_space);
+  Module *module  = new IntegerAllocatorAllocate(get_type().instance_id, node, dchain_addr, time, index_out, not_out_of_space);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

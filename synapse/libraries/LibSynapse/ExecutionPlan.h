@@ -121,7 +121,7 @@ public:
   port_ingress_t get_node_egress(hit_rate_t hr, const EPNode *node) const;
   pps_t estimate_tput_pps() const;
 
-  const LibClone::NetworkNodeId get_placement(const LibClone::ComponentId component_id) const { return phys_net.get_placement(component_id); }
+  const TargetType get_placement(const LibClone::ComponentId component_id) const { return phys_net.get_placement(component_id); }
 
   // Sources of error:
   // 1. Speculative performance is calculated as we make the speculative decisions, so local speculative decisions don't take into

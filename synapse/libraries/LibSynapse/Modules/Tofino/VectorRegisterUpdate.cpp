@@ -114,7 +114,7 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  Module *module  = new VectorRegisterUpdate(node, vector_register->id, vector_register_data.obj, vector_register_data.index,
+  Module *module  = new VectorRegisterUpdate(get_type().instance_id, node, vector_register->id, vector_register_data.obj, vector_register_data.index,
                                              vector_register_data.value, vector_register_data.write_value);
   EPNode *ep_node = new EPNode(module);
 

@@ -54,7 +54,7 @@ std::vector<impl_t> TokenBucketIsTracingFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  Module *module  = new TokenBucketIsTracing(ep->get_placement(node->get_id()), node, tb_addr, key, index_out, is_tracing);
+  Module *module  = new TokenBucketIsTracing(get_type().instance_id, node, tb_addr, key, index_out, is_tracing);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
