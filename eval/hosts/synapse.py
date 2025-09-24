@@ -105,8 +105,8 @@ class SynapseController:
         for extra_arg in extra_args:
             cmd += f" {extra_arg[0]} {extra_arg[1]}"
 
-        self.controller_cmd = self.host.run_command(cmd, dir=src_path.parent)
         self.ready = False
+        self.controller_cmd = self.host.run_command(cmd, dir=src_path.parent)
 
     def relaunch_and_wait(
         self,
@@ -114,7 +114,7 @@ class SynapseController:
         ports: list[int],
         extra_args: list[tuple[str, Union[str, int, float]]] = [],
     ):
-        self.quit()
+        self.stop()
         self.launch(
             src_in_repo=src_in_repo,
             ports=ports,
@@ -197,15 +197,17 @@ class SynapseController:
         )
 
     def quit(self) -> None:
-        if self.controller_cmd is None:
+        self.host.log("Quitting controller...")
+
+        if not self.ready:
+            self.host.log("Tried quitting, but controller is not running. Ignoring request.")
             return
 
         assert self.ready, "Controller is not ready to quit"
+        assert self.controller_cmd, "Controller command is None"
 
-        self.controller_cmd.run_console_commands(
-            commands=["quit"],
-            console_pattern=SYNAPSE_BENCH_CONTROLLER_PROMPT,
-        )
+        self.controller_cmd.run_console_commands(commands=["quit"])
+        self.host.log("Controller terminated successfully.")
 
         self.ready = False
         self.controller_cmd = None
@@ -230,21 +232,20 @@ class SynapseController:
         return in_pkts, cpu_pkts, total_pkts
 
     def stop(self):
-        if self.controller_cmd is None:
+        self.host.log("Stopping controller...")
+
+        if not self.exe:
+            self.host.log("Requested stopping controller, but no executable found. Ignoring request.")
             return
 
-        self.host.run_command(f'sudo pkill -f "synapse"').watch()
+        self.host.run_command(f"sudo killall {self.exe}").watch()
+        self.host.log("Controller killed successfully.")
 
-        if self.exe:
-            self.host.run_command(f"sudo killall {self.exe}").watch()
-
-        self.host.log("Controller exited successfuly.")
-
-        self.controller_cmd = None
-        self.exe = None
         self.ready = False
+        self.controller_cmd = None
 
     def __del__(self):
+        self.host.log("Controller destructor called, stopping controller if running...")
         try:
             self.stop()
         except ssh_exception.SSHException:

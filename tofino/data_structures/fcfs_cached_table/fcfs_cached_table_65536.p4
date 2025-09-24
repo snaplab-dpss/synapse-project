@@ -45,10 +45,11 @@ enum bit<2> fwd_op_t {
 }
 
 // Entry Timeout Expiration (units of 65536 ns).
-#define ENTRY_TIMEOUT 16384 // 1 s
-#define FCFS_CT_CACHE_CAPACITY 1024
+// #define ENTRY_TIMEOUT 1024 // 0.0625 s
+#define ENTRY_TIMEOUT 4096 // 0.25 s
+#define FCFS_CT_CACHE_CAPACITY 65536
 
-typedef bit<10> fcfs_ct_hash_t;
+typedef bit<16> fcfs_ct_hash_t;
 
 header cpu_h {
 	bit<16>	code_path;                   // Written by the data plane
@@ -310,21 +311,21 @@ control Ingress(
 		});
 	}
 
-	Register<time_t, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_alarm_reg;
+	Register<time_t, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_liveness_reg;
 
-	RegisterAction<time_t, fcfs_ct_hash_t, bool>(fcfs_ct_alarm_reg) fcfs_ct_update_alarm = {
+	RegisterAction<time_t, fcfs_ct_hash_t, bool>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check = {
 		void apply(inout time_t alarm, out bool alive) {
 			if (meta.time > alarm) {
 				alive = false;
+				alarm = meta.time + ENTRY_TIMEOUT;
 			} else {
 				alive = true;
 			}
-			alarm = meta.time + ENTRY_TIMEOUT;
 		}
 	};
 
 	bool fcfs_ct_valid;
-	action fcfs_ct_update_alarm_execute() { fcfs_ct_valid = fcfs_ct_update_alarm.execute(fcfs_ct_hash); }
+	action fcfs_ct_liveness_check_execute() { fcfs_ct_valid = fcfs_ct_liveness_check.execute(fcfs_ct_hash); }
 
 	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_0;
 	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_1;
@@ -436,7 +437,7 @@ control Ingress(
 			} else {
 				bool fcfs_ct_cache_hit = true;
 				fcfs_ct_calc_hash();
-				fcfs_ct_update_alarm_execute();
+				fcfs_ct_liveness_check_execute();
 				if (fcfs_ct_valid) {
 					fcfs_ct_read_key_0_execute();
 					fcfs_ct_read_key_1_execute();

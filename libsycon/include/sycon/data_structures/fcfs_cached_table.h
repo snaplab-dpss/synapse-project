@@ -54,6 +54,11 @@ public:
   }
 
   void put(const buffer_t &k, u32 v) {
+    if (cache.size() >= capacity) {
+      LOG("WARNING: Attempted to add key to map, but map is full (capacity=%u)", capacity);
+      return;
+    }
+
     buffer_t value(4);
     value.set(0, 4, v);
 
@@ -168,7 +173,6 @@ private:
       }
 
       fcfs_ct->put(key, value);
-      fcfs_ct->reg_alarm.set(hash, 0);
     }
 
     fcfs_ct->digest.notify_ack(learn_msg_hdl);

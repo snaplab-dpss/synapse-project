@@ -63,7 +63,11 @@ class Pktgen:
 
         assert self.host.remote_file_exists(self.pktgen_exe)
 
-    def _run_commands(self, cmds: Union[str, list[str]], wait_from_prompt: bool = True) -> str:
+    def _run_commands(
+        self,
+        cmds: Union[str, list[str]],
+        wait_from_prompt: bool = True,
+    ) -> str:
         assert self.pktgen_active
         return self.pktgen.run_console_commands(
             cmds,
@@ -200,7 +204,9 @@ class Pktgen:
     def close(self) -> None:
         if not self.pktgen_active:
             return
+
         self._run_commands("quit", wait_from_prompt=False)
+
         self.pktgen_active = False
         self.host.log("Pktgen exited successfuly.")
 

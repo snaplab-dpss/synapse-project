@@ -357,7 +357,7 @@ class SynapseThroughput(Experiment):
                 nb_flows=self.total_flows,
                 traffic_dist=TrafficDist.ZIPF,
                 zipf_param=s,
-                kvs_mode=True,
+                kvs_mode=self.kvs_mode,
                 kvs_get_ratio=KVS_GET_RATIO,
             )
 

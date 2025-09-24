@@ -20,7 +20,7 @@ KVS_GET_RATIO = 0.99
 
 TOTAL_FLOWS = 40_000
 CHURN_FPM = 100_000
-ZIPF_PARAM = 1.2
+ZIPF_PARAM = 0
 
 
 @dataclass
@@ -50,9 +50,9 @@ NFS = [
     NF(
         name="fcfs_cached_table",
         description="FCFSCachedTable",
-        tofino=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table.p4"),
+        tofino=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table_65536.p4"),
         controller=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table.cpp"),
-        kvs_mode=True,
+        kvs_mode=False,
     ),
 ]
 
@@ -109,15 +109,6 @@ class Test(Experiment):
             src_in_repo=self.p4_src_in_repo,
         )
 
-        self.log("Launching pktgen")
-        self.tput_hosts.pktgen.launch(
-            nb_flows=self.total_flows,
-            traffic_dist=TrafficDist.ZIPF,
-            zipf_param=self.zipf_param,
-            kvs_mode=self.kvs_server is not None,
-            kvs_get_ratio=KVS_GET_RATIO,
-        )
-
         self.log("Waiting for Tofino TG")
         self.tput_hosts.tg_switch.wait_ready()
 
@@ -126,6 +117,15 @@ class Test(Experiment):
             broadcast=self.tg_dut_ports,
             symmetric=[],
             route=[],
+        )
+
+        self.log("Launching pktgen")
+        self.tput_hosts.pktgen.launch(
+            nb_flows=self.total_flows,
+            traffic_dist=TrafficDist.ZIPF,
+            zipf_param=self.zipf_param,
+            kvs_mode=self.kvs_server is not None,
+            kvs_get_ratio=KVS_GET_RATIO,
         )
 
         self.tput_hosts.dut_controller.launch(
@@ -165,6 +165,8 @@ class Test(Experiment):
 
         self.tput_hosts.pktgen.close()
         self.tput_hosts.dut_controller.quit()
+        self.tput_hosts.tg_switch.kill_switchd()
+
         if self.kvs_server:
             self.kvs_server.kill_server()
 

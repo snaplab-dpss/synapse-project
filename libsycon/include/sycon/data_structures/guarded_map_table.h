@@ -51,6 +51,11 @@ public:
   }
 
   void put(const buffer_t &k, u32 v) {
+    if (cache.size() >= capacity) {
+      LOG("WARNING: Attempted to add key to an already full guarded map table (capacity=%u)", capacity);
+      return;
+    }
+
     buffer_t value(4);
     value.set(0, 4, v);
 

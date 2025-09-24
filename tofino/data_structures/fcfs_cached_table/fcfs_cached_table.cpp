@@ -9,7 +9,7 @@ struct state_t : public nf_state_t {
 
   state_t()
       : ingress_port_to_nf_dev(), forwarding_tbl(),
-        fcfs_cached_table("fcfs_cached_table", {"Ingress.fcfs_ct_table"}, "Ingress.fcfs_ct_alarm_reg", "IngressDeparser.fcfs_ct_digest", 1000LL) {}
+        fcfs_cached_table("fcfs_cached_table", {"Ingress.fcfs_ct_table"}, "Ingress.fcfs_ct_liveness_reg", "IngressDeparser.fcfs_ct_digest", 1000LL) {}
 };
 
 state_t *state = nullptr;

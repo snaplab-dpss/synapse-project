@@ -14,7 +14,7 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from hosts.tofino_tg import TofinoTGController, TofinoTG
+from hosts.tofino_tg import TofinoTGController
 from hosts.pktgen import Pktgen
 
 MIN_THROUGHPUT = 100  # 1 Gbps
@@ -107,16 +107,15 @@ class Experiment:
         pktgen.set_rate(PORT_SETUP_RATE)
 
         tg_controller.wait_for_ports()
-        meta_port_stats_old = tg_controller.get_port_stats_from_meta_table()
 
         ports_are_ready = False
         while not ports_are_ready:
             ports_are_ready = True
 
+            meta_port_stats_old = tg_controller.get_port_stats_from_meta_table()
             pktgen.start()
             sleep(PORT_SETUP_TIME_SEC)
             pktgen.stop()
-
             meta_port_stats_new = tg_controller.get_port_stats_from_meta_table()
 
             self.log()
@@ -186,7 +185,6 @@ class Experiment:
             sleep(WARMUP_TIME_SEC)
             pktgen.set_rate(current_rate)
             pktgen.set_churn(churn)
-            sleep(WARMUP_TIME_SEC)
             tg_controller.reset_stats()
             pktgen.reset_stats()
             sleep(ITERATION_DURATION_SEC)

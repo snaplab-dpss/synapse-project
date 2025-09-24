@@ -169,15 +169,9 @@ class TofinoTGController:
         return all([state.up for state in port_state.values()])
 
     def wait_for_ports(self) -> None:
-        retries = 0
         while not self.are_all_ports_ready():
             self.host.log("Not all ports are up, waiting 5s and retrying...")
             time.sleep(5)
-            retries += 1
-
-            if retries >= 10:
-                self.host.log("Ports cannot be brought up, resetting configuration...")
-                self.setup(self.broadcast_ports, self.symmetric_ports, [])
 
     def get_port_stats_from_meta_table(self) -> dict[int, MetaPortStats]:
         target_dir = self.repo / "tofino" / self.app_name

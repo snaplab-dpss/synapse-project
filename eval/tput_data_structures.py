@@ -30,7 +30,7 @@ ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.2]
 
-ITERATIONS = 10
+ITERATIONS = 3
 
 
 @dataclass
@@ -52,14 +52,25 @@ NFS = [
     #     controller=Path("tofino/data_structures/map_table/map_table.cpp"),
     #     kvs_mode=False,
     # ),
-    NF(
-        name="cuckoo_hash_table",
-        description="CuckooHashTable",
-        data_out=Path("tput_cuckoo_hash_table.csv"),
-        tofino=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.p4"),
-        controller=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.cpp"),
-        kvs_mode=True,
-    ),
+    # NF(
+    #     name="cuckoo_hash_table",
+    #     description="CuckooHashTable",
+    #     data_out=Path("tput_cuckoo_hash_table.csv"),
+    #     tofino=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.p4"),
+    #     controller=Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.cpp"),
+    #     kvs_mode=True,
+    # ),
+    *[
+        NF(
+            name="fcfs_cached_table",
+            description="FCFSCachedTable",
+            data_out=Path(f"tput_fcfs_cached_table_{cache_capacity}.csv"),
+            tofino=Path(f"tofino/data_structures/fcfs_cached_table/fcfs_cached_table_{cache_capacity}.p4"),
+            controller=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table.cpp"),
+            kvs_mode=False,
+        )
+        for cache_capacity in [4096, 8192, 16384, 32768, 65536]
+    ],
 ]
 
 
@@ -141,7 +152,6 @@ class Throughput(Experiment):
         current_iter: int,
     ) -> None:
         combinations = list(itertools.product(self.zipf_params, self.churn_values_fpm))
-        task_id = step_progress.add_task(f"{self.name} (it={current_iter})", total=len(combinations))
 
         # Check if we already have everything before running all the programs.
         completed = True
@@ -156,6 +166,8 @@ class Throughput(Experiment):
                 break
         if completed:
             return
+
+        task_id = step_progress.add_task(f"{self.name} (it={current_iter})", total=len(combinations))
 
         self.log("Installing Tofino TG")
         self.tput_hosts.tg_switch.install()
@@ -248,7 +260,9 @@ class Throughput(Experiment):
             step_progress.update(task_id, description=description, advance=1)
 
         self.tput_hosts.pktgen.close()
-        self.tput_hosts.dut_controller.quit()
+        self.tput_hosts.dut_controller.stop()
+        self.tput_hosts.tg_switch.kill_switchd()
+
         if self.kvs_server:
             self.kvs_server.kill_server()
 
