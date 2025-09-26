@@ -63,8 +63,7 @@ struct read_write_pattern_t {
 
 hit_rate_t calculate_expected_cache_hit_rate(const EP *ep, const BDDNode *node, const read_write_pattern_t &read_write_pattern,
                                              klee::ref<klee::Expr> key, u32 capacity) {
-  const std::vector<klee::ref<klee::Expr>> constraints  = node->get_ordered_branch_constraints();
-  const flow_stats_t flow_stats                         = ep->get_ctx().get_profiler().get_flow_stats(constraints, key);
+  const flow_stats_t flow_stats                         = ep->get_ctx().get_profiler().get_flow_stats(node, key);
   const hit_rate_t probability_of_finding_item_in_table = flow_stats.calculate_top_k_hit_rate(capacity);
   const hit_rate_t expected_cache_hit_rate              = 1_hr - ((1_hr - probability_of_finding_item_in_table) * 1.7);
   return expected_cache_hit_rate;

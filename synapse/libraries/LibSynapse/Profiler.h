@@ -140,7 +140,6 @@ struct ProfilerNode {
   klee::ref<klee::Expr> constraint;
   hit_rate_t fraction;
   std::optional<bdd_node_id_t> bdd_node_id;
-  std::vector<flow_stats_t> flows_stats;
   std::optional<fwd_stats_t> forwarding_stats;
   std::optional<fwd_stats_t> original_forwarding_stats;
 
@@ -175,9 +174,10 @@ struct ProfilerNode {
 class Profiler {
 private:
   const std::shared_ptr<bdd_profile_t> bdd_profile;
+  const bytes_t avg_pkt_size;
 
   std::shared_ptr<ProfilerNode> root;
-  bytes_t avg_pkt_size;
+  std::unordered_map<bdd_node_id_t, std::vector<flow_stats_t>> flows_stats_per_bdd_node;
 
   // Not the prettiest solution, but will do.
   // We cache on reads, and invalidate on writes.
@@ -217,13 +217,9 @@ public:
   hit_rate_t get_hr(const EPNode *node) const;
   hit_rate_t get_hr(const BDDNode *node) const;
 
-  fwd_stats_t get_fwd_stats(const EPNode *node) const;
+  flow_stats_t get_flow_stats(const BDDNode *node, klee::ref<klee::Expr> flow) const;
   fwd_stats_t get_fwd_stats(const BDDNode *node) const;
-
-  std::unordered_set<u16> get_candidate_fwd_ports(const EPNode *node) const;
   std::unordered_set<u16> get_candidate_fwd_ports(const BDDNode *node) const;
-
-  flow_stats_t get_flow_stats(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> flow) const;
   rw_fractions_t get_cond_map_put_rw_profile_fractions(const Call *map_get) const;
 
   void clear_cache() const;

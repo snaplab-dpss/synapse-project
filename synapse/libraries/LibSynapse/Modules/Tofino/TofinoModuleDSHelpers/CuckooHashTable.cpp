@@ -105,10 +105,9 @@ hit_rate_t TofinoModuleFactory::get_cuckoo_hash_table_hit_success_rate(const EP 
                                                                        klee::ref<klee::Expr> key, u32 capacity) {
   constexpr const u32 THRESHOLD{16383};
 
-  const std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
-  const flow_stats_t flow_stats                        = ctx.get_profiler().get_flow_stats(constraints, key);
-  const bdd_profile_t *bdd_profile                     = ctx.get_profiler().get_bdd_profile();
-  const hit_rate_t node_hr                             = ctx.get_profiler().get_hr(node);
+  const flow_stats_t flow_stats    = ctx.get_profiler().get_flow_stats(node, key);
+  const bdd_profile_t *bdd_profile = ctx.get_profiler().get_bdd_profile();
+  const hit_rate_t node_hr         = ctx.get_profiler().get_hr(node);
 
   u64 top_k = 0;
   for (size_t k = 0; k <= capacity && k < flow_stats.pkts_per_flow.size(); k++) {

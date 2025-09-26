@@ -112,10 +112,9 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, cons
                                                               klee::ref<klee::Expr> key, u32 capacity, u32 cms_width) {
   constexpr const u32 THRESHOLD{16383};
 
-  const std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
-  const flow_stats_t flow_stats                        = ctx.get_profiler().get_flow_stats(constraints, key);
-  const bdd_profile_t *bdd_profile                     = ctx.get_profiler().get_bdd_profile();
-  const hit_rate_t node_hr                             = ctx.get_profiler().get_hr(node);
+  const flow_stats_t flow_stats    = ctx.get_profiler().get_flow_stats(node, key);
+  const bdd_profile_t *bdd_profile = ctx.get_profiler().get_bdd_profile();
+  const hit_rate_t node_hr         = ctx.get_profiler().get_hr(node);
 
   const double rate                      = node_hr.value * ep->estimate_tput_pps();
   const fpm_t churn_top_k_flows          = bdd_profile->churn_top_k_flows(map, capacity);

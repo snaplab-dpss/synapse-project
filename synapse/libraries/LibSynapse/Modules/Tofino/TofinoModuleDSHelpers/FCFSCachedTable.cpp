@@ -123,14 +123,11 @@ bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const
 }
 
 hit_rate_t TofinoModuleFactory::get_fcfs_cache_success_rate(const Context &ctx, const BDDNode *node, klee::ref<klee::Expr> key, u32 cache_capacity) {
-  const std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
-  const flow_stats_t flow_stats                        = ctx.get_profiler().get_flow_stats(constraints, key);
-
-  const u64 avg_pkts_per_flow = flow_stats.pkts / flow_stats.flows;
-  const u64 cached_packets    = std::min(flow_stats.pkts, avg_pkts_per_flow * cache_capacity);
+  const flow_stats_t flow_stats = ctx.get_profiler().get_flow_stats(node, key);
+  const u64 avg_pkts_per_flow   = flow_stats.pkts / flow_stats.flows;
+  const u64 cached_packets      = std::min(flow_stats.pkts, avg_pkts_per_flow * cache_capacity);
   const hit_rate_t hit_rate(cached_packets, flow_stats.pkts);
 
-  // std::cerr << "node: " << node->dump(true, true) << "\n";
   // std::cerr << "avg_pkts_per_flow: " << avg_pkts_per_flow << std::endl;
   // std::cerr << "cached_packets: " << cached_packets << std::endl;
   // std::cerr << "hit_rate: " << hit_rate << std::endl;

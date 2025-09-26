@@ -150,7 +150,6 @@ ProfilerNode *ProfilerNode::clone(bool keep_bdd_info) const {
     new_node->bdd_node_id = bdd_node_id;
   }
 
-  new_node->flows_stats               = flows_stats;
   new_node->forwarding_stats          = forwarding_stats;
   new_node->original_forwarding_stats = original_forwarding_stats;
   new_node->candidate_fwd_ports       = candidate_fwd_ports;
@@ -198,11 +197,6 @@ std::ostream &operator<<(std::ostream &os, const ProfilerNode &node) {
     os << "}";
   }
 
-  if (!node.flows_stats.empty()) {
-    os << ", ";
-    os << "|flows_stats|=" << node.flows_stats.size();
-  }
-
   os << ">";
 
   return os;
@@ -237,28 +231,19 @@ void ProfilerNode::debug(int lvl) const {
   }
 }
 
-flow_stats_t ProfilerNode::get_flow_stats(klee::ref<klee::Expr> flow_id) const {
-  for (const flow_stats_t &stats : flows_stats) {
+flow_stats_t Profiler::get_flow_stats(const BDDNode *node, klee::ref<klee::Expr> flow_id) const {
+  auto found_it = flows_stats_per_bdd_node.find(node->get_id());
+  if (found_it == flows_stats_per_bdd_node.end()) {
+    panic("Flow stats not found for BDD node %s", node->dump(true).c_str());
+  }
+
+  for (const flow_stats_t &stats : found_it->second) {
     if (solver_toolbox.are_exprs_always_equal(flow_id, stats.flow_id)) {
       return stats;
     }
   }
 
-  panic("Flow stats not found");
-}
-
-fwd_stats_t Profiler::get_fwd_stats(const std::vector<klee::ref<klee::Expr>> &constraints) const {
-  ProfilerNode *profiler_node = get_node(constraints);
-  assert(profiler_node && "Profiler node not found");
-  assert(profiler_node->forwarding_stats.has_value());
-  return profiler_node->forwarding_stats.value();
-}
-
-fwd_stats_t Profiler::get_fwd_stats(const EPNode *node) const {
-  ProfilerNode *profiler_node = get_node(node);
-  assert(profiler_node && "Profiler node not found");
-  assert(profiler_node->forwarding_stats.has_value());
-  return profiler_node->forwarding_stats.value();
+  panic("Flow stats not found for BDD node %s (flow not found)", node->dump(true).c_str());
 }
 
 fwd_stats_t Profiler::get_fwd_stats(const BDDNode *node) const {
@@ -268,12 +253,6 @@ fwd_stats_t Profiler::get_fwd_stats(const BDDNode *node) const {
   return profiler_node->forwarding_stats.value();
 }
 
-std::unordered_set<u16> Profiler::get_candidate_fwd_ports(const EPNode *node) const {
-  ProfilerNode *profiler_node = get_node(node);
-  assert(profiler_node && "Profiler node not found");
-  return profiler_node->candidate_fwd_ports;
-}
-
 std::unordered_set<u16> Profiler::get_candidate_fwd_ports(const BDDNode *node) const {
   ProfilerNode *profiler_node = get_node(node);
   assert(profiler_node && "Profiler node not found");
@@ -281,7 +260,7 @@ std::unordered_set<u16> Profiler::get_candidate_fwd_ports(const BDDNode *node) c
 }
 
 Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, const std::unordered_set<u16> &available_devs)
-    : bdd_profile(new bdd_profile_t(_bdd_profile)), root(nullptr), avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), cache() {
+    : bdd_profile(new bdd_profile_t(_bdd_profile)), avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), root(nullptr), cache() {
   const BDDNode *bdd_root = bdd->get_root();
 
   assert(bdd_profile->counters.find(bdd_root->get_id()) != bdd_profile->counters.end() && "Root node not found");
@@ -293,11 +272,6 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, const std:
     for (const auto &node_map_stats : map_stats.nodes) {
       const BDDNode *node = bdd->get_node_by_id(node_map_stats.node);
       assert(node && "BDDNode not found");
-
-      std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
-      ProfilerNode *profiler_node                    = get_node(constraints);
-      assert(profiler_node && "Profiler node not found");
-
       assert(node->get_type() == BDDNodeType::Call && "Invalid node type");
       const Call *call_node = dynamic_cast<const Call *>(node);
       const call_t &call    = call_node->get_call();
@@ -314,15 +288,18 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, const std:
           .pkts_per_flow = node_map_stats.pkts_per_flow,
       };
 
-      profiler_node->flows_stats.push_back(flow_stats);
+      flows_stats_per_bdd_node[node->get_id()].push_back(flow_stats);
     }
   }
 }
 
-Profiler::Profiler(const Profiler &other) : bdd_profile(other.bdd_profile), root(other.root), avg_pkt_size(other.avg_pkt_size), cache(other.cache) {}
+Profiler::Profiler(const Profiler &other)
+    : bdd_profile(other.bdd_profile), avg_pkt_size(other.avg_pkt_size), root(other.root), flows_stats_per_bdd_node(other.flows_stats_per_bdd_node),
+      cache(other.cache) {}
 
 Profiler::Profiler(Profiler &&other)
-    : bdd_profile(std::move(other.bdd_profile)), root(std::move(other.root)), avg_pkt_size(other.avg_pkt_size), cache(std::move(other.cache)) {
+    : bdd_profile(std::move(other.bdd_profile)), avg_pkt_size(other.avg_pkt_size), root(std::move(other.root)),
+      flows_stats_per_bdd_node(std::move(other.flows_stats_per_bdd_node)), cache(std::move(other.cache)) {
   other.root.reset();
 }
 
@@ -332,10 +309,11 @@ Profiler &Profiler::operator=(const Profiler &other) {
   }
 
   assert(bdd_profile == other.bdd_profile);
+  assert(avg_pkt_size == other.avg_pkt_size);
 
-  root         = other.root;
-  avg_pkt_size = other.avg_pkt_size;
-  cache        = other.cache;
+  root                     = other.root;
+  flows_stats_per_bdd_node = other.flows_stats_per_bdd_node;
+  cache                    = other.cache;
 
   return *this;
 }
@@ -650,10 +628,6 @@ void Profiler::debug() const {
     root->debug();
   }
   std::cerr << "===========================================\n\n";
-}
-
-flow_stats_t Profiler::get_flow_stats(const std::vector<klee::ref<klee::Expr>> &constraints, klee::ref<klee::Expr> flow_id) const {
-  return get_node(constraints)->get_flow_stats(flow_id);
 }
 
 void Profiler::clone_tree_if_shared() {

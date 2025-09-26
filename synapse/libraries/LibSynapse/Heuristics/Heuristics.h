@@ -10,6 +10,7 @@
 #include <LibSynapse/Heuristics/DSPrefGuardedMapTable.h>
 #include <LibSynapse/Heuristics/DSPrefHHTable.h>
 #include <LibSynapse/Heuristics/DSPrefCuckoo.h>
+#include <LibSynapse/Heuristics/DSPrefFCFSCachedTable.h>
 #include <LibSynapse/Heuristics/MaxController.h>
 
 namespace LibSynapse {
@@ -25,6 +26,7 @@ enum class HeuristicOption {
   DSPrefGuardedMapTable,
   DSPrefHHTable,
   DSPrefCuckoo,
+  DSPrefFCFSCachedTable,
   MaxController,
 };
 
@@ -62,6 +64,9 @@ inline std::unique_ptr<HeuristicCfg> build_heuristic_cfg(HeuristicOption hopt) {
   case HeuristicOption::DSPrefCuckoo:
     cfg = std::make_unique<DSPrefCuckoo>();
     break;
+  case HeuristicOption::DSPrefFCFSCachedTable:
+    cfg = std::make_unique<DSPrefFCFSCachedTable>();
+    break;
   case HeuristicOption::MaxController:
     cfg = std::make_unique<MaxController>();
     break;
@@ -70,17 +75,18 @@ inline std::unique_ptr<HeuristicCfg> build_heuristic_cfg(HeuristicOption hopt) {
   return cfg;
 }
 
-constexpr const char *const BFS_NAME                 = "bfs";
-constexpr const char *const DFS_NAME                 = "dfs";
-constexpr const char *const RANDOM_NAME              = "random";
-constexpr const char *const GALLIUM_NAME             = "gallium";
-constexpr const char *const GREEDY_NAME              = "greedy";
-constexpr const char *const MAX_TPUT_NAME            = "max-tput";
-constexpr const char *const DS_PREF_SIMPLE_NAME      = "ds-pref-simple";
-constexpr const char *const DS_PREF_GUARDED_MAP_NAME = "ds-pref-guardedmaptable";
-constexpr const char *const DS_PREF_HHTABLE_NAME     = "ds-pref-hhtable";
-constexpr const char *const DS_PREF_CUCKOO_NAME      = "ds-pref-cuckoo";
-constexpr const char *const MAX_CONTROLLER_NAME      = "max-controller";
+constexpr const char *const BFS_NAME                       = "bfs";
+constexpr const char *const DFS_NAME                       = "dfs";
+constexpr const char *const RANDOM_NAME                    = "random";
+constexpr const char *const GALLIUM_NAME                   = "gallium";
+constexpr const char *const GREEDY_NAME                    = "greedy";
+constexpr const char *const MAX_TPUT_NAME                  = "max-tput";
+constexpr const char *const DS_PREF_SIMPLE_NAME            = "ds-pref-simple";
+constexpr const char *const DS_PREF_GUARDED_MAP_NAME       = "ds-pref-guardedmaptable";
+constexpr const char *const DS_PREF_HHTABLE_NAME           = "ds-pref-hhtable";
+constexpr const char *const DS_PREF_CUCKOO_NAME            = "ds-pref-cuckoo";
+constexpr const char *const DS_PREF_FCFS_CACHED_TABLE_NAME = "ds-pref-fcfscachedtable";
+constexpr const char *const MAX_CONTROLLER_NAME            = "max-controller";
 
 const std::unordered_map<std::string, HeuristicOption> str_to_heuristic_opt{
     {BFS_NAME, HeuristicOption::BFS},
@@ -93,6 +99,7 @@ const std::unordered_map<std::string, HeuristicOption> str_to_heuristic_opt{
     {DS_PREF_GUARDED_MAP_NAME, HeuristicOption::DSPrefGuardedMapTable},
     {DS_PREF_HHTABLE_NAME, HeuristicOption::DSPrefHHTable},
     {DS_PREF_CUCKOO_NAME, HeuristicOption::DSPrefCuckoo},
+    {DS_PREF_FCFS_CACHED_TABLE_NAME, HeuristicOption::DSPrefFCFSCachedTable},
     {MAX_CONTROLLER_NAME, HeuristicOption::MaxController},
 };
 
@@ -107,6 +114,7 @@ const std::unordered_map<HeuristicOption, std::string> heuristic_opt_to_str{
     {HeuristicOption::DSPrefGuardedMapTable, DS_PREF_GUARDED_MAP_NAME},
     {HeuristicOption::DSPrefHHTable, DS_PREF_HHTABLE_NAME},
     {HeuristicOption::DSPrefCuckoo, DS_PREF_CUCKOO_NAME},
+    {HeuristicOption::DSPrefFCFSCachedTable, DS_PREF_FCFS_CACHED_TABLE_NAME},
     {HeuristicOption::MaxController, MAX_CONTROLLER_NAME},
 };
 
