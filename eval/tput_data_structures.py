@@ -30,7 +30,7 @@ ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.2]
 
-ITERATIONS = 3
+ITERATIONS = 10
 
 
 @dataclass
@@ -62,14 +62,14 @@ NFS = [
     # ),
     *[
         NF(
-            name="fcfs_cached_table",
-            description="FCFSCachedTable",
+            name=f"fcfs_cached_table_{cache_capacity}",
+            description=f"FCFSCachedTable (cache={cache_capacity})",
             data_out=Path(f"tput_fcfs_cached_table_{cache_capacity}.csv"),
             tofino=Path(f"tofino/data_structures/fcfs_cached_table/fcfs_cached_table_{cache_capacity}.p4"),
             controller=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table.cpp"),
             kvs_mode=False,
         )
-        for cache_capacity in [4096, 8192, 16384, 32768, 65536]
+        for cache_capacity in [1024, 2048, 4096, 8192, 16384, 32768, 65536]
     ],
 ]
 
