@@ -47,9 +47,9 @@ enum bit<2> fwd_op_t {
 // Entry Timeout Expiration (units of 65536 ns).
 // #define ENTRY_TIMEOUT 1024 // 0.0625 s
 #define ENTRY_TIMEOUT 4096 // 0.25 s
-#define FCFS_CT_CACHE_CAPACITY 1024
+#define FCFS_CT_CACHE_CAPACITY 512
 
-typedef bit<10> fcfs_ct_hash_t;
+typedef bit<9> fcfs_ct_hash_t;
 
 header cpu_h {
 	bit<16>	code_path;                   // Written by the data plane

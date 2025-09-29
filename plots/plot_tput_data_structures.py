@@ -41,7 +41,7 @@ NFS = [
             "pps_scatter_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_pps_scatter.pdf",
             "heatmap_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_heatmap.pdf",
         }
-        for cache_capacity in [1024, 2048, 4096, 8192, 16384, 32768, 65536]
+        for cache_capacity in [256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
     ],
 ]
 
