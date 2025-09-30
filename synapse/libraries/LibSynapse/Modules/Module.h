@@ -152,15 +152,19 @@ enum class ModuleCategory {
   x86_ParseHeader,
   x86_ModifyHeader,
   x86_ChecksumUpdate,
+  x86_MapAllocate,
   x86_MapGet,
   x86_MapPut,
   x86_MapErase,
+  x86_VectorAllocate,
   x86_VectorRead,
   x86_VectorWrite,
+  x86_DchainAllocate,
   x86_DchainAllocateNewIndex,
   x86_DchainRejuvenateIndex,
   x86_DchainIsIndexAllocated,
   x86_DchainFreeIndex,
+  x86_CMSAllocate,
   x86_CMSIncrement,
   x86_CMSCountMin,
   x86_CMSPeriodicCleanup,
@@ -169,10 +173,12 @@ enum class ModuleCategory {
   x86_ChtFindBackend,
   x86_HashObj,
   x86_SendToDevice,
+  x86_TokenBucketAllocate,
   x86_TokenBucketIsTracing,
   x86_TokenBucketTrace,
   x86_TokenBucketUpdateAndCheck,
   x86_TokenBucketExpire,
+  x86_LPMAllocate,
 };
 
 struct ModuleType {
@@ -529,6 +535,9 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
   case ModuleCategory::x86_ModifyHeader:
     os << "x86_ModifyHeader";
     break;
+  case ModuleCategory::x86_MapAllocate:
+    os << "x86_MapAllocate";
+    break;
   case ModuleCategory::x86_MapGet:
     os << "x86_MapGet";
     break;
@@ -538,11 +547,17 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
   case ModuleCategory::x86_MapErase:
     os << "x86_MapErase";
     break;
+  case ModuleCategory::x86_VectorAllocate:
+    os << "x86_VectorAllocate";
+    break;
   case ModuleCategory::x86_VectorRead:
     os << "x86_VectorRead";
     break;
   case ModuleCategory::x86_VectorWrite:
     os << "x86_VectorWrite";
+    break;
+  case ModuleCategory::x86_DchainAllocate:
+    os << "x86_DchainAllocate";
     break;
   case ModuleCategory::x86_DchainAllocateNewIndex:
     os << "x86_DchainAllocateNewIndex";
@@ -555,6 +570,9 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
     break;
   case ModuleCategory::x86_DchainFreeIndex:
     os << "x86_DchainFreeIndex";
+    break;
+  case ModuleCategory::x86_CMSAllocate:
+    os << "x86_CMSAllocate";
     break;
   case ModuleCategory::x86_CMSIncrement:
     os << "x86_CMSIncrement";
@@ -589,6 +607,9 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
   case ModuleCategory::x86_SendToDevice:
     os << "x86_SendToDevice";
     break;
+  case ModuleCategory::x86_TokenBucketAllocate:
+    os << "x86_TokenBucketAllocate";
+    break;
   case ModuleCategory::x86_TokenBucketIsTracing:
     os << "x86_TokenBucketIsTracing";
     break;
@@ -600,6 +621,9 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
     break;
   case ModuleCategory::x86_TokenBucketExpire:
     os << "x86_TokenBucketExpire";
+    break;
+  case ModuleCategory::x86_LPMAllocate:
+    os << "x86_LPLAllocate";
     break;
   }
 

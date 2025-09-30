@@ -37,6 +37,7 @@ public:
   const std::unordered_map<NetworkNodeId, std::unordered_map<NetworkNodeId, Port>> &get_forwarding_table() const { return forwarding_table; }
 
   const LibSynapse::TargetType get_placement(const ComponentId component_id) const;
+  Port get_forwarding_port(const NetworkNodeId src, const NetworkNodeId dst) const;
   const static PhysicalNetwork parse(const std::filesystem::path &file_path);
 
   void debug() const {

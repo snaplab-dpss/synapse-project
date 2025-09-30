@@ -27,9 +27,15 @@ bool bdd_node_match_pattern(const BDDNode *node) {
 } // namespace
 
 std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
-  if (bdd_node_match_pattern(node))
-    return spec_impl_t(decide(ep, node), ctx);
-  return {};
+  if (!bdd_node_match_pattern(node))
+    return {};
+
+  Context new_ctx             = ctx;
+  const fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(node);
+  assert(fwd_stats.operation == RouteOp::Drop);
+  new_ctx.get_mutable_perf_oracle().add_dropped_traffic(fwd_stats.drop);
+
+  return spec_impl_t(decide(ep, node), new_ctx);
 }
 
 std::vector<impl_t> DropFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -44,6 +50,10 @@ std::vector<impl_t> DropFactory::process_node(const EP *ep, const BDDNode *node,
 
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
+
+  const fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
+  assert(fwd_stats.operation == RouteOp::Drop);
+  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_dropped_traffic(fwd_stats.drop);
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

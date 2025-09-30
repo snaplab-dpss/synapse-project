@@ -41,16 +41,13 @@ std::vector<impl_t> ExpireItemsSingleMapIterativelyFactory::process_node(const E
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call    = call_node->get_call();
 
-  klee::ref<klee::Expr> map_addr_expr    = call.args.at("map").expr;
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
+  klee::ref<klee::Expr> map_addr_expr    = call.args.at("map").expr;
   klee::ref<klee::Expr> start            = call.args.at("start").expr;
   klee::ref<klee::Expr> n_elems          = call.args.at("n_elems").expr;
   klee::ref<klee::Expr> n_freed_flows    = call_node->get_local_symbol("number_of_freed_flows").expr;
 
-  const addr_t map_addr    = expr_addr_to_obj_addr(map_addr_expr);
-  const addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
-
-  Module *module  = new ExpireItemsSingleMapIteratively(get_type().instance_id, node, map_addr, vector_addr, start, n_elems, n_freed_flows);
+  Module *module  = new ExpireItemsSingleMapIteratively(get_type().instance_id, node, vector_addr_expr, map_addr_expr, start, n_elems, n_freed_flows);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -73,16 +70,14 @@ std::unique_ptr<Module> ExpireItemsSingleMapIterativelyFactory::create(const BDD
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call    = call_node->get_call();
 
-  klee::ref<klee::Expr> map_addr_expr    = call.args.at("map").expr;
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
+  klee::ref<klee::Expr> map_addr_expr    = call.args.at("map").expr;
   klee::ref<klee::Expr> start            = call.args.at("start").expr;
   klee::ref<klee::Expr> n_elems          = call.args.at("n_elems").expr;
   klee::ref<klee::Expr> n_freed_flows    = call_node->get_local_symbol("number_of_freed_flows").expr;
 
-  const addr_t map_addr    = expr_addr_to_obj_addr(map_addr_expr);
-  const addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
-
-  return std::make_unique<ExpireItemsSingleMapIteratively>(get_type().instance_id, node, map_addr, vector_addr, start, n_elems, n_freed_flows);
+  return std::make_unique<ExpireItemsSingleMapIteratively>(get_type().instance_id, node, vector_addr_expr, map_addr_expr, start, n_elems,
+                                                           n_freed_flows);
 }
 
 } // namespace x86

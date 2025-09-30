@@ -45,13 +45,11 @@ std::vector<impl_t> ChecksumUpdateFactory::process_node(const EP *ep, const BDDN
   klee::ref<klee::Expr> l4_hdr_addr_expr = call.args.at("l4_header").expr;
   klee::ref<klee::Expr> p                = call.args.at("packet").expr;
 
-  const symbol_t checksum  = call_node->get_local_symbol("checksum");
-  const addr_t ip_hdr_addr = expr_addr_to_obj_addr(ip_hdr_addr_expr);
-  const addr_t l4_hdr_addr = expr_addr_to_obj_addr(l4_hdr_addr_expr);
+  const symbol_t checksum = call_node->get_local_symbol("checksum");
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new ChecksumUpdate(get_type().instance_id, node, ip_hdr_addr, l4_hdr_addr, checksum);
+  Module *module  = new ChecksumUpdate(get_type().instance_id, node, ip_hdr_addr_expr, l4_hdr_addr_expr, checksum);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -74,11 +72,9 @@ std::unique_ptr<Module> ChecksumUpdateFactory::create(const BDD *bdd, const Cont
   klee::ref<klee::Expr> l4_hdr_addr_expr = call.args.at("l4_header").expr;
   klee::ref<klee::Expr> p                = call.args.at("packet").expr;
 
-  const symbol_t checksum  = call_node->get_local_symbol("checksum");
-  const addr_t ip_hdr_addr = expr_addr_to_obj_addr(ip_hdr_addr_expr);
-  const addr_t l4_hdr_addr = expr_addr_to_obj_addr(l4_hdr_addr_expr);
+  const symbol_t checksum = call_node->get_local_symbol("checksum");
 
-  return std::make_unique<ChecksumUpdate>(get_type().instance_id, node, ip_hdr_addr, l4_hdr_addr, checksum);
+  return std::make_unique<ChecksumUpdate>(get_type().instance_id, node, ip_hdr_addr_expr, l4_hdr_addr_expr, checksum);
 }
 
 } // namespace x86

@@ -61,13 +61,12 @@ std::vector<impl_t> MapGetFactory::process_node(const EP *ep, const BDDNode *nod
 
   const symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
   const addr_t map_addr           = expr_addr_to_obj_addr(map_addr_expr);
-  const addr_t key_addr           = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
     return {};
   }
 
-  Module *module  = new MapGet(get_type().instance_id, node, map_addr, key_addr, key, value_out, success, map_has_this_key);
+  Module *module  = new MapGet(get_type().instance_id, node, map_addr_expr, key_addr_expr, key, value_out, success, map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -98,13 +97,12 @@ std::unique_ptr<Module> MapGetFactory::create(const BDD *bdd, const Context &ctx
 
   const symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
   const addr_t map_addr           = expr_addr_to_obj_addr(map_addr_expr);
-  const addr_t key_addr           = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ctx.check_ds_impl(map_addr, DSImpl::x86_Map)) {
     return {};
   }
 
-  return std::make_unique<MapGet>(get_type().instance_id, node, map_addr, key_addr, key, value_out, success, map_has_this_key);
+  return std::make_unique<MapGet>(get_type().instance_id, node, map_addr_expr, key_addr_expr, key, value_out, success, map_has_this_key);
 }
 
 } // namespace x86

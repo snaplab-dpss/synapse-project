@@ -174,6 +174,16 @@ const LibSynapse::TargetType PhysicalNetwork::get_placement(const ComponentId co
   return placement_strategy.at(component_id);
 }
 
+Port PhysicalNetwork::get_forwarding_port(const NetworkNodeId src, const NetworkNodeId dst) const {
+  if (forwarding_table.find(src) == forwarding_table.end()) {
+    panic("Source Node ID %s not found in forwarding table!", src.c_str());
+  }
+  if (forwarding_table.at(src).find(dst) == forwarding_table.at(src).end()) {
+    panic("Destination Node ID %s not reachable from Source Node ID %s!", dst.c_str(), src.c_str());
+  }
+  return forwarding_table.at(src).at(dst);
+}
+
 const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &network_file) {
   std::ifstream fstream = open_file(network_file);
 

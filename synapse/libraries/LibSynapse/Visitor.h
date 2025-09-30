@@ -132,28 +132,34 @@ class Else;
 class Forward;
 class Broadcast;
 class Drop;
+class MapAllocate;
 class MapGet;
 class MapPut;
 class MapErase;
 class ExpireItemsSingleMap;
 class ExpireItemsSingleMapIteratively;
+class VectorAllocate;
 class VectorRead;
 class VectorWrite;
 class ChecksumUpdate;
+class DchainAllocate;
 class DchainAllocateNewIndex;
 class DchainRejuvenateIndex;
 class DchainIsIndexAllocated;
 class DchainFreeIndex;
+class CMSAllocate;
 class CMSIncrement;
 class CMSCountMin;
 class CMSPeriodicCleanup;
 class ChtFindBackend;
 class HashObj;
 class SendToDevice;
+class TokenBucketAllocate;
 class TokenBucketIsTracing;
 class TokenBucketTrace;
 class TokenBucketUpdateAndCheck;
 class TokenBucketExpire;
+class LPMAllocate;
 } // namespace x86
 
 class EPVisitor {
@@ -298,16 +304,20 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::Drop *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeader *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ModifyHeader *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::MapAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::MapGet *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMap *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMapIteratively *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainRejuvenateIndex *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainAllocateNewIndex *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::MapPut *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ChecksumUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainIsIndexAllocated *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSIncrement *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSCountMin *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSPeriodicCleanup *m) { return Action::doChildren; }
@@ -316,10 +326,12 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ChtFindBackend *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::HashObj *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::SendToDevice *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketIsTracing *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketTrace *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketUpdateAndCheck *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketExpire *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::LPMAllocate *m) { return Action::doChildren; }
 
 protected:
   virtual void log(const EPNode *) const;

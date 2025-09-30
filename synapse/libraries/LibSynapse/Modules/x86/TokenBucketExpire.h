@@ -7,11 +7,11 @@ namespace x86 {
 
 class TokenBucketExpire : public x86Module {
 private:
-  addr_t tb_addr;
+  klee::ref<klee::Expr> tb_addr;
   klee::ref<klee::Expr> time;
 
 public:
-  TokenBucketExpire(const std::string &_instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
+  TokenBucketExpire(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _tb_addr, klee::ref<klee::Expr> _time)
       : x86Module(ModuleType(ModuleCategory::x86_TokenBucketExpire, _instance_id), "TokenBucketExpire", _node), tb_addr(_tb_addr), time(_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -21,7 +21,7 @@ public:
     return cloned;
   }
 
-  addr_t get_tb_addr() const { return tb_addr; }
+  klee::ref<klee::Expr> get_tb_addr() const { return tb_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
 };
 

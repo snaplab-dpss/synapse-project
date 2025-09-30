@@ -60,7 +60,6 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const BDDNode
   klee::ref<klee::Expr> value            = call.args.at("value").in;
 
   const addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
-  const addr_t value_addr  = expr_addr_to_obj_addr(value_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(vector_addr, DSImpl::x86_Vector)) {
     return {};
@@ -79,7 +78,7 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const BDDNode
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  Module *module  = new VectorWrite(get_type().instance_id, node, vector_addr, index, value_addr, changes);
+  Module *module  = new VectorWrite(get_type().instance_id, node, vector_addr, index, value_addr_expr, value, changes);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -106,7 +105,6 @@ std::unique_ptr<Module> VectorWriteFactory::create(const BDD *bdd, const Context
   klee::ref<klee::Expr> value            = call.args.at("value").in;
 
   const addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
-  const addr_t value_addr  = expr_addr_to_obj_addr(value_addr_expr);
 
   if (!ctx.check_ds_impl(vector_addr, DSImpl::x86_Vector)) {
     return {};
@@ -123,7 +121,7 @@ std::unique_ptr<Module> VectorWriteFactory::create(const BDD *bdd, const Context
     return {};
   }
 
-  return std::make_unique<VectorWrite>(get_type().instance_id, node, vector_addr, index, value_addr, changes);
+  return std::make_unique<VectorWrite>(get_type().instance_id, node, vector_addr, index, value_addr_expr, value, changes);
 }
 
 } // namespace x86

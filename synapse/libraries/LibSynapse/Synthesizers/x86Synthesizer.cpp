@@ -1,5 +1,6 @@
 #include "LibCore/Debug.h"
 #include "LibCore/Types.h"
+#include "LibSynapse/Context.h"
 #include "LibSynapse/Visitor.h"
 #include <LibSynapse/Synthesizers/x86Synthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
@@ -17,6 +18,8 @@ using LibCore::is_constant;
 using LibCore::is_constant_signed;
 using LibCore::simplify;
 using LibCore::solver_toolbox;
+
+using LibCore::expr_addr_to_obj_addr;
 
 namespace {
 constexpr const char *const NF_TEMPLATE_FILENAME       = "x86.nf.template.cpp";
@@ -119,7 +122,7 @@ klee::ExprVisitor::Action x86Synthesizer::Transpiler::visitRead(const klee::Read
   coder_t &coder = coders.top();
 
   if (std::optional<x86Synthesizer::var_t> var = synthesizer->vars.get(expr)) {
-    if (var->addr.has_value()) {
+    if (!var->addr.isNull()) {
       coder << "*";
     }
 
@@ -147,7 +150,7 @@ klee::ExprVisitor::Action x86Synthesizer::Transpiler::visitConcat(const klee::Co
   coder_t &coder = coders.top();
 
   if (std::optional<x86Synthesizer::var_t> var = synthesizer->vars.get(expr)) {
-    if (var->addr.has_value() && expr->getWidth() > 8) {
+    if (!var->addr.isNull() && expr->getWidth() > 8) {
       coder << "*";
 
       if (expr->getWidth() <= 64) {
@@ -618,7 +621,7 @@ x86Synthesizer::code_t x86Synthesizer::var_t::get_slice(bits_t offset, bits_t sl
 
   // If the expression has an address, then it's an array of bytes.
   // We need to check if the expression is within the range of the array.
-  if (addr.has_value()) {
+  if (!addr.isNull()) {
     if (slice_size > 8 && slice_size <= 64) {
       coder << "(";
       coder << Transpiler::type_from_size(slice_size);
@@ -643,6 +646,17 @@ x86Synthesizer::code_t x86Synthesizer::var_t::get_slice(bits_t offset, bits_t sl
   }
 
   return coder.dump();
+}
+
+std::string x86Synthesizer::var_t::to_string() const {
+  std::stringstream ss;
+  ss << "var_t{";
+  ss << "name: " << name << ", ";
+  ss << "expr: " << expr_to_string(expr, true) << ", ";
+  if (!addr.isNull())
+    ss << "@" << expr_to_string(addr, true);
+  ss << "}";
+  return ss.str();
 }
 
 void x86Synthesizer::Stack::push(const var_t &var) {
@@ -696,7 +710,7 @@ std::optional<x86Synthesizer::var_t> x86Synthesizer::Stack::get(klee::ref<klee::
         const var_t out_var = {
             .name = var.get_slice(offset, expr_size),
             .expr = var_slice,
-            .addr = std::nullopt,
+            .addr = nullptr,
         };
 
         return out_var;
@@ -706,10 +720,10 @@ std::optional<x86Synthesizer::var_t> x86Synthesizer::Stack::get(klee::ref<klee::
   return {};
 }
 
-std::optional<x86Synthesizer::var_t> x86Synthesizer::Stack::get_by_addr(addr_t addr) const {
+std::optional<x86Synthesizer::var_t> x86Synthesizer::Stack::get_by_addr(klee::ref<klee::Expr> addr_expr) const {
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
-    if (var.addr.has_value() && var.addr.value() == addr) {
+    if (!var.addr.isNull() && solver_toolbox.are_exprs_always_equal(var.addr, addr_expr)) {
       return var;
     }
   }
@@ -717,7 +731,9 @@ std::optional<x86Synthesizer::var_t> x86Synthesizer::Stack::get_by_addr(addr_t a
   return {};
 }
 
-std::vector<x86Synthesizer::var_t> x86Synthesizer::Stack::get_all() const { return frames; }
+const std::vector<x86Synthesizer::var_t> &x86Synthesizer::Stack::get_all() const { return frames; }
+
+std::vector<x86Synthesizer::var_t> &x86Synthesizer::Stack::get_all_mutable() { return frames; }
 
 void x86Synthesizer::Stacks::push() { stacks.emplace_back(); }
 
@@ -752,10 +768,16 @@ std::optional<x86Synthesizer::var_t> x86Synthesizer::Stacks::get(klee::ref<klee:
     }
   }
 
+  for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
+    if (std::optional<var_t> var = stack_it->get_by_addr(expr)) {
+      return var;
+    }
+  }
+
   return {};
 }
 
-std::optional<x86Synthesizer::var_t> x86Synthesizer::Stacks::get_by_addr(addr_t addr) const {
+std::optional<x86Synthesizer::var_t> x86Synthesizer::Stacks::get_by_addr(klee::ref<klee::Expr> addr) const {
   for (auto stack_it = stacks.rbegin(); stack_it != stacks.rend(); stack_it++) {
     if (std::optional<var_t> var = stack_it->get_by_addr(addr)) {
       return var;
@@ -765,12 +787,12 @@ std::optional<x86Synthesizer::var_t> x86Synthesizer::Stacks::get_by_addr(addr_t 
   return {};
 }
 
-std::vector<x86Synthesizer::Stack> x86Synthesizer::Stacks::get_all() const { return stacks; }
+const std::vector<x86Synthesizer::Stack> &x86Synthesizer::Stacks::get_all() const { return stacks; }
 
 void x86Synthesizer::Stacks::replace(const var_t &var, klee::ref<klee::Expr> new_expr) {
   for (auto it = stacks.rbegin(); it != stacks.rend(); ++it) {
     Stack &stack = *it;
-    for (x86Synthesizer::var_t &v : stack.get_all()) {
+    for (x86Synthesizer::var_t &v : stack.get_all_mutable()) {
       if (v.name == var.name) {
         klee::ref<klee::Expr> old_expr = v.expr;
         assert(old_expr->getWidth() == new_expr->getWidth() && "Width mismatch");
@@ -826,10 +848,10 @@ bool x86Synthesizer::Stacks::find(klee::ref<klee::Expr> expr, x86Synthesizer::va
 
 bool x86Synthesizer::find_or_create_tmp_slice_var(klee::ref<klee::Expr> expr, coder_t &coder, var_t &out_var) {
   for (auto it = vars.get_all().rbegin(); it != vars.get_all().rend(); ++it) {
-    Stack &stack = *it;
+    const Stack &stack = *it;
 
     for (const var_t &v : stack.get_all()) {
-      if (solver_toolbox.are_exprs_always_equal(v.expr, expr) || v.addr.value() == LibCore::expr_addr_to_obj_addr(expr)) {
+      if (solver_toolbox.are_exprs_always_equal(v.expr, expr) || solver_toolbox.are_exprs_always_equal(v.addr, expr)) {
         out_var = v;
         return true;
       }
@@ -851,7 +873,7 @@ bool x86Synthesizer::find_or_create_tmp_slice_var(klee::ref<klee::Expr> expr, co
             coder.indent();
             coder << transpiler.type_from_expr(out_var.expr) << " " << out_var.name;
             coder << " = ";
-            if (v.addr.has_value() && !out_var.addr.has_value()) {
+            if (!v.addr.isNull() && out_var.addr.isNull()) {
               coder << "*";
             }
             coder << v.get_slice(offset, expr_bits);
@@ -860,7 +882,7 @@ bool x86Synthesizer::find_or_create_tmp_slice_var(klee::ref<klee::Expr> expr, co
             coder.indent();
             coder << "uint8_t " << out_var.name << "[" << expr_bits / 8 << "];\n";
 
-            if (v.addr.has_value()) {
+            if (!v.addr.isNull()) {
               coder.indent();
               coder << "memcpy(";
               coder << "(void*)" << out_var.name << ", ";
@@ -889,21 +911,21 @@ bool x86Synthesizer::find_or_create_tmp_slice_var(klee::ref<klee::Expr> expr, co
   return false;
 }
 
-x86Synthesizer::var_t x86Synthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr) { return build_var(name, expr); }
+x86Synthesizer::var_t x86Synthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr) { return build_var(name, expr, nullptr); }
 
-x86Synthesizer::var_t x86Synthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr) {
+x86Synthesizer::var_t x86Synthesizer::build_var(const std::string &name, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> addr) {
 
   return var_t(create_unique_name(name), expr, addr);
 }
 
-x86Synthesizer::var_t x86Synthesizer::build_var_ptr(const std::string &base_name, addr_t addr, klee::ref<klee::Expr> value, coder_t &coder,
-                                                    bool &found_in_stack) {
+x86Synthesizer::var_t x86Synthesizer::build_var_ptr(const std::string &base_name, klee::ref<klee::Expr> addr_expr, klee::ref<klee::Expr> value,
+                                                    coder_t &coder, bool &found_in_stack) {
   bytes_t size = value->getWidth() / 8;
 
-  std::optional<var_t> var = vars.get_by_addr(addr);
+  std::optional<var_t> var = vars.get(addr_expr);
 
   if (!(found_in_stack = var.has_value())) {
-    var = build_var(base_name, value, addr);
+    var = build_var(base_name, value, addr_expr);
     coder.indent();
     coder << "uint8_t " << var.value().name << "[" << size << "];\n";
   } else if (solver_toolbox.are_exprs_always_equal(var.value().expr, value)) {
@@ -969,21 +991,30 @@ x86Synthesizer::x86Synthesizer(const EP *ep, x86SynthesizerTarget _target, std::
                   _out_path, TargetType(TargetArchitecture::x86, _instance_id)),
       target_ep(ep), target(_target), transpiler(this) {}
 
+x86Synthesizer::coder_t &x86Synthesizer::get_current_coder() { return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS); }
+
+x86Synthesizer::coder_t &x86Synthesizer::get(const std::string &marker) { return Synthesizer::get(marker); }
+
 void x86Synthesizer::synthesize() {
+  std::cerr << "================= Synthesize NF INIT ================= \n";
   synthesize_nf_init();
 
-  vars.clear();
-  vars.push();
-
+  std::cerr << "================ Synthesize NF PROCESS ================ \n";
+  change_to_process_coder();
   synthesize_nf_process();
+
+  std::cerr << "========== Synthesize NF INIT POST PROCESS ============ \n";
+  change_to_nf_init_coder();
   synthesize_nf_init_post_process();
   Synthesizer::dump();
 }
 
 void x86Synthesizer::visit(const EP *ep, const EPNode *ep_node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
 
   const Module *module = ep_node->get_module();
+  std::cerr << "CURRENT EP TARGET: " << module->get_target();
+  std::cerr << "CURRENT SYNTHESIZER TARGET: " << get_type();
   if (module->get_target() == get_type()) {
     coder.indent();
     coder << "// EP node  " << ep_node->get_id() << ":" << module->get_name() << "\n";
@@ -995,9 +1026,8 @@ void x86Synthesizer::visit(const EP *ep, const EPNode *ep_node) {
 }
 
 void x86Synthesizer::synthesize_nf_init() {
-  coder_t &coder = get(MARKER_NF_INIT);
-  const BDD *bdd = target_ep->get_bdd();
-
+  coder_t &coder     = get_current_coder();
+  const BDD *bdd     = target_ep->get_bdd();
   const Context &ctx = target_ep->get_ctx();
 
   coder << "bool nf_init() {\n";
@@ -1039,23 +1069,22 @@ void x86Synthesizer::synthesize_nf_init() {
     coder << "// Module " << module->get_name() << "\n";
 
     module->visit(*this, target_ep, nullptr);
-
-    if (target == x86SynthesizerTarget::Profiler) {
-      for (u16 device : bdd->get_devices()) {
-        coder.indent();
-        coder << "ports.push_back(" << device << ");\n";
-      }
+  }
+  if (target == x86SynthesizerTarget::Profiler) {
+    for (u16 device : bdd->get_devices()) {
+      coder.indent();
+      coder << "ports.push_back(" << device << ");\n";
     }
   }
 }
 
 void x86Synthesizer::synthesize_nf_init_post_process() {
-  coder_t &coder = get(MARKER_NF_INIT);
+  coder_t &coder = get_current_coder();
 
   if (target == x86SynthesizerTarget::Profiler) {
     for (const auto &[node_id, map_addr] : nodes_to_map) {
       coder.indent();
-      coder << "stats_per_map[" << map_addr << "]";
+      coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
       coder << ".init(";
       coder << node_id;
       coder << ")";
@@ -1081,7 +1110,7 @@ void x86Synthesizer::synthesize_nf_init_post_process() {
 }
 
 void x86Synthesizer::synthesize_nf_process() {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
   const BDD *bdd = target_ep->get_bdd();
 
   symbol_t device = bdd->get_device();
@@ -1115,7 +1144,9 @@ void x86Synthesizer::synthesize_nf_process() {
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::Ignore *node) { return EPVisitor::Action::doChildren; }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::If *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
   const klee::ref<klee::Expr> condition = node->get_condition();
   const std::vector<EPNode *> &children = ep_node->get_children();
@@ -1125,7 +1156,6 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   const EPNode *else_node = children[1];
 
   coder.indent();
-  coder << "// VISITING x86::If node\n";
   coder << "if (";
   coder << transpiler.transpile(condition);
   coder << ") {\n";
@@ -1146,7 +1176,12 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   coder.dec();
 
   coder.indent();
-  coder << "}\n";
+  coder << "}";
+  coder << " ";
+  coder << "// ";
+  coder << transpiler.transpile(condition);
+
+  coder << "\n";
 
   return EPVisitor::Action::skipChildren;
 }
@@ -1158,10 +1193,13 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::Forward *node) {
   coder_t &coder                         = get(MARKER_NF_PROCESS);
   const klee::ref<klee::Expr> dst_device = node->get_dst_device();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
+  route_nodes.insert(node->get_node()->get_id());
   if (target == x86SynthesizerTarget::Profiler) {
 
-    const BDDNode *future_node = ep_node->get_module()->get_node();
+    const BDDNode *future_node = node->get_node();
     coder.indent();
     coder << "forwarding_stats_per_route_op[" << future_node->get_id() << "].inc_fwd(";
     coder << transpiler.transpile(dst_device);
@@ -1175,9 +1213,13 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::Broadcast *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
+
+  route_nodes.insert(node->get_node()->get_id());
   if (target == x86SynthesizerTarget::Profiler) {
-    const BDDNode *future_node = ep_node->get_module()->get_node();
+    const BDDNode *future_node = node->get_node();
     coder.indent();
     coder << "forwarding_stats_per_route_op[" << future_node->get_id() << "].inc_flood();\n";
   }
@@ -1188,24 +1230,30 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::Drop *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
+
+  route_nodes.insert(node->get_node()->get_id());
   if (target == x86SynthesizerTarget::Profiler) {
-    const BDDNode *future_node = ep_node->get_module()->get_node();
+    const BDDNode *future_node = node->get_node();
     coder.indent();
     coder << "forwarding_stats_per_route_op[" << future_node->get_id() << "].inc_drop();\n";
   }
 
   coder.indent();
-  coder << "return Drop;\n";
+  coder << "return DROP;\n";
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeader *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t chunk_addr            = node->get_chunk_addr();
-  const klee::ref<klee::Expr> chunk  = node->get_chunk();
-  const klee::ref<klee::Expr> length = node->get_length();
+  const klee::ref<klee::Expr> chunk_addr = node->get_chunk_addr();
+  const klee::ref<klee::Expr> chunk      = node->get_chunk();
+  const klee::ref<klee::Expr> length     = node->get_length();
 
   var_t hdr = build_var("hdr", chunk, chunk_addr);
 
@@ -1226,12 +1274,14 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::ModifyHeader *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t chunk_addr               = node->get_chunk_addr();
-  const std::vector<expr_mod_t> changes = node->get_changes();
+  const klee::ref<klee::Expr> chunk_addr_expr = node->get_chunk_addr_expr();
+  const std::vector<expr_mod_t> changes       = node->get_changes();
 
-  std::optional<x86Synthesizer::var_t> hdr = vars.get_by_addr(chunk_addr);
+  std::optional<x86Synthesizer::var_t> hdr = vars.get(chunk_addr_expr);
   assert(hdr.has_value() && "Header not found");
 
   for (const expr_mod_t &mod : changes) {
@@ -1256,17 +1306,64 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::MapGet *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::MapAllocate *node) {
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t map_addr                 = node->get_map_addr();
-  const addr_t key_addr                 = node->get_key_addr();
+  const klee::ref<klee::Expr> capacity = node->get_capacity();
+  const klee::ref<klee::Expr> key_size = node->get_key_size();
+  const klee::ref<klee::Expr> map_out  = node->get_map_out();
+  const symbol_t success               = node->get_success();
+
+  var_t map_out_var = build_var("map", map_out);
+  var_t success_var = build_var("map_allocation_succeeded", success.expr);
+
+  coder_t coder_nf_state = get(MARKER_NF_STATE);
+  coder_nf_state.indent();
+  coder_nf_state << "struct Map *";
+  coder_nf_state << map_out_var.name;
+  coder_nf_state << ";\n";
+
+  coder.indent();
+  coder << "int " << success_var.name << " = ";
+  coder << "map_allocate(";
+  coder << transpiler.transpile(capacity) << ", ";
+  coder << transpiler.transpile(key_size) << ", ";
+  coder << "&" << map_out_var.name;
+  coder << ");\n";
+
+  coder.indent();
+  coder << "if (!";
+  coder << success_var.name;
+  coder << ") {\n";
+
+  coder.inc();
+  coder.indent();
+  coder << "return false;\n";
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  vars.insert_back(map_out_var);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::MapGet *node) {
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
+
+  const klee::ref<klee::Expr> map_addr  = node->get_map_addr_expr();
+  const klee::ref<klee::Expr> key_addr  = node->get_key_addr_expr();
   const klee::ref<klee::Expr> key       = node->get_key();
   const klee::ref<klee::Expr> value_out = node->get_value_out();
   const klee::ref<klee::Expr> success   = node->get_success();
   const symbol_t &map_has_this_key      = node->get_map_has_this_key();
 
-  std::optional<var_t> map_var = vars.get_by_addr(map_addr);
+  std::optional<var_t> map_var = vars.get(map_addr);
   assert(map_var.has_value() && "Map not found");
 
   var_t r = build_var("map_hit", map_has_this_key.expr);
@@ -1291,7 +1388,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     const BDDNode *bdd_node = ep_node->get_module()->get_node();
     nodes_to_map.insert({bdd_node->get_id(), map_addr});
     coder.indent();
-    coder << "stats_per_map[" << map_addr << "]";
+    coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
     coder << ".update(";
     coder << bdd_node->get_id() << ", ";
     coder << k.name << ", ";
@@ -1314,23 +1411,35 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMap *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t dchain_addr                  = node->get_dchain_addr();
-  const addr_t vector_addr                  = node->get_vector_addr();
-  const addr_t map_addr                     = node->get_map_addr();
+  const klee::ref<klee::Expr> dchain_addr   = node->get_dchain_addr();
+  const klee::ref<klee::Expr> vector_addr   = node->get_vector_addr();
+  const klee::ref<klee::Expr> map_addr      = node->get_map_addr();
   const klee::ref<klee::Expr> time          = node->get_time();
   const klee::ref<klee::Expr> n_freed_flows = node->get_n_freed_flows();
 
-  std::optional<var_t> dchain_var = vars.get_by_addr(dchain_addr);
-  assert(dchain_var.has_value() && "Dchain not found");
+  std::optional<var_t> dchain_var = vars.get(dchain_addr);
+  if (!dchain_var.has_value()) {
+    std::cerr << expr_addr_to_obj_addr(dchain_addr);
+    dbg_vars();
+    assert(dchain_var.has_value() && "Dchain not found");
+  }
 
-  std::optional<var_t> vector_var = vars.get_by_addr(vector_addr);
-  assert(vector_var.has_value() && "Vector not found");
-
-  std::optional<var_t> map_var = vars.get_by_addr(map_addr);
-  assert(map_var.has_value() && "Map not found");
-
+  std::optional<var_t> vector_var = vars.get(vector_addr);
+  if (!vector_var.has_value()) {
+    std::cerr << expr_addr_to_obj_addr(vector_addr) << "\n";
+    dbg_vars();
+    assert(vector_var.has_value() && "Vector not found");
+  }
+  std::optional<var_t> map_var = vars.get(map_addr);
+  if (!map_var.has_value()) {
+    std::cerr << expr_addr_to_obj_addr(map_addr);
+    dbg_vars();
+    assert(map_var.has_value() && "Map not found");
+  }
   var_t nfreed = build_var("freed_flows", n_freed_flows);
 
   coder.indent();
@@ -1361,19 +1470,20 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMapIteratively *node) {
-  // FIXME: implement
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t vector_addr                  = node->get_vector_addr();
-  const addr_t map_addr                     = node->get_map_addr();
+  const klee::ref<klee::Expr> vector_addr   = node->get_vector_addr();
+  const klee::ref<klee::Expr> map_addr      = node->get_map_addr();
   const klee::ref<klee::Expr> start         = node->get_start();
   const klee::ref<klee::Expr> n_elems       = node->get_n_elems();
   const klee::ref<klee::Expr> n_freed_flows = node->get_n_freed_flows();
 
-  std::optional<var_t> vector_var = vars.get_by_addr(vector_addr);
+  std::optional<var_t> vector_var = vars.get(vector_addr);
   assert(vector_var.has_value() && "Vector not found");
 
-  std::optional<var_t> map_var = vars.get_by_addr(map_addr);
+  std::optional<var_t> map_var = vars.get(map_addr);
   assert(map_var.has_value() && "Map not found");
 
   var_t nfreed = build_var("freed_flows", n_freed_flows);
@@ -1394,13 +1504,15 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::DchainRejuvenateIndex *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t dchain_addr          = node->get_dchain_addr();
-  const klee::ref<klee::Expr> index = node->get_index();
-  const klee::ref<klee::Expr> time  = node->get_time();
+  const klee::ref<klee::Expr> dchain_addr = node->get_dchain_addr();
+  const klee::ref<klee::Expr> index       = node->get_index();
+  const klee::ref<klee::Expr> time        = node->get_time();
 
-  std::optional<var_t> dchain_var = vars.get_by_addr(dchain_addr);
+  std::optional<var_t> dchain_var = vars.get(dchain_addr);
   assert(dchain_var.has_value() && "Dchain not found");
 
   coder.indent();
@@ -1414,18 +1526,70 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::VectorRead *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::VectorAllocate *node) {
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t vector_addr          = node->get_vector_addr();
-  const klee::ref<klee::Expr> index = node->get_index();
-  const addr_t value_addr           = node->get_value_addr();
-  const klee::ref<klee::Expr> value = node->get_value();
+  klee::ref<klee::Expr> elem_size  = node->get_elem_size();
+  klee::ref<klee::Expr> capacity   = node->get_capacity();
+  klee::ref<klee::Expr> vector_out = node->get_vector_out();
+  symbol_t success                 = node->get_success();
+
+  var_t vector_out_var = build_var("vector", vector_out);
+  var_t success_var    = build_var("vector_alloc_success", success.expr);
+
+  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_nf_state.indent();
+  coder_nf_state << "struct Vector *";
+  coder_nf_state << vector_out_var.name;
+  coder_nf_state << ";\n";
+
+  coder.indent();
+  coder << "int " << success_var.name << " = ";
+  coder << "vector_allocate(";
+  coder << transpiler.transpile(elem_size) << ", ";
+  coder << transpiler.transpile(capacity) << ", ";
+  coder << "&" << vector_out_var.name;
+  coder << ");\n";
+
+  coder.indent();
+  coder << "if (!";
+  coder << success_var.name;
+  coder << ") {\n";
+
+  coder.inc();
+  coder.indent();
+  coder << "return false;\n";
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  vars.insert_back(vector_out_var);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::VectorRead *node) {
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
+
+  const klee::ref<klee::Expr> vector_addr_expr = node->get_vector_addr_expr();
+  const klee::ref<klee::Expr> index            = node->get_index();
+  const klee::ref<klee::Expr> value_addr       = node->get_value_addr();
+  const klee::ref<klee::Expr> value            = node->get_value();
 
   var_t v = build_var("vector_value_out", value, value_addr);
 
-  std::optional<var_t> vector_var = vars.get_by_addr(vector_addr);
-  assert(vector_var.has_value() && "Vector not found in stack");
+  std::optional<var_t> vector_var = vars.get(vector_addr_expr);
+  if (!vector_var.has_value()) {
+    std::cerr << expr_addr_to_obj_addr(vector_addr_expr);
+    dbg_vars();
+    assert(vector_var.has_value() && "Vector not found in stack");
+  }
+  // assert(vector_var.has_value() && "Vector not found in stack");
 
   coder.indent();
   coder << "uint8_t* " << v.name << " = 0;\n";
@@ -1443,34 +1607,105 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::VectorWrite *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t value_addr                = node->get_value_addr();
+  const klee::ref<klee::Expr> value      = node->get_value();
+  const klee::ref<klee::Expr> value_addr = node->get_value_addr();
   const std::vector<expr_mod_t> &changes = node->get_modifications();
 
   // Find the variable in the stack by address
-  std::optional<var_t> v_opt = vars.get_by_addr(value_addr);
+  std::optional<var_t> v_opt = vars.get(value_addr);
   assert(v_opt.has_value() && "Vector cell not found in stack");
-  var_t v = *v_opt;
+  var_t v = v_opt.value();
+
+  var_t new_v;
+  if (value->getKind() != klee::Expr::Constant && find_or_create_tmp_slice_var(value, coder, new_v)) {
+    coder.indent();
+    coder << "memcpy(";
+    coder << "(void*)" << v.name << ", ";
+    coder << "(void*)";
+    if (new_v.addr.isNull()) {
+      coder << "&";
+    }
+    coder << new_v.name << ", ";
+    coder << value->getWidth() / 8;
+    coder << ");\n";
+    return {};
+  }
 
   // For each modification, emit code to update the vector cell
   for (const expr_mod_t &mod : changes) {
-    std::vector<klee::ref<klee::Expr>> bytes = bytes_in_expr(mod.expr);
-    for (size_t i = 0; i < bytes.size(); i++) {
-      coder.indent();
-      coder << v.name << "[" << (mod.offset / 8) + i << "] = ";
-      coder << transpiler.transpile(bytes[i]);
-      coder << ";\n";
+    coder.indent();
+    assert(mod.width <= 64 && "Vector element size is too large");
+    if (mod.width == 8) {
+      coder << v.name;
+      coder << "[";
+      coder << mod.offset / 8;
+      coder << "]";
+    } else {
+      coder << "*(" << Transpiler::type_from_size(mod.width) << "*)";
+      coder << v.name;
     }
+
+    coder << " = ";
+    coder << transpiler.transpile(mod.expr);
+    coder << ";\n";
   }
 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::DchainAllocateNewIndex *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::DchainAllocate *node) {
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t dchain_addr                       = node->get_dchain_addr();
+  klee::ref<klee::Expr> index_range = node->get_index_range();
+  klee::ref<klee::Expr> chain_out   = node->get_chain_out();
+  symbol_t success                  = node->get_success();
+
+  var_t chain_out_var = build_var("dchain", chain_out);
+  var_t success_var   = build_var("is_dchain_allocated", success.expr);
+
+  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_nf_state.indent();
+  coder_nf_state << "struct DoubleChain *";
+  coder_nf_state << chain_out_var.name;
+  coder_nf_state << ";\n";
+
+  coder.indent();
+  coder << "int " << success_var.name << " = ";
+  coder << "dchain_allocate(";
+  coder << transpiler.transpile(index_range) << ", ";
+  coder << "&" << chain_out_var.name;
+  coder << ");\n";
+
+  coder.indent();
+  coder << "if (!";
+  coder << success_var.name;
+  coder << ") {\n";
+
+  coder.inc();
+  coder.indent();
+  coder << "return false;\n";
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  vars.insert_back(chain_out_var);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::DchainAllocateNewIndex *node) {
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
+
+  const klee::ref<klee::Expr> dchain_addr        = node->get_dchain_addr();
   const klee::ref<klee::Expr> time               = node->get_time();
   const klee::ref<klee::Expr> index_out          = node->get_index_out();
   const std::optional<symbol_t> not_out_of_space = node->get_not_out_of_space();
@@ -1478,7 +1713,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   var_t noos = build_var("not_out_of_space", not_out_of_space.value().expr);
   var_t i    = build_var("index", index_out);
 
-  std::optional<var_t> dchain_var = vars.get_by_addr(dchain_addr);
+  std::optional<var_t> dchain_var = vars.get(dchain_addr);
   assert(dchain_var.has_value() && "Dchain not found");
 
   coder.indent();
@@ -1500,14 +1735,16 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::MapPut *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t map_addr             = node->get_map_addr();
-  const addr_t key_addr             = node->get_key_addr();
-  const klee::ref<klee::Expr> key   = node->get_key();
-  const klee::ref<klee::Expr> value = node->get_value();
+  const klee::ref<klee::Expr> map_addr = node->get_map_addr();
+  const klee::ref<klee::Expr> key_addr = node->get_key_addr();
+  const klee::ref<klee::Expr> key      = node->get_key();
+  const klee::ref<klee::Expr> value    = node->get_value();
 
-  std::optional<var_t> map_var = vars.get_by_addr(map_addr);
+  std::optional<var_t> map_var = vars.get(map_addr);
   assert(map_var.has_value() && "Dchain not found");
 
   bool key_in_stack;
@@ -1525,7 +1762,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     const BDDNode *bdd_node = ep_node->get_module()->get_node();
     nodes_to_map.insert({bdd_node->get_id(), map_addr});
     coder.indent();
-    coder << "stats_per_map[" << map_addr << "]";
+    coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
     coder << ".update(";
     coder << bdd_node->get_id() << ", ";
     coder << k.name << ", ";
@@ -1545,16 +1782,18 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::ChecksumUpdate *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t ip_hdr_addr = node->get_ip_hdr_addr();
-  const addr_t l4_hdr_addr = node->get_l4_hdr_addr();
-  const symbol_t checksum  = node->get_checksum();
+  const klee::ref<klee::Expr> ip_hdr_addr = node->get_ip_hdr_addr();
+  const klee::ref<klee::Expr> l4_hdr_addr = node->get_l4_hdr_addr();
+  const symbol_t checksum                 = node->get_checksum();
 
-  std::optional<var_t> ip_hdr_var = vars.get_by_addr(ip_hdr_addr);
+  std::optional<var_t> ip_hdr_var = vars.get(ip_hdr_addr);
   assert(ip_hdr_var.has_value() && "IP_HDR not found");
 
-  std::optional<var_t> l4_hdr_var = vars.get_by_addr(l4_hdr_addr);
+  std::optional<var_t> l4_hdr_var = vars.get(l4_hdr_addr);
   assert(l4_hdr_var.has_value() && "Dchain not found");
 
   var_t c = build_var("checksum", checksum.expr);
@@ -1575,15 +1814,17 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::DchainIsIndexAllocated *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t dchain_addr          = node->get_dchain_addr();
-  const klee::ref<klee::Expr> index = node->get_index();
-  const symbol_t is_allocated       = node->get_is_allocated();
+  const klee::ref<klee::Expr> dchain_addr = node->get_dchain_addr();
+  const klee::ref<klee::Expr> index       = node->get_index();
+  const symbol_t is_allocated             = node->get_is_allocated();
 
   var_t ia = build_var("is_allocated", is_allocated.expr);
 
-  std::optional<var_t> dchain_var = vars.get_by_addr(dchain_addr);
+  std::optional<var_t> dchain_var = vars.get(dchain_addr);
   assert(dchain_var.has_value() && "Dchain not found");
 
   coder.indent();
@@ -1599,14 +1840,65 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::CMSAllocate *node) {
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
+
+  klee::ref<klee::Expr> height           = node->get_height();
+  klee::ref<klee::Expr> width            = node->get_width();
+  klee::ref<klee::Expr> key_size         = node->get_key_size();
+  klee::ref<klee::Expr> cleanup_interval = node->get_cleanup_interval();
+  klee::ref<klee::Expr> cms_out          = node->get_cms_out();
+  symbol_t success                       = node->get_success();
+
+  var_t cms_out_var = build_var("cms", cms_out);
+  var_t success_var = build_var("cms_allocation_succeeded", success.expr);
+
+  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_nf_state.indent();
+  coder_nf_state << "struct CMS *";
+  coder_nf_state << cms_out_var.name;
+  coder_nf_state << ";\n";
+
+  coder.indent();
+  coder << "int " << success_var.name << " = ";
+  coder << "cms_allocate(";
+  coder << transpiler.transpile(height) << ", ";
+  coder << transpiler.transpile(width) << ", ";
+  coder << transpiler.transpile(key_size) << ", ";
+  coder << transpiler.transpile(cleanup_interval) << ", ";
+  coder << "&" << cms_out_var.name;
+  coder << ");\n";
+
+  coder.indent();
+  coder << "if (!";
+  coder << success_var.name;
+  coder << ") {\n";
+
+  coder.inc();
+  coder.indent();
+  coder << "return false;\n";
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  vars.insert_back(cms_out_var);
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::CMSIncrement *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t cms_addr           = node->get_cms_addr();
-  const addr_t key_addr           = node->get_key_addr();
-  const klee::ref<klee::Expr> key = node->get_key();
+  const klee::ref<klee::Expr> cms_addr = node->get_cms_addr();
+  const klee::ref<klee::Expr> key_addr = node->get_key_addr();
+  const klee::ref<klee::Expr> key      = node->get_key();
 
-  std::optional<var_t> cms_var = vars.get_by_addr(cms_addr);
+  std::optional<var_t> cms_var = vars.get(cms_addr);
   assert(cms_var.has_value() && "CMS not found");
 
   bool key_in_stack;
@@ -1629,14 +1921,16 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::CMSCountMin *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t cms_addr                    = node->get_cms_addr();
-  const addr_t key_addr                    = node->get_key_addr();
+  const klee::ref<klee::Expr> cms_addr     = node->get_cms_addr();
+  const klee::ref<klee::Expr> key_addr     = node->get_key_addr();
   const klee::ref<klee::Expr> key          = node->get_key();
   const klee::ref<klee::Expr> min_estimate = node->get_min_estimate();
 
-  std::optional<var_t> cms_var = vars.get_by_addr(cms_addr);
+  std::optional<var_t> cms_var = vars.get(cms_addr);
   assert(cms_var.has_value() && "CMS not found");
 
   bool key_in_stack;
@@ -1664,13 +1958,15 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::CMSPeriodicCleanup *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  addr_t cms_addr                       = node->get_cms_addr();
+  klee::ref<klee::Expr> cms_addr        = node->get_cms_addr();
   klee::ref<klee::Expr> time            = node->get_time();
   klee::ref<klee::Expr> cleanup_success = node->get_cleanup_success();
 
-  std::optional<var_t> cms_var = vars.get_by_addr(cms_addr);
+  std::optional<var_t> cms_var = vars.get(cms_addr);
   assert(cms_var.has_value() && "CMS not found");
 
   var_t cs = build_var("cleanup_success", cleanup_success);
@@ -1689,14 +1985,16 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::MapErase *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t map_addr             = node->get_map_addr();
-  const addr_t key_addr             = node->get_key_addr();
-  const klee::ref<klee::Expr> key   = node->get_key();
-  const klee::ref<klee::Expr> trash = node->get_trash();
+  const klee::ref<klee::Expr> map_addr = node->get_map_addr();
+  const klee::ref<klee::Expr> key_addr = node->get_key_addr();
+  const klee::ref<klee::Expr> key      = node->get_key();
+  const klee::ref<klee::Expr> trash    = node->get_trash();
 
-  std::optional<var_t> map_var = vars.get_by_addr(map_addr);
+  std::optional<var_t> map_var = vars.get(map_addr);
   assert(map_var.has_value() && "MAP not found");
 
   bool key_in_stack;
@@ -1714,7 +2012,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     const BDDNode *call_node = ep_node->get_module()->get_node();
     nodes_to_map.insert({call_node->get_id(), map_addr});
     coder.indent();
-    coder << "stats_per_map[" << map_addr << "]";
+    coder << "stats_per_map[" << transpiler.transpile(map_addr) << "]";
     coder << ".update(";
     coder << call_node->get_id() << ", ";
     coder << k.name << ", ";
@@ -1734,12 +2032,14 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::DchainFreeIndex *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  addr_t dchain_addr          = node->get_dchain_addr();
-  klee::ref<klee::Expr> index = node->get_index();
+  klee::ref<klee::Expr> dchain_addr = node->get_dchain_addr();
+  klee::ref<klee::Expr> index       = node->get_index();
 
-  std::optional<var_t> dchain_var = vars.get_by_addr(dchain_addr);
+  std::optional<var_t> dchain_var = vars.get(dchain_addr);
   assert(dchain_var.has_value() && "DCHAIN not found");
 
   coder.indent();
@@ -1753,25 +2053,74 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::ChtFindBackend *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: ChtFindBackend not implemented");
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::HashObj *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
   coder.indent();
   panic("TODO: HashObj not implemented");
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketAllocate *node) {
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
+
+  klee::ref<klee::Expr> capacity = node->get_capacity();
+  klee::ref<klee::Expr> rate     = node->get_rate();
+  klee::ref<klee::Expr> burst    = node->get_burst();
+  klee::ref<klee::Expr> key_size = node->get_key_size();
+  klee::ref<klee::Expr> tb_out   = node->get_tb_out();
+  symbol_t success               = node->get_success();
+
+  var_t tb_out_var  = build_var("tb", tb_out);
+  var_t success_var = build_var("tb_allocation_succeeded", success.expr);
+
+  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_nf_state.indent();
+  coder_nf_state << "struct TokenBucket *";
+  coder_nf_state << tb_out_var.name;
+  coder_nf_state << ";\n";
+
+  coder.indent();
+  coder << "tb_allocate(";
+  coder << transpiler.transpile(capacity) << ", ";
+  coder << transpiler.transpile(rate) << "ull, ";
+  coder << transpiler.transpile(burst) << "ull, ";
+  coder << transpiler.transpile(key_size) << ", ";
+  coder << "&" << tb_out_var.name;
+  coder << ");\n";
+
+  coder.indent();
+  coder << "if (!";
+  coder << success_var.name;
+  coder << ") {\n";
+
+  coder.inc();
+  coder.indent();
+  coder << "return false;\n";
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  vars.insert_back(tb_out_var);
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketIsTracing *node) {
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  coder_t &coder = get(MARKER_NF_PROCESS);
-
-  const addr_t tb_addr                   = node->get_tb_addr();
-  const addr_t key_addr                  = node->get_key_addr();
+  const klee::ref<klee::Expr> tb_addr    = node->get_tb_addr();
+  const klee::ref<klee::Expr> key_addr   = node->get_key_addr();
   const klee::ref<klee::Expr> key        = node->get_key();
   const klee::ref<klee::Expr> index_out  = node->get_index_out();
   const klee::ref<klee::Expr> is_tracing = node->get_is_tracing();
@@ -1782,7 +2131,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   var_t it    = build_var("is_tracing", is_tracing);
   var_t index = build_var("index", index_out);
 
-  std::optional<var_t> tb_var = vars.get_by_addr(tb_addr);
+  std::optional<var_t> tb_var = vars.get(tb_addr);
   assert(tb_var.has_value() && "TB not found");
 
   coder.indent();
@@ -1810,10 +2159,12 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketTrace *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t tb_addr                            = node->get_tb_addr();
-  const addr_t key_addr                           = node->get_key_addr();
+  const klee::ref<klee::Expr> tb_addr             = node->get_tb_addr();
+  const klee::ref<klee::Expr> key_addr            = node->get_key_addr();
   const klee::ref<klee::Expr> key                 = node->get_key();
   const klee::ref<klee::Expr> pkt_len             = node->get_pkt_len();
   const klee::ref<klee::Expr> time                = node->get_time();
@@ -1826,7 +2177,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   var_t st = build_var("successfuly_tracing", successfuly_tracing);
   var_t i  = build_var("index", index_out);
 
-  std::optional<var_t> tb_var = vars.get_by_addr(tb_addr);
+  std::optional<var_t> tb_var = vars.get(tb_addr);
   assert(tb_var.has_value() && "TB not found");
 
   coder.indent();
@@ -1856,9 +2207,11 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketUpdateAndCheck *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t tb_addr                = node->get_tb_addr();
+  const klee::ref<klee::Expr> tb_addr = node->get_tb_addr();
   const klee::ref<klee::Expr> index   = node->get_index();
   const klee::ref<klee::Expr> pkt_len = node->get_pkt_len();
   const klee::ref<klee::Expr> time    = node->get_time();
@@ -1866,7 +2219,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
   var_t p = build_var("pass", pass);
 
-  std::optional<var_t> tb_var = vars.get_by_addr(tb_addr);
+  std::optional<var_t> tb_var = vars.get(tb_addr);
   assert(tb_var.has_value() && "TB not found");
 
   coder.indent();
@@ -1885,12 +2238,14 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketExpire *node) {
-  coder_t &coder = get(MARKER_NF_PROCESS);
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
 
-  const addr_t tb_addr             = node->get_tb_addr();
-  const klee::ref<klee::Expr> time = node->get_time();
+  const klee::ref<klee::Expr> tb_addr = node->get_tb_addr();
+  const klee::ref<klee::Expr> time    = node->get_time();
 
-  std::optional<var_t> tb_var = vars.get_by_addr(tb_addr);
+  std::optional<var_t> tb_var = vars.get(tb_addr);
   assert(tb_var.has_value() && "TB not found");
 
   coder.indent();
@@ -1903,20 +2258,53 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::LPMAllocate *node) {
+  coder_t &coder = get_current_coder();
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
+
+  klee::ref<klee::Expr> lpm_out = node->get_lpm_out();
+  symbol_t success              = node->get_success();
+
+  var_t lpm_out_var = build_var("lpm", lpm_out);
+  var_t success_var = build_var("lpm_alloc_success", success.expr);
+
+  coder_t &coder_nf_state = get(MARKER_NF_STATE);
+  coder_nf_state.indent();
+  coder_nf_state << "struct LPM *";
+  coder_nf_state << lpm_out_var.name;
+  coder_nf_state << ";\n";
+
+  coder.indent();
+  coder << "int " << success_var.name << " = ";
+  coder << "lpm_allocate(";
+  coder << "&" << lpm_out_var.name;
+  coder << ");\n";
+
+  coder.indent();
+  coder << "if (!";
+  coder << success_var.name;
+  coder << ") {\n";
+
+  coder.inc();
+  coder.indent();
+  coder << "return false;\n";
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  vars.insert_back(lpm_out_var);
+
+  return EPVisitor::Action::doChildren;
+}
+
 void x86Synthesizer::dbg_vars() const {
   std::cerr << "================= Stack ================= \n";
   for (const Stack &stack : vars.get_all()) {
     std::cerr << "------------------------------------------\n";
     for (const var_t &var : stack.get_all()) {
-      std::cerr << " ";
-      std::cerr << var.name;
-      std::cerr << ": ";
-      std::cerr << expr_to_string(var.expr, true);
-      if (var.addr.has_value()) {
-        std::cerr << "@";
-        std::cerr << var.addr.value();
-      }
-      std::cerr << "\n";
+      std::cerr << var.to_string() << "\n";
     }
   }
   std::cerr << "======================================== \n";

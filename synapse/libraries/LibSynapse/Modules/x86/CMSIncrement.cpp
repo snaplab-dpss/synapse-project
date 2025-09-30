@@ -58,13 +58,12 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNod
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
-  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
     return {};
   }
 
-  Module *module  = new CMSIncrement(get_type().instance_id, node, cms_addr, key_addr, key);
+  Module *module  = new CMSIncrement(get_type().instance_id, node, cms_addr_expr, key_addr_expr, key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -92,13 +91,12 @@ std::unique_ptr<Module> CMSIncrementFactory::create(const BDD *bdd, const Contex
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
-  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ctx.check_ds_impl(cms_addr, DSImpl::x86_CountMinSketch)) {
     return {};
   }
 
-  return std::make_unique<CMSIncrement>(get_type().instance_id, node, cms_addr, key_addr, key);
+  return std::make_unique<CMSIncrement>(get_type().instance_id, node, cms_addr_expr, key_addr_expr, key);
 }
 
 } // namespace x86

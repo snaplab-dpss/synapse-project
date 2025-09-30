@@ -48,11 +48,7 @@ std::vector<impl_t> ExpireItemsSingleMapFactory::process_node(const EP *ep, cons
   klee::ref<klee::Expr> total_freed   = call.ret;
   klee::ref<klee::Expr> n_freed_flows = call_node->get_local_symbol("number_of_freed_flows").expr;
 
-  const addr_t map_addr    = expr_addr_to_obj_addr(map);
-  const addr_t vector_addr = expr_addr_to_obj_addr(vector);
-  const addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
-
-  Module *module  = new ExpireItemsSingleMap(get_type().instance_id, node, dchain_addr, vector_addr, map_addr, time, total_freed, n_freed_flows);
+  Module *module  = new ExpireItemsSingleMap(get_type().instance_id, node, dchain, vector, map, time, total_freed, n_freed_flows);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -80,11 +76,7 @@ std::unique_ptr<Module> ExpireItemsSingleMapFactory::create(const BDD *bdd, cons
   klee::ref<klee::Expr> total_freed   = call.ret;
   klee::ref<klee::Expr> n_freed_flows = call_node->get_local_symbol("number_of_freed_flows").expr;
 
-  const addr_t map_addr    = expr_addr_to_obj_addr(map);
-  const addr_t vector_addr = expr_addr_to_obj_addr(vector);
-  const addr_t dchain_addr = expr_addr_to_obj_addr(dchain);
-
-  return std::make_unique<ExpireItemsSingleMap>(get_type().instance_id, node, dchain_addr, vector_addr, map_addr, time, total_freed, n_freed_flows);
+  return std::make_unique<ExpireItemsSingleMap>(get_type().instance_id, node, dchain, vector, map, time, total_freed, n_freed_flows);
 }
 
 } // namespace x86

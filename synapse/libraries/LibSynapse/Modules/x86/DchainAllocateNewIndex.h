@@ -7,18 +7,18 @@ namespace x86 {
 
 class DchainAllocateNewIndex : public x86Module {
 private:
-  addr_t dchain_addr;
+  klee::ref<klee::Expr> dchain_addr;
   klee::ref<klee::Expr> time;
   klee::ref<klee::Expr> index_out;
   std::optional<symbol_t> not_out_of_space;
 
 public:
-  DchainAllocateNewIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time,
+  DchainAllocateNewIndex(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _time,
                          klee::ref<klee::Expr> _index_out, const symbol_t &_out_of_space)
       : x86Module(ModuleType(ModuleCategory::x86_DchainAllocateNewIndex, _instance_id), "DchainAllocate", _node), dchain_addr(_dchain_addr),
         time(_time), index_out(_index_out), not_out_of_space(_out_of_space) {}
 
-  DchainAllocateNewIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time,
+  DchainAllocateNewIndex(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _time,
                          klee::ref<klee::Expr> _index_out)
       : x86Module(ModuleType(ModuleCategory::x86_DchainAllocateNewIndex, _instance_id), "DchainAllocate", _node), dchain_addr(_dchain_addr),
         time(_time), index_out(_index_out), not_out_of_space(std::nullopt) {}
@@ -37,7 +37,7 @@ public:
     return cloned;
   }
 
-  addr_t get_dchain_addr() const { return dchain_addr; }
+  klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_index_out() const { return index_out; }
   std::optional<symbol_t> get_not_out_of_space() const { return not_out_of_space; }

@@ -55,17 +55,16 @@ std::vector<impl_t> VectorReadFactory::process_node(const EP *ep, const BDDNode 
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
-  klee::ref<klee::Expr> value_addr_expr  = call.args.at("val_out").out;
+  klee::ref<klee::Expr> value_addr       = call.args.at("val_out").out;
   klee::ref<klee::Expr> value            = call.extra_vars.at("borrowed_cell").second;
 
   const addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
-  const addr_t value_addr  = expr_addr_to_obj_addr(value_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(vector_addr, DSImpl::x86_Vector)) {
     return {};
   }
 
-  Module *module  = new VectorRead(get_type().instance_id, node, vector_addr, index, value_addr, value);
+  Module *module  = new VectorRead(get_type().instance_id, node, vector_addr_expr, index, value_addr, value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -90,17 +89,16 @@ std::unique_ptr<Module> VectorReadFactory::create(const BDD *bdd, const Context 
 
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   klee::ref<klee::Expr> index            = call.args.at("index").expr;
-  klee::ref<klee::Expr> value_addr_expr  = call.args.at("val_out").out;
+  klee::ref<klee::Expr> value_addr       = call.args.at("val_out").out;
   klee::ref<klee::Expr> value            = call.extra_vars.at("borrowed_cell").second;
 
   const addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
-  const addr_t value_addr  = expr_addr_to_obj_addr(value_addr_expr);
 
   if (!ctx.check_ds_impl(vector_addr, DSImpl::x86_Vector)) {
     return {};
   }
 
-  return std::make_unique<VectorRead>(get_type().instance_id, node, vector_addr, index, value_addr, value);
+  return std::make_unique<VectorRead>(get_type().instance_id, node, vector_addr_expr, index, value_addr, value);
 }
 
 } // namespace x86

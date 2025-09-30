@@ -7,14 +7,14 @@ namespace x86 {
 
 class CMSCountMin : public x86Module {
 private:
-  addr_t cms_addr;
-  addr_t key_addr;
+  klee::ref<klee::Expr> cms_addr;
+  klee::ref<klee::Expr> key_addr;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSCountMin(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, addr_t _key_addr, klee::ref<klee::Expr> _key,
-              klee::ref<klee::Expr> _min_estimate)
+  CMSCountMin(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _cms_addr, klee::ref<klee::Expr> _key_addr,
+              klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
       : x86Module(ModuleType(ModuleCategory::x86_CMSCountMin, _instance_id), "CMSCountMin", _node), cms_addr(_cms_addr), key_addr(_key_addr),
         key(_key), min_estimate(_min_estimate) {}
 
@@ -25,8 +25,8 @@ public:
     return cloned;
   }
 
-  addr_t get_cms_addr() const { return cms_addr; }
-  addr_t get_key_addr() const { return key_addr; }
+  klee::ref<klee::Expr> get_cms_addr() const { return cms_addr; }
+  klee::ref<klee::Expr> get_key_addr() const { return key_addr; }
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_min_estimate() const { return min_estimate; }
 };

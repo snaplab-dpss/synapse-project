@@ -7,12 +7,13 @@ namespace x86 {
 
 class ChecksumUpdate : public x86Module {
 private:
-  addr_t ip_hdr_addr;
-  addr_t l4_hdr_addr;
+  klee::ref<klee::Expr> ip_hdr_addr;
+  klee::ref<klee::Expr> l4_hdr_addr;
   symbol_t checksum;
 
 public:
-  ChecksumUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr, symbol_t _checksum)
+  ChecksumUpdate(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _ip_hdr_addr, klee::ref<klee::Expr> _l4_hdr_addr,
+                 symbol_t _checksum)
       : x86Module(ModuleType(ModuleCategory::x86_ChecksumUpdate, _instance_id), "SetIpChecksum", _node), ip_hdr_addr(_ip_hdr_addr),
         l4_hdr_addr(_l4_hdr_addr), checksum(_checksum) {}
 
@@ -23,8 +24,8 @@ public:
     return cloned;
   }
 
-  addr_t get_ip_hdr_addr() const { return ip_hdr_addr; }
-  addr_t get_l4_hdr_addr() const { return l4_hdr_addr; }
+  klee::ref<klee::Expr> get_ip_hdr_addr() const { return ip_hdr_addr; }
+  klee::ref<klee::Expr> get_l4_hdr_addr() const { return l4_hdr_addr; }
   const symbol_t &get_checksum() const { return checksum; }
 };
 
