@@ -54,14 +54,14 @@ std::vector<impl_t> TokenBucketTraceFactory::process_node(const EP *ep, const BD
   klee::ref<klee::Expr> index_out           = call.args.at("index_out").out;
   klee::ref<klee::Expr> successfuly_tracing = call.ret;
 
-  const addr_t tb_addr  = expr_addr_to_obj_addr(tb_addr_expr);
-  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
+  const addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(tb_addr, DSImpl::x86_TokenBucket)) {
     return {};
   }
 
-  Module *module  = new TokenBucketTrace(get_type().instance_id, node, tb_addr, key_addr, key, pkt_len, time, index_out, successfuly_tracing);
+  Module *module =
+      new TokenBucketTrace(get_type().instance_id, node, tb_addr_expr, key_addr_expr, key, pkt_len, time, index_out, successfuly_tracing);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -96,14 +96,14 @@ std::unique_ptr<Module> TokenBucketTraceFactory::create(const BDD *bdd, const Co
   klee::ref<klee::Expr> index_out           = call.args.at("index_out").out;
   klee::ref<klee::Expr> successfuly_tracing = call.ret;
 
-  const addr_t tb_addr  = expr_addr_to_obj_addr(tb_addr_expr);
-  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
+  const addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
 
   if (!ctx.check_ds_impl(tb_addr, DSImpl::x86_TokenBucket)) {
     return {};
   }
 
-  return std::make_unique<TokenBucketTrace>(get_type().instance_id, node, tb_addr, key_addr, key, pkt_len, time, index_out, successfuly_tracing);
+  return std::make_unique<TokenBucketTrace>(get_type().instance_id, node, tb_addr_expr, key_addr_expr, key, pkt_len, time, index_out,
+                                            successfuly_tracing);
 }
 
 } // namespace x86

@@ -61,13 +61,12 @@ std::vector<impl_t> MapEraseFactory::process_node(const EP *ep, const BDDNode *n
   klee::ref<klee::Expr> trash         = call.args.at("trash").out;
 
   const addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
-  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
     return {};
   }
 
-  Module *module  = new MapErase(get_type().instance_id, node, map_addr, key_addr, key, trash);
+  Module *module  = new MapErase(get_type().instance_id, node, map_addr_expr, key_addr_expr, key, trash);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -96,13 +95,12 @@ std::unique_ptr<Module> MapEraseFactory::create(const BDD *bdd, const Context &c
   klee::ref<klee::Expr> trash         = call.args.at("trash").out;
 
   const addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
-  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ctx.check_ds_impl(map_addr, DSImpl::x86_Map)) {
     return {};
   }
 
-  return std::make_unique<MapErase>(get_type().instance_id, node, map_addr, key_addr, key, trash);
+  return std::make_unique<MapErase>(get_type().instance_id, node, map_addr_expr, key_addr_expr, key, trash);
 }
 
 } // namespace x86

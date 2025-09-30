@@ -7,12 +7,13 @@ namespace x86 {
 
 class ParseHeader : public x86Module {
 private:
-  addr_t chunk_addr;
+  klee::ref<klee::Expr> chunk_addr;
   klee::ref<klee::Expr> chunk;
   klee::ref<klee::Expr> length;
 
 public:
-  ParseHeader(const std::string &_instance_id, const BDDNode *_node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
+  ParseHeader(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _chunk_addr, klee::ref<klee::Expr> _chunk,
+              klee::ref<klee::Expr> _length)
       : x86Module(ModuleType(ModuleCategory::x86_ParseHeader, _instance_id), "ParseHeader", _node), chunk_addr(_chunk_addr), chunk(_chunk),
         length(_length) {}
 
@@ -23,7 +24,7 @@ public:
     return cloned;
   }
 
-  addr_t get_chunk_addr() const { return chunk_addr; }
+  klee::ref<klee::Expr> get_chunk_addr() const { return chunk_addr; }
   klee::ref<klee::Expr> get_chunk() const { return chunk; }
   klee::ref<klee::Expr> get_length() const { return length; }
 };

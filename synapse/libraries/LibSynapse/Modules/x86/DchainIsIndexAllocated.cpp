@@ -62,8 +62,8 @@ std::vector<impl_t> DchainIsIndexAllocatedFactory::process_node(const EP *ep, co
     return {};
   }
 
-  symbol_t is_allocated = call_node->get_local_symbol("is_allocated");
-  Module *module        = new DchainIsIndexAllocated(get_type().instance_id, node, dchain_addr, index, is_allocated);
+  symbol_t is_allocated = call_node->get_local_symbol("is_index_allocated");
+  Module *module        = new DchainIsIndexAllocated(get_type().instance_id, node, dchain_addr_expr, index, is_allocated);
   EPNode *ep_node       = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -95,7 +95,8 @@ std::unique_ptr<Module> DchainIsIndexAllocatedFactory::create(const BDD *bdd, co
     return {};
   }
 
-  return std::make_unique<DchainIsIndexAllocated>(get_type().instance_id, node, dchain_addr, index, call_node->get_local_symbol("is_allocated"));
+  return std::make_unique<DchainIsIndexAllocated>(get_type().instance_id, node, dchain_addr_expr, index,
+                                                  call_node->get_local_symbol("is_index_allocated"));
 }
 
 } // namespace x86

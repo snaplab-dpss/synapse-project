@@ -135,6 +135,9 @@ public:
   pps_t estimate_tput_pps() const;
 
   const TargetType get_placement(const LibClone::ComponentId component_id) const { return phys_net.get_placement(component_id); }
+  LibClone::Port get_forwarding_port(const LibClone::NetworkNodeId src, const LibClone::NetworkNodeId dst) const {
+    return phys_net.get_forwarding_port(src, dst);
+  }
 
   // Sources of error:
   // 1. Speculative performance is calculated as we make the speculative decisions, so local speculative decisions don't take into

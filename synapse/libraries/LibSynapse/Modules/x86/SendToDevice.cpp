@@ -73,9 +73,13 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
   // The outgoing port is the port that leads to the next target.
   // The incoming port is the port that leads back to us from the next target.
 
-  u32 outgoing_port = 0;
+  TargetType next_type = ep->get_placement(node->get_id());
+
+  if (ep->get_active_target() == next_type)
+    return {};
+
+  u32 outgoing_port = ep->get_forwarding_port(ep->get_active_target().instance_id, next_type.instance_id);
   u32 incoming_port = 0;
-  TargetType next_type;
 
   Module *module   = new SendToDevice(get_type().instance_id, node, outgoing_port, incoming_port, next_type, symbols);
   EPNode *s2d_node = new EPNode(module);

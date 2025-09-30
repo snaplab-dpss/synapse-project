@@ -393,36 +393,43 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_CMSQuery:
     case ModuleType::Controller_CMSIncrement:
     case ModuleType::Controller_CMSCountMin:
-    case ModuleType::x86_Ignore:
-    case ModuleType::x86_If:
-    case ModuleType::x86_Then:
-    case ModuleType::x86_Else:
-    case ModuleType::x86_Forward:
-    case ModuleType::x86_Drop:
-    case ModuleType::x86_Broadcast:
-    case ModuleType::x86_ParseHeader:
-    case ModuleType::x86_ModifyHeader:
-    case ModuleType::x86_ChecksumUpdate:
-    case ModuleType::x86_MapGet:
-    case ModuleType::x86_MapPut:
-    case ModuleType::x86_MapErase:
-    case ModuleType::x86_VectorRead:
-    case ModuleType::x86_VectorWrite:
-    case ModuleType::x86_DchainAllocateNewIndex:
-    case ModuleType::x86_DchainRejuvenateIndex:
-    case ModuleType::x86_DchainIsIndexAllocated:
-    case ModuleType::x86_DchainFreeIndex:
-    case ModuleType::x86_CMSIncrement:
-    case ModuleType::x86_CMSCountMin:
-    case ModuleType::x86_CMSPeriodicCleanup:
-    case ModuleType::x86_ExpireItemsSingleMap:
-    case ModuleType::x86_ExpireItemsSingleMapIteratively:
-    case ModuleType::x86_ChtFindBackend:
-    case ModuleType::x86_HashObj:
-    case ModuleType::x86_TokenBucketIsTracing:
-    case ModuleType::x86_TokenBucketTrace:
-    case ModuleType::x86_TokenBucketUpdateAndCheck:
-    case ModuleType::x86_TokenBucketExpire:
+    case ModuleCategory::x86_Ignore:
+    case ModuleCategory::x86_If:
+    case ModuleCategory::x86_Then:
+    case ModuleCategory::x86_Else:
+    case ModuleCategory::x86_Forward:
+    case ModuleCategory::x86_Drop:
+    case ModuleCategory::x86_Broadcast:
+    case ModuleCategory::x86_ParseHeader:
+    case ModuleCategory::x86_ModifyHeader:
+    case ModuleCategory::x86_ChecksumUpdate:
+    case ModuleCategory::x86_MapAllocate:
+    case ModuleCategory::x86_MapGet:
+    case ModuleCategory::x86_MapPut:
+    case ModuleCategory::x86_MapErase:
+    case ModuleCategory::x86_VectorAllocate:
+    case ModuleCategory::x86_VectorRead:
+    case ModuleCategory::x86_VectorWrite:
+    case ModuleCategory::x86_DchainAllocate:
+    case ModuleCategory::x86_DchainAllocateNewIndex:
+    case ModuleCategory::x86_DchainRejuvenateIndex:
+    case ModuleCategory::x86_DchainIsIndexAllocated:
+    case ModuleCategory::x86_DchainFreeIndex:
+    case ModuleCategory::x86_CMSAllocate:
+    case ModuleCategory::x86_CMSIncrement:
+    case ModuleCategory::x86_CMSCountMin:
+    case ModuleCategory::x86_CMSPeriodicCleanup:
+    case ModuleCategory::x86_ExpireItemsSingleMap:
+    case ModuleCategory::x86_ExpireItemsSingleMapIteratively:
+    case ModuleCategory::x86_ChtFindBackend:
+    case ModuleCategory::x86_HashObj:
+    case ModuleCategory::x86_SendToDevice:
+    case ModuleCategory::x86_TokenBucketAllocate:
+    case ModuleCategory::x86_TokenBucketIsTracing:
+    case ModuleCategory::x86_TokenBucketTrace:
+    case ModuleCategory::x86_TokenBucketUpdateAndCheck:
+    case ModuleCategory::x86_TokenBucketExpire:
+    case ModuleCategory::x86_LPMAllocate:
       break;
     }
   }

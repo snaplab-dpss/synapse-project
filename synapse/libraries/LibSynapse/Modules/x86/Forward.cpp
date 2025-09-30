@@ -31,7 +31,14 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  Context new_ctx             = ctx;
+  const fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(node);
+  assert(fwd_stats.operation == RouteOp::Forward);
+  for (const auto &[device, dev_hr] : fwd_stats.ports) {
+    new_ctx.get_mutable_perf_oracle().add_fwd_traffic(device, dev_hr);
+  }
+
+  return spec_impl_t(decide(ep, node), new_ctx);
 }
 
 std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -50,6 +57,12 @@ std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const BDDNode *no
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
+  const fwd_stats_t fwd_stats = new_ep->get_ctx().get_profiler().get_fwd_stats(node);
+  assert(fwd_stats.operation == RouteOp::Forward);
+  for (const auto &[device, dev_hr] : fwd_stats.ports) {
+    const port_ingress_t fwd_node_egress = new_ep->get_node_egress(dev_hr, ep_node);
+    new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_fwd_traffic(device, fwd_node_egress);
+  }
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));
   return impls;

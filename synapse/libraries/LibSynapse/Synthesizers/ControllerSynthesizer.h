@@ -25,7 +25,7 @@ using LibCore::Template;
 
 class ControllerSynthesizer : public EPVisitor {
 public:
-  ControllerSynthesizer(const EP *ep, std::filesystem::path out_file, const TargetType type);
+  ControllerSynthesizer(const EP *ep, std::filesystem::path out_file, const std::string &instance_id);
 
   void synthesize();
 

@@ -7,12 +7,12 @@ namespace x86 {
 
 class CMSPeriodicCleanup : public x86Module {
 private:
-  addr_t cms_addr;
+  klee::ref<klee::Expr> cms_addr;
   klee::ref<klee::Expr> time;
   klee::ref<klee::Expr> cleanup_success;
 
 public:
-  CMSPeriodicCleanup(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _time,
+  CMSPeriodicCleanup(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _cms_addr, klee::ref<klee::Expr> _time,
                      klee::ref<klee::Expr> _cleanup_success)
       : x86Module(ModuleType(ModuleCategory::x86_CMSPeriodicCleanup, _instance_id), "CMSPeriodicCleanup", _node), cms_addr(_cms_addr), time(_time),
         cleanup_success(_cleanup_success) {}
@@ -24,7 +24,7 @@ public:
     return cloned;
   }
 
-  addr_t get_cms_addr() const { return cms_addr; }
+  klee::ref<klee::Expr> get_cms_addr() const { return cms_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_cleanup_success() const { return cleanup_success; }
 };

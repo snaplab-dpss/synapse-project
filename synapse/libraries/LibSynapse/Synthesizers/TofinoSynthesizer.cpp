@@ -1390,7 +1390,7 @@ void TofinoSynthesizer::Stacks::clear() { stacks.clear(); }
 
 std::vector<TofinoSynthesizer::Stack> TofinoSynthesizer::Stacks::get_all() const { return stacks; }
 
-TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_file)
+TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_file, , const std::string &_instance_id)
     : out_file(_out_file), code_template(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
                                          {
                                              {MARKER_CPU_HEADER, 1},

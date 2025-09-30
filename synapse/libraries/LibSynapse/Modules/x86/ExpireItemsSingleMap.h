@@ -7,16 +7,17 @@ namespace x86 {
 
 class ExpireItemsSingleMap : public x86Module {
 private:
-  addr_t dchain_addr;
-  addr_t vector_addr;
-  addr_t map_addr;
+  klee::ref<klee::Expr> dchain_addr;
+  klee::ref<klee::Expr> vector_addr;
+  klee::ref<klee::Expr> map_addr;
   klee::ref<klee::Expr> time;
   klee::ref<klee::Expr> total_freed;
   klee::ref<klee::Expr> n_freed_flows;
 
 public:
-  ExpireItemsSingleMap(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, addr_t _vector_addr, addr_t _map_addr,
-                       klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _total_freed, klee::ref<klee::Expr> _n_freed_flows)
+  ExpireItemsSingleMap(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _vector_addr,
+                       klee::ref<klee::Expr> _map_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _total_freed,
+                       klee::ref<klee::Expr> _n_freed_flows)
       : x86Module(ModuleType(ModuleCategory::x86_ExpireItemsSingleMap, _instance_id), "ExpireItemsSingleMap", _node), dchain_addr(_dchain_addr),
         vector_addr(_vector_addr), map_addr(_map_addr), time(_time), total_freed(_total_freed), n_freed_flows(_n_freed_flows) {}
 
@@ -28,9 +29,9 @@ public:
     return cloned;
   }
 
-  addr_t get_dchain_addr() const { return dchain_addr; }
-  addr_t get_vector_addr() const { return vector_addr; }
-  addr_t get_map_addr() const { return map_addr; }
+  klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
+  klee::ref<klee::Expr> get_vector_addr() const { return vector_addr; }
+  klee::ref<klee::Expr> get_map_addr() const { return map_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_total_freed() const { return total_freed; }
   klee::ref<klee::Expr> get_n_freed_flows() const { return n_freed_flows; }

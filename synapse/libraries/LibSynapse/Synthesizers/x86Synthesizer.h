@@ -76,9 +76,10 @@ private:
   struct var_t {
     code_t name;
     klee::ref<klee::Expr> expr;
-    std::optional<addr_t> addr;
+    klee::ref<klee::Expr> addr;
 
     code_t get_slice(bits_t offset, bits_t size) const;
+    std::string to_string() const;
   };
 
   class Stack {
@@ -97,9 +98,10 @@ private:
     void clear();
 
     std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
-    std::optional<var_t> get_by_addr(addr_t addr) const;
+    std::optional<var_t> get_by_addr(klee::ref<klee::Expr> addr) const;
     std::optional<var_t> get_exact(klee::ref<klee::Expr> expr) const;
-    std::vector<var_t> get_all() const;
+    const std::vector<var_t> &get_all() const;
+    std::vector<var_t> &get_all_mutable();
   };
 
   class Stacks {
@@ -124,21 +126,27 @@ private:
 
     Stack squash() const;
     std::optional<var_t> get(klee::ref<klee::Expr> expr) const;
-    std::optional<var_t> get_by_addr(addr_t addr) const;
-    std::vector<Stack> get_all() const;
+    std::optional<var_t> get_by_addr(klee::ref<klee::Expr> addr) const;
+    const std::vector<Stack> &get_all() const;
     void replace(const var_t &var, klee::ref<klee::Expr> new_expr);
   };
 
   Stacks vars;
   std::unordered_map<std::string, int> reserved_var_names;
 
-  std::unordered_map<bdd_node_id_t, addr_t> nodes_to_map;
+  std::unordered_map<bdd_node_id_t, klee::ref<klee::Expr>> nodes_to_map;
   std::unordered_set<bdd_node_id_t> route_nodes;
   std::unordered_set<bdd_node_id_t> process_nodes;
 
   const EP *target_ep;
   x86SynthesizerTarget target;
   Transpiler transpiler;
+
+  bool in_nf_init{true};
+  void change_to_process_coder() { in_nf_init = false; }
+  void change_to_nf_init_coder() { in_nf_init = true; }
+  coder_t &get_current_coder();
+  coder_t &get(const std::string &marker) override final;
 
   void synthesize_nf_init();
   void synthesize_nf_process();
@@ -157,16 +165,20 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const x86::Drop *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeader *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::ModifyHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::MapAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::MapGet *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMap *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMapIteratively *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainRejuvenateIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainAllocateNewIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::MapPut *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::ChecksumUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainIsIndexAllocated *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSIncrement *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSCountMin *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSPeriodicCleanup *node) override final;
@@ -174,14 +186,17 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainFreeIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::ChtFindBackend *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::HashObj *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketIsTracing *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketTrace *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketUpdateAndCheck *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketExpire *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::LPMAllocate *node) override final;
 
-  var_t build_var_ptr(const std::string &base_name, addr_t addr, klee::ref<klee::Expr> value, coder_t &coder, bool &found_in_stack);
+  var_t build_var_ptr(const std::string &base_name, klee::ref<klee::Expr> addr_expr, klee::ref<klee::Expr> value, coder_t &coder,
+                      bool &found_in_stack);
   var_t build_var(const std::string &name, klee::ref<klee::Expr> expr);
-  var_t build_var(const std::string &name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr);
+  var_t build_var(const std::string &name, klee::ref<klee::Expr> expr, klee::ref<klee::Expr> addr);
 
   code_t create_unique_name(const std::string &base_name);
 

@@ -7,11 +7,11 @@ namespace x86 {
 
 class DchainFreeIndex : public x86Module {
 private:
-  addr_t dchain_addr;
+  klee::ref<klee::Expr> dchain_addr;
   klee::ref<klee::Expr> index;
 
 public:
-  DchainFreeIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
+  DchainFreeIndex(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _index)
       : x86Module(ModuleType(ModuleCategory::x86_DchainFreeIndex, _instance_id), "DchainFreeIndex", _node), dchain_addr(_dchain_addr), index(_index) {
   }
 
@@ -22,7 +22,7 @@ public:
     return cloned;
   }
 
-  addr_t get_dchain_addr() const { return dchain_addr; }
+  klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_index() const { return index; }
 };
 
