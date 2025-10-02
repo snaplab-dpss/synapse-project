@@ -158,15 +158,12 @@ private:
     for (const std::unique_ptr<bfrt::BfRtLearnData> &data_entry : learn_data) {
       const buffer_t diggest_buffer = fcfs_ct->digest.get_value(data_entry.get());
 
-      const bytes_t hash_size_bytes = (fcfs_ct->cache_hash_size + 7) / 8;
-      const u32 hash_mask           = (1 << fcfs_ct->cache_hash_size) - 1;
-
       const buffer_t key = diggest_buffer.get_slice(0, fcfs_ct->key_size);
       const u32 value    = diggest_buffer.get(fcfs_ct->key_size, 4);
-      const u32 hash     = fcfs_ct->crc32.hash(key) & hash_mask;
 
       LOG_DEBUG("[%s] Digest callback invoked (data=%s key=%s value=%x hash=%x)", fcfs_ct->digest.get_name().c_str(),
-                diggest_buffer.to_string(true).c_str(), key.to_string(true).c_str(), value, hash);
+                diggest_buffer.to_string(true).c_str(), key.to_string(true).c_str(), value,
+                fcfs_ct->crc32.hash(key) & ((1 << fcfs_ct->cache_hash_size) - 1));
 
       if (fcfs_ct->cache.find(key) != fcfs_ct->cache.end()) {
         continue;
