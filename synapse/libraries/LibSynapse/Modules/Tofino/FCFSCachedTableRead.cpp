@@ -13,7 +13,8 @@ namespace {
 
 struct fcfs_cached_table_data_t {
   addr_t obj;
-  klee::ref<klee::Expr> key;
+  klee::ref<klee::Expr> original_key;
+  std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> read_value;
   symbol_t map_has_this_key;
   u32 capacity;
@@ -22,7 +23,8 @@ struct fcfs_cached_table_data_t {
     const call_t &call = map_get->get_call();
 
     obj              = expr_addr_to_obj_addr(call.args.at("map").expr);
-    key              = call.args.at("key").in;
+    original_key     = call.args.at("key").in;
+    keys             = Table::build_keys(original_key, ctx.get_expr_structs());
     read_value       = call.args.at("value_out").out;
     map_has_this_key = map_get->get_local_symbol("map_has_this_key");
     capacity         = ctx.get_map_config(obj).capacity;
@@ -31,15 +33,16 @@ struct fcfs_cached_table_data_t {
 
 std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *node, const map_coalescing_objs_t &map_objs,
                                                  const fcfs_cached_table_data_t &cached_table_data, u32 cache_capacity) {
-  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key,
-                                                                                        cached_table_data.capacity, cache_capacity);
+  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
+      ep, node, cached_table_data.obj, cached_table_data.original_key, cached_table_data.capacity, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
   }
 
-  Module *module  = new FCFSCachedTableRead(node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj, cached_table_data.key,
-                                            cached_table_data.read_value, cached_table_data.map_has_this_key);
+  Module *module =
+      new FCFSCachedTableRead(node, cached_table->id, cached_table->tables.back().id, cached_table_data.obj, cached_table_data.original_key,
+                              cached_table_data.keys, cached_table_data.read_value, cached_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -81,9 +84,25 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
     return {};
   }
 
-  FCFSCachedTable *fcfs_cached_table = get_fcfs_cached_table(ep, node, cached_table_data.obj);
-  if (!fcfs_cached_table) {
+  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
     return {};
+  }
+
+  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
+    if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(map_objs->map))) {
+      return {};
+    }
+  }
+
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
+
+  // Let's optimistically pick the largest cache capacity that we can build or reuse.
+  u32 cache_capacity;
+  for (auto rev_it = allowed_cache_capacities.rbegin(); rev_it != allowed_cache_capacities.rend(); rev_it++) {
+    if (can_build_or_reuse_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.original_key, cached_table_data.capacity, *rev_it)) {
+      cache_capacity = *rev_it;
+      break;
+    }
   }
 
   Context new_ctx = ctx;
@@ -91,7 +110,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
   new_ctx.save_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable);
   new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable);
 
-  spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, fcfs_cached_table->cache_capacity}}), new_ctx);
+  spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}}), new_ctx);
 
   return spec_impl;
 }
@@ -115,9 +134,19 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
     return {};
   }
 
+  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
+    return {};
+  }
+
   if (!ep->get_ctx().can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
       !ep->get_ctx().can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
+  }
+
+  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
+    if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(map_objs->map))) {
+      return {};
+    }
   }
 
   const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
@@ -162,7 +191,8 @@ std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const BDD *bdd, const
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
   return std::make_unique<FCFSCachedTableRead>(node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id, cached_table_data.obj,
-                                               cached_table_data.key, cached_table_data.read_value, cached_table_data.map_has_this_key);
+                                               cached_table_data.original_key, cached_table_data.keys, cached_table_data.read_value,
+                                               cached_table_data.map_has_this_key);
 }
 
 } // namespace Tofino

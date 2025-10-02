@@ -156,17 +156,18 @@ private:
 
   std::list<speculation_target_t> get_nodes_targeted_for_speculation() const;
 
-  enum class Lookahead {
+  enum class SpeculationStrategy {
+    OneShot,
     WithLookahead,
     WithoutLookahead,
   };
 
   complete_speculation_t speculate(const Context &ctx, std::list<speculation_target_t> speculation_target_nodes, pps_t ingress,
-                                   Lookahead lookahead = Lookahead::WithLookahead) const;
+                                   SpeculationStrategy lookahead = SpeculationStrategy::WithLookahead) const;
   spec_impl_t get_best_speculation(const speculation_target_t &speculation_target, const Context &ctx, pps_t ingress,
-                                   const std::list<speculation_target_t> &speculation_target_nodes, Lookahead lookahead) const;
+                                   const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy lookahead) const;
   bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const speculation_target_t &speculation_target,
-                             pps_t ingress, const std::list<speculation_target_t> &speculation_target_nodes, Lookahead lookahead) const;
+                             pps_t ingress, const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy lookahead) const;
 
   struct tput_cmp_t {
     pps_t old_pps;

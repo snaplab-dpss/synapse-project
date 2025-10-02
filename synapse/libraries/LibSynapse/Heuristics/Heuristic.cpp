@@ -69,7 +69,6 @@ void Heuristic::add(std::vector<impl_t> &&new_implementations) {
     if (impl.result->get_next_node()) {
       unfinished_eps.insert(std::move(impl.result));
     } else {
-      EPViz::visualize(impl.result.get(), false);
       impl.result->get_ctx().get_perf_oracle().assert_final_state();
       finished_eps.insert(std::move(impl.result));
     }

@@ -113,8 +113,8 @@ GuardedMapTable *TofinoModuleFactory::build_or_reuse_guarded_map_table(const EP 
 }
 
 bool TofinoModuleFactory::can_build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
-  const Context &ctx  = ep->get_ctx();
-  bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_GuardedMapTable);
+  const Context &ctx        = ep->get_ctx();
+  const bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_GuardedMapTable);
 
   if (already_placed) {
     return can_reuse_guarded_map_table(ep, node, data);

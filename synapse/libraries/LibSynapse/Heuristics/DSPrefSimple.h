@@ -10,7 +10,6 @@ public:
       : HeuristicCfg("DSPrefSimple", {
                                          BUILD_METRIC(DSPrefSimple, get_bdd_progress, Objective::Max),
                                          BUILD_METRIC(DSPrefSimple, get_ds_score, Objective::Max),
-                                         BUILD_METRIC(DSPrefSimple, get_tput_speculation, Objective::Max),
                                      }) {}
 
   DSPrefSimple &operator=(const DSPrefSimple &other) {
@@ -30,7 +29,6 @@ public:
             .description = std::to_string(get_ds_score(ep)),
         },
         build_meta_tput_estimate(ep),
-        build_meta_tput_speculation(ep),
     };
   }
 

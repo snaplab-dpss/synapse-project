@@ -42,18 +42,29 @@ std::optional<spec_impl_t> DataplaneFCFSCachedTableWriteFactory::speculate(const
     return {};
   }
 
-  const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call    = call_node->get_call();
+  const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
-  if (call.function_name != "map_put") {
+  std::vector<const Call *> future_map_puts;
+  if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
+    // The cached table read should deal with these cases.
     return {};
   }
 
-  klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  const addr_t map_addr               = expr_addr_to_obj_addr(map_addr_expr);
+  assert(!future_map_puts.empty() && "No future map puts");
 
-  if (!ctx.check_ds_impl(map_addr, DSImpl::Tofino_FCFSCachedTable)) {
+  map_coalescing_objs_t map_objs;
+  if (!ep->get_bdd()->get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
     return {};
+  }
+
+  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_FCFSCachedTable) || !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+    return {};
+  }
+
+  spec_impl_t spec_impl(decide(ep, node), ctx);
+
+  for (const BDDNode *op : future_map_puts) {
+    spec_impl.skip.insert(op->get_id());
   }
 
   return spec_impl_t(decide(ep, node), ctx);
@@ -64,17 +75,25 @@ std::vector<impl_t> DataplaneFCFSCachedTableWriteFactory::process_node(const EP 
     return {};
   }
 
-  const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call    = call_node->get_call();
+  const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
-  if (call.function_name != "map_put") {
+  std::vector<const Call *> future_map_puts;
+  if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
+    // The cached table read should deal with these cases.
+    return {};
+  }
+
+  assert(!future_map_puts.empty() && "No future map puts");
+
+  map_coalescing_objs_t map_objs;
+  if (!ep->get_bdd()->get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
     return {};
   }
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> value;
-  get_data(ep->get_ctx(), call_node, obj, keys, value);
+  get_data(ep->get_ctx(), future_map_puts[0], obj, keys, value);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -100,17 +119,29 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableWriteFactory::create(const BDD *
     return {};
   }
 
-  const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call    = call_node->get_call();
+  const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
-  if (call.function_name != "map_put") {
+  std::vector<const Call *> future_map_puts;
+  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
+    // The cached table read should deal with these cases.
+    return {};
+  }
+
+  assert(!future_map_puts.empty() && "No future map puts");
+
+  map_coalescing_objs_t map_objs;
+  if (!bdd->get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
+    return {};
+  }
+
+  if (!ctx.can_impl_ds(map_objs.map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
   klee::ref<klee::Expr> value;
-  get_data(ctx, call_node, obj, keys, value);
+  get_data(ctx, future_map_puts[0], obj, keys, value);
 
   if (!ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};

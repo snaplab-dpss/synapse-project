@@ -381,10 +381,6 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
-  if (ep->get_bdd()->is_dchain_used_for_index_allocation_queries(map_objs->dchain)) {
-    return {};
-  }
-
   if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_CuckooHashTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_CuckooHashTable) ||
       !ctx.can_impl_ds(*map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable)) {
     return {};
@@ -472,10 +468,6 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
   }
 
   if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
-    return {};
-  }
-
-  if (ep->get_bdd()->is_dchain_used_for_index_allocation_queries(map_objs->dchain)) {
     return {};
   }
 

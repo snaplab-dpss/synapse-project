@@ -19,7 +19,7 @@ bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
   assert(call.function_name == "dchain_rejuvenate_index" && "Not a dchain call");
 
   klee::ref<klee::Expr> chain = call.args.at("chain").expr;
-  addr_t chain_addr           = expr_addr_to_obj_addr(chain);
+  const addr_t chain_addr     = expr_addr_to_obj_addr(chain);
 
   std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(chain_addr);
 
@@ -34,19 +34,23 @@ bool can_ignore_dchain_op(const Context &ctx, const call_t &call) {
   return true;
 }
 
-bool ds_ignore_logic(const Context &ctx, const call_t &call) {
-  addr_t obj;
+bool ds_ignore_logic(const Context &ctx, const Call *call_node) {
+  const std::optional<addr_t> obj = get_obj_from_call(call_node);
 
-  if (call.function_name == "dchain_rejuvenate_index" || call.function_name == "dchain_free_index") {
-    obj = expr_addr_to_obj_addr(call.args.at("chain").expr);
-  } else if (call.function_name == "vector_borrow" || call.function_name == "vector_return") {
-    obj = expr_addr_to_obj_addr(call.args.at("vector").expr);
-  } else {
+  if (!obj.has_value()) {
     return false;
   }
 
-  if (ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable) || ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
-    return true;
+  static std::unordered_map<DSImpl, std::unordered_set<std::string>> ds_ignore_logic_map = {
+      {DSImpl::Tofino_FCFSCachedTable, {"dchain_rejuvenate_index", "dchain_free_index", "map_put"}},
+      {DSImpl::Tofino_HeavyHitterTable, {"dchain_rejuvenate_index", "dchain_free_index"}},
+  };
+
+  const call_t &call = call_node->get_call();
+  for (const auto &[ds_impl, functions] : ds_ignore_logic_map) {
+    if (ctx.check_ds_impl(obj.value(), ds_impl)) {
+      return functions.contains(call.function_name);
+    }
   }
 
   return false;
@@ -113,7 +117,7 @@ bool should_ignore(const Context &ctx, const BDDNode *node) {
     return true;
   }
 
-  if (ds_ignore_logic(ctx, call)) {
+  if (ds_ignore_logic(ctx, call_node)) {
     return true;
   }
 

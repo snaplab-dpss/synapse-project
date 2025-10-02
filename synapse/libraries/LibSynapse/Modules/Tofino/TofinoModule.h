@@ -110,11 +110,13 @@ public:
   //  FCFS Cached Table
   // ======================================================================
 
+  static std::string build_fcfs_cached_table_id(addr_t obj);
   static FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj);
   static FCFSCachedTable *build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
                                                            u32 cache_capacity);
-  static bool can_get_or_build_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
-                                                 u32 cache_capacity);
+  static bool can_build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
+                                                   u32 cache_capacity);
+  static bool can_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity);
   static std::vector<u32> enum_fcfs_cache_cap(u32 capacity);
   static hit_rate_t get_fcfs_cache_success_rate(const Context &ctx, const BDDNode *node, klee::ref<klee::Expr> key, u32 cache_capacity);
 

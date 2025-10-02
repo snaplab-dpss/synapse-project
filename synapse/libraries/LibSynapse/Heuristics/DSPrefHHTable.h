@@ -9,7 +9,6 @@ public:
   DSPrefHHTable()
       : HeuristicCfg("DSPrefHHTable", {
                                           BUILD_METRIC(DSPrefHHTable, get_ds_score, Objective::Max),
-                                          BUILD_METRIC(DSPrefHHTable, get_tput_speculation, Objective::Max),
                                           BUILD_METRIC(DSPrefHHTable, get_bdd_progress, Objective::Max),
                                       }) {}
 
@@ -30,7 +29,6 @@ public:
             .description = std::to_string(get_ds_score(ep)),
         },
         build_meta_tput_estimate(ep),
-        build_meta_tput_speculation(ep),
     };
   }
 

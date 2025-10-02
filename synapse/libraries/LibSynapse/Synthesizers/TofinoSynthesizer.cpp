@@ -2418,21 +2418,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) {
-
-  // coder_t &ingress = get(MARKER_INGRESS_CONTROL);
-  // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
-
-  const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, node->get_cached_table_id());
-  klee::ref<klee::Expr> key                = node->get_key();
-  klee::ref<klee::Expr> value              = node->get_value();
-
-  transpile_fcfs_cached_table_decl(fcfs_cached_table, key, value);
-
-  // const symbol_t &map_has_this_key         = node->get_map_has_this_key();
-
-  // transpile_fcfs_cached_table(ingress, fcfs_cached_table, key, value);
-  // dbg();
-
   panic("TODO: FCFSCachedTableRead");
   return EPVisitor::Action::doChildren;
 }

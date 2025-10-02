@@ -267,7 +267,14 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       initial_controller_logic.update(dchain_is_index_allocated_ep_node);
     } break;
     case ModuleType::Tofino_FCFSCachedTableRead: {
-      panic("TODO: implement controller constraints checker logic for FCFSCachedTableRead");
+      const FCFSCachedTableRead *fcfs_cached_table_read = dynamic_cast<const FCFSCachedTableRead *>(prev.module);
+
+      Controller::DataplaneFCFSCachedTableRead *ctrl_fcfs_cached_table_read = new Controller::DataplaneFCFSCachedTableRead(
+          active_leaf.next, fcfs_cached_table_read->get_cached_table_id(), fcfs_cached_table_read->get_obj(),
+          fcfs_cached_table_read->get_original_key(), fcfs_cached_table_read->get_value(), fcfs_cached_table_read->get_map_has_this_key());
+
+      EPNode *fcfs_cached_table_read_ep_node = new EPNode(ctrl_fcfs_cached_table_read);
+      initial_controller_logic.update(fcfs_cached_table_read_ep_node);
     } break;
     case ModuleType::Tofino_HHTableRead: {
       const HHTableRead *hh_table_read = dynamic_cast<const HHTableRead *>(prev.module);

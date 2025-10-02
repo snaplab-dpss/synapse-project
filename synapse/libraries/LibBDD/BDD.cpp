@@ -1052,6 +1052,8 @@ bool BDD::get_map_coalescing_objs_from_dchain_op(const Call *dchain_op, map_coal
 }
 
 bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new_index) const {
+  assert(dchain_allocate_new_index && "No dchain_allocate_new_index node");
+
   const call_t &call = dchain_allocate_new_index->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
@@ -1101,6 +1103,8 @@ bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new
 }
 
 bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) const {
+  assert(dchain_allocate_new_index && "No dchain_allocate_new_index node");
+
   const call_t &call = dchain_allocate_new_index->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
@@ -1517,6 +1521,7 @@ BDDNode *BDD::delete_branch(BDDNode *target, BranchDeletionAction branch_deletio
 }
 
 klee::ConstraintManager BDD::get_constraints(const BDDNode *node) const {
+  assert(node && "BDDNode cannot be null");
   klee::ConstraintManager constraints = base_constraints;
   for (klee::ref<klee::Expr> constraint : node->get_ordered_branch_constraints()) {
     constraints.addConstraint(constraint);
@@ -1558,11 +1563,11 @@ branch_direction_t BDD::find_branch_checking_index_alloc(const Call *dchain_allo
     klee::ref<klee::Expr> success_condition =
         solver_toolbox.exprBuilder->Ne(not_out_of_space.expr, solver_toolbox.exprBuilder->Constant(0, not_out_of_space.expr->getWidth()));
 
-    assert_or_panic(index_alloc_check.branch->get_on_true(), "No on_true");
-    assert_or_panic(index_alloc_check.branch->get_on_false(), "No on_false");
-
     const BDDNode *on_true  = index_alloc_check.branch->get_on_true();
     const BDDNode *on_false = index_alloc_check.branch->get_on_false();
+
+    assert_or_panic(on_true, "No on_true");
+    assert_or_panic(on_false, "No on_false");
 
     const bool success_on_true  = solver_toolbox.is_expr_always_true(get_constraints(on_true), success_condition);
     const bool success_on_false = solver_toolbox.is_expr_always_true(get_constraints(on_false), success_condition);
@@ -1695,35 +1700,6 @@ bool BDD::is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_traci
   }
 
   return tb_update_and_check != nullptr;
-}
-
-bool BDD::is_dchain_used_for_index_allocation_queries(addr_t dchain) const {
-  bool result = false;
-
-  root->visit_nodes([&result, dchain](const BDDNode *node) {
-    if (node->get_type() != BDDNodeType::Call) {
-      return BDDNodeVisitAction::Continue;
-    }
-
-    const Call *call_node = dynamic_cast<const Call *>(node);
-    const call_t &call    = call_node->get_call();
-
-    if (call.function_name != "dchain_is_index_allocated") {
-      return BDDNodeVisitAction::Continue;
-    }
-
-    klee::ref<klee::Expr> chain = call.args.at("chain").expr;
-    const addr_t obj            = expr_addr_to_obj_addr(chain);
-
-    if (obj != dchain) {
-      return BDDNodeVisitAction::Continue;
-    }
-
-    result = true;
-    return BDDNodeVisitAction::Stop;
-  });
-
-  return result;
 }
 
 bool BDD::is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const {

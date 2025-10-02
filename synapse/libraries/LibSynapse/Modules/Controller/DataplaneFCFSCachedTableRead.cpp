@@ -22,21 +22,17 @@ DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
   return ds->id;
 }
 
-void get_data(const Context &ctx, const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &value,
+void get_data(const Context &ctx, const Call *call_node, addr_t &obj, klee::ref<klee::Expr> &key, klee::ref<klee::Expr> &value,
               std::optional<symbol_t> &hit) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "map_get" && "Not a map_get call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
-  klee::ref<klee::Expr> key           = call.args.at("key").in;
-  klee::ref<klee::Expr> value_out     = call.args.at("value_out").out;
-
-  const symbol_t map_has_this_key = call_node->get_local_symbol("map_has_this_key");
 
   obj   = expr_addr_to_obj_addr(map_addr_expr);
-  keys  = Table::build_keys(key, ctx.get_expr_structs());
-  value = value_out;
-  hit   = map_has_this_key;
+  key   = call.args.at("key").in;
+  value = call.args.at("value_out").out;
+  hit   = call_node->get_local_symbol("map_has_this_key");
 }
 } // namespace
 
@@ -75,10 +71,10 @@ std::vector<impl_t> DataplaneFCFSCachedTableReadFactory::process_node(const EP *
   }
 
   addr_t obj;
-  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
   std::optional<symbol_t> found;
-  get_data(ep->get_ctx(), call_node, obj, keys, value, found);
+  get_data(ep->get_ctx(), call_node, obj, key, value, found);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -86,7 +82,7 @@ std::vector<impl_t> DataplaneFCFSCachedTableReadFactory::process_node(const EP *
 
   const DS_ID id = get_cached_table_id(ep->get_ctx(), obj);
 
-  Module *module  = new DataplaneFCFSCachedTableRead(node, id, obj, keys, value, found);
+  Module *module  = new DataplaneFCFSCachedTableRead(node, id, obj, key, value, found);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -112,10 +108,10 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableReadFactory::create(const BDD *b
   }
 
   addr_t obj;
-  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
   std::optional<symbol_t> found;
-  get_data(ctx, call_node, obj, keys, value, found);
+  get_data(ctx, call_node, obj, key, value, found);
 
   if (!ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -125,7 +121,7 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableReadFactory::create(const BDD *b
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Tofino::FCFSCachedTable *fcfs_cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<DataplaneFCFSCachedTableRead>(node, fcfs_cached_table->id, obj, keys, value, found);
+  return std::make_unique<DataplaneFCFSCachedTableRead>(node, fcfs_cached_table->id, obj, key, value, found);
 }
 
 } // namespace Controller
