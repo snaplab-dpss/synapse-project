@@ -207,8 +207,18 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
     return {};
   }
 
+  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
+    return {};
+  }
+
   if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
+  }
+
+  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
+    if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(map_objs->map))) {
+      return {};
+    }
   }
 
   const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(cached_table_data.capacity);
@@ -222,8 +232,7 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   for (u32 cache_capacity : allowed_cache_capacities) {
     const hit_rate_t cache_success_probability = get_cache_op_success_probability(ep, node, cached_table_data.key, cache_capacity);
 
-    if (!can_get_or_build_fcfs_cached_table(ep, node, target, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity,
-                                            cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_cached_table(ep, node, cached_table_data.obj, cached_table_data.key, cached_table_data.capacity, cache_capacity)) {
       break;
     }
 
@@ -245,7 +254,6 @@ std::optional<spec_impl_t> FCFSCachedTableDeleteFactory::speculate(const EP *ep,
   const hit_rate_t fraction         = profiler.get_hr(node);
   const hit_rate_t on_fail_fraction = hit_rate_t{fraction * (1 - chosen_cache_success_probability)};
 
-  // FIXME: not using profiler cache.
   std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
 
   new_ctx.get_mutable_profiler().scale(constraints, chosen_cache_success_probability.value);
@@ -284,9 +292,19 @@ std::vector<impl_t> FCFSCachedTableDeleteFactory::process_node(const EP *ep, con
     return {};
   }
 
+  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
+    return {};
+  }
+
   if (!ep->get_ctx().can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
       !ep->get_ctx().can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
+  }
+
+  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
+    if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(map_objs->map))) {
+      return {};
+    }
   }
 
   const symbol_t cache_delete_failed              = symbol_manager->create_symbol("cache_delete_failed", 32);
