@@ -1319,15 +1319,15 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   var_t map_out_var = build_var("map", map_out);
   var_t success_var = build_var("map_allocation_succeeded", success.expr);
 
-  coder_t coder_nf_state = get(MARKER_NF_STATE);
+  coder_t &coder_nf_state = get(MARKER_NF_STATE);
   coder_nf_state.indent();
-  coder_nf_state << "struct Map *";
+  coder_nf_state << "struct KeyVecMap *";
   coder_nf_state << map_out_var.name;
   coder_nf_state << ";\n";
 
   coder.indent();
   coder << "int " << success_var.name << " = ";
-  coder << "map_allocate(";
+  coder << "key_vec_map_allocate(";
   coder << transpiler.transpile(capacity) << ", ";
   coder << transpiler.transpile(key_size) << ", ";
   coder << "&" << map_out_var.name;
@@ -1377,7 +1377,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
   coder.indent();
   coder << "int " << r.name << " = ";
-  coder << "map_get(";
+  coder << "key_vec_map_get(";
   coder << map_var.value().name << ", ";
   coder << k.name << ", ";
   coder << "&" << v.name;
@@ -1415,8 +1415,8 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   if (!in_nf_init)
     process_nodes.insert(node->get_node()->get_id());
 
-  const klee::ref<klee::Expr> dchain_addr   = node->get_dchain_addr();
-  const klee::ref<klee::Expr> vector_addr   = node->get_vector_addr();
+  const klee::ref<klee::Expr> dchain_addr = node->get_dchain_addr();
+  // const klee::ref<klee::Expr> vector_addr   = node->get_vector_addr();
   const klee::ref<klee::Expr> map_addr      = node->get_map_addr();
   const klee::ref<klee::Expr> time          = node->get_time();
   const klee::ref<klee::Expr> n_freed_flows = node->get_n_freed_flows();
@@ -1428,15 +1428,16 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     assert(dchain_var.has_value() && "Dchain not found");
   }
 
-  std::optional<var_t> vector_var = vars.get(vector_addr);
+  /*std::optional<var_t> vector_var = vars.get(vector_addr);
   if (!vector_var.has_value()) {
     std::cerr << expr_addr_to_obj_addr(vector_addr) << "\n";
     dbg_vars();
     assert(vector_var.has_value() && "Vector not found");
-  }
+  }*/
+
   std::optional<var_t> map_var = vars.get(map_addr);
   if (!map_var.has_value()) {
-    std::cerr << expr_addr_to_obj_addr(map_addr);
+    std::cerr << expr_to_string(map_addr, true);
     dbg_vars();
     assert(map_var.has_value() && "Map not found");
   }
@@ -1445,6 +1446,8 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   coder.indent();
   coder << "int " << nfreed.name << " = ";
   if (target == x86SynthesizerTarget::Profiler) {
+    panic("TODO-ExpireItemsSingleMap_Profiler: implement key_vec_map_profiler_expire_items_single_map");
+    /*
     coder << "profiler_expire_items_single_map(";
     coder << dchain_var.value().name << ", ";
     coder << vector_var.value().name << ", ";
@@ -1454,10 +1457,10 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     coder << ";\n";
     coder.indent();
     coder << "expiration_tracker.update(" << nfreed.name << ", now);\n";
+    */
   } else {
-    coder << "expire_items_single_map(";
+    coder << "key_vec_map_expire_items_single_map(";
     coder << dchain_var.value().name << ", ";
-    coder << vector_var.value().name << ", ";
     coder << map_var.value().name << ", ";
     coder << transpiler.transpile(time);
     coder << ")";
@@ -1480,8 +1483,8 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   const klee::ref<klee::Expr> n_elems       = node->get_n_elems();
   const klee::ref<klee::Expr> n_freed_flows = node->get_n_freed_flows();
 
-  std::optional<var_t> vector_var = vars.get(vector_addr);
-  assert(vector_var.has_value() && "Vector not found");
+  /*std::optional<var_t> vector_var = vars.get(vector_addr);
+  assert(vector_var.has_value() && "Vector not found");*/
 
   std::optional<var_t> map_var = vars.get(map_addr);
   assert(map_var.has_value() && "Map not found");
@@ -1490,8 +1493,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
   coder.indent();
   coder << "int " << nfreed.name << " = ";
-  coder << "expire_items_single_map_iteratively(";
-  coder << vector_var.value().name << ", ";
+  coder << "key_vec_map_expire_items_single_map_iteratively(";
   coder << map_var.value().name << ", ";
   coder << transpiler.transpile(start) << ", ";
   coder << transpiler.transpile(n_elems);
@@ -1585,11 +1587,10 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
   std::optional<var_t> vector_var = vars.get(vector_addr_expr);
   if (!vector_var.has_value()) {
-    std::cerr << expr_addr_to_obj_addr(vector_addr_expr);
+    std::cerr << expr_addr_to_obj_addr(vector_addr_expr) << "\n";
     dbg_vars();
     assert(vector_var.has_value() && "Vector not found in stack");
   }
-  // assert(vector_var.has_value() && "Vector not found in stack");
 
   coder.indent();
   coder << "uint8_t* " << v.name << " = 0;\n";
@@ -1742,16 +1743,16 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   const klee::ref<klee::Expr> map_addr = node->get_map_addr();
   const klee::ref<klee::Expr> key_addr = node->get_key_addr();
   const klee::ref<klee::Expr> key      = node->get_key();
-  const klee::ref<klee::Expr> value    = node->get_value();
+  const klee::ref<klee::Expr> value    = node->get_value(); // dchain_index
 
   std::optional<var_t> map_var = vars.get(map_addr);
-  assert(map_var.has_value() && "Dchain not found");
+  assert(map_var.has_value() && "Map not found");
 
   bool key_in_stack;
   var_t k = build_var_ptr("key", key_addr, key, coder, key_in_stack);
 
   coder.indent();
-  coder << "map_put(";
+  coder << "key_vec_map_put(";
   coder << map_var.value().name << ", ";
   coder << k.name << ", ";
   coder << transpiler.transpile(value);

@@ -1,3 +1,4 @@
+#include <cstdlib>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -54,6 +55,70 @@ static const uint16_t RX_QUEUE_SIZE = 1024;
 static const uint16_t TX_QUEUE_SIZE = 1024;
 
 static const unsigned MEMPOOL_BUFFER_COUNT = 2048;
+
+struct KeyVecMap {
+  Map *map;
+  Vector *vector;
+  sizet_t key_size;
+}
+
+int key_vec_map_allocate(unsigned capacity, unsigned key_size, struct KeyVecMap **key_vec_map_out) {
+
+    struct KeyVecMap old_key_vec_map = *key_vec_map_out;
+    struct KeyVecMap *key_vec_map_alloc = (struct KeyVecMap *)malloc(sizeof(struct KeyVecMap));
+
+    if (key_vec_map_alloc == 0)
+      return 0;
+    *key_vec_map_out = (struct KeyVecMap *) key_vec_map_alloc;
+
+    struct Map *map;
+    int map_alloc_success = map_allocate(capacity, key_size, &map);
+    if (!map_alloc_success) {
+      free(key_vec_map_alloc); 
+      *key_vec_map_out = old_key_vec_map;
+      return 0;
+    }
+
+    struct Vector *vector;
+    int vector_alloc_success = vector_allocate(ks, capacity, &vector);
+    if (!vector_alloc_success) {
+      free(key_vec_map_alloc);
+      *key_vec_map_out = old_key_vec_map;
+      return 0;
+    }
+
+    (*key_vec_map_out)->map = map;
+    (*key_vec_map_out)->vector = vector;
+    (*key_vec_map_out)->key_size = key_size;
+
+    return 1;
+}
+
+int key_vec_map_get(struct KeyVecMap *kvm, void *key, int *value_out) {
+
+  int map_hit = map_get(kvm->map, key, value_out);
+  return map_hit;
+}
+
+void key_vec_map_put(struct KeyVecMap *map, void *key, int value) {
+
+  void *cell;
+
+  vector_borrow(kvm->vector, value, &cell);
+  memcpy(cell, key, kvm->key_size);
+  map_put(kvm->map, cell, value);
+  vector_return(kvm->vector, value, cell);
+}
+
+int key_vec_map_expire_items_single_map(struct DoubleChain *dchain, struct KeyVecMap * kvm, time_ns_t time) {
+  return expire_items_single_map(dchain, kvm->vector, kvm->map, time);
+}
+
+int key_vec_map_expire_items_single_map_iteratively(struct KeyVecMap * kvm, int start, int n_elems) {
+    return expire_items_single_map_iteratively(kvm->vector, kvm->map, start, n_elems);
+}
+
+void key_vec_map_erase(struct KeyVecMap *kvm, void *key, void **trash);
 
 bool nf_init();
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now);
