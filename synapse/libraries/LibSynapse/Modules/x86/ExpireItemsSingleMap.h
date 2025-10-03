@@ -25,7 +25,7 @@ public:
 
   virtual Module *clone() const {
     ExpireItemsSingleMap *cloned =
-        new ExpireItemsSingleMap(get_type().instance_id, node, dchain_addr, map_addr, vector_addr, time, total_freed, n_freed_flows);
+        new ExpireItemsSingleMap(get_type().instance_id, node, dchain_addr, vector_addr, map_addr, time, total_freed, n_freed_flows);
     return cloned;
   }
 
