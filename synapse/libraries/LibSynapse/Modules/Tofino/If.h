@@ -44,8 +44,9 @@ private:
   std::vector<condition_t> conditions;
 
 public:
-  If(const BDDNode *_node, klee::ref<klee::Expr> _original_condition, const std::vector<condition_t> &_conditions)
-      : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions(_conditions) {}
+  If(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _original_condition, const std::vector<condition_t> &_conditions)
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_If, _instance_id), "If", _node), original_condition(_original_condition),
+        conditions(_conditions) {}
 
   If(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _original_condition)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_If, _instance_id), "If", _node), original_condition(_original_condition),

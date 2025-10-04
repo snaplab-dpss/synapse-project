@@ -87,81 +87,6 @@ struct ControllerTarget : public Target {
             TargetType(TargetArchitecture::Controller, _instance_id),
             [_instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
-<<<<<<< HEAD
-              f.push_back(std::make_unique<IgnoreFactory>(instance_id));
-              f.push_back(std::make_unique<ParseHeaderFactory>(instance_id));
-              f.push_back(std::make_unique<ModifyHeaderFactory>(instance_id));
-              f.push_back(std::make_unique<ChecksumUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<IfFactory>(instance_id));
-              f.push_back(std::make_unique<ThenFactory>(instance_id));
-              f.push_back(std::make_unique<ElseFactory>(instance_id));
-              f.push_back(std::make_unique<ForwardFactory>(instance_id));
-              f.push_back(std::make_unique<BroadcastFactory>(instance_id));
-              f.push_back(std::make_unique<DropFactory>(instance_id));
-              f.push_back(std::make_unique<AbortTransactionFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneMapTableAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneMapTableLookupFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneMapTableUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneMapTableDeleteFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneGuardedMapTableAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneGuardedMapTableLookupFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneGuardedMapTableGuardCheckFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneGuardedMapTableUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneGuardedMapTableDeleteFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneVectorTableAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneVectorTableLookupFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneVectorTableUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneDchainTableAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneDchainTableAllocateNewIndexFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneDchainTableFreeIndexFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneDchainTableIsIndexAllocatedFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneDchainTableRefreshIndexFactory>(instance_id));
-              f.push_back(std::make_unique<DchainAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DchainAllocateNewIndexFactory>(instance_id));
-              f.push_back(std::make_unique<DchainIsIndexAllocatedFactory>(instance_id));
-              f.push_back(std::make_unique<DchainRejuvenateIndexFactory>(instance_id));
-              f.push_back(std::make_unique<DchainFreeIndexFactory>(instance_id));
-              f.push_back(std::make_unique<VectorAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<VectorReadFactory>(instance_id));
-              f.push_back(std::make_unique<VectorWriteFactory>(instance_id));
-              f.push_back(std::make_unique<MapAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<MapGetFactory>(instance_id));
-              f.push_back(std::make_unique<MapPutFactory>(instance_id));
-              f.push_back(std::make_unique<MapEraseFactory>(instance_id));
-              f.push_back(std::make_unique<ChtAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<ChtFindBackendFactory>(instance_id));
-              f.push_back(std::make_unique<HashObjFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneVectorRegisterAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneVectorRegisterLookupFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneVectorRegisterUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneFCFSCachedTableAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneFCFSCachedTableReadFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneFCFSCachedTableWriteFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneFCFSCachedTableDeleteFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneHHTableAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneHHTableReadFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneHHTableUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneHHTableIsIndexAllocatedFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneHHTableDeleteFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneHHTableOutOfBandUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneCMSAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneCMSQueryFactory>(instance_id));
-              f.push_back(std::make_unique<TokenBucketAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<TokenBucketIsTracingFactory>(instance_id));
-              f.push_back(std::make_unique<TokenBucketTraceFactory>(instance_id));
-              f.push_back(std::make_unique<TokenBucketUpdateAndCheckFactory>(instance_id));
-              f.push_back(std::make_unique<TokenBucketExpireFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneMeterAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneMeterInsertFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneIntegerAllocatorAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneIntegerAllocatorFreeIndexFactory>(instance_id));
-              f.push_back(std::make_unique<CMSAllocateFactory>(instance_id));
-              f.push_back(std::make_unique<CMSUpdateFactory>(instance_id));
-              f.push_back(std::make_unique<CMSQueryFactory>(instance_id));
-              f.push_back(std::make_unique<CMSIncrementFactory>(instance_id));
-              f.push_back(std::make_unique<CMSCountMinFactory>(instance_id));
-              f.push_back(std::make_unique<DataplaneCuckooHashTableAllocateFactory>(instance_id));
-=======
               f.push_back(std::make_unique<IgnoreFactory>(_instance_id));
               f.push_back(std::make_unique<ParseHeaderFactory>(_instance_id));
               f.push_back(std::make_unique<ModifyHeaderFactory>(_instance_id));
@@ -217,6 +142,7 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneHHTableUpdateFactory>(_instance_id));
               f.push_back(std::make_unique<DataplaneHHTableIsIndexAllocatedFactory>(_instance_id));
               f.push_back(std::make_unique<DataplaneHHTableDeleteFactory>(_instance_id));
+              f.push_back(std::make_unique<DataplaneHHTableOutOfBandUpdateFactory>(_instance_id));
               f.push_back(std::make_unique<DataplaneCMSAllocateFactory>(_instance_id));
               f.push_back(std::make_unique<DataplaneCMSQueryFactory>(_instance_id));
               f.push_back(std::make_unique<TokenBucketAllocateFactory>(_instance_id));
@@ -233,7 +159,7 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<CMSQueryFactory>(_instance_id));
               f.push_back(std::make_unique<CMSIncrementFactory>(_instance_id));
               f.push_back(std::make_unique<CMSCountMinFactory>(_instance_id));
->>>>>>> 2df2f28ec (Program running: misses placement considerations)
+              f.push_back(std::make_unique<DataplaneCuckooHashTableAllocateFactory>(_instance_id));
               return f;
             }(),
             std::make_unique<ControllerContext>()) {}
