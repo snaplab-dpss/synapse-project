@@ -27,7 +27,7 @@ enum class BDDSynthesizerTarget { NF, Profiler };
 
 class BDDSynthesizer {
 public:
-  BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::filesystem::path _out_file, const TargetType _type);
+  BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::filesystem::path _out_file);
 
   void synthesize();
 
