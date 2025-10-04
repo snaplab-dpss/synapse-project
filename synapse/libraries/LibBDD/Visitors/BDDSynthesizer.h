@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LibSynapse/Target.h"
 #include <LibCore/Coder.h>
 #include <LibCore/Template.h>
 #include <LibBDD/Nodes/Node.h>
@@ -17,6 +18,7 @@ using LibCore::coder_t;
 using LibCore::indent_t;
 using LibCore::marker_t;
 using LibCore::Template;
+using LibSynapse::TargetType;
 
 class BDD;
 class Call;
@@ -25,7 +27,7 @@ enum class BDDSynthesizerTarget { NF, Profiler };
 
 class BDDSynthesizer {
 public:
-  BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::filesystem::path _out_file, const TargetType _type);
+  BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, std::filesystem::path _out_file);
 
   void synthesize();
 

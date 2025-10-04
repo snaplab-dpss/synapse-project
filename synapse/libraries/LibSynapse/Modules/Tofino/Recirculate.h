@@ -12,7 +12,7 @@ private:
 
 public:
   Recirculate(const std::string &_instance_id, const BDDNode *_node, Symbols _symbols, u32 _code_path)
-      : TofinoModule(ModuleType::Tofino_Recirculate, "Recirculate", _node), symbols(_symbols), code_path(_code_path) {}
+      : TofinoModule(ModuleType(ModuleCategory::Tofino_Recirculate, _instance_id), "Recirculate", _node), symbols(_symbols), code_path(_code_path) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 

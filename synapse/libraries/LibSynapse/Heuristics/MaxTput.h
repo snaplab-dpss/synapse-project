@@ -95,7 +95,7 @@ private:
   }
 
   i64 get_recirculations(const EP *ep) const {
-    auto found_it = ep->get_meta().modules_counter.find(ModuleType::Tofino_Recirculate);
+    auto found_it = ep->get_meta().modules_counter.find(ModuleCategory::Tofino_Recirculate);
     if (found_it != ep->get_meta().modules_counter.end()) {
       return found_it->second;
     }

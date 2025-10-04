@@ -295,10 +295,10 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
   case ModuleCategory::Tofino_LPMLookup:
     os << "Tofino_LPMLookup";
     break;
-  case ModuleType::Tofino_CuckooHashTableReadWrite:
+  case ModuleCategory::Tofino_CuckooHashTableReadWrite:
     os << "Tofino_CuckooHashTableReadWrite";
     break;
-  case ModuleType::Controller_Ignore:
+  case ModuleCategory::Controller_Ignore:
     os << "Controller_Ignore";
     break;
   case ModuleCategory::Controller_ParseHeader:
@@ -403,10 +403,10 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
   case ModuleCategory::Controller_DataplaneHHTableIsIndexAllocated:
     os << "Controller_DataplaneHHTableIsIndexAllocated";
     break;
-  case ModuleType::Controller_DataplaneHHTableOutOfBandUpdate:
+  case ModuleCategory::Controller_DataplaneHHTableOutOfBandUpdate:
     os << "Controller_DataplaneHHTableOutOfBandUpdate";
     break;
-  case ModuleType::Controller_DataplaneHHTableDelete:
+  case ModuleCategory::Controller_DataplaneHHTableDelete:
     os << "Controller_DataplaneHHTableDelete";
     break;
   case ModuleCategory::Controller_DchainAllocate:
@@ -511,10 +511,10 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
   case ModuleCategory::Controller_CMSCountMin:
     os << "Controller_CMSCountMin";
     break;
-  case ModuleType::Controller_DataplaneCuckooHashTableAllocate:
+  case ModuleCategory::Controller_DataplaneCuckooHashTableAllocate:
     os << "Controller_DataplaneCuckooHashTableAllocate";
     break;
-  case ModuleType::x86_Ignore:
+  case ModuleCategory::x86_Ignore:
     os << "x86_Ignore";
     break;
   case ModuleCategory::x86_If:

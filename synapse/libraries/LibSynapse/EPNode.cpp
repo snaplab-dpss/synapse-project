@@ -186,7 +186,7 @@ u8 EPNode::count_past_recirculations() const {
   const EPNode *node = this;
   while (node) {
     const Module *node_module = node->get_module();
-    if (node_module && node_module->get_type() == ModuleCategory::Tofino_Recirculate) {
+    if (node_module && node_module->get_type().type == ModuleCategory::Tofino_Recirculate) {
       count++;
     }
     node = node->get_prev();
