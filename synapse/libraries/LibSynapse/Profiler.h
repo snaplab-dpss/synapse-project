@@ -174,10 +174,10 @@ struct ProfilerNode {
 class Profiler {
 private:
   const std::shared_ptr<bdd_profile_t> bdd_profile;
+  const std::shared_ptr<std::unordered_map<bdd_node_id_t, std::vector<flow_stats_t>>> flows_stats_per_bdd_node;
   const bytes_t avg_pkt_size;
 
   std::shared_ptr<ProfilerNode> root;
-  std::unordered_map<bdd_node_id_t, std::vector<flow_stats_t>> flows_stats_per_bdd_node;
 
   // Not the prettiest solution, but will do.
   // We cache on reads, and invalidate on writes.

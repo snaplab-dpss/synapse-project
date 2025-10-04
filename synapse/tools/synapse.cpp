@@ -3,6 +3,7 @@
 #include <LibSynapse/Visualizers/EPVisualizer.h>
 #include <LibSynapse/Visualizers/SSVisualizer.h>
 #include <LibSynapse/Visualizers/ProfilerVisualizer.h>
+#include <LibSynapse/GlobalStats.h>
 #include <LibCore/Debug.h>
 
 #include <filesystem>
@@ -332,12 +333,12 @@ int main(int argc, char **argv) {
   }
   std::cout << "Stats:\n";
   std::cout << "  Speculative phases:\n";
-  std::cout << "    Phase 1: " << int2hr(report.ep->get_stats().num_phase1_speculations) << " ("
-            << percent2str(report.ep->get_stats().num_phase1_speculations, report.ep->get_stats().num_phase1_speculations, 2) << ")\n";
-  std::cout << "    Phase 2: " << int2hr(report.ep->get_stats().num_phase2_speculations) << " ("
-            << percent2str(report.ep->get_stats().num_phase2_speculations, report.ep->get_stats().num_phase1_speculations, 2) << ")\n";
-  std::cout << "    Phase 3: " << int2hr(report.ep->get_stats().num_phase3_speculations) << " ("
-            << percent2str(report.ep->get_stats().num_phase3_speculations, report.ep->get_stats().num_phase1_speculations, 2) << ")\n";
+  std::cout << "    Phase 1: " << int2hr(GlobalStats::num_phase1_speculations) << " ("
+            << percent2str(GlobalStats::num_phase1_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
+  std::cout << "    Phase 2: " << int2hr(GlobalStats::num_phase2_speculations) << " ("
+            << percent2str(GlobalStats::num_phase2_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
+  std::cout << "    Phase 3: " << int2hr(GlobalStats::num_phase3_speculations) << " ("
+            << percent2str(GlobalStats::num_phase3_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
   std::cout << "\n";
 
   return 0;

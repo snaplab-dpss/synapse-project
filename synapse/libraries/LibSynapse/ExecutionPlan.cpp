@@ -1,6 +1,7 @@
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Modules/Module.h>
 #include <LibSynapse/Modules/ModuleFactory.h>
+#include <LibSynapse/GlobalStats.h>
 #include <LibCore/Expr.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
@@ -150,7 +151,7 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
 
 EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
     : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(), targets(_targets), ctx(bdd.get(), _targets, _targets_config, _profiler),
-      meta(bdd.get(), targets), ep_stats() {
+      meta(bdd.get(), targets) {
   TargetType initial_target     = targets.get_initial_target().type;
   targets_roots[initial_target] = bdd_node_ids_t({bdd->get_root()->get_id()});
 
@@ -165,8 +166,7 @@ EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_ta
 
 EP::EP(const EP &other, bool is_ancestor)
     : id(ep_id_counter++), bdd(other.bdd), root(other.root ? other.root->clone(true) : nullptr), targets(other.targets),
-      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta),
-      ep_stats(other.ep_stats) {
+      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta) {
   if (!root) {
     assert(other.active_leaves.size() == 1 && "No root and multiple leaves.");
     active_leaves.emplace_back(nullptr, bdd->get_root());
@@ -745,19 +745,19 @@ EP::tput_cmp_t EP::compare_speculations_with_unexplored_nodes_lookahead(const sp
 // Compare the performance of an old speculation if it were subjected to the nodes ignored by the new speculation, and vise versa.
 bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const speculation_target_t &speculation_target,
                                pps_t ingress, const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy strategy) const {
-  if (id == 49 && speculation_target.node->get_id() == 159) {
-    std::cerr << "is better speculation? " << spec2str(old_speculation, bdd.get()) << " vs " << spec2str(new_speculation, bdd.get()) << "\n";
-    for (const speculation_target_t &t : speculation_target_nodes) {
-      std::cerr << "  " << t.node->dump(true, true) << " -> " << t.target << "\n";
-    }
-  }
+  // if (id == 49 && speculation_target.node->get_id() == 159) {
+  //   std::cerr << "is better speculation? " << spec2str(old_speculation, bdd.get()) << " vs " << spec2str(new_speculation, bdd.get()) << "\n";
+  //   for (const speculation_target_t &t : speculation_target_nodes) {
+  //     std::cerr << "  " << t.node->dump(true, true) << " -> " << t.target << "\n";
+  //   }
+  // }
 
-  ep_stats.num_phase1_speculations++;
+  GlobalStats::num_phase1_speculations++;
   tput_cmp_t tput_cmp =
       compare_speculations_by_ignored_nodes(old_speculation, new_speculation, speculation_target, ingress, speculation_target_nodes);
 
-  // if (id == 1 && speculation_target.node->get_id() == 39) {
-  //   std::cerr << "\n\n ************************* Speculation for " << speculation_target.node->dump(true) << "\n";
+  // if (id == 49 && speculation_target.node->get_id() == 159) {
+  //   std::cerr << "\n\n ************************* Speculation for " << speculation_target.node->dump(true, true) << "\n";
   //   std::cerr << "Speculation target: " << speculation_target.node->dump(true, true) << " -> " << speculation_target.target << "\n";
   //   std::cerr << "phase: 1\n";
   //   std::cerr << "id: " << id << "\n";
@@ -781,12 +781,12 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
     return tput_cmp.new_pps > tput_cmp.old_pps;
   }
 
-  ep_stats.num_phase2_speculations++;
+  GlobalStats::num_phase2_speculations++;
   tput_cmp =
       compare_speculations_with_reachable_nodes_lookahead(old_speculation, new_speculation, speculation_target, ingress, speculation_target_nodes);
 
-  // if (id == 1 && speculation_target.node->get_id() == 39) {
-  //   std::cerr << "\n\n ************************* Speculation for " << speculation_target.node->dump(true) << "\n";
+  // if (id == 49 && speculation_target.node->get_id() == 159) {
+  //   std::cerr << "\n\n ************************* Speculation for " << speculation_target.node->dump(true, true) << "\n";
   //   std::cerr << "phase: 2\n";
   //   std::cerr << "id: " << id << "\n";
   //   std::cerr << "  " << spec2str(old_speculation, bdd.get()) << "\n";
@@ -801,7 +801,7 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
     return tput_cmp.new_pps > tput_cmp.old_pps;
   }
 
-  ep_stats.num_phase3_speculations++;
+  GlobalStats::num_phase3_speculations++;
   tput_cmp =
       compare_speculations_with_unexplored_nodes_lookahead(old_speculation, new_speculation, speculation_target, ingress, speculation_target_nodes);
 
@@ -831,33 +831,33 @@ spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_tar
         continue;
       }
 
-      if (id == 49 && speculation_target.node->get_id() == 159) {
-        std::cerr << "\n\n";
-        std::cerr << "EP id: " << id << "\n";
-        std::cerr << "Speculation target: " << speculation_target.node->dump(true, true) << " -> " << speculation_target.target << "\n";
-        std::cerr << "  " << spec2str(*spec, bdd.get()) << "\n";
-        // spec->ctx.get_perf_oracle().debug();
-        if (best.has_value()) {
-          std::cerr << "SpeculationStrategy? ";
-          switch (strategy) {
-          case SpeculationStrategy::OneShot:
-            std::cerr << "OneShot";
-            break;
-          case SpeculationStrategy::WithoutLookahead:
-            std::cerr << "WithoutLookahead";
-            break;
-          case SpeculationStrategy::WithLookahead:
-            std::cerr << "WithLookahead";
-            break;
-          }
-          std::cerr << "\n";
-          auto is_better = is_better_speculation(*best, *spec, speculation_target, ingress, speculation_target_nodes, strategy);
-          std::cerr << "  is better than " << spec2str(*best, bdd.get()) << "? " << is_better << "\n";
-        } else {
-          std::cerr << "Set as best\n";
-        }
-        dbg_pause();
-      }
+      // if (id == 49 && speculation_target.node->get_id() == 159) {
+      //   std::cerr << "\n\n";
+      //   std::cerr << "EP id: " << id << "\n";
+      //   std::cerr << "Speculation target: " << speculation_target.node->dump(true, true) << " -> " << speculation_target.target << "\n";
+      //   std::cerr << "  " << spec2str(*spec, bdd.get()) << "\n";
+      //   // spec->ctx.get_perf_oracle().debug();
+      //   if (best.has_value()) {
+      //     std::cerr << "SpeculationStrategy? ";
+      //     switch (strategy) {
+      //     case SpeculationStrategy::OneShot:
+      //       std::cerr << "OneShot";
+      //       break;
+      //     case SpeculationStrategy::WithoutLookahead:
+      //       std::cerr << "WithoutLookahead";
+      //       break;
+      //     case SpeculationStrategy::WithLookahead:
+      //       std::cerr << "WithLookahead";
+      //       break;
+      //     }
+      //     std::cerr << "\n";
+      //     auto is_better = is_better_speculation(*best, *spec, speculation_target, ingress, speculation_target_nodes, strategy);
+      //     std::cerr << "  is better than " << spec2str(*best, bdd.get()) << "? " << is_better << "\n";
+      //   } else {
+      //     std::cerr << "Set as best\n";
+      //   }
+      //   dbg_pause();
+      // }
 
       if (!best.has_value()) {
         best = *spec;

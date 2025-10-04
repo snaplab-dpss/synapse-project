@@ -61,7 +61,7 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
     }
   }
 
-  std::cerr << "Node:       " << report.current->dump(true) << "\n";
+  std::cerr << "Node:       " << report.current->dump(true, true) << "\n";
 
   assert((report.targets.size() == report.name.size() && report.targets.size() == report.gen_ep_ids.size()) && "Mismatch in the number of targets");
 

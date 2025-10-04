@@ -37,17 +37,6 @@ struct EPLeaf {
   EPLeaf(const EPLeaf &other) : node(other.node), next(other.next) {}
 };
 
-struct EPStats {
-  u64 num_phase1_speculations;
-  u64 num_phase2_speculations;
-  u64 num_phase3_speculations;
-
-  EPStats() : num_phase1_speculations(0), num_phase2_speculations(0), num_phase3_speculations(0) {}
-  EPStats(const EPStats &other)
-      : num_phase1_speculations(other.num_phase1_speculations), num_phase2_speculations(other.num_phase2_speculations),
-        num_phase3_speculations(other.num_phase3_speculations) {}
-};
-
 struct complete_speculation_t {
   std::vector<spec_impl_t> speculations_per_node;
   Context final_ctx;
@@ -73,7 +62,6 @@ private:
   Context ctx;
   EPMeta meta;
 
-  mutable EPStats ep_stats;
   mutable std::optional<pps_t> cached_tput_estimation;
   mutable std::optional<pps_t> cached_tput_speculation;
   mutable std::optional<complete_speculation_t> cached_speculations;
@@ -106,7 +94,6 @@ public:
   const std::set<ep_id_t> &get_ancestors() const { return ancestors; }
   const Context &get_ctx() const { return ctx; }
   const EPMeta &get_meta() const { return meta; }
-  const EPStats &get_stats() const { return ep_stats; }
 
   EPNode *get_mutable_root() { return root.get(); }
   Context &get_mutable_ctx() { return ctx; }

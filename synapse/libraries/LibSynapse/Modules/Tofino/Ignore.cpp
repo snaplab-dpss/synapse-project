@@ -34,7 +34,7 @@ bool can_ignore_vector_register_op(const Call *call_node) {
 }
 
 bool can_ignore_fcfs_cached_table_op(const Context &ctx, const call_t &call) {
-  if (call.function_name != "dchain_free_index" && call.function_name != "dchain_allocate_new_index") {
+  if (call.function_name != "dchain_free_index") {
     return false;
   }
 

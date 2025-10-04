@@ -61,9 +61,9 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<ParserConditionFactory>());
               f.push_back(std::make_unique<ParserRejectFactory>());
               f.push_back(std::make_unique<ModifyHeaderFactory>());
-              // f.push_back(std::make_unique<MapTableLookupFactory>());
-              // f.push_back(std::make_unique<GuardedMapTableLookupFactory>());
-              // f.push_back(std::make_unique<GuardedMapTableGuardCheckFactory>());
+              f.push_back(std::make_unique<MapTableLookupFactory>());
+              f.push_back(std::make_unique<GuardedMapTableLookupFactory>());
+              f.push_back(std::make_unique<GuardedMapTableGuardCheckFactory>());
               f.push_back(std::make_unique<DchainTableLookupFactory>());
               f.push_back(std::make_unique<VectorTableLookupFactory>());
               f.push_back(std::make_unique<VectorRegisterLookupFactory>());
@@ -73,8 +73,8 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
               f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>());
               f.push_back(std::make_unique<MeterUpdateFactory>());
-              // f.push_back(std::make_unique<HHTableReadFactory>());
-              // f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>());
+              f.push_back(std::make_unique<HHTableReadFactory>());
+              f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorIsAllocatedFactory>());
               // f.push_back(std::make_unique<IntegerAllocatorRejuvenateFactory>());
@@ -82,7 +82,7 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<CMSIncrementFactory>());
               f.push_back(std::make_unique<CMSIncAndQueryFactory>());
               f.push_back(std::make_unique<LPMLookupFactory>());
-              // f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
+              f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
               f.push_back(std::make_unique<SendToControllerFactory>());
               return f;
             }(),
