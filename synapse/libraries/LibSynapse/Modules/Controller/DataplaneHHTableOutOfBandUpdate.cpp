@@ -157,7 +157,7 @@ std::vector<impl_t> DataplaneHHTableOutOfBandUpdateFactory::process_node(const E
 
   const hh_table_data_t table_data(ep->get_ctx(), map_put);
 
-  Module *module  = new DataplaneHHTableOutOfBandUpdate(node, table_data.obj);
+  Module *module  = new DataplaneHHTableOutOfBandUpdate(get_type().instance_id, node, table_data.obj);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

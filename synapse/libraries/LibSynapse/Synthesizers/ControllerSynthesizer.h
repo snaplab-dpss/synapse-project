@@ -154,6 +154,7 @@ private:
 
   const EP *target_ep;
   Transpiler transpiler;
+  const std::string instance_id;
 
   void synthesize_nf_init();
   void synthesize_nf_process();

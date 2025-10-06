@@ -80,7 +80,7 @@ int key_vec_map_allocate(unsigned capacity, unsigned key_size, struct KeyVecMap 
     }
 
     struct Vector *vector;
-    int vector_alloc_success = vector_allocate(ks, capacity, &vector);
+    int vector_alloc_success = vector_allocate(key_size, capacity, &vector);
     if (!vector_alloc_success) {
       free(key_vec_map_alloc);
       *key_vec_map_out = old_key_vec_map;

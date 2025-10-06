@@ -9,8 +9,8 @@ namespace Tofino {
 
 namespace {
 
-MapTable *build_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+MapTable *build_map_table(const EP *ep, const BDDNode *node, const TargetType type, const map_table_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(type);
 
   bits_t key_size = 0;
   std::vector<bits_t> keys_size;
@@ -34,8 +34,8 @@ MapTable *build_map_table(const EP *ep, const BDDNode *node, const map_table_dat
   return map_table;
 }
 
-MapTable *get_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+MapTable *get_map_table(const EP *ep, const BDDNode *node, const TargetType type, const map_table_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(type);
 
   if (!tofino_ctx->get_data_structures().has(data.obj)) {
     return nullptr;
@@ -50,11 +50,11 @@ MapTable *get_map_table(const EP *ep, const BDDNode *node, const map_table_data_
   return dynamic_cast<MapTable *>(mt);
 }
 
-bool can_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
-  MapTable *map_table = get_map_table(ep, node, data);
+bool can_reuse_map_table(const EP *ep, const BDDNode *node, const TargetType type, const map_table_data_t &data) {
+  MapTable *map_table = get_map_table(ep, node, type, data);
   assert(map_table && "Map table not found");
 
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(type);
   assert(!map_table->has_table(node->get_id()));
 
   MapTable *clone = dynamic_cast<MapTable *>(map_table->clone());
@@ -73,11 +73,11 @@ bool can_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data
   return can_place;
 }
 
-MapTable *reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
-  MapTable *map_table = get_map_table(ep, node, data);
+MapTable *reuse_map_table(const EP *ep, const BDDNode *node, const TargetType type, const map_table_data_t &data) {
+  MapTable *map_table = get_map_table(ep, node, type, data);
   assert(map_table && "Map table not found");
 
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(type);
   assert(!map_table->has_table(node->get_id()));
 
   std::vector<bits_t> keys_size;
@@ -96,30 +96,30 @@ MapTable *reuse_map_table(const EP *ep, const BDDNode *node, const map_table_dat
 
 } // namespace
 
-MapTable *TofinoModuleFactory::build_or_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
+MapTable *TofinoModuleFactory::build_or_reuse_map_table(const EP *ep, const BDDNode *node, const TargetType type, const map_table_data_t &data) {
   MapTable *map_table;
 
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapTable);
 
   if (already_placed) {
-    map_table = reuse_map_table(ep, node, data);
+    map_table = reuse_map_table(ep, node, type, data);
   } else {
-    map_table = build_map_table(ep, node, data);
+    map_table = build_map_table(ep, node, type, data);
   }
 
   return map_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_map_table(const EP *ep, const BDDNode *node, const TargetType type, const map_table_data_t &data) {
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapTable);
 
   if (already_placed) {
-    return can_reuse_map_table(ep, node, data);
+    return can_reuse_map_table(ep, node, type, data);
   }
 
-  MapTable *map_table = build_map_table(ep, node, data);
+  MapTable *map_table = build_map_table(ep, node, type, data);
 
   if (!map_table) {
     return false;

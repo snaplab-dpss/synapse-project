@@ -1,6 +1,7 @@
 #include "LibCore/Debug.h"
 #include "LibCore/Types.h"
 #include "LibSynapse/Context.h"
+#include "LibSynapse/Target.h"
 #include "LibSynapse/Visitor.h"
 #include <LibSynapse/Synthesizers/x86Synthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
@@ -51,7 +52,7 @@ std::filesystem::path template_from_type(x86SynthesizerTarget target) {
 
 x86Synthesizer::Transpiler::Transpiler(x86Synthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
-x86Synthesizer::code_t x86Synthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
+code_t x86Synthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
   coders.emplace();
   coder_t &coder = coders.top();
 
@@ -82,7 +83,7 @@ x86Synthesizer::code_t x86Synthesizer::Transpiler::transpile(klee::ref<klee::Exp
   return code;
 }
 
-x86Synthesizer::code_t x86Synthesizer::Transpiler::type_from_size(bits_t size) {
+code_t x86Synthesizer::Transpiler::type_from_size(bits_t size) {
   code_t type;
 
   switch (size) {
@@ -108,7 +109,7 @@ x86Synthesizer::code_t x86Synthesizer::Transpiler::type_from_size(bits_t size) {
   return type;
 }
 
-x86Synthesizer::code_t x86Synthesizer::Transpiler::type_from_expr(klee::ref<klee::Expr> expr) { return type_from_size(expr->getWidth()); }
+code_t x86Synthesizer::Transpiler::type_from_expr(klee::ref<klee::Expr> expr) { return type_from_size(expr->getWidth()); }
 
 klee::ExprVisitor::Action x86Synthesizer::Transpiler::visitNotOptimized(const klee::NotOptimizedExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::NotOptimizedExpr *>(&e);
@@ -614,7 +615,7 @@ klee::ExprVisitor::Action x86Synthesizer::Transpiler::visitSge(const klee::SgeEx
   return Action::skipChildren();
 }
 
-x86Synthesizer::code_t x86Synthesizer::var_t::get_slice(bits_t offset, bits_t slice_size) const {
+code_t x86Synthesizer::var_t::get_slice(bits_t offset, bits_t slice_size) const {
   assert(offset + slice_size <= expr->getWidth() && "Out of bounds");
 
   coder_t coder;
@@ -965,7 +966,7 @@ x86Synthesizer::var_t x86Synthesizer::build_var_ptr(const std::string &base_name
   return var.value();
 }
 
-x86Synthesizer::code_t x86Synthesizer::create_unique_name(const std::string &base_name) {
+code_t x86Synthesizer::create_unique_name(const std::string &base_name) {
   if (reserved_var_names.find(base_name) == reserved_var_names.end()) {
     reserved_var_names[base_name] = 0;
   }
@@ -980,20 +981,19 @@ x86Synthesizer::code_t x86Synthesizer::create_unique_name(const std::string &bas
   return coder.dump();
 }
 
-x86Synthesizer::x86Synthesizer(const EP *ep, x86SynthesizerTarget _target, std::filesystem::path _out_path, const std::string &_instance_id)
-    : Synthesizer(template_from_type(_target),
-                  {
+x86Synthesizer::x86Synthesizer(const EP *ep, x86SynthesizerTarget _target, std::filesystem::path _out_file, const std::string &_instance_id)
+    : out_file(_out_file), code_template(template_from_type(_target),
+                                         {
 
-                      {MARKER_NF_STATE, 0},
-                      {MARKER_NF_INIT, 0},
-                      {MARKER_NF_PROCESS, 0},
-                  },
-                  _out_path, TargetType(TargetArchitecture::x86, _instance_id)),
-      target_ep(ep), target(_target), transpiler(this) {}
+                                             {MARKER_NF_STATE, 0},
+                                             {MARKER_NF_INIT, 0},
+                                             {MARKER_NF_PROCESS, 0},
+                                         }),
+      target_ep(ep), target(_target), transpiler(this), instance_id(_instance_id) {}
 
-x86Synthesizer::coder_t &x86Synthesizer::get_current_coder() { return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS); }
+coder_t &x86Synthesizer::get_current_coder() { return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS); }
 
-x86Synthesizer::coder_t &x86Synthesizer::get(const std::string &marker) { return Synthesizer::get(marker); }
+coder_t &x86Synthesizer::get(const std::string &marker) { return code_template.get(marker); }
 
 void x86Synthesizer::synthesize() {
   std::cerr << "================= Synthesize NF INIT ================= \n";
@@ -1006,7 +1006,10 @@ void x86Synthesizer::synthesize() {
   std::cerr << "========== Synthesize NF INIT POST PROCESS ============ \n";
   change_to_nf_init_coder();
   synthesize_nf_init_post_process();
-  Synthesizer::dump();
+
+  std::ofstream ofs(out_file);
+  ofs << code_template.dump();
+  ofs.close();
 }
 
 void x86Synthesizer::visit(const EP *ep, const EPNode *ep_node) {
@@ -1014,8 +1017,8 @@ void x86Synthesizer::visit(const EP *ep, const EPNode *ep_node) {
 
   const Module *module = ep_node->get_module();
   std::cerr << "CURRENT EP TARGET: " << module->get_target();
-  std::cerr << "CURRENT SYNTHESIZER TARGET: " << get_type();
-  if (module->get_target() == get_type()) {
+  std::cerr << "CURRENT SYNTHESIZER TARGET: " << TargetType(TargetArchitecture::x86, instance_id);
+  if (module->get_target() == TargetType(TargetArchitecture::x86, instance_id)) {
     coder.indent();
     coder << "// EP node  " << ep_node->get_id() << ":" << module->get_name() << "\n";
     coder.indent();
@@ -1033,7 +1036,7 @@ void x86Synthesizer::synthesize_nf_init() {
   coder << "bool nf_init() {\n";
   coder.inc();
 
-  x86Target x86_target(get_type().instance_id);
+  x86Target x86_target(instance_id);
   for (const Call *call_node : bdd->get_init()) {
     std::vector<std::unique_ptr<Module>> candidate_modules;
     for (const std::unique_ptr<ModuleFactory> &factory : x86_target.module_factories) {

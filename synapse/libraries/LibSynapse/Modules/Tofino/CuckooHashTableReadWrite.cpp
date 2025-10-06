@@ -400,7 +400,8 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
-  if (!can_build_or_reuse_cuckoo_hash_table(ep, node, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key, cuckoo_hash_table_data.capacity)) {
+  if (!can_build_or_reuse_cuckoo_hash_table(ep, node, get_target(), cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key,
+                                            cuckoo_hash_table_data.capacity)) {
     return {};
   }
 
@@ -491,8 +492,8 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
     return {};
   }
 
-  CuckooHashTable *cuckoo_hash_table =
-      build_or_reuse_cuckoo_hash_table(ep, node, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key, cuckoo_hash_table_data.capacity);
+  CuckooHashTable *cuckoo_hash_table = build_or_reuse_cuckoo_hash_table(ep, node, get_target(), cuckoo_hash_table_data.obj,
+                                                                        cuckoo_hash_table_data.key, cuckoo_hash_table_data.capacity);
   if (!cuckoo_hash_table) {
     return {};
   }
@@ -500,21 +501,21 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
   const symbol_t cuckoo_success_symbol                 = create_cuckoo_success_symbol(cuckoo_hash_table->id, symbol_manager, node);
   const klee::ref<klee::Expr> cuckoo_success_condition = build_cuckoo_success_condition(cuckoo_success_symbol);
 
-  Module *cuckoo_read_write_module = new CuckooHashTableReadWrite(node, cuckoo_hash_table->id, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key,
-                                                                  read_write_pattern.read_value.expr, read_write_pattern.write_value,
-                                                                  read_write_pattern.cuckoo_update_condition, cuckoo_success_condition);
+  Module *cuckoo_read_write_module = new CuckooHashTableReadWrite(
+      get_type().instance_id, node, cuckoo_hash_table->id, cuckoo_hash_table_data.obj, cuckoo_hash_table_data.key, read_write_pattern.read_value.expr,
+      read_write_pattern.write_value, read_write_pattern.cuckoo_update_condition, cuckoo_success_condition);
 
-  Module *if_cuckoo_update_module   = new If(node, read_write_pattern.cuckoo_update_condition);
-  Module *then_cuckoo_update_module = new Then(node);
-  Module *else_cuckoo_update_module = new Else(node);
+  Module *if_cuckoo_update_module   = new If(get_type().instance_id, node, read_write_pattern.cuckoo_update_condition);
+  Module *then_cuckoo_update_module = new Then(get_type().instance_id, node);
+  Module *else_cuckoo_update_module = new Else(get_type().instance_id, node);
 
-  Module *if_cuckoo_success_on_cuckoo_update_module   = new If(node, cuckoo_success_condition);
-  Module *then_cuckoo_success_on_cuckoo_update_module = new Then(node);
-  Module *else_cuckoo_success_on_cuckoo_update_module = new Else(node);
+  Module *if_cuckoo_success_on_cuckoo_update_module   = new If(get_type().instance_id, node, cuckoo_success_condition);
+  Module *then_cuckoo_success_on_cuckoo_update_module = new Then(get_type().instance_id, node);
+  Module *else_cuckoo_success_on_cuckoo_update_module = new Else(get_type().instance_id, node);
 
-  Module *if_cuckoo_success_on_cuckoo_read_module   = new If(node, cuckoo_success_condition);
-  Module *then_cuckoo_success_on_cuckoo_read_module = new Then(node);
-  Module *else_cuckoo_success_on_cuckoo_read_module = new Else(node);
+  Module *if_cuckoo_success_on_cuckoo_read_module   = new If(get_type().instance_id, node, cuckoo_success_condition);
+  Module *then_cuckoo_success_on_cuckoo_read_module = new Then(get_type().instance_id, node);
+  Module *else_cuckoo_success_on_cuckoo_read_module = new Else(get_type().instance_id, node);
 
   EPNode *cuckoo_read_write_ep_node = new EPNode(cuckoo_read_write_module);
 
@@ -566,7 +567,7 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
   new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_CuckooHashTable);
   new_ep->get_mutable_ctx().save_ds_impl(*map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable);
 
-  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+  TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get(), get_target());
   tofino_ctx->place(new_ep.get(), node, map_objs->map, cuckoo_hash_table);
 
   EPLeaf then_cuckoo_success_on_cuckoo_update_leaf(then_cuckoo_success_on_cuckoo_update_ep_node,

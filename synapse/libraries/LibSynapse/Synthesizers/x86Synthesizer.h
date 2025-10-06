@@ -1,6 +1,7 @@
 #pragma once
 
-#include <LibCore/Synthesizer.h>
+#include <LibCore/Template.h>
+#include <LibCore/Coder.h>
 #include <LibSynapse/Visitor.h>
 #include <LibBDD/BDD.h>
 #include <LibSynapse/Modules/x86/x86.h>
@@ -15,15 +16,19 @@
 namespace LibSynapse {
 namespace x86 {
 
-using LibCore::Synthesizer;
+using LibCore::code_t;
+using LibCore::coder_t;
+using LibCore::indent_t;
+using LibCore::marker_t;
+using LibCore::Template;
 
 enum class x86SynthesizerTarget { NF, Profiler };
 
-class x86Synthesizer : public Synthesizer, public EPVisitor {
+class x86Synthesizer : public EPVisitor {
 public:
-  x86Synthesizer(const EP *ep, x86SynthesizerTarget _target, std::filesystem::path _out_path, const std::string &_instance_id);
+  x86Synthesizer(const EP *ep, x86SynthesizerTarget target, std::filesystem::path out_path, const std::string &instance_id);
 
-  virtual void synthesize() override final;
+  virtual void synthesize();
 
 private:
   class Transpiler : public klee::ExprVisitor::ExprVisitor {
@@ -131,6 +136,9 @@ private:
     void replace(const var_t &var, klee::ref<klee::Expr> new_expr);
   };
 
+  const std::filesystem::path out_file;
+  Template code_template;
+
   Stacks vars;
   std::unordered_map<std::string, int> reserved_var_names;
 
@@ -141,12 +149,13 @@ private:
   const EP *target_ep;
   x86SynthesizerTarget target;
   Transpiler transpiler;
+  const std::string instance_id;
 
   bool in_nf_init{true};
   void change_to_process_coder() { in_nf_init = false; }
   void change_to_nf_init_coder() { in_nf_init = true; }
   coder_t &get_current_coder();
-  coder_t &get(const std::string &marker) override final;
+  coder_t &get(const std::string &marker);
 
   void synthesize_nf_init();
   void synthesize_nf_process();

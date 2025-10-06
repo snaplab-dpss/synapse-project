@@ -1,3 +1,4 @@
+#include "LibSynapse/Profiler.h"
 #include <LibSynapse/Modules/x86/SendToDevice.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibBDD/Visitors/BDDVisualizer.h>
@@ -8,6 +9,20 @@ namespace x86 {
 using LibBDD::Call;
 using LibBDD::call_t;
 namespace {
+bool bdd_node_match_pattern(const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Call) {
+    return false;
+  }
+
+  const Call *call_op = dynamic_cast<const Call *>(node);
+  const call_t call   = call_op->get_call();
+
+  if (call.function_name != "send_to_device") {
+    return false;
+  }
+
+  return true;
+}
 
 std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node, const BDDNode *&next) {
   std::vector<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
@@ -33,6 +48,10 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node
 } // namespace
 
 std::optional<spec_impl_t> SendToDeviceFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
+
   Context new_ctx = ctx;
 
   // Don't send to the device if the node is already a route.
@@ -40,12 +59,9 @@ std::optional<spec_impl_t> SendToDeviceFactory::speculate(const EP *ep, const BD
     return {};
   }
 
-  const hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
-  new_ctx.get_mutable_perf_oracle().add_controller_traffic(hr);
-
   // We can always send to the device, at any point in time.
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
-  spec_impl.next_target = TargetType(TargetArchitecture::x86, get_type().instance_id);
+  spec_impl.next_target = node->get_next_target();
 
   return {};
 }

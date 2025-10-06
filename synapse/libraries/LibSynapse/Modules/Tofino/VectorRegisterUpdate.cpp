@@ -59,7 +59,7 @@ std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, 
     return {};
   }
 
-  if (!can_build_or_reuse_vector_register(ep, vector_borrow, vector_register_data)) {
+  if (!can_build_or_reuse_vector_register(ep, vector_borrow, get_target(), vector_register_data)) {
     return {};
   }
 

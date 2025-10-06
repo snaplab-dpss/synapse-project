@@ -10,13 +10,15 @@ private:
   addr_t obj;
 
 public:
-  DataplaneHHTableOutOfBandUpdate(const BDDNode *_node, addr_t _obj)
-      : ControllerModule(ModuleType::Controller_DataplaneHHTableOutOfBandUpdate, "DataplaneHHTableOutOfBandUpdate", _node), obj(_obj) {}
+  DataplaneHHTableOutOfBandUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneHHTableOutOfBandUpdate, _instance_id), "DataplaneHHTableOutOfBandUpdate",
+                         _node),
+        obj(_obj) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneHHTableOutOfBandUpdate(node, obj);
+    Module *cloned = new DataplaneHHTableOutOfBandUpdate(get_type().instance_id, node, obj);
     return cloned;
   }
 
@@ -25,7 +27,8 @@ public:
 
 class DataplaneHHTableOutOfBandUpdateFactory : public ControllerModuleFactory {
 public:
-  DataplaneHHTableOutOfBandUpdateFactory() : ControllerModuleFactory(ModuleType::Tofino_HHTableOutOfBandUpdate, "DataplaneHHTableOutOfBandUpdate") {}
+  DataplaneHHTableOutOfBandUpdateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Tofino_HHTableOutOfBandUpdate, _instance_id), "DataplaneHHTableOutOfBandUpdate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

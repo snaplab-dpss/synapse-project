@@ -1,3 +1,4 @@
+#include "LibSynapse/Target.h"
 #include <LibSynapse/Synthesizers/ControllerSynthesizer.h>
 #include <LibSynapse/Modules/x86/x86.h>
 #include <LibSynapse/ExecutionPlan.h>
@@ -693,7 +694,7 @@ ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::pat
                                              {MARKER_NF_PROCESS, 1},
                                              {MARKER_CPU_HDR_EXTRA, 1},
                                          }),
-      target_ep(_ep), transpiler(this) {}
+      target_ep(_ep), transpiler(this), instance_id(_instance_id) {}
 
 coder_t &ControllerSynthesizer::get_current_coder() { return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS); }
 
@@ -727,7 +728,7 @@ void ControllerSynthesizer::synthesize_nf_init() {
   const BDD *bdd   = target_ep->get_bdd();
 
   const Context &ctx              = target_ep->get_ctx();
-  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>(TargetType(TargetArchitecture::Tofino, get_type().instance_id));
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>(TargetType(TargetArchitecture::Tofino, instance_id));
   const TNA &tna                  = tofino_ctx->get_tna();
 
   for (const tofino_recirculation_port_t &recirc_port : tna.tna_config.recirculation_ports) {
@@ -762,7 +763,7 @@ void ControllerSynthesizer::synthesize_nf_init() {
     nf_init << ");\n";
   }
 
-  ControllerTarget controller_target(get_type().instance_id);
+  ControllerTarget controller_target(instance_id);
   for (const Call *call_node : bdd->get_init()) {
     std::vector<std::unique_ptr<Module>> candidate_modules;
     for (const std::unique_ptr<ModuleFactory> &factory : controller_target.module_factories) {
@@ -819,7 +820,7 @@ void ControllerSynthesizer::synthesize_state_member_init_list() {
 void ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
   coder_t &coder = get(MARKER_NF_PROCESS);
 
-  if (ep_node->get_module()->get_target() == get_type()) {
+  if (ep_node->get_module()->get_target() == TargetType(TargetArchitecture::Tofino, instance_id)) {
     coder.indent();
     coder << "// EP node  " << ep_node->get_id() << "\n";
     coder.indent();
@@ -1070,7 +1071,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableAllocate *node) {
   const addr_t obj                  = node->get_obj();
-  const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, get_type(), obj);
+  const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   transpile_map_table_decl(map_table);
 
@@ -1085,7 +1086,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> value   = node->get_value();
   const std::optional<symbol_t> found = node->get_found();
 
-  const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, get_type(), obj);
+  const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   const var_t key_var   = transpile_buffer_decl_and_set(coder, map_table->id + "_key", key, true);
   const var_t value_var = alloc_var("value", value, {}, NO_OPTION);
@@ -1113,7 +1114,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> key   = node->get_key();
   const klee::ref<klee::Expr> value = node->get_value();
 
-  const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, get_type(), obj);
+  const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   const var_t key_var = transpile_buffer_decl_and_set(coder, map_table->id + "_key", key, true);
 
@@ -1134,8 +1135,9 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableAllocate *node) {
-  const addr_t obj                                 = node->get_obj();
-  const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, get_type(), obj);
+  const addr_t obj = node->get_obj();
+  const Tofino::GuardedMapTable *guarded_map_table =
+      get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   transpile_guarded_map_table_decl(guarded_map_table);
 
@@ -1150,7 +1152,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> value   = node->get_value();
   const std::optional<symbol_t> found = node->get_found();
 
-  const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, get_type(), obj);
+  const Tofino::GuardedMapTable *guarded_map_table =
+      get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   const var_t key_var   = transpile_buffer_decl_and_set(coder, guarded_map_table->id + "_key", key, true);
   const var_t value_var = alloc_var("value", value, {}, NO_OPTION);
@@ -1178,7 +1181,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const symbol_t &guard_allow_symbol          = node->get_guard_allow();
   klee::ref<klee::Expr> guard_allow_condition = node->get_guard_allow_condition();
 
-  const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, get_type(), obj);
+  const Tofino::GuardedMapTable *guarded_map_table =
+      get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   const var_t guard_allow_var = alloc_var("guard_allow", guard_allow_symbol.expr, {}, NO_OPTION);
 
@@ -1196,7 +1200,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> key   = node->get_key();
   const klee::ref<klee::Expr> value = node->get_value();
 
-  const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, get_type(), obj);
+  const Tofino::GuardedMapTable *guarded_map_table =
+      get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   const var_t key_var = transpile_buffer_decl_and_set(coder, guarded_map_table->id + "_key", key, true);
 
@@ -1217,8 +1222,9 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableAllocate *node) {
-  const addr_t obj                        = node->get_obj();
-  const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, get_type(), obj);
+  const addr_t obj = node->get_obj();
+  const Tofino::VectorTable *vector_table =
+      get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   transpile_vector_table_decl(vector_table);
 
@@ -1232,7 +1238,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> index = node->get_index();
   const klee::ref<klee::Expr> value = node->get_value();
 
-  const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, get_type(), obj);
+  const Tofino::VectorTable *vector_table =
+      get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   var_t value_var = alloc_var("value", value, {}, IS_BUFFER);
 
@@ -1255,7 +1262,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> key   = node->get_key();
   const klee::ref<klee::Expr> value = node->get_value();
 
-  const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, get_type(), obj);
+  const Tofino::VectorTable *vector_table =
+      get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   const var_t value_var = transpile_buffer_decl_and_set(coder, vector_table->id + "_value", value, true);
 
@@ -1272,7 +1280,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const addr_t obj                = node->get_obj();
   const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());
 
-  const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, get_type(), obj);
+  const Tofino::DchainTable *dchain_table =
+      get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   transpile_dchain_table_decl(dchain_table, expiration_time);
 
@@ -1286,7 +1295,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   klee::ref<klee::Expr> index = node->get_index();
   const symbol_t is_allocated = node->get_is_allocated();
 
-  const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, get_type(), obj);
+  const Tofino::DchainTable *dchain_table =
+      get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   var_t is_allocated_var = alloc_var("is_allocated", is_allocated.expr, {}, NO_OPTION);
 
@@ -1306,7 +1316,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const addr_t obj            = node->get_obj();
   klee::ref<klee::Expr> index = node->get_index();
 
-  const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, get_type(), obj);
+  const Tofino::DchainTable *dchain_table =
+      get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   coder.indent();
   coder << "state->" << dchain_table->id;
@@ -1324,7 +1335,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   klee::ref<klee::Expr> allocated_index = node->get_allocated_index();
   klee::ref<klee::Expr> success         = node->get_success();
 
-  const Tofino::DchainTable *dchain_table = get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, get_type(), obj);
+  const Tofino::DchainTable *dchain_table =
+      get_unique_tofino_ds_from_obj<Tofino::DchainTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   var_t allocated_index_var = alloc_var("allocated_index", allocated_index, {}, NO_OPTION);
   var_t success_var         = alloc_var("success", success, {}, NO_OPTION);
@@ -1457,7 +1469,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterAllocate *node) {
   addr_t obj = node->get_obj();
 
-  const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, get_type(), obj);
+  const Tofino::VectorRegister *vector_register =
+      get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
   transpile_vector_register_decl(vector_register);
 
   return EPVisitor::Action::doChildren;
@@ -1470,7 +1483,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> index = node->get_index();
   const klee::ref<klee::Expr> value = node->get_value();
 
-  const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, get_type(), obj);
+  const Tofino::VectorRegister *vector_register =
+      get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   var_t value_var = alloc_var("value", value, {}, IS_BUFFER);
 
@@ -1494,7 +1508,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> old_value = node->get_old_value();
   const klee::ref<klee::Expr> new_value = node->get_new_value();
 
-  const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, get_type(), obj);
+  const Tofino::VectorRegister *vector_register =
+      get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   const var_t value_var = transpile_buffer_decl_and_set(coder, vector_register->id + "_value", new_value, true);
 
@@ -1532,7 +1547,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const addr_t obj                = node->get_obj();
   const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());
 
-  const Tofino::HHTable *hh_table = get_unique_tofino_ds_from_obj<Tofino::HHTable>(ep, get_type(), obj);
+  const Tofino::HHTable *hh_table = get_unique_tofino_ds_from_obj<Tofino::HHTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   transpile_hh_table_decl(hh_table, expiration_time);
 
@@ -1548,7 +1563,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> value = node->get_value();
   const symbol_t &map_has_this_key  = node->get_hit();
 
-  const Tofino::HHTable *hh_table = get_unique_tofino_ds_from_obj<Tofino::HHTable>(ep, get_type(), obj);
+  const Tofino::HHTable *hh_table = get_unique_tofino_ds_from_obj<Tofino::HHTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   const var_t key_var   = transpile_buffer_decl_and_set(coder, hh_table->id + "_key", key, true);
   const var_t value_var = alloc_var("value", value, {}, NO_OPTION);
@@ -1695,7 +1710,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const addr_t obj                          = node->get_obj();
   const time_ns_t periodic_cleanup_interval = node->get_cleanup_internal();
 
-  const Tofino::CountMinSketch *cms = get_unique_tofino_ds_from_obj<Tofino::CountMinSketch>(ep, get_type(), obj);
+  const Tofino::CountMinSketch *cms =
+      get_unique_tofino_ds_from_obj<Tofino::CountMinSketch>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   transpile_cms_decl(cms, periodic_cleanup_interval);
 
@@ -1709,7 +1725,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> key          = node->get_key();
   const klee::ref<klee::Expr> min_estimate = node->get_min_estimate();
 
-  const Tofino::CountMinSketch *cms = get_unique_tofino_ds_from_obj<Tofino::CountMinSketch>(ep, get_type(), obj);
+  const Tofino::CountMinSketch *cms =
+      get_unique_tofino_ds_from_obj<Tofino::CountMinSketch>(ep, TargetType(TargetArchitecture::Tofino, instance_id), obj);
 
   const var_t key_var          = transpile_buffer_decl_and_set(coder, cms->id + "_key", key, true);
   const var_t min_estimate_var = alloc_var("min_estimate", min_estimate, {}, NO_OPTION);

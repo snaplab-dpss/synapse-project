@@ -84,7 +84,7 @@ std::vector<impl_t> DataplaneCuckooHashTableAllocateFactory::process_node(const 
     return {};
   }
 
-  Module *module  = new DataplaneCuckooHashTableAllocate(node, obj);
+  Module *module  = new DataplaneCuckooHashTableAllocate(get_type().instance_id, node, obj);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -120,7 +120,7 @@ std::unique_ptr<Module> DataplaneCuckooHashTableAllocateFactory::create(const BD
     return {};
   }
 
-  return std::make_unique<DataplaneCuckooHashTableAllocate>(node, obj);
+  return std::make_unique<DataplaneCuckooHashTableAllocate>(get_type().instance_id, node, obj);
 }
 
 } // namespace Controller

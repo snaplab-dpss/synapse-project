@@ -9,8 +9,8 @@ namespace Tofino {
 
 namespace {
 
-VectorRegister *build_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data) {
-  const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
+VectorRegister *build_vector_register(const EP *ep, const BDDNode *node, const TargetType type, const vector_register_data_t &data) {
+  const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>(type);
   const tna_properties_t &properties = tofino_ctx->get_tna().tna_config.properties;
 
   const std::vector<klee::ref<klee::Expr>> partitions = Register::partition_value(properties, data.value, ep->get_ctx().get_expr_structs());
@@ -33,8 +33,8 @@ VectorRegister *build_vector_register(const EP *ep, const BDDNode *node, const v
   return vector_register;
 }
 
-VectorRegister *get_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data) {
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+VectorRegister *get_vector_register(const EP *ep, const BDDNode *node, const TargetType type, const vector_register_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(type);
 
   if (!tofino_ctx->get_data_structures().has(data.obj)) {
     return nullptr;
@@ -53,31 +53,33 @@ VectorRegister *get_vector_register(const EP *ep, const BDDNode *node, const vec
 
 std::string TofinoModuleFactory::build_vector_register_id(addr_t obj) { return "vector_register_" + std::to_string(obj); }
 
-VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data) {
+VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const TargetType type,
+                                                                    const vector_register_data_t &data) {
   VectorRegister *vector_register;
 
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorRegister);
 
   if (already_placed) {
-    vector_register = get_vector_register(ep, node, data);
+    vector_register = get_vector_register(ep, node, type, data);
   } else {
-    vector_register = build_vector_register(ep, node, data);
+    vector_register = build_vector_register(ep, node, type, data);
   }
 
   return vector_register;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const TargetType type,
+                                                             const vector_register_data_t &data) {
   const Context &ctx       = ep->get_ctx();
   bool regs_already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorRegister);
 
   if (regs_already_placed) {
-    VectorRegister *vector_register = get_vector_register(ep, node, data);
+    VectorRegister *vector_register = get_vector_register(ep, node, type, data);
     return vector_register != nullptr;
   }
 
-  VectorRegister *vector_register = build_vector_register(ep, node, data);
+  VectorRegister *vector_register = build_vector_register(ep, node, type, data);
 
   if (vector_register == nullptr) {
     return false;

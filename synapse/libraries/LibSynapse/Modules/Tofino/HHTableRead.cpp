@@ -94,7 +94,8 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const BDD
     const hit_rate_t success_rate =
         TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, map_get, table_data.obj, table_data.key, table_data.capacity, cms_width);
 
-    if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, cms_width, HHTable::CMS_HEIGHT)) {
+    if (!can_build_or_reuse_hh_table(ep, node, get_target(), table_data.obj, table_data.table_keys, table_data.capacity, cms_width,
+                                     HHTable::CMS_HEIGHT)) {
       continue;
     }
 
@@ -153,7 +154,8 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode
 
   std::vector<impl_t> impls;
   for (const u32 cms_width : HHTable::CMS_WIDTH_CANDIDATES) {
-    HHTable *hh_table = build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, cms_width, HHTable::CMS_HEIGHT);
+    HHTable *hh_table =
+        build_or_reuse_hh_table(ep, node, get_target(), table_data.obj, table_data.table_keys, table_data.capacity, cms_width, HHTable::CMS_HEIGHT);
     if (!hh_table) {
       continue;
     }
@@ -164,14 +166,14 @@ std::vector<impl_t> HHTableReadFactory::process_node(const EP *ep, const BDDNode
       continue;
     }
 
-    Module *module  = new HHTableRead(node, hh_table->id, table_data.obj, table_data.key, table_data.table_keys, table_data.read_value,
-                                      table_data.map_has_this_key);
+    Module *module  = new HHTableRead(get_type().instance_id, node, hh_table->id, table_data.obj, table_data.key, table_data.table_keys,
+                                      table_data.read_value, table_data.map_has_this_key);
     EPNode *ep_node = new EPNode(module);
 
     new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable);
     new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable);
 
-    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
+    TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get(), get_target());
     tofino_ctx->place(new_ep.get(), node, map_objs->map, hh_table);
 
     EPLeaf leaf(ep_node, node->get_next());
