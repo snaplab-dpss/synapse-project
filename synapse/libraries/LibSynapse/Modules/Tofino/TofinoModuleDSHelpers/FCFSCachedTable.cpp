@@ -9,9 +9,10 @@ namespace Tofino {
 
 namespace {
 
-FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity) {
+FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj, klee::ref<klee::Expr> key,
+                                         u32 capacity, u32 cache_capacity) {
   const Context &ctx                 = ep->get_ctx();
-  const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>();
+  const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>(type);
   const TNA &tna                     = tofino_ctx->get_tna();
   const tna_properties_t &properties = tna.tna_config.properties;
 
@@ -33,8 +34,8 @@ FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const BDDNode *node, addr
   return cached_table;
 }
 
-FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj) {
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(type);
 
   if (!tofino_ctx->get_data_structures().has(obj)) {
     return nullptr;
@@ -62,25 +63,25 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr
 
 } // namespace
 
-FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key,
-                                                                       u32 capacity, u32 cache_capacity) {
+FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj,
+                                                                       klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity) {
   FCFSCachedTable *cached_table = nullptr;
 
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable);
 
   if (already_placed) {
-    cached_table = reuse_fcfs_cached_table(ep, node, obj);
+    cached_table = reuse_fcfs_cached_table(ep, node, type, obj);
   } else {
-    cached_table = build_fcfs_cached_table(ep, node, obj, key, capacity, cache_capacity);
+    cached_table = build_fcfs_cached_table(ep, node, type, obj, key, capacity, cache_capacity);
   }
 
   return cached_table;
 }
 
-FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj) {
+FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj) {
   const Context &ctx              = ep->get_ctx();
-  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>(type);
 
   if (!tofino_ctx->get_data_structures().has(obj)) {
     return nullptr;
@@ -94,15 +95,15 @@ FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const 
   return dynamic_cast<FCFSCachedTable *>(*ds.begin());
 }
 
-bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
-                                                             u32 cache_capacity) {
+bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj,
+                                                             klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity) {
   FCFSCachedTable *cached_table = nullptr;
 
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable);
 
   if (already_placed) {
-    cached_table = get_fcfs_cached_table(ep, node, obj);
+    cached_table = get_fcfs_cached_table(ep, node, type, obj);
     assert(false && "FIXME: we should check if we can reuse this data structure, as it requires another table will have to be created");
 
     if (!cached_table || cached_table->cache_capacity != cache_capacity) {
@@ -112,7 +113,7 @@ bool TofinoModuleFactory::can_get_or_build_fcfs_cached_table(const EP *ep, const
     return true;
   }
 
-  cached_table = build_fcfs_cached_table(ep, node, obj, key, capacity, cache_capacity);
+  cached_table = build_fcfs_cached_table(ep, node, type, obj, key, capacity, cache_capacity);
 
   if (!cached_table) {
     return false;

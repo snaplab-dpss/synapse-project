@@ -29,7 +29,7 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  if (active_leaf.node->get_module()->get_type() == ModuleType::Tofino_Recirculate) {
+  if (active_leaf.node->get_module()->get_type().type == ModuleCategory::Tofino_Recirculate) {
     // Don't recirculate twice in a row.
     return {};
   }
@@ -39,10 +39,10 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(ep->get_active_leaf().node);
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(ep->get_node_egress(hr, ep->get_active_leaf().node));
 
-  const Symbols symbols = get_relevant_dataplane_state(ep, node);
+  const Symbols symbols = get_relevant_dataplane_state(ep, node, get_target());
   const u32 code_path   = node->get_id();
 
-  Module *module  = new Recirculate(node, symbols, code_path);
+  Module *module  = new Recirculate(get_type().instance_id, node, symbols, code_path);
   EPNode *ep_node = new EPNode(module);
 
   // Note that we don't point to the next BDD node, as it was not actually implemented.

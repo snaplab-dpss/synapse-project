@@ -1,3 +1,4 @@
+#include "LibSynapse/Target.h"
 #include <LibSynapse/Synthesizers/TofinoSynthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Strings.h>
@@ -1390,7 +1391,7 @@ void TofinoSynthesizer::Stacks::clear() { stacks.clear(); }
 
 std::vector<TofinoSynthesizer::Stack> TofinoSynthesizer::Stacks::get_all() const { return stacks; }
 
-TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_file, , const std::string &_instance_id)
+TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_file, const std::string &_instance_id)
     : out_file(_out_file), code_template(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
                                          {
                                              {MARKER_CPU_HEADER, 1},
@@ -1408,7 +1409,7 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_EGRESS_METADATA, 1},
                                              {MARKER_CONTROL_BLOCKS, 0},
                                          }),
-      target_ep(_ep), transpiler(this) {}
+      target_ep(_ep), transpiler(this), instance_id(_instance_id) {}
 
 coder_t &TofinoSynthesizer::get(const std::string &marker) {
   if (marker == MARKER_INGRESS_CONTROL_APPLY && active_recirc_code_path) {
@@ -1440,7 +1441,7 @@ void TofinoSynthesizer::synthesize() {
 
   ingress_vars.push();
 
-  transpile_parser(get_tofino_parser(target_ep, get_type()));
+  transpile_parser(get_tofino_parser(target_ep, TargetType(TargetArchitecture::Tofino, instance_id)));
 
   coder_t &cpu_hdr = get(MARKER_CPU_HEADER);
   for (const var_t &var : cpu_hdr_vars.get_all()) {
@@ -1487,7 +1488,7 @@ void TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const Module *module = ep_node->get_module();
-  if (module->get_target() == get_type()) {
+  if (module->get_target() == TargetType(TargetArchitecture::Tofino, instance_id)) {
     ingress_apply.indent();
     ingress_apply << "// EP node  " << ep_node->get_id() << ":" << module->get_name() << "\n";
     ingress_apply.indent();
@@ -2133,7 +2134,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const klee::ref<klee::Expr> value              = node->get_value();
   const std::optional<symbol_t> hit              = node->get_hit();
 
-  const MapTable *map_table = get_tofino_ds<MapTable>(ep, get_type(), map_table_id);
+  const MapTable *map_table = get_tofino_ds<MapTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), map_table_id);
 
   const bdd_node_id_t node_id = node->get_node()->get_id();
   const Table *table          = map_table->get_table(node_id);
@@ -2167,7 +2168,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const klee::ref<klee::Expr> value              = node->get_value();
   const std::optional<symbol_t> hit              = node->get_hit();
 
-  const GuardedMapTable *guarded_map_table = get_tofino_ds<GuardedMapTable>(ep, get_type(), id);
+  const GuardedMapTable *guarded_map_table = get_tofino_ds<GuardedMapTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), id);
 
   const bdd_node_id_t node_id = node->get_node()->get_id();
   const Table *table          = guarded_map_table->get_table(node_id);
@@ -2207,7 +2208,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const symbol_t &guard_allow                 = node->get_guard_allow();
   klee::ref<klee::Expr> guard_allow_condition = node->get_guard_allow_condition();
 
-  const GuardedMapTable *guarded_map_table = get_tofino_ds<GuardedMapTable>(ep, get_type(), id);
+  const GuardedMapTable *guarded_map_table = get_tofino_ds<GuardedMapTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), id);
   const Register &guard                    = guarded_map_table->guard;
 
   assert(guard.actions.size() == 1);
@@ -2258,7 +2259,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   klee::ref<klee::Expr> key   = node->get_key();
   klee::ref<klee::Expr> value = node->get_value();
 
-  const VectorTable *vector_table = get_tofino_ds<VectorTable>(ep, get_type(), vector_table_id);
+  const VectorTable *vector_table = get_tofino_ds<VectorTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), vector_table_id);
 
   bdd_node_id_t node_id = node->get_node()->get_id();
   const Table *table    = vector_table->get_table(node_id);
@@ -2288,7 +2289,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   klee::ref<klee::Expr> key   = node->get_key();
   std::optional<symbol_t> hit = node->get_hit();
 
-  const DchainTable *dchain_table = get_tofino_ds<DchainTable>(ep, get_type(), dchain_table_id);
+  const DchainTable *dchain_table = get_tofino_ds<DchainTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), dchain_table_id);
 
   bdd_node_id_t node_id = node->get_node()->get_id();
   const Table *table    = dchain_table->get_table(node_id);
@@ -2324,7 +2325,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   klee::ref<klee::Expr> index = node->get_index();
   klee::ref<klee::Expr> value = node->get_value();
 
-  const VectorRegister *vector_register = get_tofino_ds<VectorRegister>(ep, get_type(), id);
+  const VectorRegister *vector_register = get_tofino_ds<VectorRegister>(ep, TargetType(TargetArchitecture::Tofino, instance_id), id);
 
   std::vector<const Register *> regs;
   for (const Register &reg : vector_register->regs) {
@@ -2372,7 +2373,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   klee::ref<klee::Expr> value       = node->get_read_value();
   klee::ref<klee::Expr> write_value = node->get_write_value();
 
-  const VectorRegister *vector_register = get_tofino_ds<VectorRegister>(ep, get_type(), id);
+  const VectorRegister *vector_register = get_tofino_ds<VectorRegister>(ep, TargetType(TargetArchitecture::Tofino, instance_id), id);
 
   std::vector<const Register *> regs;
   for (const Register &reg : vector_register->regs) {
@@ -2422,9 +2423,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, get_type(), node->get_cached_table_id());
-  klee::ref<klee::Expr> key                = node->get_key();
-  klee::ref<klee::Expr> value              = node->get_value();
+  const FCFSCachedTable *fcfs_cached_table =
+      get_tofino_ds<FCFSCachedTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), node->get_cached_table_id());
+  klee::ref<klee::Expr> key   = node->get_key();
+  klee::ref<klee::Expr> value = node->get_value();
 
   transpile_fcfs_cached_table_decl(fcfs_cached_table, key, value);
 
@@ -2445,7 +2447,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   klee::ref<klee::Expr> device = node->get_device();
   klee::ref<klee::Expr> match  = node->get_match();
 
-  const LPM *lpm = get_tofino_ds<LPM>(ep, get_type(), lpm_id);
+  const LPM *lpm = get_tofino_ds<LPM>(ep, TargetType(TargetArchitecture::Tofino, instance_id), lpm_id);
 
   transpile_lpm_decl(lpm, addr, device);
 
@@ -2489,7 +2491,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   std::optional<symbol_t> hit                    = node->get_hit();
   assert(hit.has_value() && "Hit is not a variable");
 
-  const HHTable *hh_table = get_tofino_ds<HHTable>(ep, get_type(), hh_table_id);
+  const HHTable *hh_table = get_tofino_ds<HHTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), hh_table_id);
 
   const bdd_node_id_t node_id = node->get_node()->get_id();
   const Table *table          = hh_table->get_table(node_id);
@@ -2924,7 +2926,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const DS_ID cms_id                             = node->get_cms_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
 
-  const CountMinSketch *cms = get_tofino_ds<CountMinSketch>(ep, get_type(), cms_id);
+  const CountMinSketch *cms = get_tofino_ds<CountMinSketch>(ep, TargetType(TargetArchitecture::Tofino, instance_id), cms_id);
 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = cms_get_rows_actions(cms);
   const std::vector<code_t> hashes_calculators                              = cms_get_hashes_calculators(cms, ep_node);
@@ -2968,7 +2970,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
   const klee::ref<klee::Expr> min_estimate       = node->get_min_estimate();
 
-  const CountMinSketch *cms = get_tofino_ds<CountMinSketch>(ep, get_type(), cms_id);
+  const CountMinSketch *cms = get_tofino_ds<CountMinSketch>(ep, TargetType(TargetArchitecture::Tofino, instance_id), cms_id);
 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = cms_get_rows_actions(cms);
   const std::unordered_map<RegisterActionType, std::vector<code_t>> values  = cms_get_rows_values(cms);
@@ -3029,7 +3031,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
   const klee::ref<klee::Expr> min_estimate       = node->get_min_estimate();
 
-  const CountMinSketch *cms = get_tofino_ds<CountMinSketch>(ep, get_type(), cms_id);
+  const CountMinSketch *cms = get_tofino_ds<CountMinSketch>(ep, TargetType(TargetArchitecture::Tofino, instance_id), cms_id);
 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = cms_get_rows_actions(cms);
   const std::unordered_map<RegisterActionType, std::vector<code_t>> values  = cms_get_rows_values(cms);
@@ -3099,7 +3101,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   assert_or_panic(ep_node->get_children().size() == 1, "Expected exactly one child");
   const EPNode *next_ep_node = ep_node->get_children().at(0);
 
-  const CuckooHashTable *cuckoo_hash_table = get_tofino_ds<CuckooHashTable>(ep, cms_id);
+  const CuckooHashTable *cuckoo_hash_table = get_tofino_ds<CuckooHashTable>(ep, TargetType(TargetArchitecture::Tofino, instance_id), cms_id);
 
   transpile_cuckoo_hash_table_decl(cuckoo_hash_table);
 

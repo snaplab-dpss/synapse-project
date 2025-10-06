@@ -26,7 +26,7 @@ struct EPMeta {
   size_t reordered_nodes;
 
   std::unordered_map<TargetType, size_t> steps_per_target;
-  std::unordered_map<ModuleType, size_t> modules_counter;
+  std::unordered_map<ModuleCategory, size_t> modules_counter;
   std::unordered_set<ep_node_id_t> processed_leaves;
   std::unordered_set<ep_node_id_t> visited_ep_nodes;
   bdd_node_ids_t processed_nodes;

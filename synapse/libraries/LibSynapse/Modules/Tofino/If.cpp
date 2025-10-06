@@ -199,7 +199,7 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
       return {};
     }
 
-    if (!get_tna(ep).condition_meets_phv_limit(sub_condition)) {
+    if (!get_tna(ep, get_target()).condition_meets_phv_limit(sub_condition)) {
       std::optional<If::phv_limitation_workaround_t> phv_limitation_workaround = get_phv_limitation_workaround(simplified);
       if (!phv_limitation_workaround.has_value()) {
         panic("TODO: deal with this not compatible condition: %s", expr_to_string(simplified, true).c_str());

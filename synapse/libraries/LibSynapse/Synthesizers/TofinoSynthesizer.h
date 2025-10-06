@@ -199,6 +199,7 @@ private:
 
   const EP *target_ep;
   Transpiler transpiler;
+  const std::string instance_id;
 
   void visit(const EP *ep, const EPNode *ep_node) override final;
   void log(const EPNode *node) const override final;

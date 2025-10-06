@@ -9,10 +9,11 @@ namespace Tofino {
 
 namespace {
 
-CuckooHashTable *build_cuckoo_hash_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity) {
+CuckooHashTable *build_cuckoo_hash_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj, klee::ref<klee::Expr> key,
+                                         u32 capacity) {
   const DS_ID id = "cuckoo_hash_table_" + std::to_string(obj);
 
-  const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>(type);
   const tna_properties_t &properties = tofino_ctx->get_tna().tna_config.properties;
 
   const bits_t key_size = key->getWidth();
@@ -30,9 +31,9 @@ CuckooHashTable *build_cuckoo_hash_table(const EP *ep, const BDDNode *node, addr
   return cuckoo_hash_table;
 }
 
-CuckooHashTable *reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, addr_t obj) {
+CuckooHashTable *reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj) {
   const Context &ctx              = ep->get_ctx();
-  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>(type);
 
   if (!tofino_ctx->get_data_structures().has(obj)) {
     return nullptr;
@@ -54,28 +55,28 @@ CuckooHashTable *reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, addr
 
 } // namespace
 
-CuckooHashTable *TofinoModuleFactory::build_or_reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key,
-                                                                       u32 capacity) {
+CuckooHashTable *TofinoModuleFactory::build_or_reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj,
+                                                                       klee::ref<klee::Expr> key, u32 capacity) {
   CuckooHashTable *cuckoo_hash_table = nullptr;
 
   if (ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_CuckooHashTable)) {
-    cuckoo_hash_table = reuse_cuckoo_hash_table(ep, node, obj);
+    cuckoo_hash_table = reuse_cuckoo_hash_table(ep, node, type, obj);
   } else {
-    cuckoo_hash_table = build_cuckoo_hash_table(ep, node, obj, key, capacity);
+    cuckoo_hash_table = build_cuckoo_hash_table(ep, node, type, obj, key, capacity);
   }
 
   return cuckoo_hash_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key,
-                                                               u32 capacity) {
+bool TofinoModuleFactory::can_build_or_reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj,
+                                                               klee::ref<klee::Expr> key, u32 capacity) {
   CuckooHashTable *cuckoo_hash_table = nullptr;
 
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_CuckooHashTable);
 
   if (already_placed) {
-    const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>();
+    const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>(type);
     const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(obj);
 
     assert(ds.size() == 1 && "Invalid number of DS");
@@ -91,7 +92,7 @@ bool TofinoModuleFactory::can_build_or_reuse_cuckoo_hash_table(const EP *ep, con
     return true;
   }
 
-  cuckoo_hash_table = build_cuckoo_hash_table(ep, node, obj, key, capacity);
+  cuckoo_hash_table = build_cuckoo_hash_table(ep, node, type, obj, key, capacity);
 
   if (!cuckoo_hash_table) {
     return false;

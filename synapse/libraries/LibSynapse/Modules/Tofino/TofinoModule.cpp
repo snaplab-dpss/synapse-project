@@ -1,7 +1,9 @@
+#include "LibSynapse/Target.h"
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/ExecutionPlan.h>
 
+#include <cassert>
 #include <unordered_set>
 #include <klee/util/ExprVisitor.h>
 
@@ -81,10 +83,10 @@ public:
 
 bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) const {
   while (node) {
-    if (node->get_module()->get_target() == TargetType::Tofino) {
+    if (node->get_module()->get_target().type == TargetArchitecture::Tofino) {
       const TofinoModule *tofino_module = dynamic_cast<const TofinoModule *>(node->get_module());
 
-      if (tofino_module->get_type() == ModuleType::Tofino_Recirculate) {
+      if (tofino_module->get_type().type == ModuleCategory::Tofino_Recirculate) {
         break;
       }
 
@@ -100,7 +102,7 @@ bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) c
   return false;
 }
 
-TofinoContext *TofinoModuleFactory::get_mutable_tofino_ctx(EP *ep) {
+TofinoContext *TofinoModuleFactory::get_mutable_tofino_ctx(EP *ep, TargetType type) {
   Context &ctx = ep->get_mutable_ctx();
   return ctx.get_mutable_target_ctx<TofinoContext>(type);
 }
@@ -126,8 +128,9 @@ bool TofinoModuleFactory::expr_fits_in_action(klee::ref<klee::Expr> expr) {
   return checker.is_compatible();
 }
 
-Symbols TofinoModuleFactory::get_relevant_dataplane_state(const EP *ep, const BDDNode *node) {
-  const bdd_node_ids_t &roots = ep->get_target_roots(TargetType::Tofino);
+Symbols TofinoModuleFactory::get_relevant_dataplane_state(const EP *ep, const BDDNode *node, const TargetType type) {
+  assert(type.type == TargetArchitecture::Tofino && "Ilegal Target");
+  const bdd_node_ids_t &roots = ep->get_target_roots(type);
 
   Symbols generated_symbols = node->get_prev_symbols(roots);
   generated_symbols.add(ep->get_bdd()->get_device());

@@ -10,13 +10,15 @@ private:
   addr_t obj;
 
 public:
-  DataplaneCuckooHashTableAllocate(const BDDNode *_node, addr_t _obj)
-      : ControllerModule(ModuleType::Controller_DataplaneCuckooHashTableAllocate, "DataplaneCuckooHashTableAllocate", _node), obj(_obj) {}
+  DataplaneCuckooHashTableAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneCuckooHashTableAllocate, _instance_id), "DataplaneCuckooHashTableAllocate",
+                         _node),
+        obj(_obj) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneCuckooHashTableAllocate(node, obj);
+    Module *cloned = new DataplaneCuckooHashTableAllocate(get_type().instance_id, node, obj);
     return cloned;
   }
 
@@ -25,8 +27,9 @@ public:
 
 class DataplaneCuckooHashTableAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneCuckooHashTableAllocateFactory()
-      : ControllerModuleFactory(ModuleType::Controller_DataplaneCuckooHashTableAllocate, "DataplaneCuckooHashTableAllocate") {}
+  DataplaneCuckooHashTableAllocateFactory(const std::string &_instance_id)
+      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneCuckooHashTableAllocate, _instance_id),
+                                "DataplaneCuckooHashTableAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

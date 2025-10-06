@@ -100,8 +100,8 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  Module *module  = new VectorRegisterLookup(get_type().instance_id, type, node, vector_register->id, vector_register_data.obj,
-                                             vector_register_data.index, vector_register_data.value);
+  Module *module  = new VectorRegisterLookup(get_type().instance_id, node, vector_register->id, vector_register_data.obj, vector_register_data.index,
+                                             vector_register_data.value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

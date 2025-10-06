@@ -64,13 +64,13 @@ public:
 
   bool was_ds_already_used(const EPNode *leaf, DS_ID ds_id) const;
 
-  static const TofinoContext *get_tofino_ctx(const EP *ep);
-  static TofinoContext *get_mutable_tofino_ctx(EP *ep);
+  static const TofinoContext *get_tofino_ctx(const EP *ep, TargetType type);
+  static TofinoContext *get_mutable_tofino_ctx(EP *ep, TargetType type);
 
   static const TNA &get_tna(const EP *ep, TargetType type);
   static TNA &get_mutable_tna(EP *ep, TargetType type);
 
-  static Symbols get_relevant_dataplane_state(const EP *ep, const BDDNode *node, TargetType type);
+  static Symbols get_relevant_dataplane_state(const EP *ep, const BDDNode *node, const TargetType type);
   static bool expr_fits_in_action(klee::ref<klee::Expr> expr);
 
   // ======================================================================
@@ -106,8 +106,8 @@ public:
   // ======================================================================
 
   static std::string build_vector_register_id(addr_t obj);
-  static VectorRegister *build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data);
-  static bool can_build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data);
+  static VectorRegister *build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const TargetType type, const vector_register_data_t &data);
+  static bool can_build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const TargetType type, const vector_register_data_t &data);
 
   // ======================================================================
   //  FCFS Cached Table
@@ -137,24 +137,26 @@ public:
   // ======================================================================
 
   static std::string build_cms_id(addr_t obj);
-  static bool can_build_or_reuse_cms(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
-                                     u32 height);
-  static CountMinSketch *build_or_reuse_cms(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
-                                            u32 height);
+  static bool can_build_or_reuse_cms(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj,
+                                     const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height);
+  static CountMinSketch *build_or_reuse_cms(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj,
+                                            const std::vector<klee::ref<klee::Expr>> &keys, u32 width, u32 height);
 
   // ======================================================================
   //  LPM
   // ======================================================================
 
-  static LPM *build_lpm(const EP *ep, const BDDNode *node, addr_t obj);
-  static bool can_build_lpm(const EP *ep, const BDDNode *node, addr_t obj);
+  static LPM *build_lpm(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj);
+  static bool can_build_lpm(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj);
 
   // ======================================================================
   //  Cuckoo Hash Table
   // ======================================================================
 
-  static bool can_build_or_reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity);
-  static CuckooHashTable *build_or_reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity);
+  static bool can_build_or_reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj, klee::ref<klee::Expr> key,
+                                                   u32 capacity);
+  static CuckooHashTable *build_or_reuse_cuckoo_hash_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj,
+                                                           klee::ref<klee::Expr> key, u32 capacity);
   static hit_rate_t get_cuckoo_hash_table_hit_success_rate(const EP *ep, const Context &ctx, const BDDNode *node, addr_t map,
                                                            klee::ref<klee::Expr> key, u32 capacity);
 };
