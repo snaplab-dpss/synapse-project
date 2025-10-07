@@ -18,28 +18,29 @@ Register build_cache_expirator(const tna_properties_t &properties, DS_ID id, u32
   return Register(properties, id + "_reg_expirator", cache_capacity, hash_size, timestamp_size, {RegisterActionType::Write});
 }
 
-std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &keys_sizes, u32 cache_capacity) {
-  std::vector<Register> cache_keys;
+std::vector<Register> build_registers(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &elements_sizes, u32 capacity) {
+  std::vector<Register> registers;
 
-  const bits_t hash_size = bits_from_pow2_capacity(cache_capacity);
+  const bits_t hash_size = bits_from_pow2_capacity(capacity);
 
   int i = 0;
-  for (bits_t key_size : keys_sizes) {
-    Register cache_key(properties, id + "_reg_key_" + std::to_string(i), cache_capacity, hash_size, key_size,
+  for (bits_t key_size : elements_sizes) {
+    Register cache_key(properties, id + "_reg_key_" + std::to_string(i), capacity, hash_size, key_size,
                        {RegisterActionType::Read, RegisterActionType::Swap});
     i++;
-    cache_keys.push_back(cache_key);
+    registers.push_back(cache_key);
   }
 
-  return cache_keys;
+  return registers;
 }
+
 } // namespace
 
 FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _capacity,
                                  const std::vector<bits_t> &_keys_sizes)
     : DS(DSType::FCFSCachedTable, false, _id), cache_capacity(_cache_capacity), capacity(_capacity), keys_sizes(_keys_sizes),
       cache_expirator(build_cache_expirator(properties, id, cache_capacity)),
-      cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)) {
+      cache_keys(build_registers(properties, id, keys_sizes, cache_capacity)) {
   assert(cache_capacity > 0 && "Cache capacity must be greater than 0");
   assert(capacity > 0 && "Number of entries must be greater than 0");
   assert(cache_capacity <= capacity && "Cache capacity must be less than the "
@@ -49,7 +50,7 @@ FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, 
 
 FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
     : DS(other.type, other.primitive, other.id), cache_capacity(other.cache_capacity), capacity(other.capacity), keys_sizes(other.keys_sizes),
-      tables(other.tables), cache_expirator(other.cache_expirator), cache_keys(other.cache_keys) {}
+      tables(other.tables), cache_expirator(other.cache_expirator), cache_keys(other.cache_keys), cache_values(other.cache_values) {}
 
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 
@@ -65,6 +66,9 @@ void FCFSCachedTable::debug() const {
   cache_expirator.debug();
   for (const Register &cache_key : cache_keys) {
     cache_key.debug();
+  }
+  for (const Register &cache_value : cache_values) {
+    cache_value.debug();
   }
   std::cerr << "==============================\n";
 }
@@ -101,6 +105,15 @@ std::optional<DS_ID> FCFSCachedTable::add_table(u32 op) {
   Table new_table(build_table_name(id, op), capacity - cache_capacity, keys_sizes, {});
   tables.push_back(new_table);
   return new_table.id;
+}
+
+const Table *FCFSCachedTable::get_table(u32 op) const {
+  const std::string table_id = build_table_name(id, op);
+  for (const Table &table : tables) {
+    if (table.id == table_id)
+      return &table;
+  }
+  return nullptr;
 }
 
 } // namespace Tofino

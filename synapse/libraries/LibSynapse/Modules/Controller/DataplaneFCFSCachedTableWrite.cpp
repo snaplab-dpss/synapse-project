@@ -14,7 +14,7 @@ using Tofino::Table;
 
 namespace {
 
-DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
+DS_ID get_fcfs_cached_table_id(const Context &ctx, addr_t obj) {
   const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>();
   const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_data_structures().get_ds(obj);
   assert(data_structures.size() == 1 && "Multiple data structures found");
@@ -23,17 +23,15 @@ DS_ID get_cached_table_id(const Context &ctx, addr_t obj) {
   return ds->id;
 }
 
-void get_data(const Context &ctx, const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> &value) {
+void get_data(const Context &ctx, const Call *call_node, addr_t &obj, std::vector<klee::ref<klee::Expr>> &keys) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "map_put" && "Not a map_put call");
 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
-  value                               = call.args.at("value").expr;
 
-  obj   = expr_addr_to_obj_addr(map_addr_expr);
-  keys  = Table::build_keys(key, ctx.get_expr_structs());
-  value = value;
+  obj  = expr_addr_to_obj_addr(map_addr_expr);
+  keys = Table::build_keys(key, ctx.get_expr_structs());
 }
 } // namespace
 
@@ -92,16 +90,15 @@ std::vector<impl_t> DataplaneFCFSCachedTableWriteFactory::process_node(const EP 
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
-  klee::ref<klee::Expr> value;
-  get_data(ep->get_ctx(), future_map_puts[0], obj, keys, value);
+  get_data(ep->get_ctx(), future_map_puts[0], obj, keys);
 
   if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
-  const DS_ID id = get_cached_table_id(ep->get_ctx(), obj);
+  const DS_ID id = get_fcfs_cached_table_id(ep->get_ctx(), obj);
 
-  Module *module  = new DataplaneFCFSCachedTableWrite(node, id, obj, keys, value);
+  Module *module  = new DataplaneFCFSCachedTableWrite(node, id, obj, keys);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -140,8 +137,7 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableWriteFactory::create(const BDD *
 
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
-  klee::ref<klee::Expr> value;
-  get_data(ctx, future_map_puts[0], obj, keys, value);
+  get_data(ctx, future_map_puts[0], obj, keys);
 
   if (!ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -151,7 +147,7 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableWriteFactory::create(const BDD *
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Tofino::FCFSCachedTable *fcfs_cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<DataplaneFCFSCachedTableWrite>(node, fcfs_cached_table->id, obj, keys, value);
+  return std::make_unique<DataplaneFCFSCachedTableWrite>(node, fcfs_cached_table->id, obj, keys);
 }
 
 } // namespace Controller

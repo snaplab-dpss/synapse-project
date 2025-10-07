@@ -270,8 +270,8 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       const FCFSCachedTableRead *fcfs_cached_table_read = dynamic_cast<const FCFSCachedTableRead *>(prev.module);
 
       Controller::DataplaneFCFSCachedTableRead *ctrl_fcfs_cached_table_read = new Controller::DataplaneFCFSCachedTableRead(
-          active_leaf.next, fcfs_cached_table_read->get_cached_table_id(), fcfs_cached_table_read->get_obj(),
-          fcfs_cached_table_read->get_original_key(), fcfs_cached_table_read->get_value(), fcfs_cached_table_read->get_map_has_this_key());
+          active_leaf.next, fcfs_cached_table_read->get_fcfs_cached_table_id(), fcfs_cached_table_read->get_obj(),
+          fcfs_cached_table_read->get_original_key(), fcfs_cached_table_read->get_map_has_this_key());
 
       EPNode *fcfs_cached_table_read_ep_node = new EPNode(ctrl_fcfs_cached_table_read);
       initial_controller_logic.update(fcfs_cached_table_read_ep_node);
@@ -313,7 +313,6 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Tofino_VectorRegisterUpdate:
     case ModuleType::Tofino_FCFSCachedTableReadWrite:
     case ModuleType::Tofino_FCFSCachedTableWrite:
-    case ModuleType::Tofino_FCFSCachedTableDelete:
     case ModuleType::Tofino_MeterUpdate:
     case ModuleType::Tofino_HHTableOutOfBandUpdate:
     case ModuleType::Tofino_IntegerAllocatorRejuvenate:
@@ -356,7 +355,6 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_DataplaneFCFSCachedTableAllocate:
     case ModuleType::Controller_DataplaneFCFSCachedTableRead:
     case ModuleType::Controller_DataplaneFCFSCachedTableWrite:
-    case ModuleType::Controller_DataplaneFCFSCachedTableDelete:
     case ModuleType::Controller_DataplaneHHTableAllocate:
     case ModuleType::Controller_DataplaneHHTableRead:
     case ModuleType::Controller_DataplaneHHTableUpdate:

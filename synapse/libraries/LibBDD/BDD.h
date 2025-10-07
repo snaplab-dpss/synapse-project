@@ -116,6 +116,13 @@ public:
   bool is_map_get_and_branch_checking_success(const Call *map_get, const BDDNode *branch_checking_map_get_success, bool &success_direction) const;
   bool are_subtrees_equal(const BDDNode *n0, const BDDNode *n1) const;
 
+  struct vector_values_t {
+    klee::ref<klee::Expr> borrowed;
+    klee::ref<klee::Expr> returned;
+  };
+
+  std::vector<vector_values_t> get_vector_values_from_map_op(const BDDNode *map_op) const;
+
   std::unordered_set<u16> get_candidate_fwd_devs(const Route *route) const;
 
   // Tries to find the pattern of a map_get followed by map_puts, but only when

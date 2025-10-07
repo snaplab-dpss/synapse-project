@@ -37,7 +37,7 @@ struct hh_table_data_t {
 
 bool update_map_get_success_hit_rate(const EP *ep, Context &ctx, const BDDNode *map_get, addr_t map, klee::ref<klee::Expr> key, u32 capacity,
                                      u32 cms_width, const branch_direction_t &mgsc) {
-  const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, mgsc.branch, map, key, capacity, cms_width);
+  const hit_rate_t success_rate = TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, map_get, map, key, capacity, cms_width);
 
   assert(mgsc.branch && "No branch checking map_get success");
   const BDDNode *on_success = mgsc.direction ? mgsc.branch->get_on_true() : mgsc.branch->get_on_false();
@@ -92,7 +92,7 @@ std::optional<spec_impl_t> HHTableReadFactory::speculate(const EP *ep, const BDD
 
   for (const u32 cms_width : HHTable::CMS_WIDTH_CANDIDATES) {
     const hit_rate_t success_rate =
-        TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, mpsc.branch, table_data.obj, table_data.key, table_data.capacity, cms_width);
+        TofinoModuleFactory::get_hh_table_hit_success_rate(ep, ctx, map_get, table_data.obj, table_data.key, table_data.capacity, cms_width);
 
     if (!can_build_or_reuse_hh_table(ep, node, table_data.obj, table_data.table_keys, table_data.capacity, cms_width, HHTable::CMS_HEIGHT)) {
       continue;

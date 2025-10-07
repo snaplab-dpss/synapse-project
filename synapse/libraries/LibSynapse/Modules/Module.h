@@ -47,7 +47,6 @@ enum class ModuleType {
   Tofino_FCFSCachedTableRead,
   Tofino_FCFSCachedTableReadWrite,
   Tofino_FCFSCachedTableWrite,
-  Tofino_FCFSCachedTableDelete,
   Tofino_MeterUpdate,
   Tofino_HHTableRead,
   Tofino_HHTableOutOfBandUpdate,
@@ -94,7 +93,6 @@ enum class ModuleType {
   Controller_DataplaneFCFSCachedTableAllocate,
   Controller_DataplaneFCFSCachedTableRead,
   Controller_DataplaneFCFSCachedTableWrite,
-  Controller_DataplaneFCFSCachedTableDelete,
   Controller_DataplaneHHTableAllocate,
   Controller_DataplaneHHTableRead,
   Controller_DataplaneHHTableUpdate,
@@ -247,9 +245,6 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_FCFSCachedTableWrite:
     os << "Tofino_FCFSCachedTableWrite";
     break;
-  case ModuleType::Tofino_FCFSCachedTableDelete:
-    os << "Tofino_FCFSCachedTableDelete";
-    break;
   case ModuleType::Tofino_MeterUpdate:
     os << "Tofino_MeterUpdate";
     break;
@@ -378,9 +373,6 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneFCFSCachedTableWrite:
     os << "Controller_DataplaneFCFSCachedTableWrite";
-    break;
-  case ModuleType::Controller_DataplaneFCFSCachedTableDelete:
-    os << "Controller_DataplaneFCFSCachedTableDelete";
     break;
   case ModuleType::Controller_DataplaneHHTableAllocate:
     os << "Controller_DataplaneHHTableAllocate";

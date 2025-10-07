@@ -27,7 +27,6 @@
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableRead.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableReadWrite.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableWrite.h>
-#include <LibSynapse/Modules/Tofino/FCFSCachedTableDelete.h>
 #include <LibSynapse/Modules/Tofino/MeterUpdate.h>
 #include <LibSynapse/Modules/Tofino/HHTableRead.h>
 #include <LibSynapse/Modules/Tofino/HHTableOutOfBandUpdate.h>
@@ -71,7 +70,6 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<FCFSCachedTableReadFactory>());
               f.push_back(std::make_unique<FCFSCachedTableReadWriteFactory>());
               f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableDeleteFactory>());
               f.push_back(std::make_unique<MeterUpdateFactory>());
               f.push_back(std::make_unique<HHTableReadFactory>());
               f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>());

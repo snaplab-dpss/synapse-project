@@ -53,7 +53,6 @@
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableWrite.h>
-#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableDelete.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableUpdate.h>
@@ -136,7 +135,6 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneFCFSCachedTableAllocateFactory>());
               f.push_back(std::make_unique<DataplaneFCFSCachedTableReadFactory>());
               f.push_back(std::make_unique<DataplaneFCFSCachedTableWriteFactory>());
-              f.push_back(std::make_unique<DataplaneFCFSCachedTableDeleteFactory>());
               f.push_back(std::make_unique<DataplaneHHTableAllocateFactory>());
               f.push_back(std::make_unique<DataplaneHHTableReadFactory>());
               f.push_back(std::make_unique<DataplaneHHTableUpdateFactory>());

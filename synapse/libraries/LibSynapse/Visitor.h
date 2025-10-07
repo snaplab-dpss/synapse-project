@@ -31,7 +31,6 @@ class VectorRegisterUpdate;
 class FCFSCachedTableRead;
 class FCFSCachedTableReadWrite;
 class FCFSCachedTableWrite;
-class FCFSCachedTableDelete;
 class MeterUpdate;
 class HHTableRead;
 class HHTableOutOfBandUpdate;
@@ -82,7 +81,6 @@ class DataplaneVectorRegisterUpdate;
 class DataplaneFCFSCachedTableAllocate;
 class DataplaneFCFSCachedTableRead;
 class DataplaneFCFSCachedTableWrite;
-class DataplaneFCFSCachedTableDelete;
 class DataplaneHHTableAllocate;
 class DataplaneHHTableRead;
 class DataplaneHHTableUpdate;
@@ -197,7 +195,6 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MeterUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *m) { return Action::doChildren; }
@@ -263,7 +260,6 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *m) { return Action::doChildren; }

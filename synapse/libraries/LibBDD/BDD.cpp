@@ -14,6 +14,7 @@
 namespace LibBDD {
 
 using LibCore::constraint_from_expr;
+using LibCore::dbg_mode_active;
 using LibCore::expr_addr_to_obj_addr;
 using LibCore::expr_struct_t;
 using LibCore::expr_to_string;
@@ -476,7 +477,11 @@ struct next_t {
 next_t get_next_maps_and_vectors(const BDDNode *root, klee::ref<klee::Expr> index) {
   next_t candidates;
 
-  root->visit_nodes([&candidates, index](const BDDNode *node) {
+  const std::unordered_set<std::string> index_symbols = symbol_t::get_symbols_names(index);
+  assert(index_symbols.size() == 1 && "Expecting a single symbol for the index");
+  const std::string index_symbol = *index_symbols.begin();
+
+  root->visit_nodes([&candidates, index_symbol](const BDDNode *node) {
     if (node->get_type() != BDDNodeType::Call) {
       return BDDNodeVisitAction::Continue;
     }
@@ -488,20 +493,16 @@ next_t get_next_maps_and_vectors(const BDDNode *root, klee::ref<klee::Expr> inde
       klee::ref<klee::Expr> map   = call.args.at("map").expr;
       klee::ref<klee::Expr> value = call.args.at("value").expr;
 
-      const addr_t map_addr = expr_addr_to_obj_addr(map);
-      bool same_index       = solver_toolbox.are_exprs_always_equal(index, value);
-
-      if (same_index) {
+      if (symbol_t::get_symbols_names(value).contains(index_symbol)) {
+        const addr_t map_addr = expr_addr_to_obj_addr(map);
         candidates.maps.insert({map_addr, call_node});
       }
     } else if (call.function_name == "vector_borrow") {
       klee::ref<klee::Expr> vector = call.args.at("vector").expr;
       klee::ref<klee::Expr> value  = call.args.at("index").expr;
 
-      const addr_t vector_addr = expr_addr_to_obj_addr(vector);
-      bool same_index          = solver_toolbox.are_exprs_always_equal(index, value);
-
-      if (same_index) {
+      if (symbol_t::get_symbols_names(value).contains(index_symbol)) {
+        const addr_t vector_addr = expr_addr_to_obj_addr(vector);
         candidates.vectors.insert({vector_addr, call_node});
       }
     }
@@ -1408,10 +1409,11 @@ void BDD::delete_vector_key_operations(addr_t map) {
     break;
   }
 
-  // Just to double check that we didn't break anything...
-  const BDD::inspection_report_t report = inspect();
-  if (report.status != BDD::InspectionStatus::Ok) {
-    panic("BDD inspection failed: %s", report.message.c_str());
+  if (dbg_mode_active) {
+    const BDD::inspection_report_t report = inspect();
+    if (report.status != BDD::InspectionStatus::Ok) {
+      panic("BDD inspection failed: %s", report.message.c_str());
+    }
   }
 }
 
@@ -1928,6 +1930,50 @@ std::vector<branch_direction_t> BDD::find_all_branches_checking_index_alloc(addr
   });
 
   return target_branches;
+}
+
+std::vector<BDD::vector_values_t> BDD::get_vector_values_from_map_op(const BDDNode *map_op) const {
+  std::vector<vector_values_t> values;
+
+  if (!map_op || map_op->get_type() != BDDNodeType::Call) {
+    return values;
+  }
+
+  const Call *call_node = dynamic_cast<const Call *>(map_op);
+  const call_t &call    = call_node->get_call();
+
+  if (call.function_name != "map_get" && call.function_name != "map_put") {
+    return values;
+  }
+
+  klee::ref<klee::Expr> index = call.function_name == "map_get" ? call.args.at("value_out").out : call.args.at("value").expr;
+
+  for (const Call *vector_borrow : map_op->get_future_functions({"vector_borrow"})) {
+    const call_t &vb_call = vector_borrow->get_call();
+    if (vb_call.function_name != "vector_borrow") {
+      continue;
+    }
+
+    klee::ref<klee::Expr> vb_index = vb_call.args.at("index").expr;
+    if (!solver_toolbox.are_exprs_always_equal(index, vb_index)) {
+      continue;
+    }
+
+    const symbol_t vb_value = vector_borrow->get_local_symbol("vector_data");
+
+    const std::vector<const LibBDD::Call *> vector_returns = vector_borrow->get_vector_returns_from_borrow();
+    for (const LibBDD::Call *vector_return : vector_returns) {
+      const call_t &vr_call          = vector_return->get_call();
+      klee::ref<klee::Expr> vr_value = vr_call.args.at("value").in;
+      vector_values_t vector_values  = {
+           .borrowed = vb_value.expr,
+           .returned = vr_value,
+      };
+      values.push_back(vector_values);
+    }
+  }
+
+  return values;
 }
 
 } // namespace LibBDD

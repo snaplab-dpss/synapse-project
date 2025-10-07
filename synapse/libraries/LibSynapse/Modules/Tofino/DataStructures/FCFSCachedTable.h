@@ -21,9 +21,9 @@ struct FCFSCachedTable : public DS {
   std::vector<Table> tables;
   Register cache_expirator;
   std::vector<Register> cache_keys;
+  std::vector<Register> cache_values;
 
-  FCFSCachedTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 cache_capacity, u32 capacity,
-                  const std::vector<bits_t> &keys_sizes);
+  FCFSCachedTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 cache_capacity, u32 capacity, const std::vector<bits_t> &keys_sizes);
 
   FCFSCachedTable(const FCFSCachedTable &other);
 
@@ -33,6 +33,7 @@ struct FCFSCachedTable : public DS {
 
   bool has_table(u32 op) const;
   std::optional<DS_ID> add_table(u32 op);
+  const Table *get_table(u32 op) const;
 };
 
 } // namespace Tofino

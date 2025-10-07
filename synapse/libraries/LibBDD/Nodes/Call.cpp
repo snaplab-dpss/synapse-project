@@ -162,7 +162,7 @@ std::vector<const Call *> Call::get_vector_returns_from_borrow() const {
     return vector_returns;
   }
 
-  addr_t vector               = expr_addr_to_obj_addr(call.args.at("vector").expr);
+  const addr_t vector         = expr_addr_to_obj_addr(call.args.at("vector").expr);
   klee::ref<klee::Expr> index = call.args.at("index").expr;
 
   for (const Call *vector_return : get_future_functions({"vector_return"})) {

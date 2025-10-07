@@ -1080,7 +1080,7 @@ void TofinoSynthesizer::transpile_digest_decl(const Digest *digest, const std::v
   ingress_deparser << "Digest<" << digest_hdr << ">() " << digest->id << ";\n";
 }
 
-void TofinoSynthesizer::transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, const klee::ref<klee::Expr> key,
+void TofinoSynthesizer::transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, const std::vector<klee::ref<klee::Expr>> &keys,
                                                          const klee::ref<klee::Expr> value) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
 
@@ -1092,7 +1092,7 @@ void TofinoSynthesizer::transpile_fcfs_cached_table_decl(const FCFSCachedTable *
 
   std::vector<var_t> keys_vars;
   for (const Table &table : fcfs_cached_table->tables) {
-    transpile_table_decl(&table, {key}, {value}, true, keys_vars);
+    transpile_table_decl(&table, keys, {value}, true, keys_vars);
   }
 
   std::cerr << ingress.dump();
@@ -2417,11 +2417,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) {
-  panic("TODO: FCFSCachedTableRead");
-  return EPVisitor::Action::doChildren;
-}
-
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -2448,6 +2443,26 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) {
+  // coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  // const DS_ID fcfscached_table_id                = node->get_fcfs_cached_table_id();
+  // const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  // klee::ref<klee::Expr> value                    = node->get_value();
+  // const symbol_t &map_has_this_key               = node->get_map_has_this_key();
+
+  // const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
+  // const bdd_node_id_t node_id              = node->get_node()->get_id();
+  // const Table *table                       = fcfs_cached_table->get_table(node_id);
+  // assert(table && "Table not found");
+
+  // transpile_fcfs_cached_table_decl(fcfs_cached_table, keys, value);
+
+  todo();
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) {
   panic("TODO: FCFSCachedTableReadWrite");
   return EPVisitor::Action::doChildren;
@@ -2455,11 +2470,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) {
   panic("TODO: FCFSCachedTableWrite");
-  return EPVisitor::Action::doChildren;
-}
-
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableDelete *node) {
-  panic("TODO: FCFSCachedTableDelete");
   return EPVisitor::Action::doChildren;
 }
 
