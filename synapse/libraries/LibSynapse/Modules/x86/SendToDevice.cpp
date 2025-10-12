@@ -1,8 +1,10 @@
+#include "LibCore/Debug.h"
 #include "LibSynapse/Profiler.h"
 #include <LibSynapse/Modules/x86/SendToDevice.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibBDD/Visitors/BDDVisualizer.h>
 #include <LibSynapse/Visualizers/EPVisualizer.h>
+#include <klee/util/Ref.h>
 
 namespace LibSynapse {
 namespace x86 {
@@ -60,14 +62,18 @@ std::optional<spec_impl_t> SendToDeviceFactory::speculate(const EP *ep, const BD
   }
 
   // We can always send to the device, at any point in time.
-  spec_impl_t spec_impl(decide(ep, node), new_ctx);
-  spec_impl.next_target = node->get_next_target();
+  // TODO: Get Next Target From Node
+  /*  spec_impl_t spec_impl(decide(ep, node), new_ctx);
+    spec_impl.next_target = node->get_next_target();*/
 
   return {};
 }
 
 std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   const EPLeaf active_leaf = ep->get_active_leaf();
+  if (!bdd_node_match_pattern(node)) {
+    return {};
+  }
 
   // We can't send to the device if a forwarding decision was already made.
   if (active_leaf.node && active_leaf.node->forwarding_decision_already_made()) {
@@ -80,24 +86,19 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
   }
 
   // Otherwise we can always send to the device, at any point in time.
-  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
-  Symbols symbols = get_relevant_dataplane_state(ep, node, get_target());
+  klee::ref<klee::Expr> outgoing_port = call.args.at("outgoing_port").expr;
+
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
+  Symbols symbols            = get_relevant_dataplane_state(ep, node, get_target());
   symbols.remove("packet_chunks");
 
-  // We need to decide the outgoing port and the incoming port.
-  // The outgoing port is the port that leads to the next target.
-  // The incoming port is the port that leads back to us from the next target.
+  const TargetType next_target = get_target();
+  panic("next_target should be obtained from the bdd node");
 
-  TargetType next_type = ep->get_placement(node->get_id());
-
-  if (ep->get_active_target() == next_type)
-    return {};
-
-  u32 outgoing_port = ep->get_forwarding_port(ep->get_active_target().instance_id, next_type.instance_id);
-  u32 incoming_port = 0;
-
-  Module *module   = new SendToDevice(get_type().instance_id, node, outgoing_port, incoming_port, next_type, symbols);
+  Module *module   = new SendToDevice(get_type().instance_id, node, next_target, outgoing_port, symbols);
   EPNode *s2d_node = new EPNode(module);
 
   EPNode *ep_node_leaf = s2d_node;

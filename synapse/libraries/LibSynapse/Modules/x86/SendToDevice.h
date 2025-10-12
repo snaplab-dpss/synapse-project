@@ -3,28 +3,25 @@
 #include "LibSynapse/Target.h"
 #include "LibCore/Types.h"
 #include <LibSynapse/Modules/x86/x86Module.h>
+#include <klee/util/Ref.h>
 
 namespace LibSynapse {
 namespace x86 {
 class SendToDevice : public x86Module {
 private:
-  u32 outgoing_port;
-  u32 incoming_port;
-  TargetType next_type;
+  klee::ref<klee::Expr> outgoing_port;
   Symbols symbols;
 
 public:
-  SendToDevice(const std::string &_instance_id, const BDDNode *_node, u16 _outgoing_port, u16 _incoming_port, TargetType _next_type, Symbols _symbols)
+  SendToDevice(const std::string &_instance_id, const BDDNode *_node, TargetType _next_type, klee::ref<klee::Expr> _outgoing_port, Symbols _symbols)
       : x86Module(ModuleType(ModuleCategory::x86_SendToDevice, _instance_id), _next_type, "SendToDevice", _node), outgoing_port(_outgoing_port),
-        incoming_port(_incoming_port), next_type(_next_type), symbols(_symbols) {}
+        symbols(_symbols) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
-  virtual Module *clone() const override { return new SendToDevice(get_type().instance_id, node, outgoing_port, incoming_port, next_type, symbols); }
+  virtual Module *clone() const override { return new SendToDevice(get_type().instance_id, node, get_next_target(), outgoing_port, symbols); }
 
-  u16 get_outgoing_port() const { return outgoing_port; }
-  u16 get_incoming_port() const { return incoming_port; }
-  TargetType get_next_type() const { return next_type; }
+  const klee::ref<klee::Expr> get_outgoing_port() const { return outgoing_port; }
   const Symbols &get_symbols() const { return symbols; }
 };
 
