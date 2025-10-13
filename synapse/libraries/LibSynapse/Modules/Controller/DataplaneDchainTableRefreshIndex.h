@@ -11,7 +11,7 @@ private:
   klee::ref<klee::Expr> index;
 
 public:
-  DataplaneDchainTableRefreshIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index)
+  DataplaneDchainTableRefreshIndex(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneDchainTableRefreshIndex, _instance_id), "DataplaneDchainTableRefreshIndex",
                          _node),
         obj(_obj), index(_index) {}
@@ -29,7 +29,7 @@ public:
 
 class DataplaneDchainTableRefreshIndexFactory : public ControllerModuleFactory {
 public:
-  DataplaneDchainTableRefreshIndexFactory(const std::string &_instance_id)
+  DataplaneDchainTableRefreshIndexFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneDchainTableRefreshIndex, _instance_id),
                                 "DataplaneDchainTableRefreshIndex") {}
 

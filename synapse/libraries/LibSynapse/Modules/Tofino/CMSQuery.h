@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSQuery(const std::string &_instance_id, const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys,
+  CMSQuery(const InstanceId _instance_id, const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys,
            klee::ref<klee::Expr> _min_estimate)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_CMSQuery, _instance_id), "CMSQuery", _node), cms_id(_cms_id), cms_addr(_cms_addr), keys(_keys),
         min_estimate(_min_estimate) {}
@@ -32,7 +32,7 @@ public:
 
 class CMSQueryFactory : public TofinoModuleFactory {
 public:
-  CMSQueryFactory(const std::string &_instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_CMSQuery, _instance_id), "CMSQuery") {}
+  CMSQueryFactory(const InstanceId _instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_CMSQuery, _instance_id), "CMSQuery") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

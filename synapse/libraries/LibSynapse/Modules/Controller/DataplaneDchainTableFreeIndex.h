@@ -11,7 +11,7 @@ private:
   klee::ref<klee::Expr> index;
 
 public:
-  DataplaneDchainTableFreeIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index)
+  DataplaneDchainTableFreeIndex(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneDchainTableFreeIndex, _instance_id), "DataplaneDchainTableFreeIndex", _node),
         obj(_obj), index(_index) {}
 
@@ -28,7 +28,7 @@ public:
 
 class DataplaneDchainTableFreeIndexFactory : public ControllerModuleFactory {
 public:
-  DataplaneDchainTableFreeIndexFactory(const std::string &_instance_id)
+  DataplaneDchainTableFreeIndexFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneDchainTableFreeIndex, _instance_id), "DataplaneDchainTableFreeIndex") {
   }
 

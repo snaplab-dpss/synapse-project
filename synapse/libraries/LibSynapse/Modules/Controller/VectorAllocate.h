@@ -12,8 +12,7 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  VectorAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size,
-                 klee::ref<klee::Expr> _capacity)
+  VectorAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity)
       : ControllerModule(ModuleType(ModuleCategory::Controller_VectorAllocate, _instance_id), "VectorAllocate", _node), obj(_obj),
         elem_size(_elem_size), capacity(_capacity) {}
 
@@ -31,7 +30,7 @@ public:
 
 class VectorAllocateFactory : public ControllerModuleFactory {
 public:
-  VectorAllocateFactory(const std::string &_instance_id)
+  VectorAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_VectorAllocate, _instance_id), "VectorAllocate") {}
 
 protected:

@@ -15,7 +15,7 @@ private:
   std::optional<symbol_t> hit;
 
 public:
-  MapTableLookup(const std::string &_instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _original_key,
+  MapTableLookup(const InstanceId _instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _original_key,
                  const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value, std::optional<symbol_t> _hit)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_MapTableLookup, _instance_id), "MapTableLookup", _node), id(_id), obj(_obj),
         original_key(_original_key), keys(_keys), value(_value), hit(_hit) {}
@@ -39,7 +39,7 @@ public:
 
 class MapTableLookupFactory : public TofinoModuleFactory {
 public:
-  MapTableLookupFactory(const std::string &_instance_id)
+  MapTableLookupFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_MapTableLookup, _instance_id), "MapTableLookup") {}
 
 protected:

@@ -25,7 +25,7 @@ using LibBDD::map_coalescing_objs_t;
 using LibBDD::symbol_translation_t;
 
 using LibClone::ComponentId;
-using LibClone::NetworkNodeId;
+using LibClone::InfrastructureNodeId;
 using LibClone::PhysicalNetwork;
 
 using translator_t = std::unordered_map<bdd_node_id_t, bdd_node_id_t>;
@@ -122,7 +122,7 @@ public:
   pps_t estimate_tput_pps() const;
 
   const TargetType get_placement(const LibClone::ComponentId component_id) const { return phys_net.get_placement(component_id); }
-  LibClone::Port get_forwarding_port(const LibClone::NetworkNodeId src, const LibClone::NetworkNodeId dst) const {
+  LibClone::Port get_forwarding_port(const LibClone::InfrastructureNodeId src, const LibClone::InfrastructureNodeId dst) const {
     return phys_net.get_forwarding_port(src, dst);
   }
 

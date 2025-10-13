@@ -14,7 +14,7 @@ private:
   klee::ref<klee::Expr> key_size;
 
 public:
-  TokenBucketAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _capacity,
+  TokenBucketAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _capacity,
                       klee::ref<klee::Expr> _rate, klee::ref<klee::Expr> _burst, klee::ref<klee::Expr> _key_size)
       : ControllerModule(ModuleType(ModuleCategory::Controller_TokenBucketAllocate, _instance_id), "TokenBucketAllocate", _node), tb_addr(_tb_addr),
         capacity(_capacity), rate(_rate), burst(_burst), key_size(_key_size) {}
@@ -35,7 +35,7 @@ public:
 
 class TokenBucketAllocateFactory : public ControllerModuleFactory {
 public:
-  TokenBucketAllocateFactory(const std::string &_instance_id)
+  TokenBucketAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_TokenBucketAllocate, _instance_id), "TokenBucketAllocate") {}
 
 protected:

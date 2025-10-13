@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> guard_allow_condition;
 
 public:
-  DataplaneGuardedMapTableGuardCheck(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, const symbol_t &_guard_allow,
+  DataplaneGuardedMapTableGuardCheck(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, const symbol_t &_guard_allow,
                                      klee::ref<klee::Expr> _guard_allow_condition)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableGuardCheck, _instance_id),
                          "DataplaneGuardedMapTableGuardCheck", _node),
@@ -32,7 +32,7 @@ public:
 
 class DataplaneGuardedMapTableGuardCheckFactory : public ControllerModuleFactory {
 public:
-  DataplaneGuardedMapTableGuardCheckFactory(const std::string &_instance_id)
+  DataplaneGuardedMapTableGuardCheckFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableGuardCheck, _instance_id),
                                 "DataplaneGuardedMapTableGuardCheck") {}
 

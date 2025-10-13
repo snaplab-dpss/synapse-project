@@ -21,7 +21,7 @@ struct decision_t {
   ModuleType module;
   std::unordered_map<std::string, i32> params;
 
-  decision_t() : ep(nullptr), node(0), module(ModuleCategory::InvalidModule, "NO DEVICE") {}
+  decision_t() : ep(nullptr), node(0), module(ModuleCategory::InvalidModule, -1) {}
 
   decision_t(const EP *_ep, bdd_node_id_t _node, ModuleType _module) : ep(_ep), node(_node), module(_module) {}
 

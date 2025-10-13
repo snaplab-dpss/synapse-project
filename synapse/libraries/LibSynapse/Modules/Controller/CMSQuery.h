@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSQuery(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
+  CMSQuery(const InstanceId _instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
       : ControllerModule(ModuleType(ModuleCategory::Controller_CMSQuery, _instance_id), "CMSQuery", _node), cms_addr(_cms_addr), key(_key),
         min_estimate(_min_estimate) {}
 
@@ -30,7 +30,7 @@ public:
 
 class CMSQueryFactory : public ControllerModuleFactory {
 public:
-  CMSQueryFactory(const std::string &_instance_id)
+  CMSQueryFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_CMSQuery, _instance_id), "CMSQuery") {}
 
 protected:

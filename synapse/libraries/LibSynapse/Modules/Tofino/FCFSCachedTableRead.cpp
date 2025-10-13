@@ -49,16 +49,16 @@ std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *
   return data;
 }
 
-std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *node, const fcfs_cached_table_data_t &fcfs_cached_table_data,
-                                                 u32 cache_capacity) {
+std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *node, const TargetType target,
+                                                 const fcfs_cached_table_data_t &fcfs_cached_table_data, u32 cache_capacity) {
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
-      ep, node, fcfs_cached_table_data.obj, fcfs_cached_table_data.original_key, fcfs_cached_table_data.capacity, cache_capacity);
+      ep, node, target, fcfs_cached_table_data.obj, fcfs_cached_table_data.original_key, fcfs_cached_table_data.capacity, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
   }
 
-  Module *module  = new FCFSCachedTableRead(node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj,
+  Module *module  = new FCFSCachedTableRead(target.instance_id, node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj,
                                             fcfs_cached_table_data.original_key, fcfs_cached_table_data.keys, fcfs_cached_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
@@ -68,7 +68,7 @@ std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *no
   ctx.save_ds_impl(fcfs_cached_table_data.map_objs.map, DSImpl::Tofino_FCFSCachedTable);
   ctx.save_ds_impl(fcfs_cached_table_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
-  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
+  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get(), target);
   tofino_ctx->place(new_ep.get(), node, fcfs_cached_table_data.map_objs.map, cached_table);
 
   EPLeaf leaf(ep_node, node->get_next());
@@ -116,7 +116,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
   // Let's optimistically pick the largest cache capacity that we can build or reuse.
   u32 cache_capacity;
   for (auto rev_it = allowed_cache_capacities.rbegin(); rev_it != allowed_cache_capacities.rend(); rev_it++) {
-    if (can_build_or_reuse_fcfs_cached_table(ep, node, fcfs_cached_table_data->obj, fcfs_cached_table_data->original_key,
+    if (can_build_or_reuse_fcfs_cached_table(ep, node, get_target(), fcfs_cached_table_data->obj, fcfs_cached_table_data->original_key,
                                              fcfs_cached_table_data->capacity, *rev_it)) {
       cache_capacity = *rev_it;
       break;
@@ -169,7 +169,7 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-    std::unique_ptr<EP> new_ep = concretize_cached_table_read(ep, node, fcfs_cached_table_data.value(), cache_capacity);
+    std::unique_ptr<EP> new_ep = concretize_cached_table_read(ep, node, get_target(), fcfs_cached_table_data.value(), cache_capacity);
     if (new_ep) {
       impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(std::move(impl));
@@ -201,12 +201,13 @@ std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const BDD *bdd, const
     return {};
   }
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(fcfs_cached_table_data->map_objs.map);
+  const std::unordered_set<Tofino::DS *> ds =
+      ctx.get_target_ctx<TofinoContext>(get_target())->get_data_structures().get_ds(fcfs_cached_table_data->map_objs.map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedTableRead>(node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id, fcfs_cached_table_data->obj,
-                                               fcfs_cached_table_data->original_key, fcfs_cached_table_data->keys,
+  return std::make_unique<FCFSCachedTableRead>(get_type().instance_id, node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id,
+                                               fcfs_cached_table_data->obj, fcfs_cached_table_data->original_key, fcfs_cached_table_data->keys,
                                                fcfs_cached_table_data->map_has_this_key);
 }
 

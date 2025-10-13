@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSIncAndQuery(const std::string &_instance_id, const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr,
+  CMSIncAndQuery(const InstanceId _instance_id, const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr,
                  const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _min_estimate)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_CMSIncAndQuery, _instance_id), "CMSIncAndQuery", _node), cms_id(_cms_id), cms_addr(_cms_addr),
         keys(_keys), min_estimate(_min_estimate) {}
@@ -32,7 +32,7 @@ public:
 
 class CMSIncAndQueryFactory : public TofinoModuleFactory {
 public:
-  CMSIncAndQueryFactory(const std::string &_instance_id)
+  CMSIncAndQueryFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_CMSIncAndQuery, _instance_id), "CMSIncAndQuery") {}
 
 protected:

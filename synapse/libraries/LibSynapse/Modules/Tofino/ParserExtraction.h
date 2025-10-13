@@ -13,7 +13,7 @@ private:
   std::vector<klee::ref<klee::Expr>> hdr_fields_guess;
 
 public:
-  ParserExtraction(const std::string &_instance_id, const BDDNode *_node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, bytes_t _length,
+  ParserExtraction(const InstanceId _instance_id, const BDDNode *_node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr, bytes_t _length,
                    std::vector<klee::ref<klee::Expr>> _hdr_fields_guess)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_ParserExtraction, _instance_id), "ParserExtraction", _node), hdr_addr(_hdr_addr), hdr(_hdr),
         length(_length), hdr_fields_guess(_hdr_fields_guess) {}
@@ -33,7 +33,7 @@ public:
 
 class ParserExtractionFactory : public TofinoModuleFactory {
 public:
-  ParserExtractionFactory(const std::string &_instance_id)
+  ParserExtractionFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_ParserExtraction, _instance_id), "ParserExtraction") {}
 
 protected:

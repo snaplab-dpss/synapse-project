@@ -7,15 +7,16 @@
 
 namespace LibClone {
 
-using InstanceId = std::string;
+using DeviceId = LibSynapse::InstanceId;
 
 class Device {
 private:
+  const DeviceId id;
   const LibSynapse::TargetType target;
 
 public:
-  Device(const InstanceId &_id, const std::string &_arch)
-      : target([&] {
+  Device(const DeviceId &_id, const std::string &_arch)
+      : id(_id), target([&] {
           if (_arch == "x86")
             return LibSynapse::TargetType(LibSynapse::TargetArchitecture::x86, _id);
           if (_arch == "Tofino")
@@ -25,6 +26,7 @@ public:
           panic("Unknown architecture %s", _arch.c_str());
         }()) {}
 
+  const DeviceId &get_id() const { return id; }
   const LibSynapse::TargetType &get_target() const { return target; }
 
   friend std::ostream &operator<<(std::ostream &os, const Device &device) {

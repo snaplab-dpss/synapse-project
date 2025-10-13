@@ -981,7 +981,7 @@ code_t x86Synthesizer::create_unique_name(const std::string &base_name) {
   return coder.dump();
 }
 
-x86Synthesizer::x86Synthesizer(const EP *ep, x86SynthesizerTarget _target, std::filesystem::path _out_file, const std::string &_instance_id)
+x86Synthesizer::x86Synthesizer(const EP *ep, x86SynthesizerTarget _target, std::filesystem::path _out_file, const InstanceId _instance_id)
     : out_file(_out_file), code_template(template_from_type(_target),
                                          {
 

@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> time;
 
 public:
-  DchainRejuvenateIndex(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _index,
+  DchainRejuvenateIndex(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _index,
                         klee::ref<klee::Expr> _time)
       : x86Module(ModuleType(ModuleCategory::x86_DchainRejuvenateIndex, _instance_id), "DchainRejuvenate", _node), dchain_addr(_dchain_addr),
         index(_index), time(_time) {}
@@ -31,7 +31,7 @@ public:
 
 class DchainRejuvenateIndexFactory : public x86ModuleFactory {
 public:
-  DchainRejuvenateIndexFactory(const std::string &_instance_id)
+  DchainRejuvenateIndexFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_DchainRejuvenateIndex, _instance_id), "DchainRejuvenateIndex") {}
 
 protected:

@@ -15,7 +15,7 @@ private:
   symbol_t map_has_this_key;
 
 public:
-  MapGet(const std::string &_instance_id, const BDDNode *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key,
+  MapGet(const InstanceId _instance_id, const BDDNode *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key,
          klee::ref<klee::Expr> _value_out, klee::ref<klee::Expr> _success, const symbol_t &_map_has_this_key)
       : ControllerModule(ModuleType(ModuleCategory::Controller_MapGet, _instance_id), "MapGet", _node), map_addr(_map_addr), key_addr(_key_addr),
         key(_key), value_out(_value_out), success(_success), map_has_this_key(_map_has_this_key) {}
@@ -37,7 +37,7 @@ public:
 
 class MapGetFactory : public ControllerModuleFactory {
 public:
-  MapGetFactory(const std::string &_instance_id) : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_MapGet, _instance_id), "MapGet") {}
+  MapGetFactory(const InstanceId _instance_id) : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_MapGet, _instance_id), "MapGet") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

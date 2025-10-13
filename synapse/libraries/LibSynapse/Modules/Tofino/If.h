@@ -44,11 +44,11 @@ private:
   std::vector<condition_t> conditions;
 
 public:
-  If(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _original_condition, const std::vector<condition_t> &_conditions)
+  If(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _original_condition, const std::vector<condition_t> &_conditions)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_If, _instance_id), "If", _node), original_condition(_original_condition),
         conditions(_conditions) {}
 
-  If(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _original_condition)
+  If(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _original_condition)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_If, _instance_id), "If", _node), original_condition(_original_condition),
         conditions({_original_condition}) {}
 
@@ -65,7 +65,7 @@ public:
 
 class IfFactory : public TofinoModuleFactory {
 public:
-  IfFactory(const std::string &_instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_If, _instance_id), "If") {}
+  IfFactory(const InstanceId _instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_If, _instance_id), "If") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

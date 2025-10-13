@@ -14,7 +14,7 @@ private:
   klee::ref<klee::Expr> key_size;
 
 public:
-  DataplaneMeterAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _capacity,
+  DataplaneMeterAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _capacity,
                          klee::ref<klee::Expr> _rate, klee::ref<klee::Expr> _burst, klee::ref<klee::Expr> _key_size)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneMeterAllocate, _instance_id), "DataplaneMeterAllocate", _node), obj(_obj),
         capacity(_capacity), rate(_rate), burst(_burst), key_size(_key_size) {}
@@ -35,7 +35,7 @@ public:
 
 class DataplaneMeterAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneMeterAllocateFactory(const std::string &_instance_id)
+  DataplaneMeterAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneMeterAllocate, _instance_id), "DataplaneMeterAllocate") {}
 
 protected:

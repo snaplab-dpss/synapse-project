@@ -12,8 +12,7 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  DataplaneCMSQuery(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key,
-                    klee::ref<klee::Expr> _min_estimate)
+  DataplaneCMSQuery(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneCMSQuery, _instance_id), "DataplaneCMSQuery", _node), obj(_obj), key(_key),
         min_estimate(_min_estimate) {}
 
@@ -28,7 +27,7 @@ public:
 
 class DataplaneCMSQueryFactory : public ControllerModuleFactory {
 public:
-  DataplaneCMSQueryFactory(const std::string &_instance_id)
+  DataplaneCMSQueryFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneCMSQuery, _instance_id), "DataplaneCMSQuery") {}
 
 protected:

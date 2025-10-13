@@ -11,7 +11,7 @@ private:
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  DataplaneHHTableDelete(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
+  DataplaneHHTableDelete(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneHHTableDelete, _instance_id), "DataplaneHHTableDelete", _node), obj(_obj),
         keys(_keys) {}
 
@@ -28,7 +28,7 @@ public:
 
 class DataplaneHHTableDeleteFactory : public ControllerModuleFactory {
 public:
-  DataplaneHHTableDeleteFactory(const std::string &_instance_id)
+  DataplaneHHTableDeleteFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneHHTableDelete, _instance_id), "DataplaneHHTableDelete") {}
 
 protected:

@@ -10,7 +10,7 @@ private:
   addr_t dchain_addr;
 
 public:
-  DchainAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr)
+  DchainAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _dchain_addr)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DchainAllocate, _instance_id), "DchainAllocate", _node), dchain_addr(_dchain_addr) {}
 
   DchainAllocate(ModuleType _type, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out)
@@ -28,7 +28,7 @@ public:
 
 class DchainAllocateFactory : public ControllerModuleFactory {
 public:
-  DchainAllocateFactory(const std::string &_instance_id)
+  DchainAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DchainAllocate, _instance_id), "DchainAllocate") {}
 
 protected:

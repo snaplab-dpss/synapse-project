@@ -14,7 +14,7 @@ private:
   symbol_t success;
 
 public:
-  MapAllocate(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _key_size,
+  MapAllocate(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _key_size,
               klee::ref<klee::Expr> _map_out, symbol_t _success)
       : x86Module(ModuleType(ModuleCategory::x86_MapAllocate, _instance_id), "MapAllocate", _node), capacity(_capacity), key_size(_key_size),
         map_out(_map_out), success(_success) {}
@@ -34,7 +34,7 @@ public:
 
 class MapAllocateFactory : public x86ModuleFactory {
 public:
-  MapAllocateFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_MapAllocate, _instance_id), "MapAllocate") {}
+  MapAllocateFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_MapAllocate, _instance_id), "MapAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

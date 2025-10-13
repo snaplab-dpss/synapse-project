@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneGuardedMapTableUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key,
+  DataplaneGuardedMapTableUpdate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key,
                                  klee::ref<klee::Expr> _value)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableUpdate, _instance_id), "DataplaneGuardedMapTableUpdate",
                          _node),
@@ -32,7 +32,7 @@ public:
 
 class DataplaneGuardedMapTableUpdateFactory : public ControllerModuleFactory {
 public:
-  DataplaneGuardedMapTableUpdateFactory(const std::string &_instance_id)
+  DataplaneGuardedMapTableUpdateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableUpdate, _instance_id),
                                 "DataplaneGuardedMapTableUpdate") {}
 

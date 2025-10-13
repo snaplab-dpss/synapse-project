@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneGuardedMapTableAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
+  DataplaneGuardedMapTableAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
                                    klee::ref<klee::Expr> _value_size, klee::ref<klee::Expr> _capacity)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableAllocate, _instance_id), "DataplaneGuardedMapTableAllocate",
                          _node),
@@ -34,7 +34,7 @@ public:
 
 class DataplaneGuardedMapTableAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneGuardedMapTableAllocateFactory(const std::string &_instance_id)
+  DataplaneGuardedMapTableAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableAllocate, _instance_id),
                                 "DataplaneGuardedMapTableAllocate") {}
 

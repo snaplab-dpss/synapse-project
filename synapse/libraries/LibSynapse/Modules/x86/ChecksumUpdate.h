@@ -12,7 +12,7 @@ private:
   symbol_t checksum;
 
 public:
-  ChecksumUpdate(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _ip_hdr_addr, klee::ref<klee::Expr> _l4_hdr_addr,
+  ChecksumUpdate(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _ip_hdr_addr, klee::ref<klee::Expr> _l4_hdr_addr,
                  symbol_t _checksum)
       : x86Module(ModuleType(ModuleCategory::x86_ChecksumUpdate, _instance_id), "SetIpChecksum", _node), ip_hdr_addr(_ip_hdr_addr),
         l4_hdr_addr(_l4_hdr_addr), checksum(_checksum) {}
@@ -31,7 +31,7 @@ public:
 
 class ChecksumUpdateFactory : public x86ModuleFactory {
 public:
-  ChecksumUpdateFactory(const std::string &_instance_id)
+  ChecksumUpdateFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_ChecksumUpdate, _instance_id), "ChecksumUpdate") {}
 
 protected:

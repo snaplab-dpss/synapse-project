@@ -270,12 +270,12 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       EPNode *dchain_is_index_allocated_ep_node = new EPNode(ctrl_dchain_is_index_allocated);
       initial_controller_logic.update(dchain_is_index_allocated_ep_node);
     } break;
-    case ModuleType::Tofino_FCFSCachedTableRead: {
+    case ModuleCategory::Tofino_FCFSCachedTableRead: {
       const FCFSCachedTableRead *fcfs_cached_table_read = dynamic_cast<const FCFSCachedTableRead *>(prev.module);
 
       Controller::DataplaneFCFSCachedTableRead *ctrl_fcfs_cached_table_read = new Controller::DataplaneFCFSCachedTableRead(
-          active_leaf.next, fcfs_cached_table_read->get_fcfs_cached_table_id(), fcfs_cached_table_read->get_obj(),
-          fcfs_cached_table_read->get_original_key(), fcfs_cached_table_read->get_map_has_this_key());
+          prev.module->get_type().instance_id, active_leaf.next, fcfs_cached_table_read->get_fcfs_cached_table_id(),
+          fcfs_cached_table_read->get_obj(), fcfs_cached_table_read->get_original_key(), fcfs_cached_table_read->get_map_has_this_key());
 
       EPNode *fcfs_cached_table_read_ep_node = new EPNode(ctrl_fcfs_cached_table_read);
       initial_controller_logic.update(fcfs_cached_table_read_ep_node);

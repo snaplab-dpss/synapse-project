@@ -64,8 +64,8 @@ public:
 
   bool was_ds_already_used(const EPNode *leaf, DS_ID ds_id) const;
 
-  static const TofinoContext *get_tofino_ctx(const EP *ep, TargetType type);
-  static TofinoContext *get_mutable_tofino_ctx(EP *ep, TargetType type);
+  static const TofinoContext *get_tofino_ctx(const EP *ep, TargetType target);
+  static TofinoContext *get_mutable_tofino_ctx(EP *ep, TargetType target);
 
   static const TNA &get_tna(const EP *ep);
   static TNA &get_mutable_tna(EP *ep);
@@ -84,8 +84,8 @@ public:
   //  Guarded Map Table
   // ======================================================================
 
-  static GuardedMapTable *build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data);
-  static bool can_build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data);
+  static GuardedMapTable *build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const TargetType type, const map_table_data_t &data);
+  static bool can_build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data);
 
   // ======================================================================
   //  Vector Table
@@ -114,12 +114,12 @@ public:
   // ======================================================================
 
   static std::string build_fcfs_cached_table_id(addr_t obj);
-  static FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj);
-  static FCFSCachedTable *build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
-                                                           u32 cache_capacity);
-  static bool can_build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
-                                                   u32 cache_capacity);
-  static bool can_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity);
+  static FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const BDDNode *node, const TargetType target, addr_t obj);
+  static FCFSCachedTable *build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, const TargetType target, addr_t obj,
+                                                           klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity);
+  static bool can_build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, const TargetType target, addr_t obj, klee::ref<klee::Expr> key,
+                                                   u32 capacity, u32 cache_capacity);
+  static bool can_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, const TargetType target, addr_t obj, u32 cache_capacity);
   static std::vector<u32> enum_fcfs_cache_cap(u32 capacity);
   static hit_rate_t get_fcfs_cache_success_rate(const Context &ctx, const BDDNode *node, klee::ref<klee::Expr> key, u32 cache_capacity);
 

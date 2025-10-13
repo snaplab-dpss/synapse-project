@@ -12,7 +12,7 @@ private:
   symbol_t is_allocated;
 
 public:
-  DataplaneDchainTableIsIndexAllocated(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index,
+  DataplaneDchainTableIsIndexAllocated(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index,
                                        const symbol_t &_is_allocated)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneDchainTableIsIndexAllocated, _instance_id),
                          "DataplaneDchainTableIsIndexAllocated", _node),
@@ -32,7 +32,7 @@ public:
 
 class DataplaneDchainTableIsIndexAllocatedFactory : public ControllerModuleFactory {
 public:
-  DataplaneDchainTableIsIndexAllocatedFactory(const std::string &_instance_id)
+  DataplaneDchainTableIsIndexAllocatedFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneDchainTableIsIndexAllocated, _instance_id),
                                 "DataplaneDchainTableIsIndexAllocated") {}
 

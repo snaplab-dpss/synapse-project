@@ -16,7 +16,7 @@ private:
   std::vector<expr_byte_swap_t> swaps;
 
 public:
-  ModifyHeader(const std::string &_instance_id, const BDDNode *_node, addr_t _chunk_addr, const std::vector<expr_mod_t> &_changes,
+  ModifyHeader(const InstanceId _instance_id, const BDDNode *_node, addr_t _chunk_addr, const std::vector<expr_mod_t> &_changes,
                const std::vector<expr_byte_swap_t> &_swaps)
       : ControllerModule(ModuleType(ModuleCategory::Controller_ModifyHeader, _instance_id), "ModifyHeader", _node), chunk_addr(_chunk_addr),
         changes(_changes), swaps(_swaps) {}
@@ -35,7 +35,7 @@ public:
 
 class ModifyHeaderFactory : public ControllerModuleFactory {
 public:
-  ModifyHeaderFactory(const std::string &_instance_id)
+  ModifyHeaderFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_ModifyHeader, _instance_id), "ModifyHeader") {}
 
 protected:

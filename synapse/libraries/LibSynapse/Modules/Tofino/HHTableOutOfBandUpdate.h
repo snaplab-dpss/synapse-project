@@ -11,7 +11,7 @@ private:
   addr_t obj;
 
 public:
-  HHTableOutOfBandUpdate(const std::string &_instance_id, const BDDNode *_node, DS_ID _hh_table_id, addr_t _obj)
+  HHTableOutOfBandUpdate(const InstanceId _instance_id, const BDDNode *_node, DS_ID _hh_table_id, addr_t _obj)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_HHTableOutOfBandUpdate, _instance_id), "HHTableOutOfBandUpdate", _node),
         hh_table_id(_hh_table_id), obj(_obj) {}
 
@@ -30,7 +30,7 @@ public:
 
 class HHTableOutOfBandUpdateFactory : public TofinoModuleFactory {
 public:
-  HHTableOutOfBandUpdateFactory(const std::string &_instance_id)
+  HHTableOutOfBandUpdateFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_HHTableOutOfBandUpdate, _instance_id), "HHTableOutOfBandUpdate") {}
 
 protected:

@@ -1,3 +1,4 @@
+#include "LibSynapse/Target.h"
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Modules/Module.h>
 #include <LibSynapse/Modules/ModuleFactory.h>
@@ -151,7 +152,7 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
 
 EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
     : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(), targets(_targets), ctx(bdd.get(), _targets, _targets_config, _profiler),
-      meta(bdd.get(), targets) {
+      meta(bdd.get(), targets), phys_net(_phys_net) {
   TargetType initial_target     = targets.get_initial_target().type;
   targets_roots[initial_target] = bdd_node_ids_t({bdd->get_root()->get_id()});
 
@@ -166,7 +167,8 @@ EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_ta
 
 EP::EP(const EP &other, bool is_ancestor)
     : id(ep_id_counter++), bdd(other.bdd), root(other.root ? other.root->clone(true) : nullptr), targets(other.targets),
-      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta) {
+      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta),
+      phys_net(other.phys_net) {
   if (!root) {
     assert(other.active_leaves.size() == 1 && "No root and multiple leaves.");
     active_leaves.emplace_back(nullptr, bdd->get_root());
@@ -906,7 +908,7 @@ complete_speculation_t EP::speculate(const Context &current_ctx, std::list<specu
 
     // Simplification to speedup the speculation process.
     // We are only interested in the routing nodes if we are switching to the controller.
-    if (speculation_target.target == TargetType::Controller && speculation_target.node->get_type() != BDDNodeType::Route) {
+    if (speculation_target.target.type == TargetArchitecture::Controller && speculation_target.node->get_type() != BDDNodeType::Route) {
       continue;
     }
 
@@ -930,7 +932,8 @@ complete_speculation_t EP::speculate(const Context &current_ctx, std::list<specu
     }
 
     speculation_target_nodes.remove_if([&speculation](const speculation_target_t &st) {
-      return speculation.skip.contains(st.node->get_id()) || (st.target == TargetType::Controller && st.node->get_type() != BDDNodeType::Route);
+      return speculation.skip.contains(st.node->get_id()) ||
+             (st.target.type == TargetArchitecture::Controller && st.node->get_type() != BDDNodeType::Route);
     });
   }
 

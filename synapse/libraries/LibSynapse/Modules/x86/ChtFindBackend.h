@@ -16,7 +16,7 @@ private:
   symbol_t found;
 
 public:
-  ChtFindBackend(const std::string &_instance_id, const BDDNode *_node, addr_t _cht_addr, addr_t _backends_addr, klee::ref<klee::Expr> _hash,
+  ChtFindBackend(const InstanceId _instance_id, const BDDNode *_node, addr_t _cht_addr, addr_t _backends_addr, klee::ref<klee::Expr> _hash,
                  klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _backend, const symbol_t &_found)
       : x86Module(ModuleType(ModuleCategory::x86_ChtFindBackend, _instance_id), "ChtFindBackend", _node), cht_addr(_cht_addr),
         backends_addr(_backends_addr), hash(_hash), height(_height), capacity(_capacity), backend(_backend), found(_found) {}
@@ -39,7 +39,7 @@ public:
 
 class ChtFindBackendFactory : public x86ModuleFactory {
 public:
-  ChtFindBackendFactory(const std::string &_instance_id)
+  ChtFindBackendFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_ChtFindBackend, _instance_id), "ChtFindBackend") {}
 
 protected:

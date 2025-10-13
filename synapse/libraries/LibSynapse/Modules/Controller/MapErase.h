@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> trash;
 
 public:
-  MapErase(const std::string &_instance_id, const BDDNode *_node, addr_t _map_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _trash)
+  MapErase(const InstanceId _instance_id, const BDDNode *_node, addr_t _map_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _trash)
       : ControllerModule(ModuleType(ModuleCategory::Controller_MapErase, _instance_id), "MapErase", _node), map_addr(_map_addr), key(_key),
         trash(_trash) {}
 
@@ -30,7 +30,7 @@ public:
 
 class MapEraseFactory : public ControllerModuleFactory {
 public:
-  MapEraseFactory(const std::string &_instance_id)
+  MapEraseFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_MapErase, _instance_id), "MapErase") {}
 
 protected:

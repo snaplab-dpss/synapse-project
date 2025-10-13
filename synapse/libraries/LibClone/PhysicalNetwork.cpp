@@ -37,23 +37,24 @@ std::unique_ptr<Device> parse_device(const std::vector<std::string> &words) {
     panic("Invalid device");
   }
 
-  const std::string &id   = words[1];
+  const DeviceId id = std::stoi(words[1]);
+  assert(id > 0 && "ERROR: Unallowed DeviceId");
   const std::string &arch = words[2];
 
   return std::make_unique<Device>(id, arch);
 }
 
-void parse_placement(const std::vector<std::string> &words, const std::unordered_map<InstanceId, std::unique_ptr<Device>> &devices,
+void parse_placement(const std::vector<std::string> &words, const std::unordered_map<DeviceId, std::unique_ptr<Device>> &devices,
                      std::unordered_map<ComponentId, LibSynapse::TargetType> &placement) {
   if (words.size() != LENGTH_PLACEMENT_INPUT) {
     panic("Invalid placement");
   }
 
   const ComponentId component_id = std::stoul(words[2]);
-  const InstanceId instance      = words[4];
+  const DeviceId instance        = std::stoi(words[4]);
 
   if (devices.find(instance) == devices.end()) {
-    panic("Could not find device %s", instance.c_str());
+    panic("Could not find device %d", instance);
   }
 
   if (placement.find(component_id) != placement.end()) {
@@ -65,53 +66,54 @@ void parse_placement(const std::vector<std::string> &words, const std::unordered
   placement[component_id] = target;
 }
 
-void parse_link(const std::vector<std::string> &words, const std::unordered_map<NFId, std::unique_ptr<Device>> &devices,
-                std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> &nodes) {
+void parse_link(const std::vector<std::string> &words, const std::unordered_map<DeviceId, std::unique_ptr<Device>> &devices,
+                std::unordered_map<InfrastructureNodeId, std::unique_ptr<InfrastructureNode>> &nodes) {
   if (words.size() != LENGTH_LINK_INPUT) {
     panic("Invalid link");
   }
 
-  const NetworkNodeId node1_id = words[1];
-  const Port sport             = std::stoul(words[2]);
-  const NetworkNodeId node2_id = words[3];
-  const Port dport             = std::stoul(words[4]);
+  const InfrastructureNodeId node1_id = words[1] == TOKEN_PORT ? InfrastructureNodeId(-1) : std::stoi(words[1]);
+  const Port sport                    = std::stoul(words[2]);
+
+  const InfrastructureNodeId node2_id = words[3] == TOKEN_PORT ? InfrastructureNodeId(-1) : std::stoi(words[3]);
+  const Port dport                    = std::stoul(words[4]);
 
   const bool node1_is_device = devices.find(node1_id) != devices.end();
-  if (!node1_is_device && node1_id != TOKEN_PORT) {
-    panic("Could not find node %s", node1_id.c_str());
+  if (!node1_is_device && node1_id != -1) {
+    panic("Could not find node %d", node1_id);
   }
 
   if (nodes.find(node1_id) == nodes.end()) {
     if (node1_is_device) {
-      nodes[node1_id] = std::make_unique<NetworkNode>(node1_id, devices.at(node1_id).get());
+      nodes[node1_id] = std::make_unique<InfrastructureNode>(node1_id, devices.at(node1_id).get());
     } else {
-      nodes[node1_id] = std::make_unique<NetworkNode>(node1_id);
+      nodes[node1_id] = std::make_unique<InfrastructureNode>(node1_id);
     }
   }
 
   const bool node2_is_device = devices.find(node2_id) != devices.end();
-  if (!node2_is_device && node2_id != TOKEN_PORT) {
-    panic("Could not find node %s", node2_id.c_str());
+  if (!node2_is_device && node2_id != -1) {
+    panic("Could not find node %d", node2_id);
   }
 
   if (nodes.find(node2_id) == nodes.end()) {
     if (node2_is_device) {
-      nodes[node2_id] = std::make_unique<NetworkNode>(node2_id, devices.at(node2_id).get());
+      nodes[node2_id] = std::make_unique<InfrastructureNode>(node2_id, devices.at(node2_id).get());
     } else {
-      nodes[node2_id] = std::make_unique<NetworkNode>(node2_id);
+      nodes[node2_id] = std::make_unique<InfrastructureNode>(node2_id);
     }
   }
 
   nodes.at(node1_id)->add_link(sport, dport, nodes.at(node2_id).get());
 }
 
-std::unordered_map<NetworkNodeId, Port> dijkstra(const std::unordered_map<NetworkNodeId, std::vector<std::pair<Port, NetworkNodeId>>> &links,
-                                                 const NetworkNodeId &src) {
-  std::unordered_map<NetworkNodeId, int> dist;
-  std::unordered_map<NetworkNodeId, Port> first_hop_port;
-  std::unordered_set<NetworkNodeId> visited;
+std::unordered_map<InfrastructureNodeId, Port>
+dijkstra(const std::unordered_map<InfrastructureNodeId, std::vector<std::pair<Port, InfrastructureNodeId>>> &links, const InfrastructureNodeId &src) {
+  std::unordered_map<InfrastructureNodeId, int> dist;
+  std::unordered_map<InfrastructureNodeId, Port> first_hop_port;
+  std::unordered_set<InfrastructureNodeId> visited;
 
-  using HeapElem = std::pair<int, NetworkNodeId>;
+  using HeapElem = std::pair<int, InfrastructureNodeId>;
   std::priority_queue<HeapElem, std::vector<HeapElem>, std::greater<HeapElem>> heap;
 
   dist[src] = 0;
@@ -137,7 +139,8 @@ std::unordered_map<NetworkNodeId, Port> dijkstra(const std::unordered_map<Networ
         } else {
           first_hop_port[v] = first_hop_port[u];
         }
-        if (v != "global_port")
+        // Do not expand paths that go through the global port
+        if (v != -1)
           heap.push({new_dist, v});
       }
     }
@@ -146,12 +149,12 @@ std::unordered_map<NetworkNodeId, Port> dijkstra(const std::unordered_map<Networ
   return first_hop_port;
 }
 
-std::unordered_map<NetworkNodeId, std::unordered_map<NetworkNodeId, Port>>
-build_forwarding_table(std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> &nodes) {
-  std::unordered_map<NetworkNodeId, std::unordered_map<NetworkNodeId, Port>> routing;
+std::unordered_map<InfrastructureNodeId, std::unordered_map<InfrastructureNodeId, Port>>
+build_forwarding_table(std::unordered_map<InfrastructureNodeId, std::unique_ptr<InfrastructureNode>> &nodes) {
+  std::unordered_map<InfrastructureNodeId, std::unordered_map<InfrastructureNodeId, Port>> routing;
 
   // Build adjacency list
-  std::unordered_map<NetworkNodeId, std::vector<std::pair<Port, NetworkNodeId>>> links;
+  std::unordered_map<InfrastructureNodeId, std::vector<std::pair<Port, InfrastructureNodeId>>> links;
   for (const auto &[node_id, node] : nodes) {
     for (const auto &[port, link] : node->get_links()) {
       links[node_id].emplace_back(port, link.second->get_id());
@@ -174,12 +177,12 @@ const LibSynapse::TargetType PhysicalNetwork::get_placement(const ComponentId co
   return placement_strategy.at(component_id);
 }
 
-Port PhysicalNetwork::get_forwarding_port(const NetworkNodeId src, const NetworkNodeId dst) const {
+Port PhysicalNetwork::get_forwarding_port(const InfrastructureNodeId src, const InfrastructureNodeId dst) const {
   if (forwarding_table.find(src) == forwarding_table.end()) {
-    panic("Source Node ID %s not found in forwarding table!", src.c_str());
+    panic("Source Node ID %d not found in forwarding table!", src);
   }
   if (forwarding_table.at(src).find(dst) == forwarding_table.at(src).end()) {
-    panic("Destination Node ID %s not reachable from Source Node ID %s!", dst.c_str(), src.c_str());
+    panic("Destination Node ID %d not reachable from Source Node ID %d!", dst, src);
   }
   return forwarding_table.at(src).at(dst);
 }
@@ -187,8 +190,8 @@ Port PhysicalNetwork::get_forwarding_port(const NetworkNodeId src, const Network
 const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &network_file) {
   std::ifstream fstream = open_file(network_file);
 
-  std::unordered_map<InstanceId, std::unique_ptr<Device>> devices;
-  std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> nodes;
+  std::unordered_map<DeviceId, std::unique_ptr<Device>> devices;
+  std::unordered_map<InfrastructureNodeId, std::unique_ptr<InfrastructureNode>> nodes;
   std::unordered_map<ComponentId, LibSynapse::TargetType> placement;
 
   std::string line;
@@ -208,8 +211,8 @@ const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &networ
     const std::string type = words[0];
 
     if (type == TOKEN_DEVICE) {
-      std::unique_ptr<Device> device            = parse_device(words);
-      const InstanceId device_id                = device->get_target().instance_id;
+      std::unique_ptr<Device> device = parse_device(words);
+      assert(devices.find(device->get_target().instance_id) == devices.end());
       devices[device->get_target().instance_id] = std::move(device);
     } else if (type == TOKEN_CMD_LINK) {
       parse_link(words, devices, nodes);
@@ -223,7 +226,7 @@ const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &networ
     }
   }
 
-  std::unordered_map<NetworkNodeId, std::unordered_map<NetworkNodeId, Port>> forwarding_table = build_forwarding_table(nodes);
+  std::unordered_map<InfrastructureNodeId, std::unordered_map<InfrastructureNodeId, Port>> forwarding_table = build_forwarding_table(nodes);
 
   return PhysicalNetwork(std::move(devices), std::move(nodes), std::move(placement), std::move(forwarding_table));
 }

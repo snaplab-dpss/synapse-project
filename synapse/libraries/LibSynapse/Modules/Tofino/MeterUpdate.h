@@ -15,7 +15,7 @@ private:
   klee::ref<klee::Expr> pass;
 
 public:
-  MeterUpdate(const std::string &_instance_id, const BDDNode *_node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+  MeterUpdate(const InstanceId _instance_id, const BDDNode *_node, DS_ID _table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
               klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _hit, klee::ref<klee::Expr> _pass)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_MeterUpdate, _instance_id), "MeterUpdate", _node), table_id(_table_id), obj(_obj), keys(_keys),
         pkt_len(_pkt_len), hit(_hit), pass(_pass) {}
@@ -39,7 +39,7 @@ public:
 
 class MeterUpdateFactory : public TofinoModuleFactory {
 public:
-  MeterUpdateFactory(const std::string &_instance_id)
+  MeterUpdateFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_MeterUpdate, _instance_id), "MeterUpdate") {}
 
 protected:

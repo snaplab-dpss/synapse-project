@@ -17,26 +17,6 @@ public:
       : Module(_type, TargetType(TargetArchitecture::x86, _type.instance_id), _next_type, _name, _node) {}
 };
 
-struct map_data_t {
-  addr_t obj;
-  u32 capacity;
-  klee::ref<klee::Expr> original_key;
-  klee::ref<klee::Expr> value;
-  std::optional<symbol_t> hit;
-};
-
-struct vector_data_t {
-  addr_t obj;
-  u32 capacity;
-  klee::ref<klee::Expr> key;
-  klee::ref<klee::Expr> value;
-};
-
-struct Map_Data {
-  map_data_t *m;
-  vector_data_t *v;
-};
-
 class x86ModuleFactory : public ModuleFactory {
 protected:
   ModuleType type;

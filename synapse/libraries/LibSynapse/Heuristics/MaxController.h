@@ -38,8 +38,9 @@ public:
 
 private:
   size_t get_tofino_nodes(const EP *ep) const {
-    const EPMeta &meta   = ep->get_meta();
-    auto tofino_nodes_it = meta.steps_per_target.find(TargetType(TargetArchitecture::Tofino, ""));
+    const EPMeta &meta = ep->get_meta();
+    assert(ep->get_active_target().type == TargetArchitecture::Tofino);
+    auto tofino_nodes_it = meta.steps_per_target.find(ep->get_active_target());
     if (tofino_nodes_it != meta.steps_per_target.end()) {
       return tofino_nodes_it->second;
     }

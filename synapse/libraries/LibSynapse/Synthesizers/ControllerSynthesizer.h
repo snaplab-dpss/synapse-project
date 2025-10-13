@@ -25,7 +25,7 @@ using LibCore::Template;
 
 class ControllerSynthesizer : public EPVisitor {
 public:
-  ControllerSynthesizer(const EP *ep, std::filesystem::path out_file, const std::string &instance_id);
+  ControllerSynthesizer(const EP *ep, std::filesystem::path out_file, const InstanceId instance_id);
 
   void synthesize();
 
@@ -154,7 +154,7 @@ private:
 
   const EP *target_ep;
   Transpiler transpiler;
-  const std::string instance_id;
+  const InstanceId instance_id;
 
   void synthesize_nf_init();
   void synthesize_nf_process();

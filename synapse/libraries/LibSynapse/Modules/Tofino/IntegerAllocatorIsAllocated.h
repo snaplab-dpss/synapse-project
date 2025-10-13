@@ -12,7 +12,7 @@ private:
   symbol_t is_allocated;
 
 public:
-  IntegerAllocatorIsAllocated(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+  IntegerAllocatorIsAllocated(const InstanceId _instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
                               const symbol_t &_is_allocated)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_IntegerAllocatorIsAllocated, _instance_id), "IntegerAllocatorIsAllocated", _node),
         dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
@@ -37,7 +37,7 @@ public:
 
 class IntegerAllocatorIsAllocatedFactory : public TofinoModuleFactory {
 public:
-  IntegerAllocatorIsAllocatedFactory(const std::string &_instance_id)
+  IntegerAllocatorIsAllocatedFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_IntegerAllocatorIsAllocated, _instance_id), "IntegerAllocatorIsAllocated") {}
 
 protected:

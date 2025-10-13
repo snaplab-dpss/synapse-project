@@ -40,7 +40,7 @@ private:
   klee::ref<klee::Expr> guard_allow_condition;
 
 public:
-  GuardedMapTableGuardCheck(const std::string &_instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj, const symbol_t &_guard_allow,
+  GuardedMapTableGuardCheck(const InstanceId _instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj, const symbol_t &_guard_allow,
                             klee::ref<klee::Expr> _guard_allow_condition)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_GuardedMapTableGuardCheck, _instance_id), "GuardedMapTableGuardCheck", _node), id(_id),
         obj(_obj), guard_allow(_guard_allow), guard_allow_condition(_guard_allow_condition) {}
@@ -62,7 +62,7 @@ public:
 
 class GuardedMapTableGuardCheckFactory : public TofinoModuleFactory {
 public:
-  GuardedMapTableGuardCheckFactory(const std::string &_instance_id)
+  GuardedMapTableGuardCheckFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_GuardedMapTableGuardCheck, _instance_id), "GuardedMapTableGuardCheck") {}
 
 protected:

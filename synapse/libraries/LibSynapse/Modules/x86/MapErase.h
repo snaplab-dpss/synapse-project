@@ -14,7 +14,7 @@ private:
   klee::ref<klee::Expr> trash;
 
 public:
-  MapErase(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _map_addr, klee::ref<klee::Expr> _key_addr,
+  MapErase(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _map_addr, klee::ref<klee::Expr> _key_addr,
            klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _trash)
       : x86Module(ModuleType(ModuleCategory::x86_MapErase, _instance_id), "MapErase", _node), map_addr(_map_addr), key_addr(_key_addr), key(_key),
         trash(_trash) {}
@@ -34,7 +34,7 @@ public:
 
 class MapEraseFactory : public x86ModuleFactory {
 public:
-  MapEraseFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_MapErase, _instance_id), "MapErase") {}
+  MapEraseFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_MapErase, _instance_id), "MapErase") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -9,7 +9,7 @@ private:
   klee::ref<klee::Expr> value_out;
   klee::ref<klee::Expr> lpm_lookup_match;
 
-  LPMLookup(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _lpm_addr, klee::ref<klee::Expr> _prefix,
+  LPMLookup(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _lpm_addr, klee::ref<klee::Expr> _prefix,
             klee::ref<klee::Expr> _value_out, klee::ref<klee::Expr> _lpm_lookup_match)
       : x86Module(ModuleType(ModuleCategory::x86_LPMLookup, _instance_id), "LPMLookup", _node), lpm_addr(_lpm_addr), prefix(_prefix),
         value_out(_value_out) lpm_lookup_match(_lpm_lookup_match) {}
@@ -29,7 +29,7 @@ private:
 
 class LPMLookupFactory : public x86ModuleFactory {
 public:
-  LPMLookupFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_LPMLookup, _instance_id), "LPMLookup") {}
+  LPMLookupFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_LPMLookup, _instance_id), "LPMLookup") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

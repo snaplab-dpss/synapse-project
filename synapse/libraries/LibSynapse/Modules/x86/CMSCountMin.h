@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSCountMin(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _cms_addr, klee::ref<klee::Expr> _key_addr,
+  CMSCountMin(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _cms_addr, klee::ref<klee::Expr> _key_addr,
               klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
       : x86Module(ModuleType(ModuleCategory::x86_CMSCountMin, _instance_id), "CMSCountMin", _node), cms_addr(_cms_addr), key_addr(_key_addr),
         key(_key), min_estimate(_min_estimate) {}
@@ -33,7 +33,7 @@ public:
 
 class CMSCountMinFactory : public x86ModuleFactory {
 public:
-  CMSCountMinFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_CMSCountMin, _instance_id), "CMSCountMin") {}
+  CMSCountMinFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_CMSCountMin, _instance_id), "CMSCountMin") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

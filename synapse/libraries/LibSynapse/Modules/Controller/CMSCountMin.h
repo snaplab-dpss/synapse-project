@@ -12,8 +12,7 @@ private:
   klee::ref<klee::Expr> min_estimate;
 
 public:
-  CMSCountMin(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key,
-              klee::ref<klee::Expr> _min_estimate)
+  CMSCountMin(const InstanceId _instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _min_estimate)
       : ControllerModule(ModuleType(ModuleCategory::Controller_CMSCountMin, _instance_id), "CMSCountMin", _node), cms_addr(_cms_addr), key(_key),
         min_estimate(_min_estimate) {}
 
@@ -31,7 +30,7 @@ public:
 
 class CMSCountMinFactory : public ControllerModuleFactory {
 public:
-  CMSCountMinFactory(const std::string &_instance_id)
+  CMSCountMinFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_CMSCountMin, _instance_id), "CMSCountMin") {}
 
 protected:

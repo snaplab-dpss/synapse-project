@@ -11,7 +11,7 @@ private:
   klee::ref<klee::Expr> time;
 
 public:
-  TokenBucketExpire(const std::string &_instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
+  TokenBucketExpire(const InstanceId _instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _time)
       : ControllerModule(ModuleType(ModuleCategory::Controller_TokenBucketExpire, _instance_id), "TokenBucketExpire", _node), tb_addr(_tb_addr),
         time(_time) {}
 
@@ -28,7 +28,7 @@ public:
 
 class TokenBucketExpireFactory : public ControllerModuleFactory {
 public:
-  TokenBucketExpireFactory(const std::string &_instance_id)
+  TokenBucketExpireFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_TokenBucketExpire, _instance_id), "TokenBucketExpire") {}
 
 protected:

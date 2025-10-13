@@ -14,8 +14,8 @@ using Tofino::Table;
 
 namespace {
 
-DS_ID get_fcfs_cached_table_id(const Context &ctx, addr_t obj) {
-  const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>();
+DS_ID get_fcfs_cached_table_id(const Context &ctx, addr_t obj, const TargetType target) {
+  const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>(target);
   const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_data_structures().get_ds(obj);
   assert(data_structures.size() == 1 && "Multiple data structures found");
   Tofino::DS *ds = *data_structures.begin();
@@ -96,9 +96,9 @@ std::vector<impl_t> DataplaneFCFSCachedTableWriteFactory::process_node(const EP 
     return {};
   }
 
-  const DS_ID id = get_fcfs_cached_table_id(ep->get_ctx(), obj);
+  const DS_ID id = get_fcfs_cached_table_id(ep->get_ctx(), obj, get_target());
 
-  Module *module  = new DataplaneFCFSCachedTableWrite(node, id, obj, keys);
+  Module *module  = new DataplaneFCFSCachedTableWrite(get_type().instance_id, node, id, obj, keys);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -147,7 +147,7 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableWriteFactory::create(const BDD *
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Tofino::FCFSCachedTable *fcfs_cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<DataplaneFCFSCachedTableWrite>(node, fcfs_cached_table->id, obj, keys);
+  return std::make_unique<DataplaneFCFSCachedTableWrite>(get_type().instance_id, node, fcfs_cached_table->id, obj, keys);
 }
 
 } // namespace Controller

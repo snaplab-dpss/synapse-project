@@ -12,7 +12,7 @@ private:
   symbol_t is_allocated;
 
 public:
-  DataplaneHHTableIsIndexAllocated(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index,
+  DataplaneHHTableIsIndexAllocated(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index,
                                    const symbol_t &_is_allocated)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneHHTableIsIndexAllocated, _instance_id), "DataplaneHHTableIsIndexAllocated",
                          _node),
@@ -32,7 +32,7 @@ public:
 
 class DataplaneHHTableIsIndexAllocatedFactory : public ControllerModuleFactory {
 public:
-  DataplaneHHTableIsIndexAllocatedFactory(const std::string &_instance_id)
+  DataplaneHHTableIsIndexAllocatedFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneHHTableIsIndexAllocated, _instance_id),
                                 "DataplaneHHTableIsIndexAllocated") {}
 

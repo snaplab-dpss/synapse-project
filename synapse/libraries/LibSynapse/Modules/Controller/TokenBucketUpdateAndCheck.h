@@ -14,7 +14,7 @@ private:
   klee::ref<klee::Expr> pass;
 
 public:
-  TokenBucketUpdateAndCheck(const std::string &_instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _index,
+  TokenBucketUpdateAndCheck(const InstanceId _instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _index,
                             klee::ref<klee::Expr> _pkt_len, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _pass)
       : ControllerModule(ModuleType(ModuleCategory::Controller_TokenBucketUpdateAndCheck, _instance_id), "TokenBucketUpdateAndCheck", _node),
         tb_addr(_tb_addr), index(_index), pkt_len(_pkt_len), time(_time), pass(_pass) {}
@@ -35,7 +35,7 @@ public:
 
 class TokenBucketUpdateAndCheckFactory : public ControllerModuleFactory {
 public:
-  TokenBucketUpdateAndCheckFactory(const std::string &_instance_id)
+  TokenBucketUpdateAndCheckFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_TokenBucketUpdateAndCheck, _instance_id), "TokenBucketUpdateAndCheck") {}
 
 protected:

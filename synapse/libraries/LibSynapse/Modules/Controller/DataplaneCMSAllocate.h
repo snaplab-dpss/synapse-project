@@ -14,8 +14,8 @@ private:
   time_ns_t cleanup_internal;
 
 public:
-  DataplaneCMSAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _height,
-                       klee::ref<klee::Expr> _width, klee::ref<klee::Expr> _key_size, time_ns_t _cleanup_internal)
+  DataplaneCMSAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
+                       klee::ref<klee::Expr> _key_size, time_ns_t _cleanup_internal)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneCMSAllocate, _instance_id), "DataplaneCMSAllocate", _node), obj(_obj),
         height(_height), width(_width), key_size(_key_size), cleanup_internal(_cleanup_internal) {}
 
@@ -35,7 +35,7 @@ public:
 
 class DataplaneCMSAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneCMSAllocateFactory(const std::string &_instance_id)
+  DataplaneCMSAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneCMSAllocate, _instance_id), "DataplaneCMSAllocate") {}
 
 protected:

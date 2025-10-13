@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> success;
 
 public:
-  DataplaneDchainTableAllocateNewIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _allocated_index,
+  DataplaneDchainTableAllocateNewIndex(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _allocated_index,
                                        klee::ref<klee::Expr> _success)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneDchainTableAllocateNewIndex, _instance_id),
                          "DataplaneDchainTableAllocateNewIndex", _node),
@@ -33,7 +33,7 @@ public:
 
 class DataplaneDchainTableAllocateNewIndexFactory : public ControllerModuleFactory {
 public:
-  DataplaneDchainTableAllocateNewIndexFactory(const std::string &_instance_id)
+  DataplaneDchainTableAllocateNewIndexFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneDchainTableAllocateNewIndex, _instance_id),
                                 "DataplaneDchainTableAllocateNewIndex") {}
 

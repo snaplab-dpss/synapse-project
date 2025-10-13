@@ -6,13 +6,13 @@ model = "Wedge 100B-32X"
 ########################################################
 
 [[switch.front_panel_ports]]
-vport        = -1              # Unused port
+vport        = 0              # Unused port
 pport        = 1
 pipe         = 1
 capacity_bps = 100_000_000_000 # 100G
 
 [[switch.front_panel_ports]]
-vport        = -1              # Unused port
+vport        = 1             # Unused port
 pport        = 2
 pipe         = 1
 capacity_bps = 100_000_000_000 # 100G

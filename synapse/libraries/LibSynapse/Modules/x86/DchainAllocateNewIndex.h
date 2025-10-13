@@ -13,12 +13,12 @@ private:
   std::optional<symbol_t> not_out_of_space;
 
 public:
-  DchainAllocateNewIndex(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _time,
+  DchainAllocateNewIndex(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _time,
                          klee::ref<klee::Expr> _index_out, const symbol_t &_out_of_space)
       : x86Module(ModuleType(ModuleCategory::x86_DchainAllocateNewIndex, _instance_id), "DchainAllocate", _node), dchain_addr(_dchain_addr),
         time(_time), index_out(_index_out), not_out_of_space(_out_of_space) {}
 
-  DchainAllocateNewIndex(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _time,
+  DchainAllocateNewIndex(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _time,
                          klee::ref<klee::Expr> _index_out)
       : x86Module(ModuleType(ModuleCategory::x86_DchainAllocateNewIndex, _instance_id), "DchainAllocate", _node), dchain_addr(_dchain_addr),
         time(_time), index_out(_index_out), not_out_of_space(std::nullopt) {}
@@ -45,7 +45,7 @@ public:
 
 class DchainAllocateNewIndexFactory : public x86ModuleFactory {
 public:
-  DchainAllocateNewIndexFactory(const std::string &_instance_id)
+  DchainAllocateNewIndexFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_DchainAllocateNewIndex, _instance_id), "DchainAllocateNewIndex") {}
 
 protected:

@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> cleanup_success;
 
 public:
-  CMSPeriodicCleanup(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _cms_addr, klee::ref<klee::Expr> _time,
+  CMSPeriodicCleanup(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _cms_addr, klee::ref<klee::Expr> _time,
                      klee::ref<klee::Expr> _cleanup_success)
       : x86Module(ModuleType(ModuleCategory::x86_CMSPeriodicCleanup, _instance_id), "CMSPeriodicCleanup", _node), cms_addr(_cms_addr), time(_time),
         cleanup_success(_cleanup_success) {}
@@ -31,7 +31,7 @@ public:
 
 class CMSPeriodicCleanupFactory : public x86ModuleFactory {
 public:
-  CMSPeriodicCleanupFactory(const std::string &_instance_id)
+  CMSPeriodicCleanupFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_CMSPeriodicCleanup, _instance_id), "CMSPeriodicCleanup") {}
 
 protected:

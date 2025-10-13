@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneFCFSCachedTableAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
+  DataplaneFCFSCachedTableAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
                                    klee::ref<klee::Expr> _value_size, klee::ref<klee::Expr> _capacity)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableAllocate, _instance_id), "DataplaneFCFSCachedTableAllocate",
                          _node),
@@ -35,7 +35,7 @@ public:
 
 class DataplaneFCFSCachedTableAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneFCFSCachedTableAllocateFactory(const std::string &_instance_id)
+  DataplaneFCFSCachedTableAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableAllocate, _instance_id),
                                 "DataplaneFCFSCachedTableAllocate") {}
 

@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneVectorTableLookup(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index,
+  DataplaneVectorTableLookup(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index,
                              klee::ref<klee::Expr> _value)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneVectorTableLookup, _instance_id), "DataplaneVectorTableLookup", _node),
         obj(_obj), index(_index), value(_value) {}
@@ -31,7 +31,7 @@ public:
 
 class DataplaneVectorTableLookupFactory : public ControllerModuleFactory {
 public:
-  DataplaneVectorTableLookupFactory(const std::string &_instance_id)
+  DataplaneVectorTableLookupFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneVectorTableLookup, _instance_id), "DataplaneVectorTableLookup") {}
 
 protected:

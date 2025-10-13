@@ -14,7 +14,7 @@ private:
   klee::ref<klee::Expr> cleanup_interval;
 
 public:
-  CMSAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
+  CMSAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
               klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _cleanup_interval)
       : ControllerModule(ModuleType(ModuleCategory::Controller_CMSAllocate, _instance_id), "CMSAllocate", _node), cms_addr(_cms_addr),
         height(_height), width(_width), key_size(_key_size), cleanup_interval(_cleanup_interval) {}
@@ -35,7 +35,7 @@ public:
 
 class CMSAllocateFactory : public ControllerModuleFactory {
 public:
-  CMSAllocateFactory(const std::string &_instance_id)
+  CMSAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_CMSAllocate, _instance_id), "CMSAllocate") {}
 
 protected:

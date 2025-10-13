@@ -18,7 +18,7 @@ private:
   std::optional<symbol_t> hit;
 
 public:
-  DchainTableLookup(const std::string &_instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key,
+  DchainTableLookup(const InstanceId _instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key,
                     std::optional<symbol_t> _hit)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_DchainTableLookup, _instance_id), "DchainTableLookup", _node), id(_id), obj(_obj), key(_key),
         hit(_hit) {}
@@ -40,7 +40,7 @@ public:
 
 class DchainTableLookupFactory : public TofinoModuleFactory {
 public:
-  DchainTableLookupFactory(const std::string &_instance_id)
+  DchainTableLookupFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_DchainTableLookup, _instance_id), "DchainTableLookup") {}
 
 protected:

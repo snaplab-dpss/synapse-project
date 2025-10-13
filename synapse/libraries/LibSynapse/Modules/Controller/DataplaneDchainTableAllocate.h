@@ -13,7 +13,7 @@ private:
   time_ns_t expiration_time;
 
 public:
-  DataplaneDchainTableAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
+  DataplaneDchainTableAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
                                klee::ref<klee::Expr> _capacity, time_ns_t _expiration_time)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneDchainTableAllocate, _instance_id), "DataplaneDchainTableAllocate", _node),
         obj(_obj), key_size(_key_size), capacity(_capacity), expiration_time(_expiration_time) {}
@@ -33,7 +33,7 @@ public:
 
 class DataplaneDchainTableAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneDchainTableAllocateFactory(const std::string &_instance_id)
+  DataplaneDchainTableAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneDchainTableAllocate, _instance_id), "DataplaneDchainTableAllocate") {}
 
 protected:

@@ -11,7 +11,7 @@ private:
   klee::ref<klee::Expr> index;
 
 public:
-  DchainFreeIndex(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _index)
+  DchainFreeIndex(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _index)
       : x86Module(ModuleType(ModuleCategory::x86_DchainFreeIndex, _instance_id), "DchainFreeIndex", _node), dchain_addr(_dchain_addr), index(_index) {
   }
 
@@ -28,7 +28,7 @@ public:
 
 class DchainFreeIndexFactory : public x86ModuleFactory {
 public:
-  DchainFreeIndexFactory(const std::string &_instance_id)
+  DchainFreeIndexFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_DchainFreeIndex, _instance_id), "DchainFreeIndex") {}
 
 protected:

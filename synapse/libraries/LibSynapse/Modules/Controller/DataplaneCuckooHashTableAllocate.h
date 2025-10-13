@@ -10,7 +10,7 @@ private:
   addr_t obj;
 
 public:
-  DataplaneCuckooHashTableAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj)
+  DataplaneCuckooHashTableAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneCuckooHashTableAllocate, _instance_id), "DataplaneCuckooHashTableAllocate",
                          _node),
         obj(_obj) {}
@@ -27,7 +27,7 @@ public:
 
 class DataplaneCuckooHashTableAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneCuckooHashTableAllocateFactory(const std::string &_instance_id)
+  DataplaneCuckooHashTableAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneCuckooHashTableAllocate, _instance_id),
                                 "DataplaneCuckooHashTableAllocate") {}
 

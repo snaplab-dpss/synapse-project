@@ -11,7 +11,7 @@ private:
   symbol_t success;
 
 public:
-  LPMAllocate(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _lpm_out, symbol_t _success)
+  LPMAllocate(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _lpm_out, symbol_t _success)
       : x86Module(ModuleType(ModuleCategory::x86_LPMAllocate, _instance_id), "LPMAllocate", _node), lpm_out(_lpm_out), success(_success) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -27,7 +27,7 @@ public:
 
 class LPMAllocateFactory : public x86ModuleFactory {
 public:
-  LPMAllocateFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_LPMAllocate, _instance_id), "LPMAllocate") {}
+  LPMAllocateFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_LPMAllocate, _instance_id), "LPMAllocate") {}
 
 private:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

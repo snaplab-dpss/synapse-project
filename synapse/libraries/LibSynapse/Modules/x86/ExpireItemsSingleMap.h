@@ -15,7 +15,7 @@ private:
   klee::ref<klee::Expr> n_freed_flows;
 
 public:
-  ExpireItemsSingleMap(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _vector_addr,
+  ExpireItemsSingleMap(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _vector_addr,
                        klee::ref<klee::Expr> _map_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _total_freed,
                        klee::ref<klee::Expr> _n_freed_flows)
       : x86Module(ModuleType(ModuleCategory::x86_ExpireItemsSingleMap, _instance_id), "ExpireItemsSingleMap", _node), dchain_addr(_dchain_addr),
@@ -39,7 +39,7 @@ public:
 
 class ExpireItemsSingleMapFactory : public x86ModuleFactory {
 public:
-  ExpireItemsSingleMapFactory(const std::string &_instance_id)
+  ExpireItemsSingleMapFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_ExpireItemsSingleMap, _instance_id), "ExpireItemsSingleMap") {}
 
 protected:

@@ -15,7 +15,7 @@ private:
   klee::ref<klee::Expr> time;
 
 public:
-  IntegerAllocatorRejuvenate(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+  IntegerAllocatorRejuvenate(const InstanceId _instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
                              klee::ref<klee::Expr> _time)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_IntegerAllocatorRejuvenate, _instance_id), "IntegerAllocatorRejuvenate", _node),
         dchain_addr(_dchain_addr), index(_index), time(_time) {}
@@ -40,7 +40,7 @@ public:
 
 class IntegerAllocatorRejuvenateFactory : public TofinoModuleFactory {
 public:
-  IntegerAllocatorRejuvenateFactory(const std::string &_instance_id)
+  IntegerAllocatorRejuvenateFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_IntegerAllocatorRejuvenate, _instance_id), "IntegerAllocatorRejuvenate") {}
 
 protected:

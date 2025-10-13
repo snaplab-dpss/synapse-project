@@ -11,7 +11,7 @@ private:
   Symbols symbols;
 
 public:
-  SendToController(const std::string &_instance_id, const BDDNode *_node, Symbols _symbols)
+  SendToController(const InstanceId _instance_id, const BDDNode *_node, Symbols _symbols)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_SendToController, _instance_id), TargetType(TargetArchitecture::Controller, _instance_id),
                      "SendToController", _node),
         symbols(_symbols) {}
@@ -28,7 +28,7 @@ public:
 
 class SendToControllerFactory : public TofinoModuleFactory {
 public:
-  SendToControllerFactory(const std::string &_instance_id)
+  SendToControllerFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_SendToController, _instance_id), "SendToController") {}
 
 protected:

@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> hash;
 
 public:
-  HashObj(const std::string &_instance_id, const BDDNode *_node, addr_t _obj_addr, klee::ref<klee::Expr> _size, klee::ref<klee::Expr> _hash)
+  HashObj(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj_addr, klee::ref<klee::Expr> _size, klee::ref<klee::Expr> _hash)
       : x86Module(ModuleType(ModuleCategory::x86_HashObj, _instance_id), "HashObj", _node), obj_addr(_obj_addr), size(_size), hash(_hash) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -29,7 +29,7 @@ public:
 
 class HashObjFactory : public x86ModuleFactory {
 public:
-  HashObjFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_HashObj, _instance_id), "HashObj") {}
+  HashObjFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_HashObj, _instance_id), "HashObj") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

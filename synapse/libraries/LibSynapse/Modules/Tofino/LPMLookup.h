@@ -14,7 +14,7 @@ private:
   klee::ref<klee::Expr> match;
 
 public:
-  LPMLookup(const std::string &_instance_id, const BDDNode *_node, DS_ID _lpm_id, addr_t _obj, klee::ref<klee::Expr> _addr,
+  LPMLookup(const InstanceId _instance_id, const BDDNode *_node, DS_ID _lpm_id, addr_t _obj, klee::ref<klee::Expr> _addr,
             klee::ref<klee::Expr> _device, klee::ref<klee::Expr> _match)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_LPMLookup, _instance_id), "LPMLookup", _node), lpm_id(_lpm_id), obj(_obj), addr(_addr),
         device(_device), match(_match) {}
@@ -37,7 +37,7 @@ public:
 
 class LPMLookupFactory : public TofinoModuleFactory {
 public:
-  LPMLookupFactory(const std::string &_instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_LPMLookup, _instance_id), "LPMLookup") {}
+  LPMLookupFactory(const InstanceId _instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_LPMLookup, _instance_id), "LPMLookup") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

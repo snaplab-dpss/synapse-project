@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> length;
 
 public:
-  ParseHeader(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _chunk_addr, klee::ref<klee::Expr> _chunk,
+  ParseHeader(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _chunk_addr, klee::ref<klee::Expr> _chunk,
               klee::ref<klee::Expr> _length)
       : x86Module(ModuleType(ModuleCategory::x86_ParseHeader, _instance_id), "ParseHeader", _node), chunk_addr(_chunk_addr), chunk(_chunk),
         length(_length) {}
@@ -31,7 +31,7 @@ public:
 
 class ParseHeaderFactory : public x86ModuleFactory {
 public:
-  ParseHeaderFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_ParseHeader, _instance_id), "ParseHeader") {}
+  ParseHeaderFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_ParseHeader, _instance_id), "ParseHeader") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

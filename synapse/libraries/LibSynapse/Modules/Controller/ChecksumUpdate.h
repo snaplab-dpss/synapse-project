@@ -12,7 +12,7 @@ private:
   symbol_t checksum;
 
 public:
-  ChecksumUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr, symbol_t _checksum)
+  ChecksumUpdate(const InstanceId _instance_id, const BDDNode *_node, addr_t _ip_hdr_addr, addr_t _l4_hdr_addr, symbol_t _checksum)
       : ControllerModule(ModuleType(ModuleCategory::Controller_ChecksumUpdate, _instance_id), "SetIpChecksum", _node), ip_hdr_addr(_ip_hdr_addr),
         l4_hdr_addr(_l4_hdr_addr), checksum(_checksum) {}
 
@@ -30,7 +30,7 @@ public:
 
 class ChecksumUpdateFactory : public ControllerModuleFactory {
 public:
-  ChecksumUpdateFactory(const std::string &_instance_id)
+  ChecksumUpdateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_ChecksumUpdate, _instance_id), "ChecksumUpdate") {}
 
 protected:

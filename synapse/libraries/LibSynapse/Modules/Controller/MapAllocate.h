@@ -12,8 +12,7 @@ private:
   klee::ref<klee::Expr> key_size;
 
 public:
-  MapAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _map_addr, klee::ref<klee::Expr> _capacity,
-              klee::ref<klee::Expr> _key_size)
+  MapAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _map_addr, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _key_size)
       : ControllerModule(ModuleType(ModuleCategory::Controller_MapAllocate, _instance_id), "MapAllocate", _node), map_addr(_map_addr),
         capacity(_capacity), key_size(_key_size) {}
 
@@ -31,7 +30,7 @@ public:
 
 class MapAllocateFactory : public ControllerModuleFactory {
 public:
-  MapAllocateFactory(const std::string &_instance_id)
+  MapAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_MapAllocate, _instance_id), "MapAllocate") {}
 
 protected:

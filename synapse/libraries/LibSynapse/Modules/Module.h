@@ -183,15 +183,15 @@ enum class ModuleCategory {
 
 struct ModuleType {
   ModuleCategory type;
-  std::string instance_id;
+  InstanceId instance_id;
 
   ModuleType() = default;
-  ModuleType(const ModuleCategory _type, const std::string &_instance_id) : type(_type), instance_id(_instance_id) {}
+  ModuleType(const ModuleCategory _type, InstanceId _instance_id) : type(_type), instance_id(_instance_id) {}
   bool operator==(const ModuleType &other) const { return type == other.type && instance_id == other.instance_id; }
 };
 
 inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
-  os << type.instance_id << ": ";
+  os << std::to_string(type.instance_id) << ": ";
   switch (type.type) {
   case ModuleCategory::InvalidModule:
     os << "InvalidModule";
@@ -262,7 +262,7 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
   case ModuleCategory::Tofino_FCFSCachedTableWrite:
     os << "Tofino_FCFSCachedTableWrite";
     break;
-  case ModuleType::Tofino_MeterUpdate:
+  case ModuleCategory::Tofino_MeterUpdate:
     os << "Tofino_MeterUpdate";
     break;
   case ModuleCategory::Tofino_HHTableRead:
@@ -391,7 +391,7 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
   case ModuleCategory::Controller_DataplaneFCFSCachedTableWrite:
     os << "Controller_DataplaneFCFSCachedTableWrite";
     break;
-  case ModuleType::Controller_DataplaneHHTableAllocate:
+  case ModuleCategory::Controller_DataplaneHHTableAllocate:
     os << "Controller_DataplaneHHTableAllocate";
     break;
   case ModuleCategory::Controller_DataplaneHHTableRead:
@@ -675,7 +675,7 @@ public:
 namespace std {
 template <> struct hash<LibSynapse::ModuleType> {
   std::size_t operator()(const LibSynapse::ModuleType &mt) const {
-    return std::hash<int>()(static_cast<int>(mt.type)) ^ std::hash<std::string>()(mt.instance_id);
+    return std::hash<int>()(static_cast<int>(mt.type)) ^ std::hash<LibSynapse::InstanceId>()(mt.instance_id);
   }
 };
 } // namespace std

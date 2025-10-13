@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneHHTableUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+  DataplaneHHTableUpdate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
                          klee::ref<klee::Expr> _value)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneHHTableUpdate, _instance_id), "DataplaneHHTableUpdate", _node), obj(_obj),
         keys(_keys), value(_value) {}
@@ -31,7 +31,7 @@ public:
 
 class DataplaneHHTableUpdateFactory : public ControllerModuleFactory {
 public:
-  DataplaneHHTableUpdateFactory(const std::string &_instance_id)
+  DataplaneHHTableUpdateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneHHTableUpdate, _instance_id), "DataplaneHHTableUpdate") {}
 
 protected:

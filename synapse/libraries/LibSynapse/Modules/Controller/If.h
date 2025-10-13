@@ -10,7 +10,7 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  If(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _condition)
+  If(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _condition)
       : ControllerModule(ModuleType(ModuleCategory::Controller_If, _instance_id), "If", _node), condition(_condition) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -25,7 +25,7 @@ public:
 
 class IfFactory : public ControllerModuleFactory {
 public:
-  IfFactory(const std::string &_instance_id) : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_If, _instance_id), "If") {}
+  IfFactory(const InstanceId _instance_id) : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_If, _instance_id), "If") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

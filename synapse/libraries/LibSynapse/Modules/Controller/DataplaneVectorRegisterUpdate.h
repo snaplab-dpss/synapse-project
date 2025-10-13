@@ -17,7 +17,7 @@ private:
   std::vector<expr_mod_t> modifications;
 
 public:
-  DataplaneVectorRegisterUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, addr_t _value_addr,
+  DataplaneVectorRegisterUpdate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index, addr_t _value_addr,
                                 klee::ref<klee::Expr> _old_value, klee::ref<klee::Expr> _new_value, const std::vector<expr_mod_t> &_modifications)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterUpdate, _instance_id), "DataplaneVectorRegisterUpdate", _node),
         obj(_obj), index(_index), value_addr(_value_addr), old_value(_old_value), new_value(_new_value), modifications(_modifications) {}
@@ -39,7 +39,7 @@ public:
 
 class DataplaneVectorRegisterUpdateFactory : public ControllerModuleFactory {
 public:
-  DataplaneVectorRegisterUpdateFactory(const std::string &_instance_id)
+  DataplaneVectorRegisterUpdateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterUpdate, _instance_id), "DataplaneVectorRegisterUpdate") {
   }
 

@@ -14,7 +14,7 @@ private:
   symbol_t not_out_of_space;
 
 public:
-  IntegerAllocatorAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time,
+  IntegerAllocatorAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _time,
                            klee::ref<klee::Expr> _index_out, const symbol_t &_out_of_space)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_IntegerAllocatorAllocate, _instance_id), "IntegerAllocatorAllocate", _node),
         dchain_addr(_dchain_addr), time(_time), index_out(_index_out), not_out_of_space(_out_of_space) {}
@@ -39,7 +39,7 @@ public:
 
 class IntegerAllocatorAllocateFactory : public TofinoModuleFactory {
 public:
-  IntegerAllocatorAllocateFactory(const std::string &_instance_id)
+  IntegerAllocatorAllocateFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_IntegerAllocatorAllocate, _instance_id), "IntegerAllocatorAllocate") {}
 
 protected:

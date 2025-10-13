@@ -11,7 +11,7 @@ private:
   klee::ref<klee::Expr> key;
 
 public:
-  CMSIncrement(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
+  CMSIncrement(const InstanceId _instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
       : ControllerModule(ModuleType(ModuleCategory::Controller_CMSIncrement, _instance_id), "CMSIncrement", _node), cms_addr(_cms_addr), key(_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -27,7 +27,7 @@ public:
 
 class CMSIncrementFactory : public ControllerModuleFactory {
 public:
-  CMSIncrementFactory(const std::string &_instance_id)
+  CMSIncrementFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_CMSIncrement, _instance_id), "CMSIncrement") {}
 
 protected:

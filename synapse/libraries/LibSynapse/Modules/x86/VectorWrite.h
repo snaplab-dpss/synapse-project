@@ -17,7 +17,7 @@ private:
   std::vector<expr_mod_t> modifications;
 
 public:
-  VectorWrite(const std::string &_instance_id, const BDDNode *_node, addr_t _vector_addr, klee::ref<klee::Expr> _index,
+  VectorWrite(const InstanceId _instance_id, const BDDNode *_node, addr_t _vector_addr, klee::ref<klee::Expr> _index,
               klee::ref<klee::Expr> _value_addr, klee::ref<klee::Expr> _value, const std::vector<expr_mod_t> &_modifications)
       : x86Module(ModuleType(ModuleCategory::x86_VectorWrite, _instance_id), "VectorWrite", _node), vector_addr(_vector_addr), index(_index),
         value_addr(_value_addr), value(_value), modifications(_modifications) {}
@@ -38,7 +38,7 @@ public:
 
 class VectorWriteFactory : public x86ModuleFactory {
 public:
-  VectorWriteFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_VectorWrite, _instance_id), "VectorWrite") {}
+  VectorWriteFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_VectorWrite, _instance_id), "VectorWrite") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

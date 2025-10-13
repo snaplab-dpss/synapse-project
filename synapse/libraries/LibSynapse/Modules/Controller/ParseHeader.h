@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> length;
 
 public:
-  ParseHeader(const std::string &_instance_id, const BDDNode *_node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
+  ParseHeader(const InstanceId _instance_id, const BDDNode *_node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
       : ControllerModule(ModuleType(ModuleCategory::Controller_ParseHeader, _instance_id), "ParseHeader", _node), chunk_addr(_chunk_addr),
         chunk(_chunk), length(_length) {}
 
@@ -30,7 +30,7 @@ public:
 
 class ParseHeaderFactory : public ControllerModuleFactory {
 public:
-  ParseHeaderFactory(const std::string &_instance_id)
+  ParseHeaderFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_ParseHeader, _instance_id), "ParseHeader") {}
 
 protected:

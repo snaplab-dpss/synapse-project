@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneVectorRegisterAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size,
+  DataplaneVectorRegisterAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _elem_size,
                                   klee::ref<klee::Expr> _capacity)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterAllocate, _instance_id), "DataplaneVectorRegisterAllocate",
                          _node),
@@ -32,7 +32,7 @@ public:
 
 class DataplaneVectorRegisterAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneVectorRegisterAllocateFactory(const std::string &_instance_id)
+  DataplaneVectorRegisterAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterAllocate, _instance_id),
                                 "DataplaneVectorRegisterAllocate") {}
 

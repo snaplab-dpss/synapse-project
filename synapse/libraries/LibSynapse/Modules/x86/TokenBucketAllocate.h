@@ -14,7 +14,7 @@ private:
   symbol_t success;
 
 public:
-  TokenBucketAllocate(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _rate,
+  TokenBucketAllocate(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _capacity, klee::ref<klee::Expr> _rate,
                       klee::ref<klee::Expr> _burst, klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _tb_out, symbol_t _success)
       : x86Module(ModuleType(ModuleCategory::x86_TokenBucketAllocate, _instance_id), "TokenBucketAllocate", _node), capacity(_capacity), rate(_rate),
         burst(_burst), key_size(_key_size), tb_out(_tb_out), success(_success) {}
@@ -36,7 +36,7 @@ public:
 
 class TokenBucketAllocateFactory : public x86ModuleFactory {
 public:
-  TokenBucketAllocateFactory(const std::string &_instance_id)
+  TokenBucketAllocateFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_TokenBucketAllocate, _instance_id), "TokenBucketAllocate") {}
 
 private:

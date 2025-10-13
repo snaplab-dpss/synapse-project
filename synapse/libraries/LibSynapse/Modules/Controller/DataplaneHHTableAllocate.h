@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> capacity;
 
 public:
-  DataplaneHHTableAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
+  DataplaneHHTableAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key_size,
                            klee::ref<klee::Expr> _value_size, klee::ref<klee::Expr> _capacity)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneHHTableAllocate, _instance_id), "DataplaneHHTableAllocate", _node), obj(_obj),
         key_size(_key_size), value_size(_value_size), capacity(_capacity) {}
@@ -33,7 +33,7 @@ public:
 
 class DataplaneHHTableAllocateFactory : public ControllerModuleFactory {
 public:
-  DataplaneHHTableAllocateFactory(const std::string &_instance_id)
+  DataplaneHHTableAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneHHTableAllocate, _instance_id), "DataplaneHHTableAllocate") {}
 
 protected:

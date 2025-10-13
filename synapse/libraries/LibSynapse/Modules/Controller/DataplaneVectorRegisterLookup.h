@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneVectorRegisterLookup(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index,
+  DataplaneVectorRegisterLookup(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _index,
                                 klee::ref<klee::Expr> _value)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterLookup, _instance_id), "DataplaneVectorRegisterLookup", _node),
         obj(_obj), index(_index), value(_value) {}
@@ -31,7 +31,7 @@ public:
 
 class DataplaneVectorRegisterLookupFactory : public ControllerModuleFactory {
 public:
-  DataplaneVectorRegisterLookupFactory(const std::string &_instance_id)
+  DataplaneVectorRegisterLookupFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneVectorRegisterLookup, _instance_id), "DataplaneVectorRegisterLookup") {
   }
 

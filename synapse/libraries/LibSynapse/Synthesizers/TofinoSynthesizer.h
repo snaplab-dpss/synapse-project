@@ -24,7 +24,7 @@ using LibCore::Template;
 
 class TofinoSynthesizer : public EPVisitor {
 public:
-  TofinoSynthesizer(const EP *ep, std::filesystem::path _out_path, const std::string &instance_id);
+  TofinoSynthesizer(const EP *ep, std::filesystem::path out_path, const InstanceId instance_id);
 
   void synthesize();
 
@@ -199,7 +199,7 @@ private:
 
   const EP *target_ep;
   Transpiler transpiler;
-  const std::string instance_id;
+  const InstanceId instance_id;
 
   void visit(const EP *ep, const EPNode *ep_node) override final;
   void log(const EPNode *node) const override final;

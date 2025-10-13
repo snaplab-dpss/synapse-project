@@ -11,7 +11,7 @@ private:
   klee::ref<klee::Expr> index;
 
 public:
-  DataplaneIntegerAllocatorFreeIndex(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
+  DataplaneIntegerAllocatorFreeIndex(const InstanceId _instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneIntegerAllocatorFreeIndex, _instance_id),
                          "DataplaneIntegerAllocatorFreeIndex", _node),
         dchain_addr(_dchain_addr), index(_index) {}
@@ -29,7 +29,7 @@ public:
 
 class DataplaneIntegerAllocatorFreeIndexFactory : public ControllerModuleFactory {
 public:
-  DataplaneIntegerAllocatorFreeIndexFactory(const std::string &_instance_id)
+  DataplaneIntegerAllocatorFreeIndexFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneIntegerAllocatorFreeIndex, _instance_id),
                                 "DataplaneIntegerAllocatorFreeIndex") {}
 

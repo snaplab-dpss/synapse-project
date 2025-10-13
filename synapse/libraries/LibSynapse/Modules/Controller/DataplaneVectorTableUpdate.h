@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  DataplaneVectorTableUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key,
+  DataplaneVectorTableUpdate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key,
                              klee::ref<klee::Expr> _value)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneVectorTableUpdate, _instance_id), "DataplaneVectorTableUpdate", _node),
         obj(_obj), key(_key), value(_value) {}
@@ -31,7 +31,7 @@ public:
 
 class DataplaneVectorTableUpdateFactory : public ControllerModuleFactory {
 public:
-  DataplaneVectorTableUpdateFactory(const std::string &_instance_id)
+  DataplaneVectorTableUpdateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneVectorTableUpdate, _instance_id), "DataplaneVectorTableUpdate") {}
 
 protected:

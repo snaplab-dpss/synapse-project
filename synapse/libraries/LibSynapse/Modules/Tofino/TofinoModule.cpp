@@ -102,14 +102,16 @@ bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) c
   return false;
 }
 
-TofinoContext *TofinoModuleFactory::get_mutable_tofino_ctx(EP *ep, TargetType type) {
+TofinoContext *TofinoModuleFactory::get_mutable_tofino_ctx(EP *ep, TargetType target) {
+  assert(target.type == TargetArchitecture::Tofino && "Invalid Target Architecture");
   Context &ctx = ep->get_mutable_ctx();
-  return ctx.get_mutable_target_ctx<TofinoContext>(type);
+  return ctx.get_mutable_target_ctx<TofinoContext>(target);
 }
 
-const TofinoContext *TofinoModuleFactory::get_tofino_ctx(const EP *ep, TargetType type) {
+const TofinoContext *TofinoModuleFactory::get_tofino_ctx(const EP *ep, TargetType target) {
+  assert(target.type == TargetArchitecture::Tofino && "Invalid Target Architecture");
   const Context &ctx = ep->get_ctx();
-  return ctx.get_target_ctx<TofinoContext>(type);
+  return ctx.get_target_ctx<TofinoContext>(target);
 }
 
 TNA &TofinoModuleFactory::get_mutable_tna(EP *ep, TargetType type) {

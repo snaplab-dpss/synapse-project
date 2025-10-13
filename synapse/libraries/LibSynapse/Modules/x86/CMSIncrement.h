@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> key;
 
 public:
-  CMSIncrement(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _cms_addr, klee::ref<klee::Expr> _key_addr,
+  CMSIncrement(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _cms_addr, klee::ref<klee::Expr> _key_addr,
                klee::ref<klee::Expr> _key)
       : x86Module(ModuleType(ModuleCategory::x86_CMSIncrement, _instance_id), "CMSIncrement", _node), cms_addr(_cms_addr), key_addr(_key_addr),
         key(_key) {}
@@ -31,8 +31,7 @@ public:
 
 class CMSIncrementFactory : public x86ModuleFactory {
 public:
-  CMSIncrementFactory(const std::string &_instance_id)
-      : x86ModuleFactory(ModuleType(ModuleCategory::x86_CMSIncrement, _instance_id), "CMSIncrement") {}
+  CMSIncrementFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_CMSIncrement, _instance_id), "CMSIncrement") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

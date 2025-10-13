@@ -14,7 +14,7 @@ private:
   klee::ref<klee::Expr> write_value;
 
 public:
-  VectorRegisterUpdate(const std::string &_instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index,
+  VectorRegisterUpdate(const InstanceId _instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _index,
                        klee::ref<klee::Expr> _read_value, klee::ref<klee::Expr> _write_value)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_VectorRegisterUpdate, _instance_id), "VectorRegisterUpdate", _node), id(_id), obj(_obj),
         index(_index), read_value(_read_value), write_value(_write_value) {}
@@ -37,7 +37,7 @@ public:
 
 class VectorRegisterUpdateFactory : public TofinoModuleFactory {
 public:
-  VectorRegisterUpdateFactory(const std::string &_instance_id)
+  VectorRegisterUpdateFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_VectorRegisterUpdate, _instance_id), "VectorRegisterUpdate") {}
 
 protected:

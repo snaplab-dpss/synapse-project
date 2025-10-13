@@ -13,7 +13,7 @@ private:
   std::optional<symbol_t> found;
 
 public:
-  DataplaneGuardedMapTableLookup(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key,
+  DataplaneGuardedMapTableLookup(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key,
                                  klee::ref<klee::Expr> _value, std::optional<symbol_t> _found)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableLookup, _instance_id), "DataplaneGuardedMapTableLookup",
                          _node),
@@ -34,7 +34,7 @@ public:
 
 class DataplaneGuardedMapTableLookupFactory : public ControllerModuleFactory {
 public:
-  DataplaneGuardedMapTableLookupFactory(const std::string &_instance_id)
+  DataplaneGuardedMapTableLookupFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableLookup, _instance_id),
                                 "DataplaneGuardedMapTableLookup") {}
 

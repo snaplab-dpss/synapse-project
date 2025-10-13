@@ -7,7 +7,7 @@ namespace Tofino {
 
 class Broadcast : public TofinoModule {
 public:
-  Broadcast(const std::string &_instance_id, const BDDNode *_node)
+  Broadcast(const InstanceId _instance_id, const BDDNode *_node)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_Broadcast, _instance_id), "Broadcast", _node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -20,7 +20,7 @@ public:
 
 class BroadcastFactory : public TofinoModuleFactory {
 public:
-  BroadcastFactory(const std::string &_instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_Broadcast, _instance_id), "Broadcast") {}
+  BroadcastFactory(const InstanceId _instance_id) : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_Broadcast, _instance_id), "Broadcast") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

@@ -12,7 +12,7 @@ private:
   symbol_t is_allocated;
 
 public:
-  DchainIsIndexAllocated(const std::string &_instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
+  DchainIsIndexAllocated(const InstanceId _instance_id, const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index,
                          const symbol_t &_is_allocated)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DchainIsIndexAllocated, _instance_id), "DchainIsIndexAllocated", _node),
         dchain_addr(_dchain_addr), index(_index), is_allocated(_is_allocated) {}
@@ -31,7 +31,7 @@ public:
 
 class DchainIsIndexAllocatedFactory : public ControllerModuleFactory {
 public:
-  DchainIsIndexAllocatedFactory(const std::string &_instance_id)
+  DchainIsIndexAllocatedFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DchainIsIndexAllocated, _instance_id), "DchainIsIndexAllocated") {}
 
 protected:

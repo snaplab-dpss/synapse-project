@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> backend_capacity;
 
 public:
-  ChtAllocate(const std::string &_instance_id, const BDDNode *_node, addr_t _cht_addr, klee::ref<klee::Expr> _cht_height,
+  ChtAllocate(const InstanceId _instance_id, const BDDNode *_node, addr_t _cht_addr, klee::ref<klee::Expr> _cht_height,
               klee::ref<klee::Expr> _backend_capacity)
       : ControllerModule(ModuleType(ModuleCategory::Controller_ChtAllocate, _instance_id), "ChtAllocate", _node), cht_addr(_cht_addr),
         cht_height(_cht_height), backend_capacity(_backend_capacity) {}
@@ -31,7 +31,7 @@ public:
 
 class ChtAllocateFactory : public ControllerModuleFactory {
 public:
-  ChtAllocateFactory(const std::string &_instance_id)
+  ChtAllocateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_ChtAllocate, _instance_id), "ChtAllocate") {}
 
 protected:

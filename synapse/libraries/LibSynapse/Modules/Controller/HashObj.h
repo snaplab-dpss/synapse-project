@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> hash;
 
 public:
-  HashObj(const std::string &_instance_id, const BDDNode *_node, addr_t _obj_addr, klee::ref<klee::Expr> _size, klee::ref<klee::Expr> _hash)
+  HashObj(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj_addr, klee::ref<klee::Expr> _size, klee::ref<klee::Expr> _hash)
       : ControllerModule(ModuleType(ModuleCategory::Controller_HashObj, _instance_id), "HashObj", _node), obj_addr(_obj_addr), size(_size),
         hash(_hash) {}
 
@@ -30,8 +30,7 @@ public:
 
 class HashObjFactory : public ControllerModuleFactory {
 public:
-  HashObjFactory(const std::string &_instance_id)
-      : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_HashObj, _instance_id), "HashObj") {}
+  HashObjFactory(const InstanceId _instance_id) : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_HashObj, _instance_id), "HashObj") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

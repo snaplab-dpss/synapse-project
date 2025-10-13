@@ -16,9 +16,9 @@ private:
   symbol_t cuckoo_success;
 
 public:
-  CuckooHashTableReadWrite(const std::string &_instance_id, const BDDNode *_node, DS_ID _cuckoo_hash_table_id, addr_t _obj,
-                           klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _read_value, klee::ref<klee::Expr> _write_value,
-                           klee::ref<klee::Expr> _cuckoo_update_condition, const symbol_t &_cuckoo_success)
+  CuckooHashTableReadWrite(const InstanceId _instance_id, const BDDNode *_node, DS_ID _cuckoo_hash_table_id, addr_t _obj, klee::ref<klee::Expr> _key,
+                           klee::ref<klee::Expr> _read_value, klee::ref<klee::Expr> _write_value, klee::ref<klee::Expr> _cuckoo_update_condition,
+                           const symbol_t &_cuckoo_success)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_CuckooHashTableReadWrite, _instance_id), "CuckooHashTableReadWrite", _node),
         cuckoo_hash_table_id(_cuckoo_hash_table_id), obj(_obj), key(_key), read_value(_read_value), write_value(_write_value),
         cuckoo_update_condition(_cuckoo_update_condition), cuckoo_success(_cuckoo_success) {}
@@ -44,7 +44,7 @@ public:
 
 class CuckooHashTableReadWriteFactory : public TofinoModuleFactory {
 public:
-  CuckooHashTableReadWriteFactory(const std::string &_instance_id)
+  CuckooHashTableReadWriteFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_CuckooHashTableReadWrite, _instance_id), "CuckooHashTableReadWrite") {}
 
 protected:

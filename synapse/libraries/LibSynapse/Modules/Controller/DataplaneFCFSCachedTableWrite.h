@@ -14,14 +14,15 @@ private:
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  DataplaneFCFSCachedTableWrite(const BDDNode *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
-      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedTableWrite, "DataplaneFCFSCachedTableWrite", _node), id(_id), obj(_obj),
-        keys(_keys) {}
+  DataplaneFCFSCachedTableWrite(const InstanceId _instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj,
+                                const std::vector<klee::ref<klee::Expr>> &_keys)
+      : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableWrite, _instance_id), "DataplaneFCFSCachedTableWrite", _node),
+        id(_id), obj(_obj), keys(_keys) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneFCFSCachedTableWrite *cloned = new DataplaneFCFSCachedTableWrite(node, id, obj, keys);
+    DataplaneFCFSCachedTableWrite *cloned = new DataplaneFCFSCachedTableWrite(get_type().instance_id, node, id, obj, keys);
     return cloned;
   }
 
@@ -32,7 +33,7 @@ public:
 
 class DataplaneFCFSCachedTableWriteFactory : public ControllerModuleFactory {
 public:
-  DataplaneFCFSCachedTableWriteFactory(const std::string &_instance_id)
+  DataplaneFCFSCachedTableWriteFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneFCFSCachedTableWrite, _instance_id), "DataplaneFCFSCachedTableWrite") {
   }
 

@@ -12,7 +12,7 @@ private:
   klee::ref<klee::Expr> success;
 
 public:
-  DataplaneMeterInsert(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
+  DataplaneMeterInsert(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
                        klee::ref<klee::Expr> _success)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneMeterInsert, _instance_id), "DataplaneMeterInsert", _node), obj(_obj),
         keys(_keys), success(_success) {}
@@ -31,7 +31,7 @@ public:
 
 class DataplaneMeterInsertFactory : public ControllerModuleFactory {
 public:
-  DataplaneMeterInsertFactory(const std::string &_instance_id)
+  DataplaneMeterInsertFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneMeterInsert, _instance_id), "DataplaneMeterInsert") {}
 
 protected:

@@ -16,7 +16,7 @@ private:
   std::vector<expr_byte_swap_t> swaps;
 
 public:
-  ModifyHeader(const std::string &_instance_id, const BDDNode *_node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr,
+  ModifyHeader(const InstanceId _instance_id, const BDDNode *_node, addr_t _hdr_addr, klee::ref<klee::Expr> _hdr,
                const std::vector<expr_mod_t> &_changes, const std::vector<expr_byte_swap_t> &_swaps)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_ModifyHeader, _instance_id), "ModifyHeader", _node), hdr_addr(_hdr_addr), hdr(_hdr),
         changes(_changes), swaps(_swaps) {}
@@ -36,7 +36,7 @@ public:
 
 class ModifyHeaderFactory : public TofinoModuleFactory {
 public:
-  ModifyHeaderFactory(const std::string &_instance_id)
+  ModifyHeaderFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_ModifyHeader, _instance_id), "ModifyHeader") {}
 
 protected:

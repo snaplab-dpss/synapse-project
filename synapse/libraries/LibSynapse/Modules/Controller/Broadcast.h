@@ -7,7 +7,7 @@ namespace Controller {
 
 class Broadcast : public ControllerModule {
 public:
-  Broadcast(const std::string &_instance_id, const BDDNode *_node)
+  Broadcast(const InstanceId _instance_id, const BDDNode *_node)
       : ControllerModule(ModuleType(ModuleCategory::Controller_Broadcast, _instance_id), "Broadcast", _node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -20,7 +20,7 @@ public:
 
 class BroadcastFactory : public ControllerModuleFactory {
 public:
-  BroadcastFactory(const std::string &_instance_id)
+  BroadcastFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_Broadcast, _instance_id), "Broadcast") {}
 
 protected:

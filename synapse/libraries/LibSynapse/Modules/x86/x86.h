@@ -45,7 +45,7 @@ namespace LibSynapse {
 namespace x86 {
 
 struct x86Target : public Target {
-  x86Target(const std::string &_instance_id)
+  x86Target(const InstanceId _instance_id)
       : Target(
             TargetType(TargetArchitecture::x86, _instance_id),
             [_instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {

@@ -11,7 +11,7 @@ private:
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  DataplaneGuardedMapTableDelete(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
+  DataplaneGuardedMapTableDelete(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableDelete, _instance_id), "DataplaneGuardedMapTableDelete",
                          _node),
         obj(_obj), keys(_keys) {}
@@ -29,7 +29,7 @@ public:
 
 class DataplaneGuardedMapTableDeleteFactory : public ControllerModuleFactory {
 public:
-  DataplaneGuardedMapTableDeleteFactory(const std::string &_instance_id)
+  DataplaneGuardedMapTableDeleteFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneGuardedMapTableDelete, _instance_id),
                                 "DataplaneGuardedMapTableDelete") {}
 

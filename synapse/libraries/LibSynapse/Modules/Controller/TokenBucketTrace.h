@@ -15,7 +15,7 @@ private:
   klee::ref<klee::Expr> successfuly_tracing;
 
 public:
-  TokenBucketTrace(const std::string &_instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _pkt_len,
+  TokenBucketTrace(const InstanceId _instance_id, const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _pkt_len,
                    klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _index_out, klee::ref<klee::Expr> _is_tracing)
       : ControllerModule(ModuleType(ModuleCategory::Controller_TokenBucketTrace, _instance_id), "TokenBucketTrace", _node), tb_addr(_tb_addr),
         key(_key), pkt_len(_pkt_len), time(_time), index_out(_index_out), successfuly_tracing(_is_tracing) {}
@@ -37,7 +37,7 @@ public:
 
 class TokenBucketTraceFactory : public ControllerModuleFactory {
 public:
-  TokenBucketTraceFactory(const std::string &_instance_id)
+  TokenBucketTraceFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_TokenBucketTrace, _instance_id), "TokenBucketTrace") {}
 
 protected:

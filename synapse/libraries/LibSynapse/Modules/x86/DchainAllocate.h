@@ -12,7 +12,7 @@ private:
   symbol_t success;
 
 public:
-  DchainAllocate(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _index_range, klee::ref<klee::Expr> _chain_out,
+  DchainAllocate(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _index_range, klee::ref<klee::Expr> _chain_out,
                  symbol_t _success)
       : x86Module(ModuleType(ModuleCategory::x86_DchainAllocate, _instance_id), "DchainAllocate", _node), index_range(_index_range),
         chain_out(_chain_out), success(_success) {}
@@ -30,7 +30,7 @@ public:
 
 class DchainAllocateFactory : public x86ModuleFactory {
 public:
-  DchainAllocateFactory(const std::string &_instance_id)
+  DchainAllocateFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_DchainAllocate, _instance_id), "DchainAllocate") {}
 
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

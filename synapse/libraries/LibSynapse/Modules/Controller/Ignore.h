@@ -7,7 +7,7 @@ namespace Controller {
 
 class Ignore : public ControllerModule {
 public:
-  Ignore(const std::string &_instance_id, const BDDNode *_node)
+  Ignore(const InstanceId _instance_id, const BDDNode *_node)
       : ControllerModule(ModuleType(ModuleCategory::Controller_Ignore, _instance_id), "Ignore", _node) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -20,7 +20,7 @@ public:
 
 class IgnoreFactory : public ControllerModuleFactory {
 public:
-  IgnoreFactory(const std::string &_instance_id) : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_Ignore, _instance_id), "Ignore") {}
+  IgnoreFactory(const InstanceId _instance_id) : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_Ignore, _instance_id), "Ignore") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

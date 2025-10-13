@@ -43,7 +43,7 @@ namespace LibSynapse {
 namespace Tofino {
 
 struct TofinoTarget : public Target {
-  TofinoTarget(const tna_config_t &tna_config, const std::string &instance_id)
+  TofinoTarget(const tna_config_t &tna_config, const InstanceId _instance_id)
       : Target(
             TargetType(TargetArchitecture::Tofino, instance_id),
             [instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {

@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorRead(const std::string &_instance_id, const BDDNode *_node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr,
+  VectorRead(const InstanceId _instance_id, const BDDNode *_node, addr_t _vector_addr, klee::ref<klee::Expr> _index, addr_t _value_addr,
              klee::ref<klee::Expr> _value)
       : ControllerModule(ModuleType(ModuleCategory::Controller_VectorRead, _instance_id), "VectorRead", _node), vector_addr(_vector_addr),
         index(_index), value_addr(_value_addr), value(_value) {}
@@ -33,7 +33,7 @@ public:
 
 class VectorReadFactory : public ControllerModuleFactory {
 public:
-  VectorReadFactory(const std::string &_instance_id)
+  VectorReadFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_VectorRead, _instance_id), "VectorRead") {}
 
 protected:

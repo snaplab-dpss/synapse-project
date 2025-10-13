@@ -26,7 +26,7 @@ enum class x86SynthesizerTarget { NF, Profiler };
 
 class x86Synthesizer : public EPVisitor {
 public:
-  x86Synthesizer(const EP *ep, x86SynthesizerTarget target, std::filesystem::path out_path, const std::string &instance_id);
+  x86Synthesizer(const EP *ep, x86SynthesizerTarget target, std::filesystem::path out_path, const InstanceId instance_id);
 
   virtual void synthesize();
 
@@ -149,7 +149,7 @@ private:
   const EP *target_ep;
   x86SynthesizerTarget target;
   Transpiler transpiler;
-  const std::string instance_id;
+  const InstanceId instance_id;
 
   bool in_nf_init{true};
   void change_to_process_coder() { in_nf_init = false; }

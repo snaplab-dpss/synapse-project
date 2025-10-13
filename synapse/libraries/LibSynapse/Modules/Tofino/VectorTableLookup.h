@@ -13,7 +13,7 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  VectorTableLookup(const std::string &_instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key,
+  VectorTableLookup(const InstanceId _instance_id, const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key,
                     klee::ref<klee::Expr> _value)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_VectorTableLookup, _instance_id), "VectorTableLookup", _node), id(_id), obj(_obj), key(_key),
         value(_value) {}
@@ -35,7 +35,7 @@ public:
 
 class VectorTableLookupFactory : public TofinoModuleFactory {
 public:
-  VectorTableLookupFactory(const std::string &_instance_id)
+  VectorTableLookupFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_VectorTableLookup, _instance_id), "VectorTableLookup") {}
 
 protected:

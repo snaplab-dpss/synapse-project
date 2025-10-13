@@ -12,8 +12,7 @@ private:
   std::vector<klee::ref<klee::Expr>> keys;
 
 public:
-  CMSIncrement(const std::string &_instance_id, const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr,
-               const std::vector<klee::ref<klee::Expr>> &_keys)
+  CMSIncrement(const InstanceId _instance_id, const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_CMSIncrement, _instance_id), "CMSIncrement", _node), cms_id(_cms_id), cms_addr(_cms_addr),
         keys(_keys) {}
 
@@ -30,7 +29,7 @@ public:
 
 class CMSIncrementFactory : public TofinoModuleFactory {
 public:
-  CMSIncrementFactory(const std::string &_instance_id)
+  CMSIncrementFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_CMSIncrement, _instance_id), "CMSIncrement") {}
 
 protected:

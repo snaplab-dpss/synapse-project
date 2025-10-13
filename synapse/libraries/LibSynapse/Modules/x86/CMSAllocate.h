@@ -15,7 +15,7 @@ private:
   symbol_t success;
 
 public:
-  CMSAllocate(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
+  CMSAllocate(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _height, klee::ref<klee::Expr> _width,
               klee::ref<klee::Expr> _key_size, klee::ref<klee::Expr> _cleanup_interval, klee::ref<klee::Expr> _cms_out, symbol_t _success)
       : x86Module(ModuleType(ModuleCategory::x86_CMSAllocate, _instance_id), "CMSAllocate", _node), height(_height), width(_width),
         key_size(_key_size), cleanup_interval(_cleanup_interval), cms_out(_cms_out), success(_success) {}
@@ -35,7 +35,7 @@ public:
 };
 class CMSAllocateFactory : public x86ModuleFactory {
 public:
-  CMSAllocateFactory(const std::string &_instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_CMSAllocate, _instance_id), "CMSAllocate") {}
+  CMSAllocateFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_CMSAllocate, _instance_id), "CMSAllocate") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

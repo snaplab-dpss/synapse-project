@@ -14,7 +14,7 @@ private:
   klee::ref<klee::Expr> n_freed_flows;
 
 public:
-  ExpireItemsSingleMapIteratively(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _vector_addr,
+  ExpireItemsSingleMapIteratively(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _vector_addr,
                                   klee::ref<klee::Expr> _map_addr, klee::ref<klee::Expr> _start, klee::ref<klee::Expr> _n_elems,
                                   klee::ref<klee::Expr> _n_freed_flows)
       : x86Module(ModuleType(ModuleCategory::x86_ExpireItemsSingleMapIteratively, _instance_id), "ExpireItemsSingleMapIteratively", _node),
@@ -36,7 +36,7 @@ public:
 
 class ExpireItemsSingleMapIterativelyFactory : public x86ModuleFactory {
 public:
-  ExpireItemsSingleMapIterativelyFactory(const std::string &_instance_id)
+  ExpireItemsSingleMapIterativelyFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_ExpireItemsSingleMapIteratively, _instance_id), "ExpireItemsSingleMapIteratively") {}
 
 protected:

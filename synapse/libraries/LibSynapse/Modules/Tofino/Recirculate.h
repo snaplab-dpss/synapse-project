@@ -11,7 +11,7 @@ private:
   u32 code_path;
 
 public:
-  Recirculate(const std::string &_instance_id, const BDDNode *_node, Symbols _symbols, u32 _code_path)
+  Recirculate(const InstanceId _instance_id, const BDDNode *_node, Symbols _symbols, u32 _code_path)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_Recirculate, _instance_id), "Recirculate", _node), symbols(_symbols), code_path(_code_path) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -27,7 +27,7 @@ public:
 
 class RecirculateFactory : public TofinoModuleFactory {
 public:
-  RecirculateFactory(const std::string &_instance_id)
+  RecirculateFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_Recirculate, _instance_id), "Recirculate") {}
 
 protected:

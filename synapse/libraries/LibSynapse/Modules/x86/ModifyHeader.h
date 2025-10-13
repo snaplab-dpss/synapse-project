@@ -14,7 +14,7 @@ private:
   std::vector<expr_mod_t> changes;
 
 public:
-  ModifyHeader(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _chunk_addr_expr, const std::vector<expr_mod_t> &_changes)
+  ModifyHeader(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _chunk_addr_expr, const std::vector<expr_mod_t> &_changes)
       : x86Module(ModuleType(ModuleCategory::x86_ModifyHeader, _instance_id), "ModifyHeader", _node), chunk_addr_expr(_chunk_addr_expr),
         changes(_changes) {}
 
@@ -31,8 +31,7 @@ public:
 
 class ModifyHeaderFactory : public x86ModuleFactory {
 public:
-  ModifyHeaderFactory(const std::string &_instance_id)
-      : x86ModuleFactory(ModuleType(ModuleCategory::x86_ModifyHeader, _instance_id), "ModifyHeader") {}
+  ModifyHeaderFactory(const InstanceId _instance_id) : x86ModuleFactory(ModuleType(ModuleCategory::x86_ModifyHeader, _instance_id), "ModifyHeader") {}
 
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const Context &ctx) const override;

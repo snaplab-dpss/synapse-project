@@ -10,7 +10,7 @@ private:
   addr_t obj;
 
 public:
-  DataplaneHHTableOutOfBandUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _obj)
+  DataplaneHHTableOutOfBandUpdate(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneHHTableOutOfBandUpdate, _instance_id), "DataplaneHHTableOutOfBandUpdate",
                          _node),
         obj(_obj) {}
@@ -27,7 +27,7 @@ public:
 
 class DataplaneHHTableOutOfBandUpdateFactory : public ControllerModuleFactory {
 public:
-  DataplaneHHTableOutOfBandUpdateFactory(const std::string &_instance_id)
+  DataplaneHHTableOutOfBandUpdateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Tofino_HHTableOutOfBandUpdate, _instance_id), "DataplaneHHTableOutOfBandUpdate") {}
 
 protected:

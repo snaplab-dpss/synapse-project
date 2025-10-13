@@ -13,7 +13,7 @@ private:
   symbol_t success;
 
 public:
-  VectorAllocate(const std::string &_instance_id, const BDDNode *_node, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity,
+  VectorAllocate(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _elem_size, klee::ref<klee::Expr> _capacity,
                  klee::ref<klee::Expr> _vector_out, symbol_t _success)
       : x86Module(ModuleType(ModuleCategory::x86_VectorAllocate, _instance_id), "VectorAllocate", _node), elem_size(_elem_size), capacity(_capacity),
         vector_out(_vector_out), success(_success) {}
@@ -33,7 +33,7 @@ public:
 
 class VectorAllocateFactory : public x86ModuleFactory {
 public:
-  VectorAllocateFactory(const std::string &_instance_id)
+  VectorAllocateFactory(const InstanceId _instance_id)
       : x86ModuleFactory(ModuleType(ModuleCategory::x86_VectorAllocate, _instance_id), "VectorAllocate") {}
 
 protected:

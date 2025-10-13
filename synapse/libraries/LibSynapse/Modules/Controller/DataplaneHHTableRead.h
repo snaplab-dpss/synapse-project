@@ -13,7 +13,7 @@ private:
   symbol_t map_has_this_key;
 
 public:
-  DataplaneHHTableRead(const std::string &_instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
+  DataplaneHHTableRead(const InstanceId _instance_id, const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
                        const symbol_t &_map_has_this_key)
       : ControllerModule(ModuleType(ModuleCategory::Controller_DataplaneHHTableRead, _instance_id), "DataplaneHHTableRead", _node), obj(_obj),
         key(_key), value(_value), map_has_this_key(_map_has_this_key) {}
@@ -33,7 +33,7 @@ public:
 
 class DataplaneHHTableReadFactory : public ControllerModuleFactory {
 public:
-  DataplaneHHTableReadFactory(const std::string &_instance_id)
+  DataplaneHHTableReadFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_DataplaneHHTableRead, _instance_id), "DataplaneHHTableRead") {}
 
 protected:

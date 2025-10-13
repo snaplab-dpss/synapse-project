@@ -15,7 +15,7 @@ private:
   symbol_t map_has_this_key;
 
 public:
-  HHTableRead(const std::string &_instance_id, const BDDNode *_node, DS_ID _hh_table_id, addr_t _obj, klee::ref<klee::Expr> _original_key,
+  HHTableRead(const InstanceId _instance_id, const BDDNode *_node, DS_ID _hh_table_id, addr_t _obj, klee::ref<klee::Expr> _original_key,
               const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _value, const symbol_t &_map_has_this_key)
       : TofinoModule(ModuleType(ModuleCategory::Tofino_HHTableRead, _instance_id), "HHTableRead", _node), hh_table_id(_hh_table_id), obj(_obj),
         original_key(_original_key), keys(_keys), value(_value), map_has_this_key(_map_has_this_key) {}
@@ -39,7 +39,7 @@ public:
 
 class HHTableReadFactory : public TofinoModuleFactory {
 public:
-  HHTableReadFactory(const std::string &_instance_id)
+  HHTableReadFactory(const InstanceId _instance_id)
       : TofinoModuleFactory(ModuleType(ModuleCategory::Tofino_HHTableRead, _instance_id), "HHTableRead") {}
 
 protected:

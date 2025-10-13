@@ -682,7 +682,7 @@ void ControllerSynthesizer::Stacks::clear() { stacks.clear(); }
 
 std::vector<ControllerSynthesizer::Stack> ControllerSynthesizer::Stacks::get_all() const { return stacks; }
 
-ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::path _out_file, const std::string &_instance_id)
+ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::path _out_file, const InstanceId _instance_id)
     : out_file(_out_file), code_template(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
                                          {
                                              {MARKER_STATE_FIELDS, 1},

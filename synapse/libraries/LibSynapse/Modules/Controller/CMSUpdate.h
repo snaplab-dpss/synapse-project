@@ -11,7 +11,7 @@ private:
   klee::ref<klee::Expr> key;
 
 public:
-  CMSUpdate(const std::string &_instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
+  CMSUpdate(const InstanceId _instance_id, const BDDNode *_node, addr_t _cms_addr, klee::ref<klee::Expr> _key)
       : ControllerModule(ModuleType(ModuleCategory::Controller_CMSUpdate, _instance_id), "CMSUpdate", _node), cms_addr(_cms_addr), key(_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -27,7 +27,7 @@ public:
 
 class CMSUpdateFactory : public ControllerModuleFactory {
 public:
-  CMSUpdateFactory(const std::string &_instance_id)
+  CMSUpdateFactory(const InstanceId _instance_id)
       : ControllerModuleFactory(ModuleType(ModuleCategory::Controller_CMSUpdate, _instance_id), "CMSUpdate") {}
 
 protected:
