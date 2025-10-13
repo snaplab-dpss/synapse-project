@@ -46,7 +46,7 @@ enum bit<2> fwd_op_t {
 
 // Entry Timeout Expiration (units of 65536 ns).
 // #define ENTRY_TIMEOUT 1024 // 0.0625 s
-#define ENTRY_TIMEOUT 4096 // 0.25 s
+#define ENTRY_TIMEOUT 16384 // 1 s
 #define FCFS_CT_CACHE_CAPACITY 65536
 
 typedef bit<16> fcfs_ct_hash_t;
