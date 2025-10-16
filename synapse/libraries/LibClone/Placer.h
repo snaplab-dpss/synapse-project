@@ -12,28 +12,29 @@
 namespace LibClone {
 
 using LibBDD::BDD;
+using LibBDD::bdd_node_id_t;
 using LibBDD::BDDNode;
 using LibBDD::Branch;
 
 class Placer {
 private:
-  BDD &bdd;
+  std::shared_ptr<const BDD> bdd;
   const PhysicalNetwork &phys_net;
 
 public:
-  Placer(BDD &_bdd, const PhysicalNetwork &_phys_net) : bdd(_bdd), phys_net(_phys_net) {}
+  Placer(const BDD &_bdd, const PhysicalNetwork &_phys_net);
 
   Placer(const Placer &)            = delete;
   Placer &operator=(const Placer &) = delete;
 
-  const BDD &get_bdd() const { return bdd; }
+  const BDD *get_bdd() const { return bdd.get(); }
   const PhysicalNetwork &get_physical_network() const { return phys_net; }
 
-  const BDD add_send_to_device_nodes();
+  std::unique_ptr<BDD> add_send_to_device_nodes();
 
 private:
-  std::optional<LibBDD::BDDNode *> create_send_to_device_node(BDDNode *current, BDDNode *next);
-  void handle_branch_node(Branch *branch, BDDNode *on_true, BDDNode *on_false);
-  void handle_node(BDDNode *current, BDDNode *next);
+  std::optional<BDDNode *> create_send_to_device_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current, bdd_node_id_t next_node);
+  void handle_branch_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t branch_id, bdd_node_id_t on_true_id, bdd_node_id_t on_false_id);
+  void handle_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id);
 };
 } // namespace LibClone

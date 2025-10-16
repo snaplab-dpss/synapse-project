@@ -25,7 +25,6 @@ struct fcfs_cached_table_data_t {
   map_coalescing_objs_t map_objs;
 };
 
-
 std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *bdd, const Context &ctx, const Call *map_put) {
   const call_t &put_call = map_put->get_call();
 
@@ -397,7 +396,6 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-
     std::unique_ptr<EP> new_ep =
         concretize_cached_table_write(ep, node, get_target(), fcfs_cached_table_data.value(), cache_write_success, cache_capacity, map_put);
     if (new_ep) {

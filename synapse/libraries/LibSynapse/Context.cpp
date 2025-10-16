@@ -354,13 +354,13 @@ void Context::bdd_pre_processing_log() {
 
 Context::Context(const BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &_profiler)
     : profiler(_profiler), perf_oracle(targets_config, profiler.get_avg_pkt_bytes()), expiration_data(build_expiration_data(bdd)) {
-  for (const TargetView &target : targets.elements) {
-    target_ctxs[target.type] = target.base_ctx->clone();
+  for (const std::pair<const TargetView, bool> &target : targets.elements) {
+    target_ctxs[target.first.type] = target.first.base_ctx->clone();
   }
 
-  for (const TargetView &target : targets.elements) {
-    if (target.type.type == TargetArchitecture::Tofino) {
-      const Tofino::TofinoContext *tofino_ctx = get_target_ctx_if_available<Tofino::TofinoContext>(target.type);
+  for (const std::pair<const TargetView, bool> &target : targets.elements) {
+    if (target.first.type.type == TargetArchitecture::Tofino) {
+      const Tofino::TofinoContext *tofino_ctx = get_target_ctx_if_available<Tofino::TofinoContext>(target.first.type);
       if (tofino_ctx && expiration_data.has_value()) {
         const time_ns_t expiration_time     = expiration_data->expiration_time;
         const time_ns_t min_expiration_time = tofino_ctx->get_tna().tna_config.properties.min_expiration_time * MILLION;
@@ -376,9 +376,9 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const targets_confi
   bdd_pre_processing_get_dchains_failing_to_allocate_new_index_hit_rates(bdd);
   bdd_pre_processing_get_ds_configs(bdd);
   bdd_pre_processing_get_structural_fields(bdd);
-  for (const TargetView &target : targets.elements) {
-    if (target.type.type == TargetArchitecture::Tofino) {
-      bdd_pre_processing_build_tofino_parser(bdd, target.type);
+  for (const std::pair<const TargetView, bool> &target : targets.elements) {
+    if (target.first.type.type == TargetArchitecture::Tofino) {
+      bdd_pre_processing_build_tofino_parser(bdd, target.first.type);
     }
   }
   bdd_pre_processing_log();

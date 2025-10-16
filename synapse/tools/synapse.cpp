@@ -43,7 +43,7 @@ struct args_t {
 
   void print() const {
     const targets_config_t targets_config(targets_config_file);
-    const Targets targets(targets_config, LibClone::PhysicalNetwork::parse(physical_infrastructure_file));
+    const Targets targets(targets_config, LibClone::PhysicalNetwork::parse(physical_infrastructure_file).get_target_list());
 
     std::cout << "====================== Args ======================\n";
     std::cout << "Input BDD file:       " << input_bdd_file.string() << "\n";
@@ -54,8 +54,8 @@ struct args_t {
     std::cout << "Profile file:         " << profile_file.string() << "\n";
     std::cout << "Seed:                 " << seed << "\n";
     std::cout << "Targets:              ";
-    for (const TargetView &target : targets.get_view().elements) {
-      std::cout << target.type << " (" << target.module_factories.size() << " modules) ";
+    for (const std::pair<const TargetView, bool> &target : targets.get_view().elements) {
+      std::cout << target.first.type << " (" << target.first.module_factories.size() << " modules) ";
     }
     std::cout << "\n";
     std::cout << "Profiler:\n";
@@ -167,9 +167,9 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   out_hr_report << "  Seed:               " << args.seed << "\n";
   out_hr_report << "  Targets:\n";
   const targets_config_t targets_config(args.targets_config_file);
-  const Targets targets(targets_config, LibClone::PhysicalNetwork::parse(args.physical_infrastructure_file));
-  for (const TargetView &target : targets.get_view().elements) {
-    out_hr_report << "    " << target.type << " (" << target.module_factories.size() << " modules)\n";
+  const Targets targets(targets_config, LibClone::PhysicalNetwork::parse(args.physical_infrastructure_file).get_target_list());
+  for (const std::pair<const TargetView, bool> &target : targets.get_view().elements) {
+    out_hr_report << "    " << target.first.type << " (" << target.first.module_factories.size() << " modules)\n";
   }
   out_hr_report << "  No reorder:         " << args.search_config.no_reorder << "\n";
   out_hr_report << "  Not greedy:         " << args.search_config.not_greedy << "\n";
@@ -279,9 +279,11 @@ int main(int argc, char **argv) {
   }
 
   const LibClone::PhysicalNetwork physical_network = LibClone::PhysicalNetwork::parse(args.physical_infrastructure_file);
-  // physical_network.debug();
+  physical_network.debug();
+  physical_network.get_target_list(bdd.get_root()->get_id());
 
-  SearchEngine engine(bdd, args.heuristic_opt, profiler, targets_config, args.search_config, physical_network);
+  SearchEngine engine(bdd, args.heuristic_opt, profiler, targets_config, args.search_config,
+                      physical_network.get_target_list(bdd.get_root()->get_id()));
   const search_report_t report = engine.search();
 
   if (args.show_ep) {

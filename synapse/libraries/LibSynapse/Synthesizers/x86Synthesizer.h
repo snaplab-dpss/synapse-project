@@ -28,22 +28,21 @@ class x86Synthesizer : public EPVisitor {
 public:
   x86Synthesizer(const EP *ep, x86SynthesizerTarget target, std::filesystem::path out_path, const InstanceId instance_id);
 
-  virtual void synthesize();
+  void synthesize();
 
 private:
   class Transpiler : public klee::ExprVisitor::ExprVisitor {
   private:
     std::stack<coder_t> coders;
-    x86Synthesizer *synthesizer;
+    const x86Synthesizer *synthesizer;
 
   public:
-    Transpiler(x86Synthesizer *synthesizer);
+    Transpiler(const x86Synthesizer *synthesizer);
     code_t transpile(klee::ref<klee::Expr> expr);
 
+    static bool is_primitive_type(bits_t size);
     static code_t type_from_size(bits_t size);
     static code_t type_from_expr(klee::ref<klee::Expr> expr);
-    static code_t transpile_literal(u64 value, bits_t size);
-    static code_t transpile_constant(klee::ref<klee::Expr> expr);
 
     Action visitNotOptimized(const klee::NotOptimizedExpr &e);
     Action visitRead(const klee::ReadExpr &e);

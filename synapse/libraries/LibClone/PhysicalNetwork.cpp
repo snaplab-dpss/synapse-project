@@ -2,6 +2,8 @@
 
 #include <LibCore/Debug.h>
 
+#include <LibSynapse/Target.h>
+
 #include <queue>
 #include <fstream>
 #include <sstream>
@@ -54,7 +56,7 @@ void parse_placement(const std::vector<std::string> &words, const std::unordered
   const DeviceId instance        = std::stoi(words[4]);
 
   if (devices.find(instance) == devices.end()) {
-    panic("Could not find device %d", instance);
+    panic("Could not find device");
   }
 
   if (placement.find(component_id) != placement.end()) {
@@ -185,6 +187,27 @@ Port PhysicalNetwork::get_forwarding_port(const InfrastructureNodeId src, const 
     panic("Destination Node ID %d not reachable from Source Node ID %d!", dst, src);
   }
   return forwarding_table.at(src).at(dst);
+}
+
+const std::unordered_map<LibSynapse::TargetType, bool> PhysicalNetwork::get_target_list(const ComponentId root_node) const {
+  std::unordered_map<LibSynapse::TargetType, bool> targets;
+
+  if (placement_strategy.find(root_node) == placement_strategy.end()) {
+    panic("Component ID %u not found in placement strategy!", root_node);
+  }
+
+  const LibSynapse::TargetType root_target = placement_strategy.at(root_node);
+  targets.emplace(root_target, true);
+
+  for (const auto &[_, device] : devices) {
+    const LibSynapse::TargetType &device_target = device->get_target();
+    if (device_target == root_target) {
+      continue;
+    }
+    targets.emplace(device_target, false);
+  }
+
+  return targets;
 }
 
 const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &network_file) {

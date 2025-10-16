@@ -59,7 +59,7 @@ public:
   friend std::ostream &operator<<(std::ostream &os, const InfrastructureNode &node) {
     os << node.id << "{";
     for (const auto &[sport, destination] : node.links) {
-      os << "(" << sport << "->" << destination.first << ":" << destination.second->get_id() << "),";
+      os << "(Src: " << sport << "-> Dst:" << destination.first << " Port:" << destination.second->get_id() << "),";
     }
     os << "}";
     return os;

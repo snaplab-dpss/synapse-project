@@ -13,7 +13,8 @@ private:
   Symbols symbols;
 
 public:
-  SendToDevice(const InstanceId _instance_id, const BDDNode *_node, TargetType _next_type, klee::ref<klee::Expr> _outgoing_port, Symbols _symbols)
+  SendToDevice(const InstanceId _instance_id, const BDDNode *_node, const TargetType _next_type, klee::ref<klee::Expr> _outgoing_port,
+               Symbols _symbols)
       : x86Module(ModuleType(ModuleCategory::x86_SendToDevice, _instance_id), _next_type, "SendToDevice", _node), outgoing_port(_outgoing_port),
         symbols(_symbols) {}
 

@@ -36,8 +36,8 @@ struct EPMeta {
 
   EPMeta(const BDD *bdd, const TargetsView &targets)
       : total_bdd_nodes(bdd->size()), depth(0), nodes(0), reordered_nodes(0), random_number(SingletonRandomEngine::generate()) {
-    for (const TargetView &target : targets.elements) {
-      steps_per_target[target.type] = 0;
+    for (const std::pair<const TargetView, bool> &target : targets.elements) {
+      steps_per_target[target.first.type] = 0;
     }
   }
 

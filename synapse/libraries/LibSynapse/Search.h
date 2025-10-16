@@ -69,11 +69,9 @@ private:
   Profiler profiler;
   std::unique_ptr<Heuristic> heuristic;
 
-  const LibClone::PhysicalNetwork &physical_network;
-
 public:
   SearchEngine(const BDD &bdd, HeuristicOption hopt, const Profiler &profiler, const targets_config_t &targets_config,
-               const search_config_t &search_config, const LibClone::PhysicalNetwork &physical_network);
+               const search_config_t &search_config, const std::unordered_map<LibSynapse::TargetType, bool> &targets);
 
   SearchEngine(const SearchEngine &)            = delete;
   SearchEngine(SearchEngine &&)                 = delete;

@@ -125,20 +125,18 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
 }
 
 std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, const BDD &bdd, const Targets &targets,
-                                           const targets_config_t &targets_config, const Profiler &profiler,
-                                           const LibClone::PhysicalNetwork &physical_network) {
+                                           const targets_config_t &targets_config, const Profiler &profiler) {
   std::unique_ptr<HeuristicCfg> heuristic_cfg = build_heuristic_cfg(hopt);
-  std::unique_ptr<EP> starting_ep             = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler, physical_network);
+  std::unique_ptr<EP> starting_ep             = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
   std::unique_ptr<Heuristic> heuristic        = std::make_unique<Heuristic>(std::move(heuristic_cfg), std::move(starting_ep), !not_greedy);
   return heuristic;
 }
 } // namespace
 
 SearchEngine::SearchEngine(const BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler, const targets_config_t &_targets_config,
-                           const search_config_t &_search_config, const LibClone::PhysicalNetwork &_physical_network)
-    : targets_config(_targets_config), search_config(_search_config), bdd(_bdd), targets(Targets(_targets_config, _physical_network)),
-      profiler(_profiler), heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler, _physical_network)),
-      physical_network(_physical_network) {}
+                           const search_config_t &_search_config, const std::unordered_map<LibSynapse::TargetType, bool> &_targets)
+    : targets_config(_targets_config), search_config(_search_config), bdd(_bdd), targets(Targets(_targets_config, _targets)), profiler(_profiler),
+      heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
 
 search_report_t SearchEngine::search() {
   const auto start_search                   = std::chrono::steady_clock::now();
@@ -179,13 +177,15 @@ search_report_t SearchEngine::search() {
     std::vector<impl_t> new_implementations;
 
     u64 children = 0;
-    for (const std::unique_ptr<Target> &target : targets.elements) {
-      for (const std::unique_ptr<ModuleFactory> &factory : target->module_factories) {
+    for (const std::pair<const std::unique_ptr<Target>, bool> &target : targets.elements) {
+      for (const std::unique_ptr<ModuleFactory> &factory : target.first->module_factories) {
         std::vector<impl_t> implementations = factory->implement(ep.get(), node, bdd.get_mutable_symbol_manager(), !search_config.no_reorder);
 
-        if (target->type.type == TargetArchitecture::Tofino) {
+        if (target.first->type.type == TargetArchitecture::Tofino) {
           children += implementations.size();
         }
+
+        std::cerr << "Factory " << factory->get_name() << " produced " << implementations.size() << " implementations.\n";
 
         search_space->add_to_active_leaf(ep.get(), node, factory.get(), implementations);
         report.save(factory.get(), implementations);

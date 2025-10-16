@@ -13,7 +13,7 @@ class PhysicalNetwork;
 
 namespace LibSynapse {
 
-using InstanceId = i32;
+using InstanceId = u64;
 
 class ModuleFactory;
 class TargetContext;
@@ -49,6 +49,12 @@ struct TargetView {
   TargetView(TargetView &&other)      = default;
 };
 
+struct TargetViewHasher {
+  std::size_t operator()(const LibSynapse::TargetView &tv) const noexcept {
+    return std::hash<int>()(static_cast<int>(tv.type.type)) ^ std::hash<LibSynapse::InstanceId>()(tv.type.instance_id);
+  }
+};
+
 struct Target {
   TargetType type;
   std::vector<std::unique_ptr<ModuleFactory>> module_factories;
@@ -62,25 +68,39 @@ struct Target {
   TargetView get_view() const;
 };
 
-struct TargetsView {
-  std::vector<TargetView> elements;
+struct TargetHasher {
+  std::size_t operator()(const std::unique_ptr<LibSynapse::Target> &target) const noexcept {
+    return std::hash<int>()(static_cast<int>(target->type.type)) ^ std::hash<LibSynapse::InstanceId>()(target->type.instance_id);
+  }
+};
 
-  TargetsView(const std::vector<TargetView> &elements);
+struct TargetsView {
+  std::unordered_map<TargetView, bool, TargetViewHasher> elements;
+
+  TargetsView(const std::unordered_map<TargetView, bool, TargetViewHasher> &_elements);
   TargetsView(const TargetsView &other) = default;
   TargetsView(TargetsView &&other)      = default;
 
   TargetView get_initial_target() const;
 };
 
-struct Targets {
-  std::vector<std::unique_ptr<Target>> elements;
+inline bool operator==(const TargetView &a, const TargetView &b) {
+  return a.type == b.type && a.module_factories == b.module_factories && a.base_ctx == b.base_ctx;
+}
 
-  Targets(const targets_config_t &config, const LibClone::PhysicalNetwork &physical_network);
+struct Targets {
+  std::unordered_map<std::unique_ptr<Target>, bool, TargetHasher> elements;
+
+  Targets(const targets_config_t &config, const std::unordered_map<LibSynapse::TargetType, bool> &targets);
   Targets(const Targets &other) = delete;
   Targets(Targets &&other)      = delete;
 
   TargetsView get_view() const;
 };
+
+inline bool operator==(const Target &a, const Target &b) {
+  return a.type == b.type && a.module_factories == b.module_factories && a.base_ctx == b.base_ctx;
+}
 
 } // namespace LibSynapse
 
@@ -90,4 +110,5 @@ template <> struct hash<LibSynapse::TargetType> {
     return std::hash<int>()(static_cast<int>(tt.type)) ^ std::hash<LibSynapse::InstanceId>()(tt.instance_id);
   }
 };
+
 } // namespace std

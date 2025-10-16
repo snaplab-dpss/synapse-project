@@ -16,7 +16,8 @@ void synthesize(const EP *ep, std::string name, const std::filesystem::path &out
     panic("BDD is not OK: %s", ep->get_bdd()->inspect().message.c_str());
   }
 
-  for (const TargetView &target : targets.elements) {
+  for (const std::pair<const TargetView, bool> &tv : targets.elements) {
+    TargetView target = tv.first;
     switch (target.type.type) {
     case TargetArchitecture::Tofino: {
       std::cerr << "\n************** Synthesizing Tofino " + std::to_string(target.type.instance_id) + " **************\n";

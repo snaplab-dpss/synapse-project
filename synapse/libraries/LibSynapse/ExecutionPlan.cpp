@@ -1,4 +1,3 @@
-#include "LibSynapse/Target.h"
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Modules/Module.h>
 #include <LibSynapse/Modules/ModuleFactory.h>
@@ -152,13 +151,13 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
 
 EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
     : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(), targets(_targets), ctx(bdd.get(), _targets, _targets_config, _profiler),
-      meta(bdd.get(), targets), phys_net(_phys_net) {
+      meta(bdd.get(), targets) {
   TargetType initial_target     = targets.get_initial_target().type;
   targets_roots[initial_target] = bdd_node_ids_t({bdd->get_root()->get_id()});
 
-  for (const TargetView &target : targets.elements) {
-    if (target.type != initial_target) {
-      targets_roots[target.type] = bdd_node_ids_t();
+  for (const std::pair<const TargetView, bool> &target : targets.elements) {
+    if (target.first.type != initial_target) {
+      targets_roots[target.first.type] = bdd_node_ids_t();
     }
   }
 
@@ -167,8 +166,7 @@ EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_ta
 
 EP::EP(const EP &other, bool is_ancestor)
     : id(ep_id_counter++), bdd(other.bdd), root(other.root ? other.root->clone(true) : nullptr), targets(other.targets),
-      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta),
-      phys_net(other.phys_net) {
+      ancestors(update_ancestors(other, is_ancestor)), targets_roots(other.targets_roots), ctx(other.ctx), meta(other.meta) {
   if (!root) {
     assert(other.active_leaves.size() == 1 && "No root and multiple leaves.");
     active_leaves.emplace_back(nullptr, bdd->get_root());
@@ -241,9 +239,7 @@ std::vector<const EPNode *> EP::get_nodes_by_type(const std::unordered_set<Modul
 }
 
 bool EP::has_target(TargetType type) const {
-  auto found_it = std::find_if(targets.elements.begin(), targets.elements.end(), [type](const TargetView &target) { return target.type == type; });
-
-  return found_it != targets.elements.end();
+  return std::any_of(targets.elements.begin(), targets.elements.end(), [type](const auto &kv) { return kv.first.type == type; });
 }
 
 const BDDNode *EP::get_next_node() const {
@@ -508,7 +504,7 @@ void EP::debug_speculations() const {
 }
 
 void EP::assert_integrity() const {
-  std::cerr << "***** Asserting integrity of EP " << id << " *****\n";
+  // std::cerr << "***** Asserting integrity of EP " << id << " *****\n";
   std::vector<const EPNode *> nodes{root.get()};
 
   while (nodes.size()) {
@@ -819,12 +815,12 @@ spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_tar
                                      const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy strategy) const {
   std::optional<spec_impl_t> best;
 
-  for (const TargetView &target : targets.elements) {
-    if (target.type != speculation_target.target) {
+  for (const std::pair<const TargetView, bool> &target : targets.elements) {
+    if (target.first.type != speculation_target.target) {
       continue;
     }
 
-    for (const ModuleFactory *modgen : target.module_factories) {
+    for (const ModuleFactory *modgen : target.first.module_factories) {
       // if (id == 56 && speculation_target.node->get_id() == 159) {
       //   std::cerr << "Trying module: " << modgen->get_name() << "\n";
       // }
@@ -1044,6 +1040,18 @@ const EPNode *EP::get_leaf_ep_node_from_bdd_node(const BDDNode *node) const {
     node = node->get_prev();
   }
   return nullptr;
+}
+
+const TargetType EP::get_target_by_id(const InstanceId instance_id) const {
+  for (const std::pair<const TargetView, bool> &target : targets.elements) {
+    std::cerr << target.first.type << "\n";
+    if (target.first.type.instance_id == instance_id) {
+      return target.first.type;
+    }
+  }
+
+  panic("Target not found");
+  return TargetType{TargetArchitecture::x86, 0};
 }
 
 } // namespace LibSynapse

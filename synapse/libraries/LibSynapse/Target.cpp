@@ -5,8 +5,7 @@
 #include <LibSynapse/Modules/Controller/Controller.h>
 #include <LibSynapse/Modules/Tofino/Tofino.h>
 
-#include <LibClone/PhysicalNetwork.h>
-
+#include <cassert>
 #include <toml++/toml.hpp>
 
 #include <sstream>
@@ -154,24 +153,28 @@ std::string to_string(TargetType target) {
   return ss.str();
 }
 
-TargetsView::TargetsView(const std::vector<TargetView> &_elements) : elements(_elements) {}
+TargetsView::TargetsView(const std::unordered_map<TargetView, bool, TargetViewHasher> &_elements) : elements(_elements) {}
 
 TargetView TargetsView::get_initial_target() const {
-  assert(!elements.empty() && "No targets to get the initial target from.");
-  return elements[0];
+  for (const std::pair<TargetView, bool> &tv_pair : elements) {
+    if (tv_pair.second) {
+      return tv_pair.first;
+    }
+  }
+  panic("No initial target set");
 }
 
-Targets::Targets(const targets_config_t &targets_config, const LibClone::PhysicalNetwork &physical_network) {
-  for (const auto &[_, device] : physical_network.get_devices()) {
-    switch (device->get_target().type) {
+Targets::Targets(const targets_config_t &targets_config, const std::unordered_map<TargetType, bool> &targets) {
+  for (const auto &[target, is_init] : targets) {
+    switch (target.type) {
     case TargetArchitecture::Tofino: {
-      elements.push_back(std::make_unique<Tofino::TofinoTarget>(targets_config.tofino_config, device->get_target().instance_id));
+      elements.emplace(std::make_unique<Tofino::TofinoTarget>(targets_config.tofino_config, target.instance_id), is_init);
     } break;
     case TargetArchitecture::Controller: {
-      elements.push_back(std::make_unique<Controller::ControllerTarget>(device->get_target().instance_id));
+      elements.emplace(std::make_unique<Controller::ControllerTarget>(target.instance_id), is_init);
     } break;
     case TargetArchitecture::x86: {
-      elements.push_back(std::make_unique<x86::x86Target>(device->get_target().instance_id));
+      elements.emplace(std::make_unique<x86::x86Target>(target.instance_id), is_init);
     } break;
     default: {
       panic("Unknown target type in physical network");
@@ -181,9 +184,9 @@ Targets::Targets(const targets_config_t &targets_config, const LibClone::Physica
 }
 
 TargetsView Targets::get_view() const {
-  std::vector<TargetView> views;
-  for (const std::unique_ptr<Target> &element : elements) {
-    views.push_back(element->get_view());
+  std::unordered_map<TargetView, bool, TargetViewHasher> views;
+  for (const std::pair<const std::unique_ptr<Target>, bool> &element : elements) {
+    views.emplace(element.first->get_view(), element.second);
   }
   return TargetsView(views);
 }

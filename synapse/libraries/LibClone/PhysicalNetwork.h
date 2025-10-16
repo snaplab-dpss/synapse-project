@@ -40,6 +40,7 @@ public:
 
   const LibSynapse::TargetType get_placement(const ComponentId component_id) const;
   Port get_forwarding_port(const InfrastructureNodeId src, const InfrastructureNodeId dst) const;
+  const std::unordered_map<LibSynapse::TargetType, bool> get_target_list(const ComponentId root_node = 1) const;
   const static PhysicalNetwork parse(const std::filesystem::path &file_path);
 
   void debug() const {

@@ -1,9 +1,8 @@
-#include "LibCore/Debug.h"
-#include "LibSynapse/Profiler.h"
 #include <LibSynapse/Modules/x86/SendToDevice.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibBDD/Visitors/BDDVisualizer.h>
 #include <LibSynapse/Visualizers/EPVisualizer.h>
+#include <cassert>
 #include <klee/util/Ref.h>
 
 namespace LibSynapse {
@@ -13,6 +12,7 @@ using LibBDD::call_t;
 namespace {
 bool bdd_node_match_pattern(const BDDNode *node) {
   if (node->get_type() != BDDNodeType::Call) {
+    std::cerr << "Node skipped: Not a Call node\n";
     return false;
   }
 
@@ -20,6 +20,7 @@ bool bdd_node_match_pattern(const BDDNode *node) {
   const call_t call   = call_op->get_call();
 
   if (call.function_name != "send_to_device") {
+    std::cerr << "Node skipped: Function name is " << call.function_name << "\n";
     return false;
   }
 
@@ -61,12 +62,22 @@ std::optional<spec_impl_t> SendToDeviceFactory::speculate(const EP *ep, const BD
     return {};
   }
 
-  // We can always send to the device, at any point in time.
-  // TODO: Get Next Target From Node
-  /*  spec_impl_t spec_impl(decide(ep, node), new_ctx);
-    spec_impl.next_target = node->get_next_target();*/
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
-  return {};
+  klee::ref<klee::Expr> next_target_expr = call.args.at("next_target").expr;
+
+  bits_t width                       = next_target_expr->getWidth();
+  const klee::ConstantExpr *constant = dynamic_cast<const klee::ConstantExpr *>(next_target_expr.get());
+
+  assert(width <= 64 && "Width too big");
+  InstanceId next_target_id = constant->getZExtValue(width);
+
+  // We can always send to the device, at any point in time.
+  spec_impl_t spec_impl(decide(ep, node), new_ctx);
+  spec_impl.next_target = ep->get_target_by_id(next_target_id);
+
+  return spec_impl;
 }
 
 std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -85,20 +96,23 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
     return {};
   }
 
-  // Otherwise we can always send to the device, at any point in time.
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call    = call_node->get_call();
 
-  klee::ref<klee::Expr> outgoing_port = call.args.at("outgoing_port").expr;
+  klee::ref<klee::Expr> outgoing_port    = call.args.at("outgoing_port").expr;
+  klee::ref<klee::Expr> next_target_expr = call.args.at("next_target").expr;
+
+  bits_t width                       = next_target_expr->getWidth();
+  const klee::ConstantExpr *constant = dynamic_cast<const klee::ConstantExpr *>(next_target_expr.get());
+
+  assert(width <= 64 && "Width too big");
+  InstanceId next_target_id = constant->getZExtValue(width);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
   Symbols symbols            = get_relevant_dataplane_state(ep, node, get_target());
   symbols.remove("packet_chunks");
 
-  const TargetType next_target = get_target();
-  panic("next_target should be obtained from the bdd node");
-
-  Module *module   = new SendToDevice(get_type().instance_id, node, next_target, outgoing_port, symbols);
+  Module *module   = new SendToDevice(get_type().instance_id, node, ep->get_target_by_id(next_target_id), outgoing_port, symbols);
   EPNode *s2d_node = new EPNode(module);
 
   EPNode *ep_node_leaf = s2d_node;
@@ -113,12 +127,9 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
     new_ep->replace_bdd(std::move(new_bdd));
   }
 
-  // const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(s2d_node);
-  //  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, s2d_node));
-
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));
-  return {};
+  return impls;
 }
 
 std::unique_ptr<Module> SendToDeviceFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {

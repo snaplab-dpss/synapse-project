@@ -13,8 +13,8 @@ public:
   x86Module(ModuleType _type, const std::string &_name, const BDDNode *_node)
       : Module(_type, TargetType(TargetArchitecture::x86, _type.instance_id), _name, _node) {}
 
-  x86Module(ModuleType _type, TargetType _next_type, const std::string &_name, const BDDNode *_node)
-      : Module(_type, TargetType(TargetArchitecture::x86, _type.instance_id), _next_type, _name, _node) {}
+  x86Module(ModuleType _type, TargetType _next_target, const std::string &_name, const BDDNode *_node)
+      : Module(_type, TargetType(TargetArchitecture::x86, _type.instance_id), _next_target, _name, _node) {}
 };
 
 class x86ModuleFactory : public ModuleFactory {

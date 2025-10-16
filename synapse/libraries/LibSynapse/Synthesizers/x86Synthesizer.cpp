@@ -50,7 +50,7 @@ std::filesystem::path template_from_type(x86SynthesizerTarget target) {
   synthesizer->dbg_vars();                                                                                                                           \
   panic("TODO: %s\n", expr_to_string(expr).c_str());
 
-x86Synthesizer::Transpiler::Transpiler(x86Synthesizer *_synthesizer) : synthesizer(_synthesizer) {}
+x86Synthesizer::Transpiler::Transpiler(const x86Synthesizer *_synthesizer) : synthesizer(_synthesizer) {}
 
 code_t x86Synthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
   coders.emplace();
@@ -82,6 +82,7 @@ code_t x86Synthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
   assert(!code.empty() && "Empty code");
   return code;
 }
+bool x86Synthesizer::Transpiler::is_primitive_type(bits_t size) { return size == 1 || size == 8 || size == 16 || size == 32 || size == 64; }
 
 code_t x86Synthesizer::Transpiler::type_from_size(bits_t size) {
   code_t type;
@@ -936,7 +937,7 @@ x86Synthesizer::var_t x86Synthesizer::build_var_ptr(const std::string &base_name
   var_t stack_value;
   if (find_or_create_tmp_slice_var(value, coder, stack_value)) {
     const bits_t width = stack_value.expr->getWidth();
-    if (width <= 64) {
+    if (Transpiler::is_primitive_type(width)) {
       coder.indent();
       coder << "*(" << Transpiler::type_from_size(width) << "*)";
       coder << var.value().name;

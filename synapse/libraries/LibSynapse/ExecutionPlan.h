@@ -71,11 +71,8 @@ private:
   mutable std::optional<pps_t> cached_tput_speculation;
   mutable std::optional<complete_speculation_t> cached_speculations;
 
-  const LibClone::PhysicalNetwork &phys_net;
-
 public:
-  EP(const BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler,
-     const LibClone::PhysicalNetwork &phys_net);
+  EP(const BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
   EP(const EP &other, bool is_ancestor = true);
   EP(EP &&other)                 = delete;
   EP &operator=(const EP *other) = delete;
@@ -121,10 +118,7 @@ public:
   port_ingress_t get_node_egress(hit_rate_t hr, const EPNode *node) const;
   pps_t estimate_tput_pps() const;
 
-  const TargetType get_placement(const LibClone::ComponentId component_id) const { return phys_net.get_placement(component_id); }
-  LibClone::Port get_forwarding_port(const LibClone::InfrastructureNodeId src, const LibClone::InfrastructureNodeId dst) const {
-    return phys_net.get_forwarding_port(src, dst);
-  }
+  const TargetType get_target_by_id(const InstanceId id) const;
 
   // Sources of error:
   // 1. Speculative performance is calculated as we make the speculative decisions, so local speculative decisions don't take into

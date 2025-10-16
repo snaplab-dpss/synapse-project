@@ -55,6 +55,7 @@ public:
   void set_time(const symbol_t &new_time) { time = new_time; }
 
   const BDDNode *get_root() const { return root; }
+  BDDNode *get_mutable_root() { return root; }
   const std::vector<Call *> &get_init() const { return init; }
 
   void set_root(BDDNode *_root) {
