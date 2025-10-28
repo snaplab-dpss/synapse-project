@@ -47,7 +47,7 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode
 
   // Note that we don't point to the next BDD node, as it was not actually implemented.
   const EPLeaf leaf(ep_node, node);
-  new_ep->process_leaf(ep_node, {leaf}, false);
+  new_ep->process_leaf(ep_node, {leaf}, EP::BDDNodeMarking::Unprocessed);
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

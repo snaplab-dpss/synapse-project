@@ -23,6 +23,7 @@ struct symbol_t {
 
   static bool is_symbol(klee::ref<klee::Expr> expr);
   static std::unordered_set<std::string> get_symbols_names(klee::ref<klee::Expr> expr);
+  static std::string base_from_name(std::string name);
 };
 
 std::ostream &operator<<(std::ostream &os, const symbol_t &symbol);

@@ -72,14 +72,29 @@ public:
   EP(EP &&other)                 = delete;
   EP &operator=(const EP *other) = delete;
 
-  void process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, bool process_node = true);
+  // This is used in the process_leaf method to tell if the target BDD node was indeed processed or not.
+  //
+  // BDD nodes are processed throughout search. Usually, each EPNode corresponds to a BDDNode (but not always). When processing a leaf, we might
+  // create a new EPNode that does **not** correspond to a BDDNode (e.g., SendToController, or Recirculate). In these scenarios, we don't have a
+  // BDDNode to process, and thus update the EP metadata accordingly. Don't dismiss the importance of this marking just because it's updating
+  // metadata, as it can (and probably will) have a strong impact on some heuristics (e.g. those relying on the number of processed BDD nodes to
+  // ensure search progression).
+  //
+  // Also, if you're thinking "gee, couldn't we just infer this from the new_leaves (check the process_leaf signature) and therefore refrain from
+  // asking the caller to provide this marking?". That is a great question! The answer is: yes, but performance. It's not as easy as checking if the
+  // new leaves still contain the BDD node that was just processed. The BDD can be mutated meanwhile, and the unprocessed BDD node can be somewhere in
+  // the future of the new BDD. Therefore, we would need to check the entire BDD future for this BDD node in order to mark it as
+  // processed/unprocessed. This is a lot of work for every step of the search, and made even worse by the fact that the **vast** majority of modules
+  // **do** process the BDD node, and therefore search would be for naught.
+  enum class BDDNodeMarking { Processed, Unprocessed };
+
+  void process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, BDDNodeMarking bdd_node_marking = BDDNodeMarking::Processed);
   void process_leaf(const BDDNode *next_node);
 
   struct translation_data_t {
     const BDDNode *reordered_node;
     translator_t next_nodes_translator;
     translator_t processed_nodes_translator;
-    std::vector<symbol_translation_t> translated_symbols;
   };
 
   void replace_bdd(std::unique_ptr<BDD> new_bdd);

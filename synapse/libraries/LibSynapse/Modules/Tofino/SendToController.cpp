@@ -472,7 +472,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
   // Note that we don't point to the next BDD node, as it was not actually implemented.
   // We are delegating the implementation to other platform.
   EPLeaf leaf(ep_node_leaf, next);
-  new_ep->process_leaf(s2c_node, {leaf}, false);
+  new_ep->process_leaf(s2c_node, {leaf}, EP::BDDNodeMarking::Unprocessed);
 
   if (new_bdd) {
     new_ep->replace_bdd(std::move(new_bdd));

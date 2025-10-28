@@ -19,8 +19,8 @@ STORAGE_SERVER_DELAY_NS = 0
 KVS_GET_RATIO = 0.99
 
 TOTAL_FLOWS = 40_000
-CHURN_FPM = 10_000
-ZIPF_PARAM = 0
+CHURN_FPM = 100_000
+ZIPF_PARAM = 1.2
 
 
 @dataclass
@@ -50,8 +50,8 @@ NFS = [
     NF(
         name="fcfs_cached_table",
         description="FCFSCachedTable",
-        tofino=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table_64.p4"),
-        controller=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table_64.cpp"),
+        tofino=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table_65536.p4"),
+        controller=Path("tofino/data_structures/fcfs_cached_table/fcfs_cached_table_65536.cpp"),
         kvs_mode=False,
     ),
 ]

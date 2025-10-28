@@ -8,9 +8,9 @@
 #include "nf-util.h"
 #include "nf-log.h"
 
-#define PARSE_ERROR(format, ...)                                                                                                           \
-  nf_config_usage();                                                                                                                       \
-  fprintf(stderr, format, ##__VA_ARGS__);                                                                                                  \
+#define PARSE_ERROR(format, ...)                                                                                                                     \
+  nf_config_usage();                                                                                                                                 \
+  fprintf(stderr, format, ##__VA_ARGS__);                                                                                                            \
   exit(EXIT_FAILURE);
 
 void nf_config_init(int argc, char **argv) {
@@ -22,7 +22,7 @@ void nf_config_init(int argc, char **argv) {
                                   {"fwd-rule", required_argument, NULL, 'r'},
                                   {NULL, 0, NULL, 0}};
   int opt;
-  while ((opt = getopt_long(argc, argv, "t:f:i:l:", long_options, NULL)) != EOF) {
+  while ((opt = getopt_long(argc, argv, "t:f:i:r:", long_options, NULL)) != EOF) {
     switch (opt) {
     case 't':
       config.expiration_time = nf_util_parse_int(optarg, "exp-time", 10, '\0');

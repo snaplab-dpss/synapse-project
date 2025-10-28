@@ -543,7 +543,7 @@ symbol_t parse_call_symbol(std::string serialized_symbol, std::vector<klee::ref<
   serialized_symbol = serialized_symbol.substr(delim + 1);
 
   klee::ref<klee::Expr> expr = pop_expr(exprs);
-  symbol_t symbol(expr);
+  symbol_t symbol(base, name, expr);
 
   return symbol;
 }
