@@ -45,43 +45,43 @@ namespace Tofino {
 struct TofinoTarget : public Target {
   TofinoTarget(const tna_config_t &tna_config, const InstanceId _instance_id)
       : Target(
-            TargetType(TargetArchitecture::Tofino, instance_id),
-            [instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
+            TargetType(TargetArchitecture::Tofino, _instance_id),
+            [_instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
-              f.push_back(std::make_unique<RecirculateFactory>());
-              f.push_back(std::make_unique<ForwardFactory>());
-              f.push_back(std::make_unique<DropFactory>());
-              f.push_back(std::make_unique<BroadcastFactory>());
-              f.push_back(std::make_unique<IgnoreFactory>());
-              f.push_back(std::make_unique<IfFactory>());
-              f.push_back(std::make_unique<ThenFactory>());
-              f.push_back(std::make_unique<ElseFactory>());
-              f.push_back(std::make_unique<ParserExtractionFactory>());
-              f.push_back(std::make_unique<ParserConditionFactory>());
-              f.push_back(std::make_unique<ParserRejectFactory>());
-              f.push_back(std::make_unique<ModifyHeaderFactory>());
-              f.push_back(std::make_unique<MapTableLookupFactory>());
-              f.push_back(std::make_unique<GuardedMapTableLookupFactory>());
-              f.push_back(std::make_unique<GuardedMapTableGuardCheckFactory>());
-              f.push_back(std::make_unique<DchainTableLookupFactory>());
-              f.push_back(std::make_unique<VectorTableLookupFactory>());
-              f.push_back(std::make_unique<VectorRegisterLookupFactory>());
-              f.push_back(std::make_unique<VectorRegisterUpdateFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableReadFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableReadWriteFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
-              f.push_back(std::make_unique<MeterUpdateFactory>());
-              f.push_back(std::make_unique<HHTableReadFactory>());
-              f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>());
-              // f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>());
-              // f.push_back(std::make_unique<IntegerAllocatorIsAllocatedFactory>());
-              // f.push_back(std::make_unique<IntegerAllocatorRejuvenateFactory>());
-              f.push_back(std::make_unique<CMSQueryFactory>(instance_id));
-              f.push_back(std::make_unique<CMSIncrementFactory>(instance_id));
-              f.push_back(std::make_unique<CMSIncAndQueryFactory>(instance_id));
-              f.push_back(std::make_unique<LPMLookupFactory>(instance_id));
-              f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>(instance_id));
-              f.push_back(std::make_unique<SendToControllerFactory>(instance_id));
+              f.push_back(std::make_unique<RecirculateFactory>(_instance_id));
+              f.push_back(std::make_unique<ForwardFactory>(_instance_id));
+              f.push_back(std::make_unique<DropFactory>(_instance_id));
+              f.push_back(std::make_unique<BroadcastFactory>(_instance_id));
+              f.push_back(std::make_unique<IgnoreFactory>(_instance_id));
+              f.push_back(std::make_unique<IfFactory>(_instance_id));
+              f.push_back(std::make_unique<ThenFactory>(_instance_id));
+              f.push_back(std::make_unique<ElseFactory>(_instance_id));
+              f.push_back(std::make_unique<ParserExtractionFactory>(_instance_id));
+              f.push_back(std::make_unique<ParserConditionFactory>(_instance_id));
+              f.push_back(std::make_unique<ParserRejectFactory>(_instance_id));
+              f.push_back(std::make_unique<ModifyHeaderFactory>(_instance_id));
+              f.push_back(std::make_unique<MapTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<GuardedMapTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<GuardedMapTableGuardCheckFactory>(_instance_id));
+              f.push_back(std::make_unique<DchainTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorTableLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorRegisterLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<VectorRegisterUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<FCFSCachedTableReadFactory>(_instance_id));
+              f.push_back(std::make_unique<FCFSCachedTableReadWriteFactory>(_instance_id));
+              f.push_back(std::make_unique<FCFSCachedTableWriteFactory>(_instance_id));
+              f.push_back(std::make_unique<MeterUpdateFactory>(_instance_id));
+              f.push_back(std::make_unique<HHTableReadFactory>(_instance_id));
+              f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>(_instance_id));
+              // f.push_back(std::make_unique<IntegerAllocatorAllocateFactory>(_instance_id));
+              // f.push_back(std::make_unique<IntegerAllocatorIsAllocatedFactory>(_instance_id));
+              // f.push_back(std::make_unique<IntegerAllocatorRejuvenateFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSQueryFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSIncrementFactory>(_instance_id));
+              f.push_back(std::make_unique<CMSIncAndQueryFactory>(_instance_id));
+              f.push_back(std::make_unique<LPMLookupFactory>(_instance_id));
+              f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>(_instance_id));
+              f.push_back(std::make_unique<SendToControllerFactory>(_instance_id));
               return f;
             }(),
             std::make_unique<TofinoContext>(tna_config)) {}

@@ -80,7 +80,7 @@ DchainTable *reuse_dchain_table(const EP *ep, const BDDNode *node, const TargetT
 
 } // namespace
 
-DchainTable *TofinoModuleFactory::build_or_reuse_dchain_table(const EP *ep, const BDDNode *node, const TargetType type,
+DchainTable *TofinoModuleFactory::build_or_reuse_dchain_table(const EP *ep, const BDDNode *node, const TargetType target,
                                                               const dchain_table_data_t &data) {
   DchainTable *dchain_table;
 
@@ -88,23 +88,24 @@ DchainTable *TofinoModuleFactory::build_or_reuse_dchain_table(const EP *ep, cons
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_DchainTable);
 
   if (already_placed) {
-    dchain_table = reuse_dchain_table(ep, node, type, data);
+    dchain_table = reuse_dchain_table(ep, node, target, data);
   } else {
-    dchain_table = build_dchain_table(ep, node, type, data);
+    dchain_table = build_dchain_table(ep, node, target, data);
   }
 
   return dchain_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_dchain_table(const EP *ep, const BDDNode *node, const TargetType type, const dchain_table_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_dchain_table(const EP *ep, const BDDNode *node, const TargetType target,
+                                                          const dchain_table_data_t &data) {
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_DchainTable);
 
   if (already_placed) {
-    return can_reuse_dchain_table(ep, node, type, data);
+    return can_reuse_dchain_table(ep, node, target, data);
   }
 
-  DchainTable *dchain_table = build_dchain_table(ep, node, type, data);
+  DchainTable *dchain_table = build_dchain_table(ep, node, target, data);
 
   if (!dchain_table) {
     return false;

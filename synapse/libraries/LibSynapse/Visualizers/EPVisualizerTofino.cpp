@@ -233,7 +233,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 
   Tofino::DS_ID id                        = node->get_fcfs_cached_table_id();
   const Context &ctx                      = ep->get_ctx();
-  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>(target);
   const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
   assert(ds->type == Tofino::DSType::FCFSCachedTable && "Invalid Tofino::DS type");
   const Tofino::FCFSCachedTable *cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(ds);
@@ -260,7 +260,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 
   Tofino::DS_ID id                        = node->get_fcfs_cached_table_id();
   const Context &ctx                      = ep->get_ctx();
-  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>(target);
   const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
   assert(ds->type == Tofino::DSType::FCFSCachedTable && "Invalid Tofino::DS type");
   const Tofino::FCFSCachedTable *cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(ds);
@@ -287,7 +287,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 
   Tofino::DS_ID id                        = node->get_fcfs_cached_table_id();
   const Context &ctx                      = ep->get_ctx();
-  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>(target);
   const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
   assert(ds->type == Tofino::DSType::FCFSCachedTable && "Invalid Tofino::DS type");
   const Tofino::FCFSCachedTable *cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(ds);
@@ -343,7 +343,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   TargetType target       = node->get_target();
   addr_t obj              = node->get_obj();
 
-  const Tofino::DS *ds = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_data_structures().get_ds_from_id(node->get_hh_table_id());
+  const Tofino::DS *ds = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>(target)->get_data_structures().get_ds_from_id(node->get_hh_table_id());
 
   assert(ds->type == Tofino::DSType::HHTable && "Invalid Tofino::DS type");
   const Tofino::HHTable *hh_table = dynamic_cast<const Tofino::HHTable *>(ds);

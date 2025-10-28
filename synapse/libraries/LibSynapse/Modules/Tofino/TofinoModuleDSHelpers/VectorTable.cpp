@@ -80,7 +80,7 @@ VectorTable *reuse_vector_table(const EP *ep, const BDDNode *node, const TargetT
 
 } // namespace
 
-VectorTable *TofinoModuleFactory::build_or_reuse_vector_table(const EP *ep, const BDDNode *node, const TargetType type,
+VectorTable *TofinoModuleFactory::build_or_reuse_vector_table(const EP *ep, const BDDNode *node, const TargetType target,
                                                               const vector_table_data_t &data) {
   VectorTable *vector_table;
 
@@ -88,23 +88,24 @@ VectorTable *TofinoModuleFactory::build_or_reuse_vector_table(const EP *ep, cons
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorTable);
 
   if (already_placed) {
-    vector_table = reuse_vector_table(ep, node, type, data);
+    vector_table = reuse_vector_table(ep, node, target, data);
   } else {
-    vector_table = build_vector_table(ep, node, type, data);
+    vector_table = build_vector_table(ep, node, target, data);
   }
 
   return vector_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_vector_table(const EP *ep, const BDDNode *node, const TargetType type, const vector_table_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_vector_table(const EP *ep, const BDDNode *node, const TargetType target,
+                                                          const vector_table_data_t &data) {
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_VectorTable);
 
   if (already_placed) {
-    return can_reuse_vector_table(ep, node, type, data);
+    return can_reuse_vector_table(ep, node, target, data);
   }
 
-  VectorTable *vector_table = build_vector_table(ep, node, type, data);
+  VectorTable *vector_table = build_vector_table(ep, node, target, data);
 
   if (!vector_table) {
     return false;

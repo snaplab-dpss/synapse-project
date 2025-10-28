@@ -1,6 +1,5 @@
 #pragma once
 
-#include "LibSynapse/Target.h"
 #include <LibSynapse/Modules/Module.h>
 #include <LibSynapse/Modules/ModuleFactory.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
@@ -67,8 +66,8 @@ public:
   static const TofinoContext *get_tofino_ctx(const EP *ep, TargetType target);
   static TofinoContext *get_mutable_tofino_ctx(EP *ep, TargetType target);
 
-  static const TNA &get_tna(const EP *ep);
-  static TNA &get_mutable_tna(EP *ep);
+  static const TNA &get_tna(const EP *ep, const TargetType target);
+  static TNA &get_mutable_tna(EP *ep, const TargetType target);
 
   static Symbols get_relevant_dataplane_state(const EP *ep, const BDDNode *node, const TargetType type);
   static bool expr_fits_in_action(klee::ref<klee::Expr> expr);
@@ -77,29 +76,29 @@ public:
   //  Map Table
   // ======================================================================
 
-  static MapTable *build_or_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data);
-  static bool can_build_or_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data);
+  static MapTable *build_or_reuse_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data);
+  static bool can_build_or_reuse_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data);
 
   // ======================================================================
   //  Guarded Map Table
   // ======================================================================
 
-  static GuardedMapTable *build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const TargetType type, const map_table_data_t &data);
+  static GuardedMapTable *build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data);
   static bool can_build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data);
 
   // ======================================================================
   //  Vector Table
   // ======================================================================
 
-  static VectorTable *build_or_reuse_vector_table(const EP *ep, const BDDNode *node, const vector_table_data_t &data);
-  static bool can_build_or_reuse_vector_table(const EP *ep, const BDDNode *node, const vector_table_data_t &data);
+  static VectorTable *build_or_reuse_vector_table(const EP *ep, const BDDNode *node, const TargetType target, const vector_table_data_t &data);
+  static bool can_build_or_reuse_vector_table(const EP *ep, const BDDNode *node, const TargetType target, const vector_table_data_t &data);
 
   // ======================================================================
   //  Dchain Table
   // ======================================================================
 
-  static DchainTable *build_or_reuse_dchain_table(const EP *ep, const BDDNode *node, const dchain_table_data_t &data);
-  static bool can_build_or_reuse_dchain_table(const EP *ep, const BDDNode *node, const dchain_table_data_t &data);
+  static DchainTable *build_or_reuse_dchain_table(const EP *ep, const BDDNode *node, const TargetType target, const dchain_table_data_t &data);
+  static bool can_build_or_reuse_dchain_table(const EP *ep, const BDDNode *node, const TargetType target, const dchain_table_data_t &data);
 
   // ======================================================================
   //  Vector Registers
@@ -127,10 +126,10 @@ public:
   //  Heavy Hitter Table
   // ======================================================================
 
-  static bool can_build_or_reuse_hh_table(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity,
-                                          u32 cms_width, u32 cms_height);
-  static HHTable *build_or_reuse_hh_table(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity,
-                                          u32 cms_width, u32 cms_height);
+  static bool can_build_or_reuse_hh_table(const EP *ep, const BDDNode *node, const TargetType target, addr_t obj,
+                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width, u32 cms_height);
+  static HHTable *build_or_reuse_hh_table(const EP *ep, const BDDNode *node, const TargetType target, addr_t obj,
+                                          const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width, u32 cms_height);
   static hit_rate_t get_hh_table_hit_success_rate(const EP *ep, const Context &ctx, const BDDNode *node, addr_t map, klee::ref<klee::Expr> key,
                                                   u32 capacity, u32 cms_width);
 

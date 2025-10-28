@@ -313,6 +313,8 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
     const TargetType next_target     = module->get_next_target();
     const bdd_node_id_t next_node_id = new_leaf.next->get_id();
 
+    std::cerr << "New Node: " << module->get_node()->dump(true) << "\n";
+
     if (next_target != current_target) {
       targets_roots[next_target].insert(next_node_id);
     }
@@ -1044,7 +1046,6 @@ const EPNode *EP::get_leaf_ep_node_from_bdd_node(const BDDNode *node) const {
 
 const TargetType EP::get_target_by_id(const InstanceId instance_id) const {
   for (const std::pair<const TargetView, bool> &target : targets.elements) {
-    std::cerr << target.first.type << "\n";
     if (target.first.type.instance_id == instance_id) {
       return target.first.type;
     }

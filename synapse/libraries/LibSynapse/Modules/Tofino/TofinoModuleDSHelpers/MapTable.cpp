@@ -96,30 +96,30 @@ MapTable *reuse_map_table(const EP *ep, const BDDNode *node, const TargetType ty
 
 } // namespace
 
-MapTable *TofinoModuleFactory::build_or_reuse_map_table(const EP *ep, const BDDNode *node, const TargetType type, const map_table_data_t &data) {
+MapTable *TofinoModuleFactory::build_or_reuse_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data) {
   MapTable *map_table;
 
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapTable);
 
   if (already_placed) {
-    map_table = reuse_map_table(ep, node, type, data);
+    map_table = reuse_map_table(ep, node, target, data);
   } else {
-    map_table = build_map_table(ep, node, type, data);
+    map_table = build_map_table(ep, node, target, data);
   }
 
   return map_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_map_table(const EP *ep, const BDDNode *node, const TargetType type, const map_table_data_t &data) {
+bool TofinoModuleFactory::can_build_or_reuse_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data) {
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapTable);
 
   if (already_placed) {
-    return can_reuse_map_table(ep, node, type, data);
+    return can_reuse_map_table(ep, node, target, data);
   }
 
-  MapTable *map_table = build_map_table(ep, node, type, data);
+  MapTable *map_table = build_map_table(ep, node, target, data);
 
   if (!map_table) {
     return false;

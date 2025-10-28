@@ -70,7 +70,7 @@ HHTable *TofinoModuleFactory::build_or_reuse_hh_table(const EP *ep, const BDDNod
   return hh_table;
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const BDDNode *node, const TargetType type, addr_t obj,
+bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const BDDNode *node, const TargetType target, addr_t obj,
                                                       const std::vector<klee::ref<klee::Expr>> &keys, u32 capacity, u32 cms_width, u32 cms_height) {
   HHTable *hh_table = nullptr;
 
@@ -78,7 +78,7 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const BDDNod
   bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable);
 
   if (already_placed) {
-    const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>(type);
+    const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>(target);
     const std::unordered_set<DS *> &ds = tofino_ctx->get_data_structures().get_ds(obj);
 
     assert(ds.size() == 1 && "Invalid number of DS");
@@ -98,7 +98,7 @@ bool TofinoModuleFactory::can_build_or_reuse_hh_table(const EP *ep, const BDDNod
     return true;
   }
 
-  hh_table = build_hh_table(ep, node, type, obj, keys, capacity, cms_width, cms_height);
+  hh_table = build_hh_table(ep, node, target, obj, keys, capacity, cms_width, cms_height);
 
   if (!hh_table) {
     return false;

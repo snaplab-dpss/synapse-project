@@ -83,8 +83,8 @@ namespace Controller {
 struct ControllerTarget : public Target {
   ControllerTarget(const InstanceId _instance_id)
       : Target(
-            TargetType(TargetArchitecture::Controller, instance_id),
-            [instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
+            TargetType(TargetArchitecture::Controller, _instance_id),
+            [_instance_id]() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
               f.push_back(std::make_unique<IgnoreFactory>(_instance_id));
               f.push_back(std::make_unique<ParseHeaderFactory>(_instance_id));

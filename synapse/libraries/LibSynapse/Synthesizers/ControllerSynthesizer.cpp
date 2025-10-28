@@ -1,4 +1,3 @@
-#include "LibSynapse/Target.h"
 #include <LibSynapse/Synthesizers/ControllerSynthesizer.h>
 #include <LibSynapse/Modules/x86/x86.h>
 #include <LibSynapse/ExecutionPlan.h>

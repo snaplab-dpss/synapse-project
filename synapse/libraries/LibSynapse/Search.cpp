@@ -185,8 +185,6 @@ search_report_t SearchEngine::search() {
           children += implementations.size();
         }
 
-        std::cerr << "Factory " << factory->get_name() << " produced " << implementations.size() << " implementations.\n";
-
         search_space->add_to_active_leaf(ep.get(), node, factory.get(), implementations);
         report.save(factory.get(), implementations);
         new_implementations.insert(new_implementations.end(), std::make_move_iterator(implementations.begin()),

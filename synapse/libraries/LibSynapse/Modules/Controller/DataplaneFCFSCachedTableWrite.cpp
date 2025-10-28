@@ -143,7 +143,7 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableWriteFactory::create(const BDD *
     return {};
   }
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<Tofino::TofinoContext>()->get_data_structures().get_ds(obj);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<Tofino::TofinoContext>(get_target())->get_data_structures().get_ds(obj);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const Tofino::FCFSCachedTable *fcfs_cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(*ds.begin());
 

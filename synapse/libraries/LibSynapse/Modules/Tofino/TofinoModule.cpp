@@ -1,4 +1,3 @@
-#include "LibSynapse/Target.h"
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/ExecutionPlan.h>
@@ -114,13 +113,13 @@ const TofinoContext *TofinoModuleFactory::get_tofino_ctx(const EP *ep, TargetTyp
   return ctx.get_target_ctx<TofinoContext>(target);
 }
 
-TNA &TofinoModuleFactory::get_mutable_tna(EP *ep, TargetType type) {
-  TofinoContext *ctx = get_mutable_tofino_ctx(ep, type);
+TNA &TofinoModuleFactory::get_mutable_tna(EP *ep, const TargetType target) {
+  TofinoContext *ctx = get_mutable_tofino_ctx(ep, target);
   return ctx->get_mutable_tna();
 }
 
-const TNA &TofinoModuleFactory::get_tna(const EP *ep, TargetType type) {
-  const TofinoContext *ctx = get_tofino_ctx(ep, type);
+const TNA &TofinoModuleFactory::get_tna(const EP *ep, const TargetType target) {
+  const TofinoContext *ctx = get_tofino_ctx(ep, target);
   return ctx->get_tna();
 }
 

@@ -60,7 +60,7 @@ struct KeyVecMap {
   Map *map;
   Vector *vector;
   sizet_t key_size;
-}
+};
 
 int key_vec_map_allocate(unsigned capacity, unsigned key_size, struct KeyVecMap **key_vec_map_out) {
 
@@ -100,7 +100,7 @@ int key_vec_map_get(struct KeyVecMap *kvm, void *key, int *value_out) {
   return map_hit;
 }
 
-void key_vec_map_put(struct KeyVecMap *map, void *key, int value) {
+void key_vec_map_put(struct KeyVecMap *kvm, void *key, int value) {
 
   void *cell;
 

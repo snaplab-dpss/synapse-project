@@ -9,8 +9,8 @@ namespace Tofino {
 
 namespace {
 
-GuardedMapTable *build_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
-  const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>();
+GuardedMapTable *build_guarded_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data) {
+  const TofinoContext *tofino_ctx    = ep->get_ctx().get_target_ctx<TofinoContext>(target);
   const tna_properties_t &properties = tofino_ctx->get_tna().tna_config.properties;
 
   bits_t key_size = 0;
@@ -35,8 +35,8 @@ GuardedMapTable *build_guarded_map_table(const EP *ep, const BDDNode *node, cons
   return guarded_map_table;
 }
 
-GuardedMapTable *get_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+GuardedMapTable *get_guarded_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(target);
 
   if (!tofino_ctx->get_data_structures().has(data.obj)) {
     return nullptr;
@@ -51,11 +51,11 @@ GuardedMapTable *get_guarded_map_table(const EP *ep, const BDDNode *node, const 
   return dynamic_cast<GuardedMapTable *>(mt);
 }
 
-bool can_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
-  GuardedMapTable *guarded_map_table = get_guarded_map_table(ep, node, data);
+bool can_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data) {
+  GuardedMapTable *guarded_map_table = get_guarded_map_table(ep, node, target, data);
   assert(guarded_map_table && "Guarded map table not found");
 
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(target);
   assert(!guarded_map_table->has_table(node->get_id()));
 
   GuardedMapTable *clone = dynamic_cast<GuardedMapTable *>(guarded_map_table->clone());
@@ -74,11 +74,11 @@ bool can_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_ta
   return can_place;
 }
 
-GuardedMapTable *reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
-  GuardedMapTable *guarded_map_table = get_guarded_map_table(ep, node, data);
+GuardedMapTable *reuse_guarded_map_table(const EP *ep, const BDDNode *node, const TargetType target, const map_table_data_t &data) {
+  GuardedMapTable *guarded_map_table = get_guarded_map_table(ep, node, target, data);
   assert(guarded_map_table && "Guarded map table not found");
 
-  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>(target);
   assert(!guarded_map_table->has_table(node->get_id()));
 
   std::vector<bits_t> keys_size;
@@ -97,16 +97,17 @@ GuardedMapTable *reuse_guarded_map_table(const EP *ep, const BDDNode *node, cons
 
 } // namespace
 
-GuardedMapTable *TofinoModuleFactory::build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data) {
+GuardedMapTable *TofinoModuleFactory::build_or_reuse_guarded_map_table(const EP *ep, const BDDNode *node, const TargetType target,
+                                                                       const map_table_data_t &data) {
   GuardedMapTable *guarded_map_table;
 
   const Context &ctx  = ep->get_ctx();
   bool already_placed = ctx.check_ds_impl(data.obj, DSImpl::Tofino_GuardedMapTable);
 
   if (already_placed) {
-    guarded_map_table = reuse_guarded_map_table(ep, node, data);
+    guarded_map_table = reuse_guarded_map_table(ep, node, target, data);
   } else {
-    guarded_map_table = build_guarded_map_table(ep, node, data);
+    guarded_map_table = build_guarded_map_table(ep, node, target, data);
   }
 
   return guarded_map_table;

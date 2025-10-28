@@ -5,6 +5,8 @@
 #include <cassert>
 #include <klee/util/Ref.h>
 
+#include <LibBDD/Visitors/BDDVisualizer.h>
+
 namespace LibSynapse {
 namespace x86 {
 using LibBDD::Call;
@@ -12,7 +14,7 @@ using LibBDD::call_t;
 namespace {
 bool bdd_node_match_pattern(const BDDNode *node) {
   if (node->get_type() != BDDNodeType::Call) {
-    std::cerr << "Node skipped: Not a Call node\n";
+    // std::cerr << "Node skipped: Not a Call node\n";
     return false;
   }
 
@@ -20,7 +22,7 @@ bool bdd_node_match_pattern(const BDDNode *node) {
   const call_t call   = call_op->get_call();
 
   if (call.function_name != "send_to_device") {
-    std::cerr << "Node skipped: Function name is " << call.function_name << "\n";
+    // std::cerr << "Node skipped: Function name is " << call.function_name << "\n";
     return false;
   }
 
@@ -45,6 +47,10 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node
   new_bdd->add_cloned_non_branches(node->get_id(), hdr_parsing_ops);
 
   next = new_bdd->get_node_by_id(node->get_id());
+
+  std::cerr << "NEXT ID: " << next->get_id() << "\n";
+
+  BDDViz::visualize(new_bdd.get(), false);
 
   return new_bdd;
 }
@@ -117,11 +123,11 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
 
   EPNode *ep_node_leaf = s2d_node;
 
-  const BDDNode *next          = node;
+  const BDDNode *next          = node->get_next();
   std::unique_ptr<BDD> new_bdd = replicate_hdr_parsing_ops(ep, node, next);
 
   EPLeaf leaf(ep_node_leaf, next);
-  new_ep->process_leaf(s2d_node, {leaf}, false);
+  new_ep->process_leaf(s2d_node, {leaf});
 
   if (new_bdd) {
     new_ep->replace_bdd(std::move(new_bdd));

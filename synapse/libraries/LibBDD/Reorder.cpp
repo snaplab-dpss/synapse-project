@@ -38,12 +38,14 @@ const std::unordered_set<std::string> functions_cannot_cross_branches{
     "tb_trace",
     "tb_update_and_check",
     "lpm_update",
+    "send_to_device",
 };
 
 const std::vector<std::string> functions_cannot_reorder_lookup{
     "nf_set_rte_ipv4_udptcp_checksum",
     "packet_borrow_next_chunk",
     "packet_return_chunk",
+    "send_to_device",
 };
 
 struct mutable_vector_t {
@@ -1035,6 +1037,40 @@ double estimate_reorder(const BDD *bdd, const BDDNode *anchor) {
 
   return total;
 }
+static bool is_send_to_device(const BDDNode *node) {
+  if (!node || node->get_type() != BDDNodeType::Call) {
+    return false;
+  }
+
+  const Call *call_op = dynamic_cast<const Call *>(node);
+  const call_t call   = call_op->get_call();
+
+  if (call.function_name != "send_to_device") {
+    return false;
+  }
+
+  return true;
+}
+
+static bool same_send_to_device_segment(const vector_t &anchor, const BDDNode *candidate) {
+  if (!candidate)
+    return false;
+
+  const BDDNode *anchor_next = get_vector_next(anchor);
+
+  if (!anchor_next)
+    return false;
+
+  if (is_send_to_device(anchor_next))
+    return false;
+
+  for (const BDDNode *cur = candidate; cur && cur != anchor_next; cur = cur->get_prev()) {
+    if (is_send_to_device(cur))
+      return false;
+  }
+  return true;
+}
+
 } // namespace
 
 candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor, bdd_node_id_t proposed_candidate_id) {
@@ -1077,6 +1113,11 @@ candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t 
 
   if (!io_check(proposed_candidate, anchor_symbols)) {
     candidate_info.status = ReorderingCandidateStatus::IOCheckFailed;
+    return candidate_info;
+  }
+
+  if (!same_send_to_device_segment(anchor, proposed_candidate)) {
+    candidate_info.status = ReorderingCandidateStatus::NotAllowed;
     return candidate_info;
   }
 

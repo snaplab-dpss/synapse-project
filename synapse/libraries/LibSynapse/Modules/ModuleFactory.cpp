@@ -139,6 +139,8 @@ std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, 
     return implementations;
   }
 
+  // std::cerr << "#Implementations: " << implementations.size() << "\n";
+
   std::vector<impl_t> reordered_implementations;
   for (const impl_t &impl : implementations) {
     for (std::unique_ptr<EP> &reordered_ep : get_reordered(impl.result.get())) {
@@ -147,12 +149,16 @@ std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, 
     }
   }
 
+  // std::cerr << "#Reordered Implementations: " << reordered_implementations.size() << "\n";
+
   std::vector<impl_t> final_implementations;
   final_implementations.reserve(implementations.size() + reordered_implementations.size());
   final_implementations.insert(final_implementations.end(), std::make_move_iterator(implementations.begin()),
                                std::make_move_iterator(implementations.end()));
   final_implementations.insert(final_implementations.end(), std::make_move_iterator(reordered_implementations.begin()),
                                std::make_move_iterator(reordered_implementations.end()));
+
+  // std::cerr << "#Final Implementations: " << final_implementations.size() << "\n";
 
   return final_implementations;
 }

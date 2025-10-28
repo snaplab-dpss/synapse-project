@@ -2071,6 +2071,31 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::SendToDevice *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+
+  if (!in_nf_init)
+    process_nodes.insert(node->get_node()->get_id());
+
+  klee::ref<klee::Expr> outgoing_port = node->get_outgoing_port();
+  Symbols symbols                     = node->get_symbols();
+
+  for (const symbol_t &symbol : symbols.get()) {
+    std::optional<var_t> var = vars.get(symbol.expr);
+
+    if (!var.has_value()) {
+      dbg_vars();
+      panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
+    }
+  }
+
+  coder.indent();
+  coder << "return " << transpiler.transpile(outgoing_port);
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketAllocate *node) {
   coder_t &coder = get_current_coder();
   if (!in_nf_init)

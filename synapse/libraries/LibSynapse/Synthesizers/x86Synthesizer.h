@@ -194,6 +194,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainFreeIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::ChtFindBackend *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::HashObj *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::SendToDevice *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketIsTracing *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketTrace *node) override final;

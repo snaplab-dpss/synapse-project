@@ -57,7 +57,7 @@ std::optional<spec_impl_t> MapTableLookupFactory::speculate(const EP *ep, const 
     return {};
   }
 
-  if (!can_build_or_reuse_map_table(ep, node, target, data)) {
+  if (!can_build_or_reuse_map_table(ep, node, get_target(), data)) {
     return {};
   }
 

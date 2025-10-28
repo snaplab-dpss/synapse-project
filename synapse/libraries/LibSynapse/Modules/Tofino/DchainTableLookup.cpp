@@ -55,7 +55,7 @@ std::optional<spec_impl_t> DchainTableLookupFactory::speculate(const EP *ep, con
     return {};
   }
 
-  if (!can_build_or_reuse_dchain_table(ep, node, target, data)) {
+  if (!can_build_or_reuse_dchain_table(ep, node, get_target(), data)) {
     return {};
   }
 

@@ -96,13 +96,11 @@ std::optional<BDDNode *> Placer::create_send_to_device_node(std::unique_ptr<BDD>
 }
 
 void Placer::handle_branch_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t branch_id, bdd_node_id_t on_true_id, bdd_node_id_t on_false_id) {
-  // Create send_to_device node for the "true" branch
   std::optional<BDDNode *> s2d_true = create_send_to_device_node(new_bdd, branch_id, on_true_id);
   if (s2d_true.has_value()) {
     new_bdd->add_cloned_non_branches(branch_id, {s2d_true.value()});
   }
 
-  // Create send_to_device node for the "false" branch
   std::optional<BDDNode *> s2d_false = create_send_to_device_node(new_bdd, branch_id, on_false_id);
   if (s2d_false.has_value()) {
     new_bdd->add_cloned_non_branches(branch_id, {s2d_false.value()});
