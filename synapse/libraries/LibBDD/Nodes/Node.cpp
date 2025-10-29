@@ -526,8 +526,8 @@ Symbols BDDNode::get_prev_symbols(const bdd_node_ids_t &stop_nodes) const {
   return symbols;
 }
 
-std::vector<const Call *> BDDNode::get_prev_functions(const std::unordered_set<std::string> &wanted, const bdd_node_ids_t &stop_nodes) const {
-  std::vector<const Call *> prev_functions;
+std::list<const Call *> BDDNode::get_prev_functions(const std::unordered_set<std::string> &wanted, const bdd_node_ids_t &stop_nodes) const {
+  std::list<const Call *> prev_functions;
 
   const BDDNode *node = this;
   while ((node = node->get_prev())) {
@@ -536,7 +536,7 @@ std::vector<const Call *> BDDNode::get_prev_functions(const std::unordered_set<s
       const call_t &call    = call_node->get_call();
 
       if (wanted.find(call.function_name) != wanted.end()) {
-        prev_functions.insert(prev_functions.begin(), call_node);
+        prev_functions.push_front(call_node);
       }
     }
 

@@ -102,7 +102,7 @@ void add_dchain_allocate_new_index_clone_on_cache_write_failed(const EP *ep, BDD
 void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, BDD *bdd, const Branch *cache_write_branch, BDDNode *&new_on_cache_write_failed) {
   const BDDNode *on_cache_write_failed = cache_write_branch->get_on_false();
 
-  std::vector<const Call *> prev_borrows =
+  std::list<const Call *> prev_borrows =
       on_cache_write_failed->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   if (prev_borrows.empty()) {
