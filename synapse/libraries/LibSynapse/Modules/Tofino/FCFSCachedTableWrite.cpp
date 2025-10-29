@@ -45,7 +45,7 @@ std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *
     values = bdd->get_vector_values_from_map_op(map_put);
   }
 
-  if (values.size() != 0) {
+  if (!values.empty()) {
     return {};
   }
 
