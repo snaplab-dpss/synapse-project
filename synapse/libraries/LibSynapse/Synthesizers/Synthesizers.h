@@ -4,6 +4,7 @@
 #include <LibSynapse/Synthesizers/TofinoSynthesizer.h>
 #include <LibSynapse/Synthesizers/ControllerSynthesizer.h>
 #include <LibSynapse/Synthesizers/x86Synthesizer.h>
+#include <LibSynapse/Synthesizers/x86Synthesizer.h>
 
 #include <filesystem>
 

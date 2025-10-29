@@ -125,9 +125,10 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
 }
 
 std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, const BDD &bdd, const Targets &targets,
-                                           const targets_config_t &targets_config, const Profiler &profiler) {
+                                           const targets_config_t &targets_config, const Profiler &profiler,
+                                           const LibClone::PhysicalNetwork &physical_network) {
   std::unique_ptr<HeuristicCfg> heuristic_cfg = build_heuristic_cfg(hopt);
-  std::unique_ptr<EP> starting_ep             = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
+  std::unique_ptr<EP> starting_ep             = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler, physical_network);
   std::unique_ptr<Heuristic> heuristic        = std::make_unique<Heuristic>(std::move(heuristic_cfg), std::move(starting_ep), !not_greedy);
   return heuristic;
 }

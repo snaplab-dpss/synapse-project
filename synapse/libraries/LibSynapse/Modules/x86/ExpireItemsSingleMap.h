@@ -10,8 +10,12 @@ private:
   klee::ref<klee::Expr> dchain_addr;
   klee::ref<klee::Expr> vector_addr;
   klee::ref<klee::Expr> map_addr;
+  klee::ref<klee::Expr> dchain_addr;
+  klee::ref<klee::Expr> vector_addr;
+  klee::ref<klee::Expr> map_addr;
   klee::ref<klee::Expr> time;
   klee::ref<klee::Expr> total_freed;
+  klee::ref<klee::Expr> n_freed_flows;
   klee::ref<klee::Expr> n_freed_flows;
 
 public:
@@ -26,14 +30,20 @@ public:
   virtual Module *clone() const {
     ExpireItemsSingleMap *cloned =
         new ExpireItemsSingleMap(get_type().instance_id, node, dchain_addr, vector_addr, map_addr, time, total_freed, n_freed_flows);
+    ExpireItemsSingleMap *cloned =
+        new ExpireItemsSingleMap(get_type().instance_id, node, dchain_addr, vector_addr, map_addr, time, total_freed, n_freed_flows);
     return cloned;
   }
 
   klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_vector_addr() const { return vector_addr; }
   klee::ref<klee::Expr> get_map_addr() const { return map_addr; }
+  klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
+  klee::ref<klee::Expr> get_vector_addr() const { return vector_addr; }
+  klee::ref<klee::Expr> get_map_addr() const { return map_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_total_freed() const { return total_freed; }
+  klee::ref<klee::Expr> get_n_freed_flows() const { return n_freed_flows; }
   klee::ref<klee::Expr> get_n_freed_flows() const { return n_freed_flows; }
 };
 

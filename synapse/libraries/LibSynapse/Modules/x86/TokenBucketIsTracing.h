@@ -9,6 +9,8 @@ class TokenBucketIsTracing : public x86Module {
 private:
   klee::ref<klee::Expr> tb_addr;
   klee::ref<klee::Expr> key_addr;
+  klee::ref<klee::Expr> tb_addr;
+  klee::ref<klee::Expr> key_addr;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> index_out;
   klee::ref<klee::Expr> is_tracing;
@@ -23,9 +25,12 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new TokenBucketIsTracing(get_type().instance_id, node, tb_addr, key_addr, key, index_out, is_tracing);
+    Module *cloned = new TokenBucketIsTracing(get_type().instance_id, node, tb_addr, key_addr, key, index_out, is_tracing);
     return cloned;
   }
 
+  klee::ref<klee::Expr> get_tb_addr() const { return tb_addr; }
+  klee::ref<klee::Expr> get_key_addr() const { return key_addr; }
   klee::ref<klee::Expr> get_tb_addr() const { return tb_addr; }
   klee::ref<klee::Expr> get_key_addr() const { return key_addr; }
   klee::ref<klee::Expr> get_key() const { return key; }

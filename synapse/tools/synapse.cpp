@@ -15,6 +15,7 @@ using namespace LibCore;
 using namespace LibBDD;
 using namespace LibSynapse;
 using namespace LibClone;
+using namespace LibClone;
 
 std::string nf_name_from_bdd(const std::string &bdd_fname) {
   std::string nf_name = bdd_fname;
@@ -30,6 +31,7 @@ struct args_t {
   std::filesystem::path targets_config_file;
   HeuristicOption heuristic_opt;
   std::filesystem::path profile_file;
+  std::filesystem::path physical_infrastructure_file;
   std::filesystem::path physical_infrastructure_file;
   search_config_t search_config;
   u32 seed;
@@ -234,6 +236,7 @@ int main(int argc, char **argv) {
   app.add_option("--heuristic", args.heuristic_opt, "Chosen heuristic.")
       ->transform(CLI::CheckedTransformer(str_to_heuristic_opt, CLI::ignore_case))
       ->required();
+  app.add_option("--physical_infrastructure", args.physical_infrastructure_file, "Physical infrastructure file.")->required();
   app.add_option("--physical_infrastructure", args.physical_infrastructure_file, "Physical infrastructure file.")->required();
   app.add_option("--profile", args.profile_file, "BDD profile file JSON.");
   app.add_option("--seed", args.seed, "Random seed.")->default_val(std::random_device()());

@@ -1,3 +1,4 @@
+#include "LibSynapse/Target.h"
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/ExecutionPlan.h>

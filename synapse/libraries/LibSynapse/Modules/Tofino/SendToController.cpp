@@ -72,6 +72,7 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
   spec_impl.next_target = TargetType(TargetArchitecture::Controller, get_type().instance_id);
+  spec_impl.next_target = TargetType(TargetArchitecture::Controller, get_type().instance_id);
 
   return spec_impl;
 }

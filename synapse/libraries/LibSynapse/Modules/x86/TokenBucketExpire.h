@@ -8,6 +8,7 @@ namespace x86 {
 class TokenBucketExpire : public x86Module {
 private:
   klee::ref<klee::Expr> tb_addr;
+  klee::ref<klee::Expr> tb_addr;
   klee::ref<klee::Expr> time;
 
 public:
@@ -18,9 +19,11 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new TokenBucketExpire(get_type().instance_id, node, tb_addr, time);
+    Module *cloned = new TokenBucketExpire(get_type().instance_id, node, tb_addr, time);
     return cloned;
   }
 
+  klee::ref<klee::Expr> get_tb_addr() const { return tb_addr; }
   klee::ref<klee::Expr> get_tb_addr() const { return tb_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
 };

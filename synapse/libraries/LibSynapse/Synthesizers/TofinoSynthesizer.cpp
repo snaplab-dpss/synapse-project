@@ -1,3 +1,4 @@
+#include "LibSynapse/Target.h"
 #include <LibSynapse/Synthesizers/TofinoSynthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Strings.h>
@@ -1409,6 +1410,7 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_CONTROL_BLOCKS, 0},
                                          }),
       target_ep(_ep), transpiler(this), instance_id(_instance_id) {}
+target_ep(_ep), transpiler(this), instance_id(_instance_id) {}
 
 coder_t &TofinoSynthesizer::get(const std::string &marker) {
   if (marker == MARKER_INGRESS_CONTROL_APPLY && active_recirc_code_path) {
@@ -1440,6 +1442,7 @@ void TofinoSynthesizer::synthesize() {
 
   ingress_vars.push();
 
+  transpile_parser(get_tofino_parser(target_ep, TargetType(TargetArchitecture::Tofino, instance_id)));
   transpile_parser(get_tofino_parser(target_ep, TargetType(TargetArchitecture::Tofino, instance_id)));
 
   coder_t &cpu_hdr = get(MARKER_CPU_HEADER);

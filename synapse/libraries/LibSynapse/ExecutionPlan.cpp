@@ -149,7 +149,8 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
 
 } // namespace
 
-EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
+EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler,
+       const LibClone::PhysicalNetwork &_phys_net)
     : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(), targets(_targets), ctx(bdd.get(), _targets, _targets_config, _profiler),
       meta(bdd.get(), targets) {
   TargetType initial_target     = targets.get_initial_target().type;
@@ -511,6 +512,7 @@ void EP::assert_integrity() const {
 
   while (nodes.size()) {
     const EPNode *node = nodes.back();
+    // std::cerr << "CURRENT NODE: " << node->dump() << "\n";
     nodes.pop_back();
 
     assert_or_panic(node, "Null node");

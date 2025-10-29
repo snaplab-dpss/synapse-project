@@ -8,6 +8,7 @@ namespace x86 {
 class DchainIsIndexAllocated : public x86Module {
 private:
   klee::ref<klee::Expr> dchain_addr;
+  klee::ref<klee::Expr> dchain_addr;
   klee::ref<klee::Expr> index;
   symbol_t is_allocated;
 
@@ -21,9 +22,11 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new DchainIsIndexAllocated(get_type().instance_id, node, dchain_addr, index, is_allocated);
+    Module *cloned = new DchainIsIndexAllocated(get_type().instance_id, node, dchain_addr, index, is_allocated);
     return cloned;
   }
 
+  klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_index() const { return index; }
   const symbol_t &get_is_allocated() const { return is_allocated; }

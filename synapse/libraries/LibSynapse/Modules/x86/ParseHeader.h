@@ -8,6 +8,7 @@ namespace x86 {
 class ParseHeader : public x86Module {
 private:
   klee::ref<klee::Expr> chunk_addr;
+  klee::ref<klee::Expr> chunk_addr;
   klee::ref<klee::Expr> chunk;
   klee::ref<klee::Expr> length;
 
@@ -21,9 +22,11 @@ public:
 
   virtual Module *clone() const {
     ParseHeader *cloned = new ParseHeader(get_type().instance_id, node, chunk_addr, chunk, length);
+    ParseHeader *cloned = new ParseHeader(get_type().instance_id, node, chunk_addr, chunk, length);
     return cloned;
   }
 
+  klee::ref<klee::Expr> get_chunk_addr() const { return chunk_addr; }
   klee::ref<klee::Expr> get_chunk_addr() const { return chunk_addr; }
   klee::ref<klee::Expr> get_chunk() const { return chunk; }
   klee::ref<klee::Expr> get_length() const { return length; }

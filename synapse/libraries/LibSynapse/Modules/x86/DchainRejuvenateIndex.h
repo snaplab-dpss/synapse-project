@@ -8,6 +8,7 @@ namespace x86 {
 class DchainRejuvenateIndex : public x86Module {
 private:
   klee::ref<klee::Expr> dchain_addr;
+  klee::ref<klee::Expr> dchain_addr;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> time;
 
@@ -21,9 +22,11 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new DchainRejuvenateIndex(get_type().instance_id, node, dchain_addr, index, time);
+    Module *cloned = new DchainRejuvenateIndex(get_type().instance_id, node, dchain_addr, index, time);
     return cloned;
   }
 
+  klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_index() const { return index; }
   klee::ref<klee::Expr> get_time() const { return time; }

@@ -9,6 +9,8 @@ class MapGet : public x86Module {
 private:
   klee::ref<klee::Expr> map_addr_expr;
   klee::ref<klee::Expr> key_addr_expr;
+  klee::ref<klee::Expr> map_addr_expr;
+  klee::ref<klee::Expr> key_addr_expr;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value_out;
   klee::ref<klee::Expr> success;
@@ -24,9 +26,12 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new MapGet(get_type().instance_id, node, map_addr_expr, key_addr_expr, key, value_out, success, map_has_this_key);
+    Module *cloned = new MapGet(get_type().instance_id, node, map_addr_expr, key_addr_expr, key, value_out, success, map_has_this_key);
     return cloned;
   }
 
+  klee::ref<klee::Expr> get_map_addr_expr() const { return map_addr_expr; }
+  klee::ref<klee::Expr> get_key_addr_expr() const { return key_addr_expr; }
   klee::ref<klee::Expr> get_map_addr_expr() const { return map_addr_expr; }
   klee::ref<klee::Expr> get_key_addr_expr() const { return key_addr_expr; }
   klee::ref<klee::Expr> get_key() const { return key; }

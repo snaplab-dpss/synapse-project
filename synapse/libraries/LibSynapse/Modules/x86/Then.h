@@ -13,6 +13,7 @@ public:
 
   virtual Module *clone() const override {
     Then *cloned = new Then(get_type().instance_id, node);
+    Then *cloned = new Then(get_type().instance_id, node);
     return cloned;
   }
 };

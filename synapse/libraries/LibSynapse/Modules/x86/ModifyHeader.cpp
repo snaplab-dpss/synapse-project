@@ -69,6 +69,7 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const BDDNod
     new_ep->process_leaf(node->get_next());
   } else {
     Module *module  = new ModifyHeader(get_type().instance_id, node, hdr_addr_expr, changes);
+    Module *module  = new ModifyHeader(get_type().instance_id, node, hdr_addr_expr, changes);
     EPNode *ep_node = new EPNode(module);
     const EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
@@ -88,6 +89,7 @@ std::unique_ptr<Module> ModifyHeaderFactory::create(const BDD *bdd, const Contex
   const call_t &call              = packet_return_chunk->get_call();
 
   klee::ref<klee::Expr> hdr_addr_expr   = call.args.at("the_chunk").expr;
+  klee::ref<klee::Expr> hdr_addr_expr   = call.args.at("the_chunk").expr;
   klee::ref<klee::Expr> borrowed        = call.extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> returned        = call.args.at("the_chunk").in;
   const std::vector<expr_mod_t> changes = build_expr_mods(borrowed, returned);
@@ -96,6 +98,7 @@ std::unique_ptr<Module> ModifyHeaderFactory::create(const BDD *bdd, const Contex
     return {};
   }
 
+  return std::make_unique<ModifyHeader>(get_type().instance_id, node, hdr_addr_expr, changes);
   return std::make_unique<ModifyHeader>(get_type().instance_id, node, hdr_addr_expr, changes);
 }
 

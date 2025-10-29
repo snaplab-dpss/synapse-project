@@ -8,6 +8,7 @@ namespace x86 {
 class TokenBucketUpdateAndCheck : public x86Module {
 private:
   klee::ref<klee::Expr> tb_addr;
+  klee::ref<klee::Expr> tb_addr;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> pkt_len;
   klee::ref<klee::Expr> time;
@@ -23,9 +24,11 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new TokenBucketUpdateAndCheck(get_type().instance_id, node, tb_addr, index, pkt_len, time, pass);
+    Module *cloned = new TokenBucketUpdateAndCheck(get_type().instance_id, node, tb_addr, index, pkt_len, time, pass);
     return cloned;
   }
 
+  klee::ref<klee::Expr> get_tb_addr() const { return tb_addr; }
   klee::ref<klee::Expr> get_tb_addr() const { return tb_addr; }
   klee::ref<klee::Expr> get_index() const { return index; }
   klee::ref<klee::Expr> get_pkt_len() const { return pkt_len; }

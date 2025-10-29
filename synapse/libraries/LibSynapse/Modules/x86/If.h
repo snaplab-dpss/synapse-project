@@ -17,6 +17,7 @@ public:
 
   virtual Module *clone() const {
     If *cloned = new If(get_type().instance_id, node, condition);
+    If *cloned = new If(get_type().instance_id, node, condition);
     return cloned;
   }
 
