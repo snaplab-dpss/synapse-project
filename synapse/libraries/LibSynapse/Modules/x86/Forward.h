@@ -17,7 +17,6 @@ public:
 
   virtual Module *clone() const {
     Forward *cloned = new Forward(get_type().instance_id, node, dst_device);
-    Forward *cloned = new Forward(get_type().instance_id, node, dst_device);
     return cloned;
   }
 

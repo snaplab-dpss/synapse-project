@@ -52,6 +52,7 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const BDDNod
   klee::ref<klee::Expr> hdr_addr_expr = call.args.at("the_chunk").expr;
   klee::ref<klee::Expr> borrowed      = packet_borrow_chunk->get_call().extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> returned      = packet_return_chunk->get_call().args.at("the_chunk").in;
+
   std::cerr << "EP ID: " << ep->get_id() << "\n";
   if (borrowed->getWidth() != returned->getWidth()) {
     std::cerr << "Processing ModifyHeader at node " << node->dump(true) << "\n";
@@ -61,6 +62,7 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const BDDNod
     std::cerr << "Returned expr: " << LibCore::expr_to_string(returned) << "\n";
     BDDViz::visualize(ep->get_bdd(), true);
   }
+
   const std::vector<expr_mod_t> changes = build_expr_mods(borrowed, returned);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -68,7 +70,6 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const BDDNod
   if (changes.empty()) {
     new_ep->process_leaf(node->get_next());
   } else {
-    Module *module  = new ModifyHeader(get_type().instance_id, node, hdr_addr_expr, changes);
     Module *module  = new ModifyHeader(get_type().instance_id, node, hdr_addr_expr, changes);
     EPNode *ep_node = new EPNode(module);
     const EPLeaf leaf(ep_node, node->get_next());
@@ -88,7 +89,6 @@ std::unique_ptr<Module> ModifyHeaderFactory::create(const BDD *bdd, const Contex
   const Call *packet_return_chunk = dynamic_cast<const Call *>(node);
   const call_t &call              = packet_return_chunk->get_call();
 
-  klee::ref<klee::Expr> hdr_addr_expr   = call.args.at("the_chunk").expr;
   klee::ref<klee::Expr> hdr_addr_expr   = call.args.at("the_chunk").expr;
   klee::ref<klee::Expr> borrowed        = call.extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> returned        = call.args.at("the_chunk").in;

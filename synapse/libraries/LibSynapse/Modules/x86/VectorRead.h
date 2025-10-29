@@ -8,9 +8,7 @@ namespace x86 {
 class VectorRead : public x86Module {
 private:
   klee::ref<klee::Expr> vector_addr_expr;
-  klee::ref<klee::Expr> vector_addr_expr;
   klee::ref<klee::Expr> index;
-  klee::ref<klee::Expr> value_addr;
   klee::ref<klee::Expr> value_addr;
   klee::ref<klee::Expr> value;
 
@@ -24,14 +22,11 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new VectorRead(get_type().instance_id, node, vector_addr_expr, index, value_addr, value);
-    Module *cloned = new VectorRead(get_type().instance_id, node, vector_addr_expr, index, value_addr, value);
     return cloned;
   }
 
   klee::ref<klee::Expr> get_vector_addr_expr() const { return vector_addr_expr; }
-  klee::ref<klee::Expr> get_vector_addr_expr() const { return vector_addr_expr; }
   klee::ref<klee::Expr> get_index() const { return index; }
-  klee::ref<klee::Expr> get_value_addr() const { return value_addr; }
   klee::ref<klee::Expr> get_value_addr() const { return value_addr; }
   klee::ref<klee::Expr> get_value() const { return value; }
 };

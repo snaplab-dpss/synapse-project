@@ -559,7 +559,6 @@ std::vector<const Call *> BDDNode::get_prev_functions(const std::unordered_set<s
     }
 
     if (stop_nodes.find(node->get_id()) != stop_nodes.end()) {
-      std::cerr << "ROOT FOUND: " << node->get_id() << std::endl;
       break;
     }
   }

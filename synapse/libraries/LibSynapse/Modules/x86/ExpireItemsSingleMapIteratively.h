@@ -9,11 +9,8 @@ class ExpireItemsSingleMapIteratively : public x86Module {
 private:
   klee::ref<klee::Expr> vector_addr;
   klee::ref<klee::Expr> map_addr;
-  klee::ref<klee::Expr> vector_addr;
-  klee::ref<klee::Expr> map_addr;
   klee::ref<klee::Expr> start;
   klee::ref<klee::Expr> n_elems;
-  klee::ref<klee::Expr> n_freed_flows;
   klee::ref<klee::Expr> n_freed_flows;
 
 public:
@@ -27,17 +24,13 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new ExpireItemsSingleMapIteratively(get_type().instance_id, node, vector_addr, map_addr, start, n_elems, n_freed_flows);
-    Module *cloned = new ExpireItemsSingleMapIteratively(get_type().instance_id, node, vector_addr, map_addr, start, n_elems, n_freed_flows);
     return cloned;
   }
 
   klee::ref<klee::Expr> get_vector_addr() const { return vector_addr; }
   klee::ref<klee::Expr> get_map_addr() const { return map_addr; }
-  klee::ref<klee::Expr> get_vector_addr() const { return vector_addr; }
-  klee::ref<klee::Expr> get_map_addr() const { return map_addr; }
   klee::ref<klee::Expr> get_start() const { return start; }
   klee::ref<klee::Expr> get_n_elems() const { return n_elems; }
-  klee::ref<klee::Expr> get_n_freed_flows() const { return n_freed_flows; }
   klee::ref<klee::Expr> get_n_freed_flows() const { return n_freed_flows; }
 };
 

@@ -149,8 +149,7 @@ std::string speculations2str(const EP *ep, const std::vector<spec_impl_t> &specu
 
 } // namespace
 
-EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler,
-       const LibClone::PhysicalNetwork &_phys_net)
+EP::EP(const BDD &_bdd, const TargetsView &_targets, const targets_config_t &_targets_config, const Profiler &_profiler)
     : id(ep_id_counter++), bdd(setup_bdd(_bdd)), root(), targets(_targets), ctx(bdd.get(), _targets, _targets_config, _profiler),
       meta(bdd.get(), targets) {
   TargetType initial_target     = targets.get_initial_target().type;
@@ -313,8 +312,6 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
     const Module *module             = new_leaf.node->get_module();
     const TargetType next_target     = module->get_next_target();
     const bdd_node_id_t next_node_id = new_leaf.next->get_id();
-
-    std::cerr << "New Node: " << module->get_node()->dump(true) << "\n";
 
     if (next_target != current_target) {
       targets_roots[next_target].insert(next_node_id);

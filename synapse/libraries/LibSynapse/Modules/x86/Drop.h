@@ -13,7 +13,6 @@ public:
 
   virtual Module *clone() const {
     Drop *cloned = new Drop(get_type().instance_id, node);
-    Drop *cloned = new Drop(get_type().instance_id, node);
     return cloned;
   }
 };

@@ -71,11 +71,9 @@ private:
   mutable std::optional<pps_t> cached_tput_speculation;
   mutable std::optional<complete_speculation_t> cached_speculations;
 
-  const LibClone::PhysicalNetwork &phys_net;
-
 public:
-  EP(const BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler,
-     const LibClone::PhysicalNetwork &phys_net);
+  EP(const BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
+
   EP(const EP &other, bool is_ancestor = true);
   EP(EP &&other)                 = delete;
   EP &operator=(const EP *other) = delete;

@@ -13,7 +13,6 @@ public:
 
   virtual Module *clone() const {
     Ignore *cloned = new Ignore(get_type().instance_id, node);
-    Ignore *cloned = new Ignore(get_type().instance_id, node);
     return cloned;
   }
 };

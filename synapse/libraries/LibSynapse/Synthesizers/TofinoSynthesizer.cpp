@@ -1410,7 +1410,6 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_CONTROL_BLOCKS, 0},
                                          }),
       target_ep(_ep), transpiler(this), instance_id(_instance_id) {}
-target_ep(_ep), transpiler(this), instance_id(_instance_id) {}
 
 coder_t &TofinoSynthesizer::get(const std::string &marker) {
   if (marker == MARKER_INGRESS_CONTROL_APPLY && active_recirc_code_path) {

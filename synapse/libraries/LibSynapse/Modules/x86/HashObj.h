@@ -19,7 +19,6 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new HashObj(get_type().instance_id, node, obj_addr, size, hash);
-    Module *cloned = new HashObj(get_type().instance_id, node, obj_addr, size, hash);
     return cloned;
   }
 

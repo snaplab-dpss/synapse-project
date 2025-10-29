@@ -11,7 +11,6 @@ using LibCore::expr_mod_t;
 class ModifyHeader : public x86Module {
 private:
   klee::ref<klee::Expr> chunk_addr_expr;
-  klee::ref<klee::Expr> chunk_addr_expr;
   std::vector<expr_mod_t> changes;
 
 public:
@@ -23,11 +22,9 @@ public:
 
   virtual Module *clone() const {
     ModifyHeader *cloned = new ModifyHeader(get_type().instance_id, node, chunk_addr_expr, changes);
-    ModifyHeader *cloned = new ModifyHeader(get_type().instance_id, node, chunk_addr_expr, changes);
     return cloned;
   }
 
-  klee::ref<klee::Expr> get_chunk_addr_expr() const { return chunk_addr_expr; }
   klee::ref<klee::Expr> get_chunk_addr_expr() const { return chunk_addr_expr; }
   const std::vector<expr_mod_t> &get_changes() const { return changes; }
 };

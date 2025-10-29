@@ -9,8 +9,6 @@ class MapPut : public x86Module {
 private:
   klee::ref<klee::Expr> map_addr;
   klee::ref<klee::Expr> key_addr;
-  klee::ref<klee::Expr> map_addr;
-  klee::ref<klee::Expr> key_addr;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
 
@@ -24,12 +22,9 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new MapPut(get_type().instance_id, node, map_addr, key_addr, key, value);
-    Module *cloned = new MapPut(get_type().instance_id, node, map_addr, key_addr, key, value);
     return cloned;
   }
 
-  klee::ref<klee::Expr> get_map_addr() const { return map_addr; }
-  klee::ref<klee::Expr> get_key_addr() const { return key_addr; }
   klee::ref<klee::Expr> get_map_addr() const { return map_addr; }
   klee::ref<klee::Expr> get_key_addr() const { return key_addr; }
   klee::ref<klee::Expr> get_key() const { return key; }

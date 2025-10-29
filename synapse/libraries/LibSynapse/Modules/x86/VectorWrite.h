@@ -14,8 +14,6 @@ private:
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> value_addr;
   klee::ref<klee::Expr> value;
-  klee::ref<klee::Expr> value_addr;
-  klee::ref<klee::Expr> value;
   std::vector<expr_mod_t> modifications;
 
 public:
@@ -28,14 +26,11 @@ public:
 
   virtual Module *clone() const override {
     Module *cloned = new VectorWrite(get_type().instance_id, node, vector_addr, index, value_addr, value, modifications);
-    Module *cloned = new VectorWrite(get_type().instance_id, node, vector_addr, index, value_addr, value, modifications);
     return cloned;
   }
 
   addr_t get_vector_addr() const { return vector_addr; }
   klee::ref<klee::Expr> get_index() const { return index; }
-  klee::ref<klee::Expr> get_value_addr() const { return value_addr; }
-  klee::ref<klee::Expr> get_value() const { return value; }
   klee::ref<klee::Expr> get_value_addr() const { return value_addr; }
   klee::ref<klee::Expr> get_value() const { return value; }
   const std::vector<expr_mod_t> &get_modifications() const { return modifications; }
