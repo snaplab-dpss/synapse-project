@@ -14,7 +14,6 @@ using LibBDD::call_t;
 namespace {
 bool bdd_node_match_pattern(const BDDNode *node) {
   if (node->get_type() != BDDNodeType::Call) {
-    // std::cerr << "Node skipped: Not a Call node\n";
     return false;
   }
 
@@ -22,7 +21,6 @@ bool bdd_node_match_pattern(const BDDNode *node) {
   const call_t call   = call_op->get_call();
 
   if (call.function_name != "send_to_device") {
-    // std::cerr << "Node skipped: Function name is " << call.function_name << "\n";
     return false;
   }
 
@@ -30,8 +28,10 @@ bool bdd_node_match_pattern(const BDDNode *node) {
 }
 
 std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node, const BDDNode *&next) {
-  std::vector<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
-  std::vector<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_borrows =
+      node->get_prev_functions_in_s2d_interval({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::vector<const Call *> prev_returns =
+      node->get_prev_functions_in_s2d_interval({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   std::vector<const BDDNode *> hdr_parsing_ops;
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
@@ -44,13 +44,13 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node
   const BDD *old_bdd = ep->get_bdd();
 
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
-  new_bdd->add_cloned_non_branches(node->get_id(), hdr_parsing_ops);
+  const BDDNode *new_next      = new_bdd->add_cloned_non_branches(next->get_id(), hdr_parsing_ops);
 
-  next = new_bdd->get_node_by_id(node->get_id());
+  if (new_next) {
+    next = new_bdd->get_node_by_id(new_next->get_id());
+  }
 
-  std::cerr << "NEXT ID: " << next->get_id() << "\n";
-
-  BDDViz::visualize(new_bdd.get(), false);
+  // BDDViz::visualize(new_bdd.get(), false);
 
   return new_bdd;
 }

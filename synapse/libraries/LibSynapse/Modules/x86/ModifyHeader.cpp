@@ -49,9 +49,18 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const BDDNod
   const Call *packet_borrow_chunk = packet_return_chunk->packet_borrow_from_return();
   assert(packet_borrow_chunk && "Failed to find packet_borrow_next_chunk from packet_return_chunk");
 
-  klee::ref<klee::Expr> hdr_addr_expr   = call.args.at("the_chunk").expr;
-  klee::ref<klee::Expr> borrowed        = packet_borrow_chunk->get_call().extra_vars.at("the_chunk").second;
-  klee::ref<klee::Expr> returned        = packet_return_chunk->get_call().args.at("the_chunk").in;
+  klee::ref<klee::Expr> hdr_addr_expr = call.args.at("the_chunk").expr;
+  klee::ref<klee::Expr> borrowed      = packet_borrow_chunk->get_call().extra_vars.at("the_chunk").second;
+  klee::ref<klee::Expr> returned      = packet_return_chunk->get_call().args.at("the_chunk").in;
+  std::cerr << "EP ID: " << ep->get_id() << "\n";
+  if (borrowed->getWidth() != returned->getWidth()) {
+    std::cerr << "Processing ModifyHeader at node " << node->dump(true) << "\n";
+    std::cerr << "Borrowed: " << packet_borrow_chunk->dump(true) << "\n";
+    std::cerr << "Returned: " << packet_return_chunk->dump(true) << "\n";
+    std::cerr << "Borrowed expr: " << LibCore::expr_to_string(borrowed) << "\n";
+    std::cerr << "Returned expr: " << LibCore::expr_to_string(returned) << "\n";
+    BDDViz::visualize(ep->get_bdd(), true);
+  }
   const std::vector<expr_mod_t> changes = build_expr_mods(borrowed, returned);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

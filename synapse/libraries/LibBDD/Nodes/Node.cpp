@@ -526,6 +526,24 @@ Symbols BDDNode::get_prev_symbols(const bdd_node_ids_t &stop_nodes) const {
   return symbols;
 }
 
+std::vector<const Call *> BDDNode::get_prev_functions_in_s2d_interval(const std::unordered_set<std::string> &wanted,
+                                                                      const bdd_node_ids_t &stop_nodes) const {
+  bdd_node_ids_t real_stops = stop_nodes;
+
+  const BDDNode *node = this;
+  while ((node = node->get_prev()))
+    if (node->get_type() == BDDNodeType::Call) {
+      const Call *call_node = static_cast<const Call *>(node);
+      const call_t &call    = call_node->get_call();
+
+      if (call.function_name == "send_to_device") {
+        real_stops.insert(call_node->get_id());
+        break;
+      }
+    }
+  return get_prev_functions(wanted, real_stops);
+}
+
 std::vector<const Call *> BDDNode::get_prev_functions(const std::unordered_set<std::string> &wanted, const bdd_node_ids_t &stop_nodes) const {
   std::vector<const Call *> prev_functions;
 
@@ -541,6 +559,7 @@ std::vector<const Call *> BDDNode::get_prev_functions(const std::unordered_set<s
     }
 
     if (stop_nodes.find(node->get_id()) != stop_nodes.end()) {
+      std::cerr << "ROOT FOUND: " << node->get_id() << std::endl;
       break;
     }
   }

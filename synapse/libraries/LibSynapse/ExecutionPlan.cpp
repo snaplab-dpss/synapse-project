@@ -511,7 +511,6 @@ void EP::assert_integrity() const {
 
   while (nodes.size()) {
     const EPNode *node = nodes.back();
-    // std::cerr << "CURRENT NODE: " << node->dump() << "\n";
     nodes.pop_back();
 
     assert_or_panic(node, "Null node");
@@ -522,6 +521,8 @@ void EP::assert_integrity() const {
     assert_or_panic(bdd_node, "Module without a node");
 
     const BDDNode *found_bdd_node = bdd->get_node_by_id(bdd_node->get_id());
+    // std::cerr << "BDD NODE: " << bdd_node->dump(true) << std::endl;
+    // std::cerr << "FOUND BDD NODE: " << found_bdd_node->dump(true) << std::endl;
     assert_or_panic(bdd_node == found_bdd_node, "BDDNode not found in the BDD");
 
     for (const EPNode *child : node->get_children()) {
