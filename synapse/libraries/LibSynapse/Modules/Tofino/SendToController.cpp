@@ -37,8 +37,8 @@ using LibBDD::call_t;
 namespace {
 
 std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node, const BDDNode *&next) {
-  std::vector<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
-  std::vector<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::list<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
+  std::list<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   std::vector<const BDDNode *> hdr_parsing_ops;
   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
@@ -485,7 +485,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
   // Note that we don't point to the next BDD node, as it was not actually implemented.
   // We are delegating the implementation to other platform.
   EPLeaf leaf(ep_node_leaf, next);
-  new_ep->process_leaf(s2c_node, {leaf}, false);
+  new_ep->process_leaf(s2c_node, {leaf}, EP::BDDNodeMarking::Unprocessed);
 
   if (new_bdd) {
     new_ep->replace_bdd(std::move(new_bdd));

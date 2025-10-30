@@ -9,6 +9,7 @@
 #include <iostream>
 #include <unordered_set>
 #include <vector>
+#include <list>
 
 #include <klee/Constraints.h>
 
@@ -93,10 +94,8 @@ public:
   symbolic_reads_t get_used_symbolic_reads() const;
   std::vector<expr_groups_t> get_expr_groups() const;
   Symbols get_prev_symbols(const bdd_node_ids_t &stop_nodes = bdd_node_ids_t()) const;
-  std::vector<const Call *> get_prev_functions_in_s2d_interval(const std::unordered_set<std::string> &functions_names,
-                                                               const bdd_node_ids_t &stop_nodes = bdd_node_ids_t()) const;
-  std::vector<const Call *> get_prev_functions(const std::unordered_set<std::string> &functions_names,
-                                               const bdd_node_ids_t &stop_nodes = bdd_node_ids_t()) const;
+  std::list<const Call *> get_prev_functions(const std::unordered_set<std::string> &functions_names,
+                                             const bdd_node_ids_t &stop_nodes = bdd_node_ids_t()) const;
   std::vector<const Call *> get_future_functions(const std::unordered_set<std::string> &functions, bool stop_on_branches = false) const;
   std::vector<const Call *> get_coalescing_nodes_from_key(klee::ref<klee::Expr> target_key, const map_coalescing_objs_t &data) const;
   std::vector<const Route *> get_future_routing_decisions() const;

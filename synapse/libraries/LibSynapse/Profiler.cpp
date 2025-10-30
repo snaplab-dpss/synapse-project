@@ -689,15 +689,15 @@ rw_fractions_t Profiler::get_cond_map_put_rw_profile_fractions(const Call *map_g
   klee::ref<klee::Expr> obj = mg_call.args.at("map").expr;
   klee::ref<klee::Expr> key = mg_call.args.at("key").in;
 
-  symbol_t map_has_this_key = map_get->get_local_symbol("map_has_this_key");
+  const symbol_t map_has_this_key = map_get->get_local_symbol("map_has_this_key");
 
-  branch_direction_t success_check = map_get->get_map_get_success_check();
+  const branch_direction_t success_check = map_get->get_map_get_success_check();
   assert(success_check.branch && "Map get success check not found");
 
   const BDDNode *read          = success_check.direction ? success_check.branch->get_on_true() : success_check.branch->get_on_false();
   const BDDNode *write_attempt = success_check.direction ? success_check.branch->get_on_false() : success_check.branch->get_on_true();
 
-  std::vector<const Call *> future_map_puts = write_attempt->get_future_functions({"map_put"});
+  const std::vector<const Call *> future_map_puts = write_attempt->get_future_functions({"map_put"});
   assert(future_map_puts.size() >= 1 && "map_put not found");
 
   const BDDNode *write = nullptr;

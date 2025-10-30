@@ -3,6 +3,7 @@
 
 #include <klee/util/ExprVisitor.h>
 #include <klee/Constraints.h>
+
 #include <iostream>
 
 namespace LibCore {
@@ -75,19 +76,6 @@ public:
   }
 };
 
-std::string base_from_name(const std::string &name) {
-  assert(name.size() && "Empty name");
-
-  if (!std::isdigit(name.back())) {
-    return name;
-  }
-
-  const size_t delim = name.rfind("_");
-  assert(delim != std::string::npos && "Invalid name");
-
-  const std::string base = name.substr(0, delim);
-  return base;
-}
 } // namespace
 
 symbol_t SymbolManager::store_clone(const klee::Array *array) {
@@ -112,6 +100,18 @@ const klee::Array *SymbolManager::get_array(const std::string &name) const {
 }
 
 bool SymbolManager::has_symbol(const std::string &name) const { return symbols.find(name) != symbols.end(); }
+
+void SymbolManager::remove_symbol(const std::string &name) {
+  auto symbols_it = symbols.find(name);
+  if (symbols_it != symbols.end()) {
+    symbols.erase(symbols_it);
+  }
+  auto names_it = names.find(name);
+  if (names_it != names.end()) {
+    arrays.erase(std::remove(arrays.begin(), arrays.end(), names_it->second), arrays.end());
+    names.erase(names_it);
+  }
+}
 
 symbol_t SymbolManager::get_symbol(const std::string &name) const {
   auto symbols_it = symbols.find(name);
@@ -156,7 +156,7 @@ symbol_t SymbolManager::create_symbol(const std::string &name, bits_t size) {
     expr = solver_toolbox.exprBuilder->Concat(solver_toolbox.exprBuilder->Read(updates, index), expr);
   }
 
-  const std::string base = base_from_name(name);
+  const std::string base = symbol_t::base_from_name(name);
   const symbol_t symbol(base, name, expr);
 
   arrays.push_back(array);

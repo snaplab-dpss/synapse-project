@@ -97,7 +97,7 @@ public:
 
   void dump(std::ostream &os) const {
     os << "================================================\n";
-    os << "Guarded Map Table Cache:\n";
+    os << "FCFS Cached Table cache:\n";
     for (const auto &[k, v] : cache) {
       os << "  key=" << k << " value=" << v << "\n";
     }

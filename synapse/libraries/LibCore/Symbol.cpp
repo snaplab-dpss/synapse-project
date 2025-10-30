@@ -4,6 +4,8 @@
 
 #include <klee/util/ExprVisitor.h>
 
+#include <regex>
+
 namespace LibCore {
 
 namespace {
@@ -25,19 +27,6 @@ public:
   const std::unordered_set<std::string> &get_names() const { return names; }
 };
 
-std::string base_from_name(const std::string &name) {
-  assert(name.size() && "Empty name");
-
-  if (!std::isdigit(name.back())) {
-    return name;
-  }
-
-  size_t delim = name.rfind("_");
-  assert(delim != std::string::npos && "Invalid name");
-
-  std::string base = name.substr(0, delim);
-  return base;
-}
 } // namespace
 
 symbol_t::symbol_t(const std::string &_base, const std::string &_name, klee::ref<klee::Expr> _expr) : base(_base), name(_name), expr(_expr) {}
@@ -73,6 +62,22 @@ std::unordered_set<std::string> symbol_t::get_symbols_names(klee::ref<klee::Expr
 std::size_t Symbols::symbol_hash_t::operator()(const symbol_t &s) const noexcept {
   std::hash<std::string> hash_fn;
   return hash_fn(s.name);
+}
+
+std::string symbol_t::base_from_name(std::string name) {
+  assert(name.size() && "Empty name");
+
+  // Regex to capture the base name before any suffixes like _123 or __456
+  // ([a-zA-Z_]*[a-zA-Z]) captures the base name
+  // (?:_\\d+)? non-capturing group for optional _123 suffix
+  // (?:__\\d+)? non-capturing group for optional __456 suffix
+  const std::regex pattern("^([a-zA-Z_]*[a-zA-Z])(?:_\\d+)?(?:__\\d+)?$");
+  std::smatch match_results;
+  if (std::regex_match(name, match_results, pattern) && match_results.size() > 1) {
+    return match_results[1];
+  }
+
+  return name;
 }
 
 bool Symbols::symbol_equal_t::operator()(const symbol_t &a, const symbol_t &b) const noexcept { return a.name == b.name; }

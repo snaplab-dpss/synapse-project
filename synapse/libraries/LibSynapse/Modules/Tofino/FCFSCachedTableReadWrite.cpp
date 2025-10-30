@@ -50,7 +50,7 @@ std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *
     values = bdd->get_vector_values_from_map_op(map_put);
   }
 
-  if (values.size() != 0) {
+  if (!values.empty()) {
     return {};
   }
 
@@ -92,7 +92,7 @@ void add_map_get_clone_on_cache_miss(BDD *bdd, const BDDNode *map_get, const Bra
 void replicate_hdr_parsing_ops_on_cache_miss(const EP *ep, BDD *bdd, const Branch *cache_hit_branch, BDDNode *&new_on_cache_miss) {
   const BDDNode *on_cache_miss = cache_hit_branch->get_on_false();
 
-  std::vector<const Call *> prev_borrows =
+  std::list<const Call *> prev_borrows =
       on_cache_miss->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
   if (prev_borrows.empty()) {

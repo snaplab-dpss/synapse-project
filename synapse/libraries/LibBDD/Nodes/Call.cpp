@@ -332,13 +332,27 @@ const Call *Call::packet_borrow_from_return() const {
 
   klee::ref<klee::Expr> chunk_returned = call.args.at("the_chunk").in;
 
-  std::vector<const Call *> prev_borrows = get_prev_functions({"packet_borrow_next_chunk"});
-  std::vector<const Call *> prev_returns = get_prev_functions({"packet_return_chunk"});
+  const std::list<const Call *> prev_borrows_and_returns = get_prev_functions({"packet_borrow_next_chunk", "packet_return_chunk"});
 
-  assert(prev_borrows.size() && "No previous borrows");
-  assert(prev_borrows.size() > prev_returns.size() && "No previous borrow");
+  const Call *target_borrow = nullptr;
+  int pending_borrows       = 0;
 
-  return prev_borrows[prev_borrows.size() - 1 - prev_returns.size()];
+  for (auto rev_it = prev_borrows_and_returns.rbegin(); rev_it != prev_borrows_and_returns.rend(); ++rev_it) {
+    const Call *prev_call = *rev_it;
+
+    if (prev_call->get_call().function_name == "packet_return_chunk") {
+      pending_borrows++;
+      continue;
+    } else if (pending_borrows == 0) {
+      target_borrow = prev_call;
+      break;
+    } else {
+      pending_borrows--;
+    }
+  }
+
+  assert_or_panic(target_borrow != nullptr, "No matching packet_borrow_next_chunk found for node %s", dump(true).c_str());
+  return target_borrow;
 }
 
 klee::ref<klee::Expr> Call::get_obj() const {

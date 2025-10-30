@@ -10,6 +10,7 @@ public:
       : HeuristicCfg("DSPrefFCFSCachedTable", {
                                                   BUILD_METRIC(DSPrefFCFSCachedTable, get_ds_score, Objective::Max),
                                                   BUILD_METRIC(DSPrefFCFSCachedTable, get_bdd_progress, Objective::Max),
+                                                  BUILD_METRIC(DSPrefFCFSCachedTable, get_tput_speculation, Objective::Max),
                                               }) {}
 
   DSPrefFCFSCachedTable &operator=(const DSPrefFCFSCachedTable &other) {

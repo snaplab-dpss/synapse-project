@@ -1081,8 +1081,7 @@ void TofinoSynthesizer::transpile_digest_decl(const Digest *digest, const std::v
   ingress_deparser << "Digest<" << digest_hdr << ">() " << digest->id << ";\n";
 }
 
-void TofinoSynthesizer::transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, const std::vector<klee::ref<klee::Expr>> &keys,
-                                                         const klee::ref<klee::Expr> value) {
+void TofinoSynthesizer::transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, const std::vector<klee::ref<klee::Expr>> &keys) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
 
   if (declared_ds.find(fcfs_cached_table->id) != declared_ds.end()) {
@@ -1091,9 +1090,15 @@ void TofinoSynthesizer::transpile_fcfs_cached_table_decl(const FCFSCachedTable *
 
   declared_ds.insert(fcfs_cached_table->id);
 
+  transpile_register_decl(&fcfs_cached_table->cache_expirator);
+
   std::vector<var_t> keys_vars;
   for (const Table &table : fcfs_cached_table->tables) {
-    transpile_table_decl(&table, keys, {value}, true, keys_vars);
+    transpile_table_decl(&table, keys, {}, true, keys_vars);
+  }
+
+  for (const Register &reg_key : fcfs_cached_table->cache_keys) {
+    transpile_register_decl(&reg_key);
   }
 
   std::cerr << ingress.dump();
@@ -2451,7 +2456,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   // const DS_ID fcfscached_table_id                = node->get_fcfs_cached_table_id();
   // const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
-  // klee::ref<klee::Expr> value                    = node->get_value();
   // const symbol_t &map_has_this_key               = node->get_map_has_this_key();
 
   // const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
@@ -2459,7 +2463,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // const Table *table                       = fcfs_cached_table->get_table(node_id);
   // assert(table && "Table not found");
 
-  // transpile_fcfs_cached_table_decl(fcfs_cached_table, keys, value);
+  // transpile_fcfs_cached_table_decl(fcfs_cached_table, keys);
 
   todo();
   return EPVisitor::Action::doChildren;

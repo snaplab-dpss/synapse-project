@@ -50,7 +50,7 @@ FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, 
 
 FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
     : DS(other.type, other.primitive, other.id), cache_capacity(other.cache_capacity), capacity(other.capacity), keys_sizes(other.keys_sizes),
-      tables(other.tables), cache_expirator(other.cache_expirator), cache_keys(other.cache_keys), cache_values(other.cache_values) {}
+      tables(other.tables), cache_expirator(other.cache_expirator), cache_keys(other.cache_keys) {}
 
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 
@@ -66,9 +66,6 @@ void FCFSCachedTable::debug() const {
   cache_expirator.debug();
   for (const Register &cache_key : cache_keys) {
     cache_key.debug();
-  }
-  for (const Register &cache_value : cache_values) {
-    cache_value.debug();
   }
   std::cerr << "==============================\n";
 }

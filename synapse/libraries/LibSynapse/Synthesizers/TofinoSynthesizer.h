@@ -256,8 +256,7 @@ private:
   void transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType type, std::optional<var_t> write_value);
   void transpile_hash_decl(const Hash *hash);
   void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
-  void transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, const std::vector<klee::ref<klee::Expr>> &keys,
-                                        klee::ref<klee::Expr> value);
+  void transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, const std::vector<klee::ref<klee::Expr>> &keys);
   void transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
   std::vector<code_t> cms_get_hashes_values(const CountMinSketch *cms);
   std::vector<code_t> cms_get_hashes_calculators(const CountMinSketch *cms, const EPNode *ep_node);

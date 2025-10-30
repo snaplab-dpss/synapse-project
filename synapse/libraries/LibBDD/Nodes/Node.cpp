@@ -526,26 +526,8 @@ Symbols BDDNode::get_prev_symbols(const bdd_node_ids_t &stop_nodes) const {
   return symbols;
 }
 
-std::vector<const Call *> BDDNode::get_prev_functions_in_s2d_interval(const std::unordered_set<std::string> &wanted,
-                                                                      const bdd_node_ids_t &stop_nodes) const {
-  bdd_node_ids_t real_stops = stop_nodes;
-
-  const BDDNode *node = this;
-  while ((node = node->get_prev()))
-    if (node->get_type() == BDDNodeType::Call) {
-      const Call *call_node = static_cast<const Call *>(node);
-      const call_t &call    = call_node->get_call();
-
-      if (call.function_name == "send_to_device") {
-        real_stops.insert(call_node->get_id());
-        break;
-      }
-    }
-  return get_prev_functions(wanted, real_stops);
-}
-
-std::vector<const Call *> BDDNode::get_prev_functions(const std::unordered_set<std::string> &wanted, const bdd_node_ids_t &stop_nodes) const {
-  std::vector<const Call *> prev_functions;
+std::list<const Call *> BDDNode::get_prev_functions(const std::unordered_set<std::string> &wanted, const bdd_node_ids_t &stop_nodes) const {
+  std::list<const Call *> prev_functions;
 
   const BDDNode *node = this;
   while ((node = node->get_prev())) {
@@ -554,7 +536,7 @@ std::vector<const Call *> BDDNode::get_prev_functions(const std::unordered_set<s
       const call_t &call    = call_node->get_call();
 
       if (wanted.find(call.function_name) != wanted.end()) {
-        prev_functions.insert(prev_functions.begin(), call_node);
+        prev_functions.push_front(call_node);
       }
     }
 

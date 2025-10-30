@@ -272,8 +272,8 @@ TargetType EP::get_active_target() const {
 void EP::process_leaf(const BDDNode *next_node) {
   clear_caches();
 
-  TargetType current_target = get_active_target();
-  EPLeaf active_leaf        = pop_active_leaf();
+  const TargetType current_target = get_active_target();
+  const EPLeaf active_leaf        = pop_active_leaf();
 
   meta.process_node(active_leaf.next, current_target);
   meta.depth++;
@@ -284,7 +284,7 @@ void EP::process_leaf(const BDDNode *next_node) {
   }
 }
 
-void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, bool process_node) {
+void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, BDDNodeMarking bdd_node_marking) {
   clear_caches();
 
   const TargetType current_target = get_active_target();
@@ -296,6 +296,8 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, b
     active_leaf.node->set_children(new_node);
     new_node->set_prev(active_leaf.node);
   }
+
+  const bool process_node = (bdd_node_marking == BDDNodeMarking::Processed);
 
   meta.update(active_leaf, new_node, process_node);
   meta.depth++;
@@ -408,14 +410,8 @@ void EP::replace_bdd(std::unique_ptr<BDD> new_bdd, const translation_data_t &tra
 
   meta.update_total_bdd_nodes(new_bdd.get());
 
-  // Translating the symbols stored by the context.
-  ctx.translate(new_bdd->get_mutable_symbol_manager(), translation_data.translated_symbols);
-
   // Replacing the BDD might change the hit rate estimations.
   ctx.get_profiler().clear_cache();
-
-  // Translating Profiler symbols.
-  ctx.get_mutable_profiler().translate(new_bdd->get_mutable_symbol_manager(), translation_data.reordered_node, translation_data.translated_symbols);
 
   // Reset the BDD only here, because we might lose the final reference to it and we needed the old nodes to find the new ones.
   bdd = std::move(new_bdd);

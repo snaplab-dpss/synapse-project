@@ -197,9 +197,7 @@ klee::ref<klee::Expr> negate_and_simplify_constraint(klee::ref<klee::Expr> const
   return is_zero;
 }
 
-std::optional<symbol_t> get_generated_symbol(const call_t &call, const Symbols &symbols, const std::string &base) {
-  std::vector<symbol_t> filtered = symbols.filter_by_base(base).get();
-
+std::optional<symbol_t> get_generated_symbol(const call_t &call, const std::string &base) {
   if (symbol_t::is_symbol(call.ret)) {
     symbol_t symbol(call.ret);
     if (base == symbol.base) {
@@ -251,7 +249,7 @@ Symbols get_generated_symbols(const call_t &call, Symbols &symbols, std::unorder
   }
 
   for (const std::string &base : base_symbols_it->second) {
-    std::optional<symbol_t> symbol = get_generated_symbol(call, symbols, base);
+    std::optional<symbol_t> symbol = get_generated_symbol(call, base);
     if (symbol.has_value()) {
       generated_symbols.add(symbol.value());
     }
@@ -268,8 +266,8 @@ void pop_call_paths(call_paths_view_t &call_paths_view) {
 }
 
 BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager, BDDNodeManager &node_manager,
-                             std::vector<Call *> &init, bdd_node_id_t &id, klee::ConstraintManager &base_constraints, bool in_init_mode = true,
-                             std::unordered_map<std::string, size_t> base_symbols_generated = std::unordered_map<std::string, size_t>()) {
+                             std::vector<Call *> &init, bdd_node_id_t &id, klee::ConstraintManager &base_constraints, bool in_init_mode,
+                             std::unordered_map<std::string, size_t> base_symbols_generated) {
   BDDNode *root = nullptr;
   BDDNode *leaf = nullptr;
 
@@ -416,6 +414,53 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
       return root;
     }
   }
+
+  return root;
+}
+
+BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager, BDDNodeManager &node_manager,
+                             std::vector<Call *> &init, bdd_node_id_t &id, klee::ConstraintManager &base_constraints) {
+  bool in_init_mode = true;
+  std::unordered_map<std::string, size_t> base_symbols_generated;
+  BDDNode *root =
+      bdd_from_call_paths(call_paths_view, symbol_manager, node_manager, init, id, base_constraints, in_init_mode, base_symbols_generated);
+
+  // Let's make sure all symbols are unique throughout the BDD, and not only within their call paths.
+  // This assumption is not met as is from the symbolic execution, but we will enforce it.
+  // This makes our life easier down the line.
+
+  std::unordered_map<std::string, std::string> translations;
+
+  root->visit_mutable_nodes([&symbol_manager, &translations](BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    Call *call_node = dynamic_cast<Call *>(node);
+
+    const Symbols &local_symbols = call_node->get_local_symbols();
+    for (const symbol_t &symbol : local_symbols.get()) {
+      if (symbol.name == "packet_chunks") {
+        continue;
+      }
+      const symbol_t new_symbol = symbol_manager->create_symbol(symbol.base + "__" + std::to_string(node->get_id()), symbol.expr->getWidth());
+      call_node->recursive_translate_symbol(symbol, new_symbol);
+      translations[symbol.name] = new_symbol.name;
+    }
+
+    return BDDNodeVisitAction::Continue;
+  });
+
+  for (const auto &[old_symbol_name, new_symbol_name] : translations) {
+    symbol_manager->remove_symbol(old_symbol_name);
+  }
+
+  klee::ConstraintManager new_base_constraints;
+  for (klee::ref<klee::Expr> base_constraint : base_constraints) {
+    klee::ref<klee::Expr> new_base_constraint = symbol_manager->translate(base_constraint, translations);
+    new_base_constraints.addConstraint(new_base_constraint);
+  }
+  base_constraints = new_base_constraints;
 
   return root;
 }

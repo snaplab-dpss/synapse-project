@@ -33,6 +33,7 @@ public:
   Symbols get_symbols() const;
   Symbols get_symbols_with_base(const std::string &base) const;
   bool manages(klee::ref<klee::Expr> expr) const;
+  void remove_symbol(const std::string &name);
   void dbg() const;
 
   symbol_t store_clone(const klee::Array *array);

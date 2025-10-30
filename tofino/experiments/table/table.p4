@@ -129,14 +129,17 @@ control Ingress(
 	table my_table {
 		key = {
 			hdr.ipv4.src_addr: exact;
+			hdr.ipv4.dst_addr: exact;
+			hdr.ipv4.protocol: exact;
 			hdr.udp.src_port: exact;
+			hdr.udp.dst_port: exact;
 		}
 
 		actions = {
 			NoAction;
 		}
 
-		size = 65536 * 20;
+		size = 100000;
 	}
 
 	apply {
