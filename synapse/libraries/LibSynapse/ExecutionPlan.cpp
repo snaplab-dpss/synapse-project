@@ -5,6 +5,9 @@
 #include <LibCore/Expr.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
+#include <cassert>
+
+#include <queue>
 
 namespace LibSynapse {
 
@@ -238,6 +241,22 @@ std::vector<const EPNode *> EP::get_nodes_by_type(const std::unordered_set<Modul
   return found;
 }
 
+std::vector<const Module *> EP::get_previous_s2d_nodes() const {
+  std::vector<const Module *> prev_nodes;
+
+  EPLeaf current     = get_active_leaf();
+  const EPNode *node = current.node;
+
+  while (node) {
+    if (node->get_module()->get_type().type == ModuleCategory::x86_SendToDevice) {
+      prev_nodes.push_back(node->get_module());
+    }
+    node = node->get_prev();
+  }
+
+  return prev_nodes;
+}
+
 bool EP::has_target(TargetType type) const {
   return std::any_of(targets.elements.begin(), targets.elements.end(), [type](const auto &kv) { return kv.first.type == type; });
 }
@@ -316,6 +335,7 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, B
     const bdd_node_id_t next_node_id = new_leaf.next->get_id();
 
     if (next_target != current_target) {
+      std::cerr << "NEW ROOT: " << new_leaf.next->dump(true) << "\n";
       targets_roots[next_target].insert(next_node_id);
     }
   }
@@ -1049,6 +1069,28 @@ const TargetType EP::get_target_by_id(const InstanceId instance_id) const {
 
   panic("Target not found");
   return TargetType{TargetArchitecture::x86, 0};
+}
+
+const EPNode *EP::get_ep_node_from_bdd_node(const BDDNode *node) const {
+  assert(node && "Null BDDNode");
+
+  std::queue<const EPNode *> queue;
+
+  queue.push(root.get());
+  while (!queue.empty()) {
+    const EPNode *current = queue.front();
+    queue.pop();
+
+    if (current->get_module()->get_node() == node) {
+      return current;
+    }
+
+    for (const EPNode *child : current->get_children()) {
+      queue.push(child);
+    }
+  }
+
+  panic("BDDNode not found in EP");
 }
 
 } // namespace LibSynapse

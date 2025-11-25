@@ -7,13 +7,9 @@
 #include <memory>
 #include <vector>
 
-namespace LibClone {
-class PhysicalNetwork;
-} // namespace LibClone
-
 namespace LibSynapse {
 
-using InstanceId = u64;
+using InstanceId = i64;
 
 class ModuleFactory;
 class TargetContext;

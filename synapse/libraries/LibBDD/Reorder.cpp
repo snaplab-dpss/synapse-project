@@ -1005,20 +1005,24 @@ static bool is_send_to_device(const BDDNode *node) {
 }
 
 static bool same_send_to_device_segment(const vector_t &anchor, const BDDNode *candidate) {
-  if (!candidate)
+  if (!candidate) {
     return false;
+  }
 
   const BDDNode *anchor_next = get_vector_next(anchor);
 
-  if (!anchor_next)
+  if (!anchor_next) {
     return false;
+  }
 
-  if (is_send_to_device(anchor_next))
+  if (is_send_to_device(anchor_next)) {
     return false;
+  }
 
   for (const BDDNode *cur = candidate; cur && cur != anchor_next; cur = cur->get_prev()) {
-    if (is_send_to_device(cur))
+    if (is_send_to_device(cur)) {
       return false;
+    }
   }
   return true;
 }
@@ -1035,11 +1039,10 @@ candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t 
   candidate_info.id        = proposed_candidate_id;
 
   // Uncomment/comment this to allow/disallow reordering of branches.
-  // if (proposed_candidate->get_type() == BDDNodeType::Branch) {
-  //   candidate_info.status =
-  //   ReorderingCandidateStatus::NotAllowed; return
-  //   candidate_info;
-  // }
+  if (proposed_candidate->get_type() == BDDNodeType::Branch) {
+    candidate_info.status = ReorderingCandidateStatus::NotAllowed;
+    return candidate_info;
+  }
 
   // Comment this to allow reordering of routing nodes.
   if (proposed_candidate->get_type() == BDDNodeType::Route) {

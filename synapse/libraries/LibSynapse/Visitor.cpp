@@ -39,12 +39,12 @@ void EPVisitor::visit_children(const EP *ep, const EPNode *node) {
 }
 
 void EPVisitor::log(const EPNode *node) const {
-  const Module *module    = node->get_module();
-  const std::string &name = module->get_name();
-  TargetType target       = module->get_target();
+  const Module *module     = node->get_module();
+  const std::string &name  = module->get_name();
+  TargetType module_target = module->get_target();
   std::cerr << "Visiting";
   std::cerr << " EPNode=" << std::to_string(node->get_id());
-  std::cerr << " Target=" << target;
+  std::cerr << " Target=" << module_target;
   std::cerr << " Name=" << name;
   if (node->get_module()->get_node()) {
     std::cerr << " BDDNode=" << std::to_string(node->get_module()->get_node()->get_id());

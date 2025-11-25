@@ -34,6 +34,7 @@ public:
 
 private:
   std::optional<BDDNode *> create_send_to_device_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current, bdd_node_id_t next_node);
+  std::optional<BDDNode *> create_parse_header_cpu_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current);
   void handle_branch_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t branch_id, bdd_node_id_t on_true_id, bdd_node_id_t on_false_id);
   void handle_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id);
 };

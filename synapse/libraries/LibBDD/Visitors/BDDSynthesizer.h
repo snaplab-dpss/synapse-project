@@ -1,6 +1,5 @@
 #pragma once
 
-#include "LibSynapse/Target.h"
 #include <LibCore/Coder.h>
 #include <LibCore/Template.h>
 #include <LibBDD/Nodes/Node.h>

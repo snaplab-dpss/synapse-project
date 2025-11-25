@@ -9,9 +9,15 @@
 struct rte_mempool;
 struct rte_mbuf;
 
+#define MAX_N_CHUNKS 100
+
+void *chunks_borrowed[MAX_N_CHUNKS];
+size_t num_chunks_borrowed = 0;
+
 // The main IO primitive.
 void packet_borrow_next_chunk(void *p, size_t length, void **chunk);
 void packet_return_chunk(void *p, void *chunk);
+void packet_return_all_chunks(void *p);
 uint32_t packet_get_unread_length(void *p);
 void packet_state_total_length(void *p, uint32_t *len);
 void packet_shrink_chunk(void **p, size_t length, void **chunks, size_t num_chunks, struct rte_mbuf *mbuf);

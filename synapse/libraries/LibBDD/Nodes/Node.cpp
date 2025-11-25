@@ -526,6 +526,57 @@ Symbols BDDNode::get_prev_symbols(const bdd_node_ids_t &stop_nodes) const {
   return symbols;
 }
 
+Symbols BDDNode::get_prev_map_keys(const bdd_node_ids_t &stop_nodes) const {
+  Symbols symbols;
+  const BDDNode *node = get_prev();
+
+  while (node) {
+    if (stop_nodes.find(node->get_id()) != stop_nodes.end()) {
+      break;
+    }
+
+    if (node->get_type() == BDDNodeType::Call) {
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const call_t &call    = call_node->get_call();
+
+      if (call.function_name == "map_get" || call.function_name == "map_put") {
+        klee::ref<klee::Expr> key_expr = call.args.at("key").in;
+
+        if (!key_expr.isNull()) {
+          const std::unordered_set<std::string> key_symbol_names = symbol_t::get_symbols_names(key_expr);
+
+          for (const std::string &name : key_symbol_names) {
+            symbols.add(symbol_manager->get_symbol(name));
+          }
+        }
+      }
+    }
+
+    node = node->get_prev();
+  }
+
+  return symbols;
+}
+
+bdd_node_ids_t BDDNode::get_prev_s2d_node_id() const {
+  bdd_node_ids_t s2d_ids;
+  const BDDNode *node = this;
+
+  while ((node = node->get_prev())) {
+    if (node->get_type() == BDDNodeType::Call) {
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const call_t &call    = call_node->get_call();
+
+      if (call.function_name == "send_to_device") {
+        s2d_ids.insert(call_node->get_id());
+        break;
+      }
+    }
+  }
+
+  return s2d_ids;
+}
+
 std::list<const Call *> BDDNode::get_prev_functions(const std::unordered_set<std::string> &wanted, const bdd_node_ids_t &stop_nodes) const {
   std::list<const Call *> prev_functions;
 

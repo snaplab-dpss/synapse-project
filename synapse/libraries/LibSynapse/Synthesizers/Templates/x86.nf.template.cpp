@@ -59,12 +59,12 @@ static const unsigned MEMPOOL_BUFFER_COUNT = 2048;
 struct KeyVecMap {
   Map *map;
   Vector *vector;
-  sizet_t key_size;
+  size_t key_size;
 };
 
 int key_vec_map_allocate(unsigned capacity, unsigned key_size, struct KeyVecMap **key_vec_map_out) {
 
-    struct KeyVecMap old_key_vec_map = *key_vec_map_out;
+    struct KeyVecMap *old_key_vec_map = *key_vec_map_out;
     struct KeyVecMap *key_vec_map_alloc = (struct KeyVecMap *)malloc(sizeof(struct KeyVecMap));
 
     if (key_vec_map_alloc == 0)
@@ -74,16 +74,16 @@ int key_vec_map_allocate(unsigned capacity, unsigned key_size, struct KeyVecMap 
     struct Map *map;
     int map_alloc_success = map_allocate(capacity, key_size, &map);
     if (!map_alloc_success) {
-      free(key_vec_map_alloc); 
       *key_vec_map_out = old_key_vec_map;
+      free(key_vec_map_alloc); 
       return 0;
     }
 
     struct Vector *vector;
     int vector_alloc_success = vector_allocate(key_size, capacity, &vector);
     if (!vector_alloc_success) {
-      free(key_vec_map_alloc);
       *key_vec_map_out = old_key_vec_map;
+      free(key_vec_map_alloc);
       return 0;
     }
 
@@ -121,7 +121,7 @@ int key_vec_map_expire_items_single_map_iteratively(struct KeyVecMap * kvm, int 
 void key_vec_map_erase(struct KeyVecMap *kvm, void *key, void **trash);
 
 bool nf_init();
-int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now);
+int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf);
 
 // Send the given packet to all devices except the packet's own
 void flood(struct rte_mbuf *packet, uint16_t nb_devices, uint16_t queue_id) {
@@ -204,7 +204,7 @@ static void worker_main(void) {
         uint8_t *data = rte_pktmbuf_mtod(mbufs[n], uint8_t *);
         packet_state_total_length(data, &(mbufs[n]->pkt_len));
         time_ns_t now       = current_time();
-        uint16_t dst_device = nf_process(mbufs[n]->port, data, mbufs[n]->pkt_len, now);
+        uint16_t dst_device = nf_process(mbufs[n]->port, data, mbufs[n]->pkt_len, now, mbufs[n]);
 
         if (dst_device == DROP) {
           rte_pktmbuf_free(mbufs[n]);

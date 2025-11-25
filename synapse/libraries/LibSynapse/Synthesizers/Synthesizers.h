@@ -6,6 +6,8 @@
 #include <LibSynapse/Synthesizers/x86Synthesizer.h>
 #include <LibSynapse/Synthesizers/x86Synthesizer.h>
 
+#include <LibBDD/Visitors/BDDVisualizer.h>
+
 #include <filesystem>
 
 namespace LibSynapse {
@@ -16,6 +18,8 @@ void synthesize(const EP *ep, std::string name, const std::filesystem::path &out
   if (ep->get_bdd()->inspect().status != BDD::InspectionStatus::Ok) {
     panic("BDD is not OK: %s", ep->get_bdd()->inspect().message.c_str());
   }
+
+  BDDViz::visualize(ep->get_bdd(), false);
 
   for (const std::pair<const TargetView, bool> &tv : targets.elements) {
     TargetView target = tv.first;

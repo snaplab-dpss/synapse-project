@@ -16,9 +16,19 @@ void packet_borrow_next_chunk(void *p, size_t length, void **chunk) {
   // TODO: support mbuf chains.
   *chunk = (char *)p + global_read_length;
   global_read_length += length;
+
+  chunks_borrowed[num_chunks_borrowed] = *chunk;
+  num_chunks_borrowed++;
 }
 
 void packet_return_chunk(void *p, void *chunk) { global_read_length = (uint32_t)((int8_t *)chunk - (int8_t *)p); }
+
+void packet_return_all_chunks(void *p) {
+  while (num_chunks_borrowed != 0) {
+    packet_return_chunk(p, chunks_borrowed[num_chunks_borrowed - 1]);
+    num_chunks_borrowed--;
+  }
+}
 
 void packet_shrink_chunk(void **p, size_t length, void **chunks, size_t num_chunks, struct rte_mbuf *mbuf) {
   uint8_t *data = (uint8_t *)(*p);

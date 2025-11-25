@@ -123,6 +123,7 @@ public:
   std::vector<const EPNode *> get_prev_nodes() const;
   std::vector<const EPNode *> get_prev_nodes_of_current_target() const;
   std::vector<const EPNode *> get_nodes_by_type(const std::unordered_set<ModuleType> &types) const;
+  std::vector<const Module *> get_previous_s2d_nodes() const;
 
   bool has_target(TargetType type) const;
   const BDDNode *get_next_node() const;
@@ -135,6 +136,7 @@ public:
   pps_t estimate_tput_pps() const;
 
   const TargetType get_target_by_id(const InstanceId id) const;
+  const EPNode *get_ep_node_from_bdd_node(const BDDNode *node) const;
 
   // Sources of error:
   // 1. Speculative performance is calculated as we make the speculative decisions, so local speculative decisions don't take into

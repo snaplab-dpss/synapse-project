@@ -140,6 +140,8 @@ private:
 
   Stacks vars;
   std::unordered_map<std::string, int> reserved_var_names;
+  std::vector<ep_node_id_t> code_paths;
+  std::vector<ep_node_id_t> pending_ifs;
 
   std::unordered_map<bdd_node_id_t, klee::ref<klee::Expr>> nodes_to_map;
   std::unordered_set<bdd_node_id_t> route_nodes;
@@ -161,6 +163,7 @@ private:
   void synthesize_nf_init_post_process();
 
   void visit(const EP *ep, const EPNode *ep_node) override final;
+  void visit(const EP *ep) override final;
   void log(const EPNode *node) const override final;
 
   // Visitor Declarations

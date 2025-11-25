@@ -13,7 +13,7 @@
 namespace LibClone {
 
 using Port                 = u32;
-using InfrastructureNodeId = i32;
+using InfrastructureNodeId = i64;
 
 enum class InfrastructureNodeType { GLOBAL_PORT, DEVICE };
 

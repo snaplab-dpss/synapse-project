@@ -40,7 +40,7 @@ std::unique_ptr<Device> parse_device(const std::vector<std::string> &words) {
   }
 
   const DeviceId id = std::stoi(words[1]);
-  assert(id > 0 && "ERROR: Unallowed DeviceId");
+  assert(id >= 0 && "ERROR: Unallowed DeviceId");
   const std::string &arch = words[2];
 
   return std::make_unique<Device>(id, arch);
@@ -82,7 +82,7 @@ void parse_link(const std::vector<std::string> &words, const std::unordered_map<
 
   const bool node1_is_device = devices.find(node1_id) != devices.end();
   if (!node1_is_device && node1_id != -1) {
-    panic("Could not find node %d", node1_id);
+    panic("Could not find node %ld", node1_id);
   }
 
   if (nodes.find(node1_id) == nodes.end()) {
@@ -95,7 +95,7 @@ void parse_link(const std::vector<std::string> &words, const std::unordered_map<
 
   const bool node2_is_device = devices.find(node2_id) != devices.end();
   if (!node2_is_device && node2_id != -1) {
-    panic("Could not find node %d", node2_id);
+    panic("Could not find node %ld", node2_id);
   }
 
   if (nodes.find(node2_id) == nodes.end()) {
@@ -181,10 +181,10 @@ const LibSynapse::TargetType PhysicalNetwork::get_placement(const ComponentId co
 
 Port PhysicalNetwork::get_forwarding_port(const InfrastructureNodeId src, const InfrastructureNodeId dst) const {
   if (forwarding_table.find(src) == forwarding_table.end()) {
-    panic("Source Node ID %d not found in forwarding table!", src);
+    panic("Source Node ID %ld not found in forwarding table!", src);
   }
   if (forwarding_table.at(src).find(dst) == forwarding_table.at(src).end()) {
-    panic("Destination Node ID %d not reachable from Source Node ID %d!", dst, src);
+    panic("Destination Node ID %ld not reachable from Source Node ID %ld!", dst, src);
   }
   return forwarding_table.at(src).at(dst);
 }

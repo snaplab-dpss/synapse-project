@@ -1,8 +1,3 @@
-#include "LibCore/Debug.h"
-#include "LibCore/Types.h"
-#include "LibSynapse/Context.h"
-#include "LibSynapse/Target.h"
-#include "LibSynapse/Visitor.h"
 #include <LibSynapse/Synthesizers/x86Synthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <klee/util/Ref.h>
@@ -29,6 +24,10 @@ constexpr const char *const PROFILER_TEMPLATE_FILENAME = "x86.profiler.template.
 constexpr const char *const MARKER_NF_STATE   = "NF_STATE";
 constexpr const char *const MARKER_NF_INIT    = "NF_INIT";
 constexpr const char *const MARKER_NF_PROCESS = "NF_PROCESS";
+
+constexpr const char *const CHUNKS_BORROWED     = "chunks_borrowed";
+constexpr const char *const NUM_CHUNKS_BORROWED = "num_chunks_borrowed";
+constexpr const int CODE_PATH_HEADER_SIZE       = 2;
 
 std::filesystem::path template_from_type(x86SynthesizerTarget target) {
   std::filesystem::path template_file = std::filesystem::path(__FILE__).parent_path() / "Templates";
@@ -123,12 +122,14 @@ klee::ExprVisitor::Action x86Synthesizer::Transpiler::visitRead(const klee::Read
 
   coder_t &coder = coders.top();
 
-  if (std::optional<x86Synthesizer::var_t> var = synthesizer->vars.get(expr)) {
-    if (!var->addr.isNull()) {
+  std::optional<x86Synthesizer::var_t> var = synthesizer->vars.get(expr);
+
+  if (var.has_value()) {
+    if (!var.value().addr.isNull()) {
       coder << "*";
     }
 
-    coder << var->name;
+    coder << var.value().name;
 
     return Action::skipChildren();
   }
@@ -149,10 +150,11 @@ klee::ExprVisitor::Action x86Synthesizer::Transpiler::visitSelect(const klee::Se
 klee::ExprVisitor::Action x86Synthesizer::Transpiler::visitConcat(const klee::ConcatExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ConcatExpr *>(&e);
 
-  coder_t &coder = coders.top();
+  coder_t &coder                           = coders.top();
+  std::optional<x86Synthesizer::var_t> var = synthesizer->vars.get(expr);
 
-  if (std::optional<x86Synthesizer::var_t> var = synthesizer->vars.get(expr)) {
-    if (!var->addr.isNull() && expr->getWidth() > 8) {
+  if (var.has_value()) {
+    if (!var.value().addr.isNull() && expr->getWidth() > 8) {
       coder << "*";
 
       if (expr->getWidth() <= 64) {
@@ -162,15 +164,12 @@ klee::ExprVisitor::Action x86Synthesizer::Transpiler::visitConcat(const klee::Co
       }
     }
 
-    coder << var->name;
+    coder << var.value().name;
     return Action::skipChildren();
   }
 
-  std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
-
-  panic("TODO: visitConcat");
-  return Action::skipChildren();
+  panic("Variable %s not found in stack", expr_to_string(expr, true).c_str());
 }
 
 klee::ExprVisitor::Action x86Synthesizer::Transpiler::visitExtract(const klee::ExtractExpr &e) {
@@ -695,7 +694,11 @@ std::optional<x86Synthesizer::var_t> x86Synthesizer::Stack::get(klee::ref<klee::
     return var;
   }
 
-  for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
+  if (std::optional<var_t> var = get_by_addr(expr)) {
+    return var;
+  }
+
+  for (auto var_it = frames.rbegin(); var_it != frames.rend(); ++var_it) {
     const var_t &var = *var_it;
 
     bits_t expr_size = expr->getWidth();
@@ -712,7 +715,7 @@ std::optional<x86Synthesizer::var_t> x86Synthesizer::Stack::get(klee::ref<klee::
         const var_t out_var = {
             .name = var.get_slice(offset, expr_size),
             .expr = var_slice,
-            .addr = nullptr,
+            .addr = var.addr,
         };
 
         return out_var;
@@ -922,6 +925,7 @@ x86Synthesizer::var_t x86Synthesizer::build_var(const std::string &name, klee::r
 
 x86Synthesizer::var_t x86Synthesizer::build_var_ptr(const std::string &base_name, klee::ref<klee::Expr> addr_expr, klee::ref<klee::Expr> value,
                                                     coder_t &coder, bool &found_in_stack) {
+
   bytes_t size = value->getWidth() / 8;
 
   std::optional<var_t> var = vars.get(addr_expr);
@@ -1013,20 +1017,51 @@ void x86Synthesizer::synthesize() {
   ofs.close();
 }
 
+void x86Synthesizer::visit(const EP *ep) {
+  const TargetType synthesizer_target = TargetType(TargetArchitecture::x86, instance_id);
+
+  for (const bdd_node_id_t &id : ep->get_target_roots(synthesizer_target)) {
+    const BDDNode *bdd_node = ep->get_bdd()->get_node_by_id(id);
+
+    if (bdd_node == ep->get_bdd()->get_root()) {
+      continue;
+    }
+
+    const EPNode *ep_node = ep->get_ep_node_from_bdd_node(bdd_node);
+
+    if (ep_node) {
+      visit(ep, ep_node);
+    }
+  }
+}
+
 void x86Synthesizer::visit(const EP *ep, const EPNode *ep_node) {
   coder_t &coder = get_current_coder();
 
   const Module *module = ep_node->get_module();
-  std::cerr << "CURRENT EP TARGET: " << module->get_target();
-  std::cerr << "CURRENT SYNTHESIZER TARGET: " << TargetType(TargetArchitecture::x86, instance_id);
-  if (module->get_target() == TargetType(TargetArchitecture::x86, instance_id)) {
+
+  const TargetType synthesizer_target = TargetType(TargetArchitecture::x86, instance_id);
+  const TargetType current_target     = module->get_target();
+  // const TargetType next_target        = module->get_next_target();
+
+  if (synthesizer_target == current_target) {
+    EPVisitor::log(ep_node);
     coder.indent();
     coder << "// EP node  " << ep_node->get_id() << ":" << module->get_name() << "\n";
+
     coder.indent();
     coder << "// BDD node " << module->get_node()->dump(true) << "\n";
+
+    const EPVisitor::Action action = module->visit(*this, ep, ep_node);
+
+    if (action == EPVisitor::Action::skipChildren) {
+      return;
+    }
   }
 
-  EPVisitor::visit(ep, ep_node);
+  for (const EPNode *child : ep_node->get_children()) {
+    visit(ep, child);
+  }
 }
 
 void x86Synthesizer::synthesize_nf_init() {
@@ -1129,8 +1164,135 @@ void x86Synthesizer::synthesize_nf_process() {
   coder << "uint16_t " << device_var.name << ", ";
   coder << "uint8_t *buffer, ";
   coder << "uint16_t " << len_var.name << ", ";
-  coder << "time_ns_t " << now_var.name;
-  ;
+  coder << "time_ns_t " << now_var.name << ", ";
+  coder << "struct rte_mbuf *mbuf";
+  coder << ") {\n";
+
+  coder.inc();
+
+  coder.indent();
+  coder << "packet_return_all_chunks(buffer);\n";
+
+  code_t trash = create_unique_name("trash");
+
+  coder.indent();
+  coder << "void* ";
+  coder << trash;
+  coder << ";\n";
+
+  coder.indent();
+  coder << "packet_borrow_next_chunk(";
+  coder << "buffer, ";
+  coder << "50, ";
+  coder << "(void**)&" << trash;
+  coder << ")";
+  coder << ";\n";
+
+  code_t code_path = create_unique_name("code_path");
+
+  coder.indent();
+  coder << "uint16_t " << code_path;
+  coder << " = ";
+  coder << "0";
+  coder << ";\n";
+
+  coder.indent();
+  coder << "if (packet_get_unread_length(buffer) >= sizeof(uint16_t)) {\n";
+  coder.inc();
+
+  code_t code_path_hdr = create_unique_name("code_path_hdr");
+
+  coder.indent();
+  coder << "void *" << code_path_hdr << ";\n";
+
+  coder.indent();
+  coder << "packet_borrow_next_chunk(";
+  coder << "buffer, ";
+  coder << "sizeof(uint16_t), ";
+  coder << "&" << code_path_hdr;
+  coder << ")";
+  coder << ";\n";
+
+  for (int i = 0; i < CODE_PATH_HEADER_SIZE; i++) {
+    coder.indent();
+    coder << code_path;
+    coder << " += ";
+    coder << "((uint8_t *) ";
+    coder << code_path_hdr;
+    coder << ")[";
+    coder << std::to_string(i);
+    coder << "]";
+    coder << " << ";
+    coder << std::to_string(8 * i);
+    coder << ";\n";
+  }
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  coder.indent();
+  coder << "if (" << code_path << " == 0) {\n";
+  code_paths.push_back(0);
+  coder.inc();
+
+  vars.push();
+
+  vars.insert_back(device_var);
+  vars.insert_back(len_var);
+  vars.insert_back(now_var);
+
+  const BDDNode *root_node = target_ep->get_bdd()->get_root();
+
+  const TargetType synthesizer_target = TargetType(TargetArchitecture::x86, instance_id);
+  const bdd_node_ids_t root_nodes     = target_ep->get_target_roots(synthesizer_target);
+
+  if (root_nodes.find(root_node->get_id()) != root_nodes.end()) {
+    const EPNode *ep_node = target_ep->get_ep_node_from_bdd_node(root_node);
+    if (ep_node) {
+      visit(target_ep, ep_node);
+    }
+  } else {
+    coder << "return DROP;\n";
+  }
+
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  visit(target_ep);
+
+  coder.indent();
+  coder << "else {\n";
+  coder.inc();
+  coder.indent();
+  coder << "return DROP;\n";
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  coder.dec();
+  coder << "}\n";
+}
+
+/*void x86Synthesizer::synthesize_nf_process() {
+  coder_t &coder = get_current_coder();
+  const BDD *bdd = target_ep->get_bdd();
+
+  symbol_t device = bdd->get_device();
+  symbol_t len    = bdd->get_packet_len();
+  symbol_t now    = bdd->get_time();
+
+  var_t device_var = build_var("device", device.expr);
+  var_t len_var    = build_var("len", len.expr);
+  var_t now_var    = build_var("now", now.expr);
+
+  coder << "int nf_process(";
+  coder << "uint16_t " << device_var.name << ", ";
+  coder << "uint8_t *buffer, ";
+  coder << "uint16_t " << len_var.name << ", ";
+  coder << "time_ns_t " << now_var.name << ", ";
+  coder << "struct rte_mbuf *mbuf";
   coder << ") {\n";
 
   coder.inc();
@@ -1143,7 +1305,7 @@ void x86Synthesizer::synthesize_nf_process() {
   EPVisitor::visit(target_ep);
   coder.dec();
   coder << "}\n";
-}
+}*/
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::Ignore *node) { return EPVisitor::Action::doChildren; }
 
@@ -1357,8 +1519,9 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::MapGet *node) {
   coder_t &coder = get_current_coder();
-  if (!in_nf_init)
+  if (!in_nf_init) {
     process_nodes.insert(node->get_node()->get_id());
+  }
 
   const klee::ref<klee::Expr> map_addr  = node->get_map_addr_expr();
   const klee::ref<klee::Expr> key_addr  = node->get_key_addr_expr();
@@ -2073,27 +2236,255 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::SendToDevice *node) {
   coder_t &coder = get_current_coder();
-  coder.indent();
 
-  if (!in_nf_init)
+  if (!in_nf_init) {
     process_nodes.insert(node->get_node()->get_id());
-
-  klee::ref<klee::Expr> outgoing_port = node->get_outgoing_port();
-  Symbols symbols                     = node->get_symbols();
-
-  for (const symbol_t &symbol : symbols.get()) {
-    std::optional<var_t> var = vars.get(symbol.expr);
-
-    if (!var.has_value()) {
-      dbg_vars();
-      panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
-    }
   }
 
-  coder.indent();
-  coder << "return " << transpiler.transpile(outgoing_port);
+  const std::vector<EPNode *> &children = ep_node->get_children();
+  assert(children.size() == 1 && "Expected single child");
 
-  return EPVisitor::Action::doChildren;
+  const klee::ref<klee::Expr> outgoing_port = node->get_outgoing_port();
+  const Symbols &symbols                    = node->get_symbols();
+
+  const TargetType synthesizer_target = TargetType(TargetArchitecture::x86, instance_id);
+  // const TargetType current_target     = node->get_target();
+  const TargetType next_target = node->get_next_target();
+
+  if (synthesizer_target != next_target) {
+
+    coder.indent();
+    coder << "packet_return_all_chunks(buffer);\n";
+
+    code_t trash = create_unique_name("trash");
+
+    coder.indent();
+    coder << "void *";
+    coder << trash;
+    coder << ";\n";
+
+    coder.indent();
+    coder << "packet_borrow_next_chunk(";
+    coder << "buffer, ";
+    coder << "50, ";
+    coder << "(void**)&" << trash;
+    coder << ")";
+    coder << ";\n";
+
+    coder.indent();
+    coder << "packet_insert_new_chunk(";
+    coder << "(void **) buffer, ";
+    coder << "sizeof(uint16_t), ";
+    coder << CHUNKS_BORROWED << ", ";
+    coder << "&" << NUM_CHUNKS_BORROWED << ", ";
+    coder << "mbuf);\n";
+
+    code_t path_hdr = create_unique_name("code_path_hdr");
+
+    coder.indent();
+    coder << "uint8_t *";
+    coder << path_hdr;
+    coder << " = ";
+    coder << "(uint8_t *) ";
+    coder << CHUNKS_BORROWED;
+    coder << "[";
+    coder << NUM_CHUNKS_BORROWED;
+    coder << " - 1]";
+    coder << ";\n";
+
+    for (int i = 0; i < CODE_PATH_HEADER_SIZE; i++) {
+      coder.indent();
+      coder << path_hdr;
+      coder << "[";
+      coder << std::to_string(i);
+      coder << "] = ";
+      u64 code_path = ep_node->get_id() >> (8 * i);
+      coder << std::to_string(code_path & 0xFFu);
+      coder << ";\n";
+    }
+
+    coder.indent();
+    coder << "struct Context_" << ep_node->get_id() << "{\n";
+
+    coder.inc();
+
+    for (const symbol_t &symbol : symbols.get()) {
+      std::optional<var_t> var = vars.get(symbol.expr);
+
+      if (!var.has_value()) {
+        dbg_vars();
+        panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
+      }
+
+      coder.indent();
+      coder << transpiler.type_from_expr(var.value().expr) << " ";
+      coder << var.value().name;
+      coder << ";\n";
+    }
+
+    coder.dec();
+    coder.indent();
+    coder << "};\n";
+
+    coder.indent();
+    coder << "packet_insert_new_chunk(";
+    coder << "(void **) buffer, ";
+    coder << "sizeof(struct Context_" << ep_node->get_id() << "), ";
+    coder << CHUNKS_BORROWED << ", ";
+    coder << "&" << NUM_CHUNKS_BORROWED << ", ";
+    coder << "mbuf);\n";
+
+    code_t ctx_hdr = create_unique_name("ctx_hdr");
+
+    coder.indent();
+    coder << "struct Context_" << ep_node->get_id() << " *";
+    coder << ctx_hdr;
+    coder << " = ";
+    coder << "(struct Context_" << ep_node->get_id() << " *) ";
+    coder << CHUNKS_BORROWED;
+    coder << "[";
+    coder << NUM_CHUNKS_BORROWED;
+    coder << " - 1]";
+    coder << ";\n";
+
+    for (const symbol_t &symbol : symbols.get()) {
+      std::optional<var_t> var = vars.get(symbol.expr);
+
+      if (!var.has_value()) {
+        dbg_vars();
+        panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
+      }
+
+      coder.indent();
+      coder << ctx_hdr << "->" << var.value().name;
+      coder << " = ";
+      coder << transpiler.transpile(var.value().expr);
+      coder << ";\n";
+    }
+
+    coder.indent();
+    coder << "packet_return_all_chunks(buffer);\n";
+
+    coder.indent();
+    coder << "return " << transpiler.transpile(outgoing_port) << ";\n";
+
+    // return EPVisitor::Action::skipChildren;
+
+  } else {
+
+    coder.indent();
+    const ep_node_id_t code_path = ep_node->get_id();
+    code_paths.push_back(code_path);
+
+    coder << ((code_paths.size() == 1) ? "if " : "else if ");
+    coder << "(code_path_0 == " << ep_node->get_prev()->get_id() << ") {\n";
+
+    coder.inc();
+    coder.indent();
+    coder << "struct Context_" << ep_node->get_prev()->get_id() << " {\n";
+
+    coder.inc();
+
+    for (const symbol_t &symbol : symbols.get()) {
+      std::optional<var_t> var = vars.get(symbol.expr);
+
+      coder.indent();
+      coder << transpiler.type_from_expr(symbol.expr) << " ";
+
+      if (!var.has_value()) {
+        var_t symbol_var = build_var(symbol.name, symbol.expr);
+        vars.insert_back(symbol_var);
+
+        coder << symbol_var.name;
+      } else {
+        coder << var.value().name;
+      }
+      coder << ";\n";
+    }
+
+    coder.dec();
+    coder.indent();
+    coder << "};\n";
+
+    code_t ctx_hdr = create_unique_name("ctx_hdr");
+
+    coder.indent();
+    coder << "void *" << ctx_hdr << ";\n";
+
+    coder.indent();
+    coder << "packet_borrow_next_chunk(";
+    coder << "buffer, ";
+    coder << "sizeof(struct Context_" << ep_node->get_prev()->get_id() << "), ";
+    coder << "&" << ctx_hdr;
+    coder << ")";
+    coder << ";\n";
+
+    code_t ctx = create_unique_name("ctx");
+
+    coder.indent();
+    coder << "struct Context_" << ep_node->get_prev()->get_id() << " *";
+    coder << ctx;
+    coder << " = ";
+    coder << "(struct Context_" << ep_node->get_prev()->get_id() << " *) " << ctx_hdr;
+    coder << ";\n";
+
+    for (const symbol_t &symbol : symbols.get()) {
+      std::optional<var_t> var = vars.get(symbol.expr);
+
+      if (!var.has_value()) {
+        dbg_vars();
+        panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
+      }
+
+      coder.indent();
+      coder << transpiler.type_from_expr(var.value().expr) << " ";
+      coder << var.value().name;
+      coder << " = ";
+      coder << ctx << "->" << var.value().name;
+      coder << ";\n";
+    }
+
+    coder.indent();
+    coder << "packet_shrink_chunk(";
+    coder << "(void**) buffer, ";
+    coder << "0, ";
+    coder << CHUNKS_BORROWED << ", ";
+    coder << NUM_CHUNKS_BORROWED << ", ";
+    coder << "mbuf";
+    coder << ")";
+    coder << ";\n";
+
+    coder.indent();
+    coder << NUM_CHUNKS_BORROWED << "--";
+    coder << ";\n";
+
+    coder.indent();
+    coder << "packet_shrink_chunk(";
+    coder << "(void**) buffer, ";
+    coder << "0, ";
+    coder << CHUNKS_BORROWED << ", ";
+    coder << NUM_CHUNKS_BORROWED << ", ";
+    coder << "mbuf";
+    coder << ")";
+    coder << ";\n";
+
+    coder.indent();
+    coder << NUM_CHUNKS_BORROWED << "--";
+    coder << ";\n";
+
+    coder.indent();
+    coder << "packet_return_all_chunks(buffer);\n";
+
+    const EPNode *child = children[0];
+
+    visit(ep, child);
+
+    coder.dec();
+    coder.indent();
+    coder << "}\n";
+  }
+
+  return EPVisitor::Action::skipChildren;
 }
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketAllocate *node) {

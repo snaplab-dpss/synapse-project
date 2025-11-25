@@ -94,6 +94,8 @@ public:
   symbolic_reads_t get_used_symbolic_reads() const;
   std::vector<expr_groups_t> get_expr_groups() const;
   Symbols get_prev_symbols(const bdd_node_ids_t &stop_nodes = bdd_node_ids_t()) const;
+  Symbols get_prev_map_keys(const bdd_node_ids_t &stop_nodes = bdd_node_ids_t()) const;
+  bdd_node_ids_t get_prev_s2d_node_id() const;
   std::list<const Call *> get_prev_functions(const std::unordered_set<std::string> &functions_names,
                                              const bdd_node_ids_t &stop_nodes = bdd_node_ids_t()) const;
   std::vector<const Call *> get_future_functions(const std::unordered_set<std::string> &functions, bool stop_on_branches = false) const;

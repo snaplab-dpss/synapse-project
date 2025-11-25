@@ -1,4 +1,3 @@
-#include "LibSynapse/Target.h"
 #include <LibSynapse/Synthesizers/TofinoSynthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Strings.h>

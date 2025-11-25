@@ -16,21 +16,17 @@
 #include <LibSynapse/Modules/x86/ExpireItemsSingleMap.h>
 #include <LibSynapse/Modules/x86/ExpireItemsSingleMapIteratively.h>
 #include <LibSynapse/Modules/x86/MapAllocate.h>
-#include <LibSynapse/Modules/x86/MapAllocate.h>
 #include <LibSynapse/Modules/x86/MapGet.h>
 #include <LibSynapse/Modules/x86/MapPut.h>
 #include <LibSynapse/Modules/x86/MapErase.h>
 #include <LibSynapse/Modules/x86/VectorAllocate.h>
-#include <LibSynapse/Modules/x86/VectorAllocate.h>
 #include <LibSynapse/Modules/x86/VectorRead.h>
 #include <LibSynapse/Modules/x86/VectorWrite.h>
-#include <LibSynapse/Modules/x86/DchainAllocate.h>
 #include <LibSynapse/Modules/x86/DchainAllocate.h>
 #include <LibSynapse/Modules/x86/DchainRejuvenateIndex.h>
 #include <LibSynapse/Modules/x86/DchainAllocateNewIndex.h>
 #include <LibSynapse/Modules/x86/DchainIsIndexAllocated.h>
 #include <LibSynapse/Modules/x86/DchainFreeIndex.h>
-#include <LibSynapse/Modules/x86/CMSAllocate.h>
 #include <LibSynapse/Modules/x86/CMSAllocate.h>
 #include <LibSynapse/Modules/x86/CMSCountMin.h>
 #include <LibSynapse/Modules/x86/CMSIncrement.h>
@@ -39,13 +35,10 @@
 #include <LibSynapse/Modules/x86/ChtFindBackend.h>
 #include <LibSynapse/Modules/x86/SendToDevice.h>
 #include <LibSynapse/Modules/x86/TokenBucketAllocate.h>
-#include <LibSynapse/Modules/x86/SendToDevice.h>
-#include <LibSynapse/Modules/x86/TokenBucketAllocate.h>
 #include <LibSynapse/Modules/x86/TokenBucketExpire.h>
 #include <LibSynapse/Modules/x86/TokenBucketIsTracing.h>
 #include <LibSynapse/Modules/x86/TokenBucketTrace.h>
 #include <LibSynapse/Modules/x86/TokenBucketUpdateAndCheck.h>
-#include <LibSynapse/Modules/x86/LPMAllocate.h>
 #include <LibSynapse/Modules/x86/LPMAllocate.h>
 
 namespace LibSynapse {
