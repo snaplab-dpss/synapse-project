@@ -618,8 +618,15 @@ code_t TofinoSynthesizer::build_register_action_name(const Register *reg, Regist
   case RegisterActionType::SampleEveryFourth:
     coder << "sample_every_fourth";
     break;
+  case RegisterActionType::QueryTimestamp:
+    coder << "query_timestamp";
+    break;
   case RegisterActionType::QueryAndRefreshTimestamp:
-    coder << "query_and_refresh";
+    coder << "query_and_refresh_timestamp";
+    break;
+  case RegisterActionType::CheckValue:
+    coder << "check_value";
+    break;
   }
 
   if (node) {
@@ -851,7 +858,7 @@ void TofinoSynthesizer::transpile_register_decl(const Register *reg) {
 }
 
 void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType action_type,
-                                                       std::optional<var_t> write_value) {
+                                                       std::optional<code_t> external_var) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
 
   const code_t value_type = TofinoSynthesizer::Transpiler::type_from_size(reg->value_size);
@@ -893,14 +900,14 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress << "}\n";
   } break;
   case RegisterActionType::Write: {
-    assert(write_value.has_value() && "Expected a write value");
+    assert_or_panic(external_var.has_value(), "Expected a write value");
 
     ingress.indent();
     ingress << "void apply(inout " << value_type << " value) {\n";
 
     ingress.inc();
     ingress.indent();
-    ingress << "value = " << write_value->name << ";\n";
+    ingress << "value = " << external_var.value() << ";\n";
 
     ingress.dec();
     ingress.indent();
@@ -1011,8 +1018,91 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
+  case RegisterActionType::QueryTimestamp: {
+    assert_or_panic(external_var.has_value(), "Expected a global variable for the timeout value");
+    ingress.indent();
+    ingress << "void apply(inout bit<32> alarm, out bool was_alive) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "if (meta.time > alarm) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "was_alive = false;\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "} else {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "was_alive = true;\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+  } break;
   case RegisterActionType::QueryAndRefreshTimestamp: {
-    todo();
+    assert_or_panic(external_var.has_value(), "Expected a global variable for the timeout value");
+    ingress.indent();
+    ingress << "void apply(inout bit<32> alarm, out bool was_alive) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "if (meta.time > alarm) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "was_alive = false;\n";
+    ingress.indent();
+    ingress << "alarm = meta.time + " << external_var.value() << ";\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "} else {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "was_alive = true;\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+  } break;
+  case RegisterActionType::CheckValue: {
+    assert_or_panic(external_var.has_value(), "Expected a global variable for crosschecking the value");
+    ingress.indent();
+    ingress << "void apply(inout " << value_type << " curr_value, out bit<8> match) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "if (curr_value == " << external_var.value() << ") {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "match = 1;\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "} else {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "match = 0;\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
   } break;
   }
 
@@ -1045,6 +1135,39 @@ void TofinoSynthesizer::transpile_hash_decl(const Hash *hash) {
   ingress << " ";
   ingress << hash->id;
   ingress << ";\n";
+}
+
+void TofinoSynthesizer::transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator,
+                                                   code_t &output_hash) {
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+
+  output_hash = hash->id + "_value";
+
+  ingress.indent();
+  ingress << Transpiler::type_from_size(hash->size) << " " << output_hash << ";\n";
+
+  coder_t hash_calculation_body;
+
+  hash_calculation_body.indent();
+  hash_calculation_body << output_hash << " = " << hash->id << ".get({\n";
+
+  hash_calculation_body.inc();
+
+  for (size_t i = 0; i < inputs.size(); i++) {
+    const code_t &input = inputs[i];
+    hash_calculation_body.indent();
+    hash_calculation_body << input;
+    if (i != inputs.size() - 1) {
+      hash_calculation_body << ",";
+    }
+    hash_calculation_body << "\n";
+  }
+
+  hash_calculation_body.indent();
+  hash_calculation_body << "});\n";
+
+  hash_calculator = hash->id + "_calc";
+  transpile_action_decl(hash_calculator, hash_calculation_body.split_lines());
 }
 
 void TofinoSynthesizer::transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys) {
@@ -1081,29 +1204,18 @@ void TofinoSynthesizer::transpile_digest_decl(const Digest *digest, const std::v
 }
 
 void TofinoSynthesizer::transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, const std::vector<klee::ref<klee::Expr>> &keys) {
-  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
-
   if (declared_ds.find(fcfs_cached_table->id) != declared_ds.end()) {
     return;
   }
 
   declared_ds.insert(fcfs_cached_table->id);
 
+  transpile_hash_decl(&fcfs_cached_table->hash);
   transpile_register_decl(&fcfs_cached_table->cache_expirator);
-
-  std::vector<var_t> keys_vars;
-  for (const Table &table : fcfs_cached_table->tables) {
-    transpile_table_decl(&table, keys, {}, true, keys_vars);
-  }
 
   for (const Register &reg_key : fcfs_cached_table->cache_keys) {
     transpile_register_decl(&reg_key);
   }
-
-  std::cerr << ingress.dump();
-  dbg_pause();
-
-  panic("TODO: transpile_fcfs_cached_table_decl");
 }
 
 code_t TofinoSynthesizer::var_t::get_type() const { return force_bool ? "bool" : TofinoSynthesizer::Transpiler::type_from_expr(expr); }
@@ -1496,7 +1608,7 @@ void TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
     ingress_apply.indent();
     ingress_apply << "// EP node  " << ep_node->get_id() << ":" << module->get_name() << "\n";
     ingress_apply.indent();
-    ingress_apply << "// BDD node " << module->get_node()->dump(true) << "\n";
+    ingress_apply << "// BDD node " << module->get_node()->dump(true, true) << "\n";
   }
 
   EPVisitor::visit(ep, ep_node);
@@ -2410,7 +2522,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     }
 
     const code_t action_name = build_register_action_name(reg, RegisterActionType::Write, ep_node);
-    transpile_register_action_decl(reg, action_name, RegisterActionType::Write, reg_write_var);
+    transpile_register_action_decl(reg, action_name, RegisterActionType::Write, reg_write_var->name);
 
     ingress_apply.indent();
     ingress_apply << action_name;
@@ -2449,26 +2561,199 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) {
-  // coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
-  // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  // const DS_ID fcfscached_table_id                = node->get_fcfs_cached_table_id();
-  // const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
-  // const symbol_t &map_has_this_key               = node->get_map_has_this_key();
+  const DS_ID fcfscached_table_id                = node->get_fcfs_cached_table_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  const symbol_t &hit                            = node->get_map_has_this_key();
 
-  // const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
-  // const bdd_node_id_t node_id              = node->get_node()->get_id();
-  // const Table *table                       = fcfs_cached_table->get_table(node_id);
-  // assert(table && "Table not found");
+  const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
+  const bdd_node_id_t node_id              = node->get_node()->get_id();
+  const Table *table                       = fcfs_cached_table->get_table(node_id);
+  assert(table && "Table not found");
 
-  // transpile_fcfs_cached_table_decl(fcfs_cached_table, keys);
+  transpile_fcfs_cached_table_decl(fcfs_cached_table, keys);
 
-  todo();
+  std::vector<var_t> keys_vars;
+  transpile_table_decl(table, keys, {}, true, keys_vars);
+
+  const code_t cache_expirator_action_name =
+      build_register_action_name(&fcfs_cached_table->cache_expirator, RegisterActionType::QueryTimestamp, ep_node);
+
+  transpile_register_action_decl(&fcfs_cached_table->cache_expirator, cache_expirator_action_name, RegisterActionType::QueryTimestamp,
+                                 std::to_string(FCFSCachedTable::ENTRY_TIMEOUT));
+
+  assert(fcfs_cached_table->cache_keys.size() == keys_vars.size());
+  std::vector<code_t> reg_keys_read_actions;
+  for (size_t i = 0; i < keys_vars.size(); i++) {
+    const Register &reg                   = fcfs_cached_table->cache_keys[i];
+    const code_t reg_key_read_action_name = build_register_action_name(&reg, RegisterActionType::CheckValue, ep_node);
+    reg_keys_read_actions.push_back(reg_key_read_action_name);
+    transpile_register_action_decl(&reg, reg_key_read_action_name, RegisterActionType::CheckValue, keys_vars[i].name);
+  }
+
+  std::vector<code_t> hash_inputs;
+  for (const var_t &key_var : keys_vars) {
+    hash_inputs.push_back(key_var.name);
+  }
+  code_t hash_calculator;
+  code_t output_hash;
+  transpile_hash_calculation(&fcfs_cached_table->hash, hash_inputs, hash_calculator, output_hash);
+
+  for (const var_t &key_var : keys_vars) {
+    ingress_apply.indent();
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  }
+
+  const var_t hit_var = alloc_var("hit", hit.expr, FORCE_BOOL);
+  hit_var.declare(ingress_apply, table->id + ".apply().hit");
+
+  ingress_apply.indent();
+  ingress_apply << "if (!" << hit_var.name << ") {\n";
+  ingress_apply.inc();
+
+  ingress_apply.indent();
+  ingress_apply << hash_calculator << "();\n";
+
+  ingress_apply.indent();
+  ingress_apply << "if (" << cache_expirator_action_name << ".execute(" << output_hash << ")) {\n";
+  ingress_apply.inc();
+
+  const var_t match_counter_var = alloc_var("match_counter", hit.expr, FORCE_BOOL);
+  match_counter_var.declare(ingress_apply, "0");
+
+  for (const code_t &reg_key_read_action_name : reg_keys_read_actions) {
+    ingress_apply.indent();
+    ingress_apply << match_counter_var.name << " = " << match_counter_var.name << " + " << reg_key_read_action_name << ".execute(" << output_hash
+                  << ");\n";
+  }
+
+  ingress_apply.indent();
+  ingress_apply << "if (" << match_counter_var.name << " == " << keys_vars.size() << ") {\n";
+  ingress_apply.inc();
+
+  ingress_apply.indent();
+  ingress_apply << hit_var.name << " == true;\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) {
-  panic("TODO: FCFSCachedTableReadWrite");
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const DS_ID fcfscached_table_id                = node->get_fcfs_cached_table_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  const symbol_t &hit                            = node->get_map_has_this_key();
+
+  const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
+  const bdd_node_id_t node_id              = node->get_node()->get_id();
+  const Table *table                       = fcfs_cached_table->get_table(node_id);
+  assert(table && "Table not found");
+
+  transpile_fcfs_cached_table_decl(fcfs_cached_table, keys);
+
+  std::vector<var_t> keys_vars;
+  transpile_table_decl(table, keys, {}, true, keys_vars);
+
+  const code_t cache_expirator_action_name =
+      build_register_action_name(&fcfs_cached_table->cache_expirator, RegisterActionType::QueryAndRefreshTimestamp, ep_node);
+
+  transpile_register_action_decl(&fcfs_cached_table->cache_expirator, cache_expirator_action_name, RegisterActionType::QueryAndRefreshTimestamp,
+                                 std::to_string(FCFSCachedTable::ENTRY_TIMEOUT));
+
+  assert(fcfs_cached_table->cache_keys.size() == keys_vars.size());
+  std::vector<code_t> reg_keys_read_actions;
+  for (size_t i = 0; i < keys_vars.size(); i++) {
+    const Register &reg                   = fcfs_cached_table->cache_keys[i];
+    const code_t reg_key_read_action_name = build_register_action_name(&reg, RegisterActionType::CheckValue, ep_node);
+    reg_keys_read_actions.push_back(reg_key_read_action_name);
+    transpile_register_action_decl(&reg, reg_key_read_action_name, RegisterActionType::CheckValue, keys_vars[i].name);
+  }
+
+  std::vector<code_t> hash_inputs;
+  for (const var_t &key_var : keys_vars) {
+    hash_inputs.push_back(key_var.name);
+  }
+  code_t hash_calculator;
+  code_t output_hash;
+  transpile_hash_calculation(&fcfs_cached_table->hash, hash_inputs, hash_calculator, output_hash);
+
+  for (const var_t &key_var : keys_vars) {
+    ingress_apply.indent();
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  }
+
+  const var_t hit_var = alloc_var("hit", hit.expr, FORCE_BOOL);
+  hit_var.declare(ingress_apply, table->id + ".apply().hit");
+
+  ingress_apply.indent();
+  ingress_apply << "if (!" << hit_var.name << ") {\n";
+  ingress_apply.inc();
+
+  ingress_apply.indent();
+  ingress_apply << hash_calculator << "();\n";
+
+  ingress_apply.indent();
+  ingress_apply << "if (" << cache_expirator_action_name << ".execute(" << output_hash << ")) {\n";
+  ingress_apply.inc();
+
+  const var_t match_counter_var = alloc_var("match_counter", hit.expr, FORCE_BOOL);
+  match_counter_var.declare(ingress_apply, "0");
+
+  for (const code_t &reg_key_read_action_name : reg_keys_read_actions) {
+    ingress_apply.indent();
+    ingress_apply << match_counter_var.name << " = " << match_counter_var.name << " + " << reg_key_read_action_name << ".execute(" << output_hash
+                  << ");\n";
+  }
+
+  ingress_apply.indent();
+  ingress_apply << "if (" << match_counter_var.name << " == " << keys_vars.size() << ") {\n";
+  ingress_apply.inc();
+
+  ingress_apply.indent();
+  ingress_apply << hit_var.name << " == true;\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "else {\n";
+  ingress_apply.inc();
+
+  ingress_apply.indent();
+  ingress_apply << "// let's go\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  std::cerr << "\n==================================================================\n";
+  std::cerr << ingress.dump() << std::endl;
+  std::cerr << "\n==================================================================\n";
+  std::cerr << ingress_apply.dump() << std::endl;
+  std::cerr << "\n==================================================================\n";
+
+  todo();
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -2570,37 +2855,20 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   std::vector<code_t> hashes;
   std::vector<code_t> hash_calculators;
   for (size_t i = 0; i < hh_table->hashes.size(); i++) {
+    std::vector<code_t> hash_inputs;
+    for (const var_t &key_var : keys_vars) {
+      hash_inputs.push_back(key_var.name);
+    }
+
     assert(i < HHTable::HASH_SALTS.size());
     const bits_t hash_salt_size = sizeof(HHTable::HASH_SALTS[i]) * 8;
+    hash_inputs.push_back(Transpiler::transpile_literal(HHTable::HASH_SALTS[i], hash_salt_size, true));
 
-    const code_t &hash      = hh_table->hashes[i].id;
-    const code_t hash_value = hash + "_value";
+    code_t hash_calculator;
+    code_t output_hash;
+    transpile_hash_calculation(&hh_table->hashes[i], hash_inputs, hash_calculator, output_hash);
 
-    ingress.indent();
-    ingress << Transpiler::type_from_size(hh_table->hash_size) << " " << hash_value << ";\n";
-
-    hashes.push_back(hash_value);
-
-    coder_t hash_calculation_body;
-
-    hash_calculation_body.indent();
-    hash_calculation_body << hash_value << " = " << hash << ".get({\n";
-
-    hash_calculation_body.inc();
-    for (const var_t &key_var : keys_vars) {
-      hash_calculation_body.indent();
-      hash_calculation_body << key_var.name << ",\n";
-    }
-    hash_calculation_body.indent();
-    hash_calculation_body << Transpiler::transpile_literal(HHTable::HASH_SALTS[i], hash_salt_size, true) << "\n";
-    hash_calculation_body.dec();
-
-    hash_calculation_body.indent();
-    hash_calculation_body << "});\n";
-
-    const code_t hash_calculator = hash + "_calc";
-    transpile_action_decl(hash_calculator, hash_calculation_body.split_lines());
-
+    hashes.push_back(output_hash);
     hash_calculators.push_back(hash_calculator);
   }
 

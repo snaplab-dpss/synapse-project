@@ -8,26 +8,26 @@ Args:
   Seed:               0
   Targets:
     Tofino (28 modules)
-    Ctrl (73 modules)
+    Ctrl (72 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <233'081'000,0,53,-4>
-  Tput: 164.09 Gbps (233.08 Mpps)
-  Spec: 164.09 Gbps (233.08 Mpps)
+  Score: <233'266'000,0,53,-4>
+  Tput: 164.22 Gbps (233.27 Mpps)
+  Spec: 164.22 Gbps (233.27 Mpps)
   Recirculations: 0
   BDD Progress: 53 / 53
   Stages: 4
 
 Stateful Implementations:
-  1073954840: Tofino::Register
-  1073971976: Tofino::HHTable
-  1073923800: Tofino::HHTable
+  1073954408: Tofino::Register
+  1073971544: Tofino::HHTable
+  1073923368: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       103 seconds
+  Elapsed time:       56 seconds
   Steps:              54
   Backtracks:         1
   Search space size:  174
@@ -102,4 +102,8 @@ Search Metadata:
     Node 46: 2
     Node 52: 2
 
+Global Stats:
+  Num phase 1 speculations: 42'184(100%)
+  Num phase 2 speculations: 1'951(4.62498%)
+  Num phase 3 speculations: 1'951(4.62498%)
 ========================================================

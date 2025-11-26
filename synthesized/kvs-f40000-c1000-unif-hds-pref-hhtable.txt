@@ -8,33 +8,32 @@ Args:
   Seed:               0
   Targets:
     Tofino (28 modules)
-    Ctrl (73 modules)
+    Ctrl (72 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <2,90'455'000,53>
+  Score: <2,53>
   BDD Progress: 53
   DS Score: 2
-  Tput: 63.68 Gbps (90.46 Mpps)
-  Spec: 63.68 Gbps (90.45 Mpps)
+  Tput: 29.28 Mbps (41.59 Kpps)
 
 Stateful Implementations:
-  1073954840: Tofino::Register
-  1073971976: Tofino::HHTable
-  1073923800: Tofino::HHTable
+  1073954408: Tofino::VectorTable
+  1073971544: Tofino::HHTable
+  1073923368: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       93 seconds
-  Steps:              53
+  Elapsed time:       1 seconds
+  Steps:              55
   Backtracks:         0
-  Search space size:  175
-  Unfinished EPs:     122
+  Search space size:  166
+  Unfinished EPs:     111
   Finished EPs:       1
   Avg BDD size:       53
   Branching factor:   2
-  Total SS size est.: 207'689'293'322
+  Total SS size est.: 50'194'186'664
   Avg children per node:
     Node 124: 4
     Node 32: 0
@@ -67,7 +66,7 @@ Search Metadata:
     Node 4: 2
     Node 63: 3
     Node 62: 3
-    Node 39: 4
+    Node 39: 3
     Node 10: 4
     Node 11: 5
     Node 17: 0
@@ -77,28 +76,32 @@ Search Metadata:
     Node 18: 3
     Node 23: 0
     Node 35: 4
-    Node 41: 3
+    Node 41: 2
     Node 47: 3
     Node 19: 3
     Node 24: 0
     Node 36: 4
-    Node 42: 3
+    Node 42: 0
     Node 48: 3
     Node 20: 3
     Node 25: 0
     Node 37: 3
-    Node 43: 3
+    Node 43: 0
     Node 49: 3
     Node 21: 3
     Node 26: 0
-    Node 44: 3
+    Node 44: 0
     Node 50: 3
     Node 22: 2
     Node 27: 0
-    Node 45: 3
+    Node 45: 0
     Node 51: 3
     Node 28: 0
-    Node 46: 2
+    Node 46: 0
     Node 52: 2
 
+Global Stats:
+  Num phase 1 speculations: 0(0%)
+  Num phase 2 speculations: 0(0%)
+  Num phase 3 speculations: 0(0%)
 ========================================================

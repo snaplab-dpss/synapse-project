@@ -138,6 +138,12 @@ void dump_final_report(const args_t &args, const search_report_t &search_report)
     report_json["implementations"].push_back(ds_impl_json);
   }
 
+  report_json["global_stats"] = {
+      {"num_phase1_speculations", GlobalStats::num_phase1_speculations},
+      {"num_phase2_speculations", GlobalStats::num_phase2_speculations},
+      {"num_phase3_speculations", GlobalStats::num_phase3_speculations},
+  };
+
   std::ofstream out_report(out_report_fpath);
   if (!out_report.is_open()) {
     panic("Failed to open output report file: %s", out_report_fpath.string().c_str());
@@ -202,6 +208,16 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   }
   out_hr_report << "\n";
 
+  const u64 total_speculations = GlobalStats::num_phase1_speculations;
+  const float phase1_percent   = total_speculations == 0 ? 0.0f : (100.0f * GlobalStats::num_phase1_speculations) / total_speculations;
+  const float phase2_percent   = total_speculations == 0 ? 0.0f : (100.0f * GlobalStats::num_phase2_speculations) / total_speculations;
+  const float phase3_percent   = total_speculations == 0 ? 0.0f : (100.0f * GlobalStats::num_phase3_speculations) / total_speculations;
+
+  out_hr_report << "Global Stats:\n";
+  out_hr_report << "  Num phase 1 speculations: " << int2hr(GlobalStats::num_phase1_speculations) << " (" << phase1_percent << "%)\n";
+  out_hr_report << "  Num phase 2 speculations: " << int2hr(GlobalStats::num_phase2_speculations) << " (" << phase2_percent << "%)\n";
+  out_hr_report << "  Num phase 3 speculations: " << int2hr(GlobalStats::num_phase3_speculations) << " (" << phase3_percent << "%)\n";
+
   out_hr_report << "========================================================\n";
   out_hr_report.close();
 }
@@ -210,13 +226,14 @@ bdd_profile_t build_bdd_profile(const BDD &bdd, const args_t &args, const std::u
   bdd_profile_t bdd_profile;
   if (args.profile_file.empty()) {
     if (args.random_uniform_profile) {
-      bdd_profile = build_uniform_bdd_profile(&bdd, available_devs);
+      bdd_profile = build_uniform_bdd_profile(bdd, available_devs);
     } else {
-      bdd_profile = build_random_bdd_profile(&bdd, available_devs);
+      bdd_profile = build_random_bdd_profile(bdd, available_devs);
     }
   } else {
     bdd_profile = parse_bdd_profile(args.profile_file);
   }
+  bdd_profile.validate_against_bdd(bdd);
   return bdd_profile;
 }
 

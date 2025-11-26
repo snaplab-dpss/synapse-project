@@ -8,47 +8,46 @@ Args:
   Seed:               0
   Targets:
     Tofino (28 modules)
-    Ctrl (73 modules)
+    Ctrl (72 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <205'698'000,0,53,-4>
-  Tput: 144.81 Gbps (205.70 Mpps)
-  Spec: 144.81 Gbps (205.70 Mpps)
+  Score: <137'117'000,0,44,-14>
+  Tput: 96.53 Gbps (137.12 Mpps)
+  Spec: 96.53 Gbps (137.12 Mpps)
   Recirculations: 0
-  BDD Progress: 53 / 53
-  Stages: 4
+  BDD Progress: 44 / 47
+  Stages: 14
 
 Stateful Implementations:
-  1073954840: Tofino::Register
-  1073971976: Tofino::HHTable
-  1073923800: Tofino::HHTable
+  1073954408: Tofino::CuckooHashTable
+  1073971544: Tofino::CuckooHashTable
+  1073923368: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       110 seconds
-  Steps:              54
-  Backtracks:         1
-  Search space size:  174
-  Unfinished EPs:     120
+  Elapsed time:       29 seconds
+  Steps:              44
+  Backtracks:         0
+  Search space size:  138
+  Unfinished EPs:     94
   Finished EPs:       1
-  Avg BDD size:       53
+  Avg BDD size:       47
   Branching factor:   2
-  Total SS size est.: 110'008'212'384
+  Total SS size est.: 5'848'622'620
   Avg children per node:
-    Node 124: 4
     Node 32: 0
     Node 31: 0
     Node 30: 0
     Node 29: 0
     Node 56: 3
-    Node 16: 3
+    Node 16: 0
     Node 55: 3
-    Node 15: 3
+    Node 15: 0
     Node 61: 2
     Node 54: 3
-    Node 14: 4
+    Node 14: 0
     Node 60: 3
     Node 53: 3
     Node 13: 14
@@ -62,24 +61,24 @@ Search Metadata:
     Node 7: 3
     Node 66: 2
     Node 8: 3
-    Node 38: 5
+    Node 38: 0
     Node 9: 3
     Node 33: 3
     Node 4: 2
     Node 63: 3
     Node 62: 3
-    Node 39: 4
+    Node 39: 0
     Node 10: 4
     Node 11: 5
     Node 17: 0
     Node 34: 3
-    Node 40: 3
+    Node 40: 0
     Node 57: 2
     Node 18: 3
     Node 23: 0
     Node 35: 3
-    Node 41: 3
-    Node 47: 3
+    Node 41: 0
+    Node 47: 0
     Node 19: 3
     Node 24: 0
     Node 36: 3
@@ -102,4 +101,8 @@ Search Metadata:
     Node 46: 2
     Node 52: 2
 
+Global Stats:
+  Num phase 1 speculations: 17'171(100%)
+  Num phase 2 speculations: 1'043(6.07419%)
+  Num phase 3 speculations: 1'043(6.07419%)
 ========================================================

@@ -1,13 +1,18 @@
 {
   "bdd": "kvs.bdd",
+  "global_stats": {
+    "num_phase1_speculations": 38647,
+    "num_phase2_speculations": 1857,
+    "num_phase3_speculations": 1857
+  },
   "heuristic": {
     "meta": [
       {
-        "description": "81.38 Gbps (115.59 Mpps)",
+        "description": "81.39 Gbps (115.61 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "81.38 Gbps (115.59 Mpps)",
+        "description": "81.39 Gbps (115.61 Mpps)",
         "name": "Spec"
       },
       {
@@ -24,7 +29,7 @@
       }
     ],
     "score": [
-      115590000,
+      115608000,
       0,
       53,
       -4
@@ -32,15 +37,15 @@
   },
   "implementations": [
     {
-      "addr": 1073954840,
+      "addr": 1073954408,
       "implementation": "Tofino::Register"
     },
     {
-      "addr": 1073971976,
+      "addr": 1073971544,
       "implementation": "Tofino::HHTable"
     },
     {
-      "addr": 1073923800,
+      "addr": 1073923368,
       "implementation": "Tofino::HHTable"
     }
   ],
@@ -308,7 +313,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.90625,
-    "elapsed_time_seconds": 87,
+    "elapsed_time_seconds": 49,
     "finished_eps": 1,
     "ss_size": 175,
     "steps": 53,
@@ -317,6 +322,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 81375977408,
-  "tput_estimation_pps": 115590877
+  "tput_estimation_bps": 81388564928,
+  "tput_estimation_pps": 115608757
 }

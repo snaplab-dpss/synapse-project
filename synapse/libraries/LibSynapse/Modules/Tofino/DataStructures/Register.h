@@ -28,7 +28,9 @@ enum class RegisterActionType {
   ReadConditionalWrite,
   CalculateDiff,
   SampleEveryFourth,
+  QueryTimestamp,
   QueryAndRefreshTimestamp,
+  CheckValue,
 };
 
 const std::unordered_set<RegisterActionType> register_action_types_with_out_value = {
@@ -39,7 +41,9 @@ const std::unordered_set<RegisterActionType> register_action_types_with_out_valu
     RegisterActionType::ReadConditionalWrite,
     RegisterActionType::CalculateDiff,
     RegisterActionType::SampleEveryFourth,
+    RegisterActionType::QueryTimestamp,
     RegisterActionType::QueryAndRefreshTimestamp,
+    RegisterActionType::CheckValue,
 };
 
 struct Register : public DS {

@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
   SymbolManager symbol_manager;
   const BDD bdd(input_bdd_file, &symbol_manager);
-  const bdd_profile_t bdd_profile = build_uniform_bdd_profile(&bdd);
+  const bdd_profile_t bdd_profile = build_uniform_bdd_profile(bdd);
 
   Profiler profiler = Profiler(&bdd, bdd_profile, bdd.get_devices());
   profiler.debug();

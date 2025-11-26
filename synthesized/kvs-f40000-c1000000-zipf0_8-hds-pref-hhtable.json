@@ -1,5 +1,10 @@
 {
   "bdd": "kvs.bdd",
+  "global_stats": {
+    "num_phase1_speculations": 0,
+    "num_phase2_speculations": 0,
+    "num_phase3_speculations": 0
+  },
   "heuristic": {
     "meta": [
       {
@@ -13,29 +18,24 @@
       {
         "description": "50.00 Gbps (71.02 Mpps)",
         "name": "Tput"
-      },
-      {
-        "description": "50.00 Gbps (71.02 Mpps)",
-        "name": "Spec"
       }
     ],
     "score": [
       2,
-      71022000,
       53
     ]
   },
   "implementations": [
     {
-      "addr": 1073954840,
+      "addr": 1073954408,
       "implementation": "Tofino::Register"
     },
     {
-      "addr": 1073971976,
+      "addr": 1073971544,
       "implementation": "Tofino::HHTable"
     },
     {
-      "addr": 1073923800,
+      "addr": 1073923368,
       "implementation": "Tofino::HHTable"
     }
   ],
@@ -303,7 +303,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.921875,
-    "elapsed_time_seconds": 113,
+    "elapsed_time_seconds": 1,
     "finished_eps": 1,
     "ss_size": 178,
     "steps": 54,

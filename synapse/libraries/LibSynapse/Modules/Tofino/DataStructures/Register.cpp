@@ -73,8 +73,15 @@ void Register::debug() const {
     case RegisterActionType::SampleEveryFourth:
       ss << "SAMPLE_EVERY_FOURTH";
       break;
+    case RegisterActionType::QueryTimestamp:
+      ss << "QUERY_TIMESTAMP";
+      break;
     case RegisterActionType::QueryAndRefreshTimestamp:
       ss << "QUERY_AND_REFRESH_TIMESTAMP";
+      break;
+    case RegisterActionType::CheckValue:
+      ss << "CHECK_VALUE";
+      break;
     }
     first = false;
   }

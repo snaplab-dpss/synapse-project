@@ -252,8 +252,9 @@ private:
   void transpile_table_decl(const Table *table, const std::vector<klee::ref<klee::Expr>> &keys, const std::vector<klee::ref<klee::Expr>> &values,
                             bool values_are_buffers, std::vector<var_t> &keys_vars);
   void transpile_register_decl(const Register *reg);
-  void transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType type, std::optional<var_t> write_value);
+  void transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType type, std::optional<code_t> external_var);
   void transpile_hash_decl(const Hash *hash);
+  void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash);
   void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
   void transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, const std::vector<klee::ref<klee::Expr>> &keys);
   void transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);

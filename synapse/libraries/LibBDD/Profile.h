@@ -73,16 +73,17 @@ struct bdd_profile_t {
   fpm_t churn_top_k_flows(u64 map, u32 k) const;
   hit_rate_t churn_hit_rate_top_k_flows(u64 map, u32 k) const;
   u64 threshold_top_k_flows(u64 map, u32 k) const;
+  void validate_against_bdd(const BDD &bdd) const;
 };
 
 bdd_profile_t parse_bdd_profile(const std::filesystem::path &filename);
 
 // Build a random BDD profile with some available devices.
 // If the set is empty, consider all devices as available devices.
-bdd_profile_t build_random_bdd_profile(const BDD *bdd, const std::unordered_set<u16> &available_devs = {});
+bdd_profile_t build_random_bdd_profile(const BDD &bdd, const std::unordered_set<u16> &available_devs = {});
 
 // Build a uniformly distributed BDD profile with some available devices.
 // If the set is empty, consider all devices as available devices.
-bdd_profile_t build_uniform_bdd_profile(const BDD *bdd, const std::unordered_set<u16> &available_devs = {});
+bdd_profile_t build_uniform_bdd_profile(const BDD &bdd, const std::unordered_set<u16> &available_devs = {});
 
 } // namespace LibBDD

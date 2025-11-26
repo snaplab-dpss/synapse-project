@@ -8,33 +8,32 @@ Args:
   Seed:               0
   Targets:
     Tofino (28 modules)
-    Ctrl (73 modules)
+    Ctrl (72 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <1,86'426'000,67>
+  Score: <1,67>
   BDD Progress: 67
   DS Score: 1
-  Tput: 60.84 Gbps (86.43 Mpps)
-  Spec: 60.84 Gbps (86.43 Mpps)
+  Tput: 36.21 Mbps (51.43 Kpps)
 
 Stateful Implementations:
-  1073954840: Tofino::Register
-  1073971976: Tofino::DchainTable
-  1073923800: Tofino::GuardedMapTable
+  1073954408: Tofino::VectorTable
+  1073971544: Tofino::DchainTable
+  1073923368: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       138 seconds
-  Steps:              93
-  Backtracks:         6
-  Search space size:  274
-  Unfinished EPs:     181
+  Elapsed time:       1 seconds
+  Steps:              71
+  Backtracks:         0
+  Search space size:  184
+  Unfinished EPs:     113
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   2
-  Total SS size est.: 61'296'757'083
+  Total SS size est.: 15'790'292'917
   Avg children per node:
     Node 130: 3
     Node 129: 3
@@ -45,12 +44,12 @@ Search Metadata:
     Node 30: 0
     Node 29: 0
     Node 56: 3
-    Node 16: 2.4
+    Node 16: 2.5
     Node 55: 3
     Node 15: 4
     Node 61: 2
     Node 54: 3
-    Node 14: 2.5
+    Node 14: 3
     Node 60: 3
     Node 53: 3
     Node 13: 14
@@ -72,7 +71,7 @@ Search Metadata:
     Node 4: 2
     Node 63: 3
     Node 62: 3
-    Node 39: 4.4
+    Node 39: 3
     Node 10: 4
     Node 11: 5
     Node 17: 0
@@ -82,28 +81,32 @@ Search Metadata:
     Node 18: 0
     Node 23: 0
     Node 35: 4
-    Node 41: 3
+    Node 41: 2
     Node 47: 3
     Node 19: 0
     Node 24: 0
     Node 36: 4
-    Node 42: 3
+    Node 42: 0
     Node 48: 3
     Node 20: 0
     Node 25: 0
     Node 37: 3
-    Node 43: 3
+    Node 43: 0
     Node 49: 3
     Node 21: 0
     Node 26: 0
-    Node 44: 3
+    Node 44: 0
     Node 50: 3
     Node 22: 0
     Node 27: 0
-    Node 45: 3
+    Node 45: 0
     Node 51: 3
     Node 28: 0
-    Node 46: 2
+    Node 46: 0
     Node 52: 2
 
+Global Stats:
+  Num phase 1 speculations: 0(0%)
+  Num phase 2 speculations: 0(0%)
+  Num phase 3 speculations: 0(0%)
 ========================================================

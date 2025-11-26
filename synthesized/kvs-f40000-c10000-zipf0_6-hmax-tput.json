@@ -1,13 +1,18 @@
 {
   "bdd": "kvs.bdd",
+  "global_stats": {
+    "num_phase1_speculations": 62488,
+    "num_phase2_speculations": 3093,
+    "num_phase3_speculations": 3093
+  },
   "heuristic": {
     "meta": [
       {
-        "description": "97.88 Gbps (139.04 Mpps)",
+        "description": "62.37 Gbps (88.60 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "97.88 Gbps (139.04 Mpps)",
+        "description": "62.37 Gbps (88.60 Mpps)",
         "name": "Spec"
       },
       {
@@ -15,40 +20,52 @@
         "name": "Recirculations"
       },
       {
-        "description": "53 / 53",
+        "description": "67 / 73",
         "name": "BDD Progress"
       },
       {
-        "description": "4",
+        "description": "3",
         "name": "Stages"
       }
     ],
     "score": [
-      139039000,
+      88600000,
       0,
-      53,
-      -4
+      67,
+      -3
     ]
   },
   "implementations": [
     {
-      "addr": 1073954840,
+      "addr": 1073954408,
       "implementation": "Tofino::Register"
     },
     {
-      "addr": 1073971976,
-      "implementation": "Tofino::HHTable"
+      "addr": 1073971544,
+      "implementation": "Tofino::DchainTable"
     },
     {
-      "addr": 1073923800,
-      "implementation": "Tofino::HHTable"
+      "addr": 1073923368,
+      "implementation": "Tofino::GuardedMapTable"
     }
   ],
   "name": "kvs-f40000-c10000-zipf0_6-hmax-tput",
   "profile_file": "kvs-f40000-c10000-zipf0_6.json",
   "search_meta": {
-    "avg_bdd_size": 53,
+    "avg_bdd_size": 61,
     "avg_children_per_node": [
+      {
+        "avg": 3.0,
+        "node_id": 130
+      },
+      {
+        "avg": 3.0,
+        "node_id": 129
+      },
+      {
+        "avg": 3.0,
+        "node_id": 128
+      },
       {
         "avg": 4.0,
         "node_id": 124
@@ -74,7 +91,7 @@
         "node_id": 56
       },
       {
-        "avg": 3.0,
+        "avg": 2.4,
         "node_id": 16
       },
       {
@@ -94,7 +111,7 @@
         "node_id": 54
       },
       {
-        "avg": 3.0,
+        "avg": 2.5,
         "node_id": 14
       },
       {
@@ -120,6 +137,10 @@
       {
         "avg": 2.0,
         "node_id": 64
+      },
+      {
+        "avg": 2.0,
+        "node_id": 132
       },
       {
         "avg": 3.0,
@@ -162,6 +183,10 @@
         "node_id": 33
       },
       {
+        "avg": 3.0,
+        "node_id": 131
+      },
+      {
         "avg": 2.0,
         "node_id": 4
       },
@@ -174,7 +199,7 @@
         "node_id": 62
       },
       {
-        "avg": 4.0,
+        "avg": 4.4,
         "node_id": 39
       },
       {
@@ -202,7 +227,7 @@
         "node_id": 57
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 18
       },
       {
@@ -222,7 +247,7 @@
         "node_id": 47
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 19
       },
       {
@@ -242,7 +267,7 @@
         "node_id": 48
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 20
       },
       {
@@ -262,7 +287,7 @@
         "node_id": 49
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 21
       },
       {
@@ -278,7 +303,7 @@
         "node_id": 50
       },
       {
-        "avg": 2.0,
+        "avg": 0.0,
         "node_id": 22
       },
       {
@@ -306,17 +331,17 @@
         "node_id": 52
       }
     ],
-    "backtracks": 0,
-    "branching_factor": 2.90625,
-    "elapsed_time_seconds": 82,
+    "backtracks": 8,
+    "branching_factor": 2.7579710144927536,
+    "elapsed_time_seconds": 74,
     "finished_eps": 1,
-    "ss_size": 175,
-    "steps": 53,
-    "total_ss_size_estimation": 207689293322.34518,
-    "unfinished_eps": 122
+    "ss_size": 273,
+    "steps": 92,
+    "total_ss_size_estimation": 61296757083.776054,
+    "unfinished_eps": 181
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 97884023424,
-  "tput_estimation_pps": 139039806
+  "tput_estimation_bps": 62374440128,
+  "tput_estimation_pps": 88600057
 }

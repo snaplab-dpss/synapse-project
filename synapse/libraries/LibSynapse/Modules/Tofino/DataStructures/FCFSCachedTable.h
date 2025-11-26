@@ -3,6 +3,7 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/DataStructure.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Register.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/Hash.h>
 #include <LibCore/Types.h>
 
 #include <vector>
@@ -14,11 +15,13 @@ namespace Tofino {
 constexpr const char *const FCFS_CACHED_TABLE_CACHE_SIZE_PARAM = "cache_size";
 
 struct FCFSCachedTable : public DS {
+  static constexpr const u32 ENTRY_TIMEOUT{16384}; // 1 s (in units of 65536 ns)
+
   u32 cache_capacity;
   u32 capacity;
   std::vector<bits_t> keys_sizes;
 
-  // Missing the hash
+  Hash hash;
   std::vector<Table> tables;
   Register cache_expirator;
   std::vector<Register> cache_keys;

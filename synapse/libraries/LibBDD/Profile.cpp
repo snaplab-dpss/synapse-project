@@ -227,15 +227,15 @@ u64 bdd_profile_t::threshold_top_k_flows(u64 map, u32 k) const {
   return threshold;
 }
 
-bdd_profile_t build_random_bdd_profile(const BDD *bdd, const std::unordered_set<u16> &available_devs) {
+bdd_profile_t build_random_bdd_profile(const BDD &bdd, const std::unordered_set<u16> &available_devs) {
   bdd_profile_t bdd_profile;
 
   bdd_profile.meta.pkts  = 100'000;
   bdd_profile.meta.bytes = bdd_profile.meta.pkts * 250; // 250B size packets
 
-  const BDDNode *root                   = bdd->get_root();
+  const BDDNode *root                   = bdd.get_root();
   bdd_profile.counters[root->get_id()]  = bdd_profile.meta.pkts;
-  const std::unordered_set<u16> devices = bdd->get_devices();
+  const std::unordered_set<u16> devices = bdd.get_devices();
 
   root->visit_nodes([bdd, &bdd_profile, &devices, &available_devs](const BDDNode *node) {
     assert(bdd_profile.counters.find(node->get_id()) != bdd_profile.counters.end() && "BDDNode counter not found");
@@ -305,7 +305,7 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd, const std::unordered_set<
           assert(std::find(devices.begin(), devices.end(), device) != devices.end() && "Invalid device");
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
         } else {
-          const klee::ConstraintManager constraints = bdd->get_constraints(node);
+          const klee::ConstraintManager constraints = bdd.get_constraints(node);
 
           std::vector<u16> candidate_devices;
           for (const u16 dev : devices) {
@@ -332,15 +332,40 @@ bdd_profile_t build_random_bdd_profile(const BDD *bdd, const std::unordered_set<
   return bdd_profile;
 }
 
-bdd_profile_t build_uniform_bdd_profile(const BDD *bdd, const std::unordered_set<u16> &available_devs) {
+void bdd_profile_t::validate_against_bdd(const BDD &bdd) const {
+  for (const auto &[map_id, map_stats] : stats_per_map) {
+    for (const map_stats_t::node_t &node_stats : map_stats.nodes) {
+      const BDDNode *node = bdd.get_root()->get_node_by_id(node_stats.node);
+      assert_or_panic(node != nullptr, "Node ID %lu in profile not found in BDD", node_stats.node);
+      assert_or_panic(node->get_type() == BDDNodeType::Call, "Node ID %lu in profile is not a Call node", node_stats.node);
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const call_t &call    = call_node->get_call();
+      assert_or_panic(call.function_name == "map_get" || call.function_name == "map_put" || call.function_name == "map_erase",
+                      "Node ID %lu in profile is not a map operation", node_stats.node);
+    }
+  }
+
+  for (const auto &[node_id, count] : counters) {
+    const BDDNode *node = bdd.get_root()->get_node_by_id(node_id);
+    assert_or_panic(node != nullptr, "Node ID %lu in profile counters not found in BDD", node_id);
+  }
+
+  for (const auto &[node_id, fwd_stats] : forwarding_stats) {
+    const BDDNode *node = bdd.get_root()->get_node_by_id(node_id);
+    assert_or_panic(node != nullptr, "Node ID %lu in profile forwarding stats not found in BDD", node_id);
+    assert_or_panic(node->get_type() == BDDNodeType::Route, "Node ID %lu in profile is not a Route node", node_id);
+  }
+}
+
+bdd_profile_t build_uniform_bdd_profile(const BDD &bdd, const std::unordered_set<u16> &available_devs) {
   bdd_profile_t bdd_profile;
 
-  bdd_profile.meta.pkts  = bdd->get_root()->get_leaves().size() * 1000;
+  bdd_profile.meta.pkts  = bdd.get_root()->get_leaves().size() * 1000;
   bdd_profile.meta.bytes = bdd_profile.meta.pkts * 250; // 250B size packets
 
-  const BDDNode *root                   = bdd->get_root();
+  const BDDNode *root                   = bdd.get_root();
   bdd_profile.counters[root->get_id()]  = bdd_profile.meta.pkts;
-  const std::unordered_set<u16> devices = bdd->get_devices();
+  const std::unordered_set<u16> devices = bdd.get_devices();
 
   root->visit_nodes([bdd, &bdd_profile, &devices, &available_devs](const BDDNode *node) {
     const u64 current_counter = bdd_profile.counters.at(node->get_id());
@@ -409,7 +434,7 @@ bdd_profile_t build_uniform_bdd_profile(const BDD *bdd, const std::unordered_set
           assert(devices.contains(device) && "Invalid device");
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
         } else {
-          const klee::ConstraintManager constraints = bdd->get_constraints(node);
+          const klee::ConstraintManager constraints = bdd.get_constraints(node);
 
           std::unordered_set<u16> candidate_devices;
           for (const u16 dev : devices) {
