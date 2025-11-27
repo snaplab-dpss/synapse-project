@@ -64,7 +64,8 @@ source_install_dpdk() {
 	add_multiline_var_to_paths_file "PKG_CONFIG_PATH" "$DPDK_BUILD_DIR/lib/x86_64-linux-gnu/pkgconfig/"
 
 	pushd "$DPDK_DIR"
-		meson setup "$DPDK_TARGET" --prefix="$DPDK_BUILD_DIR"
+		rm -rf "$DPDK_BUILD_DIR" || true
+		meson setup "$DPDK_TARGET" --prefix="$DPDK_BUILD_DIR" || true
 
 		pushd "$DPDK_BUILD_DIR"
 			ninja

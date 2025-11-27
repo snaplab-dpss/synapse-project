@@ -4,6 +4,7 @@
 #include <LibCore/Coder.h>
 
 #include <filesystem>
+#include <unordered_map>
 
 namespace LibCore {
 

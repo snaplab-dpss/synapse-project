@@ -114,7 +114,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
   const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(fcfs_cached_table_data->capacity);
 
   // Let's optimistically pick the largest cache capacity that we can build or reuse.
-  u32 cache_capacity;
+  std::optional<u32> cache_capacity;
   for (auto rev_it = allowed_cache_capacities.rbegin(); rev_it != allowed_cache_capacities.rend(); rev_it++) {
     if (can_build_or_reuse_fcfs_cached_table(ep, node, fcfs_cached_table_data->obj, fcfs_cached_table_data->original_key,
                                              fcfs_cached_table_data->capacity, *rev_it)) {
@@ -123,12 +123,16 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
     }
   }
 
+  if (!cache_capacity.has_value()) {
+    return {};
+  }
+
   Context new_ctx = ctx;
 
   new_ctx.save_ds_impl(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable);
   new_ctx.save_ds_impl(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
-  spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}}), new_ctx);
+  spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity.value()}}), new_ctx);
 
   return spec_impl;
 }
