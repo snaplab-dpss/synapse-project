@@ -8,6 +8,8 @@
 
 size_t global_total_length;
 size_t global_read_length = 0;
+void *chunks_borrowed[MAX_N_CHUNKS];
+size_t num_chunks_borrowed = 0;
 
 void packet_state_total_length(void *p, uint32_t *len) { global_total_length = *len; }
 

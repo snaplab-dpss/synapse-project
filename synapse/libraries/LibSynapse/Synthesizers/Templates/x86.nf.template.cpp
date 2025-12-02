@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <cstdlib>
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +33,8 @@ extern "C" {
 #include <rte_random.h>
 
 #include <cstdbool>
+
+#include <iostream>
 
 #define NF_INFO(text, ...)                                                                                             \
   printf(text "\n", ##__VA_ARGS__);                                                                                    \
@@ -71,17 +74,21 @@ int key_vec_map_allocate(unsigned capacity, unsigned key_size, struct KeyVecMap 
       return 0;
     *key_vec_map_out = (struct KeyVecMap *) key_vec_map_alloc;
 
+    std::cerr << "ALLocating Map\n";
     struct Map *map;
     int map_alloc_success = map_allocate(capacity, key_size, &map);
     if (!map_alloc_success) {
+      std::cerr << "MapAllocation failed\n";
       *key_vec_map_out = old_key_vec_map;
       free(key_vec_map_alloc); 
       return 0;
     }
 
+    std::cerr << "ALLocating Vector\n";
     struct Vector *vector;
     int vector_alloc_success = vector_allocate(key_size, capacity, &vector);
     if (!vector_alloc_success) {
+      std::cerr << "VectorAllocation Failed\n";
       *key_vec_map_out = old_key_vec_map;
       free(key_vec_map_alloc);
       return 0;
@@ -119,6 +126,13 @@ int key_vec_map_expire_items_single_map_iteratively(struct KeyVecMap * kvm, int 
 }
 
 void key_vec_map_erase(struct KeyVecMap *kvm, void *key, void **trash);
+
+void debug_packet_info(uint16_t device, uint8_t *buffer, uint16_t length, 
+                       time_ns_t now, struct rte_mbuf *mbuf) {
+    printf("[NF_PACKET] {dev=%u len=%u now=%lu mbuf=%p pkt_len=%u off=%u ref=%u unread=%u}\n",
+           device, length, now, mbuf, mbuf->pkt_len, mbuf->data_off,
+           rte_mbuf_refcnt_read(mbuf), packet_get_unread_length(buffer));
+}
 
 bool nf_init();
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf);
@@ -180,6 +194,16 @@ static int nf_init_device(uint16_t device, struct rte_mempool *mbuf_pool) {
   return 0;
 }
 
+void debug_dst_device(uint16_t dst_device) {
+  if (dst_device == DROP) {
+    std::cerr << "DROPPED\n";
+  } else if (dst_device == FLOOD) {
+    std::cerr << "FLOOD\n";
+  } else {
+    std::cerr << "FORWARDING PACKET TO: " << dst_device << "\n";
+  }
+}
+
 static void worker_main(void) {
   if (!nf_init()) {
     rte_exit(EXIT_FAILURE, "Error initializing NF");
@@ -206,6 +230,7 @@ static void worker_main(void) {
         time_ns_t now       = current_time();
         uint16_t dst_device = nf_process(mbufs[n]->port, data, mbufs[n]->pkt_len, now, mbufs[n]);
 
+        debug_dst_device(dst_device);
         if (dst_device == DROP) {
           rte_pktmbuf_free(mbufs[n]);
         } else {

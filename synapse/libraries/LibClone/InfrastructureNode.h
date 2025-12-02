@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LibCore/Debug.h"
 #include <LibCore/Types.h>
 #include <LibClone/Device.h>
 
@@ -13,7 +14,7 @@
 namespace LibClone {
 
 using Port                 = u32;
-using InfrastructureNodeId = i64;
+using InfrastructureNodeId = DeviceId;
 
 enum class InfrastructureNodeType { GLOBAL_PORT, DEVICE };
 
@@ -42,7 +43,12 @@ public:
 
   const std::unordered_map<Port, std::pair<Port, const InfrastructureNode *>> get_links() const { return links; }
   bool has_link(const Port source_port) const { return links.find(source_port) != links.end(); }
-  const std::pair<Port, const InfrastructureNode *> &get_link(const Port source_port) { return links.at(source_port); }
+  const std::pair<Port, const InfrastructureNode *> &get_link(const Port source_port) const {
+    if (links.find(source_port) != links.end()) {
+      return links.at(source_port);
+    }
+    panic("Node has no port %u", source_port);
+  }
 
   bool connects_to_global_port(const Port destination_port) const {
     return std::any_of(links.begin(), links.end(), [destination_port](const std::pair<Port, std::pair<Port, const InfrastructureNode *>> &link) {
@@ -57,9 +63,10 @@ public:
   void add_link(Port port_from, Port port_to, const InfrastructureNode *node) { links[port_from] = {port_to, node}; }
 
   friend std::ostream &operator<<(std::ostream &os, const InfrastructureNode &node) {
-    os << node.id << "{";
+    os << "Node: ";
+    os << node.id << " {";
     for (const auto &[sport, destination] : node.links) {
-      os << "(Src: " << sport << "-> Dst:" << destination.first << " Port:" << destination.second->get_id() << "),";
+      os << "(SPort: " << sport << "-> Dst:" << destination.second->get_id() << " DPort:" << destination.first << "),";
     }
     os << "}";
     return os;

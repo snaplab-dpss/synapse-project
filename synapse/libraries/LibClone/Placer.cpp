@@ -41,7 +41,7 @@ BDD *setup_bdd(const BDD &bdd) {
 }
 } // namespace
 
-Placer::Placer(const BDD &_bdd, const PhysicalNetwork &_phys_net) : bdd(setup_bdd(_bdd)), phys_net(_phys_net) {}
+Placer::Placer(const BDD &_bdd, PhysicalNetwork &_phys_net) : bdd(setup_bdd(_bdd)), phys_net(_phys_net) {}
 
 std::optional<BDDNode *> Placer::create_send_to_device_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id, bdd_node_id_t next_node_id) {
 
@@ -59,11 +59,11 @@ std::optional<BDDNode *> Placer::create_send_to_device_node(std::unique_ptr<BDD>
   InfrastructureNodeId current_instance_id = phys_net.get_placement(current_id).instance_id;
   InfrastructureNodeId next_instance_id    = phys_net.get_placement(next_node_id).instance_id;
 
-  std::cerr << "CURRENT BDDNODE: " << current_node->dump(true) << "\n";
-  std::cerr << "NEXT BDDNODE: " << next_node->dump(true) << "\n";
-
-  std::cerr << "CURRENT: " << current_instance_id << "\n";
-  std::cerr << "NEXT: " << next_instance_id << "\n";
+  // std::cerr << "CURRENT BDDNODE: " << current_node->dump(true) << "\n";
+  // std::cerr << "NEXT BDDNODE: " << next_node->dump(true) << "\n";
+  //
+  // std::cerr << "CURRENT: " << current_instance_id << "\n";
+  // std::cerr << "NEXT: " << next_instance_id << "\n";
 
   Port port         = phys_net.get_forwarding_port(current_instance_id, next_instance_id);
   TargetType target = phys_net.get_placement(next_instance_id);
@@ -100,6 +100,16 @@ std::optional<BDDNode *> Placer::create_send_to_device_node(std::unique_ptr<BDD>
 
   std::cerr << s2d->dump(true) << "\n";
 
+  const InfrastructureNode *current_infrastructure_node = phys_net.get_node(current_instance_id).get();
+
+  if (current_infrastructure_node->has_link(port)) {
+    const InfrastructureNode *next_infrastructure_node = current_infrastructure_node->get_link(port).second;
+    const Device *next_device                          = phys_net.get_device(next_infrastructure_node->get_id()).get();
+    phys_net.add_placement(s2d->get_id(), next_device->get_target());
+  } else {
+    panic("No link found in physical network for send_to_device");
+  }
+
   return s2d;
 }
 
@@ -121,12 +131,17 @@ std::optional<BDDNode *> Placer::create_parse_header_cpu_node(std::unique_ptr<BD
   return parse_cpu;
 }
 
-void Placer::handle_branch_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t branch_id, bdd_node_id_t on_true_id, bdd_node_id_t on_false_id) {
+std::vector<const BDDNode *> Placer::handle_branch_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t branch_id, bdd_node_id_t on_true_id,
+                                                        bdd_node_id_t on_false_id) {
+  std::vector<const BDDNode *> inserted_nodes;
   std::optional<BDDNode *> s2d_true = create_send_to_device_node(new_bdd, branch_id, on_true_id);
 
   if (s2d_true.has_value()) {
     // std::cerr << s2d_true.value()->dump(true) << "\n";
     new_bdd->add_cloned_non_branches(on_true_id, {s2d_true.value()});
+    inserted_nodes.push_back(new_bdd->get_node_by_id(branch_id)->get_next());
+  } else {
+    inserted_nodes.push_back(new_bdd->get_node_by_id(on_true_id));
   }
 
   std::optional<BDDNode *> s2d_false = create_send_to_device_node(new_bdd, branch_id, on_false_id);
@@ -134,14 +149,25 @@ void Placer::handle_branch_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t bra
   if (s2d_false.has_value()) {
     // std::cerr << s2d_false.value()->dump(true) << "\n";
     new_bdd->add_cloned_non_branches(on_false_id, {s2d_false.value()});
+    inserted_nodes.push_back(new_bdd->get_node_by_id(branch_id)->get_next());
+  } else {
+    inserted_nodes.push_back(new_bdd->get_node_by_id(on_false_id));
   }
+
+  return inserted_nodes;
 }
 
-void Placer::handle_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id) {
+std::vector<const BDDNode *> Placer::handle_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id) {
+  std::vector<const BDDNode *> inserted_nodes;
   std::optional<BDDNode *> s2d = create_send_to_device_node(new_bdd, current_id, next_id);
   if (s2d.has_value()) {
     new_bdd->add_cloned_non_branches(next_id, {s2d.value()});
+    inserted_nodes.push_back(new_bdd->get_node_by_id(current_id)->get_next());
+  } else {
+    inserted_nodes.push_back(new_bdd->get_node_by_id(next_id));
   }
+
+  return inserted_nodes;
 }
 
 std::unique_ptr<BDD> Placer::add_send_to_device_nodes() {
@@ -162,6 +188,8 @@ std::unique_ptr<BDD> Placer::add_send_to_device_nodes() {
     const BDDNode *current = queue.front();
     queue.pop();
 
+    std::vector<const BDDNode *> to_visit;
+
     if (current->get_type() == BDDNodeType::Branch) {
       const Branch *branch    = dynamic_cast<const Branch *>(current);
       const BDDNode *on_true  = branch->get_on_true();
@@ -169,19 +197,21 @@ std::unique_ptr<BDD> Placer::add_send_to_device_nodes() {
       assert(on_true && on_false && "Branch node must have both on_true and on_false nodes");
 
       if (!in_root) {
-        handle_branch_node(new_bdd, branch->get_id(), on_true->get_id(), on_false->get_id());
+        to_visit = handle_branch_node(new_bdd, branch->get_id(), on_true->get_id(), on_false->get_id());
       }
 
-      queue.push(on_true);
-      queue.push(on_false);
     } else {
       if (current->get_next()) {
         const BDDNode *next = current->get_next();
 
-        handle_node(new_bdd, current->get_id(), next->get_id());
-        queue.push(next);
+        to_visit = handle_node(new_bdd, current->get_id(), next->get_id());
       }
     }
+
+    for (const BDDNode *node : to_visit) {
+      queue.push(node);
+    }
+
     in_root = false;
   }
   return new_bdd;

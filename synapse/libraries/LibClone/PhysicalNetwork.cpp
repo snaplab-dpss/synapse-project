@@ -1,3 +1,4 @@
+#include "LibClone/InfrastructureNode.h"
 #include <LibClone/PhysicalNetwork.h>
 
 #include <LibCore/Debug.h>
@@ -60,7 +61,7 @@ void parse_placement(const std::vector<std::string> &words, const std::unordered
   }
 
   if (placement.find(component_id) != placement.end()) {
-    panic("Component %d is already placed", component_id);
+    panic("Component %lu is already placed", component_id);
   }
 
   const LibSynapse::TargetType target = devices.at(instance)->get_target();
@@ -174,9 +175,23 @@ build_forwarding_table(std::unordered_map<InfrastructureNodeId, std::unique_ptr<
 
 const LibSynapse::TargetType PhysicalNetwork::get_placement(const ComponentId component_id) const {
   if (placement_strategy.find(component_id) == placement_strategy.end()) {
-    panic("Component ID %u not found in placement strategy!", component_id);
+    panic("Component ID %lu not found in placement strategy!", component_id);
   }
   return placement_strategy.at(component_id);
+}
+
+const Device *PhysicalNetwork::get_device(const DeviceId device_id) const {
+  if (devices.find(device_id) == devices.end()) {
+    panic("DEvice ID %ld not found in devices!", device_id);
+  }
+  return devices.at(device_id).get();
+}
+
+const std::unique_ptr<InfrastructureNode> PhysicalNetwork::get_node(const InfrastructureNodeId node_id) const {
+  if (nodes.find(node_id) == nodes.end()) {
+    panic("Node ID %ld not found in nodes!", node_id);
+  }
+  return nodes.at(node_id);
 }
 
 Port PhysicalNetwork::get_forwarding_port(const InfrastructureNodeId src, const InfrastructureNodeId dst) const {
@@ -193,7 +208,7 @@ const std::unordered_map<LibSynapse::TargetType, bool> PhysicalNetwork::get_targ
   std::unordered_map<LibSynapse::TargetType, bool> targets;
 
   if (placement_strategy.find(root_node) == placement_strategy.end()) {
-    panic("Component ID %u not found in placement strategy!", root_node);
+    panic("Component ID %lu not found in placement strategy!", root_node);
   }
 
   const LibSynapse::TargetType root_target = placement_strategy.at(root_node);
@@ -252,6 +267,13 @@ const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &networ
   std::unordered_map<InfrastructureNodeId, std::unordered_map<InfrastructureNodeId, Port>> forwarding_table = build_forwarding_table(nodes);
 
   return PhysicalNetwork(std::move(devices), std::move(nodes), std::move(placement), std::move(forwarding_table));
+}
+
+void PhysicalNetwork::add_placement(ComponentId component_id, LibSynapse::TargetType target) {
+  if (placement_strategy.find(component_id) != placement_strategy.end()) {
+    panic("Component %lu is already placed", component_id);
+  }
+  placement_strategy[component_id] = target;
 }
 
 } // namespace LibClone

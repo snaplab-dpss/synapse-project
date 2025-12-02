@@ -1,5 +1,7 @@
 #pragma once
 
+#include "LibBDD/Nodes/Node.h"
+#include "LibSynapse/Target.h"
 #include <LibCore/Debug.h>
 #include <LibCore/Types.h>
 
@@ -10,7 +12,7 @@
 
 namespace LibClone {
 
-using ComponentId = u32;
+using ComponentId = LibBDD::bdd_node_id_t;
 
 class PhysicalNetwork {
 
@@ -39,9 +41,13 @@ public:
   }
 
   const LibSynapse::TargetType get_placement(const ComponentId component_id) const;
+  const Device *get_device(const DeviceId device_id) const;
+  const std::unique_ptr<InfrastructureNode> get_node(const InfrastructureNodeId node_id) const;
   Port get_forwarding_port(const InfrastructureNodeId src, const InfrastructureNodeId dst) const;
   const std::unordered_map<LibSynapse::TargetType, bool> get_target_list(const ComponentId root_node = 1) const;
   const static PhysicalNetwork parse(const std::filesystem::path &file_path);
+
+  void add_placement(ComponentId component, LibSynapse::TargetType);
 
   void debug() const {
     std::cerr << "========== Physical Network ==========\n";

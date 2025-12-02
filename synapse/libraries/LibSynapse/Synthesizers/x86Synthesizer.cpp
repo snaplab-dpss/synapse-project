@@ -25,9 +25,10 @@ constexpr const char *const MARKER_NF_STATE   = "NF_STATE";
 constexpr const char *const MARKER_NF_INIT    = "NF_INIT";
 constexpr const char *const MARKER_NF_PROCESS = "NF_PROCESS";
 
-constexpr const char *const CHUNKS_BORROWED     = "chunks_borrowed";
-constexpr const char *const NUM_CHUNKS_BORROWED = "num_chunks_borrowed";
-constexpr const int CODE_PATH_HEADER_SIZE       = 2;
+constexpr const char *const CHUNKS_BORROWED       = "chunks_borrowed";
+constexpr const char *const NUM_CHUNKS_BORROWED   = "num_chunks_borrowed";
+constexpr const char *const CODE_PATH_HEADER_TYPE = "uint32_t";
+constexpr const int CODE_PATH_HEADER_SIZE         = 4;
 
 std::filesystem::path template_from_type(x86SynthesizerTarget target) {
   std::filesystem::path template_file = std::filesystem::path(__FILE__).parent_path() / "Templates";
@@ -1171,7 +1172,17 @@ void x86Synthesizer::synthesize_nf_process() {
   coder.inc();
 
   coder.indent();
-  coder << "packet_return_all_chunks(buffer);\n";
+  coder << "debug_packet_info(";
+  coder << device_var.name;
+  coder << ", ";
+  coder << "buffer";
+  coder << ", ";
+  coder << len_var.name;
+  coder << ", ";
+  coder << now_var.name;
+  coder << ", ";
+  coder << "mbuf";
+  coder << ");\n";
 
   code_t trash = create_unique_name("trash");
 
@@ -1184,20 +1195,25 @@ void x86Synthesizer::synthesize_nf_process() {
   coder << "packet_borrow_next_chunk(";
   coder << "buffer, ";
   coder << "50, ";
-  coder << "(void**)&" << trash;
+  coder << "&" << trash;
   coder << ")";
   coder << ";\n";
 
   code_t code_path = create_unique_name("code_path");
 
   coder.indent();
-  coder << "uint16_t " << code_path;
+  coder << CODE_PATH_HEADER_TYPE;
+  coder << " ";
+  coder << code_path;
   coder << " = ";
   coder << "0";
   coder << ";\n";
 
   coder.indent();
-  coder << "if (packet_get_unread_length(buffer) >= sizeof(uint16_t)) {\n";
+  coder << "if (packet_get_unread_length(buffer) >= sizeof(";
+  coder << CODE_PATH_HEADER_TYPE;
+  coder << "))";
+  coder << "{\n";
   coder.inc();
 
   code_t code_path_hdr = create_unique_name("code_path_hdr");
@@ -1208,7 +1224,9 @@ void x86Synthesizer::synthesize_nf_process() {
   coder.indent();
   coder << "packet_borrow_next_chunk(";
   coder << "buffer, ";
-  coder << "sizeof(uint16_t), ";
+  coder << "sizeof(";
+  coder << CODE_PATH_HEADER_TYPE;
+  coder << "), ";
   coder << "&" << code_path_hdr;
   coder << ")";
   coder << ";\n";
@@ -1232,6 +1250,14 @@ void x86Synthesizer::synthesize_nf_process() {
   coder << "}\n";
 
   coder.indent();
+  coder << "packet_return_all_chunks(buffer);\n";
+
+  coder.indent();
+  coder << "std::cerr << \"CODE PATH: \" << ";
+  coder << code_path;
+  coder << " << \";\\n\";\n";
+
+  coder.indent();
   coder << "if (" << code_path << " == 0) {\n";
   code_paths.push_back(0);
   coder.inc();
@@ -1249,10 +1275,15 @@ void x86Synthesizer::synthesize_nf_process() {
 
   if (root_nodes.find(root_node->get_id()) != root_nodes.end()) {
     const EPNode *ep_node = target_ep->get_ep_node_from_bdd_node(root_node);
+
+    coder.indent();
+    coder << "std::cerr << \"Received Packet From Outside Network\\n\";\n";
+
     if (ep_node) {
       visit(target_ep, ep_node);
     }
   } else {
+    coder.indent();
     coder << "return DROP;\n";
   }
 
@@ -2267,14 +2298,16 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     coder << "packet_borrow_next_chunk(";
     coder << "buffer, ";
     coder << "50, ";
-    coder << "(void**)&" << trash;
+    coder << "&" << trash;
     coder << ")";
     coder << ";\n";
 
     coder.indent();
     coder << "packet_insert_new_chunk(";
-    coder << "(void **) buffer, ";
-    coder << "sizeof(uint16_t), ";
+    coder << "(void **) &buffer, ";
+    coder << "sizeof(";
+    coder << CODE_PATH_HEADER_TYPE;
+    coder << "), ";
     coder << CHUNKS_BORROWED << ", ";
     coder << "&" << NUM_CHUNKS_BORROWED << ", ";
     coder << "mbuf);\n";
@@ -2328,7 +2361,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
     coder.indent();
     coder << "packet_insert_new_chunk(";
-    coder << "(void **) buffer, ";
+    coder << "(void **) &buffer, ";
     coder << "sizeof(struct Context_" << ep_node->get_id() << "), ";
     coder << CHUNKS_BORROWED << ", ";
     coder << "&" << NUM_CHUNKS_BORROWED << ", ";
@@ -2380,6 +2413,35 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     coder << "(code_path_0 == " << ep_node->get_prev()->get_id() << ") {\n";
 
     coder.inc();
+    coder.indent();
+    coder << "std::cerr << \"Received Packet From Inside Network\\n\";\n";
+
+    code_t trash = create_unique_name("trash");
+
+    coder.indent();
+    coder << "void* ";
+    coder << trash;
+    coder << ";\n";
+
+    coder.indent();
+    coder << "packet_borrow_next_chunk(";
+    coder << "buffer, ";
+    coder << "50";
+    coder << ", ";
+    coder << "&" << trash;
+    coder << ")";
+    coder << ";\n";
+
+    coder.indent();
+    coder << "packet_borrow_next_chunk(";
+    coder << "buffer, ";
+    coder << "sizeof(";
+    coder << CODE_PATH_HEADER_TYPE;
+    coder << "), ";
+    coder << "&" << trash;
+    coder << ")";
+    coder << ";\n";
+
     coder.indent();
     coder << "struct Context_" << ep_node->get_prev()->get_id() << " {\n";
 
@@ -2446,7 +2508,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
     coder.indent();
     coder << "packet_shrink_chunk(";
-    coder << "(void**) buffer, ";
+    coder << "(void**) &buffer, ";
     coder << "0, ";
     coder << CHUNKS_BORROWED << ", ";
     coder << NUM_CHUNKS_BORROWED << ", ";
@@ -2460,7 +2522,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
     coder.indent();
     coder << "packet_shrink_chunk(";
-    coder << "(void**) buffer, ";
+    coder << "(void**) &buffer, ";
     coder << "0, ";
     coder << CHUNKS_BORROWED << ", ";
     coder << NUM_CHUNKS_BORROWED << ", ";
