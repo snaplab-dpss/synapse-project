@@ -56,5 +56,5 @@ gmon.out
 perf.data*
 
 # Gurobi stuff
-gurobi1202
+gurobi*
 gurobi.lic

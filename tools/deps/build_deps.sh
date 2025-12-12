@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
-ROOT_DIR=$SCRIPT_DIR/..
+ROOT_DIR=$SCRIPT_DIR/../..
 
 # Constants
 DPDK_NFS_DIR="$ROOT_DIR/dpdk-nfs"
