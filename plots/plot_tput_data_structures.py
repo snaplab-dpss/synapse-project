@@ -13,15 +13,15 @@ PLOTS_DIR = CURRENT_DIR / "plots"
 DATA_DIR = CURRENT_DIR / ".." / "eval" / "data"
 
 NFS = [
-    # {
-    #     "title": "MapTable",
-    #     "data_file": DATA_DIR / "tput_map_table.csv",
-    #     "bps_output_file": PLOTS_DIR / "tput_map_table_bps.pdf",
-    #     "pps_output_file": PLOTS_DIR / "tput_map_table_pps.pdf",
-    #     "bps_scatter_output_file": PLOTS_DIR / "tput_map_table_bps_scatter.pdf",
-    #     "pps_scatter_output_file": PLOTS_DIR / "tput_map_table_pps_scatter.pdf",
-    #     "heatmap_output_file": PLOTS_DIR / "tput_map_table_heatmap.pdf",
-    # },
+    {
+        "title": "MapTable",
+        "data_file": DATA_DIR / "tput_map_table.csv",
+        "bps_output_file": PLOTS_DIR / "tput_map_table_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_map_table_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_map_table_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_map_table_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_map_table_heatmap.pdf",
+    },
     # {
     #     "title": "CuckooHashTable",
     #     "data_file": DATA_DIR / "tput_cuckoo_hash_table.csv",
@@ -31,18 +31,18 @@ NFS = [
     #     "pps_scatter_output_file": PLOTS_DIR / "tput_cuckoo_hash_table_pps_scatter.pdf",
     #     "heatmap_output_file": PLOTS_DIR / "tput_cuckoo_hash_table_heatmap.pdf",
     # },
-    *[
-        {
-            "title": f"FCFSCachedTable {cache_capacity}",
-            "data_file": DATA_DIR / f"tput_fcfs_cached_table_{cache_capacity}.csv",
-            "bps_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_bps.pdf",
-            "pps_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_pps.pdf",
-            "bps_scatter_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_bps_scatter.pdf",
-            "pps_scatter_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_pps_scatter.pdf",
-            "heatmap_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_heatmap.pdf",
-        }
-        for cache_capacity in [64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
-    ],
+    # *[
+    #     {
+    #         "title": f"FCFSCachedTable {cache_capacity}",
+    #         "data_file": DATA_DIR / f"tput_fcfs_cached_table_{cache_capacity}.csv",
+    #         "bps_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_bps.pdf",
+    #         "pps_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_pps.pdf",
+    #         "bps_scatter_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_bps_scatter.pdf",
+    #         "pps_scatter_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_pps_scatter.pdf",
+    #         "heatmap_output_file": PLOTS_DIR / f"tput_fcfs_cached_table_{cache_capacity}_heatmap.pdf",
+    #     }
+    #     for cache_capacity in [64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
+    # ],
 ]
 
 
