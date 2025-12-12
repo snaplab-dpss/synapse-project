@@ -3,9 +3,6 @@ FROM ubuntu:24.04
 ARG DEBIAN_FRONTEND=noninteractive
 ARG GCC_VERSION=14
 
-ENV TZ=Europe/Lisbon
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
 RUN apt-get update && apt-get install -y sudo adduser
 RUN adduser ubuntu sudo
 RUN echo '%ubuntu ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
@@ -44,6 +41,7 @@ RUN curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zs
 RUN echo "set -g default-terminal \"screen-256color\"" >> /home/ubuntu/.tmux.conf
 RUN echo "set-option -g default-shell /bin/zsh" >> /home/ubuntu/.tmux.conf
 RUN sudo chsh -s $(which zsh) 
+RUN echo "skip_global_compinit=1" >> /home/ubuntu/.zshenv
 RUN echo "source ~/.profile" >> /home/ubuntu/.zshrc
 
 RUN python3 -m venv env
@@ -51,6 +49,11 @@ RUN echo "source ~/env/bin/activate" >> /home/ubuntu/.zshrc
 RUN . ~/env/bin/activate && pip install setuptools wheel
 
 RUN echo "source ~/synapse-project/paths.sh 2>/dev/null || true" >> /home/ubuntu/.zshrc
+
+COPY --chown=ubuntu:ubuntu tools/deps/install_package_deps.sh .
+RUN chmod +x install_package_deps.sh
+RUN ./install_package_deps.sh
+RUN rm install_package_deps.sh
 
 WORKDIR synapse-project
 
