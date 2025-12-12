@@ -317,8 +317,22 @@ bdd_profile_t build_random_bdd_profile(const BDD &bdd, const std::unordered_set<
           }
 
           assert(!candidate_devices.empty() && "No candidate devices found for forwarding");
-          for (const u16 dev : candidate_devices) {
-            bdd_profile.forwarding_stats[node->get_id()].ports[dev] = current_counter / candidate_devices.size();
+          if (current_counter == candidate_devices.size() * (current_counter / candidate_devices.size())) {
+            for (const u16 dev : candidate_devices) {
+              bdd_profile.forwarding_stats[node->get_id()].ports[dev] = current_counter / candidate_devices.size();
+            }
+          } else {
+            for (const u16 dev : candidate_devices) {
+              bdd_profile.forwarding_stats[node->get_id()].ports[dev] = 0;
+            }
+            u64 remaining_pkts = current_counter;
+            size_t i           = 0;
+            while (remaining_pkts > 0) {
+              u16 dev = candidate_devices[i % candidate_devices.size()];
+              bdd_profile.forwarding_stats[node->get_id()].ports[dev] += 1;
+              remaining_pkts--;
+              i++;
+            }
           }
         }
       } break;

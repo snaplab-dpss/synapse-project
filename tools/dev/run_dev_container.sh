@@ -28,6 +28,9 @@ if [ ! -d $HOME/.ssh ]; then
     chmod 700 $HOME/.ssh
 fi
 
+# Allow connections to X server from localhost
+xhost +localhost || true
+
 docker run \
    --rm \
    --privileged \
