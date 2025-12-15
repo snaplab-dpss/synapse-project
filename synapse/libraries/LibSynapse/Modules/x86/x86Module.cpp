@@ -9,9 +9,9 @@ Symbols x86ModuleFactory::get_relevant_dataplane_state(const EP *ep, const BDDNo
   const bdd_node_ids_t &roots = ep->get_target_roots(target);
 
   Symbols generated_symbols = node->get_prev_symbols(roots);
-  Symbols map_keys          = node->get_prev_map_keys(roots);
+  // Symbols map_keys          = node->get_prev_map_keys(roots);
 
-  generated_symbols.add(map_keys);
+  // generated_symbols.add(map_keys);
   generated_symbols.add(ep->get_bdd()->get_device());
   generated_symbols.add(ep->get_bdd()->get_time());
 

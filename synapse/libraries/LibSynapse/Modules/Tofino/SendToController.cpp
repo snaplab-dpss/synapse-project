@@ -436,6 +436,8 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleCategory::x86_TokenBucketUpdateAndCheck:
     case ModuleCategory::x86_TokenBucketExpire:
     case ModuleCategory::x86_LPMAllocate:
+    case ModuleCategory::x86_ParseHeaderCPU:
+    case ModuleCategory::x86_ParseHeaderVars:
       break;
     }
   }

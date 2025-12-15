@@ -179,6 +179,8 @@ enum class ModuleCategory {
   x86_TokenBucketUpdateAndCheck,
   x86_TokenBucketExpire,
   x86_LPMAllocate,
+  x86_ParseHeaderVars,
+  x86_ParseHeaderCPU,
 };
 
 struct ModuleType {
@@ -624,6 +626,12 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
     break;
   case ModuleCategory::x86_LPMAllocate:
     os << "x86_LPLAllocate";
+    break;
+  case ModuleCategory::x86_ParseHeaderVars:
+    os << "x86_ParseHeaderVars";
+    break;
+  case ModuleCategory::x86_ParseHeaderCPU:
+    os << "x86_ParseHeaderCPU";
     break;
   }
 

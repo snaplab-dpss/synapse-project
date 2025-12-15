@@ -127,7 +127,7 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
 
   EPNode *ep_node_leaf = s2d_node;
 
-  bdd_node_ids_t target_roots = ep->get_target_roots(ep->get_active_target());
+  /*bdd_node_ids_t target_roots = ep->get_target_roots(ep->get_active_target());
 
   if (target_roots.find(node->get_id()) != target_roots.end()) {
     EPLeaf leaf(ep_node_leaf, node->get_next());
@@ -136,17 +136,17 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
     std::vector<impl_t> impls;
     impls.emplace_back(implement(ep, node, std::move(new_ep)));
     return impls;
-  }
+  }*/
 
-  const BDDNode *next          = node->get_next();
-  std::unique_ptr<BDD> new_bdd = replicate_hdr_parsing_ops(ep, node, next);
+  const BDDNode *next = node->get_next();
+  // std::unique_ptr<BDD> new_bdd = replicate_hdr_parsing_ops(ep, node, next);
 
-  EPLeaf leaf(ep_node_leaf, node);
+  EPLeaf leaf(ep_node_leaf, next);
   new_ep->process_leaf(s2d_node, {leaf});
 
-  if (new_bdd) {
-    new_ep->replace_bdd(std::move(new_bdd));
-  }
+  // if (new_bdd) {
+  //   new_ep->replace_bdd(std::move(new_bdd));
+  // }
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

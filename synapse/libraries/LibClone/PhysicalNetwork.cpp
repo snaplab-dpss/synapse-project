@@ -180,6 +180,8 @@ const LibSynapse::TargetType PhysicalNetwork::get_placement(const ComponentId co
   return placement_strategy.at(component_id);
 }
 
+bool PhysicalNetwork::has_device(const DeviceId device_id) const { return devices.find(device_id) != devices.end(); }
+
 const Device *PhysicalNetwork::get_device(const DeviceId device_id) const {
   if (devices.find(device_id) == devices.end()) {
     panic("DEvice ID %ld not found in devices!", device_id);
@@ -187,11 +189,11 @@ const Device *PhysicalNetwork::get_device(const DeviceId device_id) const {
   return devices.at(device_id).get();
 }
 
-const std::unique_ptr<InfrastructureNode> PhysicalNetwork::get_node(const InfrastructureNodeId node_id) const {
+const InfrastructureNode *PhysicalNetwork::get_node(const InfrastructureNodeId node_id) const {
   if (nodes.find(node_id) == nodes.end()) {
     panic("Node ID %ld not found in nodes!", node_id);
   }
-  return nodes.at(node_id);
+  return nodes.at(node_id).get();
 }
 
 Port PhysicalNetwork::get_forwarding_port(const InfrastructureNodeId src, const InfrastructureNodeId dst) const {
@@ -202,6 +204,32 @@ Port PhysicalNetwork::get_forwarding_port(const InfrastructureNodeId src, const 
     panic("Destination Node ID %ld not reachable from Source Node ID %ld!", dst, src);
   }
   return forwarding_table.at(src).at(dst);
+}
+
+const std::vector<std::pair<Port, LibSynapse::TargetType>> PhysicalNetwork::find_path(const InfrastructureNodeId src_id,
+                                                                                      const InfrastructureNodeId dst_id) const {
+  std::vector<std::pair<Port, LibSynapse::TargetType>> path;
+
+  InfrastructureNodeId current_node_id = src_id;
+
+  while (current_node_id != dst_id) {
+    Port out_port                          = get_forwarding_port(current_node_id, dst_id);
+    const InfrastructureNode *current_node = get_node(current_node_id);
+
+    // const Port next_port                = current_node->get_connected_node(out_port).first;
+    const InfrastructureNode *next_node = current_node->get_connected_node(out_port).second;
+
+    if (next_node->get_node_type() == InfrastructureNodeType::GLOBAL_PORT) {
+      panic("Path goes through global port, which is not allowed!");
+    }
+
+    const Device *next_device = next_node->get_device();
+    path.emplace_back(out_port, next_device->get_target());
+
+    current_node_id = next_node->get_id();
+  }
+
+  return path;
 }
 
 const std::unordered_map<LibSynapse::TargetType, bool> PhysicalNetwork::get_target_list(const ComponentId root_node) const {

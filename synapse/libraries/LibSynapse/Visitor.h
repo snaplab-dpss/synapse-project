@@ -160,6 +160,8 @@ class TokenBucketTrace;
 class TokenBucketUpdateAndCheck;
 class TokenBucketExpire;
 class LPMAllocate;
+class ParseHeaderCPU;
+class ParseHeaderVars;
 } // namespace x86
 
 class EPVisitor {
@@ -332,6 +334,8 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketUpdateAndCheck *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketExpire *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::LPMAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeaderCPU *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeaderVars *m) { return Action::doChildren; }
 
 protected:
   virtual void log(const EPNode *) const;

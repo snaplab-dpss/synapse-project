@@ -134,6 +134,33 @@ void debug_packet_info(uint16_t device, uint8_t *buffer, uint16_t length,
            rte_mbuf_refcnt_read(mbuf), packet_get_unread_length(buffer));
 }
 
+void packet_debug_print_chunks(void *p) {
+    std::cerr << "\n==== PACKET CHUNK DEBUG ====\n"
+              << "Buffer pointer: " << p << "\n"
+              << "num_chunks_borrowed: " << num_chunks_borrowed << "\n";
+    
+    // Safety bounds check
+    size_t chunks_to_print = num_chunks_borrowed;
+    if (chunks_to_print > MAX_N_CHUNKS) {
+        std::cerr << "ERROR: num_chunks_borrowed (" << num_chunks_borrowed 
+                  << ") > MAX_N_CHUNKS (" << MAX_N_CHUNKS << ")\n";
+        chunks_to_print = MAX_N_CHUNKS;
+    }
+    
+    std::cerr << "Chunks array:\n";
+    for (size_t i = 0; i < chunks_to_print; i++) {
+        void *chunk = chunks_borrowed[i];
+        std::cerr << "  [" << i << "] Ptr: " << chunk 
+                  << "  Offset: " << ((uint8_t*)chunk - (uint8_t*)p) << "\n";
+    }
+    
+    if (num_chunks_borrowed == 0) {
+        std::cerr << "  (no chunks)\n";
+    }
+    std::cerr << "==== END DEBUG ====\n\n";
+    std::cerr.flush();
+}
+
 bool nf_init();
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf);
 

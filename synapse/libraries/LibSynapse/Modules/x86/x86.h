@@ -40,6 +40,8 @@
 #include <LibSynapse/Modules/x86/TokenBucketTrace.h>
 #include <LibSynapse/Modules/x86/TokenBucketUpdateAndCheck.h>
 #include <LibSynapse/Modules/x86/LPMAllocate.h>
+#include <LibSynapse/Modules/x86/ParseHeaderCPU.h>
+#include <LibSynapse/Modules/x86/ParseHeaderVars.h>
 
 namespace LibSynapse {
 namespace x86 {
@@ -87,6 +89,8 @@ struct x86Target : public Target {
               f.push_back(std::make_unique<TokenBucketTraceFactory>(_instance_id));
               f.push_back(std::make_unique<TokenBucketUpdateAndCheckFactory>(_instance_id));
               f.push_back(std::make_unique<LPMAllocateFactory>(_instance_id));
+              f.push_back(std::make_unique<ParseHeaderCPUFactory>(_instance_id));
+              f.push_back(std::make_unique<ParseHeaderVarsFactory>(_instance_id));
               return f;
             }(),
             std::make_unique<x86Context>()) {}

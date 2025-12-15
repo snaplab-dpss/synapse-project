@@ -38,18 +38,18 @@ int main(int argc, char **argv) {
 
   Placer placer = Placer(bdd, phys_net);
 
-  std::unique_ptr<const BDD> new_bdd = placer.add_send_to_device_nodes();
+  std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> target_bdds = placer.process();
 
-  const BDD::inspection_report_t report = new_bdd->inspect();
-  assert_or_panic(report.status == BDD::InspectionStatus::Ok, "BDD inspection failed: %s", report.message.c_str());
-  std::cout << "BDD inspection passed.\n";
+  for (const auto &[target, target_bdd] : target_bdds) {
 
-  if (show_bdd) {
-    BDDViz::visualize(new_bdd.get(), false);
-  }
+    if (show_bdd) {
+      BDDViz::visualize(target_bdd.get(), false);
+    }
 
-  if (!output_bdd_file.empty()) {
-    new_bdd->serialize(output_bdd_file);
+    if (!output_bdd_file.empty()) {
+      std::filesystem::path out_file(output_bdd_file.string() + "_device_" + std::to_string(target.instance_id) + ".bdd");
+      target_bdd->serialize(out_file);
+    }
   }
 
   return 0;
