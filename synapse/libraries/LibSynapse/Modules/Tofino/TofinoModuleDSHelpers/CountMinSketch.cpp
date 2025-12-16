@@ -53,7 +53,7 @@ CountMinSketch *reuse_cms(const EP *ep, const BDDNode *node, addr_t obj) {
 
 } // namespace
 
-std::string TofinoModuleFactory::build_cms_id(addr_t obj) { return "cms_" + std::to_string(obj); }
+DS_ID TofinoModuleFactory::build_cms_id(addr_t obj) { return "cms_" + std::to_string(obj); }
 
 bool TofinoModuleFactory::can_build_or_reuse_cms(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys,
                                                  u32 width, u32 height) {

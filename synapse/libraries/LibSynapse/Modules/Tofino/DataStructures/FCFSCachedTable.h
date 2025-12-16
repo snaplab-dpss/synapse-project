@@ -37,6 +37,8 @@ struct FCFSCachedTable : public DS {
   bool has_table(u32 op) const;
   std::optional<DS_ID> add_table(u32 op);
   const Table *get_table(u32 op) const;
+  const Table *get_table(const DS_ID &table_id) const;
+  void remove_table(const DS_ID &table_id);
 };
 
 } // namespace Tofino

@@ -88,6 +88,7 @@ MapTable *reuse_map_table(const EP *ep, const BDDNode *node, const map_table_dat
   map_table->add_table(node->get_id(), keys_size, data.time_aware);
 
   if (!tofino_ctx->can_place(ep, node, map_table)) {
+    // FIXME: We should remove the added table here to keep the DS consistent.
     return nullptr;
   }
 

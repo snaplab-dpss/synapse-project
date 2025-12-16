@@ -51,7 +51,7 @@ VectorRegister *get_vector_register(const EP *ep, const BDDNode *node, const vec
 
 } // namespace
 
-std::string TofinoModuleFactory::build_vector_register_id(addr_t obj) { return "vector_register_" + std::to_string(obj); }
+DS_ID TofinoModuleFactory::build_vector_register_id(addr_t obj) { return "vector_register_" + std::to_string(obj); }
 
 VectorRegister *TofinoModuleFactory::build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data) {
   VectorRegister *vector_register;

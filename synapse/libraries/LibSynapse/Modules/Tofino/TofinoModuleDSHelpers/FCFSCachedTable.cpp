@@ -59,13 +59,15 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr
     return nullptr;
   }
 
+  std::optional<DS_ID> added_table_id;
   if (!fcfs_cached_table->has_table(node->get_id())) {
-    FCFSCachedTable *clone = dynamic_cast<FCFSCachedTable *>(fcfs_cached_table->clone());
-    clone->add_table(node->get_id());
-    fcfs_cached_table = clone;
+    added_table_id = fcfs_cached_table->add_table(node->get_id());
   }
 
   if (!tofino_ctx->can_place(ep, node, fcfs_cached_table)) {
+    if (added_table_id.has_value()) {
+      fcfs_cached_table->remove_table(added_table_id.value());
+    }
     fcfs_cached_table = nullptr;
   }
 
@@ -74,14 +76,14 @@ FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr
 
 } // namespace
 
-std::string TofinoModuleFactory::build_fcfs_cached_table_id(addr_t obj) { return "fcfs_cached_table_" + std::to_string(obj); }
+DS_ID TofinoModuleFactory::build_fcfs_cached_table_id(addr_t obj) { return "fcfs_cached_table_" + std::to_string(obj); }
 
 FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key,
                                                                        u32 capacity, u32 cache_capacity) {
   FCFSCachedTable *fcfs_cached_table = nullptr;
 
-  const Context &ctx  = ep->get_ctx();
-  bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable);
+  const Context &ctx        = ep->get_ctx();
+  const bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable);
 
   if (already_placed) {
     fcfs_cached_table = reuse_fcfs_cached_table(ep, node, obj, cache_capacity);

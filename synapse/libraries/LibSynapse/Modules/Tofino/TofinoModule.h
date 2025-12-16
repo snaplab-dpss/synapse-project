@@ -102,7 +102,7 @@ public:
   //  Vector Registers
   // ======================================================================
 
-  static std::string build_vector_register_id(addr_t obj);
+  static DS_ID build_vector_register_id(addr_t obj);
   static VectorRegister *build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data);
   static bool can_build_or_reuse_vector_register(const EP *ep, const BDDNode *node, const vector_register_data_t &data);
 
@@ -110,7 +110,7 @@ public:
   //  FCFS Cached Table
   // ======================================================================
 
-  static std::string build_fcfs_cached_table_id(addr_t obj);
+  static DS_ID build_fcfs_cached_table_id(addr_t obj);
   static FCFSCachedTable *get_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj);
   static FCFSCachedTable *build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
                                                            u32 cache_capacity);
@@ -135,7 +135,7 @@ public:
   //  Count Min Sketch
   // ======================================================================
 
-  static std::string build_cms_id(addr_t obj);
+  static DS_ID build_cms_id(addr_t obj);
   static bool can_build_or_reuse_cms(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
                                      u32 height);
   static CountMinSketch *build_or_reuse_cms(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width,

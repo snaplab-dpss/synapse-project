@@ -2568,8 +2568,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const symbol_t &hit                            = node->get_map_has_this_key();
 
   const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
-  const bdd_node_id_t node_id              = node->get_node()->get_id();
-  const Table *table                       = fcfs_cached_table->get_table(node_id);
+  const DS_ID table_id                     = node->get_used_table_id();
+  fcfs_cached_table->debug();
+  const Table *table = fcfs_cached_table->get_table(table_id);
   assert(table && "Table not found");
 
   transpile_fcfs_cached_table_decl(fcfs_cached_table, keys);

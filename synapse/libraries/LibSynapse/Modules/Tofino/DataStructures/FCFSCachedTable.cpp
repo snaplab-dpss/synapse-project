@@ -10,7 +10,7 @@ using LibCore::bits_from_pow2_capacity;
 
 namespace {
 
-std::string build_table_name(DS_ID id, u32 table_num) { return id + "_table_" + std::to_string(table_num); }
+DS_ID build_table_name(DS_ID id, u32 table_num) { return id + "_table_" + std::to_string(table_num); }
 
 Hash build_hash(DS_ID id, const std::vector<bits_t> &keys_sizes, u32 capacity) {
   const bits_t hash_size = bits_from_pow2_capacity(capacity);
@@ -95,10 +95,11 @@ std::vector<std::unordered_set<const DS *>> FCFSCachedTable::get_internal() cons
 }
 
 bool FCFSCachedTable::has_table(u32 op) const {
-  std::string table_id = build_table_name(id, op);
+  const DS_ID table_id = build_table_name(id, op);
   for (const Table &table : tables) {
-    if (table.id == table_id)
+    if (table.id == table_id) {
       return true;
+    }
   }
   return false;
 }
@@ -109,11 +110,20 @@ std::optional<DS_ID> FCFSCachedTable::add_table(u32 op) {
   return new_table.id;
 }
 
+void FCFSCachedTable::remove_table(const DS_ID &table_id) {
+  tables.erase(std::remove_if(tables.begin(), tables.end(), [&table_id](const Table &table) { return table.id == table_id; }), tables.end());
+}
+
 const Table *FCFSCachedTable::get_table(u32 op) const {
-  const std::string table_id = build_table_name(id, op);
+  const DS_ID table_id = build_table_name(id, op);
+  return get_table(table_id);
+}
+
+const Table *FCFSCachedTable::get_table(const DS_ID &table_id) const {
   for (const Table &table : tables) {
-    if (table.id == table_id)
+    if (table.id == table_id) {
       return &table;
+    }
   }
   return nullptr;
 }

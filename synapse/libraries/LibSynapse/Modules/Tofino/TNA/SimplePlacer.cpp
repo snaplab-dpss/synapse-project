@@ -74,7 +74,6 @@ PlacementResult clean_slate_placement(const Pipeline &pipeline, const DS *ds, co
     }
 
     const PlacementResult result = find_placements(clean_slate_pipeline, requested_ds, req.deps);
-
     if (result.status != PlacementStatus::Success) {
       return result;
     }

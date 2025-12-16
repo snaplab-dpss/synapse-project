@@ -195,7 +195,7 @@ void Pipeline::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
     panic("Cannot place data structure %s: %s", ds->id.c_str(), placement_status_to_string(result.status).c_str());
   }
 
-  assert(result.resources.has_value() && "Placement result should have resources on success");
+  assert_or_panic(result.resources.has_value(), "Placement result should have resources on success");
   resources = *result.resources;
 
   if (!duplicated_request) {
