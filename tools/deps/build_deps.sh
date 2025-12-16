@@ -150,11 +150,7 @@ source_install_klee_uclibc() {
 			exit 1
 		fi
 
-		# If there is a single version of GCC and it's a single digit, as in e.g. GCC 9 on Ubuntu 20.04,
-		# our clang won't detect it because it expects a version in the format x.y.z with all components
-		# so let's create a symlink
-		# 0 -> nothing, 2 -> a single dot (because there is also \0)
-		GCC_VER=$(ls -1 /usr/lib/gcc/$SYSTEM/ | sort -V | tail -n 1)
+		GCC_VER=$(gcc --version | head -n 1 | awk '{print $3}' | cut -d '.' -f 1)
 		
 		if [ $(echo $GCC_VER | grep -Fo . | wc -c) -eq 0 ]; then
 			sudo ln -s "/usr/lib/gcc/$SYSTEM/$GCC_VER" "/usr/lib/gcc/$SYSTEM/$GCC_VER.0.0" ;

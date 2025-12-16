@@ -6,7 +6,27 @@ SCRIPT_DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 ROOT_DIR=$SCRIPT_DIR/../..
 CONTAINER_NAME="synapse"
 PLATFORM=linux/amd64
-DISPLAY=host.docker.internal:0
+
+OS_NAME=$(uname -s)
+
+if [ $OS_NAME == "Darwin" ]; then
+    # On MacOS, we need to ensure that XQuartz is running and that
+    # "Allow connections from network clients" is enabled in its preferences.
+    if ! pgrep XQuartz > /dev/null; then
+        echo "Starting XQuartz..."
+        open -a XQuartz
+        sleep 2
+    fi
+    # Allow connections to X server from localhost
+    xhost +localhost || true
+    DISPLAY=host.docker.internal:0
+else
+    if [ -z "${DISPLAY:-}" ]; then
+        echo "DISPLAY variable is not set. Please set it to run the container with GUI support."
+        exit 1
+    fi
+    DISPLAY=${DISPLAY:-}
+fi
 
 cd $ROOT_DIR
 
@@ -27,9 +47,6 @@ if [ ! -d $HOME/.ssh ]; then
     mkdir -p $HOME/.ssh
     chmod 700 $HOME/.ssh
 fi
-
-# Allow connections to X server from localhost
-xhost +localhost || true
 
 docker run \
    --rm \
