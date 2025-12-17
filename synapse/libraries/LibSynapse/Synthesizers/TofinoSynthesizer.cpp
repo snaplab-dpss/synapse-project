@@ -2652,12 +2652,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) {
-  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const DS_ID fcfscached_table_id                = node->get_fcfs_cached_table_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
   const symbol_t &hit                            = node->get_map_has_this_key();
+  const symbol_t &cache_hit                      = node->get_cache_hit();
 
   const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
   const bdd_node_id_t node_id              = node->get_node()->get_id();
@@ -2684,6 +2684,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     transpile_register_action_decl(&reg, reg_key_read_action_name, RegisterActionType::CheckValue, keys_vars[i].name);
   }
 
+  std::vector<code_t> reg_keys_write_actions;
+  for (size_t i = 0; i < keys_vars.size(); i++) {
+    const Register &reg                    = fcfs_cached_table->cache_keys[i];
+    const code_t reg_key_write_action_name = build_register_action_name(&reg, RegisterActionType::Write, ep_node);
+    reg_keys_write_actions.push_back(reg_key_write_action_name);
+    transpile_register_action_decl(&reg, reg_key_write_action_name, RegisterActionType::Write, keys_vars[i].name);
+  }
+
+  transpile_digest_decl(&fcfs_cached_table->digest, keys);
+
   std::vector<code_t> hash_inputs;
   for (const var_t &key_var : keys_vars) {
     hash_inputs.push_back(key_var.name);
@@ -2696,6 +2706,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply.indent();
     ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
   }
+
+  const var_t fcfs_ct_cache_hit_var = alloc_var("fcfs_ct_cache_hit", cache_hit.expr, FORCE_BOOL);
+  fcfs_ct_cache_hit_var.declare(ingress_apply, "true");
 
   const var_t hit_var = alloc_var("hit", hit.expr, FORCE_BOOL);
   hit_var.declare(ingress_apply, table->id + ".apply().hit");
@@ -2711,49 +2724,60 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << "if (" << cache_expirator_action_name << ".execute(" << output_hash << ")) {\n";
   ingress_apply.inc();
 
-  const var_t match_counter_var = alloc_var("match_counter", hit.expr, FORCE_BOOL);
-  match_counter_var.declare(ingress_apply, "0");
+  const code_t match_counter_var_name = create_unique_name("match_counter");
+  ingress_apply.indent();
+  ingress_apply << Transpiler::type_from_size(8) << match_counter_var_name << " = 0;\n";
 
   for (const code_t &reg_key_read_action_name : reg_keys_read_actions) {
     ingress_apply.indent();
-    ingress_apply << match_counter_var.name << " = " << match_counter_var.name << " + " << reg_key_read_action_name << ".execute(" << output_hash
+    ingress_apply << match_counter_var_name << " = " << match_counter_var_name << " + " << reg_key_read_action_name << ".execute(" << output_hash
                   << ");\n";
   }
 
   ingress_apply.indent();
-  ingress_apply << "if (" << match_counter_var.name << " == " << keys_vars.size() << ") {\n";
+  ingress_apply << "if (" << match_counter_var_name << " != " << keys_vars.size() << ") {\n";
   ingress_apply.inc();
 
   ingress_apply.indent();
-  ingress_apply << hit_var.name << " == true;\n";
+  ingress_apply << fcfs_ct_cache_hit_var.name << " = false;\n";
 
   ingress_apply.dec();
   ingress_apply.indent();
-  ingress_apply << "}\n";
-
-  ingress_apply.dec();
-  ingress_apply.indent();
-  ingress_apply << "}\n";
-
-  ingress_apply.dec();
-  ingress_apply.indent();
-  ingress_apply << "else {\n";
+  ingress_apply << "} else {\n";
   ingress_apply.inc();
 
   ingress_apply.indent();
-  ingress_apply << "// let's go\n";
+  ingress_apply << hit_var.name << " = true;\n";
 
   ingress_apply.dec();
   ingress_apply.indent();
   ingress_apply << "}\n";
 
-  std::cerr << "\n==================================================================\n";
-  std::cerr << ingress.dump() << std::endl;
-  std::cerr << "\n==================================================================\n";
-  std::cerr << ingress_apply.dump() << std::endl;
-  std::cerr << "\n==================================================================\n";
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "} else {\n";
+  ingress_apply.inc();
 
-  todo();
+  ingress_apply.indent();
+  ingress_apply << hit_var.name << " = true;\n";
+
+  for (const code_t &reg_key_write_action_name : reg_keys_write_actions) {
+    ingress_apply.indent();
+    ingress_apply << reg_key_write_action_name << ".execute(" << output_hash << ");\n";
+  }
+
+  ingress_apply.indent();
+  ingress_apply << "ig_dprsr_md.digest_type = " << fcfs_cached_table->digest.digest_type << ";\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  transpile_digest(fcfs_cached_table->digest, keys);
 
   return EPVisitor::Action::doChildren;
 }
@@ -2763,10 +2787,45 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *node) {
-  coder_t &ingress                = get(MARKER_INGRESS_CONTROL);
-  coder_t &ingress_apply          = get(MARKER_INGRESS_CONTROL_APPLY);
+void TofinoSynthesizer::transpile_digest(const Digest &digest, const std::vector<klee::ref<klee::Expr>> &keys) {
   coder_t &ingress_deparser_apply = get(MARKER_INGRESS_DEPARSER_APPLY);
+
+  ingress_deparser_apply.indent();
+  ingress_deparser_apply << "if (";
+  ingress_deparser_apply << "ig_dprsr_md.digest_type == " << digest.digest_type;
+  ingress_deparser_apply << ") {\n";
+
+  ingress_deparser_apply.inc();
+
+  ingress_deparser_apply.indent();
+  ingress_deparser_apply << digest.id << ".pack({\n";
+  ingress_deparser_apply.inc();
+
+  for (klee::ref<klee::Expr> key : keys) {
+    std::optional<var_t> key_var = ingress_vars.get_hdr(key);
+
+    if (!key_var.has_value()) {
+      dbg_vars();
+      panic("Key is not a header field variable:\n%s", expr_to_string(key).c_str());
+    }
+
+    ingress_deparser_apply.indent();
+    ingress_deparser_apply << key_var->name << ",\n";
+  }
+
+  ingress_deparser_apply.dec();
+  ingress_deparser_apply.indent();
+  ingress_deparser_apply << "});\n";
+
+  ingress_deparser_apply.dec();
+  ingress_deparser_apply.indent();
+  ingress_deparser_apply << "}\n";
+  ingress_deparser_apply << "\n";
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *node) {
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const DS_ID hh_table_id                        = node->get_hh_table_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
@@ -2950,37 +3009,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.indent();
   ingress_apply << "}\n";
 
-  ingress_deparser_apply.indent();
-  ingress_deparser_apply << "if (";
-  ingress_deparser_apply << "ig_dprsr_md.digest_type == " << hh_table->digest.digest_type;
-  ingress_deparser_apply << ") {\n";
-
-  ingress_deparser_apply.inc();
-
-  ingress_deparser_apply.indent();
-  ingress_deparser_apply << hh_table->digest.id << ".pack({\n";
-  ingress_deparser_apply.inc();
-
-  for (klee::ref<klee::Expr> key : keys) {
-    std::optional<var_t> key_var = ingress_vars.get_hdr(key);
-
-    if (!key_var.has_value()) {
-      dbg_vars();
-      panic("Key is not a header field variable:\n%s", expr_to_string(key).c_str());
-    }
-
-    ingress_deparser_apply.indent();
-    ingress_deparser_apply << key_var->name << ",\n";
-  }
-
-  ingress_deparser_apply.dec();
-  ingress_deparser_apply.indent();
-  ingress_deparser_apply << "});\n";
-
-  ingress_deparser_apply.dec();
-  ingress_deparser_apply.indent();
-  ingress_deparser_apply << "}\n";
-  ingress_deparser_apply << "\n";
+  transpile_digest(hh_table->digest, keys);
 
   return EPVisitor::Action::doChildren;
 }

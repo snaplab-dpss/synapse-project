@@ -39,13 +39,18 @@ std::vector<Register> build_registers(const tna_properties_t &properties, DS_ID 
   return registers;
 }
 
+Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type) {
+  const DS_ID digest_id = id + "_digest";
+  return Digest(digest_id, fields, digest_type);
+}
+
 } // namespace
 
 FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _capacity,
-                                 const std::vector<bits_t> &_keys_sizes)
+                                 const std::vector<bits_t> &_keys_sizes, u8 digest_type)
     : DS(DSType::FCFSCachedTable, false, _id), cache_capacity(_cache_capacity), capacity(_capacity), keys_sizes(_keys_sizes),
       hash(build_hash(_id, _keys_sizes, _capacity)), cache_expirator(build_cache_expirator(properties, id, cache_capacity)),
-      cache_keys(build_registers(properties, id, keys_sizes, cache_capacity)) {
+      cache_keys(build_registers(properties, id, keys_sizes, cache_capacity)), digest(build_digest(_id, _keys_sizes, digest_type)) {
   assert(cache_capacity > 0 && "Cache capacity must be greater than 0");
   assert(capacity > 0 && "Number of entries must be greater than 0");
   assert(cache_capacity <= capacity && "Cache capacity must be less than the "
@@ -55,7 +60,7 @@ FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, 
 
 FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
     : DS(other.type, other.primitive, other.id), cache_capacity(other.cache_capacity), capacity(other.capacity), keys_sizes(other.keys_sizes),
-      hash(other.hash), tables(other.tables), cache_expirator(other.cache_expirator), cache_keys(other.cache_keys) {}
+      hash(other.hash), tables(other.tables), cache_expirator(other.cache_expirator), cache_keys(other.cache_keys), digest(other.digest) {}
 
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 
@@ -76,8 +81,6 @@ void FCFSCachedTable::debug() const {
 }
 
 std::vector<std::unordered_set<const DS *>> FCFSCachedTable::get_internal() const {
-  // Access to the table comes first, then the expirator, and finally the keys.
-
   std::vector<std::unordered_set<const DS *>> internal_ds;
 
   internal_ds.emplace_back();
@@ -90,6 +93,7 @@ std::vector<std::unordered_set<const DS *>> FCFSCachedTable::get_internal() cons
   internal_ds.emplace_back();
   for (const Register &cache_key : cache_keys)
     internal_ds.back().insert(&cache_key);
+  internal_ds.back().insert(&digest);
 
   return internal_ds;
 }

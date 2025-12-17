@@ -264,6 +264,7 @@ private:
   void transpile_cms_decl(const CountMinSketch *cms, const EPNode *ep_node);
   void transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table);
   void transpile_if_condition(const If::condition_t &condition);
+  void transpile_digest(const Digest &digest, const std::vector<klee::ref<klee::Expr>> &fields);
 
   void declare_var_in_ingress_metadata(const var_t &var);
   void dbg_vars() const;

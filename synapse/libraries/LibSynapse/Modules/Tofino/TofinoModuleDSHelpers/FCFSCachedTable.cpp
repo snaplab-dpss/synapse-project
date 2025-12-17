@@ -22,7 +22,9 @@ FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const BDDNode *node, DS_I
     keys_sizes.push_back(k->getWidth());
   }
 
-  FCFSCachedTable *fcfs_cached_table = new FCFSCachedTable(properties, id, node->get_id(), cache_capacity, capacity, keys_sizes);
+  const u8 used_digests = tofino_ctx->get_tna().pipeline.get_used_digests() + 1;
+
+  FCFSCachedTable *fcfs_cached_table = new FCFSCachedTable(properties, id, node->get_id(), cache_capacity, capacity, keys_sizes, used_digests);
 
   if (!tofino_ctx->can_place(ep, node, fcfs_cached_table)) {
     delete fcfs_cached_table;

@@ -22,7 +22,7 @@ HHTable *build_hh_table(const EP *ep, const BDDNode *node, addr_t obj, const std
     keys_sizes.push_back(key->getWidth());
   }
 
-  const u8 used_digests = tofino_ctx->get_tna().pipeline.get_used_stages() + 1;
+  const u8 used_digests = tofino_ctx->get_tna().pipeline.get_used_digests() + 1;
   HHTable *hh_table     = new HHTable(properties, id, node->get_id(), capacity, keys_sizes, cms_width, cms_height, used_digests);
 
   if (!tofino_ctx->can_place(ep, node, hh_table)) {

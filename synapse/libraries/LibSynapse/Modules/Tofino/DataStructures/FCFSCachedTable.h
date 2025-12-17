@@ -4,6 +4,7 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Register.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Hash.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/Digest.h>
 #include <LibCore/Types.h>
 
 #include <vector>
@@ -25,8 +26,10 @@ struct FCFSCachedTable : public DS {
   std::vector<Table> tables;
   Register cache_expirator;
   std::vector<Register> cache_keys;
+  Digest digest;
 
-  FCFSCachedTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 cache_capacity, u32 capacity, const std::vector<bits_t> &keys_sizes);
+  FCFSCachedTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 cache_capacity, u32 capacity, const std::vector<bits_t> &keys_sizes,
+                  u8 digest_type);
 
   FCFSCachedTable(const FCFSCachedTable &other);
 

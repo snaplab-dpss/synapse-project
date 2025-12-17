@@ -120,6 +120,8 @@ struct Pipeline {
     return std::count_if(resources.stages.begin(), resources.stages.end(), [](const Stage &stage) { return !stage.data_structures.empty(); });
   }
 
+  u8 get_used_digests() const { return resources.used_digests; }
+
   bool detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   int get_soonest_stage_satisfying_all_dependencies(const std::unordered_set<DS_ID> &deps) const;
 
