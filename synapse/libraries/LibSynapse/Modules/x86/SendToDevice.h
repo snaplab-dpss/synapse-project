@@ -8,19 +8,23 @@ namespace x86 {
 class SendToDevice : public x86Module {
 private:
   klee::ref<klee::Expr> outgoing_port;
+  klee::ref<klee::Expr> code_path;
   Symbols symbols;
 
 public:
   SendToDevice(const InstanceId _instance_id, const BDDNode *_node, const TargetType _next_type, klee::ref<klee::Expr> _outgoing_port,
-               Symbols _symbols)
+               klee::ref<klee::Expr> _code_path, Symbols _symbols)
       : x86Module(ModuleType(ModuleCategory::x86_SendToDevice, _instance_id), _next_type, "SendToDevice", _node), outgoing_port(_outgoing_port),
-        symbols(_symbols) {}
+        code_path(_code_path), symbols(_symbols) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
-  virtual Module *clone() const override { return new SendToDevice(get_type().instance_id, node, get_next_target(), outgoing_port, symbols); }
+  virtual Module *clone() const override {
+    return new SendToDevice(get_type().instance_id, node, get_next_target(), outgoing_port, code_path, symbols);
+  }
 
   const klee::ref<klee::Expr> get_outgoing_port() const { return outgoing_port; }
+  const klee::ref<klee::Expr> get_code_path() const { return code_path; }
   const Symbols &get_symbols() const { return symbols; }
 };
 

@@ -69,15 +69,16 @@ std::vector<impl_t> ParseHeaderVarsFactory::process_node(const EP *ep, const BDD
     return {};
   }
 
-  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
-  Symbols symbols            = get_relevant_dataplane_state(ep, node, get_target());
-  symbols.remove("packet_chunks");
-  symbols.remove("DEVICE");
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
 
-  Module *module  = new ParseHeaderVars(get_type().instance_id, node, symbols);
+  klee::ref<klee::Expr> code_path = call.args.at("code_path").expr;
+  Symbols symbols                 = call_node->get_used_symbols();
+
+  Module *module  = new ParseHeaderVars(get_type().instance_id, node, code_path, symbols);
   EPNode *ep_node = new EPNode(module);
 
-  // std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
@@ -92,7 +93,13 @@ std::unique_ptr<Module> ParseHeaderVarsFactory::create(const BDD *bdd, const Con
     return {};
   }
 
-  return {};
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  const call_t &call    = call_node->get_call();
+
+  klee::ref<klee::Expr> code_path = call.args.at("code_path").expr;
+  Symbols symbols                 = call_node->get_used_symbols();
+
+  return std::make_unique<ParseHeaderVars>(get_type().instance_id, node, code_path, symbols);
 }
 
 } // namespace x86

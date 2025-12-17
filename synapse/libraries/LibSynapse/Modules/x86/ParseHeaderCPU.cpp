@@ -38,7 +38,10 @@ std::vector<impl_t> ParseHeaderCPUFactory::process_node(const EP *ep, const BDDN
     return {};
   }
 
-  Module *module  = new ParseHeaderCPU(get_type().instance_id, node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  symbol_t code_path    = call_node->get_local_symbol("code_path");
+
+  Module *module  = new ParseHeaderCPU(get_type().instance_id, node, code_path);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -56,7 +59,10 @@ std::unique_ptr<Module> ParseHeaderCPUFactory::create(const BDD *bdd, const Cont
     return {};
   }
 
-  return std::make_unique<ParseHeaderCPU>(get_type().instance_id, node);
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  symbol_t code_path    = call_node->get_local_symbol("code_path");
+
+  return std::make_unique<ParseHeaderCPU>(get_type().instance_id, node, code_path);
 }
 
 } // namespace x86

@@ -8,8 +8,6 @@
 #include <LibBDD/BDD.h>
 #include <LibCore/Types.h>
 
-#include <LibClone/PhysicalNetwork.h>
-
 #include <memory>
 #include <vector>
 #include <unordered_set>

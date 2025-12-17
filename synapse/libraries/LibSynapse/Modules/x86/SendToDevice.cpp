@@ -27,36 +27,36 @@ bool bdd_node_match_pattern(const BDDNode *node) {
   return true;
 }
 
-std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node, const BDDNode *&next) {
+// std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node, const BDDNode *&next) {
 
-  bdd_node_ids_t s2d_ids      = node->get_prev_s2d_node_id();
-  bdd_node_ids_t target_roots = ep->get_target_roots(ep->get_active_target());
-  bdd_node_ids_t stop_nodes   = target_roots;
+//   bdd_node_ids_t s2d_ids      = node->get_prev_s2d_node_id();
+//   bdd_node_ids_t target_roots = ep->get_target_roots(ep->get_active_target());
+//   bdd_node_ids_t stop_nodes   = target_roots;
 
-  stop_nodes.insert(s2d_ids.begin(), s2d_ids.end());
+//   stop_nodes.insert(s2d_ids.begin(), s2d_ids.end());
 
-  std::list<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, stop_nodes);
-  std::list<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, stop_nodes);
+//   std::list<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, stop_nodes);
+//   std::list<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, stop_nodes);
 
-  std::vector<const BDDNode *> hdr_parsing_ops;
-  hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
-  hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_returns.begin(), prev_returns.end());
+//   std::vector<const BDDNode *> hdr_parsing_ops;
+//   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
+//   hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_returns.begin(), prev_returns.end());
 
-  if (hdr_parsing_ops.empty()) {
-    return nullptr;
-  }
+//   if (hdr_parsing_ops.empty()) {
+//     return nullptr;
+//   }
 
-  const BDD *old_bdd = ep->get_bdd();
+//   const BDD *old_bdd = ep->get_bdd();
 
-  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
-  const BDDNode *new_next      = new_bdd->add_cloned_non_branches(next->get_id(), hdr_parsing_ops);
+//   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
+//   const BDDNode *new_next      = new_bdd->add_cloned_non_branches(next->get_id(), hdr_parsing_ops);
 
-  if (new_next) {
-    next = new_bdd->get_node_by_id(new_next->get_id());
-  }
+//   if (new_next) {
+//     next = new_bdd->get_node_by_id(new_next->get_id());
+//   }
 
-  return new_bdd;
-}
+//   return new_bdd;
+// }
 } // namespace
 
 std::optional<spec_impl_t> SendToDeviceFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
@@ -110,6 +110,7 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
 
   klee::ref<klee::Expr> outgoing_port    = call.args.at("outgoing_port").expr;
   klee::ref<klee::Expr> next_target_expr = call.args.at("next_target").expr;
+  klee::ref<klee::Expr> code_path        = call.args.at("code_path").expr;
 
   bits_t width                       = next_target_expr->getWidth();
   const klee::ConstantExpr *constant = dynamic_cast<const klee::ConstantExpr *>(next_target_expr.get());
@@ -118,11 +119,9 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
   InstanceId next_target_id = constant->getZExtValue(width);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
-  Symbols symbols            = get_relevant_dataplane_state(ep, node, get_target());
-  symbols.remove("packet_chunks");
-  symbols.remove("DEVICE");
+  Symbols symbols            = call_node->get_used_symbols();
 
-  Module *module   = new SendToDevice(get_type().instance_id, node, ep->get_target_by_id(next_target_id), outgoing_port, symbols);
+  Module *module   = new SendToDevice(get_type().instance_id, node, ep->get_target_by_id(next_target_id), outgoing_port, code_path, symbols);
   EPNode *s2d_node = new EPNode(module);
 
   EPNode *ep_node_leaf = s2d_node;
@@ -138,10 +137,10 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
     return impls;
   }*/
 
-  const BDDNode *next = node->get_next();
+  // const BDDNode *next = node->get_next();
   // std::unique_ptr<BDD> new_bdd = replicate_hdr_parsing_ops(ep, node, next);
 
-  EPLeaf leaf(ep_node_leaf, next);
+  EPLeaf leaf(ep_node_leaf, node->get_next());
   new_ep->process_leaf(s2d_node, {leaf});
 
   // if (new_bdd) {

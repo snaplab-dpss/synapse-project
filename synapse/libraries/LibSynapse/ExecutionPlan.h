@@ -1,6 +1,5 @@
 #pragma once
 
-#include <LibClone/PhysicalNetwork.h>
 #include <LibSynapse/EPNode.h>
 #include <LibSynapse/Meta.h>
 #include <LibSynapse/Context.h>
@@ -23,10 +22,6 @@ using LibBDD::BDDNode;
 using LibBDD::Call;
 using LibBDD::map_coalescing_objs_t;
 using LibBDD::symbol_translation_t;
-
-using LibClone::ComponentId;
-using LibClone::InfrastructureNodeId;
-using LibClone::PhysicalNetwork;
 
 using translator_t = std::unordered_map<bdd_node_id_t, bdd_node_id_t>;
 using ep_id_t      = u64;

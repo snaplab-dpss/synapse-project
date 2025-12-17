@@ -2294,6 +2294,129 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     process_nodes.insert(node->get_node()->get_id());
   }
 
+  const klee::ref<klee::Expr> outgoing_port = node->get_outgoing_port();
+  const klee::ref<klee::Expr> code_path     = node->get_code_path();
+  const Symbols &symbols                    = node->get_symbols();
+
+  coder.indent();
+  coder << "packet_insert_new_chunk(";
+  coder << "(void **) &buffer, ";
+  coder << "sizeof(";
+  coder << CODE_PATH_HEADER_TYPE;
+  coder << "), ";
+  coder << CHUNKS_BORROWED << ", ";
+  coder << "&" << NUM_CHUNKS_BORROWED << ", ";
+  coder << "mbuf);\n";
+
+  code_t path_hdr = create_unique_name("code_path_hdr");
+
+  coder.indent();
+  coder << "uint8_t *";
+  coder << path_hdr;
+  coder << " = ";
+  coder << "(uint8_t *) ";
+  coder << CHUNKS_BORROWED;
+  coder << "[";
+  coder << NUM_CHUNKS_BORROWED;
+  coder << " - 1]";
+  coder << ";\n";
+
+  coder.indent();
+  coder << "// NEXT CODE PATH: " << transpiler.transpile(code_path) << "\n";
+
+  for (int i = 0; i < CODE_PATH_HEADER_SIZE; i++) {
+    coder.indent();
+    coder << path_hdr;
+    coder << "[";
+    coder << std::to_string(i);
+    coder << "] = ";
+    u64 code_path_value = solver_toolbox.value_from_expr(code_path) >> (8 * i);
+    coder << std::to_string(code_path_value & 0xFFu);
+    coder << ";\n";
+  }
+
+  coder.indent();
+  coder << "struct Context_" << transpiler.transpile(code_path) << "{\n";
+
+  coder.inc();
+
+  for (const symbol_t &symbol : symbols.get()) {
+    std::optional<var_t> var = vars.get(symbol.expr);
+
+    if (!var.has_value()) {
+      dbg_vars();
+      panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
+    }
+
+    coder.indent();
+    coder << transpiler.type_from_expr(var.value().expr) << " ";
+
+    coder << var.value().name;
+    coder << ";\n";
+  }
+
+  coder.dec();
+  coder.indent();
+  coder << "};\n";
+
+  coder.indent();
+  coder << "packet_insert_new_chunk(";
+  coder << "(void **) &buffer, ";
+  coder << "sizeof(struct Context_" << transpiler.transpile(code_path) << "), ";
+  coder << CHUNKS_BORROWED << ", ";
+  coder << "&" << NUM_CHUNKS_BORROWED << ", ";
+  coder << "mbuf);\n";
+
+  code_t ctx_hdr = create_unique_name("ctx_hdr");
+
+  coder.indent();
+  coder << "struct Context_" << transpiler.transpile(code_path) << " *";
+  coder << ctx_hdr;
+  coder << " = ";
+  coder << "(struct Context_" << transpiler.transpile(code_path) << " *) ";
+  coder << CHUNKS_BORROWED;
+  coder << "[";
+  coder << NUM_CHUNKS_BORROWED;
+  coder << " - 1]";
+  coder << ";\n";
+
+  for (const symbol_t &symbol : symbols.get()) {
+    std::optional<var_t> var = vars.get(symbol.expr);
+
+    if (!var.has_value()) {
+      dbg_vars();
+      panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
+    }
+
+    coder.indent();
+    coder << "memcpy(";
+    coder << "(void*) ";
+    coder << ctx_hdr << "->" << var.value().name;
+    coder << ", ";
+    coder << var.value().name;
+    coder << ", ";
+    coder << var.value().expr->getWidth();
+    coder << ")";
+
+    coder << ";\n";
+  }
+
+  coder.indent();
+  coder << "packet_return_all_chunks(buffer);\n";
+
+  coder.indent();
+  coder << "return " << transpiler.transpile(outgoing_port) << ";\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+/*EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::SendToDevice *node) {
+  coder_t &coder = get_current_coder();
+
+  if (!in_nf_init) {
+    process_nodes.insert(node->get_node()->get_id());
+  }
+
   const std::vector<EPNode *> &children = ep_node->get_children();
   assert(children.size() == 1 && "Expected single child");
 
@@ -2449,7 +2572,6 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     coder << "(code_path_0 == " << ep_node->get_prev()->get_id() << ") {\n";
 
     coder.inc();
-    vars.push();
     coder.indent();
     coder << "std::cerr << \"Received Packet From Inside Network\\n\";\n";
 
@@ -2581,14 +2703,13 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
     visit(ep, child);
 
-    vars.pop();
     coder.dec();
     coder.indent();
     coder << "}\n";
   }
 
   return EPVisitor::Action::skipChildren;
-}
+}*/
 
 EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketAllocate *node) {
   coder_t &coder = get_current_coder();
@@ -2819,6 +2940,183 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   coder << "}\n";
 
   vars.insert_back(lpm_out_var);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeaderCPU *node) {
+  coder_t &coder = get_current_coder();
+  // coder.indent();
+  // panic("TODO: ParseHeaderCPU not implemented");
+
+  if (!in_nf_init) {
+    process_nodes.insert(node->get_node()->get_id());
+  }
+
+  symbol_t code_path_symbol = node->get_code_path();
+
+  var_t code_path = build_var(code_path_symbol.name, code_path_symbol.expr);
+
+  coder.indent();
+  coder << "std::cerr << \"Received Packet From Inside Network\\n\";\n";
+
+  coder.indent();
+  coder << CODE_PATH_HEADER_TYPE;
+  coder << " ";
+  coder << code_path.name;
+  coder << " = ";
+  coder << "0";
+  coder << ";\n";
+
+  code_t code_path_hdr = create_unique_name("code_path_hdr");
+
+  coder.indent();
+  coder << "void *";
+  coder << code_path_hdr;
+  coder << ";\n";
+
+  coder.indent();
+  coder << "packet_borrow_next_chunk(";
+  coder << "buffer, ";
+  coder << "sizeof(";
+  coder << CODE_PATH_HEADER_TYPE;
+  coder << "), ";
+  coder << "&" << code_path_hdr;
+  coder << ")";
+  coder << ";\n";
+
+  for (int i = 0; i < CODE_PATH_HEADER_SIZE; i++) {
+    coder.indent();
+    coder << code_path.name;
+    coder << " += ";
+    coder << "((uint8_t *) ";
+    coder << code_path_hdr;
+    coder << ")[";
+    coder << std::to_string(i);
+    coder << "]";
+    coder << " << ";
+    coder << std::to_string(8 * i);
+    coder << ";\n";
+  }
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeaderVars *node) {
+  coder_t &coder = get_current_coder();
+  // coder.indent();
+  // panic("TODO: ParseHeaderVars not implemented");
+
+  if (!in_nf_init) {
+    process_nodes.insert(node->get_node()->get_id());
+  }
+
+  const klee::ref<klee::Expr> code_path = node->get_code_path();
+  const Symbols symbols                 = node->get_symbols();
+
+  coder.indent();
+  coder << "struct Context_" << transpiler.transpile(code_path) << "{\n";
+
+  coder.inc();
+
+  for (const symbol_t &symbol : symbols.get()) {
+    std::optional<var_t> var = vars.get(symbol.expr);
+
+    coder.indent();
+    coder << transpiler.type_from_expr(symbol.expr) << " ";
+
+    if (!var.has_value()) {
+      var_t symbol_var = build_var(symbol.name, symbol.expr);
+      vars.insert_back(symbol_var);
+
+      coder << symbol_var.name;
+    } else {
+      coder << var.value().name;
+    }
+    coder << ";\n";
+  }
+
+  coder.dec();
+  coder.indent();
+  coder << "};\n";
+
+  code_t ctx_hdr = create_unique_name("ctx_hdr");
+
+  coder.indent();
+  coder << "void *";
+  coder << ctx_hdr;
+  coder << ";\n";
+
+  coder.indent();
+  coder << "packet_borrow_next_chunk(";
+  coder << "buffer, ";
+  coder << "sizeof(struct Context_" << transpiler.transpile(code_path) << "), ";
+  coder << "&" << ctx_hdr;
+  coder << ")";
+  coder << ";\n";
+
+  code_t ctx = create_unique_name("ctx");
+
+  coder.indent();
+  coder << "struct Context_" << transpiler.transpile(code_path) << " *";
+  coder << ctx;
+  coder << " = ";
+  coder << "(struct Context_" << transpiler.transpile(code_path) << " *) " << ctx_hdr;
+  coder << ";\n";
+
+  for (const symbol_t &symbol : symbols.get()) {
+    std::optional<var_t> var = vars.get(symbol.expr);
+
+    if (!var.has_value()) {
+      dbg_vars();
+      panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
+    }
+
+    coder.indent();
+    // coder << transpiler.type_from_expr(var.value().expr) << " *";
+    coder << "uint8_t *";
+    coder << var.value().name;
+    coder << ";\n";
+
+    coder.indent();
+    coder << "memcpy(";
+    coder << "(void*) ";
+    coder << var.value().name;
+    coder << ", ";
+    coder << ctx << "->" << var.value().name;
+    coder << ", ";
+    coder << var.value().expr->getWidth();
+    coder << ")";
+    coder << ";\n";
+  }
+
+  coder.indent();
+  coder << "packet_shrink_chunk(";
+  coder << "(void**) &buffer, ";
+  coder << "0, ";
+  coder << CHUNKS_BORROWED << ", ";
+  coder << NUM_CHUNKS_BORROWED << ", ";
+  coder << "mbuf";
+  coder << ")";
+  coder << ";\n";
+
+  coder.indent();
+  coder << NUM_CHUNKS_BORROWED << "--";
+  coder << ";\n";
+
+  coder.indent();
+  coder << "packet_shrink_chunk(";
+  coder << "(void**) &buffer, ";
+  coder << "0, ";
+  coder << CHUNKS_BORROWED << ", ";
+  coder << NUM_CHUNKS_BORROWED << ", ";
+  coder << "mbuf";
+  coder << ")";
+  coder << ";\n";
+
+  coder.indent();
+  coder << NUM_CHUNKS_BORROWED << "--";
+  coder << ";\n";
 
   return EPVisitor::Action::doChildren;
 }

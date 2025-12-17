@@ -1,6 +1,5 @@
 #pragma once
 
-#include "LibSynapse/Target.h"
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
 
 namespace LibSynapse {

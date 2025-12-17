@@ -143,6 +143,8 @@ Branch *build_global_port_subgraph(std::unique_ptr<BDD> &_bdd, bdd_node_id_t roo
 
   Branch *new_branch = _bdd->create_new_branch(condition);
 
+  // NOTE: switch the following lines to print out the complete subgraph or just the first node
+  //
   // BDDNode *new_on_true = branch->get_on_true()->clone(_bdd->get_mutable_manager(), false);
   BDDNode *new_on_true = clone_subgraph(_bdd, branch->get_on_true());
   new_branch->set_on_true(new_on_true);
@@ -157,8 +159,8 @@ Branch *build_code_path_subgraph(std::unique_ptr<BDD> &_bdd, bdd_node_id_t root)
   assert(node->get_type() == BDDNodeType::Call && "Root node not a call");
   std::cerr << "ROOT NODE: " << node->dump(true) << "\n";
 
-  const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call    = call_node->get_call();
+  const Call *previous_s2d_call_node = dynamic_cast<const Call *>(node->get_prev());
+  const call_t &call                 = previous_s2d_call_node->get_call();
 
   klee::ref<klee::Expr> code_path_expr = call.args.at("code_path").expr;
 
@@ -171,6 +173,8 @@ Branch *build_code_path_subgraph(std::unique_ptr<BDD> &_bdd, bdd_node_id_t root)
 
   Branch *new_branch = _bdd->create_new_branch(condition);
 
+  // NOTE: switch the following lines to print out the complete subgraph or just the first node
+  //
   // BDDNode *new_on_true = node->clone(_bdd->get_mutable_manager(), false);
   BDDNode *new_on_true = clone_subgraph(_bdd, node);
   new_branch->set_on_true(new_on_true);
@@ -196,7 +200,22 @@ void insert_parse_header_cpu_node(BDDNode *parse_header_cpu_node, BDDNode *&root
   }
 }
 
-Symbols get_relevant_dataplane_state(std::unique_ptr<BDD> &new_bdd, const BDDNode *node, const bdd_node_ids_t &target_roots) {
+std::vector<const BDDNode *> retreive_prev_hdr_parsing_ops(const BDDNode *node) {
+  bdd_node_ids_t stop_nodes            = node->get_prev_s2d_node_id();
+  std::list<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, stop_nodes);
+  std::list<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, stop_nodes);
+
+  std::vector<const BDDNode *> hdr_parsing_ops;
+  hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
+  hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_returns.begin(), prev_returns.end());
+  return hdr_parsing_ops;
+}
+
+} // namespace
+
+Placer::Placer(const BDD &_bdd, const PhysicalNetwork &_phys_net) : bdd(setup_bdd(_bdd)), phys_net(_phys_net) {}
+
+Symbols Placer::get_relevant_dataplane_state(std::unique_ptr<BDD> &new_bdd, const BDDNode *node, const bdd_node_ids_t &target_roots) {
   Symbols generated_symbols = node->get_prev_symbols(target_roots);
   generated_symbols.add(new_bdd->get_device());
   generated_symbols.add(new_bdd->get_time());
@@ -231,21 +250,6 @@ Symbols get_relevant_dataplane_state(std::unique_ptr<BDD> &new_bdd, const BDDNod
   return generated_symbols.intersect(future_used_symbols);
 }
 
-std::vector<const BDDNode *> retreive_prev_hdr_parsing_ops(const BDDNode *node) {
-  bdd_node_ids_t stop_nodes            = node->get_prev_s2d_node_id();
-  std::list<const Call *> prev_borrows = node->get_prev_functions({"packet_borrow_next_chunk"}, stop_nodes);
-  std::list<const Call *> prev_returns = node->get_prev_functions({"packet_return_chunk"}, stop_nodes);
-
-  std::vector<const BDDNode *> hdr_parsing_ops;
-  hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_borrows.begin(), prev_borrows.end());
-  hdr_parsing_ops.insert(hdr_parsing_ops.end(), prev_returns.begin(), prev_returns.end());
-  return hdr_parsing_ops;
-}
-
-} // namespace
-
-Placer::Placer(const BDD &_bdd, const PhysicalNetwork &_phys_net) : bdd(setup_bdd(_bdd)), phys_net(_phys_net) {}
-
 const std::vector<const BDDNode *> Placer::create_send_to_device_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id,
                                                                       bdd_node_id_t next_node_id) {
 
@@ -254,8 +258,8 @@ const std::vector<const BDDNode *> Placer::create_send_to_device_node(std::uniqu
   const BDDNode *current_node = new_bdd->get_node_by_id(current_id);
   assert(current_node && "BDDNode not found");
 
-  const BDDNode *next_node = new_bdd->get_node_by_id(next_node_id);
-  assert(next_node && "BDDNode not found");
+  // const BDDNode *next_node = new_bdd->get_node_by_id(next_node_id);
+  // assert(next_node && "BDDNode not found");
 
   if (phys_net.get_placement(current_id) == phys_net.get_placement(next_node_id)) {
     return {};
@@ -310,11 +314,16 @@ const std::vector<const BDDNode *> Placer::create_send_to_device_node(std::uniqu
         .ret           = {},
     };
 
-    Symbols symbols;
+    Symbols symbols = get_relevant_dataplane_state(new_bdd, current_node, {});
+    symbols.remove("packet_chunks");
+    symbols.remove("DEVICE");
     const Call *s2d = new_bdd->create_new_call(new_bdd->get_mutable_node_by_id(new_bdd->get_id()), call, symbols);
 
     std::cerr << s2d->dump(true) << "\n";
     inserted_nodes.push_back(s2d);
+
+    std::vector<const BDDNode *> hdr_parsing_ops = retreive_prev_hdr_parsing_ops(current_node);
+    inserted_nodes.insert(inserted_nodes.end(), hdr_parsing_ops.begin(), hdr_parsing_ops.end());
 
     if (parse_header_vars_node.has_value()) {
       std::cerr << parse_header_vars_node.value()->dump(true) << "\n";
@@ -322,9 +331,6 @@ const std::vector<const BDDNode *> Placer::create_send_to_device_node(std::uniqu
     } else {
       panic("Failed to create parse_header_vars node");
     }
-
-    std::vector<const BDDNode *> hdr_parsing_ops = retreive_prev_hdr_parsing_ops(current_node);
-    inserted_nodes.insert(inserted_nodes.end(), hdr_parsing_ops.begin(), hdr_parsing_ops.end());
   }
 
   return inserted_nodes;
@@ -430,10 +436,12 @@ std::unordered_map<LibSynapse::TargetType, target_roots_t> Placer::get_target_ro
 
   queue.push(root);
 
+  if (root->get_type() != BDDNodeType::Branch) {
+    in_root = false;
+  }
+
   while (!queue.empty()) {
     BDDNode *current = queue.front();
-
-    // std::cerr << "Current Node: " << current->dump(true) << "\n";
     queue.pop();
 
     if (current->get_type() == BDDNodeType::Branch) {
@@ -557,6 +565,7 @@ std::unique_ptr<BDD> Placer::extract_target_bdd(std::unique_ptr<BDD> &global_bdd
   extracted_bdd->set_time(global_bdd->get_time());
 
   if (port_roots.empty() && roots.empty()) {
+    std::cerr << "NO ROOTS DETECTED\n";
     return extracted_bdd;
   }
 
@@ -667,6 +676,10 @@ std::unique_ptr<const BDD> Placer::concretize_ports(std::unique_ptr<BDD> &old_bd
 }
 
 std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> Placer::process() {
+  std::cerr << "==========================================\n";
+  std::cerr << "=============Processing BDD===============\n";
+  std::cerr << "==========================================\n";
+
   std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> target_bdds;
 
   std::unique_ptr<BDD> processed_bdd = add_send_to_device_nodes();
@@ -686,6 +699,7 @@ std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> Placer::p
     assert_or_panic(report.status == LibBDD::BDD::InspectionStatus::Ok, "BDD inspection failed: %s", report.message.c_str());
     std::cout << "BDD inspection passed.\n";
 
+    // BDDViz::visualize(target_bdd.get(), false);
     target_bdds.emplace(target, std::move(target_bdd));
   }
 

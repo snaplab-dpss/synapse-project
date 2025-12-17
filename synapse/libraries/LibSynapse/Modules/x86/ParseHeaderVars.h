@@ -1,24 +1,30 @@
 #pragma once
 
 #include <LibSynapse/Modules/x86/x86Module.h>
+#include <klee/util/Ref.h>
 
 namespace LibSynapse {
 namespace x86 {
 
 class ParseHeaderVars : public x86Module {
 private:
+  klee::ref<klee::Expr> code_path;
   Symbols symbols;
 
 public:
-  ParseHeaderVars(const InstanceId _instance_id, const BDDNode *_node, Symbols _symbols)
-      : x86Module(ModuleType(ModuleCategory::x86_ParseHeaderVars, _instance_id), "ParseHeaderVars", _node), symbols(_symbols) {}
+  ParseHeaderVars(const InstanceId _instance_id, const BDDNode *_node, klee::ref<klee::Expr> _code_path, Symbols _symbols)
+      : x86Module(ModuleType(ModuleCategory::x86_ParseHeaderVars, _instance_id), "ParseHeaderVars", _node), code_path(_code_path), symbols(_symbols) {
+  }
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    ParseHeaderVars *cloned = new ParseHeaderVars(get_type().instance_id, node, symbols);
+    ParseHeaderVars *cloned = new ParseHeaderVars(get_type().instance_id, node, code_path, symbols);
     return cloned;
   }
+
+  klee::ref<klee::Expr> get_code_path() const { return code_path; }
+  const Symbols &get_symbols() const { return symbols; }
 };
 
 class ParseHeaderVarsFactory : public x86ModuleFactory {

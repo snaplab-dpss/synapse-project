@@ -8,6 +8,7 @@
 
 size_t global_total_length;
 size_t global_read_length = 0;
+
 void *chunks_borrowed[MAX_N_CHUNKS];
 size_t num_chunks_borrowed = 0;
 

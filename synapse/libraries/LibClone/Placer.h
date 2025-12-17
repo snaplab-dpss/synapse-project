@@ -50,7 +50,6 @@ private:
   std::optional<BDDNode *> create_parse_header_vars_node(std::unique_ptr<BDD> &_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id);
   void handle_branch_node(std::unique_ptr<BDD> &_bdd, bdd_node_id_t branch_id, bdd_node_id_t on_true_id, bdd_node_id_t on_false_id, bool in_root);
   void handle_node(std::unique_ptr<BDD> &_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id);
-  std::vector<const BDDNode *> retreive_prev_hdr_parsing_ops(const BDDNode *node);
   Symbols get_relevant_dataplane_state(std::unique_ptr<BDD> &_bdd, const BDDNode *node, const bdd_node_ids_t &target_roots);
   bdd_node_ids_t get_target_global_port_roots(std::unique_ptr<BDD> &_bdd, LibSynapse::TargetType target);
   bdd_node_ids_t get_target_roots(std::unique_ptr<BDD> &_bdd, LibSynapse::TargetType target);

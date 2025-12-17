@@ -12,7 +12,7 @@ struct rte_mbuf;
 #define MAX_N_CHUNKS 100
 
 extern void *chunks_borrowed[MAX_N_CHUNKS];
-extern size_t num_chunks_borrowed = 0;
+extern size_t num_chunks_borrowed;
 
 // The main IO primitive.
 void packet_borrow_next_chunk(void *p, size_t length, void **chunk);

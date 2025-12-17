@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   CLI11_PARSE(app, argc, argv);
 
   SymbolManager symbol_manager;
-  BDD bdd(input_bdd_file, &symbol_manager);
+  const BDD bdd(input_bdd_file, &symbol_manager);
 
   const PhysicalNetwork phys_net = PhysicalNetwork::parse(input_physical_network_file);
   phys_net.debug();
