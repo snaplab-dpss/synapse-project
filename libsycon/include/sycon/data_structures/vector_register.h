@@ -4,11 +4,11 @@
 #include <optional>
 #include <vector>
 
+#include "synapse_ds.h"
 #include "../constants.h"
 #include "../primitives/register.h"
 #include "../time.h"
 #include "../buffer.h"
-#include "synapse_ds.h"
 
 namespace sycon {
 

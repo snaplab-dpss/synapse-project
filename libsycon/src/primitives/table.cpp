@@ -643,7 +643,8 @@ void Table::add_or_mod_entry(const buffer_t &k) {
   BF_RT_FLAG_INIT(flags);
   BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
 
-  bf_status = table->tableEntryMod(*session, dev_tgt, flags, *key, *data);
+  bool was_added = false;
+  bf_status      = table->tableEntryAddOrMod(*session, dev_tgt, flags, *key, *data, &was_added);
   ASSERT_BF_STATUS(bf_status);
 }
 

@@ -4,13 +4,13 @@
 #include <optional>
 #include <unordered_set>
 
+#include "synapse_ds.h"
 #include "../primitives/table.h"
 #include "../primitives/register.h"
 #include "../primitives/digest.h"
 #include "../time.h"
 #include "../field.h"
 #include "../hash.h"
-#include "synapse_ds.h"
 
 namespace sycon {
 

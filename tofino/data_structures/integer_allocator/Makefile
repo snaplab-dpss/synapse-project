@@ -1,4 +1,4 @@
-APP := fcfs_cached_table
+APP := integer_allocator
 
 P4_COMPILATION_VARS := 
 CONTROLLER_ARGS :=

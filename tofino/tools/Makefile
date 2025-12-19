@@ -37,7 +37,7 @@ P4_ASSEMBLY_DEBUG := $(BUILD_DIR)/pipe/$(APP).bfa
 P4_TNA1_BUILD_FLAGS := --target tofino --arch tna
 P4_TNA2_BUILD_FLAGS := --target tofino2 --arch t2na
 
-CONTROLLER_COMMON_FLAGS        := -std=c++17 -Wall
+CONTROLLER_COMMON_FLAGS        := -std=c++20 -Wall
 CONTROLLER_BUILD_RELEASE_FLAGS := $(CONTROLLER_COMMON_FLAGS) -DNDEBUG=1 -O3 -g
 CONTROLLER_BUILD_DEBUG_FLAGS   := $(CONTROLLER_COMMON_FLAGS) -O0 -g
 CONTROLLER_LIBS                := -Wl,-rpath,$(SDE_INSTALL)/lib -lsycon

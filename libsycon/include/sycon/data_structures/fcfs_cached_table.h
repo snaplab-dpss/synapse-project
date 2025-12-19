@@ -4,13 +4,13 @@
 #include <optional>
 #include <unordered_set>
 
+#include "synapse_ds.h"
 #include "../primitives/table.h"
 #include "../primitives/register.h"
 #include "../primitives/digest.h"
 #include "../time.h"
 #include "../field.h"
 #include "../hash.h"
-#include "synapse_ds.h"
 
 namespace sycon {
 
@@ -18,9 +18,15 @@ class FCFSCachedTable : public SynapseDS {
 private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
   std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
+  std::unordered_set<u32> free_indexes;
+  u32 tail;
 
   std::vector<Table> tables;
-  Register reg_alarm;
+  Register reg_liveness;
+  Register reg_integer_allocator_head;
+  Register reg_integer_allocator_tail;
+  Register reg_integer_allocator_indexes;
+  Register reg_integer_allocator_pending;
   Digest digest;
 
   const u32 capacity;
@@ -30,10 +36,24 @@ private:
   const CRC32 crc32;
 
 public:
-  FCFSCachedTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_alarm_name,
+  FCFSCachedTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_liveness_name,
+                  const std::string &reg_integer_allocator_head_name, const std::string &reg_integer_allocator_tail_name,
+                  const std::string &reg_integer_allocator_indexes_name, const std::string &reg_integer_allocator_pending_name,
                   const std::string &digest_name, std::optional<time_ms_t> timeout = std::nullopt)
-      : SynapseDS(_name), tables(build_tables(table_names)), reg_alarm(reg_alarm_name), digest(digest_name), capacity(get_capacity(tables)),
-        cache_capacity(reg_alarm.get_capacity()), key_size(get_key_size(tables)), cache_hash_size(get_cache_hash_size(cache_capacity)), crc32() {
+      : SynapseDS(_name), tables(build_tables(table_names)), reg_liveness(reg_liveness_name),
+        reg_integer_allocator_head(reg_integer_allocator_head_name), reg_integer_allocator_tail(reg_integer_allocator_tail_name),
+        reg_integer_allocator_indexes(reg_integer_allocator_indexes_name), reg_integer_allocator_pending(reg_integer_allocator_pending_name),
+        digest(digest_name), capacity(get_capacity(reg_integer_allocator_indexes, reg_integer_allocator_pending, tables)),
+        cache_capacity(reg_liveness.get_capacity()), key_size(get_key_size(tables)), cache_hash_size(get_cache_hash_size(cache_capacity)), crc32() {
+    init_tail();
+
+    // If you pay close attention, you'll see that we leave one index unused (capacity-1).
+    // This is because we use a circular buffer approach, and we need a way to distinguish between available and full states.
+    for (u32 i = 0; i < tail; i++) {
+      free_indexes.insert(i);
+      reg_integer_allocator_indexes.set(i, i);
+    }
+
     if (timeout.has_value()) {
       for (Table &table : tables) {
         table.set_notify_mode(timeout.value(), this, FCFSCachedTable::expiration_callback, true);
@@ -86,6 +106,10 @@ public:
       table.del_entry(k);
     }
 
+    const u32 index = found_it->second;
+    free_indexes.insert(index);
+    advance_tail(index);
+
     cache.erase(found_it);
   }
 
@@ -109,6 +133,31 @@ public:
   }
 
 private:
+  void init_tail() {
+    tail = capacity - 1;
+    reg_integer_allocator_tail.set(0, tail);
+  }
+
+  void advance_tail(u32 new_index) {
+    LOG_DEBUG("Storing index (%u) at tail (%u) and incrementing tail", new_index, tail);
+    reg_integer_allocator_indexes.set(tail, new_index);
+    tail = (tail + 1) % capacity;
+    reg_integer_allocator_tail.set(0, tail);
+  }
+
+  void migrate_to_tables(const buffer_t &index) {
+    const u32 index_value = index.get();
+
+    free_indexes.erase(index_value);
+
+    for (Table &table : tables) {
+      LOG_DEBUG("[%s] Populating with index %s (%u)", table.get_name().c_str(), index.to_string().c_str(), index_value);
+      table.add_or_mod_entry(index);
+    }
+
+    reg_integer_allocator_pending.set(index_value, 0);
+  }
+
   static void expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {
     cfg.begin_dataplane_notification_transaction();
 
@@ -159,17 +208,24 @@ private:
       const buffer_t diggest_buffer = fcfs_ct->digest.get_value(data_entry.get());
 
       const buffer_t key = diggest_buffer.get_slice(0, fcfs_ct->key_size);
-      const u32 value    = diggest_buffer.get(fcfs_ct->key_size, 4);
+      const u32 index    = diggest_buffer.get(fcfs_ct->key_size, 4);
 
-      LOG_DEBUG("[%s] Digest callback invoked (data=%s key=%s value=%x hash=%x)", fcfs_ct->digest.get_name().c_str(),
-                diggest_buffer.to_string(true).c_str(), key.to_string(true).c_str(), value,
+      LOG_DEBUG("[%s] Digest callback invoked (data=%s key=%s index=%x hash=%x)", fcfs_ct->digest.get_name().c_str(),
+                diggest_buffer.to_string(true).c_str(), key.to_string(true).c_str(), index,
                 fcfs_ct->crc32.hash(key) & ((1 << fcfs_ct->cache_hash_size) - 1));
 
-      if (fcfs_ct->cache.find(key) != fcfs_ct->cache.end()) {
+      if (fcfs_ct->cache.contains(key)) {
         continue;
       }
 
-      fcfs_ct->put(key, value);
+      fcfs_ct->put(key, index);
+
+      fcfs_ct->reg_integer_allocator_pending.set(index, 0);
+      fcfs_ct->free_indexes.erase(index);
+
+      const u32 hash = fcfs_ct->crc32.hash(key) & ((1 << fcfs_ct->cache_hash_size) - 1);
+      LOG_DEBUG("Setting liveness register at hash %x to 0", hash);
+      fcfs_ct->reg_liveness.set(hash, 0);
     }
 
     fcfs_ct->digest.notify_ack(learn_msg_hdl);
@@ -190,12 +246,13 @@ private:
     return tables;
   }
 
-  static u32 get_capacity(const std::vector<Table> &tables) {
-    assert(!tables.empty() && "Tables must not be empty");
+  static u32 get_capacity(const Register &reg_integer_allocator_indexes, const Register &reg_integer_allocator_pending,
+                          const std::vector<Table> &tables) {
+    const u32 capacity = reg_integer_allocator_indexes.get_capacity();
 
-    const u32 capacity = tables.front().get_effective_capacity();
+    assert(reg_integer_allocator_pending.get_capacity() == capacity);
     for (const Table &table : tables) {
-      assert(table.get_effective_capacity() == capacity);
+      assert(table.get_effective_capacity() >= capacity);
     }
 
     return capacity;

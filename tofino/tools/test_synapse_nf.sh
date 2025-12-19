@@ -115,7 +115,7 @@ run_nf() {
             --model \
             >$LOG_SYNAPSE_NF 2>&1 &
 
-        if ! timeout 10s bash -c "tail -f \"$LOG_SYNAPSE_NF\" | grep -q -m 1 \"Controller is running\""; then
+        if ! timeout 60s bash -c "tail -f \"$LOG_SYNAPSE_NF\" | grep -q -m 1 \"Controller is running\""; then
             echo "Error: Synapse NF did not start correctly. Exiting."
             exit 1
         fi

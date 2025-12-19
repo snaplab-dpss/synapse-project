@@ -9,7 +9,10 @@ struct state_t : public nf_state_t {
 
   state_t()
       : ingress_port_to_nf_dev(), forwarding_tbl(),
-        fcfs_cached_table("fcfs_cached_table", {"Ingress.fcfs_ct_table"}, "Ingress.fcfs_ct_liveness_reg", "IngressDeparser.fcfs_ct_digest", 1000LL) {}
+        fcfs_cached_table("fcfs_cached_table", {"Ingress.fcfs_ct_table_0", "Ingress.fcfs_ct_table_1"}, "Ingress.fcfs_ct_liveness_reg",
+                          "Ingress.fcfs_ct_integer_allocator_head_reg", "Ingress.fcfs_ct_integer_allocator_tail_reg",
+                          "Ingress.fcfs_ct_integer_allocator_indexes_reg", "Ingress.fcfs_ct_integer_allocator_pending_reg",
+                          "IngressDeparser.fcfs_ct_digest", 1000LL) {}
 };
 
 state_t *state = nullptr;
@@ -102,6 +105,7 @@ void sycon::nf_args(CLI::App &app) {}
 
 struct cpu_hdr_extra_t {
   u16 ingress_dev;
+  u32 new_index;
 } __attribute__((packed));
 
 nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
@@ -122,7 +126,7 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
   u32 value = 0;
   if (!state->fcfs_cached_table.get(key, value)) {
-    state->fcfs_cached_table.put(key, value);
+    state->fcfs_cached_table.put(key, cpu_hdr_extra->new_index);
   }
 
   cpu_hdr->egress_dev = cpu_hdr_extra->ingress_dev;

@@ -94,6 +94,8 @@ struct buffer_t {
 
   u8 get(bytes_t offset) const { return get(offset, 1); }
 
+  u64 get() const { return get(0, size); }
+
   buffer_t get_slice(bytes_t offset, bytes_t width) const {
     assert(width > 0 && "Width must be greater than 0");
     assert(offset + width <= size && "Offset and width must be within buffer bounds");

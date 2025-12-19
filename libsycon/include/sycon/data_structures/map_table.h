@@ -4,12 +4,12 @@
 #include <optional>
 #include <unordered_set>
 
+#include "synapse_ds.h"
 #include "../config.h"
 #include "../constants.h"
 #include "../primitives/table.h"
 #include "../time.h"
 #include "../field.h"
-#include "synapse_ds.h"
 
 namespace sycon {
 
