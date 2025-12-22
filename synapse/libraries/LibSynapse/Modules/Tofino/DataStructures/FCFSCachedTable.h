@@ -16,16 +16,19 @@ namespace Tofino {
 constexpr const char *const FCFS_CACHED_TABLE_CACHE_SIZE_PARAM = "cache_size";
 
 struct FCFSCachedTable : public DS {
-  static constexpr const u32 ENTRY_TIMEOUT{16384}; // 1 s (in units of 65536 ns)
-
   u32 cache_capacity;
   u32 capacity;
   std::vector<bits_t> keys_sizes;
 
-  Hash hash;
   std::vector<Table> tables;
-  Register cache_expirator;
+  Register reg_liveness;
+  Register reg_integer_allocator_head;
+  Register reg_integer_allocator_tail;
+  Register reg_integer_allocator_indexes;
+  Register reg_integer_allocator_pending;
   std::vector<Register> cache_keys;
+  Register cache_value;
+  Hash hash;
   Digest digest;
 
   FCFSCachedTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 cache_capacity, u32 capacity, const std::vector<bits_t> &keys_sizes,

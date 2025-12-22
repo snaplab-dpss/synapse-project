@@ -15,6 +15,7 @@ struct fcfs_cached_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> original_key;
   std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> value;
   symbol_t map_has_this_key;
   u32 capacity;
   map_coalescing_objs_t map_objs;
@@ -27,6 +28,7 @@ std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *
   data.obj              = expr_addr_to_obj_addr(call.args.at("map").expr);
   data.original_key     = call.args.at("key").in;
   data.keys             = Table::build_keys(data.original_key, ctx.get_expr_structs());
+  data.value            = call.args.at("value_out").out;
   data.map_has_this_key = map_get->get_local_symbol("map_has_this_key");
   data.capacity         = ctx.get_map_config(data.obj).capacity;
 
@@ -34,17 +36,7 @@ std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *
   if (!map_objs.has_value()) {
     return {};
   }
-
   data.map_objs = map_objs.value();
-
-  std::vector<BDD::vector_values_t> values;
-  if (!data.map_objs.vectors.empty()) {
-    values = bdd->get_vector_values_from_map_op(map_get);
-  }
-
-  if (!values.empty()) {
-    return {};
-  }
 
   return data;
 }
@@ -58,8 +50,9 @@ std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *no
     return nullptr;
   }
 
-  Module *module  = new FCFSCachedTableRead(node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj,
-                                            fcfs_cached_table_data.original_key, fcfs_cached_table_data.keys, fcfs_cached_table_data.map_has_this_key);
+  Module *module =
+      new FCFSCachedTableRead(node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj, fcfs_cached_table_data.original_key,
+                              fcfs_cached_table_data.keys, fcfs_cached_table_data.value, fcfs_cached_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -210,7 +203,7 @@ std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const BDD *bdd, const
   const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
   return std::make_unique<FCFSCachedTableRead>(node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id, fcfs_cached_table_data->obj,
-                                               fcfs_cached_table_data->original_key, fcfs_cached_table_data->keys,
+                                               fcfs_cached_table_data->original_key, fcfs_cached_table_data->keys, fcfs_cached_table_data->value,
                                                fcfs_cached_table_data->map_has_this_key);
 }
 

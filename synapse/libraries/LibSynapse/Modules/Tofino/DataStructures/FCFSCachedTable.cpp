@@ -12,18 +12,37 @@ namespace {
 
 DS_ID build_table_name(DS_ID id, u32 table_num) { return id + "_table_" + std::to_string(table_num); }
 
-Hash build_hash(DS_ID id, const std::vector<bits_t> &keys_sizes, u32 capacity) {
-  const bits_t hash_size = bits_from_pow2_capacity(capacity);
-  return Hash(id + "_hash", keys_sizes, hash_size);
+Register build_reg_liveness(const tna_properties_t &properties, DS_ID id, u32 cache_capacity) {
+  const bits_t hash_size  = bits_from_pow2_capacity(cache_capacity);
+  const bits_t match_size = 8;
+  return Register(properties, id + "_reg_liveness", cache_capacity, hash_size, match_size,
+                  {RegisterActionType::Read, RegisterActionType::SetToOneAndReturnOldValue});
 }
 
-Register build_cache_expirator(const tna_properties_t &properties, DS_ID id, u32 cache_capacity) {
-  const bits_t hash_size      = bits_from_pow2_capacity(cache_capacity);
-  const bits_t timestamp_size = 32;
-  return Register(properties, id + "_reg_expirator", cache_capacity, hash_size, timestamp_size, {RegisterActionType::Write});
+Register build_reg_integer_allocator_head(const tna_properties_t &properties, DS_ID id, u32 capacity) {
+  const bits_t index_size = bits_from_pow2_capacity(capacity);
+  return Register(properties, id + "_reg_integer_allocator_head", capacity, index_size, index_size,
+                  {RegisterActionType::IntegerAllocatorHeadReadAndUpdate});
 }
 
-std::vector<Register> build_registers(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &elements_sizes, u32 capacity) {
+Register build_reg_integer_allocator_tail(const tna_properties_t &properties, DS_ID id, u32 capacity) {
+  const bits_t index_size = bits_from_pow2_capacity(capacity);
+  return Register(properties, id + "_reg_integer_allocator_tail", capacity, index_size, index_size, {RegisterActionType::Read});
+}
+
+Register build_reg_integer_allocator_indexes(const tna_properties_t &properties, DS_ID id, u32 capacity) {
+  const bits_t index_size = bits_from_pow2_capacity(capacity);
+  return Register(properties, id + "_reg_integer_allocator_indexes", capacity, index_size, index_size, {RegisterActionType::Read});
+}
+
+Register build_reg_integer_allocator_pending(const tna_properties_t &properties, DS_ID id, u32 capacity) {
+  const bits_t index_size = bits_from_pow2_capacity(capacity);
+  const bits_t match_size = 8;
+  return Register(properties, id + "_reg_integer_allocator_pending", capacity, index_size, match_size,
+                  {RegisterActionType::Read, RegisterActionType::Write});
+}
+
+std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &elements_sizes, u32 capacity) {
   std::vector<Register> registers;
 
   const bits_t hash_size = bits_from_pow2_capacity(capacity);
@@ -39,6 +58,17 @@ std::vector<Register> build_registers(const tna_properties_t &properties, DS_ID 
   return registers;
 }
 
+Register build_cache_value(const tna_properties_t &properties, DS_ID id, u32 capacity) {
+  const bits_t hash_size  = bits_from_pow2_capacity(capacity);
+  const bits_t value_size = 32;
+  return Register(properties, id + "_reg_value", capacity, hash_size, value_size, {RegisterActionType::Read, RegisterActionType::Swap});
+}
+
+Hash build_hash(DS_ID id, const std::vector<bits_t> &keys_sizes, u32 capacity) {
+  const bits_t hash_size = bits_from_pow2_capacity(capacity);
+  return Hash(id + "_hash", keys_sizes, hash_size);
+}
+
 Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type) {
   const DS_ID digest_id = id + "_digest";
   return Digest(digest_id, fields, digest_type);
@@ -49,8 +79,13 @@ Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type)
 FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _capacity,
                                  const std::vector<bits_t> &_keys_sizes, u8 digest_type)
     : DS(DSType::FCFSCachedTable, false, _id), cache_capacity(_cache_capacity), capacity(_capacity), keys_sizes(_keys_sizes),
-      hash(build_hash(_id, _keys_sizes, _capacity)), cache_expirator(build_cache_expirator(properties, id, cache_capacity)),
-      cache_keys(build_registers(properties, id, keys_sizes, cache_capacity)), digest(build_digest(_id, _keys_sizes, digest_type)) {
+      hash(build_hash(_id, _keys_sizes, _capacity)), reg_liveness(build_reg_liveness(properties, id, cache_capacity)),
+      reg_integer_allocator_head(build_reg_integer_allocator_head(properties, id, capacity)),
+      reg_integer_allocator_tail(build_reg_integer_allocator_tail(properties, id, capacity)),
+      reg_integer_allocator_indexes(build_reg_integer_allocator_indexes(properties, id, capacity)),
+      reg_integer_allocator_pending(build_reg_integer_allocator_pending(properties, id, capacity)),
+      cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)), cache_value(build_cache_value(properties, id, cache_capacity)),
+      digest(build_digest(_id, _keys_sizes, digest_type)) {
   assert(cache_capacity > 0 && "Cache capacity must be greater than 0");
   assert(capacity > 0 && "Number of entries must be greater than 0");
   assert(cache_capacity <= capacity && "Cache capacity must be less than the "
@@ -60,7 +95,10 @@ FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, 
 
 FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
     : DS(other.type, other.primitive, other.id), cache_capacity(other.cache_capacity), capacity(other.capacity), keys_sizes(other.keys_sizes),
-      hash(other.hash), tables(other.tables), cache_expirator(other.cache_expirator), cache_keys(other.cache_keys), digest(other.digest) {}
+      hash(other.hash), tables(other.tables), reg_liveness(other.reg_liveness), reg_integer_allocator_head(other.reg_integer_allocator_head),
+      reg_integer_allocator_tail(other.reg_integer_allocator_tail), reg_integer_allocator_indexes(other.reg_integer_allocator_indexes),
+      reg_integer_allocator_pending(other.reg_integer_allocator_pending), cache_keys(other.cache_keys), cache_value(other.cache_value),
+      digest(other.digest) {}
 
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 
@@ -73,10 +111,17 @@ void FCFSCachedTable::debug() const {
   for (const Table &table : tables) {
     table.debug();
   }
-  cache_expirator.debug();
+  reg_liveness.debug();
+  reg_integer_allocator_head.debug();
+  reg_integer_allocator_tail.debug();
+  reg_integer_allocator_indexes.debug();
+  reg_integer_allocator_pending.debug();
   for (const Register &cache_key : cache_keys) {
     cache_key.debug();
   }
+  cache_value.debug();
+  hash.debug();
+  digest.debug();
   std::cerr << "==============================\n";
 }
 
@@ -88,7 +133,17 @@ std::vector<std::unordered_set<const DS *>> FCFSCachedTable::get_internal() cons
     internal_ds.back().insert(&table);
 
   internal_ds.emplace_back();
-  internal_ds.back().insert(&cache_expirator);
+  internal_ds.back().insert(&reg_liveness);
+
+  internal_ds.emplace_back();
+  internal_ds.back().insert(&reg_integer_allocator_tail);
+
+  internal_ds.emplace_back();
+  internal_ds.back().insert(&reg_integer_allocator_head);
+
+  internal_ds.emplace_back();
+  internal_ds.back().insert(&reg_integer_allocator_indexes);
+  internal_ds.back().insert(&reg_integer_allocator_pending);
 
   internal_ds.emplace_back();
   for (const Register &cache_key : cache_keys)

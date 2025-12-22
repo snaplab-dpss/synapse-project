@@ -31,6 +31,7 @@ enum class RegisterActionType {
   QueryTimestamp,
   QueryAndRefreshTimestamp,
   CheckValue,
+  IntegerAllocatorHeadReadAndUpdate,
 };
 
 const std::unordered_set<RegisterActionType> register_action_types_with_out_value = {
@@ -44,6 +45,7 @@ const std::unordered_set<RegisterActionType> register_action_types_with_out_valu
     RegisterActionType::QueryTimestamp,
     RegisterActionType::QueryAndRefreshTimestamp,
     RegisterActionType::CheckValue,
+    RegisterActionType::IntegerAllocatorHeadReadAndUpdate,
 };
 
 struct Register : public DS {

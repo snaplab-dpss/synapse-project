@@ -82,6 +82,9 @@ void Register::debug() const {
     case RegisterActionType::CheckValue:
       ss << "CHECK_VALUE";
       break;
+    case RegisterActionType::IntegerAllocatorHeadReadAndUpdate:
+      ss << "INTEGER_ALLOCATOR_HEAD_READ_AND_UPDATE";
+      break;
     }
     first = false;
   }

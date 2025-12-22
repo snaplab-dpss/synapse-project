@@ -591,6 +591,8 @@ control Ingress(
 					build_cpu_hdr(0);
 					hdr.cpu.ingress_dev = meta.dev[15:0];
 					hdr.cpu.new_index = meta.fcfs_ct_value;
+				} else {
+					nf_dev = meta.dev;
 				}
 			}
 		}

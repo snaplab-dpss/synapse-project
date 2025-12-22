@@ -3,6 +3,7 @@
 #include <LibSynapse/Modules/Tofino/Then.h>
 #include <LibSynapse/Modules/Tofino/Else.h>
 #include <LibSynapse/Modules/Tofino/SendToController.h>
+#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableWrite.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
@@ -15,6 +16,8 @@ using LibBDD::Call;
 using LibBDD::call_t;
 using LibBDD::Route;
 
+using LibSynapse::Controller::DataplaneFCFSCachedTableWrite;
+
 using LibCore::expr_addr_to_obj_addr;
 
 namespace {
@@ -23,6 +26,8 @@ struct fcfs_cached_table_data_t {
   addr_t obj;
   klee::ref<klee::Expr> original_key;
   std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> read_value;
+  klee::ref<klee::Expr> write_value;
   symbol_t map_has_this_key;
   u32 capacity;
   map_coalescing_objs_t map_objs;
@@ -30,11 +35,14 @@ struct fcfs_cached_table_data_t {
 
 std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *bdd, const Context &ctx, const Call *map_get, const Call *map_put) {
   const call_t &get_call = map_get->get_call();
+  const call_t &put_call = map_put->get_call();
 
   fcfs_cached_table_data_t data;
   data.obj              = expr_addr_to_obj_addr(get_call.args.at("map").expr);
   data.original_key     = get_call.args.at("key").in;
   data.keys             = Table::build_keys(data.original_key, ctx.get_expr_structs());
+  data.read_value       = get_call.args.at("value_out").out;
+  data.write_value      = put_call.args.at("value").expr;
   data.map_has_this_key = map_get->get_local_symbol("map_has_this_key");
   data.capacity         = ctx.get_map_config(data.obj).capacity;
 
@@ -42,25 +50,9 @@ std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *
   if (!map_objs.has_value()) {
     return {};
   }
-
   data.map_objs = map_objs.value();
 
-  std::vector<BDD::vector_values_t> values;
-  if (!data.map_objs.vectors.empty()) {
-    values = bdd->get_vector_values_from_map_op(map_put);
-  }
-
-  if (!values.empty()) {
-    return {};
-  }
-
   return data;
-}
-
-klee::ref<klee::Expr> build_cache_hit_condition(const symbol_t &cache_hit) {
-  const bits_t width         = cache_hit.expr->getWidth();
-  klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, width);
-  return solver_toolbox.exprBuilder->Ne(cache_hit.expr, zero);
 }
 
 hit_rate_t get_cache_op_success_probability(const EP *ep, const BDDNode *node, klee::ref<klee::Expr> key, u32 cache_capacity) {
@@ -177,41 +169,59 @@ void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, BDDNode *on_succ
   }
 }
 
-std::unique_ptr<BDD> rebuild_bdd(EP *new_ep, const BDDNode *map_get, const fcfs_cached_table_data_t &fcfs_cached_table_data,
-                                 const symbol_t &cache_hit, klee::ref<klee::Expr> cache_hit_condition, u32 cache_capacity, BDDNode *&on_cache_hit,
-                                 BDDNode *&on_cache_miss) {
-  const BDD *old_bdd           = new_ep->get_bdd();
-  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
+struct rebuilt_bdd_result_t {
+  std::unique_ptr<BDD> bdd;
+  BDDNode *on_collision_detected;
+  BDDNode *on_index_allocation_failed;
+  BDDNode *on_success;
+};
+
+rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const BDDNode *map_get, const fcfs_cached_table_data_t &fcfs_cached_table_data,
+                                 const symbol_t &collision_detected, klee::ref<klee::Expr> collision_detected_condition,
+                                 const symbol_t &index_allocation_failed, klee::ref<klee::Expr> index_allocation_failed_condition,
+                                 u32 cache_capacity) {
+  rebuilt_bdd_result_t result;
+
+  const BDD *old_bdd = new_ep->get_bdd();
+  result.bdd         = std::make_unique<BDD>(*old_bdd);
 
   const BDDNode *next = map_get->get_next();
   assert(next && "map_get node has no next node");
 
-  dynamic_cast<Call *>(new_bdd->get_mutable_node_by_id(map_get->get_id()))->add_local_symbol(cache_hit);
+  Call *new_map_get = dynamic_cast<Call *>(result.bdd->get_mutable_node_by_id(map_get->get_id()));
+  new_map_get->add_local_symbol(collision_detected);
+  new_map_get->add_local_symbol(index_allocation_failed);
 
-  Branch *cache_hit_branch = new_bdd->add_cloned_branch(next->get_id(), cache_hit_condition);
+  Branch *collision_detected_branch = result.bdd->add_cloned_branch(next->get_id(), collision_detected_condition);
+  result.on_collision_detected      = collision_detected_branch->get_mutable_on_true();
 
-  on_cache_hit = cache_hit_branch->get_mutable_on_true();
-  add_map_get_clone_on_cache_miss(new_bdd.get(), map_get, cache_hit_branch, on_cache_miss);
+  // bdd_node_id_t &id              = bdd->get_mutable_id();
+  // BDDNodeManager &manager        = bdd->get_mutable_manager();
+  // BDDNode *map_get_on_cache_miss = map_get->clone(manager, false);
+  // map_get_on_cache_miss->recursive_update_ids(id);
+  // new_on_cache_miss = bdd->add_cloned_non_branches(cache_hit_branch->get_on_false()->get_id(), {map_get_on_cache_miss});
+
+  add_map_get_clone_on_cache_miss(result.bdd.get(), map_get, cache_hit_branch, on_cache_miss);
 
   const hit_rate_t cache_success_probability = get_cache_op_success_probability(new_ep, map_get, fcfs_cached_table_data.original_key, cache_capacity);
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(), cache_hit_condition,
                                                                    cache_success_probability);
 
-  replicate_hdr_parsing_ops_on_cache_miss(new_ep, new_bdd.get(), cache_hit_branch, on_cache_miss);
+  replicate_hdr_parsing_ops_on_cache_miss(new_ep, result.bdd.get(), cache_hit_branch, on_cache_miss);
 
   std::vector<klee::ref<klee::Expr>> deleted_branch_constraints;
-  delete_coalescing_nodes_on_success(new_ep, new_bdd.get(), on_cache_hit, fcfs_cached_table_data.map_objs, fcfs_cached_table_data.original_key,
+  delete_coalescing_nodes_on_success(new_ep, result.bdd.get(), on_cache_hit, fcfs_cached_table_data.map_objs, fcfs_cached_table_data.original_key,
                                      deleted_branch_constraints);
 
   if (!deleted_branch_constraints.empty()) {
     new_ep->get_mutable_ctx().get_mutable_profiler().remove(deleted_branch_constraints);
   }
 
-  return new_bdd;
+  return result;
 }
 
-std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cached_table_data_t &fcfs_cached_table_data, const symbol_t &cache_hit,
-                               u32 cache_capacity) {
+std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cached_table_data_t &fcfs_cached_table_data,
+                               const symbol_t &collision_detected, const symbol_t &index_allocation_failed, u32 cache_capacity) {
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
       ep, node, fcfs_cached_table_data.obj, fcfs_cached_table_data.original_key, fcfs_cached_table_data.capacity, cache_capacity);
 
@@ -219,10 +229,9 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cac
     return nullptr;
   }
 
-  klee::ref<klee::Expr> cache_hit_condition = build_cache_hit_condition(cache_hit);
-
   Module *module = new FCFSCachedTableReadWrite(node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj,
-                                                fcfs_cached_table_data.keys, fcfs_cached_table_data.map_has_this_key, cache_hit);
+                                                fcfs_cached_table_data.keys, fcfs_cached_table_data.read_value, fcfs_cached_table_data.write_value,
+                                                fcfs_cached_table_data.map_has_this_key, collision_detected, index_allocation_failed);
   EPNode *cached_table_cond_write_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -230,48 +239,58 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cac
   BDDNode *on_cache_hit;
   BDDNode *on_cache_miss;
 
-  std::unique_ptr<BDD> new_bdd =
-      rebuild_bdd(new_ep.get(), node, fcfs_cached_table_data, cache_hit, cache_hit_condition, cache_capacity, on_cache_hit, on_cache_miss);
+  klee::ref<klee::Expr> collision_detected_condition =
+      solver_toolbox.exprBuilder->Ne(collision_detected.expr, solver_toolbox.exprBuilder->Constant(0, collision_detected.expr->getWidth()));
 
-  Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
+  klee::ref<klee::Expr> index_allocation_failed_condition =
+      solver_toolbox.exprBuilder->Ne(index_allocation_failed.expr, solver_toolbox.exprBuilder->Constant(0, index_allocation_failed.expr->getWidth()));
 
-  Module *if_module                 = new If(node, cache_hit_condition, {cache_hit_condition});
-  Module *then_module               = new Then(node);
-  Module *else_module               = new Else(node);
-  Module *send_to_controller_module = new SendToController(on_cache_miss, symbols);
+  rebuilt_bdd_result_t rebuilt_bdd_result = rebuild_bdd(new_ep.get(), node, fcfs_cached_table_data, collision_detected, collision_detected_condition,
+                                                        index_allocation_failed, index_allocation_failed_condition, cache_capacity);
 
-  EPNode *if_node                 = new EPNode(if_module);
-  EPNode *then_node               = new EPNode(then_module);
-  EPNode *else_node               = new EPNode(else_module);
-  EPNode *send_to_controller_node = new EPNode(send_to_controller_module);
+  // Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
 
-  cached_table_cond_write_node->set_children(if_node);
+  // Module *if_module                 = new If(node, cache_hit_condition, {cache_hit_condition});
+  // Module *then_module               = new Then(node);
+  // Module *else_module               = new Else(node);
+  // Module *send_to_controller_module = new SendToController(on_cache_miss, symbols);
 
-  if_node->set_prev(cached_table_cond_write_node);
-  if_node->set_children(cache_hit_condition, then_node, else_node);
+  // EPNode *if_node                 = new EPNode(if_module);
+  // EPNode *then_node               = new EPNode(then_module);
+  // EPNode *else_node               = new EPNode(else_module);
+  // EPNode *send_to_controller_node = new EPNode(send_to_controller_module);
 
-  then_node->set_prev(if_node);
+  // TODO: create the EP with the index allocation failed and collision detected checking nodes, and
+  // also create a FCFSCachedTableWrite controller module on the control plane for when a collision is detected and we
+  // need to send to the controller to update the FCFS Cached Table.
 
-  else_node->set_prev(if_node);
-  else_node->set_children(send_to_controller_node);
+  // cached_table_cond_write_node->set_children(if_node);
 
-  send_to_controller_node->set_prev(else_node);
+  // if_node->set_prev(cached_table_cond_write_node);
+  // if_node->set_children(cache_hit_condition, then_node, else_node);
 
-  Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(fcfs_cached_table_data.map_objs.map, DSImpl::Tofino_FCFSCachedTable);
-  ctx.save_ds_impl(fcfs_cached_table_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+  // then_node->set_prev(if_node);
 
-  TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
-  tofino_ctx->place(new_ep.get(), node, fcfs_cached_table_data.map_objs.map, cached_table);
+  // else_node->set_prev(if_node);
+  // else_node->set_children(send_to_controller_node);
 
-  EPLeaf on_cache_hit_leaf(then_node, on_cache_hit);
-  EPLeaf on_cache_miss_leaf(send_to_controller_node, on_cache_miss);
+  // send_to_controller_node->set_prev(else_node);
 
-  new_ep->process_leaf(cached_table_cond_write_node, {on_cache_hit_leaf, on_cache_miss_leaf});
-  new_ep->replace_bdd(std::move(new_bdd));
+  // Context &ctx = new_ep->get_mutable_ctx();
+  // ctx.save_ds_impl(fcfs_cached_table_data.map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+  // ctx.save_ds_impl(fcfs_cached_table_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
-  const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
-  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, send_to_controller_node));
+  // TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
+  // tofino_ctx->place(new_ep.get(), node, fcfs_cached_table_data.map_objs.map, cached_table);
+
+  // EPLeaf on_cache_hit_leaf(then_node, on_cache_hit);
+  // EPLeaf on_cache_miss_leaf(send_to_controller_node, on_cache_miss);
+
+  // new_ep->process_leaf(cached_table_cond_write_node, {on_cache_hit_leaf, on_cache_miss_leaf});
+  // new_ep->replace_bdd(std::move(rebuilt_bdd_result.bdd));
+
+  // const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
+  // new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, send_to_controller_node));
 
   return new_ep;
 }
@@ -426,12 +445,13 @@ std::vector<impl_t> FCFSCachedTableReadWriteFactory::process_node(const EP *ep, 
     }
   }
 
-  const symbol_t cache_hit                        = symbol_manager->create_symbol("cache_hit", 32);
+  const symbol_t collision_detected               = symbol_manager->create_symbol("collision_detected", 8);
+  const symbol_t index_allocation_failed          = symbol_manager->create_symbol("index_allocation_failed", 8);
   const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(fcfs_cached_table_data->capacity);
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-    std::unique_ptr<EP> new_ep = concretize(ep, node, fcfs_cached_table_data.value(), cache_hit, cache_capacity);
+    std::unique_ptr<EP> new_ep = concretize(ep, node, fcfs_cached_table_data.value(), collision_detected, index_allocation_failed, cache_capacity);
     if (new_ep) {
       impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(std::move(impl));
