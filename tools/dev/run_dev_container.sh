@@ -30,12 +30,14 @@ fi
 
 cd $ROOT_DIR
 
-docker build \
-   --build-arg BUILDPLATFORM=$PLATFORM \
-   --platform=$PLATFORM \
-   -f $SCRIPT_DIR/Dockerfile \
-   -t $CONTAINER_NAME \
-   $ROOT_DIR
+if ! docker image inspect "synapse:latest" >/dev/null 2>&1; then
+    docker build \
+        --build-arg BUILDPLATFORM=$PLATFORM \
+        --platform=$PLATFORM \
+        -f $SCRIPT_DIR/Dockerfile \
+        -t $CONTAINER_NAME \
+        $ROOT_DIR
+fi
 
 # Create a .gitconfig file if it doesn't exist to avoid docker errors
 if [ ! -f $HOME/.gitconfig ]; then
