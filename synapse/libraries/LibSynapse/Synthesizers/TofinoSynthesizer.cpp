@@ -627,6 +627,9 @@ code_t TofinoSynthesizer::build_register_action_name(const Register *reg, Regist
   case RegisterActionType::CheckValue:
     coder << "check_value";
     break;
+  case RegisterActionType::IntegerAllocatorHeadReadAndUpdate:
+    coder << "int_alloc_head_read_and_update";
+    break;
   }
 
   if (node) {
@@ -2609,7 +2612,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   const DS_ID fcfscached_table_id                = node->get_fcfs_cached_table_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
-  const symbol_t &hit                            = node->get_map_has_this_key();
 
   const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
   const DS_ID table_id                     = node->get_used_table_id();
@@ -2702,8 +2704,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   const DS_ID fcfscached_table_id                = node->get_fcfs_cached_table_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
-  const symbol_t &hit                            = node->get_map_has_this_key();
-  const symbol_t &cache_hit                      = node->get_cache_hit();
 
   const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
   const bdd_node_id_t node_id              = node->get_node()->get_id();

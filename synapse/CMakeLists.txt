@@ -46,6 +46,7 @@ set(GLOBAL_COMPILATION_FLAGS
     -Wdouble-promotion
     -fno-omit-frame-pointer
     -Wshadow
+    -fdiagnostics-color=always
 )
 
 if (ENABLE_ADDRESS_SANITIZER)
@@ -81,6 +82,16 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 ###############################################################################
 # Configure external projects
 ###############################################################################
+
+get_filename_component(_REPO_ROOT "${CMAKE_SOURCE_DIR}/.." ABSOLUTE)
+set(EXTERNAL_DEPS_DIR "${_REPO_ROOT}/deps")
+
+# Check if external deps dir exists
+if (NOT EXISTS "${EXTERNAL_DEPS_DIR}")
+    message(FATAL_ERROR "External dependencies directory not found at "
+            "${EXTERNAL_DEPS_DIR}. Did you forget to clone the repository "
+            "submodules?")
+endif()
 
 include(${CMAKE_SOURCE_DIR}/cmake/find_cli11.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_json.cmake)

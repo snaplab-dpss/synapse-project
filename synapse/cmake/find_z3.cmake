@@ -2,13 +2,6 @@
 # Find Z3
 ###############################################################################
 
-if(DEFINED ENV{Z3_DIR})
-    message(STATUS "Z3_DIR: $ENV{Z3_DIR}")
-    set(Z3_DIR $ENV{Z3_DIR})
-else()
-    message(FATAL_ERROR "Z3_DIR env var is not set")
-endif()
-
 find_package(Z3 REQUIRED)
 
 message(STATUS "Found Z3")

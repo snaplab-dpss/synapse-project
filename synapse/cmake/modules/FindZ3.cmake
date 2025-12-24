@@ -6,6 +6,19 @@
 #  Z3_LIBRARIES - LIST:The libraries needed to use Z3
 include(FindPackageHandleStandardArgs)
 
+if (DEFINED ENV{Z3_DIR} AND NOT "$ENV{Z3_DIR}" STREQUAL "")
+  set(Z3_DIR "$ENV{Z3_DIR}")
+  message(STATUS "Z3_DIR: $ENV{Z3_DIR}")
+else()
+  set(_DEFAULT_Z3_DIR "${EXTERNAL_DEPS_DIR}/z3")
+  if (EXISTS "${_DEFAULT_Z3_DIR}")
+    set(Z3_DIR "${_DEFAULT_Z3_DIR}")
+    message(STATUS "Z3_DIR not set; using bundled Z3 at ${Z3_DIR}")
+  else()
+    message(FATAL_ERROR "Z3_DIR is not set. Set Z3_DIR, export Z3_DIR, or place Z3 at ${_DEFAULT_Z3_DIR}.")
+  endif()
+endif()
+
 find_library(Z3_LIBRARIES
   NAMES z3
   DOC "Z3 libraries"

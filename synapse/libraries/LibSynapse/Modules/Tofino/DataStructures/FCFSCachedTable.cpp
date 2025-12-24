@@ -79,13 +79,13 @@ Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type)
 FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _capacity,
                                  const std::vector<bits_t> &_keys_sizes, u8 digest_type)
     : DS(DSType::FCFSCachedTable, false, _id), cache_capacity(_cache_capacity), capacity(_capacity), keys_sizes(_keys_sizes),
-      hash(build_hash(_id, _keys_sizes, _capacity)), reg_liveness(build_reg_liveness(properties, id, cache_capacity)),
+      reg_liveness(build_reg_liveness(properties, id, cache_capacity)),
       reg_integer_allocator_head(build_reg_integer_allocator_head(properties, id, capacity)),
       reg_integer_allocator_tail(build_reg_integer_allocator_tail(properties, id, capacity)),
       reg_integer_allocator_indexes(build_reg_integer_allocator_indexes(properties, id, capacity)),
       reg_integer_allocator_pending(build_reg_integer_allocator_pending(properties, id, capacity)),
       cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)), cache_value(build_cache_value(properties, id, cache_capacity)),
-      digest(build_digest(_id, _keys_sizes, digest_type)) {
+      hash(build_hash(_id, _keys_sizes, _capacity)), digest(build_digest(_id, _keys_sizes, digest_type)) {
   assert(cache_capacity > 0 && "Cache capacity must be greater than 0");
   assert(capacity > 0 && "Number of entries must be greater than 0");
   assert(cache_capacity <= capacity && "Cache capacity must be less than the "
@@ -95,10 +95,10 @@ FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, 
 
 FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
     : DS(other.type, other.primitive, other.id), cache_capacity(other.cache_capacity), capacity(other.capacity), keys_sizes(other.keys_sizes),
-      hash(other.hash), tables(other.tables), reg_liveness(other.reg_liveness), reg_integer_allocator_head(other.reg_integer_allocator_head),
+      tables(other.tables), reg_liveness(other.reg_liveness), reg_integer_allocator_head(other.reg_integer_allocator_head),
       reg_integer_allocator_tail(other.reg_integer_allocator_tail), reg_integer_allocator_indexes(other.reg_integer_allocator_indexes),
       reg_integer_allocator_pending(other.reg_integer_allocator_pending), cache_keys(other.cache_keys), cache_value(other.cache_value),
-      digest(other.digest) {}
+      hash(other.hash), digest(other.digest) {}
 
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 

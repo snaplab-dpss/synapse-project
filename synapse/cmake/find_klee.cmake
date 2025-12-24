@@ -2,13 +2,6 @@
 # Find Klee
 ###############################################################################
 
-if(DEFINED ENV{KLEE_DIR})
-    message(STATUS "KLEE_DIR: $ENV{KLEE_DIR}")
-    set(KLEE_DIR $ENV{KLEE_DIR})
-else()
-    message(FATAL_ERROR "KLEE_DIR env var is not set")
-endif()
-
 find_package(KLEE REQUIRED)
 
 if (KLEE_FOUND)

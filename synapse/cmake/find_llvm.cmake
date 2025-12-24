@@ -2,6 +2,19 @@
 # Find LLVM
 ###############################################################################
 
+if (DEFINED ENV{LLVM_DIR} AND NOT "$ENV{LLVM_DIR}" STREQUAL "")
+  set(LLVM_DIR "$ENV{LLVM_DIR}")
+  message(STATUS "LLVM_DIR: $ENV{LLVM_DIR}")
+else()
+  set(_DEFAULT_LLVM_DIR "${EXTERNAL_DEPS_DIR}/llvm")
+  if (EXISTS "${_DEFAULT_LLVM_DIR}")
+    set(LLVM_DIR "${_DEFAULT_LLVM_DIR}")
+    message(STATUS "LLVM_DIR not set; using bundled LLVM at ${LLVM_DIR}")
+  else()
+    message(FATAL_ERROR "LLVM_DIR is not set. Set LLVM_DIR, export LLVM_DIR, or place LLVM at ${_DEFAULT_LLVM_DIR}.")
+  endif()
+endif()
+
 option(USE_CMAKE_FIND_PACKAGE_LLVM "Use find_package(LLVM CONFIG) to find LLVM" OFF)
 
 function(string_to_list s output_var)
@@ -29,7 +42,9 @@ else()
   # force a particular binary by passing `-DLLVM_CONFIG_BINARY=/path/to/llvm-config`
   # to CMake.
   find_program(LLVM_CONFIG_BINARY
-    NAMES llvm-config)
+    NAMES llvm-config
+    HINTS "${LLVM_DIR}/Release/bin"
+  )
   message(STATUS "LLVM_CONFIG_BINARY: ${LLVM_CONFIG_BINARY}")
 
   if (NOT LLVM_CONFIG_BINARY)

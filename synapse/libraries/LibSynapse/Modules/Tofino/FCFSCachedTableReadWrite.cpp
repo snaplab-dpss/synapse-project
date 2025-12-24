@@ -5,6 +5,7 @@
 #include <LibSynapse/Modules/Tofino/SendToController.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableWrite.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibBDD/BDD.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -55,6 +56,25 @@ std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *
   return data;
 }
 
+struct read_write_pattern_t {
+  const BDDNode *on_read_success;
+  const BDDNode *on_write_success;
+  const BDDNode *on_write_failure;
+};
+
+// bool is_read_write_pattern(const BDD *bdd, const BDDNode *map_get) {
+//   bool map_get_success_direction;
+//   if (!bdd->is_map_get_and_branch_checking_success(dynamic_cast<const Call *>(map_get), map_get->get_next(), map_get_success_direction)) {
+//     return false;
+//   }
+
+//   // const Branch *read_check_branch = dynamic_cast<const Branch *>(map_get->get_next());
+//   // const BDDNode *on_read_success  = map_get_success_direction ? read_check_branch->get_on_true() : read_check_branch->get_on_false();
+//   // const BDDNode *on_read_failure  = map_get_success_direction ? read_check_branch->get_on_false() : read_check_branch->get_on_true();
+
+//   return true;
+// }
+
 hit_rate_t get_cache_op_success_probability(const EP *ep, const BDDNode *node, klee::ref<klee::Expr> key, u32 cache_capacity) {
   assert(node->get_type() == BDDNodeType::Call && "Unexpected node type");
   const Call *map_get = dynamic_cast<const Call *>(node);
@@ -72,31 +92,31 @@ hit_rate_t get_cache_op_success_probability(const EP *ep, const BDDNode *node, k
   return probability;
 }
 
-void add_map_get_clone_on_cache_miss(BDD *bdd, const BDDNode *map_get, const Branch *cache_hit_branch, BDDNode *&new_on_cache_miss) {
-  bdd_node_id_t &id              = bdd->get_mutable_id();
-  BDDNodeManager &manager        = bdd->get_mutable_manager();
-  BDDNode *map_get_on_cache_miss = map_get->clone(manager, false);
-  map_get_on_cache_miss->recursive_update_ids(id);
-  new_on_cache_miss = bdd->add_cloned_non_branches(cache_hit_branch->get_on_false()->get_id(), {map_get_on_cache_miss});
-}
+// void add_map_get_clone_on_cache_miss(BDD *bdd, const BDDNode *map_get, const Branch *cache_hit_branch, BDDNode *&new_on_cache_miss) {
+//   bdd_node_id_t &id              = bdd->get_mutable_id();
+//   BDDNodeManager &manager        = bdd->get_mutable_manager();
+//   BDDNode *map_get_on_cache_miss = map_get->clone(manager, false);
+//   map_get_on_cache_miss->recursive_update_ids(id);
+//   new_on_cache_miss = bdd->add_cloned_non_branches(cache_hit_branch->get_on_false()->get_id(), {map_get_on_cache_miss});
+// }
 
-void replicate_hdr_parsing_ops_on_cache_miss(const EP *ep, BDD *bdd, const Branch *cache_hit_branch, BDDNode *&new_on_cache_miss) {
-  const BDDNode *on_cache_miss = cache_hit_branch->get_on_false();
+// void replicate_hdr_parsing_ops_on_cache_miss(const EP *ep, BDD *bdd, const Branch *cache_hit_branch, BDDNode *&new_on_cache_miss) {
+//   const BDDNode *on_cache_miss = cache_hit_branch->get_on_false();
 
-  std::list<const Call *> prev_borrows =
-      on_cache_miss->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
+//   std::list<const Call *> prev_borrows =
+//       on_cache_miss->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
-  if (prev_borrows.empty()) {
-    return;
-  }
+//   if (prev_borrows.empty()) {
+//     return;
+//   }
 
-  std::vector<const BDDNode *> non_branch_nodes_to_add;
-  for (const Call *prev_borrow : prev_borrows) {
-    non_branch_nodes_to_add.push_back(prev_borrow);
-  }
+//   std::vector<const BDDNode *> non_branch_nodes_to_add;
+//   for (const Call *prev_borrow : prev_borrows) {
+//     non_branch_nodes_to_add.push_back(prev_borrow);
+//   }
 
-  new_on_cache_miss = bdd->add_cloned_non_branches(on_cache_miss->get_id(), non_branch_nodes_to_add);
-}
+//   new_on_cache_miss = bdd->add_cloned_non_branches(on_cache_miss->get_id(), non_branch_nodes_to_add);
+// }
 
 std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, const BDDNode *node, const map_coalescing_objs_t &map_objs,
                                                                klee::ref<klee::Expr> key) {
@@ -135,39 +155,40 @@ std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, con
   return nodes_to_ignore;
 }
 
-void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, BDDNode *on_success, const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key,
-                                        std::vector<klee::ref<klee::Expr>> &deleted_branch_constraints) {
-  const std::vector<const Call *> targets = on_success->get_coalescing_nodes_from_key(key, map_objs);
+// void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, BDDNode *on_success, const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr>
+// key,
+//                                         std::vector<klee::ref<klee::Expr>> &deleted_branch_constraints) {
+//   const std::vector<const Call *> targets = on_success->get_coalescing_nodes_from_key(key, map_objs);
 
-  for (const BDDNode *target : targets) {
-    const Call *call_target = dynamic_cast<const Call *>(target);
-    const call_t &call      = call_target->get_call();
+//   for (const BDDNode *target : targets) {
+//     const Call *call_target = dynamic_cast<const Call *>(target);
+//     const call_t &call      = call_target->get_call();
 
-    if (call.function_name == "dchain_allocate_new_index") {
-      const branch_direction_t index_alloc_check = bdd->find_branch_checking_index_alloc(call_target);
+//     if (call.function_name == "dchain_allocate_new_index") {
+//       const branch_direction_t index_alloc_check = bdd->find_branch_checking_index_alloc(call_target);
 
-      if (index_alloc_check.branch) {
-        assert(deleted_branch_constraints.empty() && "Multiple branch checking index allocation detected");
-        deleted_branch_constraints = index_alloc_check.branch->get_ordered_branch_constraints();
+//       if (index_alloc_check.branch) {
+//         assert(deleted_branch_constraints.empty() && "Multiple branch checking index allocation detected");
+//         deleted_branch_constraints = index_alloc_check.branch->get_ordered_branch_constraints();
 
-        klee::ref<klee::Expr> extra_constraint = index_alloc_check.branch->get_condition();
+//         klee::ref<klee::Expr> extra_constraint = index_alloc_check.branch->get_condition();
 
-        // If we want to keep the direction on true, we must remove the on false.
-        if (index_alloc_check.direction) {
-          extra_constraint = solver_toolbox.exprBuilder->Not(extra_constraint);
-        }
+//         // If we want to keep the direction on true, we must remove the on false.
+//         if (index_alloc_check.direction) {
+//           extra_constraint = solver_toolbox.exprBuilder->Not(extra_constraint);
+//         }
 
-        deleted_branch_constraints.push_back(extra_constraint);
+//         deleted_branch_constraints.push_back(extra_constraint);
 
-        const BDD::BranchDeletionAction branch_deletion_action =
-            index_alloc_check.direction ? BDD::BranchDeletionAction::KeepOnTrue : BDD::BranchDeletionAction::KeepOnFalse;
-        bdd->delete_branch(index_alloc_check.branch->get_id(), branch_deletion_action);
-      }
-    }
+//         const BDD::BranchDeletionAction branch_deletion_action =
+//             index_alloc_check.direction ? BDD::BranchDeletionAction::KeepOnTrue : BDD::BranchDeletionAction::KeepOnFalse;
+//         bdd->delete_branch(index_alloc_check.branch->get_id(), branch_deletion_action);
+//       }
+//     }
 
-    bdd->delete_non_branch(target->get_id());
-  }
-}
+//     bdd->delete_non_branch(target->get_id());
+//   }
+// }
 
 struct rebuilt_bdd_result_t {
   std::unique_ptr<BDD> bdd;
@@ -195,27 +216,30 @@ rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const BDDNode *map_get, const fcfs_
   Branch *collision_detected_branch = result.bdd->add_cloned_branch(next->get_id(), collision_detected_condition);
   result.on_collision_detected      = collision_detected_branch->get_mutable_on_true();
 
+  // ======================================================================
   // bdd_node_id_t &id              = bdd->get_mutable_id();
   // BDDNodeManager &manager        = bdd->get_mutable_manager();
   // BDDNode *map_get_on_cache_miss = map_get->clone(manager, false);
   // map_get_on_cache_miss->recursive_update_ids(id);
   // new_on_cache_miss = bdd->add_cloned_non_branches(cache_hit_branch->get_on_false()->get_id(), {map_get_on_cache_miss});
+  // ======================================================================
 
-  add_map_get_clone_on_cache_miss(result.bdd.get(), map_get, cache_hit_branch, on_cache_miss);
+  // add_map_get_clone_on_cache_miss(result.bdd.get(), map_get, cache_hit_branch, on_cache_miss);
 
-  const hit_rate_t cache_success_probability = get_cache_op_success_probability(new_ep, map_get, fcfs_cached_table_data.original_key, cache_capacity);
-  new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(), cache_hit_condition,
-                                                                   cache_success_probability);
+  // const hit_rate_t cache_success_probability = get_cache_op_success_probability(new_ep, map_get, fcfs_cached_table_data.original_key,
+  // cache_capacity); new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(),
+  // cache_hit_condition,
+  //                                                                  cache_success_probability);
 
-  replicate_hdr_parsing_ops_on_cache_miss(new_ep, result.bdd.get(), cache_hit_branch, on_cache_miss);
+  // replicate_hdr_parsing_ops_on_cache_miss(new_ep, result.bdd.get(), cache_hit_branch, on_cache_miss);
 
-  std::vector<klee::ref<klee::Expr>> deleted_branch_constraints;
-  delete_coalescing_nodes_on_success(new_ep, result.bdd.get(), on_cache_hit, fcfs_cached_table_data.map_objs, fcfs_cached_table_data.original_key,
-                                     deleted_branch_constraints);
+  // std::vector<klee::ref<klee::Expr>> deleted_branch_constraints;
+  // delete_coalescing_nodes_on_success(new_ep, result.bdd.get(), on_cache_hit, fcfs_cached_table_data.map_objs, fcfs_cached_table_data.original_key,
+  //                                    deleted_branch_constraints);
 
-  if (!deleted_branch_constraints.empty()) {
-    new_ep->get_mutable_ctx().get_mutable_profiler().remove(deleted_branch_constraints);
-  }
+  // if (!deleted_branch_constraints.empty()) {
+  //   new_ep->get_mutable_ctx().get_mutable_profiler().remove(deleted_branch_constraints);
+  // }
 
   return result;
 }
@@ -229,15 +253,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cac
     return nullptr;
   }
 
-  Module *module = new FCFSCachedTableReadWrite(node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj,
-                                                fcfs_cached_table_data.keys, fcfs_cached_table_data.read_value, fcfs_cached_table_data.write_value,
-                                                fcfs_cached_table_data.map_has_this_key, collision_detected, index_allocation_failed);
-  EPNode *cached_table_cond_write_node = new EPNode(module);
-
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
-
-  BDDNode *on_cache_hit;
-  BDDNode *on_cache_miss;
 
   klee::ref<klee::Expr> collision_detected_condition =
       solver_toolbox.exprBuilder->Ne(collision_detected.expr, solver_toolbox.exprBuilder->Constant(0, collision_detected.expr->getWidth()));
@@ -250,11 +266,16 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cac
 
   // Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
 
+  // Module *module = new FCFSCachedTableReadWrite(node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj,
+  //                                               fcfs_cached_table_data.keys, fcfs_cached_table_data.read_value, fcfs_cached_table_data.write_value,
+  //                                               fcfs_cached_table_data.map_has_this_key, collision_detected, index_allocation_failed);
+
   // Module *if_module                 = new If(node, cache_hit_condition, {cache_hit_condition});
   // Module *then_module               = new Then(node);
   // Module *else_module               = new Else(node);
   // Module *send_to_controller_module = new SendToController(on_cache_miss, symbols);
 
+  // EPNode *cached_table_cond_write_node = new EPNode(module);
   // EPNode *if_node                 = new EPNode(if_module);
   // EPNode *then_node               = new EPNode(then_module);
   // EPNode *else_node               = new EPNode(else_module);
@@ -322,10 +343,6 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
 
   if (!ctx.can_impl_ds(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
       !ctx.can_impl_ds(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
-    return {};
-  }
-
-  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(fcfs_cached_table_data->map_objs.dchain)) {
     return {};
   }
 
@@ -430,10 +447,6 @@ std::vector<impl_t> FCFSCachedTableReadWriteFactory::process_node(const EP *ep, 
     return {};
   }
 
-  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(fcfs_cached_table_data->map_objs.dchain)) {
-    return {};
-  }
-
   if (!ep->get_ctx().can_impl_ds(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
       !ep->get_ctx().can_impl_ds(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -444,6 +457,8 @@ std::vector<impl_t> FCFSCachedTableReadWriteFactory::process_node(const EP *ep, 
       return {};
     }
   }
+
+  BDDViz::visualize(ep->get_bdd(), true);
 
   const symbol_t collision_detected               = symbol_manager->create_symbol("collision_detected", 8);
   const symbol_t index_allocation_failed          = symbol_manager->create_symbol("index_allocation_failed", 8);
@@ -462,41 +477,8 @@ std::vector<impl_t> FCFSCachedTableReadWriteFactory::process_node(const EP *ep, 
 }
 
 std::unique_ptr<Module> FCFSCachedTableReadWriteFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
-  if (node->get_type() != BDDNodeType::Call) {
-    return {};
-  }
-
-  const Call *map_get = dynamic_cast<const Call *>(node);
-
-  std::vector<const Call *> future_map_puts;
-  if (!bdd->is_map_get_followed_by_map_puts_on_miss(map_get, future_map_puts)) {
-    return {};
-  }
-
-  const Call *map_put = future_map_puts.front();
-
-  const std::optional<fcfs_cached_table_data_t> fcfs_cached_table_data = build_fcfs_cached_table_data(bdd, ctx, map_get, map_put);
-  if (!fcfs_cached_table_data.has_value()) {
-    return {};
-  }
-
-  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(fcfs_cached_table_data->obj);
-  if (!map_objs.has_value()) {
-    return {};
-  }
-
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
-    return {};
-  }
-
-  symbol_t mock_cache_miss;
-
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(map_objs->map);
-  assert(ds.size() == 1 && "Expected exactly one DS");
-  const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
-
-  return std::make_unique<FCFSCachedTableReadWrite>(node, fcfs_cached_table->id, fcfs_cached_table->tables.back().id, fcfs_cached_table_data->obj,
-                                                    fcfs_cached_table_data->keys, fcfs_cached_table_data->map_has_this_key, mock_cache_miss);
+  // TODO: implement this, but we don't actually use it now.
+  return {};
 }
 
 } // namespace Tofino
