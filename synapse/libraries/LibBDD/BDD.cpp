@@ -1688,8 +1688,13 @@ bool BDD::is_map_get_followed_by_map_puts_on_miss(const Call *map_get, std::vect
   return true;
 }
 
-bool BDD::is_map_get_and_branch_checking_success(const Call *map_get, const BDDNode *branch_checking_map_get_success, bool &success_direction) const {
+bool BDD::is_map_get_and_branch_checking_success(const Call *map_get, const BDDNode *branch_checking_map_get_success,
+                                                 branch_direction_t &branch_direction) const {
   if (map_get == nullptr || branch_checking_map_get_success == nullptr) {
+    return false;
+  }
+
+  if (map_get->get_call().function_name != "map_get") {
     return false;
   }
 
@@ -1711,7 +1716,8 @@ bool BDD::is_map_get_and_branch_checking_success(const Call *map_get, const BDDN
     return false;
   }
 
-  success_direction = is_success_condition;
+  branch_direction.branch    = branch;
+  branch_direction.direction = is_success_condition;
 
   return true;
 }
@@ -2019,6 +2025,42 @@ std::vector<BDD::vector_values_t> BDD::get_vector_values_from_map_op(const BDDNo
   }
 
   return values;
+}
+
+BDDNode *BDD::delete_constraints(const klee::ConstraintManager &target_constraints) {
+  BDDNode *target_node_for_deletion = nullptr;
+
+  BDDNode *node = root;
+  while (node) {
+    if (node->get_type() != BDDNodeType::Branch) {
+      node = node->get_mutable_next();
+      continue;
+    }
+
+    Branch *branch                        = dynamic_cast<Branch *>(node);
+    const klee::ref<klee::Expr> condition = branch->get_condition();
+
+    const bool always_true  = solver_toolbox.is_expr_always_true(target_constraints, condition);
+    const bool always_false = solver_toolbox.is_expr_always_false(target_constraints, condition);
+
+    if (!always_true && !always_false) {
+      break;
+    }
+
+    if (always_true) {
+      target_node_for_deletion = branch->get_mutable_on_true();
+    } else {
+      target_node_for_deletion = branch->get_mutable_on_false();
+    }
+
+    node = target_node_for_deletion;
+  }
+
+  if (!target_node_for_deletion) {
+    return nullptr;
+  }
+
+  return delete_non_branch(target_node_for_deletion, manager);
 }
 
 } // namespace LibBDD

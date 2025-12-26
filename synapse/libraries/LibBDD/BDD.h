@@ -113,7 +113,8 @@ public:
   bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing, const Call *&tb_update_and_check) const;
   void delete_vector_key_operations(addr_t map);
   bool is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const;
-  bool is_map_get_and_branch_checking_success(const Call *map_get, const BDDNode *branch_checking_map_get_success, bool &success_direction) const;
+  bool is_map_get_and_branch_checking_success(const Call *map_get, const BDDNode *branch_checking_map_get_success,
+                                              branch_direction_t &branch_direction) const;
   bool are_subtrees_equal(const BDDNode *n0, const BDDNode *n1) const;
 
   struct vector_values_t {
@@ -148,6 +149,7 @@ public:
   BDDNode *delete_non_branch(bdd_node_id_t target_id);
   BDDNode *delete_branch(bdd_node_id_t target_id, BranchDeletionAction branch_deletion_action);
   std::vector<BDDNode *> delete_until(bdd_node_id_t target_id, const bdd_node_ids_t &stopping_points);
+  BDDNode *delete_constraints(const klee::ConstraintManager &target);
 
   Branch *create_new_branch(klee::ref<klee::Expr> condition);
   Call *create_new_call(const BDDNode *current, const call_t &call, const Symbols &generated_symbols);

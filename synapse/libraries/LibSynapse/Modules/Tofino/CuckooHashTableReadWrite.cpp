@@ -113,17 +113,13 @@ bool is_read_write_pattern_on_condition(const EP *ep, const BDDNode *node, const
 
   const Call *map_get = dynamic_cast<const Call *>(node);
 
-  bool map_get_success_direction;
+  branch_direction_t map_get_success_direction;
   if (!ep->get_bdd()->is_map_get_and_branch_checking_success(map_get, node->get_next(), map_get_success_direction)) {
     return false;
   }
 
-  const Branch *branch_checking_map_get_success = dynamic_cast<const Branch *>(node->get_next());
-
-  const BDDNode *on_map_get_success =
-      map_get_success_direction ? branch_checking_map_get_success->get_on_true() : branch_checking_map_get_success->get_on_false();
-  const BDDNode *on_map_get_failure =
-      map_get_success_direction ? branch_checking_map_get_success->get_on_false() : branch_checking_map_get_success->get_on_true();
+  const BDDNode *on_map_get_success = map_get_success_direction.get_success_node();
+  const BDDNode *on_map_get_failure = map_get_success_direction.get_failure_node();
 
   const Branch *on_map_get_success_branch = nullptr;
   const Branch *on_map_get_failure_branch = nullptr;

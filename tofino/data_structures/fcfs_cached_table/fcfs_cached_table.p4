@@ -584,14 +584,19 @@ control Ingress(
 				//   collision_detected: write operation failed due to hash collision, send to the controller
 
 				if (index_allocation_failed) {
-					// Failed to allocate new index
+					// Write failure
 					fwd_op = fwd_op_t.DROP;
 				} else if (collision_detected) {
+					// Write success (control plane)
 					fwd_op = fwd_op_t.FORWARD_TO_CPU;
 					build_cpu_hdr(0);
 					hdr.cpu.ingress_dev = meta.dev[15:0];
 					hdr.cpu.new_index = meta.fcfs_ct_value;
+				} else if (found) {
+					// Read success
+					nf_dev = meta.dev;
 				} else {
+					// Write success (data plane)
 					nf_dev = meta.dev;
 				}
 			}
