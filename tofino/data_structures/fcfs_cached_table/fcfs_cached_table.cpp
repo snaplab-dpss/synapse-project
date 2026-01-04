@@ -124,10 +124,7 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   key.set(8, 2, bswap16(udp_hdr->src_port));
   key.set(10, 2, bswap16(udp_hdr->dst_port));
 
-  u32 value = 0;
-  if (!state->fcfs_cached_table.get(key, value)) {
-    state->fcfs_cached_table.put(key, cpu_hdr_extra->new_index);
-  }
+  state->fcfs_cached_table.put(key, cpu_hdr_extra->new_index);
 
   cpu_hdr->egress_dev = cpu_hdr_extra->ingress_dev;
 

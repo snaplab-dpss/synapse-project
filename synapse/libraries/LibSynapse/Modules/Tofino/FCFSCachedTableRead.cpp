@@ -43,8 +43,10 @@ std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *
 
 std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *node, const fcfs_cached_table_data_t &fcfs_cached_table_data,
                                                  u32 cache_capacity) {
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
+
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
-      ep, node, fcfs_cached_table_data.obj, fcfs_cached_table_data.original_key, fcfs_cached_table_data.capacity, cache_capacity);
+      new_ep.get(), node, fcfs_cached_table_data.obj, fcfs_cached_table_data.original_key, fcfs_cached_table_data.capacity, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
@@ -54,8 +56,6 @@ std::unique_ptr<EP> concretize_cached_table_read(const EP *ep, const BDDNode *no
       new FCFSCachedTableRead(node, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj, fcfs_cached_table_data.original_key,
                               fcfs_cached_table_data.keys, fcfs_cached_table_data.value, fcfs_cached_table_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
-
-  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(fcfs_cached_table_data.map_objs.map, DSImpl::Tofino_FCFSCachedTable);

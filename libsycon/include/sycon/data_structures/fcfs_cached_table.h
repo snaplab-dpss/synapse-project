@@ -79,6 +79,11 @@ public:
       return;
     }
 
+    if (get(k, v)) {
+      LOG_DEBUG("Key %s already present in cache with value %u, skipping put", k.to_string().c_str(), v);
+      return;
+    }
+
     buffer_t value(4);
     value.set(0, 4, v);
 

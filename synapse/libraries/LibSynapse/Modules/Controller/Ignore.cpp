@@ -42,7 +42,7 @@ bool ds_ignore_logic(const Context &ctx, const Call *call_node) {
   }
 
   static std::unordered_map<DSImpl, std::unordered_set<std::string>> ds_ignore_logic_map = {
-      {DSImpl::Tofino_FCFSCachedTable, {"dchain_rejuvenate_index", "dchain_free_index", "map_put"}},
+      {DSImpl::Tofino_FCFSCachedTable, {"dchain_rejuvenate_index", "dchain_free_index"}},
       {DSImpl::Tofino_HeavyHitterTable, {"dchain_rejuvenate_index", "dchain_free_index"}},
   };
 
