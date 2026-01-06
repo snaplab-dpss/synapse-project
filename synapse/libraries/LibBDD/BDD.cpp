@@ -1299,6 +1299,11 @@ BDD::inspection_report_t BDD::inspect() const {
   std::unordered_set<const BDDNode *> visited_nodes;
 
   root->visit_nodes([&](const BDDNode *node) {
+    // Check that there are no nodes with incompatible constraints.
+    // Unfortunately we can't fail this step and report back in a neat and clean way, as Klee will just fail an assertion internally.
+    // So we just run through all nodes and get their constraints to trigger any potential internal errors.
+    get_constraints(node);
+
     if (!manager.has_node(node)) {
       report = {InspectionStatus::UnmanagedNode, "Unmanaged BDDNode " + std::to_string(node->get_id())};
       return BDDNodeVisitAction::Stop;

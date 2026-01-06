@@ -223,12 +223,64 @@ void test6() {
   std::cerr << "========================================\n";
 }
 
+void test7() {
+  const std::string query = "array DEVICE[4] : w32 -> w8 = symbolic\n"
+                            "array vector_data_c141[2] : w32 -> w8 = symbolic\n"
+                            "array not_out_of_space_c2120[4] : w32 -> w8 = symbolic\n"
+
+                            "(query [] false ["
+
+                            "(Ult (ReadLSB w32 (w32 0) DEVICE) (w32 32))\n"
+                            "(Eq false (Eq (w16 65535) (ReadLSB w16 (w32 0) DEVICE)))\n"
+                            "(Eq false (Eq (w16 65534) (ReadLSB w16 (w32 0) DEVICE)))\n"
+                            "(Ult (ReadLSB w32 (w32 0) DEVICE) (w32 6))\n"
+                            "(Not (Eq (w32 65535) (ReadLSB w32 (w32 0) DEVICE)))\n"
+                            "(Not (Eq (w32 65534) (ReadLSB w32 (w32 0) DEVICE)))\n"
+                            "(Not (Eq (w32 0) (ReadLSB w32 (w32 0) DEVICE)))\n"
+                            "(Not (Eq (w32 2) (ReadLSB w32 (w32 0) DEVICE)))\n"
+                            "(Not (Eq (w32 3) (ReadLSB w32 (w32 0) DEVICE)))\n"
+                            "(Not (Eq (w32 4) (ReadLSB w32 (w32 0) DEVICE)))\n"
+
+                            "(Eq false (Eq (ReadLSB w16 (w32 0) DEVICE) (ReadLSB w16 (w32 0) vector_data_c141)))\n"
+
+                            "(Eq (w16 1) (Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) vector_data_c141))))\n"
+
+                            "(Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space_c2120))\n"
+
+                            "])\n";
+
+  SymbolManager manager;
+  kQuery_t kQuery = parse(query, &manager);
+
+  // (Ne (ReadLSB w32 (w32 0) not_out_of_space_c2120) (w32 0))
+  const symbol_t not_out_of_space = manager.get_symbol("not_out_of_space_c2120");
+
+  klee::ref<klee::Expr> success_condition =
+      solver_toolbox.exprBuilder->Ne(not_out_of_space.expr, solver_toolbox.exprBuilder->Constant(0, not_out_of_space.expr->getWidth()));
+
+  klee::ConstraintManager constraints;
+  for (auto expr : kQuery.values) {
+    constraints.addConstraint(expr);
+  }
+
+  std::cerr << "Constraints:\n";
+  for (const auto &c : constraints) {
+    std::cerr << "  " << LibCore::expr_to_string(c, true) << "\n";
+  }
+
+  const bool success_on_false = solver_toolbox.is_expr_always_true(constraints, success_condition);
+  std::cerr << "Test7: success_on_false = " << success_on_false << "\n";
+
+  std::cerr << "========================================\n";
+}
+
 int main() {
   // test1();
   // test2();
   // test3();
   // test4();
   // test5();
-  test6();
+  // test6();
+  test7();
   return 0;
 }
