@@ -13,6 +13,42 @@ FRONT_PANEL_PORTS = [p for p in range(1, 33)]
 TG_PORT = 1
 DUT_CONNECTED_PORTS = [p for p in range(3, 33)]
 
+# This is to enforce different flows in different DUT pipes.
+TG_DEV_PORT_TO_DUT_PIPE = {
+    132: 1,
+    140: 1,
+    148: 1,
+    156: 1,
+    164: 1,
+    172: 1,
+    180: 1,
+    188: 1,
+    56: 2,
+    48: 2,
+    40: 2,
+    32: 2,
+    24: 2,
+    16: 2,
+    8: 2,
+    0: 2,
+    4: 3,
+    12: 3,
+    20: 3,
+    28: 3,
+    36: 3,
+    44: 3,
+    52: 3,
+    60: 3,
+    184: 0,
+    176: 0,
+    168: 0,
+    160: 0,
+    144: 0,
+    152: 0,
+    128: 0,
+    136: 0,
+}
+
 assert TG_PORT in FRONT_PANEL_PORTS
 assert all([p in FRONT_PANEL_PORTS for p in DUT_CONNECTED_PORTS])
 assert all([p != TG_PORT for p in DUT_CONNECTED_PORTS])
@@ -284,6 +320,38 @@ class Router:
         )
 
 
+class PacketModifier:
+    def __init__(self, bfrt_info):
+        self.packet_modifier = bfrt_info.table_get("Egress.packet_modifier_tbl")
+
+    def clear(self):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+        for _, key in self.packet_modifier.entry_get(target, [], {"from_hw": False}):
+            if key:
+                self.packet_modifier.entry_del(target, [key])
+
+    def add_modify_packet_entry(self, egress_dev_port, prefix_value):
+        target = gc.Target(device_id=0, pipe_id=0xFFFF)
+        self.packet_modifier.entry_add(
+            target,
+            [
+                self.packet_modifier.make_key(
+                    [
+                        gc.KeyTuple("eg_intr_md.egress_port", egress_dev_port),
+                    ]
+                )
+            ],
+            [
+                self.packet_modifier.make_data(
+                    [
+                        gc.DataTuple("value", prefix_value),
+                    ],
+                    "Egress.modify_packet",
+                )
+            ],
+        )
+
+
 class Multicaster:
     def __init__(self, bfrt_info):
         self.mgid_table = bfrt_info.table_get("$pre.mgid")
@@ -506,8 +574,9 @@ class FlowsCMS:
         )
 
 
-def run_setup_set(bfrt_info, ports, broadcast, symmetric, route):
+def run_setup_set(bfrt_info, ports: Ports, broadcast, symmetric, route):
     router = Router(bfrt_info)
+    packet_modifier = PacketModifier(bfrt_info)
     multicaster = Multicaster(bfrt_info)
 
     for port in FRONT_PANEL_PORTS:
@@ -517,6 +586,9 @@ def run_setup_set(bfrt_info, ports, broadcast, symmetric, route):
     router.clear()
     print("Cleared the router table")
 
+    packet_modifier.clear()
+    print("Cleared the packet modifier table")
+
     tg_dev_port = ports.get_dev_port(TG_PORT)
     router.add_route_tg_entry(tg_dev_port)
     print("Configured TG port: {}".format(TG_PORT))
@@ -524,6 +596,12 @@ def run_setup_set(bfrt_info, ports, broadcast, symmetric, route):
     broadcast_dev_ports = [ports.get_dev_port(p) for p in broadcast]
     multicaster.setup_multicast(broadcast_dev_ports)
     print("Configured broadcasting ports: {}".format(broadcast))
+
+    for dev_port in broadcast_dev_ports:
+        assert dev_port in TG_DEV_PORT_TO_DUT_PIPE
+        prefix_value = TG_DEV_PORT_TO_DUT_PIPE[dev_port]
+        packet_modifier.add_modify_packet_entry(dev_port, prefix_value)
+        print("Configured packet modifier for port: {} with prefix value: {}".format(ports.get_front_panel_port(dev_port), prefix_value))
 
     for port in symmetric:
         dev_port = ports.get_dev_port(port)

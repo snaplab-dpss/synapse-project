@@ -274,6 +274,22 @@ control Egress(
 	inout egress_intrinsic_metadata_for_deparser_t eg_intr_dprs_md,
 	inout egress_intrinsic_metadata_for_output_port_t eg_intr_oport_md
 ) {
+	action modify_packet(bit<2> value) {
+		hdr.ipv4.src_addr[1:0] = value;
+	}
+
+	table packet_modifier_tbl {
+		key = {
+			eg_intr_md.egress_port: exact;
+		}
+
+		actions = {
+			modify_packet;
+		}
+
+		size = 32;
+	}
+
 	Counter<bit<64>, bit<9>>(1024, CounterType_t.PACKETS_AND_BYTES) out_counter;
 
 	bit<16> hash0_val = 0;
@@ -369,6 +385,7 @@ control Egress(
 	};
 
 	apply {
+		packet_modifier_tbl.apply();
 		out_counter.count(eg_intr_md.egress_port);
 
 		if (hdr.kvs.isValid()) {

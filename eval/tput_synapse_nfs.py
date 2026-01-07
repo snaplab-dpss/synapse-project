@@ -175,14 +175,30 @@ SYNAPSE_NFS = [
     #     )
     #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
     # ],
+    # *[
+    #     SynapseNF(
+    #         name=build_synapse_nf_name("fw", churn, s),
+    #         description=f"Synapse {build_synapse_nf_name('fw', churn, s)}",
+    #         data_out=Path(f"tput_synapse_fw.csv"),
+    #         kvs_mode=False,
+    #         tofino=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.p4"),
+    #         controller=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.cpp"),
+    #         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #         route=lambda _: [],
+    #         churn=[churn],
+    #         zipf=[s],
+    #     )
+    #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    # ],
     *[
         SynapseNF(
-            name=build_synapse_nf_name("fw", churn, s),
-            description=f"Synapse {build_synapse_nf_name('fw', churn, s)}",
-            data_out=Path(f"tput_synapse_fw.csv"),
+            name="synapse-fw-fcfs-ct",
+            description="Synapse FW FCFS CT",
+            data_out=Path(f"tput_synapse_fw_fcfs_ct.csv"),
             kvs_mode=False,
-            tofino=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.p4"),
-            controller=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.cpp"),
+            tofino=Path("tofino/experiments/fcfs_cached_table/fcfs_cached_table.p4"),
+            controller=Path("tofino/experiments/fcfs_cached_table/fcfs_cached_table.cpp"),
             broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
             symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
             route=lambda _: [],
@@ -354,7 +370,7 @@ class SynapseThroughput(Experiment):
             self.log("Launching pktgen")
             self.tput_hosts.pktgen.close()
             self.tput_hosts.pktgen.launch(
-                nb_flows=self.total_flows,
+                nb_flows=int(self.total_flows / 4),
                 traffic_dist=TrafficDist.ZIPF,
                 zipf_param=s,
                 kvs_mode=self.kvs_mode,
@@ -367,7 +383,7 @@ class SynapseThroughput(Experiment):
             report = self.find_stable_throughput(
                 tg_controller=self.tput_hosts.tg_controller,
                 pktgen=self.tput_hosts.pktgen,
-                churn=churn_fpm,
+                churn=int(churn_fpm / 4),
             )
 
             with open(self.save_name, "a") as f:

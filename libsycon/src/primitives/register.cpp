@@ -57,6 +57,17 @@ void Register::set(u32 i, u32 value) {
   ASSERT_BF_STATUS(bf_status);
 }
 
+void Register::set(u32 i, u32 value, u16 pipe_id) {
+  key_setup(i);
+  data_setup(value);
+
+  bf_rt_target_t target = dev_tgt;
+  target.pipe_id        = pipe_id;
+
+  bf_status_t bf_status = table->tableEntryMod(*session, target, *key, *data);
+  ASSERT_BF_STATUS(bf_status);
+}
+
 void Register::overwrite_all_entries(u32 value) {
   data_setup(value);
 

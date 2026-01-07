@@ -45,16 +45,20 @@ enum bit<2> fwd_op_t {
 }
 
 #define FCFS_CT_CAPACITY 65536
-#define FCFS_CT_CACHE_CAPACITY 65536
+#define FCFS_CT_INT_ALLOC_CAPACITY (FCFS_CT_CAPACITY / 4)
 
-typedef bit<16> fcfs_ct_hash_t;
+#define FCFS_CT_CACHE_CAPACITY 65536
+typedef bit<16> fcfs_ct_cache_hash_t;
+// #define FCFS_CT_CACHE_CAPACITY 4
+// typedef bit<2> fcfs_ct_cache_hash_t;
 
 header cpu_h {
 	bit<16>	code_path;                   // Written by the data plane
+	bit<16> ingress_port;                // Written by the data plane
 	bit<16>	egress_dev;                  // Written by the control plane
 	bit<8>	trigger_dataplane_execution; // Written by the control plane
-	bit<16> ingress_dev;
 	bit<32> new_index;
+	bit<32> dev;
 }
 
 header recirc_h {
@@ -108,8 +112,8 @@ struct metadata_t {
 	bit<16> fcfs_ct_key_2;
 	bit<16> fcfs_ct_key_3;
 	bit<32> fcfs_ct_value;
-	bool fcfs_ct_is_alive;
 	bit<8> fcfs_ct_key_fields_match;
+	bit<32> fcfs_ct_integer_allocator_head;
 	bit<32> fcfs_ct_integer_allocator_tail;
 }
 
@@ -199,6 +203,7 @@ parser IngressParser(
 }
 
 struct fcfs_ct_digest_t {
+	bit<32> fcfs_ct_integer_allocator_head;
 	bit<32> src_addr;
 	bit<32> dst_addr;
 	bit<16> src_port;
@@ -237,6 +242,7 @@ control Ingress(
 	action build_cpu_hdr(bit<16> code_path) {
 		hdr.cpu.setValid();
 		hdr.cpu.code_path = code_path;
+		hdr.cpu.ingress_port = meta.ingress_port;
 	}
 
 	action set_ingress_dev(bit<32> nf_dev) {
@@ -321,7 +327,7 @@ control Ingress(
 
 	Register<bit<32>, _>(1, 0) fcfs_ct_integer_allocator_head_reg;
 	Register<bit<32>, _>(1, 0) fcfs_ct_integer_allocator_tail_reg;
-	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_integer_allocator_indexes_reg;
+	Register<bit<32>, _>(FCFS_CT_INT_ALLOC_CAPACITY, 0) fcfs_ct_integer_allocator_indexes_reg;
 	Register<bit<8>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_integer_allocator_pending_reg;
 
 	RegisterAction<bit<8>, bit<32>, bool>(fcfs_ct_integer_allocator_pending_reg) fcfs_ct_integer_allocator_pending_read = {
@@ -348,9 +354,9 @@ control Ingress(
 
 	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_integer_allocator_head_reg) fcfs_ct_integer_allocator_head_inc = {
 		void apply(inout bit<32> head, out bit<32> out_head) {
+			out_head = head;
 			if (meta.fcfs_ct_integer_allocator_tail != head) {
-				out_head = head;
-				if (head == FCFS_CT_CAPACITY - 1) {
+				if (head == FCFS_CT_INT_ALLOC_CAPACITY - 1) {
 					head = 0;
 				} else {
 					head = head + 1;
@@ -365,9 +371,9 @@ control Ingress(
 		}
 	};
 
-	Hash<fcfs_ct_hash_t>(HashAlgorithm_t.CRC32) fcfs_ct_hash_calculator;
+	Hash<fcfs_ct_cache_hash_t>(HashAlgorithm_t.CRC32) fcfs_ct_hash_calculator;
 
-	fcfs_ct_hash_t fcfs_ct_hash;
+	fcfs_ct_cache_hash_t fcfs_ct_hash;
 	action fcfs_ct_calc_hash() {
 		fcfs_ct_hash = fcfs_ct_hash_calculator.get({
 			meta.fcfs_ct_key_0,
@@ -379,7 +385,7 @@ control Ingress(
 
 	Register<bit<8>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_liveness_reg;
 
-	RegisterAction<bit<8>, fcfs_ct_hash_t, bool>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check = {
+	RegisterAction<bit<8>, fcfs_ct_cache_hash_t, bool>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check = {
 		void apply(inout bit<8> is_alive, out bool out_is_alive) {
 			if (is_alive == 0) {
 				out_is_alive = false;
@@ -389,7 +395,7 @@ control Ingress(
 		}
 	};
 
-	RegisterAction<bit<8>, fcfs_ct_hash_t, bool>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check_and_set = {
+	RegisterAction<bit<8>, fcfs_ct_cache_hash_t, bool>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check_and_set = {
 		void apply(inout bit<8> is_alive, out bool out_is_alive) {
 			if (is_alive == 0) {
 				out_is_alive = false;
@@ -400,16 +406,13 @@ control Ingress(
 		}
 	};
 
-	action fcfs_ct_liveness_check_execute() { meta.fcfs_ct_is_alive = fcfs_ct_liveness_check.execute(fcfs_ct_hash); }
-	action fcfs_ct_liveness_check_and_set_execute() { meta.fcfs_ct_is_alive = fcfs_ct_liveness_check_and_set.execute(fcfs_ct_hash); }
-
 	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_0;
 	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_1;
 	Register<bit<16>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_2;
 	Register<bit<16>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_3;
 	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_values;
 
-	RegisterAction<bit<32>, fcfs_ct_hash_t, bit<8>>(fcfs_ct_keys_0) fcfs_ct_read_key_0 = {
+	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, bit<8>>(fcfs_ct_keys_0) fcfs_ct_read_key_0 = {
 		void apply(inout bit<32> curr_key, out bit<8> key_match) {
 			if (curr_key == meta.fcfs_ct_key_0) {
 				key_match = 1;
@@ -419,7 +422,7 @@ control Ingress(
 		}
 	};
 
-	RegisterAction<bit<32>, fcfs_ct_hash_t, bit<8>>(fcfs_ct_keys_1) fcfs_ct_read_key_1 = {
+	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, bit<8>>(fcfs_ct_keys_1) fcfs_ct_read_key_1 = {
 		void apply(inout bit<32> curr_key, out bit<8> key_match) {
 			if (curr_key == meta.fcfs_ct_key_1) {
 				key_match = 1;
@@ -429,7 +432,7 @@ control Ingress(
 		}
 	};
 
-	RegisterAction<bit<16>, fcfs_ct_hash_t, bit<8>>(fcfs_ct_keys_2) fcfs_ct_read_key_2 = {
+	RegisterAction<bit<16>, fcfs_ct_cache_hash_t, bit<8>>(fcfs_ct_keys_2) fcfs_ct_read_key_2 = {
 		void apply(inout bit<16> curr_key, out bit<8> key_match) {
 			if (curr_key == meta.fcfs_ct_key_2) {
 				key_match = 1;
@@ -439,7 +442,7 @@ control Ingress(
 		}
 	};
 
-	RegisterAction<bit<16>, fcfs_ct_hash_t, bit<8>>(fcfs_ct_keys_3) fcfs_ct_read_key_3 = {
+	RegisterAction<bit<16>, fcfs_ct_cache_hash_t, bit<8>>(fcfs_ct_keys_3) fcfs_ct_read_key_3 = {
 		void apply(inout bit<16> curr_key, out bit<8> key_match) {
 			if (curr_key == meta.fcfs_ct_key_3) {
 				key_match = 1;
@@ -449,7 +452,7 @@ control Ingress(
 		}
 	};
 
-	RegisterAction<bit<32>, fcfs_ct_hash_t, bit<32>>(fcfs_ct_values) fcfs_ct_read_value = {
+	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, bit<32>>(fcfs_ct_values) fcfs_ct_read_value = {
 		void apply(inout bit<32> curr_value, out bit<32> out_value) {
 			out_value = curr_value;
 		}
@@ -461,31 +464,31 @@ control Ingress(
 	action fcfs_ct_read_key_3_execute() { meta.fcfs_ct_key_fields_match = meta.fcfs_ct_key_fields_match + fcfs_ct_read_key_3.execute(fcfs_ct_hash); }
 	action fcfs_ct_read_value_execute() { meta.fcfs_ct_value = fcfs_ct_read_value.execute(fcfs_ct_hash); }
 
-	RegisterAction<bit<32>, fcfs_ct_hash_t, void>(fcfs_ct_keys_0) fcfs_ct_write_key_0 = {
+	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, void>(fcfs_ct_keys_0) fcfs_ct_write_key_0 = {
 		void apply(inout bit<32> curr_key) {
 			curr_key = meta.fcfs_ct_key_0;
 		}
 	};
 
-	RegisterAction<bit<32>, fcfs_ct_hash_t, void>(fcfs_ct_keys_1) fcfs_ct_write_key_1 = {
+	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, void>(fcfs_ct_keys_1) fcfs_ct_write_key_1 = {
 		void apply(inout bit<32> curr_key) {
 			curr_key = meta.fcfs_ct_key_1;
 		}
 	};
 
-	RegisterAction<bit<16>, fcfs_ct_hash_t, void>(fcfs_ct_keys_2) fcfs_ct_write_key_2 = {
+	RegisterAction<bit<16>, fcfs_ct_cache_hash_t, void>(fcfs_ct_keys_2) fcfs_ct_write_key_2 = {
 		void apply(inout bit<16> curr_key) {
 			curr_key = meta.fcfs_ct_key_2;
 		}
 	};
 
-	RegisterAction<bit<16>, fcfs_ct_hash_t, void>(fcfs_ct_keys_3) fcfs_ct_write_key_3 = {
+	RegisterAction<bit<16>, fcfs_ct_cache_hash_t, void>(fcfs_ct_keys_3) fcfs_ct_write_key_3 = {
 		void apply(inout bit<16> curr_key) {
 			curr_key = meta.fcfs_ct_key_3;
 		}
 	};
 
-	RegisterAction<bit<32>, fcfs_ct_hash_t, void>(fcfs_ct_values) fcfs_ct_write_value = {
+	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, void>(fcfs_ct_values) fcfs_ct_write_value = {
 		void apply(inout bit<32> curr_value) {
 			curr_value = meta.fcfs_ct_value;
 		}
@@ -496,6 +499,16 @@ control Ingress(
 	action fcfs_ct_write_key_2_execute() { fcfs_ct_write_key_2.execute(fcfs_ct_hash); }
 	action fcfs_ct_write_key_3_execute() { fcfs_ct_write_key_3.execute(fcfs_ct_hash); }
 	action fcfs_ct_write_value_execute() { fcfs_ct_write_value.execute(fcfs_ct_hash); }
+
+	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_0;
+	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_1;
+	Register<bit<16>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_2;
+	Register<bit<16>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_3;
+
+	RegisterAction<bit<32>, bit<32>, void>(fcfs_ct_index_to_key_0) fcfs_ct_write_index_to_key_0 = { void apply(inout bit<32> curr_key) { curr_key = meta.fcfs_ct_key_0; }};
+	RegisterAction<bit<32>, bit<32>, void>(fcfs_ct_index_to_key_1) fcfs_ct_write_index_to_key_1 = { void apply(inout bit<32> curr_key) { curr_key = meta.fcfs_ct_key_1; }};
+	RegisterAction<bit<16>, bit<32>, void>(fcfs_ct_index_to_key_2) fcfs_ct_write_index_to_key_2 = { void apply(inout bit<16> curr_key) { curr_key = meta.fcfs_ct_key_2; }};
+	RegisterAction<bit<16>, bit<32>, void>(fcfs_ct_index_to_key_3) fcfs_ct_write_index_to_key_3 = { void apply(inout bit<16> curr_key) { curr_key = meta.fcfs_ct_key_3; }};
 
 	bit<32> vector_table_1074077160_139_get_value_param0 = 32w0;
 	action vector_table_1074077160_139_get_value(bit<32> _vector_table_1074077160_139_get_value_param0) {
@@ -552,22 +565,22 @@ control Ingress(
 
 			if (vector_table_1074077160_139_get_value_param0 == 0) {
 				// Read FCFS CT Operation
-				meta.fcfs_ct_key_0 = hdr.ipv4.src_addr;
-				meta.fcfs_ct_key_1 = hdr.ipv4.dst_addr;
-				meta.fcfs_ct_key_2 = hdr.udp.src_port;
-				meta.fcfs_ct_key_3 = hdr.udp.dst_port;
+				meta.fcfs_ct_key_0 = hdr.ipv4.dst_addr;
+				meta.fcfs_ct_key_1 = hdr.ipv4.src_addr;
+				meta.fcfs_ct_key_2 = hdr.udp.dst_port;
+				meta.fcfs_ct_key_3 = hdr.udp.src_port;
 				bool found = fcfs_ct_table_0.apply().hit;
-				if (!found && meta.fcfs_ct_is_alive) {
-					fcfs_ct_calc_hash();
-					fcfs_ct_liveness_check_execute();
+				fcfs_ct_calc_hash();
+				bool fcfs_ct_is_alive = fcfs_ct_liveness_check.execute(fcfs_ct_hash);
+				if (!found && fcfs_ct_is_alive) {
 					meta.fcfs_ct_key_fields_match = 0;
 					fcfs_ct_read_key_0_execute();
 					fcfs_ct_read_key_1_execute();
 					fcfs_ct_read_key_2_execute();
 					fcfs_ct_read_key_3_execute();
 					if (meta.fcfs_ct_key_fields_match == 4) {
-						found = true;
 						fcfs_ct_read_value_execute();
+						found = true;
 					}
 				}
 
@@ -589,8 +602,8 @@ control Ingress(
 				bool collision_detected = false;
 				if (!found) {
 					fcfs_ct_calc_hash();
-					fcfs_ct_liveness_check_and_set_execute();
-					if (meta.fcfs_ct_is_alive) {
+					bool fcfs_ct_is_alive = fcfs_ct_liveness_check_and_set.execute(fcfs_ct_hash);
+					if (fcfs_ct_is_alive) {
 						meta.fcfs_ct_key_fields_match = 0;
 						fcfs_ct_read_key_0_execute();
 						fcfs_ct_read_key_1_execute();
@@ -600,30 +613,29 @@ control Ingress(
 							collision_detected = true;
 						} else {
 							found = true;
+							fcfs_ct_read_value_execute();
 						}
 					} else {
 						fcfs_ct_write_key_0_execute();
 						fcfs_ct_write_key_1_execute();
 						fcfs_ct_write_key_2_execute();
 						fcfs_ct_write_key_3_execute();
-					}
 
-					if (!meta.fcfs_ct_is_alive || collision_detected) {
 						meta.fcfs_ct_integer_allocator_tail = fcfs_ct_integer_allocator_tail_read.execute(0);
-						bit<32> fcfs_ct_integer_allocator_old_head = fcfs_ct_integer_allocator_head_inc.execute(0);
-						if (fcfs_ct_integer_allocator_old_head != meta.fcfs_ct_integer_allocator_tail) {
-							meta.fcfs_ct_value = fcfs_ct_integer_allocator_indexes_read.execute(fcfs_ct_integer_allocator_old_head);
+						meta.fcfs_ct_integer_allocator_head = fcfs_ct_integer_allocator_head_inc.execute(0);
+						if (meta.fcfs_ct_integer_allocator_head != meta.fcfs_ct_integer_allocator_tail) {
+							meta.fcfs_ct_value = fcfs_ct_integer_allocator_indexes_read.execute(meta.fcfs_ct_integer_allocator_head);
 							fcfs_ct_integer_allocator_pending_set.execute(meta.fcfs_ct_value);
+							fcfs_ct_write_value_execute();
+							ig_dprsr_md.digest_type = 1;
+
+							fcfs_ct_write_index_to_key_0.execute(meta.fcfs_ct_value);
+							fcfs_ct_write_index_to_key_1.execute(meta.fcfs_ct_value);
+							fcfs_ct_write_index_to_key_2.execute(meta.fcfs_ct_value);
+							fcfs_ct_write_index_to_key_3.execute(meta.fcfs_ct_value);
 						} else {
 							index_allocation_failed = true;
 						}
-					}
-
-					if (found) {
-						fcfs_ct_read_value_execute();
-					} else if (!collision_detected && !index_allocation_failed) {
-						fcfs_ct_write_value_execute();
-						ig_dprsr_md.digest_type = 1;
 					}
 				}
 
@@ -636,10 +648,12 @@ control Ingress(
 					fwd_op = fwd_op_t.DROP;
 				} else if (collision_detected) {
 					// Write success (control plane)
-					fwd_op = fwd_op_t.FORWARD_TO_CPU;
-					build_cpu_hdr(0);
-					hdr.cpu.ingress_dev = meta.dev[15:0];
-					hdr.cpu.new_index = meta.fcfs_ct_value;
+					// FIXME: uncomment this
+					// fwd_op = fwd_op_t.FORWARD_TO_CPU;
+					// build_cpu_hdr(0);
+					// hdr.cpu.new_index = meta.fcfs_ct_value;
+					// hdr.cpu.dev = meta.dev;
+					fwd_op = fwd_op_t.DROP; // FIXME: remove this
 				} else {
 					// Read success
 					// Write success (data plane)
@@ -665,6 +679,7 @@ control IngressDeparser(
 	apply {
 		if (ig_dprsr_md.digest_type == 1) {
 			fcfs_ct_digest.pack({
+				meta.fcfs_ct_integer_allocator_head,
 				meta.fcfs_ct_key_0,
 				meta.fcfs_ct_key_1,
 				meta.fcfs_ct_key_2,

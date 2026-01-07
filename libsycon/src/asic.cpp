@@ -20,6 +20,7 @@ u16 asic_get_dev_port(u16 front_panel_port) { return ports->get_dev_port(front_p
 u16 asic_get_front_panel_port_from_dev_port(u16 dev_port) { return ports->get_front_panel_port(dev_port); }
 u64 asic_get_port_rx(u16 dev_port) { return port_stat->get_port_rx(dev_port, true); }
 u64 asic_get_port_tx(u16 dev_port) { return port_stat->get_port_tx(dev_port, true); }
+u16 asic_dev_port_to_pipe(u16 dev_port) { return ((dev_port) >> 7) & 7; }
 void asic_reset_port_stats() { port_stat->reset_stats(); }
 
 static std::string get_conf_file() {

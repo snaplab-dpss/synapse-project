@@ -348,8 +348,8 @@ control Ingress(
 
 	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_integer_allocator_head_reg) fcfs_ct_integer_allocator_head_inc = {
 		void apply(inout bit<32> head, out bit<32> out_head) {
+			out_head = head;
 			if (meta.fcfs_ct_integer_allocator_tail != head) {
-				out_head = head;
 				if (head == FCFS_CT_CAPACITY - 1) {
 					head = 0;
 				} else {

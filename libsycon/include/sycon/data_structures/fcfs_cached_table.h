@@ -18,8 +18,8 @@ class FCFSCachedTable : public SynapseDS {
 private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
   std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
-  std::unordered_set<u32> free_indexes;
-  u32 tail;
+  std::unordered_map<bf_dev_pipe_t, u32> tails_per_pipe;
+  std::unordered_map<bf_dev_pipe_t, u32> expected_head_per_pipe;
 
   std::vector<Table> tables;
   Register reg_liveness;
@@ -27,8 +27,10 @@ private:
   Register reg_integer_allocator_tail;
   Register reg_integer_allocator_indexes;
   Register reg_integer_allocator_pending;
+  std::vector<Register> regs_index_to_key;
   Digest digest;
 
+  const u16 pipelines;
   const u32 capacity;
   const u32 cache_capacity;
   const bytes_t key_size;
@@ -39,19 +41,22 @@ public:
   FCFSCachedTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_liveness_name,
                   const std::string &reg_integer_allocator_head_name, const std::string &reg_integer_allocator_tail_name,
                   const std::string &reg_integer_allocator_indexes_name, const std::string &reg_integer_allocator_pending_name,
-                  const std::string &digest_name, std::optional<time_ms_t> timeout = std::nullopt)
+                  const std::vector<std::string> &regs_index_to_key, const std::string &digest_name, std::optional<time_ms_t> timeout = std::nullopt)
       : SynapseDS(_name), tables(build_tables(table_names)), reg_liveness(reg_liveness_name),
         reg_integer_allocator_head(reg_integer_allocator_head_name), reg_integer_allocator_tail(reg_integer_allocator_tail_name),
         reg_integer_allocator_indexes(reg_integer_allocator_indexes_name), reg_integer_allocator_pending(reg_integer_allocator_pending_name),
-        digest(digest_name), capacity(get_capacity(reg_integer_allocator_indexes, reg_integer_allocator_pending, tables)),
+        regs_index_to_key(build_regs_index_to_key(regs_index_to_key)), digest(digest_name), pipelines(get_pipelines(reg_integer_allocator_indexes)),
+        capacity(get_capacity(reg_integer_allocator_indexes, reg_integer_allocator_pending, tables, pipelines)),
         cache_capacity(reg_liveness.get_capacity()), key_size(get_key_size(tables)), cache_hash_size(get_cache_hash_size(cache_capacity)), crc32() {
-    init_tail();
-
-    // If you pay close attention, you'll see that we leave one index unused (capacity-1).
-    // This is because we use a circular buffer approach, and we need a way to distinguish between available and full states.
-    for (u32 i = 0; i < tail; i++) {
-      free_indexes.insert(i);
-      reg_integer_allocator_indexes.set(i, i);
+    const u16 capacity_per_pipe = capacity / pipelines;
+    for (u16 pipe_id = 0; pipe_id < pipelines; pipe_id++) {
+      tails_per_pipe[pipe_id]         = capacity_per_pipe - 1;
+      expected_head_per_pipe[pipe_id] = 0;
+      reg_integer_allocator_head.set(0, 0, pipe_id);
+      reg_integer_allocator_tail.set(0, capacity_per_pipe - 1, pipe_id);
+      for (u32 i = 0; i <= tails_per_pipe[pipe_id]; i++) {
+        reg_integer_allocator_indexes.set(i, capacity_per_pipe * pipe_id + i, pipe_id);
+      }
     }
 
     if (timeout.has_value()) {
@@ -73,22 +78,22 @@ public:
     return true;
   }
 
-  void put(const buffer_t &k, u32 v) {
+  bool put(const buffer_t &k, u32 v) {
     if (cache.size() >= capacity) {
       LOG("WARNING: Attempted to add key to map, but map is full (capacity=%u)", capacity);
-      return;
+      return false;
     }
 
     if (get(k, v)) {
       LOG_DEBUG("Key %s already present in cache with value %u, skipping put", k.to_string().c_str(), v);
-      return;
+      return false;
     }
 
     buffer_t value(4);
     value.set(0, 4, v);
 
     for (Table &table : tables) {
-      LOG_DEBUG("[%s] Put key %s value %u", table.get_name().c_str(), k.to_string().c_str(), v);
+      // LOG_DEBUG("[%s] Put key %s value %u", table.get_name().c_str(), k.to_string().c_str(), v);
 
       const std::vector<table_action_t> &actions = table.get_actions();
       assert(actions.size() == 1);
@@ -98,6 +103,7 @@ public:
     }
 
     cache[k] = v;
+    return true;
   }
 
   void del(const buffer_t &k) {
@@ -112,8 +118,16 @@ public:
     }
 
     const u32 index = found_it->second;
-    free_indexes.insert(index);
-    advance_tail(index);
+
+    const u16 capacity_per_pipe = capacity / pipelines;
+    const bf_dev_pipe_t pipe_id = index / capacity_per_pipe;
+    const u16 new_tail          = (tails_per_pipe[pipe_id] + 1) % capacity_per_pipe;
+
+    LOG_DEBUG("[pipe=%u] Storing index (%u) at tail (%u) and setting tail = %u", pipe_id, index, tails_per_pipe[pipe_id], new_tail);
+
+    reg_integer_allocator_indexes.set(tails_per_pipe[pipe_id], index, pipe_id);
+    tails_per_pipe[pipe_id] = new_tail;
+    reg_integer_allocator_tail.set(0, tails_per_pipe[pipe_id], pipe_id);
 
     cache.erase(found_it);
   }
@@ -138,31 +152,6 @@ public:
   }
 
 private:
-  void init_tail() {
-    tail = capacity - 1;
-    reg_integer_allocator_tail.set(0, tail);
-  }
-
-  void advance_tail(u32 new_index) {
-    LOG_DEBUG("Storing index (%u) at tail (%u) and incrementing tail", new_index, tail);
-    reg_integer_allocator_indexes.set(tail, new_index);
-    tail = (tail + 1) % capacity;
-    reg_integer_allocator_tail.set(0, tail);
-  }
-
-  void migrate_to_tables(const buffer_t &index) {
-    const u32 index_value = index.get();
-
-    free_indexes.erase(index_value);
-
-    for (Table &table : tables) {
-      LOG_DEBUG("[%s] Populating with index %s (%u)", table.get_name().c_str(), index.to_string().c_str(), index_value);
-      table.add_or_mod_entry(index);
-    }
-
-    reg_integer_allocator_pending.set(index_value, 0);
-  }
-
   static void expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {
     cfg.begin_dataplane_notification_transaction();
 
@@ -212,25 +201,48 @@ private:
     for (const std::unique_ptr<bfrt::BfRtLearnData> &data_entry : learn_data) {
       const buffer_t diggest_buffer = fcfs_ct->digest.get_value(data_entry.get());
 
-      const buffer_t key = diggest_buffer.get_slice(0, fcfs_ct->key_size);
-      const u32 index    = diggest_buffer.get(fcfs_ct->key_size, 4);
+      const u32 integer_allocator_head = diggest_buffer.get(0, 4);
+      const buffer_t key               = diggest_buffer.get_slice(4, fcfs_ct->key_size);
+      const u32 index                  = diggest_buffer.get(4 + fcfs_ct->key_size, 4);
 
-      LOG_DEBUG("[%s] Digest callback invoked (data=%s key=%s index=%x hash=%x)", fcfs_ct->digest.get_name().c_str(),
+      LOG_DEBUG("[%s] Digest callback invoked (data=%s key=%s index=0x%x hash=0x%x)", fcfs_ct->digest.get_name().c_str(),
                 diggest_buffer.to_string(true).c_str(), key.to_string(true).c_str(), index,
                 fcfs_ct->crc32.hash(key) & ((1 << fcfs_ct->cache_hash_size) - 1));
 
-      if (fcfs_ct->cache.contains(key)) {
-        continue;
-      }
-
       fcfs_ct->put(key, index);
 
-      fcfs_ct->reg_integer_allocator_pending.set(index, 0);
-      fcfs_ct->free_indexes.erase(index);
+      const u16 pipe_id = index / (fcfs_ct->capacity / fcfs_ct->pipelines);
+      fcfs_ct->reg_integer_allocator_pending.set(index, 0, pipe_id);
+
+      // TODO: check if we lose digests, keep track of the expected head
+      LOG_DEBUG("pipe_id=%u head=%u expected=%u", pipe_id, integer_allocator_head, fcfs_ct->expected_head_per_pipe[pipe_id]);
+
+      if (integer_allocator_head != fcfs_ct->expected_head_per_pipe[pipe_id]) {
+        LOG_DEBUG("******* WARNING: Digest integer allocator head (%u) does not match expected head (%u) on pipe %u. Fixing this.",
+                  integer_allocator_head, fcfs_ct->expected_head_per_pipe[pipe_id], pipe_id);
+
+        for (u32 missed_head = fcfs_ct->expected_head_per_pipe[pipe_id]; missed_head != integer_allocator_head;
+             missed_head     = (missed_head + 1) % (fcfs_ct->capacity / fcfs_ct->pipelines)) {
+          const u32 missed_index = fcfs_ct->reg_integer_allocator_indexes.get_per_pipe(missed_head)[pipe_id];
+          buffer_t missed_key(fcfs_ct->key_size);
+          bytes_t offset = 0;
+          for (Register &reg_key : fcfs_ct->regs_index_to_key) {
+            const bytes_t value_size = reg_key.get_value_size() / 8;
+            const u32 value          = reg_key.get_per_pipe(missed_index)[pipe_id];
+            missed_key.set(offset, value_size, value);
+            offset += value_size;
+          }
+          fcfs_ct->put(missed_key, missed_index);
+          fcfs_ct->reg_integer_allocator_pending.set(missed_index, 0, pipe_id);
+          const u32 missed_hash = fcfs_ct->crc32.hash(missed_key) & ((1 << fcfs_ct->cache_hash_size) - 1);
+          fcfs_ct->reg_liveness.set(missed_hash, 0, pipe_id);
+        }
+      }
+
+      fcfs_ct->expected_head_per_pipe[pipe_id] = (integer_allocator_head + 1) % (fcfs_ct->capacity / fcfs_ct->pipelines);
 
       const u32 hash = fcfs_ct->crc32.hash(key) & ((1 << fcfs_ct->cache_hash_size) - 1);
-      LOG_DEBUG("Setting liveness register at hash %x to 0", hash);
-      fcfs_ct->reg_liveness.set(hash, 0);
+      fcfs_ct->reg_liveness.set(hash, 0, pipe_id);
     }
 
     fcfs_ct->digest.notify_ack(learn_msg_hdl);
@@ -251,9 +263,23 @@ private:
     return tables;
   }
 
+  static std::vector<Register> build_regs_index_to_key(const std::vector<std::string> &regs_index_to_key) {
+    assert(!regs_index_to_key.empty() && "Register keys names must not be empty");
+
+    std::vector<Register> regs_keys;
+    for (const std::string &reg_key_name : regs_index_to_key) {
+      regs_keys.emplace_back(reg_key_name);
+    }
+
+    return regs_keys;
+  }
+
+  static u32 get_pipelines(Register &reg_integer_allocator_indexes) { return reg_integer_allocator_indexes.get_per_pipe(0).size(); }
+
   static u32 get_capacity(const Register &reg_integer_allocator_indexes, const Register &reg_integer_allocator_pending,
-                          const std::vector<Table> &tables) {
-    const u32 capacity = reg_integer_allocator_indexes.get_capacity();
+                          const std::vector<Table> &tables, u32 pipelines) {
+    const u32 integer_allocator_capacity_per_pipe = reg_integer_allocator_indexes.get_capacity();
+    const u32 capacity                            = integer_allocator_capacity_per_pipe * pipelines;
 
     assert(reg_integer_allocator_pending.get_capacity() == capacity);
     for (const Table &table : tables) {

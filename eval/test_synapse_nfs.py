@@ -19,8 +19,8 @@ STORAGE_SERVER_DELAY_NS = 0
 KVS_GET_RATIO = 0.99
 
 TOTAL_FLOWS = 40_000
-CHURN_FPM = 10_000
-ZIPF_PARAM = 1
+CHURN_FPM = 1_000_000
+ZIPF_PARAM = 1_2
 
 
 @dataclass
@@ -86,16 +86,16 @@ NFS = [
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
-    SynapseNF(
-        name="synapse-kvs-guardedmaptable",
-        description="Synapse KVS GuardedMapTable",
-        kvs_mode=True,
-        tofino=Path("synthesized/synapse-kvs-guardedmaptable.p4"),
-        controller=Path("synthesized/synapse-kvs-guardedmaptable.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
-    ),
+    # SynapseNF(
+    #     name="synapse-kvs-guardedmaptable",
+    #     description="Synapse KVS GuardedMapTable",
+    #     kvs_mode=True,
+    #     tofino=Path("synthesized/synapse-kvs-guardedmaptable.p4"),
+    #     controller=Path("synthesized/synapse-kvs-guardedmaptable.cpp"),
+    #     broadcast=lambda ports: ports,
+    #     symmetric=lambda _: [],
+    #     route=lambda _: [],
+    # ),
     # SynapseNF(
     #     name="synapse-fw",
     #     description="Synapse FW",
@@ -126,6 +126,16 @@ NFS = [
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
+    SynapseNF(
+        name="synapse-fw-fcfs-ct",
+        description="Synapse FW FCFS CT",
+        kvs_mode=False,
+        tofino=Path("tofino/experiments/fcfs_cached_table/fcfs_cached_table.p4"),
+        controller=Path("tofino/experiments/fcfs_cached_table/fcfs_cached_table.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+    ),
 ]
 
 
@@ -230,10 +240,10 @@ class Test(Experiment):
         self.log("Launching pktgen")
         self.tput_hosts.pktgen.close()
         self.tput_hosts.pktgen.launch(
-            nb_flows=self.total_flows,
+            nb_flows=int(self.total_flows / 4),
             traffic_dist=TrafficDist.ZIPF,
             zipf_param=self.zipf_param,
-            kvs_mode=True,
+            kvs_mode=self.kvs_mode,
             kvs_get_ratio=KVS_GET_RATIO,
         )
 
@@ -242,7 +252,7 @@ class Test(Experiment):
         report = self.find_stable_throughput(
             tg_controller=self.tput_hosts.tg_controller,
             pktgen=self.tput_hosts.pktgen,
-            churn=self.churn_fpm,
+            churn=int(self.churn_fpm / 4),
         )
 
         tx_Gbps = report.dut_ingress_bps / 1e9

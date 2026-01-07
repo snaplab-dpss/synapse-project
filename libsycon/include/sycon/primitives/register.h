@@ -21,6 +21,7 @@ public:
   u32 get_min(u32 i);
 
   void set(u32 i, u32 value);
+  void set(u32 i, u32 value, u16 pipe_id);
   void overwrite_all_entries(u32 value);
 
   bits_t get_value_size() const;
