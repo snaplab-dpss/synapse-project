@@ -683,7 +683,6 @@ void sycon::nf_user_signal_handler() {}
 void sycon::nf_args(CLI::App &app) {}
 
 struct cpu_hdr_extra_t {
-  u32 new_index;
   u32 DEVICE;
 } __attribute__((packed));
 
@@ -703,7 +702,7 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   key.set(8, 2, bswap16(udp_hdr->src_port));
   key.set(10, 2, bswap16(udp_hdr->dst_port));
 
-  state->fcfs_cached_table.put(key, bswap16(cpu_hdr_extra->new_index));
+  state->fcfs_cached_table.allocate_index_and_put(key);
 
   buffer_t value_2;
   state->vector_table_1074094376.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_2);

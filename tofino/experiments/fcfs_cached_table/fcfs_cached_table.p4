@@ -34,8 +34,9 @@ const bit<8> KVS_STATUS_HIT = 1;
 const bit<8> KVS_OP_GET = 0;
 const bit<8> KVS_OP_PUT = 1;
 
-const bit<32> HASH_SALT_1 = 0xfbc31fc7;
-const bit<32> HASH_SALT_2 = 0x2681580b;
+const bit<32> HASH_SALT_0 = 0xfbc31fc7;
+const bit<32> HASH_SALT_1 = 0x2681580b;
+const bit<32> HASH_SALT_2 = 0x486d7e2f;
 
 enum bit<2> fwd_op_t {
 	FORWARD_NF_DEV	= 0,
@@ -44,8 +45,10 @@ enum bit<2> fwd_op_t {
 	DROP 			= 3,
 }
 
+// Entry Timeout Expiration (units of 65536 ns).
+#define ENTRY_TIMEOUT 16384 // 1 s
+
 #define FCFS_CT_CAPACITY 65536
-#define FCFS_CT_INT_ALLOC_CAPACITY (FCFS_CT_CAPACITY / 4)
 
 #define FCFS_CT_CACHE_CAPACITY 65536
 typedef bit<16> fcfs_ct_cache_hash_t;
@@ -54,10 +57,8 @@ typedef bit<16> fcfs_ct_cache_hash_t;
 
 header cpu_h {
 	bit<16>	code_path;                   // Written by the data plane
-	bit<16> ingress_port;                // Written by the data plane
 	bit<16>	egress_dev;                  // Written by the control plane
 	bit<8>	trigger_dataplane_execution; // Written by the control plane
-	bit<32> new_index;
 	bit<32> dev;
 }
 
@@ -242,7 +243,6 @@ control Ingress(
 	action build_cpu_hdr(bit<16> code_path) {
 		hdr.cpu.setValid();
 		hdr.cpu.code_path = code_path;
-		hdr.cpu.ingress_port = meta.ingress_port;
 	}
 
 	action set_ingress_dev(bit<32> nf_dev) {
@@ -327,7 +327,7 @@ control Ingress(
 
 	Register<bit<32>, _>(1, 0) fcfs_ct_integer_allocator_head_reg;
 	Register<bit<32>, _>(1, 0) fcfs_ct_integer_allocator_tail_reg;
-	Register<bit<32>, _>(FCFS_CT_INT_ALLOC_CAPACITY, 0) fcfs_ct_integer_allocator_indexes_reg;
+	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_integer_allocator_indexes_reg;
 	Register<bit<8>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_integer_allocator_pending_reg;
 
 	RegisterAction<bit<8>, bit<32>, bool>(fcfs_ct_integer_allocator_pending_reg) fcfs_ct_integer_allocator_pending_read = {
@@ -356,7 +356,7 @@ control Ingress(
 		void apply(inout bit<32> head, out bit<32> out_head) {
 			out_head = head;
 			if (meta.fcfs_ct_integer_allocator_tail != head) {
-				if (head == FCFS_CT_INT_ALLOC_CAPACITY - 1) {
+				if (head == FCFS_CT_CAPACITY - 1) {
 					head = 0;
 				} else {
 					head = head + 1;
@@ -383,26 +383,27 @@ control Ingress(
 		});
 	}
 
-	Register<bit<8>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_liveness_reg;
+	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_liveness_reg;
 
-	RegisterAction<bit<8>, fcfs_ct_cache_hash_t, bool>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check = {
-		void apply(inout bit<8> is_alive, out bool out_is_alive) {
-			if (is_alive == 0) {
+	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, bool>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check = {
+		void apply(inout bit<32> alarm_ts, out bool out_is_alive) {
+			if (meta.time > alarm_ts) {
 				out_is_alive = false;
 			} else {
 				out_is_alive = true;
+				alarm_ts = meta.time + ENTRY_TIMEOUT;
 			}
 		}
 	};
 
-	RegisterAction<bit<8>, fcfs_ct_cache_hash_t, bool>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check_and_set = {
-		void apply(inout bit<8> is_alive, out bool out_is_alive) {
-			if (is_alive == 0) {
+	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, bool>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check_and_set = {
+		void apply(inout bit<32> alarm_ts, out bool out_is_alive) {
+			if (meta.time > alarm_ts) {
 				out_is_alive = false;
 			} else {
 				out_is_alive = true;
 			}
-			is_alive = 1;
+			alarm_ts = meta.time + ENTRY_TIMEOUT;
 		}
 	};
 
@@ -598,6 +599,7 @@ control Ingress(
 				meta.fcfs_ct_key_2 = hdr.udp.src_port;
 				meta.fcfs_ct_key_3 = hdr.udp.dst_port;
 				bool found = fcfs_ct_table_1.apply().hit;
+				bool new_index_allocated = false;
 				bool index_allocation_failed = false;
 				bool collision_detected = false;
 				if (!found) {
@@ -613,21 +615,22 @@ control Ingress(
 							collision_detected = true;
 						} else {
 							found = true;
-							fcfs_ct_read_value_execute();
 						}
 					} else {
 						fcfs_ct_write_key_0_execute();
 						fcfs_ct_write_key_1_execute();
 						fcfs_ct_write_key_2_execute();
 						fcfs_ct_write_key_3_execute();
+					}
 
+					if (!fcfs_ct_is_alive) {
 						meta.fcfs_ct_integer_allocator_tail = fcfs_ct_integer_allocator_tail_read.execute(0);
 						meta.fcfs_ct_integer_allocator_head = fcfs_ct_integer_allocator_head_inc.execute(0);
 						if (meta.fcfs_ct_integer_allocator_head != meta.fcfs_ct_integer_allocator_tail) {
 							meta.fcfs_ct_value = fcfs_ct_integer_allocator_indexes_read.execute(meta.fcfs_ct_integer_allocator_head);
 							fcfs_ct_integer_allocator_pending_set.execute(meta.fcfs_ct_value);
-							fcfs_ct_write_value_execute();
 							ig_dprsr_md.digest_type = 1;
+							new_index_allocated = true;
 
 							fcfs_ct_write_index_to_key_0.execute(meta.fcfs_ct_value);
 							fcfs_ct_write_index_to_key_1.execute(meta.fcfs_ct_value);
@@ -636,6 +639,12 @@ control Ingress(
 						} else {
 							index_allocation_failed = true;
 						}
+					}
+
+					if (found) {
+						fcfs_ct_read_value_execute();
+					} else if (new_index_allocated) {
+						fcfs_ct_write_value_execute();
 					}
 				}
 
@@ -648,12 +657,9 @@ control Ingress(
 					fwd_op = fwd_op_t.DROP;
 				} else if (collision_detected) {
 					// Write success (control plane)
-					// FIXME: uncomment this
-					// fwd_op = fwd_op_t.FORWARD_TO_CPU;
-					// build_cpu_hdr(0);
-					// hdr.cpu.new_index = meta.fcfs_ct_value;
-					// hdr.cpu.dev = meta.dev;
-					fwd_op = fwd_op_t.DROP; // FIXME: remove this
+					fwd_op = fwd_op_t.FORWARD_TO_CPU;
+					build_cpu_hdr(0);
+					hdr.cpu.dev = meta.dev;
 				} else {
 					// Read success
 					// Write success (data plane)
