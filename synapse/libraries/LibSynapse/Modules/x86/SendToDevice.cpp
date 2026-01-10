@@ -112,16 +112,16 @@ std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNod
   klee::ref<klee::Expr> next_target_expr = call.args.at("next_target").expr;
   klee::ref<klee::Expr> code_path        = call.args.at("code_path").expr;
 
-  bits_t width                       = next_target_expr->getWidth();
-  const klee::ConstantExpr *constant = dynamic_cast<const klee::ConstantExpr *>(next_target_expr.get());
+  bits_t width = next_target_expr->getWidth();
+  // const klee::ConstantExpr *constant = dynamic_cast<const klee::ConstantExpr *>(next_target_expr.get());
 
   assert(width <= 64 && "Width too big");
-  InstanceId next_target_id = constant->getZExtValue(width);
+  // InstanceId next_target_id = constant->getZExtValue(width);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
   Symbols symbols            = call_node->get_used_symbols();
 
-  Module *module   = new SendToDevice(get_type().instance_id, node, ep->get_target_by_id(next_target_id), outgoing_port, code_path, symbols);
+  Module *module   = new SendToDevice(get_type().instance_id, node, outgoing_port, code_path, symbols);
   EPNode *s2d_node = new EPNode(module);
 
   EPNode *ep_node_leaf = s2d_node;

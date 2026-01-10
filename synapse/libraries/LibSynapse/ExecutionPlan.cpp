@@ -1067,6 +1067,11 @@ const TargetType EP::get_target_by_id(const InstanceId instance_id) const {
     }
   }
 
+  std::cerr << "EP Targets:\n";
+  for (const std::pair<const TargetView, bool> &target : targets.elements) {
+    std::cerr << "  " << target.first.type << "\n";
+  }
+  std::cerr << "Requested target instance ID: " << instance_id << "\n";
   panic("Target not found");
   return TargetType{TargetArchitecture::x86, 0};
 }

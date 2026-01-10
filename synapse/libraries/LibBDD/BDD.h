@@ -8,6 +8,7 @@
 #include <LibBDD/Nodes/NodeManager.h>
 #include <LibBDD/Config.h>
 #include <LibBDD/Visitors/BDDVisualizer.h>
+#include <klee/Constraints.h>
 
 namespace LibBDD {
 
@@ -102,7 +103,9 @@ public:
   // A valid BDD should always pass this check.
   [[nodiscard]] inspection_report_t inspect() const;
 
+  klee::ConstraintManager get_constraints() const;
   klee::ConstraintManager get_constraints(const BDDNode *node) const;
+  void add_base_constraint(klee::ref<klee::Expr> constraint) { base_constraints.addConstraint(constraint); }
   bool get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const;
   bool get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing_objs_t &map_objs) const;
   bool get_map_coalescing_objs_from_dchain_op(const Call *dchain_op, map_coalescing_objs_t &map_objs) const;

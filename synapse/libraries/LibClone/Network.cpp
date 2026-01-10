@@ -1,3 +1,4 @@
+#include "LibClone/NF.h"
 #include <LibClone/Network.h>
 
 #include <LibCore/Debug.h>
@@ -10,6 +11,7 @@
 #include <unordered_map>
 #include <memory>
 #include <filesystem>
+#include <set>
 
 namespace LibClone {
 
@@ -55,7 +57,8 @@ std::ifstream open_file(const std::string &path) {
   return fstream;
 }
 
-std::unique_ptr<NF> parse_nf(const std::vector<std::string> &words, const std::filesystem::path &network_file, SymbolManager *symbol_manager) {
+std::unique_ptr<NF> parse_nf(const std::vector<std::string> &words, const std::filesystem::path &network_file, SymbolManager *symbol_manager,
+                             const NFCounter &counter) {
   if (words.size() != LENGTH_NF_INPUT) {
     panic("Invalid network function");
   }
@@ -68,7 +71,7 @@ std::unique_ptr<NF> parse_nf(const std::vector<std::string> &words, const std::f
     path = network_file.parent_path() / path;
   }
 
-  return std::make_unique<NF>(id, path, symbol_manager);
+  return std::make_unique<NF>(counter, id, path, symbol_manager);
 }
 
 void parse_link(const std::vector<std::string> &words, const std::unordered_map<NFId, std::unique_ptr<NF>> &nfs,
@@ -257,19 +260,32 @@ BDDNode *build_chain_of_device_checking_branches(BDD &bdd, klee::ref<klee::Expr>
   return root;
 }
 
-symbol_t create_translation_symbol(SymbolManager *symbol_manager, const symbol_t &symbol, const BDDNode *node_creating_symbol) {
+bool has_translation_symbol(SymbolManager *symbol_manager, const symbol_t &symbol, const BDDNode *node_creating_symbol, const NFCounter &counter) {
+  const std::string new_name = symbol.base + "_c" + std::to_string(node_creating_symbol->get_id()) + std::to_string(counter);
+  return symbol_manager->has_symbol(new_name);
+}
+
+symbol_t retreive_translation_symbol(SymbolManager *symbol_manager, const symbol_t &symbol, const BDDNode *node_creating_symbol,
+                                     const NFCounter &counter) {
+  const std::string new_name = symbol.base + "_c" + std::to_string(node_creating_symbol->get_id()) + std::to_string(counter);
+  assert(symbol_manager->has_symbol(new_name) && "Symbol should exist in the symbol manager");
+  return symbol_manager->get_symbol(new_name);
+}
+
+symbol_t create_translation_symbol(SymbolManager *symbol_manager, const symbol_t &symbol, const BDDNode *node_creating_symbol,
+                                   const NFCounter &counter) {
   // We have to make sure this new symbol name does not collide with any existing symbol.
   // In the BDD reordering logic, we append "_r" to the symbol name to ensure this, where "r" comes from "reordering".
   // Here, we append "_c", where "c" comes from "consolidate".
-  const std::string new_name = symbol.base + "_c" + std::to_string(node_creating_symbol->get_id());
+  const std::string new_name = symbol.base + "_c" + std::to_string(node_creating_symbol->get_id()) + std::to_string(counter);
   assert(!symbol_manager->has_symbol(new_name) && "Symbol should not exist in the symbol manager");
   const symbol_t new_symbol = symbol_manager->create_symbol(new_name, symbol.expr->getWidth());
   return new_symbol;
 }
 
-void translate_symbols(SymbolManager *symbol_manager, BDDNode *root) {
+void translate_symbols(SymbolManager *symbol_manager, BDDNode *root, const NFCounter &counter) {
   const std::unordered_set<std::string> symbols_never_translated{"device", "port", "packet_chunks"};
-  root->visit_mutable_nodes([symbol_manager, &symbols_never_translated](BDDNode *node) {
+  root->visit_mutable_nodes([symbol_manager, &symbols_never_translated, counter](BDDNode *node) {
     if (node->get_type() != BDDNodeType::Call) {
       return BDDNodeVisitAction::Continue;
     }
@@ -281,8 +297,14 @@ void translate_symbols(SymbolManager *symbol_manager, BDDNode *root) {
       if (symbols_never_translated.find(symbol.name) != symbols_never_translated.end()) {
         continue;
       }
-      const symbol_t new_symbol = create_translation_symbol(symbol_manager, symbol, node);
-      node->recursive_translate_symbol(symbol, new_symbol);
+
+      if (has_translation_symbol(symbol_manager, symbol, node, counter)) {
+        const symbol_t new_symbol = retreive_translation_symbol(symbol_manager, symbol, node, counter);
+        node->recursive_translate_symbol(symbol, new_symbol);
+      } else {
+        const symbol_t new_symbol = create_translation_symbol(symbol_manager, symbol, node, counter);
+        node->recursive_translate_symbol(symbol, new_symbol);
+      }
     }
 
     return BDDNodeVisitAction::Continue;
@@ -407,7 +429,8 @@ void reset_data_structure_address(BDD &bdd, Call *init, BDDNode *root) {
   init->visit_mutable_nodes(addr_resetter);
 }
 
-void store_cloned_and_translated_init_symbols(BDD &bdd, BDDNode *root, const std::vector<Call *> &init) {
+std::vector<symbol_translation_t> store_cloned_and_translated_init_symbols(BDD &bdd, BDDNode *root, const std::vector<Call *> &init,
+                                                                           const NFCounter &counter, bool init_not_processed) {
   std::vector<Call *> new_init;
   std::vector<symbol_translation_t> translations;
   for (const Call *call : init) {
@@ -415,8 +438,13 @@ void store_cloned_and_translated_init_symbols(BDD &bdd, BDDNode *root, const std
     new_call->set_local_symbols(call->get_local_symbols());
 
     for (const symbol_t &symbol : call->get_local_symbols().get()) {
-      const symbol_t new_symbol = create_translation_symbol(bdd.get_mutable_symbol_manager(), symbol, new_call);
-      translations.emplace_back(symbol, new_symbol);
+      if (init_not_processed) {
+        const symbol_t new_symbol = create_translation_symbol(bdd.get_mutable_symbol_manager(), symbol, new_call, counter);
+        translations.emplace_back(symbol, new_symbol);
+      } else {
+        const symbol_t new_symbol = retreive_translation_symbol(bdd.get_mutable_symbol_manager(), symbol, new_call, counter);
+        translations.emplace_back(symbol, new_symbol);
+      }
     }
 
     if (!new_init.empty()) {
@@ -436,13 +464,15 @@ void store_cloned_and_translated_init_symbols(BDD &bdd, BDDNode *root, const std
   }
 
   std::vector<Call *> current_init = bdd.get_init();
-  if (!current_init.empty()) {
-    current_init.back()->set_next(new_init.front());
-    new_init.front()->set_prev(current_init.back());
-  }
+  if (init_not_processed) {
+    if (!current_init.empty()) {
+      current_init.back()->set_next(new_init.front());
+      new_init.front()->set_prev(current_init.back());
+    }
 
-  current_init.insert(current_init.end(), new_init.begin(), new_init.end());
-  bdd.set_init(current_init);
+    current_init.insert(current_init.end(), new_init.begin(), new_init.end());
+    bdd.set_init(current_init);
+  }
 
   if (!current_init.empty()) {
     for (const symbol_translation_t &translation : translations) {
@@ -450,9 +480,36 @@ void store_cloned_and_translated_init_symbols(BDD &bdd, BDDNode *root, const std
       root->recursive_translate_symbol(translation.old_symbol, translation.new_symbol);
     }
   }
+
+  if (init_not_processed) {
+    return translations;
+  } else {
+    return {};
+  }
 }
 
-BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *network_node, Port port) {
+void store_cloned_and_translated_constraint_symbols(BDD &bdd, klee::ConstraintManager nf_constraints,
+                                                    std::vector<symbol_translation_t> translations) {
+
+  std::unordered_map<std::string, std::string> translation_map;
+
+  if (translations.empty()) {
+    return;
+  }
+
+  for (const auto &t : translations) {
+    translation_map[t.old_symbol.name] = t.new_symbol.name;
+  }
+
+  SymbolManager *symbol_manager = bdd.get_mutable_symbol_manager();
+
+  for (klee::ref<klee::Expr> constraint : nf_constraints) {
+    klee::ref<klee::Expr> translated_constraint = symbol_manager->translate(constraint, translation_map);
+    bdd.add_base_constraint(translated_constraint);
+  }
+}
+
+BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *network_node, Port port, std::unordered_set<NFId> &processed_nfs) {
   const std::string ctx = network_node->get_id() + ":" + std::to_string(port);
 
   BDDNode *root = nullptr;
@@ -468,16 +525,18 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
   } break;
   case NetworkNodeType::NF: {
     const NF *nf                             = network_node->get_nf();
+    const bool init_already_processed        = processed_nfs.find(nf->get_id()) == processed_nfs.end();
     const std::vector<bdd_vector_t> sections = get_bdd_sections_handling_port(nf->get_bdd(), port);
 
     root = stitch_bdd_sections(bdd, nf, sections);
-    store_cloned_and_translated_init_symbols(bdd, root, nf->get_bdd().get_init());
-    translate_symbols(bdd.get_mutable_symbol_manager(), root);
+    std::vector<symbol_translation_t> translations =
+        store_cloned_and_translated_init_symbols(bdd, root, nf->get_bdd().get_init(), nf->get_counter(), init_already_processed);
+    store_cloned_and_translated_constraint_symbols(bdd, nf->get_bdd().get_constraints(), translations);
+
+    translate_symbols(bdd.get_mutable_symbol_manager(), root, nf->get_counter());
+
+    processed_nfs.insert(nf->get_id());
   } break;
-  case NetworkNodeType::Device: {
-    panic("Consolidation file contains a device node, which is not supported");
-    break;
-  }
   }
 
   assert(root && "Root node should not be null");
@@ -495,7 +554,7 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
           const Port dst_network_node_port                = link.first;
           const NetworkNode *dst_network_node             = link.second;
           std::cerr << "  [" << ctx << "] Forwards to " << dst_device << " (" << dst_network_node->get_id() << ":" << dst_network_node_port << ")\n";
-          BDDNode *new_node = build_network_node_bdd_from_local_port(bdd, dst_network_node, dst_network_node_port);
+          BDDNode *new_node = build_network_node_bdd_from_local_port(bdd, dst_network_node, dst_network_node_port, processed_nfs);
           replace_route_with_node(bdd, route, new_node);
         } else {
           std::cerr << "  [" << ctx << "] Forwards to local port " << dst_device << " without virtual link (dropping)\n";
@@ -515,7 +574,7 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
           if (solver_toolbox.is_expr_maybe_true(leaf_constraints, handles_port)) {
             std::cerr << "  [" << ctx << "] May forward to " << local_port << " (" << dst_network_node->get_id() << ":" << dst_network_node_port
                       << ")\n";
-            BDDNode *new_node = build_network_node_bdd_from_local_port(bdd, dst_network_node, dst_network_node_port);
+            BDDNode *new_node = build_network_node_bdd_from_local_port(bdd, dst_network_node, dst_network_node_port, processed_nfs);
             per_device_logic.emplace_back(dst_network_node_port, new_node);
           }
         }
@@ -545,6 +604,8 @@ Network Network::parse(const std::filesystem::path &network_file, SymbolManager 
   std::unordered_map<NFId, std::unique_ptr<NF>> nfs;
   std::unordered_map<NetworkNodeId, std::unique_ptr<NetworkNode>> nodes;
 
+  NFCounter nf_counter = 0;
+
   std::string line;
   while (getline(fstream, line)) {
     std::stringstream ss(line);
@@ -562,7 +623,7 @@ Network Network::parse(const std::filesystem::path &network_file, SymbolManager 
     const std::string type = words[0];
 
     if (type == TOKEN_CMD_NF) {
-      std::unique_ptr<NF> nf = parse_nf(words, network_file, symbol_manager);
+      std::unique_ptr<NF> nf = parse_nf(words, network_file, symbol_manager, nf_counter++);
       const NFId nf_id       = nf->get_id();
       nfs[nf->get_id()]      = std::move(nf);
     } else if (type == TOKEN_CMD_LINK) {
@@ -600,6 +661,8 @@ BDD Network::build_new_bdd() const {
 BDD Network::consolidate() const {
   BDD bdd = build_new_bdd();
 
+  std::unordered_set<NFId> processed_nfs;
+
   std::vector<std::pair<Port, BDDNode *>> per_device_logic;
   for (const auto &[node_id, node] : nodes) {
     if (node->get_node_type() != NetworkNodeType::GLOBAL_PORT) {
@@ -608,7 +671,7 @@ BDD Network::consolidate() const {
 
     for (const auto &[global_port, dport_node] : node->get_links()) {
       std::cerr << "Global port " << global_port << " -> " << dport_node.second->get_id() << ":" << dport_node.first << "\n";
-      BDDNode *next_node = build_network_node_bdd_from_local_port(bdd, dport_node.second, dport_node.first);
+      BDDNode *next_node = build_network_node_bdd_from_local_port(bdd, dport_node.second, dport_node.first, processed_nfs);
       per_device_logic.emplace_back(global_port, next_node);
     }
   }
@@ -642,10 +705,6 @@ ClusterViz Network::build_clusterviz() const {
       case NetworkNodeType::NF: {
         nf_clusters.at(node->get_nf()->get_id()).nodes.insert(source_cluster_node);
       } break;
-      case NetworkNodeType::Device: {
-        panic("Consolidation file contains a device node, which is not supported");
-        break;
-      }
       }
 
       const Port destination_port         = destination.first;
@@ -659,10 +718,6 @@ ClusterViz Network::build_clusterviz() const {
       case NetworkNodeType::NF: {
         nf_clusters.at(destination_node->get_nf()->get_id()).nodes.insert(destination_cluster_node);
       } break;
-      case NetworkNodeType::Device: {
-        panic("Consolidation file contains a device node, which is not supported");
-        break;
-      }
       }
 
       Edge edge(source_cluster_node.id, destination_cluster_node.id);

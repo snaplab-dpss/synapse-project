@@ -56,6 +56,14 @@ public:
     });
   }
 
+  std::set<Port> get_ports() const {
+    std::set<Port> target_ports;
+    for (const auto &[sport, _] : links) {
+      target_ports.insert(sport);
+    }
+    return target_ports;
+  }
+
   const std::pair<Port, const InfrastructureNode *> &get_connected_node(const Port port) const {
     assert(links.find(port) != links.end());
     return links.at(port);

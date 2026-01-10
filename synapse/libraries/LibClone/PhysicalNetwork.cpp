@@ -1,4 +1,3 @@
-#include "LibClone/InfrastructureNode.h"
 #include <LibClone/PhysicalNetwork.h>
 
 #include <LibCore/Debug.h>
@@ -251,6 +250,11 @@ const std::unordered_map<LibSynapse::TargetType, bool> PhysicalNetwork::get_targ
   }
 
   return targets;
+}
+
+const std::set<Port> PhysicalNetwork::get_target_ports(const InfrastructureNodeId node_id) const {
+  const InfrastructureNode *node = get_node(node_id);
+  return node->get_ports();
 }
 
 const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &network_file) {

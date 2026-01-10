@@ -71,7 +71,8 @@ std::string symbol_t::base_from_name(std::string name) {
   // ([a-zA-Z_]*[a-zA-Z]) captures the base name
   // (?:_\\d+)? non-capturing group for optional _123 suffix
   // (?:__\\d+)? non-capturing group for optional __456 suffix
-  const std::regex pattern("^([a-zA-Z_]*[a-zA-Z])(?:_\\d+)?(?:__\\d+)?$");
+  // (?:_c\\d+)? non-capturing group for optional _c789 suffix
+  const std::regex pattern("^([a-zA-Z_]*[a-zA-Z])(?:_\\d+)?(?:__\\d+)?(?:_c\\d+)?$");
   std::smatch match_results;
   if (std::regex_match(name, match_results, pattern) && match_results.size() > 1) {
     return match_results[1];

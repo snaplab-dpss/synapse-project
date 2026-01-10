@@ -156,9 +156,9 @@ std::string to_string(TargetType target) {
 TargetsView::TargetsView(const std::unordered_map<TargetView, bool, TargetViewHasher> &_elements) : elements(_elements) {}
 
 TargetView TargetsView::get_initial_target() const {
-  for (const std::pair<TargetView, bool> &tv_pair : elements) {
-    if (tv_pair.second) {
-      return tv_pair.first;
+  for (const auto &[target_view, is_initial] : elements) {
+    if (is_initial) {
+      return target_view;
     }
   }
   panic("No initial target set");

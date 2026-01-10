@@ -1,10 +1,10 @@
-#include <LibClone/Placer.h>
 #include <LibSynapse/Search.h>
 #include <LibSynapse/Synthesizers/Synthesizers.h>
 #include <LibSynapse/Visualizers/EPVisualizer.h>
 #include <LibSynapse/Visualizers/SSVisualizer.h>
 #include <LibSynapse/Visualizers/ProfilerVisualizer.h>
 #include <LibSynapse/GlobalStats.h>
+#include <LibClone/Placer.h>
 #include <LibCore/Debug.h>
 
 #include <filesystem>
@@ -272,23 +272,24 @@ int main(int argc, char **argv) {
   const BDD bdd(args.input_bdd_file, &symbol_manager);
   const targets_config_t targets_config(args.targets_config_file);
   const LibClone::PhysicalNetwork phys_net = LibClone::PhysicalNetwork::parse(args.physical_infrastructure_file);
-  LibClone::Placer placer                  = LibClone::Placer(bdd, phys_net);
+  LibClone::NetworkPartitioner partitioner = LibClone::NetworkPartitioner(bdd, phys_net);
 
-  std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> target_bdds = placer.process();
-  std::cerr << "Retreived Target BDDs\n";
+  std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> target_bdds = partitioner.process();
 
   for (const auto &[target, target_bdd] : target_bdds) {
     std::unordered_map<LibSynapse::TargetType, bool> target_list = {{target, true}};
-    std::cout << target;
+    std::cerr << target << "\n";
+
+    if (target.type == TargetArchitecture::Tofino) {
+      target_list.insert({TargetType(TargetArchitecture::Controller, target.instance_id), false});
+    }
 
     const bdd_profile_t bdd_profile = build_bdd_profile(*target_bdd, args, targets_config.tofino_config.get_available_devs());
-    std::cerr << "CREATED BDD PROFILE\n";
-    const Profiler profiler = Profiler(target_bdd.get(), bdd_profile, targets_config.tofino_config.get_available_devs());
-    std::cerr << "CREATED BDD PROFILER\n";
+    const Profiler profiler         = Profiler(target_bdd.get(), bdd_profile, targets_config.tofino_config.get_available_devs());
 
     if (args.show_prof) {
       profiler.debug();
-      ProfilerViz::visualize(&bdd, profiler, true);
+      ProfilerViz::visualize(target_bdd.get(), profiler, true);
     }
 
     SearchEngine engine(*target_bdd, args.heuristic_opt, profiler, targets_config, args.search_config, target_list);

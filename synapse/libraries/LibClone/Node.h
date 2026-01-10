@@ -1,7 +1,6 @@
 #pragma once
 
 #include <LibCore/Types.h>
-#include <LibClone/Device.h>
 #include <LibClone/NF.h>
 
 #include <iostream>
@@ -16,22 +15,18 @@ namespace LibClone {
 using Port          = u32;
 using NetworkNodeId = std::string;
 
-enum class NetworkNodeType { GLOBAL_PORT, NF, Device };
+enum class NetworkNodeType { GLOBAL_PORT, NF };
 
 class NetworkNode {
 private:
   NetworkNodeId id;
   NetworkNodeType type;
   const NF *nf;
-  const Device *device;
   std::unordered_map<Port, std::pair<Port, const NetworkNode *>> links;
 
 public:
-  NetworkNode(const NetworkNodeId &_id, const NF *_nf) : id(_id), type(NetworkNodeType::NF), nf(_nf), device(nullptr) { assert(nf != nullptr); }
-  NetworkNode(const NetworkNodeId &_id, const Device *_device) : id(_id), type(NetworkNodeType::Device), nf(nullptr), device(_device) {
-    assert(device != nullptr);
-  }
-  NetworkNode(const NetworkNodeId &_id) : id(_id), type(NetworkNodeType::GLOBAL_PORT), nf(nullptr), device(nullptr) {}
+  NetworkNode(const NetworkNodeId &_id, const NF *_nf) : id(_id), type(NetworkNodeType::NF), nf(_nf) { assert(nf != nullptr); }
+  NetworkNode(const NetworkNodeId &_id) : id(_id), type(NetworkNodeType::GLOBAL_PORT), nf(nullptr) {}
 
   NetworkNodeId get_id() const { return id; }
   NetworkNodeType get_node_type() const { return type; }
@@ -40,12 +35,6 @@ public:
     assert(type == NetworkNodeType::NF);
     assert(nf != nullptr);
     return nf;
-  }
-
-  const Device *get_device() const {
-    assert(type == NetworkNodeType::Device);
-    assert(device != nullptr);
-    return device;
   }
 
   const std::unordered_map<Port, std::pair<Port, const NetworkNode *>> &get_links() const { return links; }

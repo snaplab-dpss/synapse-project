@@ -46,6 +46,7 @@ public:
   const std::vector<std::pair<Port, LibSynapse::TargetType>> find_path(const InfrastructureNodeId src_id, const InfrastructureNodeId dst_id) const;
   const std::unordered_map<LibSynapse::TargetType, bool> get_target_list(const ComponentId root_node = 1) const;
   const static PhysicalNetwork parse(const std::filesystem::path &file_path);
+  const std::set<Port> get_target_ports(const InfrastructureNodeId node_id) const;
 
   void add_placement(ComponentId component, LibSynapse::TargetType);
 

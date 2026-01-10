@@ -1,6 +1,7 @@
+#include <LibClone/Placer.h>
+
 #include <LibCore/Solver.h>
 #include <LibClone/Device.h>
-#include <LibClone/Placer.h>
 #include <LibClone/InfrastructureNode.h>
 
 #include <LibCore/Debug.h>
@@ -13,8 +14,6 @@
 #include <LibSynapse/Target.h>
 
 #include <cassert>
-#include <klee/Expr.h>
-#include <klee/util/Ref.h>
 #include <queue>
 #include <vector>
 #include <optional>
@@ -134,7 +133,6 @@ Branch *build_global_port_subgraph(std::unique_ptr<BDD> &_bdd, bdd_node_id_t roo
   const BDDNode *node = _bdd->get_node_by_id(root);
   assert(node && "Root node not found");
   assert(node->get_type() == BDDNodeType::Branch && "Root node not a branch");
-  std::cerr << "ROOT NODE: " << node->dump(true) << "\n";
 
   const Branch *branch = dynamic_cast<const Branch *>(node);
 
@@ -157,7 +155,6 @@ Branch *build_code_path_subgraph(std::unique_ptr<BDD> &_bdd, bdd_node_id_t root)
   const BDDNode *node = _bdd->get_node_by_id(root);
   assert(node && "Root node not found");
   assert(node->get_type() == BDDNodeType::Call && "Root node not a call");
-  std::cerr << "ROOT NODE: " << node->dump(true) << "\n";
 
   const Call *previous_s2d_call_node = dynamic_cast<const Call *>(node->get_prev());
   const call_t &call                 = previous_s2d_call_node->get_call();
@@ -211,11 +208,116 @@ std::vector<const BDDNode *> retreive_prev_hdr_parsing_ops(const BDDNode *node) 
   return hdr_parsing_ops;
 }
 
+void concretize_port(BDDNode *node, const InfrastructureNode *global_ports) {
+
+  if (!node) {
+    return;
+  }
+
+  switch (node->get_type()) {
+  case BDDNodeType::Branch: {
+
+    Branch *branch                          = dynamic_cast<Branch *>(node);
+    std::unordered_set<std::string> symbols = branch->get_used_symbols();
+
+    if (symbols.find("DEVICE") == symbols.end()) {
+      return;
+    }
+
+    klee::ref<klee::Expr> condition = branch->get_condition();
+
+    assert(condition->getKind() == klee::Expr::Kind::Eq && condition->getNumKids() == 2);
+
+    klee::ref<klee::Expr> left  = condition->getKid(0);
+    klee::ref<klee::Expr> right = condition->getKid(1);
+
+    assert(left->getKind() == klee::Expr::Kind::Constant);
+
+    u64 global_port = solver_toolbox.value_from_expr(left);
+    assert(global_ports->has_link(global_port));
+    const Port local_port = global_ports->get_link(global_port).first;
+
+    klee::ref<klee::Expr> new_condition = solver_toolbox.exprBuilder->Eq(right, solver_toolbox.exprBuilder->Constant(local_port, right->getWidth()));
+
+    branch->set_condition(new_condition);
+    break;
+  }
+
+  case BDDNodeType::Route: {
+
+    Route *route            = dynamic_cast<Route *>(node);
+    const RouteOp operation = route->get_operation();
+    switch (operation) {
+    case RouteOp::Forward: {
+
+      klee::ref<klee::Expr> dst_expr = route->get_dst_device();
+
+      u64 global_port = solver_toolbox.value_from_expr(dst_expr);
+      assert(global_ports->has_link(global_port));
+      const Port local_port = global_ports->get_link(global_port).first;
+
+      klee::ref<klee::Expr> new_dst_device = solver_toolbox.exprBuilder->Constant(local_port, dst_expr->getWidth());
+
+      route->set_dst_device(new_dst_device);
+
+      break;
+    }
+    default:
+      break;
+    }
+    break;
+  }
+
+  default:
+    break;
+  }
+}
+
+// void add_device_constraints(std::unique_ptr<BDD> &_bdd, std::set<Port> target_ports) {
+//   symbol_t device_symbol = _bdd->get_symbol_manager()->get_symbol("DEVICE");
+//
+//   // Retrieve max port value
+//   Port max_port = *target_ports.rbegin();
+//   std::cerr << "Max port value: " << max_port << "\n";
+//
+//   klee::ref<klee::Expr> range_constraint =
+//       solver_toolbox.exprBuilder->Ult(device_symbol.expr, solver_toolbox.exprBuilder->Constant(max_port + 1, sizeof(Port) * 8));
+//
+//   _bdd->add_base_constraint(range_constraint);
+//
+//   klee::ref<klee::Expr> drop_port_expr = solver_toolbox.exprBuilder->Constant(65535, sizeof(Port) * 8);
+//   klee::ref<klee::Expr> drop_in_expr   = solver_toolbox.exprBuilder->Eq(device_symbol.expr, drop_port_expr);
+//   klee::ref<klee::Expr> drop_expr      = solver_toolbox.exprBuilder->Not(drop_in_expr);
+//   _bdd->add_base_constraint(drop_expr);
+//
+//   klee::ref<klee::Expr> broadcast_port_expr = solver_toolbox.exprBuilder->Constant(65534, sizeof(Port) * 8);
+//   klee::ref<klee::Expr> broadcast_in_expr   = solver_toolbox.exprBuilder->Eq(device_symbol.expr, broadcast_port_expr);
+//   klee::ref<klee::Expr> broadcast_expr      = solver_toolbox.exprBuilder->Not(broadcast_in_expr);
+//   _bdd->add_base_constraint(broadcast_expr);
+//
+//   for (const Port port : target_ports) {
+//     std::cerr << "Target Port: " << port << "\n";
+//   }
+//
+//   for (Port i = 0; i < max_port + 1; i++) {
+//
+//     if (target_ports.find(i) != target_ports.end()) {
+//       continue;
+//     }
+//
+//     std::cerr << "Local Port: " << i << "\n";
+//
+//     klee::ref<klee::Expr> port_expr = solver_toolbox.exprBuilder->Constant(i, sizeof(Port) * 8);
+//     klee::ref<klee::Expr> in_expr   = solver_toolbox.exprBuilder->Eq(device_symbol.expr, port_expr);
+//     klee::ref<klee::Expr> out_expr  = solver_toolbox.exprBuilder->Not(in_expr);
+//     _bdd->add_base_constraint(out_expr);
+//   }
+// }
 } // namespace
 
-Placer::Placer(const BDD &_bdd, const PhysicalNetwork &_phys_net) : bdd(setup_bdd(_bdd)), phys_net(_phys_net) {}
+NetworkPartitioner::NetworkPartitioner(const BDD &_bdd, const PhysicalNetwork &_phys_net) : bdd(setup_bdd(_bdd)), phys_net(_phys_net) {}
 
-Symbols Placer::get_relevant_dataplane_state(std::unique_ptr<BDD> &new_bdd, const BDDNode *node, const bdd_node_ids_t &target_roots) {
+Symbols NetworkPartitioner::get_relevant_dataplane_state(std::unique_ptr<BDD> &new_bdd, const BDDNode *node, const bdd_node_ids_t &target_roots) {
   Symbols generated_symbols = node->get_prev_symbols(target_roots);
   generated_symbols.add(new_bdd->get_device());
   generated_symbols.add(new_bdd->get_time());
@@ -227,7 +329,7 @@ Symbols Placer::get_relevant_dataplane_state(std::unique_ptr<BDD> &new_bdd, cons
         const Call *call_node = dynamic_cast<const Call *>(prev_node);
         const call_t &call    = call_node->get_call();
 
-        if (call.function_name == "packet_parse_header_vars") {
+        if (call.function_name == "send_to_device") {
           Symbols prev_shared_symbols = shared_context[prev_node->get_id()];
           generated_symbols.add(prev_shared_symbols);
           break;
@@ -250,8 +352,8 @@ Symbols Placer::get_relevant_dataplane_state(std::unique_ptr<BDD> &new_bdd, cons
   return generated_symbols.intersect(future_used_symbols);
 }
 
-const std::vector<const BDDNode *> Placer::create_send_to_device_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id,
-                                                                      bdd_node_id_t next_node_id) {
+const std::vector<const BDDNode *> NetworkPartitioner::create_send_to_device_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id,
+                                                                                  bdd_node_id_t next_node_id) {
 
   std::vector<const BDDNode *> inserted_nodes;
 
@@ -316,17 +418,14 @@ const std::vector<const BDDNode *> Placer::create_send_to_device_node(std::uniqu
 
     Symbols symbols = get_relevant_dataplane_state(new_bdd, current_node, {});
     symbols.remove("packet_chunks");
-    symbols.remove("DEVICE");
     const Call *s2d = new_bdd->create_new_call(new_bdd->get_mutable_node_by_id(new_bdd->get_id()), call, symbols);
 
-    std::cerr << s2d->dump(true) << "\n";
     inserted_nodes.push_back(s2d);
 
     std::vector<const BDDNode *> hdr_parsing_ops = retreive_prev_hdr_parsing_ops(current_node);
     inserted_nodes.insert(inserted_nodes.end(), hdr_parsing_ops.begin(), hdr_parsing_ops.end());
 
     if (parse_header_vars_node.has_value()) {
-      std::cerr << parse_header_vars_node.value()->dump(true) << "\n";
       inserted_nodes.push_back(parse_header_vars_node.value());
     } else {
       panic("Failed to create parse_header_vars node");
@@ -336,7 +435,7 @@ const std::vector<const BDDNode *> Placer::create_send_to_device_node(std::uniqu
   return inserted_nodes;
 }
 
-BDDNode *Placer::create_parse_header_cpu_node(std::unique_ptr<BDD> &new_bdd) {
+BDDNode *NetworkPartitioner::create_parse_header_cpu_node(std::unique_ptr<BDD> &new_bdd) {
 
   const call_t call{
       .function_name = "packet_parse_header_cpu",
@@ -359,7 +458,8 @@ BDDNode *Placer::create_parse_header_cpu_node(std::unique_ptr<BDD> &new_bdd) {
   return parse_cpu;
 }
 
-std::optional<BDDNode *> Placer::create_parse_header_vars_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id) {
+std::optional<BDDNode *> NetworkPartitioner::create_parse_header_vars_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id,
+                                                                           bdd_node_id_t next_id) {
 
   const BDDNode *current_node = new_bdd->get_node_by_id(current_id);
   assert(current_node && "BDDNode not found");
@@ -383,14 +483,13 @@ std::optional<BDDNode *> Placer::create_parse_header_vars_node(std::unique_ptr<B
 
   Symbols symbols = get_relevant_dataplane_state(new_bdd, current_node, {});
   symbols.remove("packet_chunks");
-  symbols.remove("DEVICE");
   Call *parse_vars = new_bdd->create_new_call(new_bdd->get_mutable_node_by_id(new_bdd->get_id()), call, symbols);
 
   return parse_vars;
 }
 
-void Placer::handle_branch_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t branch_id, bdd_node_id_t on_true_id, bdd_node_id_t on_false_id,
-                                bool in_root) {
+void NetworkPartitioner::handle_branch_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t branch_id, bdd_node_id_t on_true_id,
+                                            bdd_node_id_t on_false_id, bool in_root) {
 
   const std::vector<const BDDNode *> s2d_true = create_send_to_device_node(new_bdd, branch_id, on_true_id);
 
@@ -407,14 +506,14 @@ void Placer::handle_branch_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t bra
   }
 }
 
-void Placer::handle_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id) {
+void NetworkPartitioner::handle_node(std::unique_ptr<BDD> &new_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id) {
   const std::vector<const BDDNode *> s2d = create_send_to_device_node(new_bdd, current_id, next_id);
   if (!s2d.empty()) {
     new_bdd->add_cloned_non_branches(next_id, s2d);
   }
 }
 
-std::unordered_map<LibSynapse::TargetType, target_roots_t> Placer::get_target_roots(std::unique_ptr<BDD> &_bdd) {
+std::unordered_map<LibSynapse::TargetType, target_roots_t> NetworkPartitioner::get_target_roots(std::unique_ptr<BDD> &_bdd) {
 
   std::cerr << "==========================================\n";
   std::cerr << "========Retreiving Target Roots===========\n";
@@ -504,7 +603,7 @@ std::unordered_map<LibSynapse::TargetType, target_roots_t> Placer::get_target_ro
   return target_roots;
 }
 
-std::unique_ptr<BDD> Placer::add_send_to_device_nodes() {
+std::unique_ptr<BDD> NetworkPartitioner::add_send_to_device_nodes() {
   std::cerr << "==========================================\n";
   std::cerr << "=============Adding s2d nodes=============\n";
   std::cerr << "==========================================\n";
@@ -552,7 +651,7 @@ std::unique_ptr<BDD> Placer::add_send_to_device_nodes() {
   return new_bdd;
 }
 
-std::unique_ptr<BDD> Placer::extract_target_bdd(std::unique_ptr<BDD> &global_bdd, bdd_node_ids_t port_roots, bdd_node_ids_t roots) {
+std::unique_ptr<BDD> NetworkPartitioner::extract_target_bdd(std::unique_ptr<BDD> &global_bdd, bdd_node_ids_t port_roots, bdd_node_ids_t roots) {
 
   std::cerr << "==========================================\n";
   std::cerr << "===========Extracting Target BDD==========\n";
@@ -607,15 +706,12 @@ std::unique_ptr<BDD> Placer::extract_target_bdd(std::unique_ptr<BDD> &global_bdd
   current_node->set_on_false(drop_node);
   drop_node->set_prev(current_node);
 
-  std::cerr << new_root->dump(true) << "\n";
   extracted_bdd->set_root(new_root);
-
-  // BDDViz::visualize(extracted_bdd.get(), false);
 
   return extracted_bdd;
 }
 
-std::unique_ptr<const BDD> Placer::concretize_ports(std::unique_ptr<BDD> &old_bdd) {
+std::unique_ptr<BDD> NetworkPartitioner::concretize_ports(std::unique_ptr<BDD> &old_bdd, bdd_node_ids_t port_roots) {
   std::cerr << "==========================================\n";
   std::cerr << "===========Concretizing Ports=============\n";
   std::cerr << "==========================================\n";
@@ -630,6 +726,12 @@ std::unique_ptr<const BDD> Placer::concretize_ports(std::unique_ptr<BDD> &old_bd
     return new_bdd;
   }
 
+  for (bdd_node_id_t id : port_roots) {
+    BDDNode *root = new_bdd->get_mutable_node_by_id(id);
+    assert(root && "Root not found");
+    concretize_port(root, global_ports);
+  }
+
   std::queue<bdd_node_id_t> queue;
 
   queue.push(root_id);
@@ -638,44 +740,31 @@ std::unique_ptr<const BDD> Placer::concretize_ports(std::unique_ptr<BDD> &old_bd
 
     BDDNode *current = new_bdd->get_mutable_node_by_id(queue.front());
     assert(current && "Root Node not found");
-    assert(current->get_type() == BDDNodeType::Branch && "Root not a branch");
     queue.pop();
 
-    std::cerr << current->dump(true) << "\n";
+    switch (current->get_type()) {
+    case BDDNodeType::Branch: {
 
-    Branch *branch                          = dynamic_cast<Branch *>(current);
-    std::unordered_set<std::string> symbols = branch->get_used_symbols();
+      Branch *branch = dynamic_cast<Branch *>(current);
 
-    if (symbols.find("DEVICE") == symbols.end()) {
-      continue;
-    }
-
-    klee::ref<klee::Expr> condition = branch->get_condition();
-
-    assert(condition->getKind() == klee::Expr::Kind::Eq && condition->getNumKids() == 2);
-
-    klee::ref<klee::Expr> left  = condition->getKid(0);
-    klee::ref<klee::Expr> right = condition->getKid(1);
-
-    assert(left->getKind() == klee::Expr::Kind::Constant);
-
-    u64 global_port = solver_toolbox.value_from_expr(left);
-    assert(global_ports->has_link(global_port));
-    const Port local_port = global_ports->get_link(global_port).first;
-
-    klee::ref<klee::Expr> new_condition = solver_toolbox.exprBuilder->Eq(right, solver_toolbox.exprBuilder->Constant(local_port, right->getWidth()));
-
-    branch->set_condition(new_condition);
-
-    if (branch->get_on_false()->get_type() == BDDNodeType::Branch) {
       queue.push(branch->get_on_false()->get_id());
+      queue.push(branch->get_on_true()->get_id());
+
+      break;
+    }
+    default: {
+      concretize_port(current, global_ports);
+      if (current->get_next()) {
+        queue.push(current->get_next()->get_id());
+      }
+    }
     }
   }
 
   return new_bdd;
 }
 
-std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> Placer::process() {
+std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> NetworkPartitioner::process() {
   std::cerr << "==========================================\n";
   std::cerr << "=============Processing BDD===============\n";
   std::cerr << "==========================================\n";
@@ -684,17 +773,17 @@ std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> Placer::p
 
   std::unique_ptr<BDD> processed_bdd = add_send_to_device_nodes();
 
-  BDDViz::visualize(processed_bdd.get(), false);
-
   std::unordered_map<LibSynapse::TargetType, target_roots_t> target_roots = get_target_roots(processed_bdd);
 
   for (const auto &[target, _] : phys_net.get_target_list()) {
 
-    std::unique_ptr<BDD> extracted_bdd = extract_target_bdd(processed_bdd, target_roots[target].port_roots, target_roots[target].target_roots);
-    const LibBDD::BDD::inspection_report_t extracted_report = extracted_bdd->inspect();
-    assert_or_panic(extracted_report.status == LibBDD::BDD::InspectionStatus::Ok, "BDD inspection failed: %s", extracted_report.message.c_str());
+    std::unique_ptr<BDD> concretized_bdd = concretize_ports(processed_bdd, target_roots[target].port_roots);
 
-    std::unique_ptr<const BDD> target_bdd         = concretize_ports(extracted_bdd);
+    std::unique_ptr<BDD> target_bdd = extract_target_bdd(concretized_bdd, target_roots[target].port_roots, target_roots[target].target_roots);
+
+    std::set<Port> target_ports = phys_net.get_target_ports(target.instance_id);
+
+    // add_device_constraints(target_bdd, target_ports);
     const LibBDD::BDD::inspection_report_t report = target_bdd->inspect();
     assert_or_panic(report.status == LibBDD::BDD::InspectionStatus::Ok, "BDD inspection failed: %s", report.message.c_str());
     std::cout << "BDD inspection passed.\n";

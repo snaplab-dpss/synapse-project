@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
   const PhysicalNetwork phys_net = PhysicalNetwork::parse(input_physical_network_file);
   phys_net.debug();
 
-  Placer placer = Placer(bdd, phys_net);
+  NetworkPartitioner placer = NetworkPartitioner(bdd, phys_net);
 
   std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> target_bdds = placer.process();
 

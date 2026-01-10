@@ -639,6 +639,15 @@ addr_t get_vector_obj_storing_map_key(const BDD *bdd, addr_t map) {
   panic("Vector key not found");
 }
 
+std::optional<klee::ref<klee::Expr>> get_ult_constraint(const klee::ConstraintManager &constraints) {
+  for (const auto &expr : constraints) {
+    if (expr->getKind() == klee::Expr::Ult) {
+      return expr;
+    }
+  }
+  return std::nullopt;
+}
+
 } // namespace
 
 void BDD::visit(BDDVisitor &visitor) const { visitor.visit(this); }
@@ -1257,13 +1266,28 @@ std::unordered_set<u16> BDD::get_devices() const {
     return devices;
   }
 
-  const klee::ConstraintManager constraints = get_constraints(root);
+  const klee::ConstraintManager constraints                 = get_constraints(root);
+  const std::optional<klee::ref<klee::Expr>> ult_constraint = get_ult_constraint(constraints);
+
   for (u16 device_value = 0; device_value < UINT16_MAX; device_value++) {
     const bool valid_device_value = solver_toolbox.is_expr_maybe_true(
         constraints, solver_toolbox.exprBuilder->Eq(device.expr, solver_toolbox.exprBuilder->Constant(device_value, device.expr->getWidth())));
-    if (!valid_device_value) {
-      break;
-    } else {
+
+    if (ult_constraint.has_value()) {
+      klee::ConstraintManager device_constraints;
+      device_constraints.addConstraint(ult_constraint.value());
+      const bool ult_valid = solver_toolbox.is_expr_maybe_true(
+          device_constraints,
+          solver_toolbox.exprBuilder->Eq(device.expr, solver_toolbox.exprBuilder->Constant(device_value, device.expr->getWidth())));
+      if (!ult_valid) {
+        break;
+      }
+    }
+
+    // if (!valid_device_value) {
+    //   break;
+    // } else {
+    if (valid_device_value) {
       devices.insert(device_value);
     }
   }
@@ -1565,6 +1589,11 @@ BDDNode *BDD::delete_branch(BDDNode *target, BranchDeletionAction branch_deletio
   manager.free_node(anchor_next);
 
   return new_current;
+}
+
+klee::ConstraintManager BDD::get_constraints() const {
+  klee::ConstraintManager constraints = base_constraints;
+  return constraints;
 }
 
 klee::ConstraintManager BDD::get_constraints(const BDDNode *node) const {
