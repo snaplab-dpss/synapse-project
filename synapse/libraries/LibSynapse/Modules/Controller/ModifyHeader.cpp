@@ -12,6 +12,39 @@ using LibCore::expr_addr_to_obj_addr;
 using LibCore::expr_byte_swap_t;
 using LibCore::expr_mod_t;
 using LibCore::get_expr_byte_swaps;
+using LibCore::get_unique_symbolic_reads;
+using LibCore::symbolic_read_t;
+using LibCore::symbolic_reads_t;
+
+namespace {
+
+std::vector<expr_mod_t> filter_out_checksum_mods(const std::vector<expr_mod_t> &mods) {
+  std::vector<expr_mod_t> filtered;
+
+  for (const expr_mod_t &mod : mods) {
+    const symbolic_reads_t reads = get_unique_symbolic_reads(mod.expr);
+
+    bool found_checksum = false;
+    for (const symbolic_read_t &read : reads) {
+      if (symbol_t::base_from_name(read.symbol) == "checksum") {
+        found_checksum = true;
+        break;
+      }
+    }
+
+    if (found_checksum && reads.size() != 1) {
+      panic("ChecksumUpdate: modification with checksum and other symbols.");
+    }
+
+    if (!found_checksum) {
+      filtered.push_back(mod);
+    }
+  }
+
+  return filtered;
+}
+
+} // namespace
 
 std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
   if (node->get_type() != BDDNodeType::Call) {
@@ -46,7 +79,7 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const BDDNod
   const addr_t hdr_addr                     = expr_addr_to_obj_addr(call.args.at("the_chunk").expr);
   klee::ref<klee::Expr> borrowed            = packet_borrow_chunk->get_call().extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> returned            = packet_return_chunk->get_call().args.at("the_chunk").in;
-  const std::vector<expr_mod_t> changes     = build_expr_mods(borrowed, returned);
+  const std::vector<expr_mod_t> changes     = filter_out_checksum_mods(build_expr_mods(borrowed, returned));
   const std::vector<expr_byte_swap_t> swaps = get_expr_byte_swaps(borrowed, returned);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

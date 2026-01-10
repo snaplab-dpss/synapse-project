@@ -8,13 +8,50 @@ SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
 SAMPLE_SIZE = 1_000_000
 FLOWS = 40_000
-HIST_OUT_FILE = os.path.join(SCRIPT_DIR, "uniform_vs_zipfian_hist.pdf")
 
 EPSILON = 1e-6
 
 
-def plot_hist(flows_per_experiment: dict[str, list[int]]):
-    print("Plotting histogram...")
+def plot_cdf(flows_per_experiment: dict[str, list[int]], out_file: str):
+    print(f"Plotting CDF to {out_file}...")
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    for label, flows in flows_per_experiment.items():
+        all_flows = set(flows)
+        flow_counts = {flow: 0 for flow in all_flows}
+        for flow in flows:
+            flow_counts[flow] += 1
+        sorted_flows = sorted(flow_counts.items(), key=lambda item: item[1], reverse=True)
+        total_samples = len(flows)
+        total_flows = len(all_flows)
+
+        x = []
+        y = []
+
+        cummulative_count = 0
+        for i, (flow, count) in enumerate(sorted_flows):
+            cummulative_count += count
+            x.append(100.0 * (i + 1) / total_flows)
+            y.append(cummulative_count / total_samples)
+
+        ax.plot(x, y, label=label)
+
+    ax.set_xlabel("Total flows (%)")
+    ax.set_ylabel("CDF")
+    ax.set_title("CDF of Flow Distributions")
+    ax.grid(True)
+    ax.legend()
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 1)
+
+    plt.tight_layout()
+    plt.savefig(out_file)
+    plt.close()
+
+
+def plot_hist(flows_per_experiment: dict[str, list[int]], out_file: str):
+    print(f"Plotting histogram to {out_file}...")
 
     fig, axs = plt.subplots(len(flows_per_experiment), 1, figsize=(8, 3 * len(flows_per_experiment)))
 
@@ -27,7 +64,7 @@ def plot_hist(flows_per_experiment: dict[str, list[int]]):
         ax.set_xlim(0, FLOWS)
 
     plt.tight_layout()
-    plt.savefig(HIST_OUT_FILE)
+    plt.savefig(out_file)
     plt.close()
 
 
@@ -79,27 +116,20 @@ def zipf_distribution(zipf_param: float, start: int = 0, end: int = FLOWS - 1, s
 
 
 if __name__ == "__main__":
+    for streams in [1, 4, 30]:
+        hist_out_file = os.path.join(SCRIPT_DIR, f"uniform_vs_zipfian_hist_{streams}_streams.pdf")
+        cdf_out_file = os.path.join(SCRIPT_DIR, f"uniform_vs_zipfian_cdf_{streams}_streams.pdf")
 
-    experiments = {
-        "Uniform": [f for i in range(4) for f in uniform_distribution(i * FLOWS, (i + 1) * FLOWS - 1, int(SAMPLE_SIZE / 4))],
-        "Zipf (s=0)": [f for i in range(4) for f in zipf_distribution(0, i * FLOWS, (i + 1) * FLOWS - 1, int(SAMPLE_SIZE / 4))],
-        "Zipf (s=0.2)": [f for i in range(4) for f in zipf_distribution(0.2, i * FLOWS, (i + 1) * FLOWS - 1, int(SAMPLE_SIZE / 4))],
-        "Zipf (s=0.4)": [f for i in range(4) for f in zipf_distribution(0.4, i * FLOWS, (i + 1) * FLOWS - 1, int(SAMPLE_SIZE / 4))],
-        "Zipf (s=0.6)": [f for i in range(4) for f in zipf_distribution(0.6, i * FLOWS, (i + 1) * FLOWS - 1, int(SAMPLE_SIZE / 4))],
-        "Zipf (s=0.8)": [f for i in range(4) for f in zipf_distribution(0.8, i * FLOWS, (i + 1) * FLOWS - 1, int(SAMPLE_SIZE / 4))],
-        "Zipf (s=1.0)": [f for i in range(4) for f in zipf_distribution(1, i * FLOWS, (i + 1) * FLOWS - 1, int(SAMPLE_SIZE / 4))],
-        "Zipf (s=1.2)": [f for i in range(4) for f in zipf_distribution(1.2, i * FLOWS, (i + 1) * FLOWS - 1, int(SAMPLE_SIZE / 4))],
-    }
+        experiments = {
+            "Uniform": [f for i in range(streams) for f in uniform_distribution(i * int(FLOWS / streams), (i + 1) * int(FLOWS / streams) - 1, int(SAMPLE_SIZE / streams))],
+            "Zipf (s=0.0)": [f for i in range(streams) for f in zipf_distribution(0, i * int(FLOWS / streams), (i + 1) * int(FLOWS / streams) - 1, int(SAMPLE_SIZE / streams))],
+            "Zipf (s=0.2)": [f for i in range(streams) for f in zipf_distribution(0.2, i * int(FLOWS / streams), (i + 1) * int(FLOWS / streams) - 1, int(SAMPLE_SIZE / streams))],
+            "Zipf (s=0.4)": [f for i in range(streams) for f in zipf_distribution(0.4, i * int(FLOWS / streams), (i + 1) * int(FLOWS / streams) - 1, int(SAMPLE_SIZE / streams))],
+            "Zipf (s=0.6)": [f for i in range(streams) for f in zipf_distribution(0.6, i * int(FLOWS / streams), (i + 1) * int(FLOWS / streams) - 1, int(SAMPLE_SIZE / streams))],
+            "Zipf (s=0.8)": [f for i in range(streams) for f in zipf_distribution(0.8, i * int(FLOWS / streams), (i + 1) * int(FLOWS / streams) - 1, int(SAMPLE_SIZE / streams))],
+            "Zipf (s=1.0)": [f for i in range(streams) for f in zipf_distribution(1, i * int(FLOWS / streams), (i + 1) * int(FLOWS / streams) - 1, int(SAMPLE_SIZE / streams))],
+            "Zipf (s=1.2)": [f for i in range(streams) for f in zipf_distribution(1.2, i * int(FLOWS / streams), (i + 1) * int(FLOWS / streams) - 1, int(SAMPLE_SIZE / streams))],
+        }
 
-    # experiments = {
-    #     "Uniform": uniform_distribution(),
-    #     "Zipf (s=0)": zipf_distribution(0),
-    #     "Zipf (s=0.2)": zipf_distribution(0.2),
-    #     "Zipf (s=0.4)": zipf_distribution(0.4),
-    #     "Zipf (s=0.6)": zipf_distribution(0.6),
-    #     "Zipf (s=0.8)": zipf_distribution(0.8),
-    #     "Zipf (s=1.0)": zipf_distribution(1.0001),
-    #     "Zipf (s=1.2)": zipf_distribution(1.2),
-    # }
-
-    plot_hist(experiments)
+        plot_hist(experiments, hist_out_file)
+        plot_cdf(experiments, cdf_out_file)

@@ -125,9 +125,10 @@ public:
       return false;
     }
 
-    if (control_plane_free_indices.empty())
+    if (control_plane_free_indices.empty()) {
       LOG_DEBUG("WARNING: Attempted to add key to map, but no free indices are available");
-    return false;
+      return false;
+    }
 
     const u32 new_index = control_plane_free_indices.back();
     control_plane_free_indices.pop_back();

@@ -140,6 +140,8 @@ private:
     }
 
     map_table->expirations_per_key[key_buffer].insert(table_name);
+    LOG_DEBUG("Expiration callback invoked for key %s on table %s (total expirations for this key: %lu)", key_buffer.to_string().c_str(),
+              table_name.c_str(), map_table->expirations_per_key[key_buffer].size());
     if (map_table->expirations_per_key[key_buffer].size() == map_table->tables.size()) {
       map_table->del(key_buffer);
       map_table->expirations_per_key.erase(key_buffer);

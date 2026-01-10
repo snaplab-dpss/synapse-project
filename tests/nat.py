@@ -9,7 +9,7 @@ PORTS = [p for p in range(3, 33)]
 LAN_PORTS = [p for p in PORTS if p % 2 != 0]
 WAN_PORTS = [p for p in PORTS if p not in LAN_PORTS]
 CONNECTIONS = {p: (p + 1 if p % 2 != 0 else p - 1) for p in PORTS}
-EXPIRATION_TIME_SEC = 5
+EXPIRATION_TIME_SEC = 1
 PUBLIC_IP = "1.2.3.4"
 
 
@@ -78,7 +78,7 @@ def main():
         print(f"[{lan_port}<->{wan_port}] Testing flow rejuvenation...")
         elapsed = 0
         start = time()
-        while elapsed < EXPIRATION_TIME_SEC * 2:
+        while elapsed < EXPIRATION_TIME_SEC * 3:
             ports.send(lan_port, lan_egress_pkt)
             expect_packet_from_port(ports, wan_port, wan_ingress_pkt)
             ports.send(wan_port, wan_egress_pkt)

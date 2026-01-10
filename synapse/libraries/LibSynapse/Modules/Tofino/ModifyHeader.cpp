@@ -20,11 +20,11 @@ std::vector<expr_mod_t> filter_out_checksum_mods(const std::vector<expr_mod_t> &
   std::vector<expr_mod_t> filtered;
 
   for (const expr_mod_t &mod : mods) {
-    symbolic_reads_t reads = get_unique_symbolic_reads(mod.expr);
+    const symbolic_reads_t reads = get_unique_symbolic_reads(mod.expr);
 
     bool found_checksum = false;
     for (const symbolic_read_t &read : reads) {
-      if (read.symbol == "checksum") {
+      if (symbol_t::base_from_name(read.symbol) == "checksum") {
         found_checksum = true;
         break;
       }
