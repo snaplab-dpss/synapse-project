@@ -134,19 +134,19 @@ SYNAPSE_NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
-    SynapseNF(
-        name="synapse-fw",
-        description="Synapse FW",
-        data_out=Path("tput_synapse_fw.csv"),
-        kvs_mode=False,
-        tofino=Path("synthesized/synapse-fw.p4"),
-        controller=Path("synthesized/synapse-fw.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-        churn=CHURN_FPM,
-        zipf=ZIPF_PARAMS,
-    ),
+    # SynapseNF(
+    #     name="synapse-fw",
+    #     description="Synapse FW",
+    #     data_out=Path("tput_synapse_fw.csv"),
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/synapse-fw.p4"),
+    #     controller=Path("synthesized/synapse-fw.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    #     churn=CHURN_FPM,
+    #     zipf=ZIPF_PARAMS,
+    # ),
     SynapseNF(
         name="synapse-nat",
         description="Synapse NAT",
@@ -192,22 +192,22 @@ SYNAPSE_NFS = [
     #     )
     #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
     # ],
-    # *[
-    #     SynapseNF(
-    #         name="synapse-fw-fcfs-ct",
-    #         description="Synapse FW FCFS CT",
-    #         data_out=Path(f"tput_synapse_fw_fcfs_ct_{cache_size}.csv"),
-    #         kvs_mode=False,
-    #         tofino=Path(f"tofino/experiments/fcfs_cached_table_{cache_size}/fcfs_cached_table_{cache_size}.p4"),
-    #         controller=Path(f"tofino/experiments/fcfs_cached_table_{cache_size}/fcfs_cached_table_{cache_size}.cpp"),
-    #         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #         route=lambda _: [],
-    #         churn=[churn],
-    #         zipf=[s],
-    #     )
-    #     for churn, s, cache_size in itertools.product(CHURN_FPM, ZIPF_PARAMS, [128, 1024, 65536])
-    # ],
+    *[
+        SynapseNF(
+            name="synapse-fw-fcfs-ct",
+            description="Synapse FW FCFS CT",
+            data_out=Path(f"tput_synapse_fw_fcfs_ct_{cache_size}.csv"),
+            kvs_mode=False,
+            tofino=Path(f"tofino/experiments/fcfs_cached_table_{cache_size}/fcfs_cached_table_{cache_size}.p4"),
+            controller=Path(f"tofino/experiments/fcfs_cached_table_{cache_size}/fcfs_cached_table_{cache_size}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+            churn=[churn],
+            zipf=[s],
+        )
+        for churn, s, cache_size in itertools.product(CHURN_FPM, ZIPF_PARAMS, [1024, 32768, 65536])
+    ],
 ]
 
 

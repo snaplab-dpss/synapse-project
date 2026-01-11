@@ -176,21 +176,7 @@ public:
     }
 
     const u32 index = found_it->second;
-
-    const u16 capacity_per_pipe = capacity / pipelines;
-    const bf_dev_pipe_t pipe_id = index / capacity_per_pipe;
-
-    if (estimation_total_available_data_plane_indices_per_pipe[pipe_id] < capacity_per_pipe) {
-      const u16 new_tail = (tails_per_pipe[pipe_id] + 1) % capacity;
-      LOG_DEBUG("[pipe=%u] Storing index (%u) at tail (%u) and setting tail = %u", pipe_id, index, tails_per_pipe[pipe_id], new_tail);
-      estimation_total_available_data_plane_indices_per_pipe[pipe_id]++;
-      reg_integer_allocator_indexes.set(tails_per_pipe[pipe_id], index, pipe_id);
-      reg_integer_allocator_tail.set(0, tails_per_pipe[pipe_id], pipe_id);
-      tails_per_pipe[pipe_id] = new_tail;
-    } else {
-      LOG_DEBUG("[pipe=%u] Not storing index (%u) as dataplane index allocator is full, adding to control plane free indices", pipe_id, index);
-      control_plane_free_indices.push_back(index);
-    }
+    mark_index_as_available(index);
 
     cache.erase(found_it);
   }
@@ -222,11 +208,6 @@ private:
 
   key_index_t get_key_and_index_from_data_plane(u16 pipe_id, u32 head) {
     const u32 index = reg_integer_allocator_indexes.get_per_pipe(head)[pipe_id];
-    if (pipe_id != (index / (capacity / pipelines))) {
-      auto indeces = reg_integer_allocator_indexes.get_per_pipe(head);
-      LOG_DEBUG("[pipe=%u] Retrieved indices (%u,%u,%u,%u) from head %u", pipe_id, indeces[0], indeces[1], indeces[2], indeces[3], head);
-    }
-    assert(pipe_id == (index / (capacity / pipelines)));
 
     buffer_t key(key_size);
     bytes_t offset = 0;
@@ -239,6 +220,22 @@ private:
     }
 
     return {key, index};
+  }
+
+  void mark_index_as_available(u32 index) {
+    const u32 capacity_per_pipe = capacity / pipelines;
+    const bf_dev_pipe_t pipe_id = index / capacity_per_pipe;
+    if (estimation_total_available_data_plane_indices_per_pipe[pipe_id] < capacity_per_pipe) {
+      const u16 new_tail = (tails_per_pipe[pipe_id] + 1) % capacity;
+      LOG_DEBUG("[pipe=%u] Storing index (%u) at tail (%u) and setting tail = %u", pipe_id, index, tails_per_pipe[pipe_id], new_tail);
+      estimation_total_available_data_plane_indices_per_pipe[pipe_id]++;
+      reg_integer_allocator_indexes.set(tails_per_pipe[pipe_id], index, pipe_id);
+      reg_integer_allocator_tail.set(0, tails_per_pipe[pipe_id], pipe_id);
+      tails_per_pipe[pipe_id] = new_tail;
+    } else {
+      LOG_DEBUG("[pipe=%u] Not storing index (%u) as dataplane index allocator is full, adding to control plane free indices", pipe_id, index);
+      control_plane_free_indices.push_back(index);
+    }
   }
 
   void out_of_band_migration() {
@@ -254,16 +251,14 @@ private:
   }
 
   void migrate_to_tables(const buffer_t &key, u32 index) {
-    const u16 pipe_id = index / (capacity / pipelines);
+    const u32 capacity_per_pipe = capacity / pipelines;
+    const u16 pipe_id           = index / capacity_per_pipe;
 
     if (put(key, index)) {
       estimation_total_available_data_plane_indices_per_pipe[pipe_id]--;
     }
 
     reg_integer_allocator_pending.set(index, 0, pipe_id);
-
-    const u32 hash = crc32.hash(key) & ((1 << cache_hash_size) - 1);
-    reg_liveness.set(hash, 0, pipe_id);
   }
 
   static void expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {

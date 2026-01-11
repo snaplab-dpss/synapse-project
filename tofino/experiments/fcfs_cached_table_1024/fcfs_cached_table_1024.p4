@@ -46,12 +46,13 @@ enum bit<2> fwd_op_t {
 }
 
 // Entry Timeout Expiration (units of 65536 ns).
-#define ENTRY_TIMEOUT 16384 // 1 s
+// #define ENTRY_TIMEOUT 16384 // 1 s
+#define ENTRY_TIMEOUT 512 // 62.5 ms
 
 #define FCFS_CT_CAPACITY 65536
 
-#define FCFS_CT_CACHE_CAPACITY 65536
-typedef bit<16> fcfs_ct_cache_hash_t;
+#define FCFS_CT_CACHE_CAPACITY 1024
+typedef bit<10> fcfs_ct_cache_hash_t;
 // #define FCFS_CT_CACHE_CAPACITY 4
 // typedef bit<2> fcfs_ct_cache_hash_t;
 
@@ -391,7 +392,6 @@ control Ingress(
 				out_is_alive = false;
 			} else {
 				out_is_alive = true;
-				alarm_ts = meta.time + ENTRY_TIMEOUT;
 			}
 		}
 	};
@@ -555,6 +555,8 @@ control Ingress(
 		}
 		size = 36;
 	}
+	Register<bit<32>, _>(1, 0) debug_index_allocation_failures;
+	RegisterAction<bit<32>, bit<32>, void>(debug_index_allocation_failures) debug_index_allocation_failures_update = { void apply(inout bit<32> curr_count) { curr_count = curr_count + 1; }};
 
 	apply {
 		ingress_port_to_nf_dev.apply();
@@ -592,6 +594,7 @@ control Ingress(
 				} else {
 					fwd_op = fwd_op_t.DROP;
 				}
+
 			} else {
 				// Read/Write FCFS CT Operation
 				meta.fcfs_ct_key_0 = hdr.ipv4.src_addr;
@@ -614,6 +617,7 @@ control Ingress(
 						if (meta.fcfs_ct_key_fields_match != 4) {
 							collision_detected = true;
 						} else {
+							fcfs_ct_read_value_execute();
 							found = true;
 						}
 					} else {
@@ -621,9 +625,7 @@ control Ingress(
 						fcfs_ct_write_key_1_execute();
 						fcfs_ct_write_key_2_execute();
 						fcfs_ct_write_key_3_execute();
-					}
 
-					if (!fcfs_ct_is_alive) {
 						meta.fcfs_ct_integer_allocator_tail = fcfs_ct_integer_allocator_tail_read.execute(0);
 						meta.fcfs_ct_integer_allocator_head = fcfs_ct_integer_allocator_head_inc.execute(0);
 						if (meta.fcfs_ct_integer_allocator_head != meta.fcfs_ct_integer_allocator_tail) {
@@ -636,16 +638,18 @@ control Ingress(
 							fcfs_ct_write_index_to_key_1.execute(meta.fcfs_ct_value);
 							fcfs_ct_write_index_to_key_2.execute(meta.fcfs_ct_value);
 							fcfs_ct_write_index_to_key_3.execute(meta.fcfs_ct_value);
+
+							fcfs_ct_write_value_execute();
 						} else {
 							index_allocation_failed = true;
 						}
 					}
 
-					if (found) {
-						fcfs_ct_read_value_execute();
-					} else if (new_index_allocated) {
-						fcfs_ct_write_value_execute();
-					}
+					// if (found) {
+					// 	fcfs_ct_read_value_execute();
+					// } else if (new_index_allocated) {
+					// 	fcfs_ct_write_value_execute();
+					// }
 				}
 
 				// Exported symbols:
@@ -655,6 +659,7 @@ control Ingress(
 				if (index_allocation_failed) {
 					// Write failure
 					fwd_op = fwd_op_t.DROP;
+					debug_index_allocation_failures_update.execute(0);
 				} else if (collision_detected) {
 					// Write success (control plane)
 					fwd_op = fwd_op_t.FORWARD_TO_CPU;
