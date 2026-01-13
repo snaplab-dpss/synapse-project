@@ -98,8 +98,10 @@ code_t TofinoSynthesizer::Transpiler::swap_endianness(const code_t &expr, bits_t
   return code.dump();
 }
 
-code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt) {
-  loaded_opt = opt;
+code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt,
+                                                std::map<klee::ref<klee::Expr>, code_t> _temporary_transpilations) {
+  loaded_opt               = opt;
+  temporary_transpilations = _temporary_transpilations;
 
   std::cerr << "Transpiling: " << expr_to_string(expr) << "\n";
   expr = simplify(expr);
@@ -108,20 +110,30 @@ code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, tran
   coders.emplace();
   coder_t &coder = coders.top();
 
+  bool is_temp_expr = false;
+  for (const auto &[temp_expr, temp_code] : temporary_transpilations) {
+    if (solver_toolbox.are_exprs_always_equal(expr, temp_expr)) {
+      coder << temp_code;
+      is_temp_expr = true;
+      break;
+    }
+  }
+
   klee::ref<klee::Expr> endian_swap_target;
+  if (!is_temp_expr) {
+    if (is_constant(expr)) {
+      coder << transpile_constant(expr, opt & TRANSPILER_OPT_SWAP_CONST_ENDIANNESS);
+    } else if (match_endian_swap_pattern(expr, endian_swap_target)) {
+      const bits_t size = endian_swap_target->getWidth();
+      coder << swap_endianness(transpile(endian_swap_target, loaded_opt, temporary_transpilations), size);
+    } else if (std::optional<var_t> var = synthesizer->ingress_vars.get(expr, loaded_opt)) {
+      coder << var->name;
+    } else {
+      visit(expr);
 
-  if (is_constant(expr)) {
-    coder << transpile_constant(expr, opt & TRANSPILER_OPT_SWAP_CONST_ENDIANNESS);
-  } else if (match_endian_swap_pattern(expr, endian_swap_target)) {
-    const bits_t size = endian_swap_target->getWidth();
-    coder << swap_endianness(transpile(endian_swap_target, loaded_opt), size);
-  } else if (std::optional<var_t> var = synthesizer->ingress_vars.get(expr, loaded_opt)) {
-    coder << var->name;
-  } else {
-    visit(expr);
-
-    // HACK: clear the visited map so we force the transpiler to revisit all expressions.
-    visited.clear();
+      // HACK: clear the visited map so we force the transpiler to revisit all expressions.
+      visited.clear();
+    }
   }
 
   code_t code = coder.dump();
@@ -264,7 +276,7 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitZExt(const klee::Z
   coder << type_from_size(e.width);
   coder << ")";
   coder << "(";
-  coder << transpile(arg, loaded_opt);
+  coder << transpile(arg, loaded_opt, temporary_transpilations);
   coder << ")";
 
   return Action::skipChildren();
@@ -281,9 +293,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitAdd(const klee::Ad
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " + ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -294,9 +306,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSub(const klee::Su
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " - ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -337,9 +349,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitAnd(const klee::An
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " & ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -350,9 +362,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitOr(const klee::OrE
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " | ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -406,9 +418,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitEq(const klee::EqE
     }
   }
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " == ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -442,9 +454,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitNe(const klee::NeE
     }
   }
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " != ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -455,9 +467,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitUlt(const klee::Ul
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " < ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -468,9 +480,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitUle(const klee::Ul
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " <= ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -481,9 +493,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitUgt(const klee::Ug
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " > ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -494,9 +506,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitUge(const klee::Ug
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " >= ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -507,9 +519,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSlt(const klee::Sl
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " < ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -520,9 +532,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSle(const klee::Sl
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " <= ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -533,9 +545,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSgt(const klee::Sg
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " > ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -546,9 +558,9 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSge(const klee::Sg
   klee::ref<klee::Expr> lhs = e.getKid(0);
   klee::ref<klee::Expr> rhs = e.getKid(1);
 
-  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
   coder << " >= ";
-  coder << "(" << transpile(rhs, loaded_opt) << ")";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
 
   return Action::skipChildren();
 }
@@ -603,11 +615,20 @@ code_t TofinoSynthesizer::build_register_action_name(const Register *reg, Regist
   case RegisterActionType::Decrement:
     coder << "dec";
     break;
+  case RegisterActionType::SetToOne:
+    coder << "set_to_one";
+    break;
   case RegisterActionType::SetToOneAndReturnOldValue:
     coder << "read_and_set";
     break;
+  case RegisterActionType::ConditionalSetToOneAndReturnOldValue:
+    coder << "read_and_cond_set";
+    break;
   case RegisterActionType::IncrementAndReturnNewValue:
     coder << "inc_and_read";
+    break;
+  case RegisterActionType::ConditionalIncrementAndReturnOldValue:
+    coder << "cond_inc_and_read";
     break;
   case RegisterActionType::ReadConditionalWrite:
     coder << "read_conditional_write";
@@ -861,7 +882,7 @@ void TofinoSynthesizer::transpile_register_decl(const Register *reg) {
 }
 
 void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType action_type,
-                                                       std::optional<code_t> external_var, std::optional<u64> extra_constant) {
+                                                       std::optional<register_action_extras_t> extras) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
 
   const code_t value_type = TofinoSynthesizer::Transpiler::type_from_size(reg->value_size);
@@ -903,14 +924,14 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress << "}\n";
   } break;
   case RegisterActionType::Write: {
-    assert_or_panic(external_var.has_value(), "Expected a write value");
+    assert_or_panic(extras.has_value() && extras->external_var.has_value(), "Expected a write value");
 
     ingress.indent();
     ingress << "void apply(inout " << value_type << " value) {\n";
 
     ingress.inc();
     ingress.indent();
-    ingress << "value = " << external_var.value() << ";\n";
+    ingress << "value = " << extras->external_var.value() << ";\n";
 
     ingress.dec();
     ingress.indent();
@@ -943,6 +964,18 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
+  case RegisterActionType::SetToOne: {
+    ingress.indent();
+    ingress << "void apply(inout " << value_type << " value) {\n";
+
+    ingress.inc();
+    ingress.indent();
+    ingress << "value = 1;\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+  } break;
   case RegisterActionType::SetToOneAndReturnOldValue: {
     ingress.indent();
     ingress << "void apply(inout " << value_type << " value, out " << value_type << " out_value) {\n";
@@ -952,6 +985,29 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress << "out_value = value;\n";
     ingress.indent();
     ingress << "value = 1;\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+  } break;
+  case RegisterActionType::ConditionalSetToOneAndReturnOldValue: {
+    assert_or_panic(extras.has_value() && extras->extra_condition.has_value(), "Expected a condition for SetToOneAndReturnOldValue register action");
+
+    ingress.indent();
+    ingress << "void apply(inout " << value_type << " value, out " << value_type << " out_value) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "out_value = value;\n";
+
+    ingress.indent();
+    ingress << "if (" << transpiler.transpile(extras->extra_condition.value()) << ") {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << "value = 1;\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
 
     ingress.dec();
     ingress.indent();
@@ -971,8 +1027,52 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
+  case RegisterActionType::ConditionalIncrementAndReturnOldValue: {
+    assert_or_panic(extras.has_value() && extras->extra_condition.has_value(), "Expected a condition for SetToOneAndReturnOldValue register action");
+
+    ingress.indent();
+    ingress << "void apply(inout " << value_type << " value, out " << value_type << " out_value) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "out_value = value;\n";
+
+    ingress.indent();
+    ingress << "if (" << transpiler.transpile(extras->extra_condition.value(), TRANSPILER_OPT_NO_OPTION, extras->temporary_transpilations) << ") {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << "value = value + 1;\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+  } break;
   case RegisterActionType::ReadConditionalWrite: {
-    todo();
+    assert_or_panic(extras.has_value() && extras->extra_condition.has_value(), "Expected a condition for SetToOneAndReturnOldValue register action");
+    assert_or_panic(extras.has_value() && extras->write_value.has_value(), "Expected a write value for SetToOneAndReturnOldValue register action");
+
+    ingress.indent();
+    ingress << "void apply(inout " << value_type << " value, out " << value_type << " out_value) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "out_value = value;\n";
+
+    ingress.indent();
+    ingress << "if (" << transpiler.transpile(extras->extra_condition.value(), TRANSPILER_OPT_NO_OPTION, extras->temporary_transpilations) << ") {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << "value = " << transpiler.transpile(extras->write_value.value(), TRANSPILER_OPT_NO_OPTION, extras->temporary_transpilations) << ";\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
   } break;
   case RegisterActionType::CalculateDiff: {
     const code_t value_cmp = action_name + "_cmp";
@@ -1022,7 +1122,6 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress << "}\n";
   } break;
   case RegisterActionType::QueryTimestamp: {
-    assert_or_panic(external_var.has_value(), "Expected a global variable for the timeout value");
     ingress.indent();
     ingress << "void apply(inout bit<32> alarm, out bool was_alive) {\n";
     ingress.inc();
@@ -1051,7 +1150,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress << "}\n";
   } break;
   case RegisterActionType::QueryAndRefreshTimestamp: {
-    assert_or_panic(external_var.has_value(), "Expected a global variable for the timeout value");
+    assert_or_panic(extras.has_value() && extras->external_var.has_value(), "Expected a global variable for the timeout value");
     ingress.indent();
     ingress << "void apply(inout bit<32> alarm, out bool was_alive) {\n";
     ingress.inc();
@@ -1063,7 +1162,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "was_alive = false;\n";
     ingress.indent();
-    ingress << "alarm = meta.time + " << external_var.value() << ";\n";
+    ingress << "alarm = meta.time + " << extras->external_var.value() << ";\n";
 
     ingress.dec();
     ingress.indent();
@@ -1081,13 +1180,13 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress << "}\n";
   } break;
   case RegisterActionType::CheckValue: {
-    assert_or_panic(external_var.has_value(), "Expected a global variable for crosschecking the value");
+    assert_or_panic(extras.has_value() && extras->external_var.has_value(), "Expected a global variable for crosschecking the value");
     ingress.indent();
     ingress << "void apply(inout " << value_type << " curr_value, out bit<8> match) {\n";
     ingress.inc();
 
     ingress.indent();
-    ingress << "if (curr_value == " << external_var.value() << ") {\n";
+    ingress << "if (curr_value == " << extras->external_var.value() << ") {\n";
     ingress.inc();
 
     ingress.indent();
@@ -1118,8 +1217,8 @@ if (meta.fcfs_ct_integer_allocator_tail != head) {
   }
 }
     */
-    assert_or_panic(external_var.has_value(), "Expected a global variable for the tail value");
-    assert_or_panic(extra_constant.has_value(), "Expected an extra constant for the maximum head value");
+    assert_or_panic(extras.has_value() && extras->external_var.has_value(), "Expected a global variable for the tail value");
+    assert_or_panic(extras.has_value() && extras->extra_constant.has_value(), "Expected an extra constant for the maximum head value");
     ingress.indent();
     ingress << "void apply(inout " << value_type << " head, out " << value_type << " out_head) {\n";
     ingress.inc();
@@ -1128,7 +1227,7 @@ if (meta.fcfs_ct_integer_allocator_tail != head) {
     ingress << "out_head = head;\n";
 
     ingress.indent();
-    ingress << "if (head == " << extra_constant.value() << " - 1) {\n";
+    ingress << "if (head == " << extras->extra_constant.value() << " - 1) {\n";
     ingress.inc();
 
     ingress.indent();
@@ -2569,13 +2668,81 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     }
 
     const code_t action_name = build_register_action_name(reg, RegisterActionType::Write, ep_node);
-    transpile_register_action_decl(reg, action_name, RegisterActionType::Write, reg_write_var->name, {});
+    transpile_register_action_decl(reg, action_name, RegisterActionType::Write,
+                                   register_action_extras_t{
+                                       .external_var             = reg_write_var->name,
+                                       .extra_constant           = {},
+                                       .extra_condition          = {},
+                                       .write_value              = {},
+                                       .temporary_transpilations = {},
+                                   });
 
     ingress_apply.indent();
     ingress_apply << action_name;
     ingress_apply << ".execute(" << transpiler.transpile(index) << ");\n";
 
     offset += reg->value_size;
+  }
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *node) {
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const DS_ID id                    = node->get_id();
+  klee::ref<klee::Expr> index       = node->get_index();
+  klee::ref<klee::Expr> value       = node->get_read_value();
+  klee::ref<klee::Expr> write_value = node->get_write_value();
+  klee::ref<klee::Expr> condition   = node->get_condition();
+
+  const VectorRegister *vector_register = get_tofino_ds<VectorRegister>(ep, id);
+
+  std::vector<const Register *> regs;
+  for (const Register &reg : vector_register->regs) {
+    regs.push_back(&reg);
+  }
+
+  std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return natural_compare(r0->id, r1->id); });
+
+  bits_t offset = 0;
+  std::vector<var_t> value_vars;
+  for (const Register *reg : regs) {
+    const klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
+    const std::string value_prefix_name    = "vector_reg_value";
+    const var_t value_var                  = alloc_var(value_prefix_name, entry_expr);
+    value_vars.push_back(value_var);
+    offset += reg->value_size;
+  }
+
+  for (const Register *reg : regs) {
+    transpile_register_decl(reg);
+  }
+
+  if (!regs.empty()) {
+    ingress << "\n";
+  }
+
+  int i = 0;
+  for (const Register *reg : regs) {
+    const code_t action_name = build_register_action_name(reg, RegisterActionType::ReadConditionalWrite, ep_node);
+    transpile_register_action_decl(reg, action_name, RegisterActionType::ReadConditionalWrite,
+                                   register_action_extras_t{
+                                       .external_var             = {},
+                                       .extra_constant           = {},
+                                       .extra_condition          = condition,
+                                       .write_value              = write_value,
+                                       .temporary_transpilations = {{value, "value"}},
+                                   });
+
+    const code_t assignment = action_name + ".execute(" + transpiler.transpile(index, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) + ")";
+    const var_t value_var   = value_vars[i];
+
+    ingress << "\n";
+    value_var.declare(ingress_apply, assignment);
+
+    i++;
   }
 
   return EPVisitor::Action::doChildren;
@@ -3075,6 +3242,19 @@ std::unordered_map<RegisterActionType, std::vector<code_t>> TofinoSynthesizer::c
   return cms_rows_reg_actions;
 }
 
+std::unordered_map<RegisterActionType, std::vector<code_t>> TofinoSynthesizer::bf_get_rows_reg_actions(const BloomFilter *bf) {
+  std::unordered_map<RegisterActionType, std::vector<code_t>> bf_rows_reg_actions;
+
+  for (const Register &bf_row : bf->rows) {
+    for (const RegisterActionType &action_type : bf_row.actions) {
+      const code_t bf_row_action_name = build_register_action_name(&bf_row, action_type);
+      bf_rows_reg_actions[action_type].push_back(bf_row_action_name);
+    }
+  }
+
+  return bf_rows_reg_actions;
+}
+
 std::unordered_map<RegisterActionType, std::vector<code_t>> TofinoSynthesizer::cms_get_rows_actions(const CountMinSketch *cms) {
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_rows_actions;
 
@@ -3088,6 +3268,21 @@ std::unordered_map<RegisterActionType, std::vector<code_t>> TofinoSynthesizer::c
   }
 
   return cms_rows_actions;
+}
+
+std::unordered_map<RegisterActionType, std::vector<code_t>> TofinoSynthesizer::bf_get_rows_actions(const BloomFilter *bf) {
+  std::unordered_map<RegisterActionType, std::vector<code_t>> bf_rows_actions;
+
+  const std::unordered_map<RegisterActionType, std::vector<code_t>> bf_rows_reg_actions = bf_get_rows_reg_actions(bf);
+
+  for (const auto &[action_type, reg_actions] : bf_rows_reg_actions) {
+    for (const code_t &reg_action : reg_actions) {
+      const code_t bf_row_action = reg_action + "_execute";
+      bf_rows_actions[action_type].push_back(bf_row_action);
+    }
+  }
+
+  return bf_rows_actions;
 }
 
 std::unordered_map<RegisterActionType, std::vector<code_t>> TofinoSynthesizer::cms_get_rows_values(const CountMinSketch *cms) {
@@ -3105,11 +3300,38 @@ std::unordered_map<RegisterActionType, std::vector<code_t>> TofinoSynthesizer::c
   return cms_rows_values;
 }
 
+std::unordered_map<RegisterActionType, std::vector<code_t>> TofinoSynthesizer::bf_get_rows_values(const BloomFilter *bf) {
+  std::unordered_map<RegisterActionType, std::vector<code_t>> bf_rows_values;
+
+  const std::unordered_map<RegisterActionType, std::vector<code_t>> bf_rows_reg_actions = bf_get_rows_reg_actions(bf);
+
+  for (const auto &[action_type, reg_actions] : bf_rows_reg_actions) {
+    for (const code_t &reg_action : reg_actions) {
+      const code_t bf_row_value = reg_action + "_value";
+      bf_rows_values[action_type].push_back(bf_row_value);
+    }
+  }
+
+  return bf_rows_values;
+}
+
 std::vector<code_t> TofinoSynthesizer::cms_get_hashes_values(const CountMinSketch *cms) {
   std::vector<code_t> hashes;
 
   for (size_t i = 0; i < cms->height; i++) {
     const code_t &hash      = cms->hashes[i].id;
+    const code_t hash_value = hash + "_value";
+    hashes.push_back(hash_value);
+  }
+
+  return hashes;
+}
+
+std::vector<code_t> TofinoSynthesizer::bf_get_hashes_values(const BloomFilter *bf) {
+  std::vector<code_t> hashes;
+
+  for (size_t i = 0; i < bf->height; i++) {
+    const code_t &hash      = bf->hashes[i].id;
     const code_t hash_value = hash + "_value";
     hashes.push_back(hash_value);
   }
@@ -3129,6 +3351,18 @@ std::vector<code_t> TofinoSynthesizer::cms_get_hashes_calculators(const CountMin
   return hash_calculators;
 }
 
+std::vector<code_t> TofinoSynthesizer::bf_get_hashes_calculators(const BloomFilter *bf, const EPNode *ep_node) {
+  std::vector<code_t> hash_calculators;
+
+  for (size_t i = 0; i < bf->height; i++) {
+    const code_t &hash           = bf->hashes[i].id + "_" + std::to_string(ep_node->get_id());
+    const code_t hash_calculator = hash + "_calc_" + std::to_string(ep_node->get_id());
+    hash_calculators.push_back(hash_calculator);
+  }
+
+  return hash_calculators;
+}
+
 void TofinoSynthesizer::transpile_cms_hash_calculator_decl(const CountMinSketch *cms, const EPNode *ep_node, const std::vector<var_t> &keys_vars) {
   const std::vector<code_t> hashes_calculators = cms_get_hashes_calculators(cms, ep_node);
   const std::vector<code_t> hashes_values      = cms_get_hashes_values(cms);
@@ -3138,6 +3372,39 @@ void TofinoSynthesizer::transpile_cms_hash_calculator_decl(const CountMinSketch 
 
     const bits_t hash_salt_size   = sizeof(CountMinSketch::HASH_SALTS[i]) * 8;
     const code_t &hash            = cms->hashes[i].id + "_" + std::to_string(ep_node->get_id());
+    const code_t &hash_calculator = hashes_calculators[i];
+    const code_t &hash_value      = hashes_values[i];
+
+    coder_t hash_calculation_body;
+
+    hash_calculation_body.indent();
+    hash_calculation_body << hash_value << " = " << hash << ".get({\n";
+
+    hash_calculation_body.inc();
+    for (const var_t &key_var : keys_vars) {
+      hash_calculation_body.indent();
+      hash_calculation_body << key_var.name << ",\n";
+    }
+    hash_calculation_body.indent();
+    hash_calculation_body << Transpiler::transpile_literal(HHTable::HASH_SALTS[i], hash_salt_size, true) << "\n";
+    hash_calculation_body.dec();
+
+    hash_calculation_body.indent();
+    hash_calculation_body << "});\n";
+
+    transpile_action_decl(hash_calculator, hash_calculation_body.split_lines());
+  }
+}
+
+void TofinoSynthesizer::transpile_bf_hash_calculator_decl(const BloomFilter *bf, const EPNode *ep_node, const std::vector<var_t> &keys_vars) {
+  const std::vector<code_t> hashes_calculators = bf_get_hashes_calculators(bf, ep_node);
+  const std::vector<code_t> hashes_values      = bf_get_hashes_values(bf);
+
+  for (size_t i = 0; i < bf->height; i++) {
+    assert(i < BloomFilter::HASH_SALTS.size());
+
+    const bits_t hash_salt_size   = sizeof(BloomFilter::HASH_SALTS[i]) * 8;
+    const code_t &hash            = bf->hashes[i].id + "_" + std::to_string(ep_node->get_id());
     const code_t &hash_calculator = hashes_calculators[i];
     const code_t &hash_value      = hashes_values[i];
 
@@ -3233,6 +3500,77 @@ void TofinoSynthesizer::transpile_cms_decl(const CountMinSketch *cms, const EPNo
   ingress << "\n";
 }
 
+void TofinoSynthesizer::transpile_bf_decl(const BloomFilter *bf, const EPNode *ep_node) {
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+
+  const std::unordered_map<RegisterActionType, std::vector<code_t>> reg_actions = bf_get_rows_reg_actions(bf);
+  const std::unordered_map<RegisterActionType, std::vector<code_t>> actions     = bf_get_rows_actions(bf);
+  const std::unordered_map<RegisterActionType, std::vector<code_t>> values      = bf_get_rows_values(bf);
+  const std::vector<code_t> hashes_values                                       = bf_get_hashes_values(bf);
+
+  if (!declared_ds.contains(bf->id)) {
+    for (size_t i = 0; i < bf->height; i++) {
+      const Register &row = bf->rows[i];
+      transpile_register_decl(&row);
+    }
+
+    ingress << "\n";
+
+    for (size_t i = 0; i < bf->height; i++) {
+      const code_t &hash_value = hashes_values[i];
+      ingress.indent();
+      ingress << Transpiler::type_from_size(bf->hash_size) << " " << hash_value << ";\n";
+    }
+
+    ingress << "\n";
+
+    for (size_t i = 0; i < bf->height; i++) {
+      const Register &row = bf->rows[i];
+      const code_t &hash  = hashes_values[i];
+
+      for (const RegisterActionType &action_type : row.actions) {
+        assert(reg_actions.find(action_type) != reg_actions.end());
+        assert(actions.find(action_type) != actions.end());
+        assert(values.find(action_type) != values.end());
+
+        assert(i < reg_actions.at(action_type).size());
+        assert(i < actions.at(action_type).size());
+        assert(i < values.at(action_type).size());
+
+        const code_t &reg_action = reg_actions.at(action_type)[i];
+        const code_t &action     = actions.at(action_type)[i];
+        const code_t &value      = values.at(action_type)[i];
+
+        transpile_register_action_decl(&row, reg_action, action_type);
+
+        if (register_action_types_with_out_value.contains(action_type)) {
+          ingress.indent();
+          ingress << Transpiler::type_from_size(row.value_size) << " " << value << ";\n";
+        }
+
+        coder_t row_action_body;
+        row_action_body.indent();
+
+        if (register_action_types_with_out_value.contains(action_type)) {
+          row_action_body << value << " = ";
+        }
+        row_action_body << reg_action << ".execute(" << hash << ");\n";
+        transpile_action_decl(action, row_action_body.split_lines());
+        ingress << "\n";
+      }
+    }
+
+    declared_ds.insert(bf->id);
+  }
+
+  for (Hash hash : bf->hashes) {
+    hash.id = hash.id + "_" + std::to_string(ep_node->get_id());
+    transpile_hash_decl(&hash);
+  }
+
+  ingress << "\n";
+}
+
 void TofinoSynthesizer::transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table) {
   if (declared_ds.contains(cuckoo_hash_table->id)) {
     return;
@@ -3306,6 +3644,49 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterSet *node) {
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const DS_ID bf_id                              = node->get_bf_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+
+  const BloomFilter *bf = get_tofino_ds<BloomFilter>(ep, bf_id);
+
+  const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = bf_get_rows_actions(bf);
+  const std::vector<code_t> hashes_calculators                              = bf_get_hashes_calculators(bf, ep_node);
+
+  transpile_bf_decl(bf, ep_node);
+
+  std::vector<var_t> keys_vars;
+  for (size_t i = 0; i < keys.size(); i++) {
+    const std::string key_name = "key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
+    const var_t key_var        = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
+    keys_vars.push_back(key_var);
+
+    declare_var_in_ingress_metadata(key_var);
+
+    ingress_apply.indent();
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  }
+
+  transpile_bf_hash_calculator_decl(bf, ep_node, keys_vars);
+
+  for (const code_t &hash_calc : hashes_calculators) {
+    ingress_apply.indent();
+    ingress_apply << hash_calc << "();\n";
+  }
+
+  assert(actions.find(RegisterActionType::SetToOne) != actions.end());
+  const std::vector<code_t> &set_to_one_actions = actions.at(RegisterActionType::SetToOne);
+
+  for (const code_t &action : set_to_one_actions) {
+    ingress_apply.indent();
+    ingress_apply << action << "();\n";
+  }
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -3367,6 +3748,63 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQueryAndSet *node) {
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const DS_ID bf_id                              = node->get_bf_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  const klee::ref<klee::Expr> estimate           = node->get_estimate();
+
+  const BloomFilter *bf                                                     = get_tofino_ds<BloomFilter>(ep, bf_id);
+  const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = bf_get_rows_actions(bf);
+  const std::unordered_map<RegisterActionType, std::vector<code_t>> values  = bf_get_rows_values(bf);
+  const std::vector<code_t> hashes_calculators                              = bf_get_hashes_calculators(bf, ep_node);
+
+  transpile_bf_decl(bf, ep_node);
+
+  std::vector<var_t> keys_vars;
+  for (size_t i = 0; i < keys.size(); i++) {
+    const std::string key_name = "key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
+    const var_t key_var        = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
+    keys_vars.push_back(key_var);
+
+    declare_var_in_ingress_metadata(key_var);
+
+    ingress_apply.indent();
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  }
+
+  transpile_bf_hash_calculator_decl(bf, ep_node, keys_vars);
+
+  for (const code_t &hash_calc : hashes_calculators) {
+    ingress_apply.indent();
+    ingress_apply << hash_calc << "();\n";
+  }
+
+  assert(actions.find(RegisterActionType::SetToOneAndReturnOldValue) != actions.end());
+  const std::vector<code_t> &read_actions = actions.at(RegisterActionType::SetToOneAndReturnOldValue);
+
+  for (const code_t &action : read_actions) {
+    ingress_apply.indent();
+    ingress_apply << action << "();\n";
+  }
+
+  assert(values.find(RegisterActionType::SetToOneAndReturnOldValue) != values.end());
+  const std::vector<code_t> &read_values = values.at(RegisterActionType::SetToOneAndReturnOldValue);
+
+  const var_t estimate_value = alloc_var(bf->id + "_estimate", estimate);
+  estimate_value.declare(ingress_apply, "0");
+
+  for (size_t i = 0; i < bf->height; i++) {
+    assert(i < read_values.size());
+    const code_t &value = read_values[i];
+    ingress_apply.indent();
+    ingress_apply << estimate_value.get_slice(i, 1).name << " = " << value << "[0:0];\n";
+  }
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSQuery *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -3423,6 +3861,63 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       ingress_apply.indent();
       ingress_apply << min_value.name << " = min(" << min_value.name << ", " << value << ");\n";
     }
+  }
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQuery *node) {
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const DS_ID bf_id                              = node->get_bf_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  const klee::ref<klee::Expr> estimate           = node->get_estimate();
+
+  const BloomFilter *bf                                                     = get_tofino_ds<BloomFilter>(ep, bf_id);
+  const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = bf_get_rows_actions(bf);
+  const std::unordered_map<RegisterActionType, std::vector<code_t>> values  = bf_get_rows_values(bf);
+  const std::vector<code_t> hashes_calculators                              = bf_get_hashes_calculators(bf, ep_node);
+
+  transpile_bf_decl(bf, ep_node);
+
+  std::vector<var_t> keys_vars;
+  for (size_t i = 0; i < keys.size(); i++) {
+    const std::string key_name = "key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
+    const var_t key_var        = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
+    keys_vars.push_back(key_var);
+
+    declare_var_in_ingress_metadata(key_var);
+
+    ingress_apply.indent();
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  }
+
+  transpile_bf_hash_calculator_decl(bf, ep_node, keys_vars);
+
+  for (const code_t &hash_calc : hashes_calculators) {
+    ingress_apply.indent();
+    ingress_apply << hash_calc << "();\n";
+  }
+
+  assert(actions.find(RegisterActionType::Read) != actions.end());
+  const std::vector<code_t> &read_actions = actions.at(RegisterActionType::Read);
+
+  for (const code_t &action : read_actions) {
+    ingress_apply.indent();
+    ingress_apply << action << "();\n";
+  }
+
+  assert(values.find(RegisterActionType::Read) != values.end());
+  const std::vector<code_t> &read_values = values.at(RegisterActionType::Read);
+
+  const var_t estimate_value = alloc_var(bf->id + "_estimate", estimate);
+  estimate_value.declare(ingress_apply, "0");
+
+  for (size_t i = 0; i < bf->height; i++) {
+    assert(i < read_values.size());
+    const code_t &value = read_values[i];
+    ingress_apply.indent();
+    ingress_apply << estimate_value.get_slice(i, 1).name << " = " << value << "[0:0];\n";
   }
 
   return EPVisitor::Action::doChildren;

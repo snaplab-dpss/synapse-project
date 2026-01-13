@@ -112,6 +112,7 @@ public:
 
   EPNode *get_mutable_root() { return root.get(); }
   Context &get_mutable_ctx() { return ctx; }
+  EPMeta &get_mutable_meta() { return meta; }
   EPLeaf pop_active_leaf();
 
   std::vector<const EPNode *> get_prev_nodes() const;

@@ -146,6 +146,14 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       continue;
     }
 
+    if (call.function_name == "bf_allocate") {
+      klee::ref<klee::Expr> obj = call.args.at("bf_out").out;
+      const addr_t addr         = expr_addr_to_obj_addr(obj);
+      const bf_config_t cfg     = get_bf_config_from_bdd(*bdd, addr);
+      bf_configs[addr]          = cfg;
+      continue;
+    }
+
     if (call.function_name == "cht_fill_cht") {
       klee::ref<klee::Expr> obj = call.args.at("cht").expr;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
@@ -379,8 +387,8 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const targets_confi
 
 Context::Context(const Context &other)
     : profiler(other.profiler), perf_oracle(other.perf_oracle), map_configs(other.map_configs), vector_configs(other.vector_configs),
-      dchain_configs(other.dchain_configs), cms_configs(other.cms_configs), cht_configs(other.cht_configs), tb_configs(other.tb_configs),
-      coalescing_candidates(other.coalescing_candidates),
+      dchain_configs(other.dchain_configs), cms_configs(other.cms_configs), bf_configs(other.bf_configs), cht_configs(other.cht_configs),
+      tb_configs(other.tb_configs), coalescing_candidates(other.coalescing_candidates),
       dchains_failing_to_allocate_new_index_hit_rates(other.dchains_failing_to_allocate_new_index_hit_rates), expiration_data(other.expiration_data),
       expr_structs(other.expr_structs), ds_impls(other.ds_impls) {
   for (auto &target_ctx_pair : other.target_ctxs) {
@@ -391,7 +399,7 @@ Context::Context(const Context &other)
 Context::Context(Context &&other)
     : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)), map_configs(std::move(other.map_configs)),
       vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)), cms_configs(std::move(other.cms_configs)),
-      cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
+      bf_configs(std::move(other.bf_configs)), cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
       coalescing_candidates(std::move(other.coalescing_candidates)),
       dchains_failing_to_allocate_new_index_hit_rates(std::move(other.dchains_failing_to_allocate_new_index_hit_rates)),
       expiration_data(std::move(other.expiration_data)), expr_structs(std::move(other.expr_structs)), ds_impls(std::move(other.ds_impls)),
@@ -424,6 +432,7 @@ Context &Context::operator=(const Context &other) {
   vector_configs                                  = other.vector_configs;
   dchain_configs                                  = other.dchain_configs;
   cms_configs                                     = other.cms_configs;
+  bf_configs                                      = other.bf_configs;
   cht_configs                                     = other.cht_configs;
   tb_configs                                      = other.tb_configs;
   coalescing_candidates                           = other.coalescing_candidates;
@@ -457,6 +466,7 @@ Context &Context::operator=(Context &&other) {
   vector_configs                                  = std::move(other.vector_configs);
   dchain_configs                                  = std::move(other.dchain_configs);
   cms_configs                                     = std::move(other.cms_configs);
+  bf_configs                                      = std::move(other.bf_configs);
   cht_configs                                     = std::move(other.cht_configs);
   tb_configs                                      = std::move(other.tb_configs);
   coalescing_candidates                           = std::move(other.coalescing_candidates);
@@ -493,6 +503,11 @@ const dchain_config_t &Context::get_dchain_config(addr_t addr) const {
 const cms_config_t &Context::get_cms_config(addr_t addr) const {
   assert(cms_configs.find(addr) != cms_configs.end() && "CMS not found");
   return cms_configs.at(addr);
+}
+
+const bf_config_t &Context::get_bf_config(addr_t addr) const {
+  assert(bf_configs.find(addr) != bf_configs.end() && "BF not found");
+  return bf_configs.at(addr);
 }
 
 const cht_config_t &Context::get_cht_config(addr_t addr) const {
@@ -583,6 +598,9 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   case DSImpl::Tofino_CountMinSketch:
     os << "Tofino::CMS";
     break;
+  case DSImpl::Tofino_BloomFilter:
+    os << "Tofino::BloomFilter";
+    break;
   case DSImpl::Tofino_CuckooHashTable:
     os << "Tofino::CuckooHashTable";
     break;
@@ -597,6 +615,9 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
     break;
   case DSImpl::Controller_CountMinSketch:
     os << "Controller::CMS";
+    break;
+  case DSImpl::Controller_BloomFilter:
+    os << "Controller::BloomFilter";
     break;
   case DSImpl::Controller_Map:
     os << "Controller::Map";

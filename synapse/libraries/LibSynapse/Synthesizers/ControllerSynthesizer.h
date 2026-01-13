@@ -221,6 +221,9 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableOutOfBandUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterSet *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCuckooHashTableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketIsTracing *node) override final;
@@ -236,6 +239,10 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSIncrement *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSCountMin *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterSet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneExpireItemsSingleMapIteratively *node) override final;
 
   bool in_nf_init{true};
   void change_to_process_coder() { in_nf_init = false; }
@@ -267,6 +274,7 @@ private:
   void transpile_vector_register_decl(const Tofino::VectorRegister *vector_register);
   void transpile_hh_table_decl(const Tofino::HHTable *hh_table, time_ns_t expiration_time);
   void transpile_cms_decl(const Tofino::CountMinSketch *cms, time_ns_t periodic_cleanup_interval);
+  void transpile_bf_decl(const Tofino::BloomFilter *bf, time_ns_t periodic_cleanup_interval);
 
   void abort_transaction(coder_t &coder);
 

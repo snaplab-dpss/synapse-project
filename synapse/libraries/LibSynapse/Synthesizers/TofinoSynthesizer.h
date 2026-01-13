@@ -41,11 +41,13 @@ private:
     std::stack<coder_t> coders;
     TofinoSynthesizer *synthesizer;
     transpiler_opt_t loaded_opt;
+    std::map<klee::ref<klee::Expr>, code_t> temporary_transpilations;
 
   public:
     Transpiler(TofinoSynthesizer *synthesizer);
 
-    code_t transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION);
+    code_t transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION,
+                     std::map<klee::ref<klee::Expr>, code_t> temporary_transpilations = std::map<klee::ref<klee::Expr>, code_t>());
 
     static code_t type_from_size(bits_t size);
     static code_t type_from_expr(klee::ref<klee::Expr> expr);
@@ -223,6 +225,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) override final;
@@ -232,6 +235,9 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncrement *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQueryAndSet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterSet *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *node) override final;
 
   coder_t &get(const std::string &marker);
@@ -246,14 +252,27 @@ private:
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_actions(const CountMinSketch *cms);
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_values(const CountMinSketch *cms);
 
+  std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_reg_actions(const BloomFilter *bf);
+  std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_actions(const BloomFilter *bf);
+  std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_values(const BloomFilter *bf);
+
   void transpile_parser(const Parser &parser);
   void transpile_action_decl(const code_t &action_name, const std::vector<code_t> &body);
   void transpile_action_decl(const code_t &action_name, const std::vector<klee::ref<klee::Expr>> &params, bool params_are_buffers);
   void transpile_table_decl(const Table *table, const std::vector<klee::ref<klee::Expr>> &keys, const std::vector<klee::ref<klee::Expr>> &values,
                             bool values_are_buffers, std::vector<var_t> &keys_vars);
   void transpile_register_decl(const Register *reg);
+
+  struct register_action_extras_t {
+    std::optional<code_t> external_var;
+    std::optional<u64> extra_constant;
+    std::optional<klee::ref<klee::Expr>> extra_condition;
+    std::optional<klee::ref<klee::Expr>> write_value;
+    std::map<klee::ref<klee::Expr>, code_t> temporary_transpilations;
+  };
+
   void transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType type,
-                                      std::optional<code_t> external_var = std::nullopt, std::optional<u64> extra_constant = std::nullopt);
+                                      std::optional<register_action_extras_t> extras = std::nullopt);
   void transpile_hash_decl(const Hash *hash);
   void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash);
   void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
@@ -263,6 +282,10 @@ private:
   std::vector<code_t> cms_get_hashes_calculators(const CountMinSketch *cms, const EPNode *ep_node);
   void transpile_cms_hash_calculator_decl(const CountMinSketch *cms, const EPNode *ep_node, const std::vector<var_t> &keys_vars);
   void transpile_cms_decl(const CountMinSketch *cms, const EPNode *ep_node);
+  std::vector<code_t> bf_get_hashes_values(const BloomFilter *bf);
+  std::vector<code_t> bf_get_hashes_calculators(const BloomFilter *bf, const EPNode *ep_node);
+  void transpile_bf_hash_calculator_decl(const BloomFilter *bf, const EPNode *ep_node, const std::vector<var_t> &keys_vars);
+  void transpile_bf_decl(const BloomFilter *bf, const EPNode *ep_node);
   void transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table);
   void transpile_if_condition(const If::condition_t &condition);
   void transpile_digest(const Digest &digest, const std::vector<klee::ref<klee::Expr>> &fields);

@@ -224,6 +224,25 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *node) {
+  std::stringstream label_builder;
+
+  const BDDNode *bdd_node         = node->get_node();
+  TargetType target               = node->get_target();
+  Tofino::DS_ID id                = node->get_id();
+  addr_t obj                      = node->get_obj();
+
+  label_builder << "Vector Register Conditional Update\n";
+  label_builder << "(";
+  label_builder << "id=" << id << ", ";
+  label_builder << "obj=" << obj;
+  label_builder << ")";
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) {
   std::stringstream label_builder;
 
@@ -372,6 +391,10 @@ SHOW_MODULE_NAME(Tofino::IntegerAllocatorIsAllocated)
 SHOW_MODULE_NAME(Tofino::CMSQuery)
 SHOW_MODULE_NAME(Tofino::CMSIncrement)
 SHOW_MODULE_NAME(Tofino::CMSIncAndQuery)
+
+SHOW_MODULE_NAME(Tofino::BloomFilterSet)
+SHOW_MODULE_NAME(Tofino::BloomFilterQuery)
+SHOW_MODULE_NAME(Tofino::BloomFilterQueryAndSet)
 
 SHOW_MODULE_NAME(Tofino::CuckooHashTableReadWrite)
 

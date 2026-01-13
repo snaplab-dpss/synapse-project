@@ -41,7 +41,7 @@ Pipeline::Pipeline(const tna_properties_t &_properties, const DataStructures &_d
 Pipeline::Pipeline(const Pipeline &other, const DataStructures &_data_structures)
     : properties(other.properties), data_structures(_data_structures), resources(other.resources), placement_requests(other.placement_requests) {}
 
-void Pipeline::debug() const {
+void Pipeline::dump(std::ostream &os) const {
   std::stringstream ss;
   ss << "\n";
   ss << "====================== TNA Pipeline ======================\n";
@@ -116,8 +116,10 @@ void Pipeline::debug() const {
 
   ss << "==========================================================\n";
 
-  std::cerr << ss.str();
+  os << ss.str();
 }
+
+void Pipeline::debug() const { dump(std::cerr); }
 
 int Pipeline::get_placed_stage(DS_ID ds_id) const {
   auto it = std::find_if(resources.stages.begin(), resources.stages.end(),

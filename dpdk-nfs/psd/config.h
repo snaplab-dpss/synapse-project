@@ -23,6 +23,15 @@ struct nf_config {
   // Maximum allowed number of touched ports
   uint32_t max_ports;
 
+  // Bloom Filter height (i.e. number of rows)
+  uint32_t bloom_filter_height;
+
+  // Bloom Filter width (i.e. number of columns)
+  uint32_t bloom_filter_width;
+
+  // Bloom Filter cleanup interval in microseconds
+  uint64_t bloom_filter_cleanup_interval;
+
   // Expiration time of sources in microseconds
   uint32_t expiration_time;
 };

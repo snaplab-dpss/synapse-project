@@ -65,10 +65,15 @@ const Table *MapTable::get_table(bdd_node_id_t op) const {
   return nullptr;
 }
 
-std::optional<DS_ID> MapTable::add_table(bdd_node_id_t op, const std::vector<bits_t> &keys_sizes, TimeAware time_aware) {
+DS_ID MapTable::add_table(bdd_node_id_t op, const std::vector<bits_t> &keys_sizes, TimeAware time_aware) {
   Table new_table(build_table_name(id, op), capacity, keys_sizes, {param_size}, time_aware);
   tables.push_back(new_table);
   return new_table.id;
+}
+
+void MapTable::remove_table(bdd_node_id_t op) {
+  const std::string table_id = build_table_name(id, op);
+  tables.erase(std::remove_if(tables.begin(), tables.end(), [&table_id](const Table &table) { return table.id == table_id; }), tables.end());
 }
 
 } // namespace Tofino

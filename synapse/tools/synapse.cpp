@@ -5,6 +5,7 @@
 #include <LibSynapse/Visualizers/ProfilerVisualizer.h>
 #include <LibSynapse/GlobalStats.h>
 #include <LibCore/Debug.h>
+#include <LibSynapse/Modules/Tofino/TofinoContext.h>
 
 #include <filesystem>
 #include <fstream>
@@ -217,6 +218,10 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   out_hr_report << "  Num phase 1 speculations: " << int2hr(GlobalStats::num_phase1_speculations) << " (" << phase1_percent << "%)\n";
   out_hr_report << "  Num phase 2 speculations: " << int2hr(GlobalStats::num_phase2_speculations) << " (" << phase2_percent << "%)\n";
   out_hr_report << "  Num phase 3 speculations: " << int2hr(GlobalStats::num_phase3_speculations) << " (" << phase3_percent << "%)\n";
+
+  out_hr_report << "\n";
+  out_hr_report << "Switch placement:\n";
+  search_report.ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_tna().pipeline.dump(out_hr_report);
 
   out_hr_report << "========================================================\n";
   out_hr_report.close();

@@ -614,6 +614,7 @@ BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, st
                             POPULATE_SYNTHESIZER(vector_allocate),
                             POPULATE_SYNTHESIZER(dchain_allocate),
                             POPULATE_SYNTHESIZER(cms_allocate),
+                            POPULATE_SYNTHESIZER(bf_allocate),
                             POPULATE_SYNTHESIZER(tb_allocate),
                             POPULATE_SYNTHESIZER(lpm_allocate),
                             POPULATE_SYNTHESIZER(packet_borrow_next_chunk),
@@ -637,6 +638,9 @@ BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, st
                             POPULATE_SYNTHESIZER(cms_increment),
                             POPULATE_SYNTHESIZER(cms_count_min),
                             POPULATE_SYNTHESIZER(cms_periodic_cleanup),
+                            POPULATE_SYNTHESIZER(bf_query),
+                            POPULATE_SYNTHESIZER(bf_set),
+                            POPULATE_SYNTHESIZER(bf_periodic_cleanup),
                             POPULATE_SYNTHESIZER(tb_is_tracing),
                             POPULATE_SYNTHESIZER(tb_trace),
                             POPULATE_SYNTHESIZER(tb_update_and_check),
@@ -1538,6 +1542,39 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::cms_allocate(coder_t &coder,
   return success_var;
 }
 
+BDDSynthesizer::success_condition_t BDDSynthesizer::bf_allocate(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> height           = call.args.at("height").expr;
+  klee::ref<klee::Expr> width            = call.args.at("width").expr;
+  klee::ref<klee::Expr> key_size         = call.args.at("key_size").expr;
+  klee::ref<klee::Expr> cleanup_interval = call.args.at("cleanup_interval").expr;
+  klee::ref<klee::Expr> bf_out           = call.args.at("bf_out").out;
+  symbol_t success                       = call_node->get_local_symbol("bf_allocation_succeeded");
+
+  var_t bf_out_var        = build_var("bf", bf_out);
+  var_t success_var       = build_var("bf_allocation_succeeded", success.expr);
+  coder_t &coder_nf_state = code_template.get(MARKER_NF_STATE);
+  coder_nf_state.indent();
+  coder_nf_state << "struct BloomFilter *";
+  coder_nf_state << bf_out_var.name;
+  coder_nf_state << ";\n";
+
+  coder.indent();
+  coder << "int " << success_var.name << " = ";
+  coder << "bf_allocate(";
+  coder << transpiler.transpile(height) << ", ";
+  coder << transpiler.transpile(width) << ", ";
+  coder << transpiler.transpile(key_size) << ", ";
+  coder << transpiler.transpile(cleanup_interval) << ", ";
+  coder << "&" << bf_out_var.name;
+  coder << ");\n";
+
+  stack_add(bf_out_var);
+
+  return success_var;
+}
+
 BDDSynthesizer::success_condition_t BDDSynthesizer::cms_increment(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
@@ -1610,6 +1647,87 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::cms_periodic_cleanup(coder_t
   coder << "int " << cs.name << " = ";
   coder << "cms_periodic_cleanup(";
   coder << stack_get(cms_addr).name << ", ";
+  coder << transpiler.transpile(time);
+  coder << ")";
+  coder << ";\n";
+
+  stack_add(cs);
+
+  return cs;
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::bf_query(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> bf_addr  = call.args.at("bf").expr;
+  klee::ref<klee::Expr> key      = call.args.at("key").in;
+  klee::ref<klee::Expr> key_addr = call.args.at("key").expr;
+  klee::ref<klee::Expr> estimate = call.ret;
+
+  bool key_in_stack;
+  var_t k = build_var_ptr("key", key_addr, key, coder, key_in_stack);
+
+  var_t e = build_var("bf_query_estimate", estimate);
+
+  coder.indent();
+  coder << "int " << e.name << " = ";
+  coder << "bf_query(";
+  coder << stack_get(bf_addr).name << ", ";
+  coder << k.name;
+  coder << ")";
+  coder << ";\n";
+
+  if (!key_in_stack) {
+    stack_add(k);
+  } else {
+    stack_replace(k, key);
+  }
+
+  stack_add(e);
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::bf_set(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> bf_addr  = call.args.at("bf").expr;
+  klee::ref<klee::Expr> key      = call.args.at("key").in;
+  klee::ref<klee::Expr> key_addr = call.args.at("key").expr;
+
+  bool key_in_stack;
+  var_t k = build_var_ptr("key", key_addr, key, coder, key_in_stack);
+
+  coder.indent();
+  coder << "bf_set(";
+  coder << stack_get(bf_addr).name << ", ";
+  coder << k.name;
+  coder << ")";
+  coder << ";\n";
+
+  if (!key_in_stack) {
+    stack_add(k);
+  } else {
+    stack_replace(k, key);
+  }
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::bf_periodic_cleanup(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> bf_addr = call.args.at("bf").expr;
+  klee::ref<klee::Expr> time    = call.args.at("time").expr;
+
+  symbol_t cleanup_success = call_node->get_local_symbol("cleanup_success");
+
+  var_t cs = build_var("cleanup_success", cleanup_success.expr);
+
+  coder.indent();
+  coder << "int " << cs.name << " = ";
+  coder << "bf_periodic_cleanup(";
+  coder << stack_get(bf_addr).name << ", ";
   coder << transpiler.transpile(time);
   coder << ")";
   coder << ";\n";

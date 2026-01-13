@@ -61,6 +61,9 @@
 #include <LibSynapse/Modules/Controller/DataplaneHHTableOutOfBandUpdate.h>
 #include <LibSynapse/Modules/Controller/DataplaneCMSAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneCMSQuery.h>
+#include <LibSynapse/Modules/Controller/DataplaneBloomFilterAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneBloomFilterQuery.h>
+#include <LibSynapse/Modules/Controller/DataplaneBloomFilterSet.h>
 #include <LibSynapse/Modules/Controller/TokenBucketAllocate.h>
 #include <LibSynapse/Modules/Controller/TokenBucketIsTracing.h>
 #include <LibSynapse/Modules/Controller/TokenBucketTrace.h>
@@ -75,7 +78,11 @@
 #include <LibSynapse/Modules/Controller/CMSQuery.h>
 #include <LibSynapse/Modules/Controller/CMSIncrement.h>
 #include <LibSynapse/Modules/Controller/CMSCountMin.h>
+#include <LibSynapse/Modules/Controller/BloomFilterAllocate.h>
+#include <LibSynapse/Modules/Controller/BloomFilterQuery.h>
+#include <LibSynapse/Modules/Controller/BloomFilterSet.h>
 #include <LibSynapse/Modules/Controller/DataplaneCuckooHashTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneExpireItemsSingleMapIteratively.h>
 
 namespace LibSynapse {
 namespace Controller {
@@ -143,6 +150,9 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneHHTableOutOfBandUpdateFactory>());
               f.push_back(std::make_unique<DataplaneCMSAllocateFactory>());
               f.push_back(std::make_unique<DataplaneCMSQueryFactory>());
+              f.push_back(std::make_unique<DataplaneBloomFilterAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneBloomFilterQueryFactory>());
+              f.push_back(std::make_unique<DataplaneBloomFilterSetFactory>());
               f.push_back(std::make_unique<TokenBucketAllocateFactory>());
               f.push_back(std::make_unique<TokenBucketIsTracingFactory>());
               f.push_back(std::make_unique<TokenBucketTraceFactory>());
@@ -157,7 +167,11 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<CMSQueryFactory>());
               f.push_back(std::make_unique<CMSIncrementFactory>());
               f.push_back(std::make_unique<CMSCountMinFactory>());
+              f.push_back(std::make_unique<BloomFilterAllocateFactory>());
+              f.push_back(std::make_unique<BloomFilterQueryFactory>());
+              f.push_back(std::make_unique<BloomFilterSetFactory>());
               f.push_back(std::make_unique<DataplaneCuckooHashTableAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneExpireItemsSingleMapIterativelyFactory>());
               return f;
             }(),
             std::make_unique<ControllerContext>()) {}

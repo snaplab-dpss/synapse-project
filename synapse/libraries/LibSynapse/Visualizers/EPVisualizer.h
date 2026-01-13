@@ -54,6 +54,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) override final;
@@ -66,6 +67,9 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncrement *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterSet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQueryAndSet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *node) override final;
 
   // ========================================
@@ -124,10 +128,16 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterSet *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSIncrement *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSCountMin *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterSet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneExpireItemsSingleMapIteratively *node) override final;
 
   // ========================================
   // x86

@@ -49,34 +49,66 @@ const std::unordered_set<std::string> routing_functions{
 const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_from_call{
     {"current_time", {"next_time"}},
     {"packet_receive", {"DEVICE", "pkt_len"}},
+    {"start_time", {}},
+
+    {"packet_borrow_next_chunk", {}},
+    {"packet_return_chunk", {}},
+    {"packet_get_unread_length", {}},
+    {"packet_state_total_length", {}},
+    {"packet_send", {}},
+    {"packet_free", {}},
+
+    {"loop_invariant_consume", {}},
+    {"loop_invariant_produce", {}},
+
     {"map_allocate", {"map_allocation_succeeded"}},
-    {"vector_allocate", {"vector_alloc_success"}},
-    {"dchain_allocate", {"is_dchain_allocated"}},
-    {"cms_allocate", {"cms_allocation_succeeded"}},
-    {"tb_allocate", {"tb_allocation_succeeded"}},
-    {"lpm_allocate", {"lpm_alloc_success"}},
-    {"rte_lcore_count", {"lcores"}},
-    {"rte_ether_addr_hash", {"rte_ether_addr_hash"}},
-    {"nf_set_rte_ipv4_udptcp_checksum", {"checksum"}},
-    {"expire_items_single_map", {"number_of_freed_flows"}},
-    {"expire_items_single_map_iteratively", {"number_of_freed_flows"}},
     {"map_get", {"map_has_this_key", "allocated_index"}},
+    {"map_put", {}},
     {"map_size", {"map_size"}},
+
+    {"vector_allocate", {"vector_alloc_success"}},
+    {"vector_borrow", {"vector_data"}},
+    {"vector_return", {}},
+    {"vector_sample_lt", {"found_sample", "sample_index"}},
+
+    {"dchain_allocate", {"is_dchain_allocated"}},
     {"dchain_is_index_allocated", {"is_index_allocated"}},
     {"dchain_allocate_new_index", {"not_out_of_space", "new_index"}},
-    {"vector_borrow", {"vector_data"}},
-    {"vector_sample_lt", {"found_sample", "sample_index"}},
-    {"cht_fill_cht", {"cht_fill_cht_successful"}},
-    {"cht_find_preferred_available_backend", {"chosen_backend", "prefered_backend_found"}},
+    {"dchain_rejuvenate_index", {}},
+
+    {"cms_allocate", {"cms_allocation_succeeded"}},
     {"cms_count_min", {"min_estimate"}},
+    {"cms_increment", {}},
     {"cms_periodic_cleanup", {"cleanup_success"}},
-    {"hash_obj", {"hash"}},
+
+    {"bf_allocate", {"bf_allocation_succeeded"}},
+    {"bf_set", {}},
+    {"bf_query", {"bf_query_estimate"}},
+    {"bf_periodic_cleanup", {"cleanup_success"}},
+
+    {"tb_allocate", {"tb_allocation_succeeded"}},
     {"tb_is_tracing", {"is_tracing", "index_out"}},
     {"tb_trace", {"successfuly_tracing", "index_out"}},
     {"tb_update_and_check", {"pass"}},
     {"tb_expire", {"number_of_freed_flows"}},
+
+    {"lpm_allocate", {"lpm_alloc_success"}},
     {"lpm_lookup", {"lpm_lookup_match", "lpm_lookup_result"}},
     {"lpm_update", {"lpm_update_elem_result"}},
+
+    {"rte_lcore_count", {"lcores"}},
+    {"rte_ether_addr_hash", {"rte_ether_addr_hash"}},
+
+    {"nf_set_rte_ipv4_udptcp_checksum", {"checksum"}},
+
+    {"expire_items_single_map", {"number_of_freed_flows"}},
+    {"expire_items_single_map_iteratively", {"number_of_freed_flows"}},
+
+    {"cht_fill_cht", {"cht_fill_cht_successful"}},
+    {"cht_find_preferred_available_backend", {"chosen_backend", "prefered_backend_found"}},
+
+    {"hash_obj", {"hash"}},
+
 };
 
 typedef Symbols (*SymbolsExtractor)(const call_t &call, const Symbols &symbols);
@@ -245,7 +277,7 @@ Symbols get_generated_symbols(const call_t &call, Symbols &symbols, std::unorder
 
   auto base_symbols_it = symbols_from_call.find(call.function_name);
   if (base_symbols_it == symbols_from_call.end()) {
-    return generated_symbols;
+    panic("Unable to extrapolate generate symbols from unknown function '%s'", call.function_name.c_str());
   }
 
   for (const std::string &base : base_symbols_it->second) {

@@ -217,7 +217,7 @@ capacity_bps = 125_000_000_000 # 125G
 
 [switch.arch]
 name                                       = "Tofino"
-max_packet_bytes_in_condition              = 4
+max_phv_bytes_in_condition                 = 4
 pipes                                      = 2
 stages                                     = 12
 sram_per_stage                             = 10485760      # 128 * 1024 * 80 bits

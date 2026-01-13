@@ -142,6 +142,16 @@ public:
                                             u32 height);
 
   // ======================================================================
+  //  Bloom Filter
+  // ======================================================================
+
+  static DS_ID build_bf_id(addr_t obj);
+  static bool can_build_or_reuse_bf(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
+                                    u32 height);
+  static BloomFilter *build_or_reuse_bf(const EP *ep, const BDDNode *node, addr_t obj, const std::vector<klee::ref<klee::Expr>> &keys, u32 width,
+                                        u32 height);
+
+  // ======================================================================
   //  LPM
   // ======================================================================
 

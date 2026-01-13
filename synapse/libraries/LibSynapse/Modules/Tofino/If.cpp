@@ -96,43 +96,7 @@ std::vector<klee::ref<klee::Expr>> split_condition(klee::ref<klee::Expr> conditi
   return conditions;
 }
 
-bool is_simple_expr(klee::ref<klee::Expr> condition) {
-  bool is_simple = false;
-
-  switch (condition->getKind()) {
-  case klee::Expr::Kind::Eq:
-  case klee::Expr::Kind::Ne:
-  case klee::Expr::Kind::Ult:
-  case klee::Expr::Kind::Ule:
-  case klee::Expr::Kind::Ugt:
-  case klee::Expr::Kind::Uge:
-  case klee::Expr::Kind::Slt:
-  case klee::Expr::Kind::Sle:
-  case klee::Expr::Kind::Sgt:
-  case klee::Expr::Kind::Sge: {
-    klee::ref<klee::Expr> lhs = condition->getKid(0);
-    klee::ref<klee::Expr> rhs = condition->getKid(1);
-    is_simple                 = is_simple_expr(lhs) && is_simple_expr(rhs);
-  } break;
-  case klee::Expr::Kind::Not: {
-    is_simple = is_simple_expr(condition->getKid(0));
-  } break;
-  case klee::Expr::Kind::Concat: {
-    is_simple = is_readLSB(condition);
-  } break;
-  case klee::Expr::Kind::Read:
-  case klee::Expr::Kind::Constant: {
-    is_simple = true;
-  } break;
-  default:
-    is_simple = false;
-  }
-
-  return is_simple;
-}
-
 std::optional<If::phv_limitation_workaround_t> get_phv_limitation_workaround(klee::ref<klee::Expr> expr) {
-
   static const std::map<std::pair<klee::Expr::Width, klee::Expr::Kind>, If::ConditionActionHelper> kind_to_action_helper{
       {{klee::Expr::Int32, klee::Expr::Kind::Eq}, If::ConditionActionHelper::None},
       {{klee::Expr::Int32, klee::Expr::Kind::Ne}, If::ConditionActionHelper::None},
@@ -194,12 +158,12 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
   for (klee::ref<klee::Expr> sub_condition : split_condition(condition)) {
     klee::ref<klee::Expr> simplified = simplify_conditional(sub_condition);
 
-    if (!is_simple_expr(simplified)) {
+    if (!get_tna(ep).is_simple_conditional_expr(simplified)) {
       panic("TODO: deal with this not simple condition: %s", expr_to_string(simplified, true).c_str());
       return {};
     }
 
-    if (!get_tna(ep).condition_meets_phv_limit(sub_condition)) {
+    if (!get_tna(ep).condition_meets_phv_limit(simplified)) {
       std::optional<If::phv_limitation_workaround_t> phv_limitation_workaround = get_phv_limitation_workaround(simplified);
       if (!phv_limitation_workaround.has_value()) {
         panic("TODO: deal with this not compatible condition: %s", expr_to_string(simplified, true).c_str());
@@ -255,7 +219,7 @@ std::unique_ptr<Module> IfFactory::create(const BDD *bdd, const Context &ctx, co
   for (klee::ref<klee::Expr> sub_condition : split_condition(condition)) {
     klee::ref<klee::Expr> simplified = simplify_conditional(sub_condition);
 
-    if (!is_simple_expr(simplified)) {
+    if (!tna.is_simple_conditional_expr(simplified)) {
       panic("TODO: deal with this not simple condition: %s", expr_to_string(simplified, true).c_str());
       return {};
     }

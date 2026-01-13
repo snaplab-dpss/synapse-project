@@ -20,6 +20,8 @@ struct VectorRegister : public DS {
   VectorRegister(const tna_properties_t &properties, DS_ID id, u32 capacity, bits_t index_size, const std::vector<bits_t> &values_sizes);
   VectorRegister(const VectorRegister &other);
 
+  void add_register_action(RegisterActionType action_type);
+
   DS *clone() const override;
   void debug() const override;
   std::vector<std::unordered_set<const DS *>> get_internal() const override;

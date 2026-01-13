@@ -225,8 +225,30 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitExtract(const 
     return Action::skipChildren();
   }
 
-  synthesizer->dbg_vars();
-  panic("TODO: visitExtract");
+  const bits_t width        = e.width;
+  const bits_t offset       = e.offset;
+  klee::ref<klee::Expr> arg = e.expr;
+
+  if (width != arg->getWidth()) {
+    coder << "(";
+    coder << type_from_expr(arg);
+    coder << ")";
+    coder << "(";
+  }
+
+  coder << "(";
+  coder << transpile(arg);
+  coder << ")";
+
+  if (offset > 0) {
+    coder << ">>";
+    coder << offset;
+  }
+
+  if (width != arg->getWidth()) {
+    coder << ")";
+  }
+
   return Action::skipChildren();
 }
 
@@ -1691,6 +1713,27 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterAllocate *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  panic("TODO: Controller::BloomFilterAllocate");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterSet *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  panic("TODO: Controller::BloomFilterSet");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterQuery *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  panic("TODO: Controller::BloomFilterQuery");
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *node) {
   const addr_t obj                          = node->get_obj();
   const time_ns_t periodic_cleanup_interval = node->get_cleanup_internal();
@@ -1723,8 +1766,64 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterAllocate *node) {
+  const addr_t obj                          = node->get_obj();
+  const time_ns_t periodic_cleanup_interval = node->get_cleanup_internal();
+
+  const Tofino::BloomFilter *bf = get_unique_tofino_ds_from_obj<Tofino::BloomFilter>(ep, obj);
+
+  transpile_bf_decl(bf, periodic_cleanup_interval);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterQuery *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                     = node->get_obj();
+  const klee::ref<klee::Expr> key      = node->get_key();
+  const klee::ref<klee::Expr> estimate = node->get_estimate();
+
+  const Tofino::BloomFilter *bf = get_unique_tofino_ds_from_obj<Tofino::BloomFilter>(ep, obj);
+
+  const var_t key_var      = transpile_buffer_decl_and_set(coder, bf->id + "_key", key, true);
+  const var_t estimate_var = alloc_var("bf_query_estimate", estimate, {}, NO_OPTION);
+
+  coder.indent();
+  coder << "u32 " << estimate_var.name << " = ";
+  coder << "state->" << bf->id << ".query(";
+  coder << key_var.name;
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterSet *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                = node->get_obj();
+  const klee::ref<klee::Expr> key = node->get_key();
+
+  const Tofino::BloomFilter *bf = get_unique_tofino_ds_from_obj<Tofino::BloomFilter>(ep, obj);
+
+  const var_t key_var = transpile_buffer_decl_and_set(coder, bf->id + "_key", key, true);
+
+  coder.indent();
+  coder << "state->" << bf->id << ".set(";
+  coder << key_var.name;
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCuckooHashTableAllocate *node) {
   // Actually, no need to do anything at all. This is a 100% dataplane data structure.
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                               const Controller::DataplaneExpireItemsSingleMapIteratively *node) {
+  todo();
   return EPVisitor::Action::doChildren;
 }
 
@@ -2023,6 +2122,31 @@ void ControllerSynthesizer::transpile_cms_decl(const Tofino::CountMinSketch *cms
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Register &row : cms->rows) {
+    member_init_list << "\"Ingress." << row.id << "\", ";
+  }
+  member_init_list << "}";
+  member_init_list << ", " << periodic_cleanup_interval_ms << "LL";
+  member_init_list << ")";
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_bf_decl(const Tofino::BloomFilter *bf, time_ns_t periodic_cleanup_interval) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name                            = assert_unique_name(bf->id);
+  const time_ms_t periodic_cleanup_interval_ms = periodic_cleanup_interval / MILLION;
+
+  state_fields.indent();
+  state_fields << "BloomFilter " << name << ";\n";
+
+  synapse_data_structures_instances.push_back(name);
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
+  member_init_list << "{";
+  for (const Tofino::Register &row : bf->rows) {
     member_init_list << "\"Ingress." << row.id << "\", ";
   }
   member_init_list << "}";

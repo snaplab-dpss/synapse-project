@@ -33,7 +33,8 @@ struct MapTable : public DS {
 
   bool has_table(bdd_node_id_t op) const;
   const Table *get_table(bdd_node_id_t op) const;
-  std::optional<DS_ID> add_table(bdd_node_id_t op, const std::vector<bits_t> &keys_sizes, TimeAware time_aware);
+  DS_ID add_table(bdd_node_id_t op, const std::vector<bits_t> &keys_sizes, TimeAware time_aware);
+  void remove_table(bdd_node_id_t op);
 };
 
 } // namespace Tofino

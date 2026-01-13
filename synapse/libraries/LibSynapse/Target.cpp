@@ -26,7 +26,7 @@ targets_config_t::targets_config_t(const std::filesystem::path &targets_config_f
   tofino_config.properties = {
       .total_ports                                = static_cast<int>(config["switch"]["front_panel_ports"].as_array()->size()),
       .total_recirc_ports                         = static_cast<int>(config["switch"]["recirculation_ports"].as_array()->size()),
-      .max_packet_bytes_in_condition              = *config["switch"]["arch"]["max_packet_bytes_in_condition"].value<bytes_t>(),
+      .max_phv_bytes_in_condition                 = *config["switch"]["arch"]["max_phv_bytes_in_condition"].value<bytes_t>(),
       .pipes                                      = *config["switch"]["arch"]["pipes"].value<int>(),
       .stages                                     = *config["switch"]["arch"]["stages"].value<int>(),
       .sram_per_stage                             = *config["switch"]["arch"]["sram_per_stage"].value<bits_t>(),

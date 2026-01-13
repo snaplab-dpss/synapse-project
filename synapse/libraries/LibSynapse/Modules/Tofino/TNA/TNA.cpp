@@ -8,6 +8,8 @@ namespace Tofino {
 
 using LibCore::get_unique_symbolic_reads;
 using LibCore::is_power_of_two;
+using LibCore::is_readLSB;
+using LibCore::stitch_conditions;
 using LibCore::symbolic_read_t;
 using LibCore::symbolic_reads_t;
 
@@ -15,11 +17,13 @@ namespace {
 
 class PHVBytesRetriever : public klee::ExprVisitor::ExprVisitor {
 private:
-  symbolic_reads_t symbolic_reads;
   bytes_t used_phv_bytes;
+  std::unordered_set<std::string> exception_symbols;
+  symbolic_reads_t symbolic_reads;
 
 public:
   PHVBytesRetriever() : used_phv_bytes(0) {}
+  PHVBytesRetriever(const std::unordered_set<std::string> &_exception_symbols) : used_phv_bytes(0), exception_symbols(_exception_symbols) {}
 
   Action visitRead(const klee::ReadExpr &e) override final {
     assert(e.index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
@@ -28,6 +32,10 @@ public:
     const bytes_t byte                    = index_const->getZExtValue();
     const std::string name                = e.updates.root->name;
     const symbolic_read_t symbolic_read{byte, name};
+
+    if (exception_symbols.contains(name)) {
+      return Action::doChildren();
+    }
 
     if (!symbolic_reads.contains(symbolic_read)) {
       symbolic_reads.insert({byte, name});
@@ -69,7 +77,7 @@ public:
 bool TNA::condition_meets_phv_limit(klee::ref<klee::Expr> expr) const {
   PHVBytesRetriever retriever;
   retriever.visit(expr);
-  return retriever.get_used_phv_bytes() <= tna_config.properties.max_packet_bytes_in_condition;
+  return retriever.get_used_phv_bytes() <= tna_config.properties.max_phv_bytes_in_condition;
 }
 
 void TNA::debug() const { pipeline.debug(); }
@@ -87,6 +95,65 @@ std::vector<tofino_port_t> TNA::plausible_ingress_ports_in_bdd_node(const BDD *b
   }
 
   return plausible_ports;
+}
+
+bool TNA::is_simple_conditional_expr(klee::ref<klee::Expr> condition) const {
+  bool is_simple = false;
+
+  switch (condition->getKind()) {
+  case klee::Expr::Kind::Eq:
+  case klee::Expr::Kind::Ne:
+  case klee::Expr::Kind::Ult:
+  case klee::Expr::Kind::Ule:
+  case klee::Expr::Kind::Ugt:
+  case klee::Expr::Kind::Uge:
+  case klee::Expr::Kind::Slt:
+  case klee::Expr::Kind::Sle:
+  case klee::Expr::Kind::Sgt:
+  case klee::Expr::Kind::Sge: {
+    klee::ref<klee::Expr> lhs = condition->getKid(0);
+    klee::ref<klee::Expr> rhs = condition->getKid(1);
+    is_simple                 = is_simple_conditional_expr(lhs) && is_simple_conditional_expr(rhs);
+  } break;
+  case klee::Expr::Kind::Not: {
+    is_simple = is_simple_conditional_expr(condition->getKid(0));
+  } break;
+  case klee::Expr::Kind::Concat: {
+    is_simple = is_readLSB(condition);
+  } break;
+  case klee::Expr::Kind::Read:
+  case klee::Expr::Kind::Constant: {
+    is_simple = true;
+  } break;
+  default:
+    is_simple = false;
+  }
+
+  return is_simple;
+}
+
+bool TNA::is_simple_register_conditional_expr(const std::vector<klee::ref<klee::Expr>> &exprs, const symbol_t &register_value) const {
+  if (exprs.size() > 2) {
+    return false;
+  }
+
+  for (const klee::ref<klee::Expr> &expr : exprs) {
+    if (!is_simple_conditional_expr(expr)) {
+      return false;
+    }
+  }
+
+  klee::ref<klee::Expr> combined_expr = stitch_conditions(exprs);
+
+  PHVBytesRetriever retriever({register_value.name});
+  retriever.visit(combined_expr);
+  const bytes_t used_phv_bytes = retriever.get_used_phv_bytes();
+
+  if (used_phv_bytes > tna_config.properties.max_phv_bytes_in_condition) {
+    return false;
+  }
+
+  return true;
 }
 
 } // namespace Tofino

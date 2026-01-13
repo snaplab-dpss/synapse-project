@@ -44,6 +44,7 @@ enum class ModuleType {
   Tofino_DchainTableLookup,
   Tofino_VectorRegisterLookup,
   Tofino_VectorRegisterUpdate,
+  Tofino_VectorRegisterConditionalUpdate,
   Tofino_FCFSCachedTableRead,
   Tofino_FCFSCachedTableReadWrite,
   Tofino_FCFSCachedTableWrite,
@@ -56,6 +57,9 @@ enum class ModuleType {
   Tofino_CMSQuery,
   Tofino_CMSIncrement,
   Tofino_CMSIncAndQuery,
+  Tofino_BloomFilterQuery,
+  Tofino_BloomFilterSet,
+  Tofino_BloomFilterQueryAndSet,
   Tofino_LPMLookup,
   Tofino_CuckooHashTableReadWrite,
 
@@ -110,7 +114,11 @@ enum class ModuleType {
   Controller_DataplaneGuardedMapTableGuardCheck,
   Controller_DataplaneCMSAllocate,
   Controller_DataplaneCMSQuery,
+  Controller_DataplaneBloomFilterAllocate,
+  Controller_DataplaneBloomFilterQuery,
+  Controller_DataplaneBloomFilterSet,
   Controller_DataplaneCuckooHashTableAllocate,
+  Controller_DataplaneExpireItemsSingleMapIteratively,
 
   Controller_DchainAllocate,
   Controller_DchainAllocateNewIndex,
@@ -137,6 +145,9 @@ enum class ModuleType {
   Controller_CMSQuery,
   Controller_CMSIncrement,
   Controller_CMSCountMin,
+  Controller_BloomFilterAllocate,
+  Controller_BloomFilterQuery,
+  Controller_BloomFilterSet,
 
   // ========================================
   // x86
@@ -236,6 +247,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_VectorRegisterUpdate:
     os << "Tofino_VectorRegisterUpdate";
     break;
+  case ModuleType::Tofino_VectorRegisterConditionalUpdate:
+    os << "Tofino_VectorRegisterConditionalUpdate";
+    break;
   case ModuleType::Tofino_FCFSCachedTableRead:
     os << "Tofino_FCFSCachedTableRead";
     break;
@@ -271,6 +285,15 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_CMSIncAndQuery:
     os << "Tofino_CMSIncAndQuery";
+    break;
+  case ModuleType::Tofino_BloomFilterQuery:
+    os << "Tofino_BloomFilterQuery";
+    break;
+  case ModuleType::Tofino_BloomFilterSet:
+    os << "Tofino_BloomFilterSet";
+    break;
+  case ModuleType::Tofino_BloomFilterQueryAndSet:
+    os << "Tofino_BloomFilterQueryAndSet";
     break;
   case ModuleType::Tofino_Recirculate:
     os << "Tofino_Recirculate";
@@ -392,6 +415,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_DataplaneHHTableDelete:
     os << "Controller_DataplaneHHTableDelete";
     break;
+  case ModuleType::Controller_DataplaneExpireItemsSingleMapIteratively:
+    os << "Controller_DataplaneExpireItemsSingleMapIteratively";
+    break;
   case ModuleType::Controller_DchainAllocate:
     os << "Controller_DchainAllocate";
     break;
@@ -418,6 +444,15 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneCMSQuery:
     os << "Controller_DataplaneCMSQuery";
+    break;
+  case ModuleType::Controller_DataplaneBloomFilterAllocate:
+    os << "Controller_DataplaneBloomFilterAllocate";
+    break;
+  case ModuleType::Controller_DataplaneBloomFilterQuery:
+    os << "Controller_DataplaneBloomFilterQuery";
+    break;
+  case ModuleType::Controller_DataplaneBloomFilterSet:
+    os << "Controller_DataplaneBloomFilterSet";
     break;
   case ModuleType::Controller_VectorAllocate:
     os << "Controller_VectorAllocate";
@@ -496,6 +531,15 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneCuckooHashTableAllocate:
     os << "Controller_DataplaneCuckooHashTableAllocate";
+    break;
+  case ModuleType::Controller_BloomFilterAllocate:
+    os << "Controller_BloomFilterAllocate";
+    break;
+  case ModuleType::Controller_BloomFilterQuery:
+    os << "Controller_BloomFilterQuery";
+    break;
+  case ModuleType::Controller_BloomFilterSet:
+    os << "Controller_BloomFilterSet";
     break;
   case ModuleType::x86_Ignore:
     os << "x86_Ignore";

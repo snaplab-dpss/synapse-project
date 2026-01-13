@@ -120,6 +120,16 @@ struct Pipeline {
     return std::count_if(resources.stages.begin(), resources.stages.end(), [](const Stage &stage) { return !stage.data_structures.empty(); });
   }
 
+  bits_t get_memory_usage() const {
+    bits_t used_memory = 0;
+    for (const Stage &stage : resources.stages) {
+      used_memory += properties.sram_per_stage - stage.available_sram;
+      used_memory += properties.tcam_per_stage - stage.available_tcam;
+      used_memory += properties.map_ram_per_stage - stage.available_map_ram;
+    }
+    return used_memory;
+  }
+
   u8 get_used_digests() const { return resources.used_digests; }
 
   bool detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
@@ -134,6 +144,7 @@ struct Pipeline {
   PlacementResult find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
 
   void debug() const;
+  void dump(std::ostream &os) const;
 };
 
 } // namespace Tofino

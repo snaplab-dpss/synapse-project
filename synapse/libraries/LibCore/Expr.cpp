@@ -3,6 +3,7 @@
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
 #include <LibCore/Types.h>
+#include <LibCore/Math.h>
 
 #include <iostream>
 #include <regex>
@@ -1732,6 +1733,29 @@ bool simplify_add_neg_sext(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &ou
   return true;
 }
 
+bool simplify_compare_power_of_two_minus_one(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
+  if (expr->getKind() != klee::Expr::Ult) {
+    return false;
+  }
+
+  assert(expr->getNumKids() == 2 && "Invalid expr");
+  klee::ref<klee::Expr> lhs = expr->getKid(0);
+  klee::ref<klee::Expr> rhs = expr->getKid(1);
+
+  if (!is_constant(rhs)) {
+    return false;
+  }
+
+  const u64 rhs_value = solver_toolbox.value_from_expr(rhs);
+  if (is_power_of_two(rhs_value)) {
+    klee::ref<klee::Expr> new_constant = solver_toolbox.exprBuilder->Constant(rhs_value - 1, rhs->getWidth());
+    out                                = solver_toolbox.exprBuilder->Ule(lhs, new_constant);
+    return true;
+  }
+
+  return false;
+}
+
 bool simplify_add_non_neg_sext(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
   if (expr->getKind() != klee::Expr::Add) {
     return false;
@@ -1788,6 +1812,7 @@ enum class simplifier_type_t {
   CompareNeZero,
   AddNegativeSExt,
   AddNonNegativeSExt,
+  ComparePowerOfTwoMinusOne,
 };
 
 std::ostream &operator<<(std::ostream &os, const simplifier_type_t &type) {
@@ -1824,6 +1849,9 @@ std::ostream &operator<<(std::ostream &os, const simplifier_type_t &type) {
     break;
   case simplifier_type_t::AddNonNegativeSExt:
     os << "AddNonNegativeSExt";
+    break;
+  case simplifier_type_t::ComparePowerOfTwoMinusOne:
+    os << "ComparePowerOfTwoMinusOne";
     break;
   }
 
@@ -1967,6 +1995,7 @@ klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> expr) {
       {simplifier_type_t::NotEq, simplify_not_eq},
       {simplifier_type_t::CompareNeZero, simplify_cmp_ne_0},
       {simplifier_type_t::AddNegativeSExt, simplify_add_neg_sext},
+      {simplifier_type_t::ComparePowerOfTwoMinusOne, simplify_compare_power_of_two_minus_one},
   };
 
   std::vector<klee::ref<klee::Expr>> prev_exprs{expr};
@@ -2265,6 +2294,38 @@ std::vector<klee::ref<klee::Expr>> break_expr_into_structs_aware_chunks(klee::re
   }
 
   return chunks;
+}
+
+bool is_increment_by_one(klee::ref<klee::Expr> old_expr, klee::ref<klee::Expr> new_expr) {
+  if (old_expr->getWidth() != new_expr->getWidth()) {
+    return false;
+  }
+  klee::ref<klee::Expr> increment_expr = solver_toolbox.exprBuilder->Add(old_expr, solver_toolbox.exprBuilder->Constant(1, old_expr->getWidth()));
+  return solver_toolbox.are_exprs_always_equal(increment_expr, new_expr);
+}
+
+klee::ref<klee::Expr> stitch_conditions(const std::vector<klee::ref<klee::Expr>> &conditions) {
+  klee::ref<klee::Expr> result;
+
+  for (klee::ref<klee::Expr> condition : conditions) {
+    if (result.isNull()) {
+      result = condition;
+    } else {
+      result = solver_toolbox.exprBuilder->And(result, condition);
+    }
+  }
+
+  return result;
+}
+
+bool is_condition_from_symbol(klee::ref<klee::Expr> condition, const std::string &symbol) {
+  const symbolic_reads_t symbolic_reads = get_unique_symbolic_reads(condition, symbol);
+  for (const symbolic_read_t &symbolic_read : symbolic_reads) {
+    if (symbolic_read.symbol != symbol) {
+      return false;
+    }
+  }
+  return true;
 }
 
 } // namespace LibCore

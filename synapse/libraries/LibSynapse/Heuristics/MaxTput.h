@@ -36,6 +36,7 @@ public:
                                     BUILD_METRIC(MaxTput, get_recirculations, Objective::Min),
                                     BUILD_METRIC(MaxTput, get_bdd_progress, Objective::Max),
                                     BUILD_METRIC(MaxTput, get_pipeline_usage, Objective::Min),
+                                    BUILD_METRIC(MaxTput, get_memory_usage, Objective::Min),
                                 }) {}
 
   MaxTput &operator=(const MaxTput &other) {
@@ -78,6 +79,10 @@ public:
             .name        = "Stages",
             .description = std::to_string(get_pipeline_usage(ep)),
         },
+        heuristic_metadata_t{
+            .name        = "Memory Usage",
+            .description = std::to_string(get_memory_usage(ep)) + " bits",
+        },
     };
   }
 
@@ -92,6 +97,11 @@ private:
   i64 get_pipeline_usage(const EP *ep) const {
     const Tofino::TNA &tna = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_tna();
     return tna.pipeline.get_used_stages();
+  }
+
+  i64 get_memory_usage(const EP *ep) const {
+    const Tofino::TNA &tna = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_tna();
+    return tna.pipeline.get_memory_usage();
   }
 
   i64 get_recirculations(const EP *ep) const {

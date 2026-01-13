@@ -891,4 +891,27 @@ bool BDDNode::equals(const BDDNode *other) const {
   return true;
 }
 
+std::vector<klee::ref<klee::Expr>> BDDNode::get_additional_constraints_against_base_node(bdd_node_id_t base_node_id) const {
+  std::vector<klee::ref<klee::Expr>> additional_constraints;
+  const BDDNode *cursor      = prev;
+  const BDDNode *prev_cursor = this;
+  while (cursor && cursor->get_id() != base_node_id) {
+    if (cursor->get_type() == BDDNodeType::Branch) {
+      const Branch *branch_node       = dynamic_cast<const Branch *>(cursor);
+      klee::ref<klee::Expr> condition = branch_node->get_condition();
+
+      if (branch_node->get_on_false() == prev_cursor) {
+        condition = solver_toolbox.exprBuilder->Not(condition);
+      }
+
+      additional_constraints.push_back(condition);
+    }
+
+    prev_cursor = cursor;
+    cursor      = cursor->get_prev();
+  }
+
+  return additional_constraints;
+}
+
 } // namespace LibBDD

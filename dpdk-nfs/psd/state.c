@@ -13,6 +13,7 @@
 #include "lib/models/state/map-control.h"
 #include "lib/models/state/vector-control.h"
 #include "lib/models/state/double-chain-control.h"
+#include "lib/models/state/bloom-filter-control.h"
 #endif // KLEE_VERIFICATION
 
 bool counter_condition(void *value, int index, void *state) {
@@ -60,13 +61,9 @@ struct State *alloc_state() {
     return NULL;
   }
 
-  ret->ports = NULL;
-  if (map_allocate(config.capacity * config.max_ports, sizeof(struct TouchedPort), &(ret->ports)) == 0) {
-    return NULL;
-  }
-
-  ret->ports_key = NULL;
-  if (vector_allocate(sizeof(struct TouchedPort), config.capacity * config.max_ports, &(ret->ports_key)) == 0) {
+  ret->touched_ports = NULL;
+  if (bf_allocate(config.bloom_filter_height, config.bloom_filter_width, sizeof(struct TouchedPort), config.bloom_filter_cleanup_interval,
+                  &(ret->touched_ports)) == 0) {
     return NULL;
   }
 
@@ -85,11 +82,9 @@ struct State *alloc_state() {
                     sizeof(ip_addr_nests) / sizeof(ip_addr_nests[0]), "ip_addr");
   vector_set_layout(ret->touched_ports_counter, counter_descrs, sizeof(counter_descrs) / sizeof(counter_descrs[0]), counter_nests,
                     sizeof(counter_nests) / sizeof(counter_nests[0]), "counter");
+  bf_set_layout(ret->touched_ports, touched_port_descrs, sizeof(touched_port_descrs) / sizeof(touched_port_descrs[0]), touched_port_nests,
+                sizeof(touched_port_nests) / sizeof(touched_port_nests[0]), "TouchedPort");
   vector_set_entry_condition(ret->touched_ports_counter, counter_condition, ret);
-  map_set_layout(ret->ports, touched_port_descrs, sizeof(touched_port_descrs) / sizeof(touched_port_descrs[0]), touched_port_nests,
-                 sizeof(touched_port_nests) / sizeof(touched_port_nests[0]), "TouchedPort");
-  vector_set_layout(ret->ports_key, touched_port_descrs, sizeof(touched_port_descrs) / sizeof(touched_port_descrs[0]), touched_port_nests,
-                    sizeof(touched_port_nests) / sizeof(touched_port_nests[0]), "TouchedPort");
   vector_set_layout(ret->int_devices, NULL, 0, NULL, 0, "int");
   vector_set_entry_condition(ret->int_devices, bool_invariant, ret);
   vector_set_layout(ret->fwd_rules, NULL, 0, NULL, 0, "uint16_t");
@@ -126,9 +121,9 @@ struct State *alloc_state() {
 
 #ifdef KLEE_VERIFICATION
 void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
-  loop_iteration_border(&allocated_nf_state->srcs, &allocated_nf_state->srcs_key, &allocated_nf_state->touched_ports_counter,
-                        &allocated_nf_state->allocator, &allocated_nf_state->ports, &allocated_nf_state->ports_key,
-                        &allocated_nf_state->int_devices, &allocated_nf_state->fwd_rules, config.capacity, lcore_id, time);
+  loop_iteration_border(&allocated_nf_state->srcs, &allocated_nf_state->srcs_key, &allocated_nf_state->allocator, &allocated_nf_state->touched_ports,
+                        &allocated_nf_state->touched_ports_counter, &allocated_nf_state->int_devices, &allocated_nf_state->fwd_rules, config.capacity,
+                        lcore_id, time);
 }
 
 #endif // KLEE_VERIFICATION

@@ -58,11 +58,20 @@ void Register::debug() const {
     case RegisterActionType::Decrement:
       ss << "DEC";
       break;
+    case RegisterActionType::SetToOne:
+      ss << "SET_TO_ONE";
+      break;
     case RegisterActionType::SetToOneAndReturnOldValue:
       ss << "SET_TO_ONE_AND_RETURN_OLD_VALUE";
       break;
+    case RegisterActionType::ConditionalSetToOneAndReturnOldValue:
+      ss << "CONDITIONAL_SET_TO_ONE_AND_RETURN_OLD_VALUE";
+      break;
     case RegisterActionType::IncrementAndReturnNewValue:
       ss << "INC_AND_RETURN_NEW_VALUE";
+      break;
+    case RegisterActionType::ConditionalIncrementAndReturnOldValue:
+      ss << "CONDITIONAL_INC_AND_RETURN_NEW_VALUE";
       break;
     case RegisterActionType::ReadConditionalWrite:
       ss << "READ_CONDITIONAL_WRITE";

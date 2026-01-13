@@ -14,6 +14,7 @@
 namespace LibSynapse {
 
 using LibBDD::BDD;
+using LibBDD::bf_config_t;
 using LibBDD::cht_config_t;
 using LibBDD::cms_config_t;
 using LibBDD::dchain_config_t;
@@ -42,6 +43,7 @@ enum class DSImpl {
   Tofino_HeavyHitterTable,
   Tofino_IntegerAllocator,
   Tofino_CountMinSketch,
+  Tofino_BloomFilter,
   Tofino_CuckooHashTable,
   Tofino_LPM,
 
@@ -54,6 +56,7 @@ enum class DSImpl {
   Controller_DoubleChain,
   Controller_ConsistentHashTable,
   Controller_CountMinSketch,
+  Controller_BloomFilter,
   Controller_TokenBucket,
 
   // ========================================
@@ -95,6 +98,7 @@ private:
   std::unordered_map<addr_t, vector_config_t> vector_configs;
   std::unordered_map<addr_t, dchain_config_t> dchain_configs;
   std::unordered_map<addr_t, cms_config_t> cms_configs;
+  std::unordered_map<addr_t, bf_config_t> bf_configs;
   std::unordered_map<addr_t, cht_config_t> cht_configs;
   std::unordered_map<addr_t, tb_config_t> tb_configs;
 
@@ -127,6 +131,7 @@ public:
   const vector_config_t &get_vector_config(addr_t addr) const;
   const dchain_config_t &get_dchain_config(addr_t addr) const;
   const cms_config_t &get_cms_config(addr_t addr) const;
+  const bf_config_t &get_bf_config(addr_t addr) const;
   const cht_config_t &get_cht_config(addr_t addr) const;
   const tb_config_t &get_tb_config(addr_t addr) const;
 

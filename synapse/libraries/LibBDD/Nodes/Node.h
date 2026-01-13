@@ -99,6 +99,7 @@ public:
   std::vector<const Call *> get_future_functions(const std::unordered_set<std::string> &functions, bool stop_on_branches = false) const;
   std::vector<const Call *> get_coalescing_nodes_from_key(klee::ref<klee::Expr> target_key, const map_coalescing_objs_t &data) const;
   std::vector<const Route *> get_future_routing_decisions() const;
+  std::vector<klee::ref<klee::Expr>> get_additional_constraints_against_base_node(bdd_node_id_t base_node) const;
 
   const Route *get_latest_routing_decision() const;
   Route *get_mutable_latest_routing_decision();

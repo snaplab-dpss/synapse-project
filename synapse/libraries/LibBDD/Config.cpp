@@ -97,6 +97,20 @@ bits_t get_key_size(const BDD &bdd, addr_t addr) {
 
       return solver_toolbox.value_from_expr(key_size);
     }
+
+    if (call.function_name == "bf_allocate") {
+      klee::ref<klee::Expr> _bf = call.args.at("bf").expr;
+      assert(!_bf.isNull() && "Invalid bf");
+
+      addr_t _bf_addr = expr_addr_to_obj_addr(_bf);
+      if (_bf_addr != addr)
+        continue;
+
+      klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
+      assert(!key_size.isNull() && "Invalid key_size");
+
+      return solver_toolbox.value_from_expr(key_size);
+    }
   }
 
   panic("Should have found at least one node with a key");
@@ -196,6 +210,42 @@ cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr) {
   }
 
   panic("Should have found cms configuration");
+}
+
+bf_config_t get_bf_config_from_bdd(const BDD &bdd, addr_t bf_addr) {
+  const std::vector<Call *> &init = bdd.get_init();
+
+  for (const Call *call_node : init) {
+    const call_t &call = call_node->get_call();
+
+    if (call.function_name != "bf_allocate")
+      continue;
+
+    klee::ref<klee::Expr> height           = call.args.at("height").expr;
+    klee::ref<klee::Expr> width            = call.args.at("width").expr;
+    klee::ref<klee::Expr> key_size         = call.args.at("key_size").expr;
+    klee::ref<klee::Expr> cleanup_interval = call.args.at("cleanup_interval").expr;
+    klee::ref<klee::Expr> bf_out           = call.args.at("bf_out").out;
+
+    assert(!height.isNull() && "Invalid height");
+    assert(!width.isNull() && "Invalid width");
+    assert(!key_size.isNull() && "Invalid key_size");
+    assert(!cleanup_interval.isNull() && "Invalid cleanup_interval");
+    assert(!bf_out.isNull() && "Invalid bf_out");
+
+    addr_t bf_out_addr = expr_addr_to_obj_addr(bf_out);
+    if (bf_out_addr != bf_addr)
+      continue;
+
+    u64 height_value                 = solver_toolbox.value_from_expr(height);
+    u64 width_value                  = solver_toolbox.value_from_expr(width);
+    bits_t key_size_value            = solver_toolbox.value_from_expr(key_size) * 8;
+    time_ns_t cleanup_interval_value = solver_toolbox.value_from_expr(cleanup_interval);
+
+    return bf_config_t{height_value, width_value, key_size_value, cleanup_interval_value};
+  }
+
+  panic("Should have found bf configuration");
 }
 
 cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr) {

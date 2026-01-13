@@ -28,6 +28,7 @@ class DchainTableLookup;
 class VectorTableLookup;
 class VectorRegisterLookup;
 class VectorRegisterUpdate;
+class VectorRegisterConditionalUpdate;
 class FCFSCachedTableRead;
 class FCFSCachedTableReadWrite;
 class FCFSCachedTableWrite;
@@ -40,6 +41,9 @@ class IntegerAllocatorIsAllocated;
 class CMSQuery;
 class CMSIncrement;
 class CMSIncAndQuery;
+class BloomFilterQuery;
+class BloomFilterSet;
+class BloomFilterQueryAndSet;
 class LPMLookup;
 class CuckooHashTableReadWrite;
 } // namespace Tofino
@@ -94,6 +98,10 @@ class DataplaneIntegerAllocatorFreeIndex;
 class DataplaneCMSAllocate;
 class DataplaneCMSQuery;
 class DataplaneCuckooHashTableAllocate;
+class DataplaneExpireItemsSingleMapIteratively;
+class DataplaneBloomFilterAllocate;
+class DataplaneBloomFilterQuery;
+class DataplaneBloomFilterSet;
 
 class DchainAllocate;
 class DchainAllocateNewIndex;
@@ -120,6 +128,9 @@ class CMSUpdate;
 class CMSQuery;
 class CMSIncrement;
 class CMSCountMin;
+class BloomFilterAllocate;
+class BloomFilterQuery;
+class BloomFilterSet;
 } // namespace Controller
 
 namespace x86 {
@@ -192,6 +203,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *m) { return Action::doChildren; }
@@ -204,6 +216,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSQuery *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncrement *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQuery *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterSet *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQueryAndSet *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *m) { return Action::doChildren; }
 
@@ -277,12 +292,21 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterQuery *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterSet *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSQuery *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSIncrement *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSCountMin *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterQuery *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterSet *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCuckooHashTableAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneExpireItemsSingleMapIteratively *m) {
+    return Action::doChildren;
+  }
 
   // ========================================
   // x86

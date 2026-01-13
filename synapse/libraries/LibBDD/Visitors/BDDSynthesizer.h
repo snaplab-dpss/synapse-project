@@ -116,6 +116,7 @@ private:
   success_condition_t vector_allocate(coder_t &, const Call *);
   success_condition_t dchain_allocate(coder_t &, const Call *);
   success_condition_t cms_allocate(coder_t &, const Call *);
+  success_condition_t bf_allocate(coder_t &, const Call *);
   success_condition_t tb_allocate(coder_t &, const Call *);
   success_condition_t lpm_allocate(coder_t &, const Call *);
 
@@ -140,6 +141,9 @@ private:
   success_condition_t cms_increment(coder_t &, const Call *);
   success_condition_t cms_count_min(coder_t &, const Call *);
   success_condition_t cms_periodic_cleanup(coder_t &, const Call *);
+  success_condition_t bf_query(coder_t &, const Call *);
+  success_condition_t bf_set(coder_t &, const Call *);
+  success_condition_t bf_periodic_cleanup(coder_t &, const Call *);
   success_condition_t tb_is_tracing(coder_t &, const Call *);
   success_condition_t tb_trace(coder_t &, const Call *);
   success_condition_t tb_update_and_check(coder_t &, const Call *);

@@ -33,6 +33,13 @@ struct cms_config_t {
   time_ns_t cleanup_interval;
 };
 
+struct bf_config_t {
+  u64 height;
+  u64 width;
+  bits_t key_size;
+  time_ns_t cleanup_interval;
+};
+
 struct cht_config_t {
   u64 capacity;
   u64 height;
@@ -49,6 +56,7 @@ dchain_config_t get_dchain_config_from_bdd(const BDD &bdd, addr_t dchain_addr);
 map_config_t get_map_config_from_bdd(const BDD &bdd, addr_t map_addr);
 vector_config_t get_vector_config_from_bdd(const BDD &bdd, addr_t vector_addr);
 cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr);
+bf_config_t get_bf_config_from_bdd(const BDD &bdd, addr_t bf_addr);
 cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr);
 tb_config_t get_tb_config_from_bdd(const BDD &bdd, addr_t tb_addr);
 

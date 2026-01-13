@@ -10,7 +10,7 @@ namespace Tofino {
 struct tna_properties_t {
   int total_ports;
   int total_recirc_ports;
-  bytes_t max_packet_bytes_in_condition;
+  bytes_t max_phv_bytes_in_condition;
   int pipes;
   int stages;
   bits_t sram_per_stage;

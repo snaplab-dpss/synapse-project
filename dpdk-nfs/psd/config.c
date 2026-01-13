@@ -9,31 +9,43 @@
 #include "nf-log.h"
 #include "lib/util/compute.h"
 
-const uint32_t DEFAULT_CAPACITY        = 65536;
-const uint32_t DEFAULT_MAX_PORTS       = 60;
-const uint32_t DEFAULT_EXPIRATION_TIME = 1000000; // 1s
+const uint32_t DEFAULT_CAPACITY                      = 65536;
+const uint32_t DEFAULT_MAX_PORTS                     = 60;
+const uint32_t DEFAULT_EXPIRATION_TIME               = 1000000; // 1s
+const uint32_t DEFAULT_BLOOM_FILTER_HEIGHT           = 4;
+const uint32_t DEFAULT_BLOOM_FILTER_WIDTH            = 1024;
+const uint64_t DEFAULT_BLOOM_FILTER_CLEANUP_INTERVAL = 10000000; // 10s
 
-#define PARSE_ERROR(format, ...)                                                                                                           \
-  nf_config_usage();                                                                                                                       \
-  fprintf(stderr, format, ##__VA_ARGS__);                                                                                                  \
+#define PARSE_ERROR(format, ...)                                                                                                                     \
+  nf_config_usage();                                                                                                                                 \
+  fprintf(stderr, format, ##__VA_ARGS__);                                                                                                            \
   exit(EXIT_FAILURE);
 
 void nf_config_init(int argc, char **argv) {
   config.fwd_rules.n = 0;
 
   // Set the default values
-  config.capacity        = DEFAULT_CAPACITY;
-  config.max_ports       = DEFAULT_MAX_PORTS;
-  config.expiration_time = DEFAULT_EXPIRATION_TIME;
+  config.capacity                      = DEFAULT_CAPACITY;
+  config.max_ports                     = DEFAULT_MAX_PORTS;
+  config.expiration_time               = DEFAULT_EXPIRATION_TIME;
+  config.bloom_filter_height           = DEFAULT_BLOOM_FILTER_HEIGHT;
+  config.bloom_filter_width            = DEFAULT_BLOOM_FILTER_WIDTH;
+  config.bloom_filter_cleanup_interval = DEFAULT_BLOOM_FILTER_CLEANUP_INTERVAL;
 
   unsigned nb_devices = rte_eth_dev_count_avail();
 
-  struct option long_options[] = {{"internal-devs", required_argument, NULL, 'd'}, {"fwd-rule", required_argument, NULL, 'r'},
-                                  {"capacity", required_argument, NULL, 'c'},      {"max-ports", required_argument, NULL, 'p'},
-                                  {"expire", required_argument, NULL, 't'},        {NULL, 0, NULL, 0}};
+  struct option long_options[] = {{"internal-devs", required_argument, NULL, 'd'},
+                                  {"fwd-rule", required_argument, NULL, 'r'},
+                                  {"capacity", required_argument, NULL, 'c'},
+                                  {"max-ports", required_argument, NULL, 'p'},
+                                  {"expire", required_argument, NULL, 't'},
+                                  {"bf-height", required_argument, NULL, 'h'},
+                                  {"bf-width", required_argument, NULL, 'w'},
+                                  {"bf-cleanup-interval", required_argument, NULL, 'C'},
+                                  {NULL, 0, NULL, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "d:r:c:p:t:", long_options, NULL)) != EOF) {
+  while ((opt = getopt_long(argc, argv, "d:r:c:p:t:h:w:C:", long_options, NULL)) != EOF) {
     switch (opt) {
     case 'd': {
       uint16_t nb_devices        = rte_eth_dev_count_avail();
@@ -103,6 +115,18 @@ void nf_config_init(int argc, char **argv) {
       }
       break;
 
+    case 'h':
+      config.bloom_filter_height = nf_util_parse_int(optarg, "bf-height", 10, '\0');
+      break;
+
+    case 'w':
+      config.bloom_filter_width = nf_util_parse_int(optarg, "bf-width", 10, '\0');
+      break;
+
+    case 'C':
+      config.bloom_filter_cleanup_interval = nf_util_parse_int(optarg, "bf-cleanup-interval", 10, '\0');
+      break;
+
     default:
       PARSE_ERROR("Unknown option %c", opt);
     }
@@ -122,8 +146,15 @@ void nf_config_usage(void) {
           "\t--max-ports <max-ports>: maximum allowed number of touched ports,"
           " default: %" PRIu32 ".\n"
           "\t--expire <time>: source expiration time (us).\n"
-          " default: %" PRIu32 ".\n",
-          DEFAULT_CAPACITY, DEFAULT_MAX_PORTS, DEFAULT_EXPIRATION_TIME);
+          " default: %" PRIu32 ".\n"
+          "\t--bf-height <height>: Bloom Filter height,"
+          " default: %" PRIu32 ".\n"
+          "\t--bf-width <width>: Bloom Filter width,"
+          " default: %" PRIu32 ".\n"
+          "\t--bf-cleanup-interval <interval>: Bloom Filter cleanup interval (us),"
+          " default: %" PRIu64 ".\n",
+          DEFAULT_CAPACITY, DEFAULT_MAX_PORTS, DEFAULT_EXPIRATION_TIME, DEFAULT_BLOOM_FILTER_HEIGHT, DEFAULT_BLOOM_FILTER_WIDTH,
+          DEFAULT_BLOOM_FILTER_CLEANUP_INTERVAL);
 }
 
 void nf_config_print(void) {
@@ -142,6 +173,9 @@ void nf_config_print(void) {
   NF_INFO("Capacity: %" PRIu32, config.capacity);
   NF_INFO("Max ports: %" PRIu32, config.max_ports);
   NF_INFO("Expiration time: %" PRIu32, config.expiration_time);
+  NF_INFO("Bloom Filter height: %" PRIu32, config.bloom_filter_height);
+  NF_INFO("Bloom Filter width: %" PRIu32, config.bloom_filter_width);
+  NF_INFO("Bloom Filter cleanup interval: %" PRIu64, config.bloom_filter_cleanup_interval);
 
   NF_INFO("\n--- ------ ------ ---\n");
 }

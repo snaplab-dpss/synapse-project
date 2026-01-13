@@ -32,6 +32,12 @@ VectorRegister::VectorRegister(const VectorRegister &other)
     : DS(other.type, other.primitive, other.id), capacity(other.capacity), index_size(other.index_size), values_sizes(other.values_sizes),
       regs(other.regs) {}
 
+void VectorRegister::add_register_action(RegisterActionType action_type) {
+  for (Register &reg : regs) {
+    reg.actions.insert(action_type);
+  }
+}
+
 DS *VectorRegister::clone() const { return new VectorRegister(*this); }
 
 void VectorRegister::debug() const {

@@ -17,13 +17,13 @@ function test_cl {
   python3 cl.py --output cl.pcap
 
   sudo ./build/nf \
-        --vdev "net_tap0,iface=test_wan" \
-        --vdev "net_tap1,iface=test_lan" \
+        --vdev "net_tap0,iface=test_lan" \
+        --vdev "net_tap1,iface=test_wan" \
         --lcores 0 \
         --no-huge \
         --no-shconf -- \
-        --lan 1 \
-        --wan 0 \
+        --internal-devs 0 \
+        --fwd-rule 0,1 --fwd-rule 1,0 \
         --max-flows 65536 \
         --max-clients $MAX_CLIENTS \
         --expire 1000000 \

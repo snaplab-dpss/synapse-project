@@ -33,6 +33,7 @@ enum class DSType {
   FCFSCachedTable,
   HHTable,
   CountMinSketch,
+  BloomFilter,
   LPM,
   CuckooHashTable,
 };
@@ -65,6 +66,8 @@ inline std::string ds_type_to_string(DSType type) {
     return "HHTable";
   case DSType::CountMinSketch:
     return "CountMinSketch";
+  case DSType::BloomFilter:
+    return "BloomFilter";
   case DSType::LPM:
     return "LPM";
   case DSType::CuckooHashTable:

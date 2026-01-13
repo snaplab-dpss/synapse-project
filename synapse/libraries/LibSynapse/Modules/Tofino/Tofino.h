@@ -24,6 +24,7 @@
 #include <LibSynapse/Modules/Tofino/DchainTableLookup.h>
 #include <LibSynapse/Modules/Tofino/VectorRegisterLookup.h>
 #include <LibSynapse/Modules/Tofino/VectorRegisterUpdate.h>
+#include <LibSynapse/Modules/Tofino/VectorRegisterConditionalUpdate.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableRead.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableReadWrite.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableWrite.h>
@@ -36,6 +37,9 @@
 #include <LibSynapse/Modules/Tofino/CMSQuery.h>
 #include <LibSynapse/Modules/Tofino/CMSIncrement.h>
 #include <LibSynapse/Modules/Tofino/CMSIncAndQuery.h>
+#include <LibSynapse/Modules/Tofino/BloomFilterSet.h>
+#include <LibSynapse/Modules/Tofino/BloomFilterQuery.h>
+#include <LibSynapse/Modules/Tofino/BloomFilterQueryAndSet.h>
 #include <LibSynapse/Modules/Tofino/LPMLookup.h>
 #include <LibSynapse/Modules/Tofino/CuckooHashTableReadWrite.h>
 
@@ -67,9 +71,10 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<VectorTableLookupFactory>());
               f.push_back(std::make_unique<VectorRegisterLookupFactory>());
               f.push_back(std::make_unique<VectorRegisterUpdateFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableReadFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableReadWriteFactory>());
-              f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
+              f.push_back(std::make_unique<VectorRegisterConditionalUpdateFactory>());
+              // f.push_back(std::make_unique<FCFSCachedTableReadFactory>());
+              // f.push_back(std::make_unique<FCFSCachedTableReadWriteFactory>());
+              // f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
               f.push_back(std::make_unique<MeterUpdateFactory>());
               f.push_back(std::make_unique<HHTableReadFactory>());
               f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>());
@@ -79,6 +84,9 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<CMSQueryFactory>());
               f.push_back(std::make_unique<CMSIncrementFactory>());
               f.push_back(std::make_unique<CMSIncAndQueryFactory>());
+              f.push_back(std::make_unique<BloomFilterSetFactory>());
+              f.push_back(std::make_unique<BloomFilterQueryFactory>());
+              f.push_back(std::make_unique<BloomFilterQueryAndSetFactory>());
               f.push_back(std::make_unique<LPMLookupFactory>());
               f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
               f.push_back(std::make_unique<SendToControllerFactory>());

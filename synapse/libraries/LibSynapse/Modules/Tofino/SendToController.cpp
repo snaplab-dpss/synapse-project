@@ -311,6 +311,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Tofino_ModifyHeader:
     case ModuleType::Tofino_VectorRegisterLookup:
     case ModuleType::Tofino_VectorRegisterUpdate:
+    case ModuleType::Tofino_VectorRegisterConditionalUpdate:
     case ModuleType::Tofino_FCFSCachedTableReadWrite:
     case ModuleType::Tofino_FCFSCachedTableWrite:
     case ModuleType::Tofino_MeterUpdate:
@@ -320,6 +321,9 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Tofino_CMSQuery:
     case ModuleType::Tofino_CMSIncrement:
     case ModuleType::Tofino_CMSIncAndQuery:
+    case ModuleType::Tofino_BloomFilterQuery:
+    case ModuleType::Tofino_BloomFilterSet:
+    case ModuleType::Tofino_BloomFilterQueryAndSet:
     case ModuleType::Tofino_CuckooHashTableReadWrite:
     case ModuleType::Controller_Ignore:
     case ModuleType::Controller_ParseHeader:
@@ -366,8 +370,12 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_DataplaneMeterAllocate:
     case ModuleType::Controller_DataplaneMeterInsert:
     case ModuleType::Controller_DataplaneCMSAllocate:
-    case ModuleType::Controller_DataplaneCuckooHashTableAllocate:
     case ModuleType::Controller_DataplaneCMSQuery:
+    case ModuleType::Controller_DataplaneBloomFilterAllocate:
+    case ModuleType::Controller_DataplaneBloomFilterQuery:
+    case ModuleType::Controller_DataplaneBloomFilterSet:
+    case ModuleType::Controller_DataplaneCuckooHashTableAllocate:
+    case ModuleType::Controller_DataplaneExpireItemsSingleMapIteratively:
     case ModuleType::Controller_DchainAllocate:
     case ModuleType::Controller_DchainAllocateNewIndex:
     case ModuleType::Controller_DchainRejuvenateIndex:
@@ -393,6 +401,9 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_CMSQuery:
     case ModuleType::Controller_CMSIncrement:
     case ModuleType::Controller_CMSCountMin:
+    case ModuleType::Controller_BloomFilterAllocate:
+    case ModuleType::Controller_BloomFilterSet:
+    case ModuleType::Controller_BloomFilterQuery:
     case ModuleType::x86_Ignore:
     case ModuleType::x86_If:
     case ModuleType::x86_Then:

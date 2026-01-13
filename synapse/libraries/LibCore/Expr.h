@@ -32,6 +32,9 @@ klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr, const std::vector<std::
 klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr);
 klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> condition);
 klee::ref<klee::Expr> concat_exprs(const std::vector<klee::ref<klee::Expr>> &exprs, bool left_to_right = true);
+klee::ref<klee::Expr> stitch_conditions(const std::vector<klee::ref<klee::Expr>> &conditions);
+bool is_increment_by_one(klee::ref<klee::Expr> old_expr, klee::ref<klee::Expr> new_expr);
+bool is_condition_from_symbol(klee::ref<klee::Expr> condition, const std::string &symbol);
 std::string expr_to_ascii(klee::ref<klee::Expr> expr);
 
 struct expr_pos_t {

@@ -52,6 +52,14 @@ public:
   bool guess_header_fields_from_packet_borrow(expr_struct_t &header) const;
   bool guess_value_fields_from_vector_borrow(expr_struct_t &value_struct) const;
 
+  struct vector_conditional_write_result_t {
+    std::vector<const Call *> vector_return_reads;
+    const Call *vector_return_write;
+    std::vector<klee::ref<klee::Expr>> conditions;
+  };
+
+  std::optional<vector_conditional_write_result_t> get_vector_conditional_write_data() const;
+
   static bool are_map_read_write_counterparts(const Call *map_get, const Call *map_put);
 
 private:

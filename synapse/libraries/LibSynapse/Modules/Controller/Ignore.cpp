@@ -97,7 +97,6 @@ bool should_ignore(const Context &ctx, const BDDNode *node) {
 
   const std::unordered_set<std::string> functions_to_always_ignore{
       "expire_items_single_map",
-      "expire_items_single_map_iteratively",
       "cms_periodic_cleanup",
   };
 

@@ -34,6 +34,7 @@ const std::unordered_set<std::string> functions_cannot_cross_branches{
     "dchain_rejuvenate_index",
     "cms_increment",
     "cms_periodic_cleanup",
+    "bf_set",
     "tb_expire",
     "tb_trace",
     "tb_update_and_check",
@@ -429,6 +430,10 @@ bool cms_can_reorder(const BDD *bdd, const BDDNode *anchor, const BDDNode *betwe
   return !check_obj(between, candidate, "cms");
 }
 
+bool bf_can_reorder(const BDD *bdd, const BDDNode *anchor, const BDDNode *between, const Call *candidate, klee::ref<klee::Expr> &condition) {
+  return !check_obj(between, candidate, "bf");
+}
+
 bool tb_can_reorder(const BDD *bdd, const BDDNode *anchor, const BDDNode *between, const Call *candidate, klee::ref<klee::Expr> &condition) {
   return !check_obj(between, candidate, "tb");
 }
@@ -449,6 +454,8 @@ const std::unordered_map<std::string, can_reorder_stateful_op_fn> can_reorder_ha
     {"cht_find_preferred_available_backend", cht_can_reorder},
     {"cms_increment", cms_can_reorder},
     {"cms_count_min", cms_can_reorder},
+    {"bf_set", bf_can_reorder},
+    {"bf_query", bf_can_reorder},
     {"cms_periodic_cleanup", cms_can_reorder},
     {"tb_expire", tb_can_reorder},
     {"tb_is_tracing", tb_can_reorder},

@@ -147,19 +147,19 @@ SYNAPSE_NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
-    SynapseNF(
-        name="synapse-nat",
-        description="Synapse NAT",
-        data_out=Path("tput_synapse_nat.csv"),
-        kvs_mode=False,
-        tofino=Path("synthesized/synapse-nat.p4"),
-        controller=Path("synthesized/synapse-nat.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-        churn=CHURN_FPM,
-        zipf=ZIPF_PARAMS,
-    ),
+    # SynapseNF(
+    #     name="synapse-nat",
+    #     description="Synapse NAT",
+    #     data_out=Path("tput_synapse_nat.csv"),
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/synapse-nat.p4"),
+    #     controller=Path("synthesized/synapse-nat.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    #     churn=CHURN_FPM,
+    #     zipf=ZIPF_PARAMS,
+    # ),
     # *[
     #     SynapseNF(
     #         name=build_synapse_nf_name("kvs", churn, s),
@@ -194,8 +194,8 @@ SYNAPSE_NFS = [
     # ],
     *[
         SynapseNF(
-            name="synapse-fw-fcfs-ct",
-            description="Synapse FW FCFS CT",
+            name=f"synapse-fw-fcfs-ct-{cache_size}",
+            description=f"Synapse FW FCFS CT {cache_size}",
             data_out=Path(f"tput_synapse_fw_fcfs_ct_{cache_size}.csv"),
             kvs_mode=False,
             tofino=Path(f"tofino/experiments/fcfs_cached_table_{cache_size}/fcfs_cached_table_{cache_size}.p4"),
@@ -203,10 +203,10 @@ SYNAPSE_NFS = [
             broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
             symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
             route=lambda _: [],
-            churn=[churn],
-            zipf=[s],
+            churn=CHURN_FPM,
+            zipf=ZIPF_PARAMS,
         )
-        for churn, s, cache_size in itertools.product(CHURN_FPM, ZIPF_PARAMS, [1024, 32768, 65536])
+        for cache_size in [1024, 32768, 65536]
     ],
 ]
 

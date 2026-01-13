@@ -140,6 +140,7 @@ std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, 
   std::vector<impl_t> reordered_implementations;
   for (const impl_t &impl : implementations) {
     for (std::unique_ptr<EP> &reordered_ep : get_reordered(impl.result.get())) {
+      reordered_ep->get_mutable_meta().reordered_nodes++;
       impl_t new_implementation(impl.decision, std::move(reordered_ep), true);
       reordered_implementations.push_back(std::move(new_implementation));
     }

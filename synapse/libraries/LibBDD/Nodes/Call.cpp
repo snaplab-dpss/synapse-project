@@ -77,8 +77,8 @@ symbol_t Call::get_local_symbol(const std::string &base) const {
 
   const Symbols filtered = generated_symbols.filter_by_base(base);
 
-  assert(!filtered.empty() && "Symbol not found");
-  assert(filtered.size() == 1 && "Multiple symbols found");
+  assert_or_panic(!filtered.empty(), "Symbol not found");
+  assert_or_panic(filtered.size() == 1, "Multiple symbols found");
 
   return filtered.get().front();
 }
@@ -520,6 +520,44 @@ bool Call::guess_struct_fields_from_expr(klee::ref<klee::Expr> expr, expr_struct
   }
 
   return true;
+}
+
+std::optional<Call::vector_conditional_write_result_t> Call::get_vector_conditional_write_data() const {
+  vector_conditional_write_result_t result;
+
+  if (call.function_name != "vector_borrow") {
+    return {};
+  }
+
+  const std::vector<const Call *> vector_returns = get_vector_returns_from_borrow();
+  if (vector_returns.size() < 2) {
+    return {};
+  }
+
+  klee::ref<klee::Expr> vb_value = call.extra_vars.at("borrowed_cell").second;
+
+  std::vector<const Call *> reads;
+  std::vector<const Call *> writes;
+
+  for (const Call *vr : vector_returns) {
+    klee::ref<klee::Expr> vr_value = vr->get_call().args.at("value").in;
+    if (solver_toolbox.are_exprs_always_equal(vb_value, vr_value)) {
+      reads.push_back(vr);
+    } else {
+      writes.push_back(vr);
+    }
+  }
+
+  if (writes.size() != 1) {
+    return {};
+  }
+
+  result.vector_return_reads = reads;
+  result.vector_return_write = writes[0];
+
+  result.conditions = result.vector_return_write->get_additional_constraints_against_base_node(id);
+
+  return result;
 }
 
 } // namespace LibBDD

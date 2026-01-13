@@ -15,6 +15,7 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/VectorRegister.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/GuardedMapTable.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/CuckooHashTable.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/BloomFilter.h>
 
 #include <LibCore/Debug.h>
 

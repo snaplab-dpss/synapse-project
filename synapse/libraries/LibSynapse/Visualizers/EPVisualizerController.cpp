@@ -92,7 +92,13 @@ SHOW_MODULE_NAME(Controller::CMSUpdate)
 SHOW_MODULE_NAME(Controller::CMSQuery)
 SHOW_MODULE_NAME(Controller::CMSIncrement)
 SHOW_MODULE_NAME(Controller::CMSCountMin)
+SHOW_MODULE_NAME(Controller::BloomFilterSet)
+SHOW_MODULE_NAME(Controller::BloomFilterQuery)
 SHOW_MODULE_NAME(Controller::DataplaneCMSAllocate)
 SHOW_MODULE_NAME(Controller::DataplaneCMSQuery)
+SHOW_MODULE_NAME(Controller::DataplaneBloomFilterAllocate)
+SHOW_MODULE_NAME(Controller::DataplaneBloomFilterQuery)
+SHOW_MODULE_NAME(Controller::DataplaneBloomFilterSet)
+SHOW_MODULE_NAME(Controller::DataplaneExpireItemsSingleMapIteratively)
 
 } // namespace LibSynapse
