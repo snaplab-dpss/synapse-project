@@ -127,25 +127,6 @@ bool is_read_write_pattern(const BDD *bdd, const BDDNode *node, read_write_patte
   return true;
 }
 
-hit_rate_t get_cache_collision_probability(const EP *ep, const BDDNode *node, klee::ref<klee::Expr> key, u32 cache_capacity) {
-  // FIXME: update this.
-
-  // assert(node->get_type() == BDDNodeType::Call && "Unexpected node type");
-  // const Call *map_get = dynamic_cast<const Call *>(node);
-
-  // const hit_rate_t hr        = ep->get_ctx().get_profiler().get_hr(map_get);
-  // const rw_fractions_t rw_hr = ep->get_ctx().get_profiler().get_cond_map_put_rw_profile_fractions(map_get);
-
-  // const hit_rate_t rp = hit_rate_t{rw_hr.read / hr};
-  // const hit_rate_t wp = hit_rate_t{rw_hr.write / hr};
-  // // hit_rate_t failed_writes = rw_hr.write_attempt - rw_hr.write;
-
-  // const hit_rate_t cache_hit_rate = TofinoModuleFactory::get_fcfs_cache_success_rate(ep->get_ctx(), node, key, cache_capacity);
-  // const hit_rate_t probability    = rp + wp * cache_hit_rate;
-
-  return 0_hr;
-}
-
 BDDNode *replicate_hdr_parsing_ops_on_collision_detected(const EP *ep, BDD *bdd, const Branch *collision_detected) {
   const BDDNode *on_collision_detected = collision_detected->get_on_true();
 
@@ -225,8 +206,8 @@ rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const read_write_pattern_t &pattern
     result.on_collision_detected = new_on_collision_detected_with_hdr_parsing;
   }
 
-  const hit_rate_t cache_collision_probability =
-      get_cache_collision_probability(new_ep, pattern.map_get, fcfs_cached_table_data.original_key, cache_capacity);
+  const hit_rate_t cache_collision_probability = TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(
+      new_ep->get_ctx(), pattern.map_put, fcfs_cached_table_data.original_key, cache_capacity);
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(pattern.on_write_success->get_ordered_branch_constraints(),
                                                                    collision_detected_condition, cache_collision_probability);
 
@@ -240,10 +221,12 @@ std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern
   FCFSCachedTable *cached_table =
       TofinoModuleFactory::build_or_reuse_fcfs_cached_table(new_ep.get(), pattern.map_get, fcfs_cached_table_data.obj,
                                                             fcfs_cached_table_data.original_key, fcfs_cached_table_data.capacity, cache_capacity);
-
   if (!cached_table) {
     return nullptr;
   }
+
+  cached_table->set_total_indices_reserved_for_controller(TofinoModuleFactory::get_fcfs_ct_expected_controller_flows(
+      new_ep->get_ctx(), pattern.map_put, fcfs_cached_table_data.original_key, cache_capacity));
 
   klee::ref<klee::Expr> map_has_this_key_condition = solver_toolbox.exprBuilder->Ne(
       pattern.map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, pattern.map_has_this_key.expr->getWidth()));
@@ -356,22 +339,31 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
+  if (ep->get_id() == 69) {
+    if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
+      std::cerr << "EP node leaf: " << ep_node_leaf->dump() << "\n";
+      if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(fcfs_cached_table_data->map_objs.map))) {
+        std::cerr << "FCFSCachedTableReadWriteFactory::speculate: skipping speculation on EP 69 for DS already used\n";
+      }
+    }
+  }
+
   if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
     if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(fcfs_cached_table_data->map_objs.map))) {
       return {};
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(fcfs_cached_table_data->capacity);
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_capacities();
 
-  hit_rate_t chosen_collision_probability = 0_hr;
+  hit_rate_t chosen_collision_probability = 1_hr;
   u32 chosen_cache_capacity               = 0;
   bool successfully_placed                = false;
 
-  // We can use a different method for picking the right estimation depending
-  // on the time it takes to find a solution.
+  // We can use a different method for picking the right estimation depending on the time it takes to find a solution.
   for (u32 cache_capacity : allowed_cache_capacities) {
-    const hit_rate_t cache_collision_probability = get_cache_collision_probability(ep, node, fcfs_cached_table_data->original_key, cache_capacity);
+    const hit_rate_t cache_collision_probability =
+        get_fcfs_ct_cache_collision_probability(ep->get_ctx(), pattern.map_put, fcfs_cached_table_data->original_key, cache_capacity);
 
     if (!can_build_or_reuse_fcfs_cached_table(ep, node, fcfs_cached_table_data->obj, fcfs_cached_table_data->original_key,
                                               fcfs_cached_table_data->capacity, cache_capacity)) {
@@ -460,7 +452,7 @@ std::vector<impl_t> FCFSCachedTableReadWriteFactory::process_node(const EP *ep, 
   }
 
   const symbol_t collision_detected               = symbol_manager->create_symbol("collision_detected", 32);
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(fcfs_cached_table_data->capacity);
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_capacities();
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {

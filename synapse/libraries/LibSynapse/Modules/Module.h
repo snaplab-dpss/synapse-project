@@ -97,6 +97,7 @@ enum class ModuleType {
   Controller_DataplaneFCFSCachedTableAllocate,
   Controller_DataplaneFCFSCachedTableRead,
   Controller_DataplaneFCFSCachedTableWrite,
+  Controller_DataplaneFCFSCachedTableAllocateAndWrite,
   Controller_DataplaneHHTableAllocate,
   Controller_DataplaneHHTableRead,
   Controller_DataplaneHHTableUpdate,
@@ -396,6 +397,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneFCFSCachedTableWrite:
     os << "Controller_DataplaneFCFSCachedTableWrite";
+    break;
+  case ModuleType::Controller_DataplaneFCFSCachedTableAllocateAndWrite:
+    os << "Controller_DataplaneFCFSCachedTableAllocateAndWrite";
     break;
   case ModuleType::Controller_DataplaneHHTableAllocate:
     os << "Controller_DataplaneHHTableAllocate";

@@ -32,10 +32,10 @@ void from_json(const json &j, bdd_profile_t::meta_t &meta) {
   j.at("bytes").get_to(meta.bytes);
 }
 
-void from_json(const json &j, std::unordered_map<u32, u32> &crc32_hashes_per_mask) {
+void from_json(const json &j, std::unordered_map<u32, u64> &crc32_hashes_per_mask) {
   for (const auto &kv : j.items()) {
     u32 mask                    = std::stoul(kv.key());
-    u32 count                   = kv.value();
+    u64 count                   = kv.value();
     crc32_hashes_per_mask[mask] = count;
   }
 }

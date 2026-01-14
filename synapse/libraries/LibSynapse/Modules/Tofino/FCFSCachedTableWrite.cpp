@@ -54,8 +54,9 @@ std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *
 
 hit_rate_t get_cache_success_estimation_rel(const EP *ep, const BDDNode *node, const BDDNode *map_put, klee::ref<klee::Expr> key,
                                             u32 cache_capacity) {
-  const hit_rate_t fraction                 = ep->get_ctx().get_profiler().get_hr(node);
-  const hit_rate_t expected_cached_fraction = TofinoModuleFactory::get_fcfs_cache_success_rate(ep->get_ctx(), map_put, key, cache_capacity);
+  const hit_rate_t fraction = ep->get_ctx().get_profiler().get_hr(node);
+  const hit_rate_t expected_cached_fraction =
+      TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(ep->get_ctx(), map_put, key, cache_capacity);
   return hit_rate_t{fraction * expected_cached_fraction};
 }
 
@@ -284,17 +285,13 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
     return {};
   }
 
-  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(fcfs_cached_table_data->map_objs.dchain)) {
-    return {};
-  }
-
   if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
     if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(fcfs_cached_table_data->map_objs.map))) {
       return {};
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(fcfs_cached_table_data->capacity);
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_capacities();
 
   hit_rate_t chosen_success_estimation = 0_hr;
   u32 chosen_cache_capacity            = 0;
@@ -372,10 +369,6 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(fcfs_cached_table_data->map_objs.dchain)) {
-    return {};
-  }
-
   if (!ep->get_ctx().can_impl_ds(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
       !ep->get_ctx().can_impl_ds(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -388,7 +381,7 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
   }
 
   const symbol_t cache_write_success              = symbol_manager->create_symbol("cache_write_success", 32);
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(fcfs_cached_table_data->capacity);
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_capacities();
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {

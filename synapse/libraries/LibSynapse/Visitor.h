@@ -85,6 +85,7 @@ class DataplaneVectorRegisterUpdate;
 class DataplaneFCFSCachedTableAllocate;
 class DataplaneFCFSCachedTableRead;
 class DataplaneFCFSCachedTableWrite;
+class DataplaneFCFSCachedTableAllocateAndWrite;
 class DataplaneHHTableAllocate;
 class DataplaneHHTableRead;
 class DataplaneHHTableUpdate;
@@ -275,6 +276,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocateAndWrite *m) {
+    return Action::doChildren;
+  }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *m) { return Action::doChildren; }

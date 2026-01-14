@@ -18,6 +18,7 @@ constexpr const char *const FCFS_CACHED_TABLE_CACHE_SIZE_PARAM = "cache_size";
 struct FCFSCachedTable : public DS {
   u32 cache_capacity;
   u32 capacity;
+  u32 total_indices_reserved_for_controller;
   std::vector<bits_t> keys_sizes;
 
   std::vector<Table> tables;
@@ -30,6 +31,8 @@ struct FCFSCachedTable : public DS {
   Register cache_value;
   Hash hash;
   Digest digest;
+
+  static constexpr u32 MAX_CACHE_CAPACITY{65536};
 
   FCFSCachedTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 cache_capacity, u32 capacity, const std::vector<bits_t> &keys_sizes,
                   u8 digest_type);
@@ -45,6 +48,7 @@ struct FCFSCachedTable : public DS {
   const Table *get_table(u32 op) const;
   const Table *get_table(const DS_ID &table_id) const;
   void remove_table(const DS_ID &table_id);
+  void set_total_indices_reserved_for_controller(u32 flows);
 };
 
 } // namespace Tofino

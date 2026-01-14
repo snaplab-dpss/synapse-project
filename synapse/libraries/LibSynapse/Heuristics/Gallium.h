@@ -32,6 +32,7 @@ public:
   virtual std::vector<heuristic_metadata_t> get_metadata(const EP *ep) const override {
     return {
         build_meta_tput_estimate(ep),
+        build_meta_tput_speculation(ep),
     };
   }
 

@@ -48,7 +48,7 @@ struct bdd_profile_t {
       u64 pkts;
       u64 flows;
       std::vector<u64> pkts_per_flow; // Sorted by descending order.
-      std::unordered_map<u32, u32> crc32_hashes_per_mask;
+      std::unordered_map<u32, u64> crc32_hashes_per_mask;
     };
 
     struct epoch_t {

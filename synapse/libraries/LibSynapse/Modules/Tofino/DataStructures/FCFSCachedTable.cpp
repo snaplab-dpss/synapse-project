@@ -1,4 +1,5 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/FCFSCachedTable.h>
+#include <LibSynapse/Modules/Tofino/TNA/TNAProperties.h>
 
 #include <cmath>
 #include <iostream>
@@ -78,8 +79,9 @@ Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type)
 
 FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _capacity,
                                  const std::vector<bits_t> &_keys_sizes, u8 digest_type)
-    : DS(DSType::FCFSCachedTable, false, _id), cache_capacity(_cache_capacity), capacity(_capacity), keys_sizes(_keys_sizes),
-      reg_liveness(build_reg_liveness(properties, id, cache_capacity)),
+    : DS(DSType::FCFSCachedTable, false, _id), cache_capacity(_cache_capacity), capacity(_capacity),
+      total_indices_reserved_for_controller(properties.pipes * cache_capacity > capacity ? 0 : properties.pipes * cache_capacity - cache_capacity),
+      keys_sizes(_keys_sizes), reg_liveness(build_reg_liveness(properties, id, cache_capacity)),
       reg_integer_allocator_head(build_reg_integer_allocator_head(properties, id, capacity)),
       reg_integer_allocator_tail(build_reg_integer_allocator_tail(properties, id, capacity)),
       reg_integer_allocator_indexes(build_reg_integer_allocator_indexes(properties, id, capacity)),
@@ -105,9 +107,10 @@ DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 void FCFSCachedTable::debug() const {
   std::cerr << "\n";
   std::cerr << "======== FCFS CACHED TABLE ========\n";
-  std::cerr << "ID:      " << id << "\n";
-  std::cerr << "Entries: " << capacity << "\n";
-  std::cerr << "Cache:   " << cache_capacity << "\n";
+  std::cerr << "ID:                 " << id << "\n";
+  std::cerr << "Entries:            " << capacity << "\n";
+  std::cerr << "Cache:              " << cache_capacity << "\n";
+  std::cerr << "Controller indices: " << total_indices_reserved_for_controller << "\n";
   for (const Table &table : tables) {
     table.debug();
   }
@@ -164,7 +167,7 @@ bool FCFSCachedTable::has_table(u32 op) const {
 }
 
 std::optional<DS_ID> FCFSCachedTable::add_table(u32 op) {
-  Table new_table(build_table_name(id, op), capacity - cache_capacity, keys_sizes, {});
+  Table new_table(build_table_name(id, op), capacity, keys_sizes, {});
   tables.push_back(new_table);
   return new_table.id;
 }
@@ -185,6 +188,10 @@ const Table *FCFSCachedTable::get_table(const DS_ID &table_id) const {
     }
   }
   return nullptr;
+}
+
+void FCFSCachedTable::set_total_indices_reserved_for_controller(u32 flows) {
+  total_indices_reserved_for_controller = std::max(total_indices_reserved_for_controller, flows);
 }
 
 } // namespace Tofino

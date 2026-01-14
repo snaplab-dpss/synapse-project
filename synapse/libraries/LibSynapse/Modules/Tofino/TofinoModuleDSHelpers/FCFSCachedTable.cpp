@@ -138,33 +138,44 @@ FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const 
   return internal_get_fcfs_cached_table(ep, node, obj);
 }
 
-std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_cap(u32 capacity) {
+std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_capacities() {
   std::vector<u32> capacities;
 
   u32 cache_capacity = 8;
-  while (cache_capacity < capacity) {
+  while (cache_capacity <= FCFSCachedTable::MAX_CACHE_CAPACITY) {
     capacities.push_back(cache_capacity);
     cache_capacity *= 2;
-
-    // Overflow check
-    assert((capacities.empty() || capacities.back() < cache_capacity) && "Overflow");
   }
 
   return capacities;
 }
 
-hit_rate_t TofinoModuleFactory::get_fcfs_cache_success_rate(const Context &ctx, const BDDNode *node, klee::ref<klee::Expr> key, u32 cache_capacity) {
-  const flow_stats_t flow_stats = ctx.get_profiler().get_flow_stats(node, key);
-  const u64 avg_pkts_per_flow   = flow_stats.pkts / flow_stats.flows;
-  const u64 cached_packets      = std::min(flow_stats.pkts, avg_pkts_per_flow * cache_capacity);
-  const hit_rate_t hit_rate(cached_packets, flow_stats.pkts);
+hit_rate_t TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key,
+                                                                        u32 cache_capacity) {
+  const flow_stats_t flow_stats = ctx.get_profiler().get_flow_stats(map_put, key);
+  const u32 pipelines           = ctx.get_target_ctx<TofinoContext>()->get_tna().tna_config.properties.pipes;
+  const u32 mask                = (pipelines * cache_capacity) - 1;
+  assert_or_panic(flow_stats.crc32_hashes_per_mask.contains(mask), "Failed to find crc32 hash for mask %u", mask);
+  const u64 total_flow_hashes = flow_stats.crc32_hashes_per_mask.at(mask);
 
-  // std::cerr << "avg_pkts_per_flow: " << avg_pkts_per_flow << std::endl;
-  // std::cerr << "cached_packets: " << cached_packets << std::endl;
-  // std::cerr << "hit_rate: " << hit_rate << std::endl;
-  // dbg_pause();
+  const hit_rate_t collision_probability = 1_hr - hit_rate_t(total_flow_hashes, flow_stats.flows);
 
-  return hit_rate;
+  // std::cerr << "\n";
+  // std::cerr << "Cache capacity: " << cache_capacity << "\n";
+  // std::cerr << "Total flow hashes for mask " << mask << ": " << total_flow_hashes << "\n";
+  // std::cerr << "Collision probability: " << collision_probability << "\n";
+  // const u64 controller_flows             = flow_stats.flows * collision_probability.value;
+  // std::cerr << "Expected controller flows: " << controller_flows << "\n";
+
+  return collision_probability;
+}
+
+u64 TofinoModuleFactory::get_fcfs_ct_expected_controller_flows(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key,
+                                                               u32 cache_capacity) {
+  const hit_rate_t collision_probability = get_fcfs_ct_cache_collision_probability(ctx, map_put, key, cache_capacity);
+  const flow_stats_t flow_stats          = ctx.get_profiler().get_flow_stats(map_put, key);
+  const u64 controller_flows             = flow_stats.flows * collision_probability.value;
+  return controller_flows;
 }
 
 } // namespace Tofino

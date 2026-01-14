@@ -551,13 +551,27 @@ void EP::assert_integrity() const {
 }
 
 hit_rate_t EP::get_active_leaf_hit_rate() const {
-  EPLeaf active_leaf = get_active_leaf();
+  const EPLeaf active_leaf = get_active_leaf();
 
   if (!active_leaf.node) {
     return 1_hr;
   }
 
   return ctx.get_profiler().get_hr(active_leaf.node);
+}
+
+port_ingress_t EP::get_active_leaf_node_egress() const {
+  const EPLeaf active_leaf = get_active_leaf();
+  const hit_rate_t hr      = get_active_leaf_hit_rate();
+
+  port_ingress_t node_egress;
+  if (!active_leaf.node) {
+    node_egress.global = hr;
+  } else {
+    node_egress = get_node_egress(hr, active_leaf.node);
+  }
+
+  return node_egress;
 }
 
 void EP::sort_leaves() {

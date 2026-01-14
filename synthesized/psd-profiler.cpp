@@ -782,7 +782,7 @@ bool nf_init() {
   if (!is_dchain_allocated) {
     return false;
   }
-  int bf_allocation_succeeded = bf_allocate(4, 1024, 6, 10000000, &bf);
+  int bf_allocation_succeeded = bf_allocate(4, 1024, 6, 10000000000ULL, &bf);
   if (!bf_allocation_succeeded) {
     return false;
   }
@@ -1018,8 +1018,8 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  stats_per_map[1074048280].init(158);
-  stats_per_map[1074048280].init(145);
+  stats_per_map[1074048440].init(158);
+  stats_per_map[1074048440].init(145);
   forwarding_stats_per_route_op.insert({206, PortStats{}});
   forwarding_stats_per_route_op.insert({212, PortStats{}});
   forwarding_stats_per_route_op.insert({199, PortStats{}});
@@ -1157,7 +1157,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         *(uint32_t*)key = hdr2_slice;
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074048280].update(145, key, 4, now);
+        stats_per_map[1074048440].update(145, key, 4, now);
         // BDDNode 146
         inc_path_counter(146);
         if ((0) == (map_hit)) {
@@ -1205,7 +1205,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             inc_path_counter(158);
             *(uint32_t*)vector_value_out67 = hdr2_slice;
             map_put(map, vector_value_out67, index);
-            stats_per_map[1074048280].update(158, vector_value_out67, 4, now);
+            stats_per_map[1074048440].update(158, vector_value_out67, 4, now);
             // BDDNode 159
             inc_path_counter(159);
             // BDDNode 160

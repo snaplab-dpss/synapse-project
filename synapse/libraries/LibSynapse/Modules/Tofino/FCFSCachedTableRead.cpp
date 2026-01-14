@@ -94,17 +94,13 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
     return {};
   }
 
-  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(fcfs_cached_table_data->map_objs.dchain)) {
-    return {};
-  }
-
   if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
     if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(fcfs_cached_table_data->map_objs.map))) {
       return {};
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(fcfs_cached_table_data->capacity);
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_capacities();
 
   // Let's optimistically pick the largest cache capacity that we can build or reuse.
   std::optional<u32> cache_capacity;
@@ -147,10 +143,6 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
     return {};
   }
 
-  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(fcfs_cached_table_data->map_objs.dchain)) {
-    return {};
-  }
-
   if (!ep->get_ctx().can_impl_ds(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
       !ep->get_ctx().can_impl_ds(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -162,7 +154,7 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_cap(fcfs_cached_table_data->capacity);
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_capacities();
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {

@@ -28,6 +28,7 @@ struct flow_stats_t {
   u64 pkts;
   u64 flows;
   std::vector<u64> pkts_per_flow;
+  std::unordered_map<u32, u64> crc32_hashes_per_mask;
 
   hit_rate_t calculate_top_k_hit_rate(size_t k) const {
     u64 top_k = 0;

@@ -6,6 +6,7 @@ extern "C" {
 #include <lib/state/double-chain.h>
 #include <lib/state/cht.h>
 #include <lib/state/cms.h>
+#include <lib/state/bloom-filter.h>
 #include <lib/state/token-bucket.h>
 #include <lib/state/lpm-dir-24-8.h>
 
@@ -776,7 +777,7 @@ bool nf_init() {
   if (!is_dchain_allocated) {
     return false;
   }
-  int cms_allocation_succeeded = cms_allocate(4, 1024, 8, 10000000, &cms);
+  int cms_allocation_succeeded = cms_allocate(4, 1024, 8, 10000000000ULL, &cms);
   if (!cms_allocation_succeeded) {
     return false;
   }
@@ -1012,8 +1013,8 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  stats_per_map[1074048576].init(160);
-  stats_per_map[1074048576].init(144);
+  stats_per_map[1074048064].init(160);
+  stats_per_map[1074048064].init(144);
   forwarding_stats_per_route_op.insert({193, PortStats{}});
   forwarding_stats_per_route_op.insert({190, PortStats{}});
   forwarding_stats_per_route_op.insert({189, PortStats{}});
@@ -1144,7 +1145,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[12] = *(hdr2+9);
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074048576].update(144, key, 13, now);
+        stats_per_map[1074048064].update(144, key, 13, now);
         // BDDNode 145
         inc_path_counter(145);
         if ((0) == (map_hit)) {
@@ -1204,7 +1205,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               inc_path_counter(160);
               memcpy((void*)vector_value_out67, (void*)key, 13);
               map_put(map, vector_value_out67, index);
-              stats_per_map[1074048576].update(160, vector_value_out67, 13, now);
+              stats_per_map[1074048064].update(160, vector_value_out67, 13, now);
               // BDDNode 161
               inc_path_counter(161);
               // BDDNode 162

@@ -126,6 +126,7 @@ public:
   bool has_active_leaf() const { return !active_leaves.empty(); }
   TargetType get_active_target() const;
   hit_rate_t get_active_leaf_hit_rate() const;
+  port_ingress_t get_active_leaf_node_egress() const;
   port_ingress_t get_node_egress(hit_rate_t hr, const EPNode *node) const;
   pps_t estimate_tput_pps() const;
 

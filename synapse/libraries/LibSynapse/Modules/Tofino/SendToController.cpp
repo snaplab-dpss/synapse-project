@@ -66,8 +66,7 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
     return {};
   }
 
-  const hit_rate_t hr = new_ctx.get_profiler().get_hr(node);
-  new_ctx.get_mutable_perf_oracle().add_controller_traffic(hr);
+  new_ctx.get_mutable_perf_oracle().add_controller_traffic(ep->get_active_leaf_node_egress());
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
   spec_impl.next_target = TargetType::Controller;
@@ -359,6 +358,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_DataplaneFCFSCachedTableAllocate:
     case ModuleType::Controller_DataplaneFCFSCachedTableRead:
     case ModuleType::Controller_DataplaneFCFSCachedTableWrite:
+    case ModuleType::Controller_DataplaneFCFSCachedTableAllocateAndWrite:
     case ModuleType::Controller_DataplaneHHTableAllocate:
     case ModuleType::Controller_DataplaneHHTableRead:
     case ModuleType::Controller_DataplaneHHTableUpdate:

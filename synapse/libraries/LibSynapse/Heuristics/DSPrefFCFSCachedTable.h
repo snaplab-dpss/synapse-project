@@ -30,6 +30,7 @@ public:
             .description = std::to_string(get_ds_score(ep)),
         },
         build_meta_tput_estimate(ep),
+        build_meta_tput_speculation(ep),
     };
   }
 

@@ -1550,6 +1550,14 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                               const Controller::DataplaneFCFSCachedTableAllocateAndWrite *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  panic("TODO: Controller::FCFSCachedTableAllocateAndWrite");
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *node) {
   const addr_t obj                = node->get_obj();
   const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());

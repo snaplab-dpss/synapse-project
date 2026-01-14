@@ -284,10 +284,11 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, const std:
       klee::ref<klee::Expr> flow_id = call.args.at("key").in;
 
       const flow_stats_t flow_stats = {
-          .flow_id       = flow_id,
-          .pkts          = node_map_stats.pkts,
-          .flows         = node_map_stats.flows,
-          .pkts_per_flow = node_map_stats.pkts_per_flow,
+          .flow_id               = flow_id,
+          .pkts                  = node_map_stats.pkts,
+          .flows                 = node_map_stats.flows,
+          .pkts_per_flow         = node_map_stats.pkts_per_flow,
+          .crc32_hashes_per_mask = node_map_stats.crc32_hashes_per_mask,
       };
 
       (*flows_stats_per_bdd_node)[node->get_id()].push_back(flow_stats);
