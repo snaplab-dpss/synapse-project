@@ -118,6 +118,16 @@ NFS = [
     #     route=lambda _: [],
     # ),
     # SynapseNF(
+    #     name="synapse-psd",
+    #     description="Synapse PSD",
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/synapse-psd.p4"),
+    #     controller=Path("synthesized/synapse-psd.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
+    # SynapseNF(
     #     name="synapse-kvs-c0-zipf1.2",
     #     description="Synapse KVS C0 Zipf 1.2",
     #     kvs_mode=True,

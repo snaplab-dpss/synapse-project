@@ -16,7 +16,7 @@ struct state_t : public nf_state_t {
             "Ingress.fcfs_ct_integer_allocator_head_reg", "Ingress.fcfs_ct_integer_allocator_tail_reg",
             "Ingress.fcfs_ct_integer_allocator_indexes_reg", "Ingress.fcfs_ct_integer_allocator_pending_reg",
             {"Ingress.fcfs_ct_index_to_key_0", "Ingress.fcfs_ct_index_to_key_1", "Ingress.fcfs_ct_index_to_key_2", "Ingress.fcfs_ct_index_to_key_3"},
-            "IngressDeparser.fcfs_ct_digest", 1000LL),
+            "IngressDeparser.fcfs_ct_digest", 2800, 1000LL),
         vector_table_1074077160("vector_table_1074077160", {"Ingress.vector_table_1074077160_139"}),
         vector_table_1074094376("vector_table_1074094376", {"Ingress.vector_table_1074094376_187", "Ingress.vector_table_1074094376_149"}) {}
 };

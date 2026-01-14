@@ -43,7 +43,8 @@ public:
   FCFSCachedTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_liveness_name,
                   const std::string &reg_integer_allocator_head_name, const std::string &reg_integer_allocator_tail_name,
                   const std::string &reg_integer_allocator_indexes_name, const std::string &reg_integer_allocator_pending_name,
-                  const std::vector<std::string> &regs_index_to_key, const std::string &digest_name, std::optional<time_ms_t> timeout = std::nullopt)
+                  const std::vector<std::string> &regs_index_to_key, const std::string &digest_name, u32 minimum_controller_indices,
+                  std::optional<time_ms_t> timeout = std::nullopt)
       : SynapseDS(_name), tables(build_tables(table_names)), reg_liveness(reg_liveness_name),
         reg_integer_allocator_head(reg_integer_allocator_head_name), reg_integer_allocator_tail(reg_integer_allocator_tail_name),
         reg_integer_allocator_indexes(reg_integer_allocator_indexes_name), reg_integer_allocator_pending(reg_integer_allocator_pending_name),
@@ -52,9 +53,20 @@ public:
         cache_capacity(reg_liveness.get_capacity()), key_size(get_key_size(tables)), cache_hash_size(get_cache_hash_size(cache_capacity)), crc32() {
     std::unordered_map<bf_dev_pipe_t, std::vector<u32>> control_plane_free_indices_per_pipe;
 
-    const u32 capacity_per_pipe = capacity / pipelines;
-    // const u32 tail              = std::min(capacity_per_pipe - 1, cache_capacity);
-    const u32 tail = std::min(capacity_per_pipe - 1000, cache_capacity);
+    if (minimum_controller_indices % 4 != 0) {
+      minimum_controller_indices += 4 - (minimum_controller_indices % 4);
+      LOG_DEBUG("WARNING: Total controller indices is not multiple of 4, rounding up to nearest multiple of 4: %u", minimum_controller_indices);
+    }
+
+    const u32 capacity_per_pipe               = capacity / pipelines;
+    const u32 min_controller_indices_per_pipe = minimum_controller_indices / pipelines;
+    const u32 tail                            = std::min(capacity_per_pipe - min_controller_indices_per_pipe, cache_capacity);
+
+    LOG_DEBUG("FCFS Cached Table initialized with total capacity %u, cache capacity %u, pipelines %u", capacity, cache_capacity, pipelines);
+    LOG_DEBUG("Minimum controller indices per pipe: %u", min_controller_indices_per_pipe);
+    LOG_DEBUG("Tail per pipe: %u", tail);
+    LOG_DEBUG("Total controller indices: %u", capacity - (tail * pipelines));
+
     for (u16 pipe_id = 0; pipe_id < pipelines; pipe_id++) {
       tails_per_pipe[pipe_id]         = tail;
       expected_head_per_pipe[pipe_id] = 0;
