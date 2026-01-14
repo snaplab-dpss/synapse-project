@@ -51,7 +51,7 @@ struct State *alloc_state() {
   }
 
   ret->cms = NULL;
-  if (cms_allocate(config.sketch_height, config.sketch_width, sizeof(struct client), config.sketch_cleanup_interval, &(ret->cms)) == 0) {
+  if (cms_allocate(config.sketch_height, config.sketch_width, sizeof(struct client), config.sketch_cleanup_interval * 1000, &(ret->cms)) == 0) {
     return NULL;
   }
 
@@ -64,8 +64,8 @@ struct State *alloc_state() {
     return NULL;
 
 #ifdef KLEE_VERIFICATION
-  map_set_layout(ret->flows, flow_descrs, sizeof(flow_descrs) / sizeof(flow_descrs[0]), flow_nests,
-                 sizeof(flow_nests) / sizeof(flow_nests[0]), "flow");
+  map_set_layout(ret->flows, flow_descrs, sizeof(flow_descrs) / sizeof(flow_descrs[0]), flow_nests, sizeof(flow_nests) / sizeof(flow_nests[0]),
+                 "flow");
   vector_set_layout(ret->flows_keys, flow_descrs, sizeof(flow_descrs) / sizeof(flow_descrs[0]), flow_nests,
                     sizeof(flow_nests) / sizeof(flow_nests[0]), "flow");
   cms_set_layout(ret->cms, client_descrs, sizeof(client_descrs) / sizeof(client_descrs[0]), client_nests,
@@ -106,9 +106,8 @@ struct State *alloc_state() {
 
 #ifdef KLEE_VERIFICATION
 void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
-  loop_iteration_border(&allocated_nf_state->flows, &allocated_nf_state->flows_keys, &allocated_nf_state->flow_allocator,
-                        &allocated_nf_state->cms, &allocated_nf_state->int_devices, &allocated_nf_state->fwd_rules, config.max_flows,
-                        lcore_id, time);
+  loop_iteration_border(&allocated_nf_state->flows, &allocated_nf_state->flows_keys, &allocated_nf_state->flow_allocator, &allocated_nf_state->cms,
+                        &allocated_nf_state->int_devices, &allocated_nf_state->fwd_rules, config.max_flows, lcore_id, time);
 }
 
 #endif // KLEE_VERIFICATION

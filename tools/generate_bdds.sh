@@ -38,6 +38,6 @@ run() {
 # run "nat"
 # run "kvs"
 # run "pol"
-# run "cl"
+run "cl"
 run "psd"
 # run "lb"

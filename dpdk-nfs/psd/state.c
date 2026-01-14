@@ -62,7 +62,7 @@ struct State *alloc_state() {
   }
 
   ret->touched_ports = NULL;
-  if (bf_allocate(config.bloom_filter_height, config.bloom_filter_width, sizeof(struct TouchedPort), config.bloom_filter_cleanup_interval,
+  if (bf_allocate(config.bloom_filter_height, config.bloom_filter_width, sizeof(struct TouchedPort), config.bloom_filter_cleanup_interval * 1000,
                   &(ret->touched_ports)) == 0) {
     return NULL;
   }

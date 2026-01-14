@@ -23,15 +23,15 @@ Winner:
   Memory Usage: 20549632 bits
 
 Stateful Implementations:
-  1074079320: Tofino::Register
-  1074096872: Tofino::BloomFilter
-  1074096456: Tofino::DchainTable
-  1074126664: Tofino::VectorTable
-  1074048280: Tofino::MapTable
-  1074109448: Tofino::VectorTable
+  1074079480: Tofino::Register
+  1074097032: Tofino::BloomFilter
+  1074096616: Tofino::DchainTable
+  1074126824: Tofino::VectorTable
+  1074048440: Tofino::MapTable
+  1074109608: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       148 seconds
+  Elapsed time:       147 seconds
   Steps:              77
   Backtracks:         0
   Search space size:  273
@@ -137,23 +137,23 @@ SRAM: 786'432/1'310'720 B (60%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 786'432/786'432 B (100%)
 Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [dchain_table_1074096456_171,vector_table_1074126664_192,vector_table_1074126664_200,vector_table_1074126664_178,map_table_1074048280_145,vector_table_1074109448_142]
+Objs: [dchain_table_1074096616_171,vector_table_1074126824_178,vector_table_1074126824_192,vector_table_1074126824_200,map_table_1074048440_145,vector_table_1074109608_142]
 -------------------------------------
 -------------------------------------
 Stage 1
-SRAM: 149'760/1'310'720 B (11.4258%)
+SRAM: 170'240/1'310'720 B (12.9883%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 149'760/786'432 B (19.043%)
-Exact Match Crossbar: 34/128 B (26.5625%)
-Objs: [bf_1074096872_row_2,bf_1074096872_hash_1,bf_1074096872_hash_0,dchain_table_1074096456_171,bf_1074096872_hash_2,bf_1074096872_row_0,bf_1074096872_row_1,bf_1074096872_hash_3]
+MapRAM: 170'240/786'432 B (21.6471%)
+Exact Match Crossbar: 30/128 B (23.4375%)
+Objs: [bf_1074097032_hash_2,bf_1074097032_row_0,bf_1074097032_hash_1,bf_1074097032_row_1,dchain_table_1074096616_171,bf_1074097032_hash_0,bf_1074097032_row_2,bf_1074097032_row_3]
 -------------------------------------
 -------------------------------------
 Stage 2
-SRAM: 348'160/1'310'720 B (26.5625%)
+SRAM: 327'680/1'310'720 B (25%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 348'160/786'432 B (44.2708%)
-Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [bf_1074096872_row_3,vector_register_1074079320_0]
+MapRAM: 327'680/786'432 B (41.6667%)
+Exact Match Crossbar: 10/128 B (7.8125%)
+Objs: [bf_1074097032_hash_3,vector_register_1074079480_0]
 -------------------------------------
 ==========================================================
 ========================================================

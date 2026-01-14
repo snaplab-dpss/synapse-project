@@ -20,8 +20,8 @@ KVS_GET_RATIO = 0.99
 PIPELINES = 4
 
 TOTAL_FLOWS = 40_000
-CHURN_FPM = 0
-ZIPF_PARAM = 0
+CHURN_FPM = 10_000
+ZIPF_PARAM = 1.2
 
 
 @dataclass
@@ -117,16 +117,16 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
-    # SynapseNF(
-    #     name="synapse-psd",
-    #     description="Synapse PSD",
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/synapse-psd.p4"),
-    #     controller=Path("synthesized/synapse-psd.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
+    SynapseNF(
+        name="synapse-psd",
+        description="Synapse PSD",
+        kvs_mode=False,
+        tofino=Path("synthesized/synapse-psd.p4"),
+        controller=Path("synthesized/synapse-psd.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+    ),
     # SynapseNF(
     #     name="synapse-kvs-c0-zipf1.2",
     #     description="Synapse KVS C0 Zipf 1.2",
@@ -137,16 +137,16 @@ NFS = [
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
-    SynapseNF(
-        name="synapse-fw-fcfs-ct",
-        description="Synapse FW FCFS CT",
-        kvs_mode=False,
-        tofino=Path("tofino/experiments/fcfs_cached_table_32768/fcfs_cached_table_32768.p4"),
-        controller=Path("tofino/experiments/fcfs_cached_table_32768/fcfs_cached_table_32768.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-    ),
+    # SynapseNF(
+    #     name="synapse-fw-fcfs-ct",
+    #     description="Synapse FW FCFS CT",
+    #     kvs_mode=False,
+    #     tofino=Path("tofino/experiments/fcfs_cached_table_32768/fcfs_cached_table_32768.p4"),
+    #     controller=Path("tofino/experiments/fcfs_cached_table_32768/fcfs_cached_table_32768.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
 ]
 
 

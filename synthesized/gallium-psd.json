@@ -22,27 +22,27 @@
   },
   "implementations": [
     {
-      "addr": 1074079320,
+      "addr": 1074079480,
       "implementation": "Tofino::Register"
     },
     {
-      "addr": 1074096872,
+      "addr": 1074097032,
       "implementation": "Tofino::BloomFilter"
     },
     {
-      "addr": 1074096456,
+      "addr": 1074096616,
       "implementation": "Tofino::DchainTable"
     },
     {
-      "addr": 1074126664,
+      "addr": 1074126824,
       "implementation": "Tofino::VectorTable"
     },
     {
-      "addr": 1074048280,
+      "addr": 1074048440,
       "implementation": "Tofino::MapTable"
     },
     {
-      "addr": 1074109448,
+      "addr": 1074109608,
       "implementation": "Tofino::VectorTable"
     }
   ],

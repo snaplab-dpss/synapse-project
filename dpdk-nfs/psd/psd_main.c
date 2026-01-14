@@ -52,7 +52,9 @@ void expire_entries(time_ns_t time) {
   uint64_t expiration_time_ns = ((uint64_t)config.expiration_time) * 1000; // us to ns
   time_ns_t last_time         = time_u - expiration_time_ns;
   expire_items_single_map(state->allocator, state->srcs_key, state->srcs, last_time);
-  bf_periodic_cleanup(state->touched_ports, time);
+  if (bf_periodic_cleanup(state->touched_ports, time)) {
+    NF_DEBUG("Bloom filter periodic cleanup performed at time %llu ns", (unsigned long long)time);
+  }
 }
 
 int allocate(uint32_t src, uint16_t target_port, time_ns_t time) {
