@@ -28,7 +28,6 @@ private:
   Register reg_integer_allocator_head;
   Register reg_integer_allocator_tail;
   Register reg_integer_allocator_indexes;
-  Register reg_integer_allocator_pending;
   std::vector<Register> regs_index_to_key;
   Digest digest;
 
@@ -42,15 +41,14 @@ private:
 public:
   FCFSCachedTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_liveness_name,
                   const std::string &reg_integer_allocator_head_name, const std::string &reg_integer_allocator_tail_name,
-                  const std::string &reg_integer_allocator_indexes_name, const std::string &reg_integer_allocator_pending_name,
-                  const std::vector<std::string> &regs_index_to_key, const std::string &digest_name, u32 minimum_controller_indices,
-                  std::optional<time_ms_t> timeout = std::nullopt)
+                  const std::string &reg_integer_allocator_indexes_name, const std::vector<std::string> &regs_index_to_key,
+                  const std::string &digest_name, u32 minimum_controller_indices, std::optional<time_ms_t> timeout = std::nullopt)
       : SynapseDS(_name), tables(build_tables(table_names)), reg_liveness(reg_liveness_name),
         reg_integer_allocator_head(reg_integer_allocator_head_name), reg_integer_allocator_tail(reg_integer_allocator_tail_name),
-        reg_integer_allocator_indexes(reg_integer_allocator_indexes_name), reg_integer_allocator_pending(reg_integer_allocator_pending_name),
-        regs_index_to_key(build_regs_index_to_key(regs_index_to_key)), digest(digest_name), pipelines(get_pipelines(reg_integer_allocator_indexes)),
-        capacity(get_capacity(reg_integer_allocator_indexes, reg_integer_allocator_pending, tables, pipelines)),
-        cache_capacity(reg_liveness.get_capacity()), key_size(get_key_size(tables)), cache_hash_size(get_cache_hash_size(cache_capacity)), crc32() {
+        reg_integer_allocator_indexes(reg_integer_allocator_indexes_name), regs_index_to_key(build_regs_index_to_key(regs_index_to_key)),
+        digest(digest_name), pipelines(get_pipelines(reg_integer_allocator_indexes)),
+        capacity(get_capacity(reg_integer_allocator_indexes, tables, pipelines)), cache_capacity(reg_liveness.get_capacity()),
+        key_size(get_key_size(tables)), cache_hash_size(get_cache_hash_size(cache_capacity)), crc32() {
     std::unordered_map<bf_dev_pipe_t, std::vector<u32>> control_plane_free_indices_per_pipe;
 
     if (minimum_controller_indices % 4 != 0) {
@@ -124,7 +122,7 @@ public:
     return true;
   }
 
-  bool allocate_index_and_put(const buffer_t &k) {
+  bool allocate_index_and_put(const buffer_t &k, u32 &new_index) {
     out_of_band_migration();
 
     if (cache.find(k) != cache.end()) {
@@ -142,8 +140,10 @@ public:
       return false;
     }
 
-    const u32 new_index = control_plane_free_indices.back();
+    new_index = control_plane_free_indices.back();
     control_plane_free_indices.pop_back();
+
+    set_index_to_key_registers(new_index, k);
 
     return put(k, new_index);
   }
@@ -234,6 +234,22 @@ private:
     return {key, index};
   }
 
+  void set_index_to_key_registers(u32 index, const buffer_t &key) {
+    bytes_t offset = 0;
+    for (Register &reg_key : regs_index_to_key) {
+      const bytes_t value_size = reg_key.get_value_size() / 8;
+      const u32 value          = static_cast<u32>(key.get(offset, value_size));
+      reg_key.set(index, value);
+      offset += value_size;
+    }
+  }
+
+  void clear_index_to_key_registers(u32 index) {
+    for (Register &reg_key : regs_index_to_key) {
+      reg_key.set(index, 0);
+    }
+  }
+
   void mark_index_as_available(u32 index) {
     const u32 capacity_per_pipe = capacity / pipelines;
     const bf_dev_pipe_t pipe_id = index / capacity_per_pipe;
@@ -269,8 +285,6 @@ private:
     if (put(key, index)) {
       estimation_total_available_data_plane_indices_per_pipe[pipe_id]--;
     }
-
-    reg_integer_allocator_pending.set(index, 0, pipe_id);
   }
 
   static void expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {
@@ -383,11 +397,9 @@ private:
 
   static u32 get_pipelines(Register &reg_integer_allocator_indexes) { return reg_integer_allocator_indexes.get_per_pipe(0).size(); }
 
-  static u32 get_capacity(const Register &reg_integer_allocator_indexes, const Register &reg_integer_allocator_pending,
-                          const std::vector<Table> &tables, u32 pipelines) {
+  static u32 get_capacity(const Register &reg_integer_allocator_indexes, const std::vector<Table> &tables, u32 pipelines) {
     const u32 capacity = reg_integer_allocator_indexes.get_capacity();
 
-    assert(reg_integer_allocator_pending.get_capacity() == capacity);
     for (const Table &table : tables) {
       assert(table.get_effective_capacity() >= capacity);
     }

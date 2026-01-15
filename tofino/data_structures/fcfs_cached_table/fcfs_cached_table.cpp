@@ -11,8 +11,7 @@ struct state_t : public nf_state_t {
       : ingress_port_to_nf_dev(), forwarding_tbl(),
         fcfs_cached_table("fcfs_cached_table", {"Ingress.fcfs_ct_table_0", "Ingress.fcfs_ct_table_1"}, "Ingress.fcfs_ct_liveness_reg",
                           "Ingress.fcfs_ct_integer_allocator_head_reg", "Ingress.fcfs_ct_integer_allocator_tail_reg",
-                          "Ingress.fcfs_ct_integer_allocator_indexes_reg", "Ingress.fcfs_ct_integer_allocator_pending_reg",
-                          "IngressDeparser.fcfs_ct_digest", 1000LL) {}
+                          "Ingress.fcfs_ct_integer_allocator_indexes_reg", "IngressDeparser.fcfs_ct_digest", 1000LL) {}
 };
 
 state_t *state = nullptr;

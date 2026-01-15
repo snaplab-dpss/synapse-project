@@ -322,23 +322,6 @@ control Ingress(
 	Register<bit<32>, _>(1, 0) fcfs_ct_integer_allocator_head_reg;
 	Register<bit<32>, _>(1, 0) fcfs_ct_integer_allocator_tail_reg;
 	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_integer_allocator_indexes_reg;
-	Register<bit<8>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_integer_allocator_pending_reg;
-
-	RegisterAction<bit<8>, bit<32>, bool>(fcfs_ct_integer_allocator_pending_reg) fcfs_ct_integer_allocator_pending_read = {
-		void apply(inout bit<8> is_pending, out bool out_is_pending) {
-			if (is_pending == 0) {
-				out_is_pending = false;
-			} else {
-				out_is_pending = true;
-			}
-		}
-	};
-
-	RegisterAction<bit<8>, bit<32>, void>(fcfs_ct_integer_allocator_pending_reg) fcfs_ct_integer_allocator_pending_set = {
-		void apply(inout bit<8> is_pending) {
-			is_pending = 1;
-		}
-	};
 
 	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_integer_allocator_tail_reg) fcfs_ct_integer_allocator_tail_read = {
 		void apply(inout bit<32> tail, out bit<32> out_tail) {

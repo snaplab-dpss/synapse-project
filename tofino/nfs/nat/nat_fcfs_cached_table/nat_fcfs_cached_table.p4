@@ -46,15 +46,15 @@ enum bit<2> fwd_op_t {
 }
 
 // Entry Timeout Expiration (units of 65536 ns).
-// #define ENTRY_TIMEOUT 16384 // 1 s
 #define ENTRY_TIMEOUT 512 // 62.5 ms
 
 #define FCFS_CT_CAPACITY 65536
 
-#define FCFS_CT_CACHE_CAPACITY 65536
-typedef bit<16> fcfs_ct_cache_hash_t;
-// #define FCFS_CT_CACHE_CAPACITY 4
-// typedef bit<2> fcfs_ct_cache_hash_t;
+// #define FCFS_CT_CACHE_CAPACITY 65536
+// typedef bit<16> fcfs_ct_cache_hash_t;
+
+#define FCFS_CT_CACHE_CAPACITY 2
+typedef bit<1> fcfs_ct_cache_hash_t;
 
 header cpu_h {
 	bit<16>	code_path;                   // Written by the data plane
@@ -308,44 +308,9 @@ control Ingress(
 		idle_timeout = true;
 	}
 
-	action fcfs_ct_table_1_get_value(bit<32> value) {
-		meta.fcfs_ct_value = value;
-	}
-
-	table fcfs_ct_table_1 {
-		key = {
-			meta.fcfs_ct_key_0: exact;
-			meta.fcfs_ct_key_1: exact;
-			meta.fcfs_ct_key_2: exact;
-			meta.fcfs_ct_key_3: exact;
-		}
-
-		actions = { fcfs_ct_table_1_get_value; }
-
-		size = FCFS_CT_CAPACITY * 2;
-		idle_timeout = true;
-	}
-
 	Register<bit<32>, _>(1, 0) fcfs_ct_integer_allocator_head_reg;
 	Register<bit<32>, _>(1, 0) fcfs_ct_integer_allocator_tail_reg;
 	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_integer_allocator_indexes_reg;
-	Register<bit<8>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_integer_allocator_pending_reg;
-
-	RegisterAction<bit<8>, bit<32>, bool>(fcfs_ct_integer_allocator_pending_reg) fcfs_ct_integer_allocator_pending_read = {
-		void apply(inout bit<8> is_pending, out bool out_is_pending) {
-			if (is_pending == 0) {
-				out_is_pending = false;
-			} else {
-				out_is_pending = true;
-			}
-		}
-	};
-
-	RegisterAction<bit<8>, bit<32>, void>(fcfs_ct_integer_allocator_pending_reg) fcfs_ct_integer_allocator_pending_set = {
-		void apply(inout bit<8> is_pending) {
-			is_pending = 1;
-		}
-	};
 
 	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_integer_allocator_tail_reg) fcfs_ct_integer_allocator_tail_read = {
 		void apply(inout bit<32> tail, out bit<32> out_tail) {
@@ -560,8 +525,6 @@ control Ingress(
 		}
 		size = 36;
 	}
-	Register<bit<32>, _>(1, 0) debug_index_allocation_failures;
-	RegisterAction<bit<32>, bit<32>, void>(debug_index_allocation_failures) debug_index_allocation_failures_update = { void apply(inout bit<32> curr_count) { curr_count = curr_count + 1; }};
 
 	apply {
 		ingress_port_to_nf_dev.apply();
@@ -572,41 +535,37 @@ control Ingress(
 			vector_table_1074077160_139.apply();
 
 			if (vector_table_1074077160_139_get_value_param0 == 0) {
-				// Read FCFS CT Operation
-				meta.fcfs_ct_key_0 = hdr.ipv4.dst_addr;
-				meta.fcfs_ct_key_1 = hdr.ipv4.src_addr;
-				meta.fcfs_ct_key_2 = hdr.udp.dst_port;
-				meta.fcfs_ct_key_3 = hdr.udp.src_port;
-				bool found = fcfs_ct_table_0.apply().hit;
-				fcfs_ct_calc_hash();
-				bool fcfs_ct_is_alive = fcfs_ct_liveness_check.execute(fcfs_ct_hash);
-				if (!found && fcfs_ct_is_alive) {
-					meta.fcfs_ct_key_fields_match = 0;
-					fcfs_ct_read_key_0_execute();
-					fcfs_ct_read_key_1_execute();
-					fcfs_ct_read_key_2_execute();
-					fcfs_ct_read_key_3_execute();
-					if (meta.fcfs_ct_key_fields_match == 4) {
-						fcfs_ct_read_value_execute();
-						found = true;
+				// WAN packet
+				bit<32> src_ip = fcfs_ct_read_index_to_key_0.execute((bit<32>)hdr.udp.dst_port);
+				bit<32> dst_ip = fcfs_ct_read_index_to_key_1.execute((bit<32>)hdr.udp.dst_port);
+				bit<16> src_port = fcfs_ct_read_index_to_key_2.execute((bit<32>)hdr.udp.dst_port);
+				bit<16> dst_port = fcfs_ct_read_index_to_key_3.execute((bit<32>)hdr.udp.dst_port);
+
+				if (src_ip == 0 || dst_ip == 0 || src_port == 0 || dst_port == 0) {
+					fwd_op = fwd_op_t.DROP;
+				} else {
+					bool cond = false;
+					if (dst_ip == hdr.ipv4.src_addr) {
+						if (dst_port == hdr.udp.src_port) {
+							cond = true;
+						}
+					}
+					if (!cond) {
+						fwd_op = fwd_op_t.DROP;
+					} else {
+						hdr.ipv4.dst_addr = src_ip;
+						hdr.udp.dst_port = src_port;
+						vector_table_1074094376_149.apply();
+						nf_dev[15:0] = vector_table_1074094376_149_get_value_param0;
 					}
 				}
-
-				if (found) {
-					hdr.udp.dst_port = meta.fcfs_ct_value[15:0];
-					vector_table_1074094376_149.apply();
-					nf_dev[15:0] = vector_table_1074094376_149_get_value_param0;
-				} else {
-					fwd_op = fwd_op_t.DROP;
-				}
-
 			} else {
 				// Read/Write FCFS CT Operation
 				meta.fcfs_ct_key_0 = hdr.ipv4.src_addr;
 				meta.fcfs_ct_key_1 = hdr.ipv4.dst_addr;
 				meta.fcfs_ct_key_2 = hdr.udp.src_port;
 				meta.fcfs_ct_key_3 = hdr.udp.dst_port;
-				bool found = fcfs_ct_table_1.apply().hit;
+				bool found = fcfs_ct_table_0.apply().hit;
 				bool new_index_allocated = false;
 				bool index_allocation_failed = false;
 				bool collision_detected = false;
@@ -635,7 +594,6 @@ control Ingress(
 						meta.fcfs_ct_integer_allocator_head = fcfs_ct_integer_allocator_head_inc.execute(0);
 						if (meta.fcfs_ct_integer_allocator_head != meta.fcfs_ct_integer_allocator_tail) {
 							meta.fcfs_ct_value = fcfs_ct_integer_allocator_indexes_read.execute(meta.fcfs_ct_integer_allocator_head);
-							fcfs_ct_integer_allocator_pending_set.execute(meta.fcfs_ct_value);
 							ig_dprsr_md.digest_type = 1;
 							new_index_allocated = true;
 
@@ -649,12 +607,6 @@ control Ingress(
 							index_allocation_failed = true;
 						}
 					}
-
-					// if (found) {
-					// 	fcfs_ct_read_value_execute();
-					// } else if (new_index_allocated) {
-					// 	fcfs_ct_write_value_execute();
-					// }
 				}
 
 				// Exported symbols:
@@ -664,7 +616,6 @@ control Ingress(
 				if (index_allocation_failed) {
 					// Write failure
 					fwd_op = fwd_op_t.DROP;
-					debug_index_allocation_failures_update.execute(0);
 				} else if (collision_detected) {
 					// Write success (control plane)
 					fwd_op = fwd_op_t.FORWARD_TO_CPU;
@@ -673,6 +624,8 @@ control Ingress(
 				} else {
 					// Read success
 					// Write success (data plane)
+					hdr.ipv4.src_addr = 0x01020304;
+					hdr.udp.src_port = meta.fcfs_ct_value[15:0];
 					vector_table_1074094376_187.apply();
 					nf_dev[15:0] = vector_table_1074094376_187_get_value_param0;
 				}

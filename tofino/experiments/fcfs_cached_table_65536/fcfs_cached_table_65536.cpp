@@ -14,7 +14,7 @@ struct state_t : public nf_state_t {
         fcfs_cached_table(
             "fcfs_cached_table", {"Ingress.fcfs_ct_table_0", "Ingress.fcfs_ct_table_1"}, "Ingress.fcfs_ct_liveness_reg",
             "Ingress.fcfs_ct_integer_allocator_head_reg", "Ingress.fcfs_ct_integer_allocator_tail_reg",
-            "Ingress.fcfs_ct_integer_allocator_indexes_reg", "Ingress.fcfs_ct_integer_allocator_pending_reg",
+            "Ingress.fcfs_ct_integer_allocator_indexes_reg",
             {"Ingress.fcfs_ct_index_to_key_0", "Ingress.fcfs_ct_index_to_key_1", "Ingress.fcfs_ct_index_to_key_2", "Ingress.fcfs_ct_index_to_key_3"},
             "IngressDeparser.fcfs_ct_digest", 2800, 1000LL),
         vector_table_1074077160("vector_table_1074077160", {"Ingress.vector_table_1074077160_139"}),
@@ -702,7 +702,8 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   key.set(8, 2, bswap16(udp_hdr->src_port));
   key.set(10, 2, bswap16(udp_hdr->dst_port));
 
-  state->fcfs_cached_table.allocate_index_and_put(key);
+  u32 new_index;
+  state->fcfs_cached_table.allocate_index_and_put(key, new_index);
 
   buffer_t value_2;
   state->vector_table_1074094376.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_2);

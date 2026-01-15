@@ -511,6 +511,11 @@ control Ingress(
 	RegisterAction<bit<16>, bit<32>, void>(fcfs_ct_index_to_key_2) fcfs_ct_write_index_to_key_2 = { void apply(inout bit<16> curr_key) { curr_key = meta.fcfs_ct_key_2; }};
 	RegisterAction<bit<16>, bit<32>, void>(fcfs_ct_index_to_key_3) fcfs_ct_write_index_to_key_3 = { void apply(inout bit<16> curr_key) { curr_key = meta.fcfs_ct_key_3; }};
 
+	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_index_to_key_0) fcfs_ct_read_index_to_key_0 = { void apply(inout bit<32> curr_key, out bit<32> out_key) { out_key = curr_key; }};
+	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_index_to_key_1) fcfs_ct_read_index_to_key_1 = { void apply(inout bit<32> curr_key, out bit<32> out_key) { out_key = curr_key; }};
+	RegisterAction<bit<16>, bit<32>, bit<16>>(fcfs_ct_index_to_key_2) fcfs_ct_read_index_to_key_2 = { void apply(inout bit<16> curr_key, out bit<16> out_key) { out_key = curr_key; }};
+	RegisterAction<bit<16>, bit<32>, bit<16>>(fcfs_ct_index_to_key_3) fcfs_ct_read_index_to_key_3 = { void apply(inout bit<16> curr_key, out bit<16> out_key) { out_key = curr_key; }};
+
 	bit<32> vector_table_1074077160_139_get_value_param0 = 32w0;
 	action vector_table_1074077160_139_get_value(bit<32> _vector_table_1074077160_139_get_value_param0) {
 		vector_table_1074077160_139_get_value_param0 = _vector_table_1074077160_139_get_value_param0;
