@@ -50,11 +50,11 @@ enum bit<2> fwd_op_t {
 
 #define FCFS_CT_CAPACITY 65536
 
-// #define FCFS_CT_CACHE_CAPACITY 65536
-// typedef bit<16> fcfs_ct_cache_hash_t;
+#define FCFS_CT_CACHE_CAPACITY 65536
+typedef bit<16> fcfs_ct_cache_hash_t;
 
-#define FCFS_CT_CACHE_CAPACITY 2
-typedef bit<1> fcfs_ct_cache_hash_t;
+// #define FCFS_CT_CACHE_CAPACITY 2
+// typedef bit<1> fcfs_ct_cache_hash_t;
 
 header cpu_h {
 	bit<16>	code_path;                   // Written by the data plane
