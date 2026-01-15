@@ -47,7 +47,7 @@ enum bit<2> fwd_op_t {
 
 // Entry Timeout Expiration (units of 65536 ns).
 // #define ENTRY_TIMEOUT 16384 // 1 s
-#define ENTRY_TIMEOUT 512 // 62.5 ms
+#define ENTRY_TIMEOUT 4096 // 0.25 s
 
 #define FCFS_CT_CAPACITY 65536
 
@@ -547,8 +547,6 @@ control Ingress(
 		}
 		size = 36;
 	}
-	Register<bit<32>, _>(1, 0) debug_index_allocation_failures;
-	RegisterAction<bit<32>, bit<32>, void>(debug_index_allocation_failures) debug_index_allocation_failures_update = { void apply(inout bit<32> curr_count) { curr_count = curr_count + 1; }};
 
 	apply {
 		ingress_port_to_nf_dev.apply();
@@ -636,24 +634,13 @@ control Ingress(
 							index_allocation_failed = true;
 						}
 					}
-
-					// if (found) {
-					// 	fcfs_ct_read_value_execute();
-					// } else if (new_index_allocated) {
-					// 	fcfs_ct_write_value_execute();
-					// }
 				}
 
 				// Exported symbols:
 				//   index_allocation_failed: failed to allocate a new index
 				//   collision_detected: write operation failed due to hash collision, send to the controller
 
-				if (index_allocation_failed) {
-					// Write failure
-					fwd_op = fwd_op_t.DROP;
-					debug_index_allocation_failures_update.execute(0);
-				} else if (collision_detected) {
-					// Write success (control plane)
+				if (index_allocation_failed || collision_detected) {
 					fwd_op = fwd_op_t.FORWARD_TO_CPU;
 					build_cpu_hdr(0);
 					hdr.cpu.dev = meta.dev;

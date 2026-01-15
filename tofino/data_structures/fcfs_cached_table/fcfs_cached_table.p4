@@ -566,11 +566,7 @@ control Ingress(
 				//   index_allocation_failed: failed to allocate a new index
 				//   collision_detected: write operation failed due to hash collision, send to the controller
 
-				if (index_allocation_failed) {
-					// Write failure
-					fwd_op = fwd_op_t.DROP;
-				} else if (collision_detected) {
-					// Write success (control plane)
+				if (index_allocation_failed || collision_detected) {
 					fwd_op = fwd_op_t.FORWARD_TO_CPU;
 					build_cpu_hdr(0);
 					hdr.cpu.ingress_dev = meta.dev[15:0];
