@@ -1,8 +1,8 @@
 +---------------------------------------------------------------------+
 |  Log file: mau.resources.log                                        |
 |  Compiler version: 9.13.4                                           |
-|  Created on: Thu Jan 15 08:59:01 2026                               |
-|  Run ID: 1ac4d7b98d6842f1                                           |
+|  Created on: Thu Jan 15 10:15:43 2026                               |
+|  Run ID: afbe27989aa34f6e                                           |
 +---------------------------------------------------------------------+
 
 
@@ -72,13 +72,13 @@ Allocated Resource Usage
 |          IngressParser.$PORT_METADATA         |   -1   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   0   |   0    |   0    |   0    |
 |         Ingress.ingress_port_to_nf_dev        |   0    |    2     |  40  |    0     |  4   |   0   |  0   |   4    |   3   |   1    |   1    |   0    |
 |                    cond-12                    |   0    |    2     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l570        |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l683        |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l574        |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l687        |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |      Ingress.vector_table_1074077160_139      |   1    |    4     |  40  |    0     |  4   |   0   |  0   |   5    |   2   |   1    |   1    |   0    |
 |            Ingress.fcfs_ct_table_1            |   2    |    24    |  70  |    0     |  80  |   0   |  40  |   4    |   2   |   1    |   1    |   0    |
 |                    cond-13                    |   2    |    4     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l576        |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l605        |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l580        |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l609        |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |            Ingress.fcfs_ct_table_0            |   3    |    12    |  52  |    0     |  32  |   0   |  16  |   4    |   2   |   1    |   1    |   0    |
 |            Ingress.fcfs_ct_table_1            |   3    |    12    |  52  |    0     |  48  |   0   |  24  |   4    |   2   |   1    |   1    |   0    |
 |                   tbl_act_1                   |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
@@ -90,22 +90,22 @@ Allocated Resource Usage
 |            Ingress.fcfs_ct_table_0            |   5    |    12    |  48  |    0     |  16  |   0   |  8   |   4    |   2   |   1    |   1    |   0    |
 |                    tbl_act                    |   5    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |          Ingress.fcfs_ct_liveness_reg         |   6    |    4     |  0   |    0     |  9   |   0   |  9   |   0    |   0   |   0    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l582        |   6    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
-|    tbl_fcfs_cached_table_32768l582-gateway    |   6    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l615        |   6    |    2     |  15  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
-|    tbl_fcfs_cached_table_32768l615-gateway    |   6    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
+|        tbl_fcfs_cached_table_32768l586        |   6    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
+|    tbl_fcfs_cached_table_32768l586-gateway    |   6    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
+|        tbl_fcfs_cached_table_32768l619        |   6    |    2     |  15  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
+|    tbl_fcfs_cached_table_32768l619-gateway    |   6    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |   Ingress.fcfs_ct_integer_allocator_tail_reg  |   7    |    0     |  0   |    0     |  2   |   0   |  2   |   0    |   0   |   0    |   0    |   0    |
 |             Ingress.fcfs_ct_keys_0            |   7    |    4     |  0   |    0     |  9   |   0   |  9   |   0    |   0   |   0    |   0    |   0    |
 |                    cond-14                    |   7    |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   1    |
 |                    cond-18                    |   7    |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l634        |   7    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l638        |   7    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   0    |   1    |
 |         tbl_fcfs_ct_read_key_0_execute        |   7    |    0     |  0   |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   1    |   0    |
 |        tbl_fcfs_ct_read_key_0_execute_0       |   7    |    2     |  15  |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   1    |   0    |
 |        tbl_fcfs_ct_write_key_0_execute        |   7    |    0     |  0   |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   1    |   0    |
 |    tbl_fcfs_ct_write_key_0_execute-gateway    |   7    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |   Ingress.fcfs_ct_integer_allocator_head_reg  |   8    |    4     |  0   |    0     |  2   |   0   |  2   |   0    |   0   |   0    |   0    |   0    |
 |             Ingress.fcfs_ct_keys_1            |   8    |    4     |  0   |    0     |  9   |   0   |  9   |   0    |   0   |   0    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l635        |   8    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l639        |   8    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   0    |   1    |
 |         tbl_fcfs_ct_read_key_1_execute        |   8    |    2     |  15  |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   1    |   0    |
 |     tbl_fcfs_ct_read_key_1_execute-gateway    |   8    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |        tbl_fcfs_ct_read_key_1_execute_0       |   8    |    0     |  0   |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   1    |   0    |
@@ -115,8 +115,8 @@ Allocated Resource Usage
 | Ingress.fcfs_ct_integer_allocator_indexes_reg |   9    |    0     |  0   |    0     |  17  |   0   |  17  |   0    |   0   |   0    |   0    |   0    |
 |             Ingress.fcfs_ct_keys_2            |   9    |    2     |  0   |    0     |  5   |   0   |  5   |   0    |   0   |   0    |   0    |   0    |
 |                    cond-20                    |   9    |    8     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l637        |   9    |    4     |  23  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
-|        tbl_fcfs_cached_table_32768l649        |   9    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l641        |   9    |    4     |  23  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
+|        tbl_fcfs_cached_table_32768l653        |   9    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |         tbl_fcfs_ct_read_key_2_execute        |   9    |    2     |  15  |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   1    |   0    |
 |     tbl_fcfs_ct_read_key_2_execute-gateway    |   9    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |        tbl_fcfs_ct_read_key_2_execute_0       |   9    |    0     |  0   |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   1    |   0    |
@@ -128,11 +128,11 @@ Allocated Resource Usage
 |         Ingress.fcfs_ct_index_to_key_3        |   10   |    2     |  0   |    0     |  9   |   0   |  9   |   0    |   0   |   0    |   0    |   0    |
 |             Ingress.fcfs_ct_keys_3            |   10   |    2     |  0   |    0     |  5   |   0   |  5   |   0    |   0   |   0    |   0    |   0    |
 |                    cond-21                    |   10   |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l644        |   10   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
-|    tbl_fcfs_cached_table_32768l644-gateway    |   10   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l645        |   10   |    4     |  23  |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
-|    tbl_fcfs_cached_table_32768l645-gateway    |   10   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l666        |   10   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l648        |   10   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
+|    tbl_fcfs_cached_table_32768l648-gateway    |   10   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
+|        tbl_fcfs_cached_table_32768l649        |   10   |    4     |  23  |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
+|    tbl_fcfs_cached_table_32768l649-gateway    |   10   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
+|        tbl_fcfs_cached_table_32768l670        |   10   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |         tbl_fcfs_ct_read_key_3_execute        |   10   |    2     |  15  |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   1    |   0    |
 |     tbl_fcfs_ct_read_key_3_execute-gateway    |   10   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |        tbl_fcfs_ct_read_key_3_execute_0       |   10   |    0     |  0   |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   1    |   0    |
@@ -144,12 +144,12 @@ Allocated Resource Usage
 |             Ingress.fcfs_ct_values            |   11   |    4     |  0   |    0     |  9   |   0   |  9   |   0    |   0   |   0    |   0    |   0    |
 |                    cond-15                    |   11   |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |                    cond-19                    |   11   |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l591        |   11   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l623        |   11   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l638        |   11   |    4     |  23  |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
-|    tbl_fcfs_cached_table_32768l638-gateway    |   11   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l643        |   11   |    4     |  23  |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
-|    tbl_fcfs_cached_table_32768l643-gateway    |   11   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
+|        tbl_fcfs_cached_table_32768l595        |   11   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l627        |   11   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l642        |   11   |    4     |  23  |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
+|    tbl_fcfs_cached_table_32768l642-gateway    |   11   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
+|        tbl_fcfs_cached_table_32768l647        |   11   |    4     |  23  |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
+|    tbl_fcfs_cached_table_32768l647-gateway    |   11   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |         tbl_fcfs_ct_read_value_execute        |   11   |    2     |  15  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
 |     tbl_fcfs_ct_read_value_execute-gateway    |   11   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |        tbl_fcfs_ct_read_value_execute_0       |   11   |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
@@ -160,16 +160,16 @@ Allocated Resource Usage
 |                    cond-16                    |   12   |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |                    cond-22                    |   12   |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |               tbl_build_cpu_hdr               |   12   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l596        |   12   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l642        |   12   |    4     |  23  |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
-|    tbl_fcfs_cached_table_32768l642-gateway    |   12   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|        tbl_fcfs_cached_table_32768l672        |   12   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l600        |   12   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l646        |   12   |    4     |  23  |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
+|    tbl_fcfs_cached_table_32768l646-gateway    |   12   |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
+|        tbl_fcfs_cached_table_32768l676        |   12   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |      Ingress.vector_table_1074094376_149      |   13   |    4     |  40  |    0     |  4   |   0   |  0   |   4    |   2   |   1    |   1    |   0    |
 |      Ingress.vector_table_1074094376_187      |   13   |    4     |  40  |    0     |  4   |   0   |  0   |   4    |   2   |   1    |   1    |   0    |
-|        tbl_fcfs_cached_table_32768l600        |   13   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l670        |   13   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l598        |   14   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|        tbl_fcfs_cached_table_32768l677        |   14   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l604        |   13   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l674        |   13   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l602        |   14   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|        tbl_fcfs_cached_table_32768l681        |   14   |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |             Ingress.forwarding_tbl            |   15   |    7     |  0   |    0     |  1   |   2   |  0   |   6    |   4   |   0    |   0    |   1    |
 |         Ingress.forwarding_tbl$action         |   15   |    0     |  0   |    0     |  1   |   0   |  0   |   0    |   0   |   0    |   0    |   0    |
 ----------------------------------------------------------------------------------------------------------------------------------------------------------

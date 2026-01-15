@@ -147,6 +147,16 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
+    SynapseNF(
+        name="synapse-nat-fcfs-ct",
+        description="Synapse NAT FCFS CT",
+        kvs_mode=False,
+        tofino=Path("tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.p4"),
+        controller=Path("tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+    ),
 ]
 
 

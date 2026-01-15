@@ -466,6 +466,10 @@ control Ingress(
 	action fcfs_ct_write_key_3_execute() { fcfs_ct_write_key_3.execute(fcfs_ct_hash); }
 	action fcfs_ct_write_value_execute() { fcfs_ct_write_value.execute(fcfs_ct_hash); }
 
+	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_reservations_reg; 
+	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_index_reservations_reg) fcfs_ct_read_index_reservations = { void apply(inout bit<32> is_reserved, out bit<32> out_val) { out_val = is_reserved; }};
+	RegisterAction<bit<32>, bit<32>, void>(fcfs_ct_index_reservations_reg) fcfs_ct_write_index_reservations = { void apply(inout bit<32> is_reserved) { is_reserved = 1; }};
+
 	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_0;
 	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_1;
 	Register<bit<16>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_2;
@@ -535,15 +539,15 @@ control Ingress(
 			vector_table_1074077160_139.apply();
 
 			if (vector_table_1074077160_139_get_value_param0 == 0) {
-				// WAN packet
-				bit<32> src_ip = fcfs_ct_read_index_to_key_0.execute((bit<32>)hdr.udp.dst_port);
-				bit<32> dst_ip = fcfs_ct_read_index_to_key_1.execute((bit<32>)hdr.udp.dst_port);
-				bit<16> src_port = fcfs_ct_read_index_to_key_2.execute((bit<32>)hdr.udp.dst_port);
-				bit<16> dst_port = fcfs_ct_read_index_to_key_3.execute((bit<32>)hdr.udp.dst_port);
-
-				if (src_ip == 0 || dst_ip == 0 || src_port == 0 || dst_port == 0) {
+				bit<32> is_reserved = fcfs_ct_read_index_reservations.execute((bit<32>)hdr.udp.dst_port);
+				if (is_reserved == 0) {
 					fwd_op = fwd_op_t.DROP;
 				} else {
+					bit<32> src_ip = fcfs_ct_read_index_to_key_0.execute((bit<32>)hdr.udp.dst_port);
+					bit<32> dst_ip = fcfs_ct_read_index_to_key_1.execute((bit<32>)hdr.udp.dst_port);
+					bit<16> src_port = fcfs_ct_read_index_to_key_2.execute((bit<32>)hdr.udp.dst_port);
+					bit<16> dst_port = fcfs_ct_read_index_to_key_3.execute((bit<32>)hdr.udp.dst_port);
+
 					bool cond = false;
 					if (dst_ip == hdr.ipv4.src_addr) {
 						if (dst_port == hdr.udp.src_port) {
@@ -559,6 +563,7 @@ control Ingress(
 						nf_dev[15:0] = vector_table_1074094376_149_get_value_param0;
 					}
 				}
+
 			} else {
 				// Read/Write FCFS CT Operation
 				meta.fcfs_ct_key_0 = hdr.ipv4.src_addr;
@@ -597,6 +602,7 @@ control Ingress(
 							ig_dprsr_md.digest_type = 1;
 							new_index_allocated = true;
 
+							fcfs_ct_write_index_reservations.execute(meta.fcfs_ct_value);
 							fcfs_ct_write_index_to_key_0.execute(meta.fcfs_ct_value);
 							fcfs_ct_write_index_to_key_1.execute(meta.fcfs_ct_value);
 							fcfs_ct_write_index_to_key_2.execute(meta.fcfs_ct_value);

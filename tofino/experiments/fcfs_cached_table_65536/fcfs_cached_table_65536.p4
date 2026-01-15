@@ -501,6 +501,10 @@ control Ingress(
 	action fcfs_ct_write_key_3_execute() { fcfs_ct_write_key_3.execute(fcfs_ct_hash); }
 	action fcfs_ct_write_value_execute() { fcfs_ct_write_value.execute(fcfs_ct_hash); }
 
+	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_reservations_reg; 
+	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_index_reservations_reg) fcfs_ct_read_index_reservations = { void apply(inout bit<32> is_reserved, out bit<32> out_val) { out_val = is_reserved; }};
+	RegisterAction<bit<32>, bit<32>, void>(fcfs_ct_index_reservations_reg) fcfs_ct_write_index_reservations = { void apply(inout bit<32> is_reserved) { is_reserved = 1; }};
+
 	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_0;
 	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_1;
 	Register<bit<16>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_2;
