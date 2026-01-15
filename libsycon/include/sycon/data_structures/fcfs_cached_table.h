@@ -146,10 +146,14 @@ public:
     new_index = control_plane_free_indices.back();
     control_plane_free_indices.pop_back();
 
-    reg_integer_allocator_reservations.set(new_index, 1);
-    fill_index_to_key(new_index, k);
+    bool success = put(k, new_index);
 
-    return put(k, new_index);
+    if (success) {
+      reg_integer_allocator_reservations.set(new_index, 1);
+      fill_index_to_key(new_index, k);
+    }
+
+    return success;
   }
 
   bool put(const buffer_t &k, u32 v) {
