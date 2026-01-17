@@ -48,11 +48,10 @@ enum bit<2> fwd_op_t {
 // Entry Timeout Expiration (units of 65536 ns).
 #define ENTRY_TIMEOUT 16384 // 1 s
 
-#define FCFS_CT_CAPACITY 65536
+#define FCFS_CS_CAPACITY 65536
 
-#define FCFS_CT_CACHE_CAPACITY_POW2 15 // 32768
-#define FCFS_CT_CACHE_CAPACITY (1 << FCFS_CT_CACHE_CAPACITY_POW2)
-typedef bit<FCFS_CT_CACHE_CAPACITY_POW2> fcfs_ct_cache_hash_t;
+#define FCFS_CS_CACHE_CAPACITY 65536
+typedef bit<16> fcfs_cs_cache_hash_t;
 
 header cpu_h {
 	bit<16>	code_path;                   // Written by the data plane
@@ -107,12 +106,11 @@ struct metadata_t {
 	bit<16> ingress_port;
 	bit<32> dev;
 	bit<32> time;
-	bit<32> fcfs_ct_key_0;
-	bit<32> fcfs_ct_key_1;
-	bit<16> fcfs_ct_key_2;
-	bit<16> fcfs_ct_key_3;
-	bit<32> fcfs_ct_value;
-	bit<8> fcfs_ct_key_fields_match;
+	bit<32> fcfs_cs_key_0;
+	bit<32> fcfs_cs_key_1;
+	bit<16> fcfs_cs_key_2;
+	bit<16> fcfs_cs_key_3;
+	bit<8> fcfs_cs_key_fields_match;
 }
 
 parser TofinoIngressParser(
@@ -277,69 +275,77 @@ control Ingress(
 
 	// ============================ FCFS Cached Table =========================================
 
-	action fcfs_ct_table_0_get_value(bit<32> value) {
-		meta.fcfs_ct_value = value;
-	}
-
-	table fcfs_ct_table_0 {
+	table fcfs_cs_table_0 {
 		key = {
-			meta.fcfs_ct_key_0: exact;
-			meta.fcfs_ct_key_1: exact;
-			meta.fcfs_ct_key_2: exact;
-			meta.fcfs_ct_key_3: exact;
+			meta.fcfs_cs_key_0: exact;
+			meta.fcfs_cs_key_1: exact;
+			meta.fcfs_cs_key_2: exact;
+			meta.fcfs_cs_key_3: exact;
 		}
 
-		actions = { fcfs_ct_table_0_get_value; }
+		actions = { NoAction; }
 
-		size = FCFS_CT_CAPACITY * 2;
+		size = FCFS_CS_CAPACITY * 2;
 		idle_timeout = true;
 	}
 
-	Hash<fcfs_ct_cache_hash_t>(HashAlgorithm_t.CRC32) fcfs_ct_hash_calculator;
+	table fcfs_cs_table_1 {
+		key = {
+			meta.fcfs_cs_key_0: exact;
+			meta.fcfs_cs_key_1: exact;
+			meta.fcfs_cs_key_2: exact;
+			meta.fcfs_cs_key_3: exact;
+		}
 
+		actions = { NoAction; }
 
-	fcfs_ct_cache_hash_t fcfs_ct_hash;
-	action fcfs_ct_calc_hash() {
-		fcfs_ct_hash = fcfs_ct_hash_calculator.get({
-			meta.fcfs_ct_key_0,
-			meta.fcfs_ct_key_1,
-			meta.fcfs_ct_key_2,
-			meta.fcfs_ct_key_3
-		});
-		meta.fcfs_ct_value[FCFS_CT_CACHE_CAPACITY_POW2-1:0] = fcfs_ct_hash;
+		size = FCFS_CS_CAPACITY * 2;
+		idle_timeout = true;
 	}
 
-	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_liveness_reg;
+	Hash<fcfs_cs_cache_hash_t>(HashAlgorithm_t.CRC32) fcfs_cs_hash_calculator;
 
-	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check = {
-		void apply(inout bit<32> alarm_ts, out bit<32> out_is_alive) {
+	fcfs_cs_cache_hash_t fcfs_cs_hash;
+	action fcfs_cs_calc_hash() {
+		fcfs_cs_hash = fcfs_cs_hash_calculator.get({
+			meta.fcfs_cs_key_0,
+			meta.fcfs_cs_key_1,
+			meta.fcfs_cs_key_2,
+			meta.fcfs_cs_key_3
+		});
+	}
+
+	Register<bit<32>, _>(FCFS_CS_CACHE_CAPACITY, 0) fcfs_cs_liveness_reg;
+
+	RegisterAction<bit<32>, fcfs_cs_cache_hash_t, bool>(fcfs_cs_liveness_reg) fcfs_cs_liveness_check = {
+		void apply(inout bit<32> alarm_ts, out bool out_is_alive) {
 			if (meta.time > alarm_ts) {
-				out_is_alive = 0;
+				out_is_alive = false;
 			} else {
-				out_is_alive = 1;
+				out_is_alive = true;
 			}
 		}
 	};
 
-	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_liveness_reg) fcfs_ct_liveness_check_and_set = {
-		void apply(inout bit<32> alarm_ts, out bit<32> out_is_alive) {
+	RegisterAction<bit<32>, fcfs_cs_cache_hash_t, bool>(fcfs_cs_liveness_reg) fcfs_cs_liveness_check_and_set = {
+		void apply(inout bit<32> alarm_ts, out bool out_is_alive) {
 			if (meta.time > alarm_ts) {
-				out_is_alive = 0;
+				out_is_alive = false;
 			} else {
-				out_is_alive = 1;
+				out_is_alive = true;
 			}
 			alarm_ts = meta.time + ENTRY_TIMEOUT;
 		}
 	};
 
-	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_0;
-	Register<bit<32>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_1;
-	Register<bit<16>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_2;
-	Register<bit<16>, _>(FCFS_CT_CACHE_CAPACITY, 0) fcfs_ct_keys_3;
+	Register<bit<32>, _>(FCFS_CS_CACHE_CAPACITY, 0) fcfs_cs_keys_0;
+	Register<bit<32>, _>(FCFS_CS_CACHE_CAPACITY, 0) fcfs_cs_keys_1;
+	Register<bit<16>, _>(FCFS_CS_CACHE_CAPACITY, 0) fcfs_cs_keys_2;
+	Register<bit<16>, _>(FCFS_CS_CACHE_CAPACITY, 0) fcfs_cs_keys_3;
 
-	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, bit<8>>(fcfs_ct_keys_0) fcfs_ct_read_key_0 = {
+	RegisterAction<bit<32>, fcfs_cs_cache_hash_t, bit<8>>(fcfs_cs_keys_0) fcfs_cs_read_key_0 = {
 		void apply(inout bit<32> curr_key, out bit<8> key_match) {
-			if (curr_key == meta.fcfs_ct_key_0) {
+			if (curr_key == meta.fcfs_cs_key_0) {
 				key_match = 1;
 			} else {
 				key_match = 0;
@@ -347,9 +353,9 @@ control Ingress(
 		}
 	};
 
-	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, bit<8>>(fcfs_ct_keys_1) fcfs_ct_read_key_1 = {
+	RegisterAction<bit<32>, fcfs_cs_cache_hash_t, bit<8>>(fcfs_cs_keys_1) fcfs_cs_read_key_1 = {
 		void apply(inout bit<32> curr_key, out bit<8> key_match) {
-			if (curr_key == meta.fcfs_ct_key_1) {
+			if (curr_key == meta.fcfs_cs_key_1) {
 				key_match = 1;
 			} else {
 				key_match = 0;
@@ -357,9 +363,9 @@ control Ingress(
 		}
 	};
 
-	RegisterAction<bit<16>, fcfs_ct_cache_hash_t, bit<8>>(fcfs_ct_keys_2) fcfs_ct_read_key_2 = {
+	RegisterAction<bit<16>, fcfs_cs_cache_hash_t, bit<8>>(fcfs_cs_keys_2) fcfs_cs_read_key_2 = {
 		void apply(inout bit<16> curr_key, out bit<8> key_match) {
-			if (curr_key == meta.fcfs_ct_key_2) {
+			if (curr_key == meta.fcfs_cs_key_2) {
 				key_match = 1;
 			} else {
 				key_match = 0;
@@ -367,9 +373,9 @@ control Ingress(
 		}
 	};
 
-	RegisterAction<bit<16>, fcfs_ct_cache_hash_t, bit<8>>(fcfs_ct_keys_3) fcfs_ct_read_key_3 = {
+	RegisterAction<bit<16>, fcfs_cs_cache_hash_t, bit<8>>(fcfs_cs_keys_3) fcfs_cs_read_key_3 = {
 		void apply(inout bit<16> curr_key, out bit<8> key_match) {
-			if (curr_key == meta.fcfs_ct_key_3) {
+			if (curr_key == meta.fcfs_cs_key_3) {
 				key_match = 1;
 			} else {
 				key_match = 0;
@@ -377,40 +383,39 @@ control Ingress(
 		}
 	};
 
-	action fcfs_ct_read_key_0_execute() { meta.fcfs_ct_key_fields_match = meta.fcfs_ct_key_fields_match + fcfs_ct_read_key_0.execute(fcfs_ct_hash); }
-	action fcfs_ct_read_key_1_execute() { meta.fcfs_ct_key_fields_match = meta.fcfs_ct_key_fields_match + fcfs_ct_read_key_1.execute(fcfs_ct_hash); }
-	action fcfs_ct_read_key_2_execute() { meta.fcfs_ct_key_fields_match = meta.fcfs_ct_key_fields_match + fcfs_ct_read_key_2.execute(fcfs_ct_hash); }
-	action fcfs_ct_read_key_3_execute() { meta.fcfs_ct_key_fields_match = meta.fcfs_ct_key_fields_match + fcfs_ct_read_key_3.execute(fcfs_ct_hash); }
+	action fcfs_cs_read_key_0_execute() { meta.fcfs_cs_key_fields_match = meta.fcfs_cs_key_fields_match + fcfs_cs_read_key_0.execute(fcfs_cs_hash); }
+	action fcfs_cs_read_key_1_execute() { meta.fcfs_cs_key_fields_match = meta.fcfs_cs_key_fields_match + fcfs_cs_read_key_1.execute(fcfs_cs_hash); }
+	action fcfs_cs_read_key_2_execute() { meta.fcfs_cs_key_fields_match = meta.fcfs_cs_key_fields_match + fcfs_cs_read_key_2.execute(fcfs_cs_hash); }
+	action fcfs_cs_read_key_3_execute() { meta.fcfs_cs_key_fields_match = meta.fcfs_cs_key_fields_match + fcfs_cs_read_key_3.execute(fcfs_cs_hash); }
 
-	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, void>(fcfs_ct_keys_0) fcfs_ct_write_key_0 = { void apply(inout bit<32> curr_key) { curr_key = meta.fcfs_ct_key_0; } };
-	RegisterAction<bit<32>, fcfs_ct_cache_hash_t, void>(fcfs_ct_keys_1) fcfs_ct_write_key_1 = { void apply(inout bit<32> curr_key) { curr_key = meta.fcfs_ct_key_1; } };
-	RegisterAction<bit<16>, fcfs_ct_cache_hash_t, void>(fcfs_ct_keys_2) fcfs_ct_write_key_2 = { void apply(inout bit<16> curr_key) { curr_key = meta.fcfs_ct_key_2; } };
-	RegisterAction<bit<16>, fcfs_ct_cache_hash_t, void>(fcfs_ct_keys_3) fcfs_ct_write_key_3 = { void apply(inout bit<16> curr_key) { curr_key = meta.fcfs_ct_key_3; } };
+	RegisterAction<bit<32>, fcfs_cs_cache_hash_t, void>(fcfs_cs_keys_0) fcfs_cs_write_key_0 = {
+		void apply(inout bit<32> curr_key) {
+			curr_key = meta.fcfs_cs_key_0;
+		}
+	};
 
-	action fcfs_ct_write_key_0_execute() { fcfs_ct_write_key_0.execute(fcfs_ct_hash); }
-	action fcfs_ct_write_key_1_execute() { fcfs_ct_write_key_1.execute(fcfs_ct_hash); }
-	action fcfs_ct_write_key_2_execute() { fcfs_ct_write_key_2.execute(fcfs_ct_hash); }
-	action fcfs_ct_write_key_3_execute() { fcfs_ct_write_key_3.execute(fcfs_ct_hash); }
+	RegisterAction<bit<32>, fcfs_cs_cache_hash_t, void>(fcfs_cs_keys_1) fcfs_cs_write_key_1 = {
+		void apply(inout bit<32> curr_key) {
+			curr_key = meta.fcfs_cs_key_1;
+		}
+	};
 
-	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_0;
-	Register<bit<32>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_1;
-	Register<bit<16>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_2;
-	Register<bit<16>, _>(FCFS_CT_CAPACITY, 0) fcfs_ct_index_to_key_3;
+	RegisterAction<bit<16>, fcfs_cs_cache_hash_t, void>(fcfs_cs_keys_2) fcfs_cs_write_key_2 = {
+		void apply(inout bit<16> curr_key) {
+			curr_key = meta.fcfs_cs_key_2;
+		}
+	};
 
-	RegisterAction<bit<32>, bit<32>, void>(fcfs_ct_index_to_key_0) fcfs_ct_write_index_to_key_0 = { void apply(inout bit<32> curr_key) { curr_key = meta.fcfs_ct_key_0; }};
-	RegisterAction<bit<32>, bit<32>, void>(fcfs_ct_index_to_key_1) fcfs_ct_write_index_to_key_1 = { void apply(inout bit<32> curr_key) { curr_key = meta.fcfs_ct_key_1; }};
-	RegisterAction<bit<16>, bit<32>, void>(fcfs_ct_index_to_key_2) fcfs_ct_write_index_to_key_2 = { void apply(inout bit<16> curr_key) { curr_key = meta.fcfs_ct_key_2; }};
-	RegisterAction<bit<16>, bit<32>, void>(fcfs_ct_index_to_key_3) fcfs_ct_write_index_to_key_3 = { void apply(inout bit<16> curr_key) { curr_key = meta.fcfs_ct_key_3; }};
+	RegisterAction<bit<16>, fcfs_cs_cache_hash_t, void>(fcfs_cs_keys_3) fcfs_cs_write_key_3 = {
+		void apply(inout bit<16> curr_key) {
+			curr_key = meta.fcfs_cs_key_3;
+		}
+	};
 
-	action fcfs_ct_write_index_to_key_0_execute() { fcfs_ct_write_index_to_key_0.execute((bit<32>)fcfs_ct_hash); }
-	action fcfs_ct_write_index_to_key_1_execute() { fcfs_ct_write_index_to_key_1.execute((bit<32>)fcfs_ct_hash); }
-	action fcfs_ct_write_index_to_key_2_execute() { fcfs_ct_write_index_to_key_2.execute((bit<32>)fcfs_ct_hash); }
-	action fcfs_ct_write_index_to_key_3_execute() { fcfs_ct_write_index_to_key_3.execute((bit<32>)fcfs_ct_hash); }
-
-	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_index_to_key_0) fcfs_ct_read_index_to_key_0 = { void apply(inout bit<32> curr_key, out bit<32> out_key) { out_key = curr_key; }};
-	RegisterAction<bit<32>, bit<32>, bit<32>>(fcfs_ct_index_to_key_1) fcfs_ct_read_index_to_key_1 = { void apply(inout bit<32> curr_key, out bit<32> out_key) { out_key = curr_key; }};
-	RegisterAction<bit<16>, bit<32>, bit<16>>(fcfs_ct_index_to_key_2) fcfs_ct_read_index_to_key_2 = { void apply(inout bit<16> curr_key, out bit<16> out_key) { out_key = curr_key; }};
-	RegisterAction<bit<16>, bit<32>, bit<16>>(fcfs_ct_index_to_key_3) fcfs_ct_read_index_to_key_3 = { void apply(inout bit<16> curr_key, out bit<16> out_key) { out_key = curr_key; }};
+	action fcfs_cs_write_key_0_execute() { fcfs_cs_write_key_0.execute(fcfs_cs_hash); }
+	action fcfs_cs_write_key_1_execute() { fcfs_cs_write_key_1.execute(fcfs_cs_hash); }
+	action fcfs_cs_write_key_2_execute() { fcfs_cs_write_key_2.execute(fcfs_cs_hash); }
+	action fcfs_cs_write_key_3_execute() { fcfs_cs_write_key_3.execute(fcfs_cs_hash); }
 
 	bit<32> vector_table_1074077160_139_get_value_param0 = 32w0;
 	action vector_table_1074077160_139_get_value(bit<32> _vector_table_1074077160_139_get_value_param0) {
@@ -457,13 +462,6 @@ control Ingress(
 		size = 36;
 	}
 
-	Register<bit<32>, _>(1, 0) debug_total_allocated;
-	Register<bit<32>, _>(1, 0) debug_dropped_not_reserved;
-	Register<bit<32>, _>(1, 0) debug_dropped_spoofing;
-	RegisterAction<bit<32>, bit<32>, void>(debug_total_allocated) debug_total_allocated_update = { void apply(inout bit<32> curr) { curr = curr + 1; }};
-	RegisterAction<bit<32>, bit<32>, void>(debug_dropped_not_reserved) debug_dropped_not_reserved_update = { void apply(inout bit<32> curr) { curr = curr + 1; }};
-	RegisterAction<bit<32>, bit<32>, void>(debug_dropped_spoofing) debug_dropped_spoofing_update = { void apply(inout bit<32> curr) { curr = curr + 1; }};
-
 	apply {
 		ingress_port_to_nf_dev.apply();
 
@@ -473,78 +471,73 @@ control Ingress(
 			vector_table_1074077160_139.apply();
 
 			if (vector_table_1074077160_139_get_value_param0 == 0) {
-				bit<32> is_reserved = fcfs_ct_liveness_check.execute((bit<32>)hdr.udp.dst_port);
-				if (is_reserved == 0) {
-					fwd_op = fwd_op_t.DROP;
-					debug_dropped_not_reserved_update.execute(0);
-				} else {
-					bit<32> src_ip = fcfs_ct_read_index_to_key_0.execute((bit<32>)hdr.udp.dst_port);
-					bit<32> dst_ip = fcfs_ct_read_index_to_key_1.execute((bit<32>)hdr.udp.dst_port);
-					bit<16> src_port = fcfs_ct_read_index_to_key_2.execute((bit<32>)hdr.udp.dst_port);
-					bit<16> dst_port = fcfs_ct_read_index_to_key_3.execute((bit<32>)hdr.udp.dst_port);
-
-					bool cond = false;
-					if (dst_ip == hdr.ipv4.src_addr) {
-						if (dst_port == hdr.udp.src_port) {
-							cond = true;
-						}
-					}
-					if (!cond) {
-						fwd_op = fwd_op_t.DROP;
-						debug_dropped_spoofing_update.execute(0);
-					} else {
-						hdr.ipv4.dst_addr = src_ip;
-						hdr.udp.dst_port = src_port;
-						vector_table_1074094376_149.apply();
-						nf_dev[15:0] = vector_table_1074094376_149_get_value_param0;
+				// Read FCFS CT Operation
+				meta.fcfs_cs_key_0 = hdr.ipv4.dst_addr;
+				meta.fcfs_cs_key_1 = hdr.ipv4.src_addr;
+				meta.fcfs_cs_key_2 = hdr.udp.dst_port;
+				meta.fcfs_cs_key_3 = hdr.udp.src_port;
+				bool found = fcfs_cs_table_0.apply().hit;
+				fcfs_cs_calc_hash();
+				bool fcfs_cs_is_alive = fcfs_cs_liveness_check.execute(fcfs_cs_hash);
+				if (!found && fcfs_cs_is_alive) {
+					meta.fcfs_cs_key_fields_match = 0;
+					fcfs_cs_read_key_0_execute();
+					fcfs_cs_read_key_1_execute();
+					fcfs_cs_read_key_2_execute();
+					fcfs_cs_read_key_3_execute();
+					if (meta.fcfs_cs_key_fields_match == 4) {
+						found = true;
 					}
 				}
+
+				if (found) {
+					vector_table_1074094376_149.apply();
+					nf_dev[15:0] = vector_table_1074094376_149_get_value_param0;
+				} else {
+					fwd_op = fwd_op_t.DROP;
+				}
+
 			} else {
 				// Read/Write FCFS CT Operation
-				meta.fcfs_ct_key_0 = hdr.ipv4.src_addr;
-				meta.fcfs_ct_key_1 = hdr.ipv4.dst_addr;
-				meta.fcfs_ct_key_2 = hdr.udp.src_port;
-				meta.fcfs_ct_key_3 = hdr.udp.dst_port;
-				bool found = fcfs_ct_table_0.apply().hit;
-				bool send_to_controller = false;
+				meta.fcfs_cs_key_0 = hdr.ipv4.src_addr;
+				meta.fcfs_cs_key_1 = hdr.ipv4.dst_addr;
+				meta.fcfs_cs_key_2 = hdr.udp.src_port;
+				meta.fcfs_cs_key_3 = hdr.udp.dst_port;
+				bool found = fcfs_cs_table_1.apply().hit;
+				bool collision_detected = false;
 				if (!found) {
-					fcfs_ct_calc_hash();
-					bit<32> fcfs_ct_is_alive = fcfs_ct_liveness_check_and_set.execute(meta.fcfs_ct_value);
-					if (fcfs_ct_is_alive != 0) {
-						meta.fcfs_ct_key_fields_match = 0;
-						fcfs_ct_read_key_0_execute();
-						fcfs_ct_read_key_1_execute();
-						fcfs_ct_read_key_2_execute();
-						fcfs_ct_read_key_3_execute();
-						if (meta.fcfs_ct_key_fields_match != 4) {
-							send_to_controller = true;
+					fcfs_cs_calc_hash();
+					bool fcfs_cs_is_alive = fcfs_cs_liveness_check_and_set.execute(fcfs_cs_hash);
+					if (fcfs_cs_is_alive) {
+						meta.fcfs_cs_key_fields_match = 0;
+						fcfs_cs_read_key_0_execute();
+						fcfs_cs_read_key_1_execute();
+						fcfs_cs_read_key_2_execute();
+						fcfs_cs_read_key_3_execute();
+						if (meta.fcfs_cs_key_fields_match != 4) {
+							collision_detected = true;
 						} else {
 							found = true;
 						}
 					} else {
-						fcfs_ct_write_key_0_execute();
-						fcfs_ct_write_key_1_execute();
-						fcfs_ct_write_key_2_execute();
-						fcfs_ct_write_key_3_execute();
-
-						fcfs_ct_write_index_to_key_0_execute();
-						fcfs_ct_write_index_to_key_1_execute();
-						fcfs_ct_write_index_to_key_2_execute();
-						fcfs_ct_write_index_to_key_3_execute();
-
-						debug_total_allocated_update.execute(0);
+						fcfs_cs_write_key_0_execute();
+						fcfs_cs_write_key_1_execute();
+						fcfs_cs_write_key_2_execute();
+						fcfs_cs_write_key_3_execute();
 					}
 				}
 
-				if (send_to_controller) {
+				// Exported symbols:
+				//   collision_detected: write operation failed due to hash collision, send to the controller
+
+				if (collision_detected) {
+					// Write success (control plane)
 					fwd_op = fwd_op_t.FORWARD_TO_CPU;
 					build_cpu_hdr(0);
 					hdr.cpu.dev = meta.dev;
 				} else {
 					// Read success
 					// Write success (data plane)
-					hdr.ipv4.src_addr = 0x01020304;
-					hdr.udp.src_port = meta.fcfs_ct_value[15:0];
 					vector_table_1074094376_187.apply();
 					nf_dev[15:0] = vector_table_1074094376_187_get_value_param0;
 				}

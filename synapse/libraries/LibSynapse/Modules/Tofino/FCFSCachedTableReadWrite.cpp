@@ -60,6 +60,7 @@ struct read_write_pattern_t {
   const Call *map_get;
   const Call *map_put;
   const Call *dchain_allocate_new_index;
+  branch_direction_t index_alloc_success_direction;
   const BDDNode *on_read_success;
   const BDDNode *on_read_failure;
   const BDDNode *on_write_success;
@@ -93,13 +94,13 @@ bool is_read_write_pattern(const BDD *bdd, const BDDNode *node, read_write_patte
     return false;
   }
 
-  const branch_direction_t index_alloc_success_direction = bdd->find_branch_checking_index_alloc(dchain_allocate_new_index);
-  if (index_alloc_success_direction.branch == nullptr) {
+  pattern.index_alloc_success_direction = bdd->find_branch_checking_index_alloc(dchain_allocate_new_index);
+  if (pattern.index_alloc_success_direction.branch == nullptr) {
     return false;
   }
 
-  const BDDNode *on_index_allocation_success = index_alloc_success_direction.get_success_node();
-  const BDDNode *on_index_allocation_failure = index_alloc_success_direction.get_failure_node();
+  const BDDNode *on_index_allocation_success = pattern.index_alloc_success_direction.get_success_node();
+  const BDDNode *on_index_allocation_failure = pattern.index_alloc_success_direction.get_failure_node();
 
   if (on_index_allocation_success->get_type() != BDDNodeType::Call) {
     return false;
@@ -167,9 +168,6 @@ struct rebuilt_bdd_result_t {
   // For when we require the control plane to perform the write operation.
   BDDNode *on_collision_detected;
 
-  // For when the key is not found but there are no more available indices, and the write operation fails.
-  BDDNode *on_index_allocation_failed;
-
   // For when the data plane fails to find the key but successfully allocates a new index and performs the write.
   BDDNode *data_plane_write_success;
 
@@ -187,16 +185,15 @@ rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const read_write_pattern_t &pattern
   Call *new_map_get = dynamic_cast<Call *>(result.bdd->get_mutable_node_by_id(pattern.map_get->get_id()));
   new_map_get->add_local_symbol(collision_detected);
 
-  BDDNode *on_write_success         = result.bdd->get_mutable_node_by_id(pattern.on_write_success->get_id());
-  Branch *collision_detected_branch = result.bdd->add_cloned_branch(on_write_success->get_id(), collision_detected_condition);
+  BDDNode *new_dchain_allocate_new_index = pattern.dchain_allocate_new_index->clone(result.bdd->get_mutable_manager(), true);
+  new_dchain_allocate_new_index->recursive_update_ids(result.bdd->get_mutable_id());
 
-  result.data_plane_read_success    = result.bdd->get_mutable_node_by_id(pattern.on_read_success->get_id());
-  result.on_index_allocation_failed = result.bdd->get_mutable_node_by_id(pattern.on_write_failure->get_id());
-  result.data_plane_write_success   = collision_detected_branch->get_mutable_on_false();
+  BDDNode *on_write_success = result.bdd->get_mutable_node_by_id(pattern.on_write_success->get_id());
+  Branch *collision_detected_branch =
+      result.bdd->add_cloned_branch(on_write_success->get_id(), collision_detected_condition, new_dchain_allocate_new_index, on_write_success);
 
-  BDDNode *new_map_put = pattern.map_put->clone(result.bdd->get_mutable_manager(), false);
-  new_map_put->recursive_update_ids(result.bdd->get_mutable_id());
-  result.on_collision_detected = result.bdd->add_cloned_non_branches(collision_detected_branch->get_mutable_on_true()->get_id(), {new_map_put});
+  result.data_plane_read_success  = result.bdd->get_mutable_node_by_id(pattern.on_read_success->get_id());
+  result.data_plane_write_success = collision_detected_branch->get_mutable_on_false();
 
   BDDNode *new_on_collision_detected_with_hdr_parsing =
       replicate_hdr_parsing_ops_on_collision_detected(new_ep, result.bdd.get(), collision_detected_branch);
@@ -206,10 +203,27 @@ rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const read_write_pattern_t &pattern
     result.on_collision_detected = new_on_collision_detected_with_hdr_parsing;
   }
 
+  const std::vector<klee::ref<klee::Expr>> index_alloc_failed_on_dataplane_constraints =
+      pattern.index_alloc_success_direction.get_failure_node()->get_ordered_branch_constraints();
+
+  result.bdd->delete_branch(pattern.index_alloc_success_direction.branch->get_id(), pattern.index_alloc_success_direction.direction
+                                                                                        ? BDD::BranchDeletionAction::KeepOnTrue
+                                                                                        : BDD::BranchDeletionAction::KeepOnFalse);
+
   const hit_rate_t cache_collision_probability = TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(
       new_ep->get_ctx(), pattern.map_put, fcfs_cached_table_data.original_key, cache_capacity);
+
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(pattern.on_write_success->get_ordered_branch_constraints(),
                                                                    collision_detected_condition, cache_collision_probability);
+  new_ep->get_mutable_ctx().get_mutable_profiler().remove(index_alloc_failed_on_dataplane_constraints);
+
+  BDDViz::visualize(result.bdd.get(), false);
+  const BDD::inspection_report_t bdd_inspection_report = result.bdd->inspect();
+  if (bdd_inspection_report.status != BDD::InspectionStatus::Ok) {
+    panic("BDD inspection failed: %s", bdd_inspection_report.message.c_str());
+  }
+  ProfilerViz::visualize(result.bdd.get(), new_ep->get_ctx().get_profiler(), false);
+  dbg_pause();
 
   return result;
 }
@@ -248,10 +262,6 @@ std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern
   Module *read_then_module = new Then(pattern.map_get);
   Module *read_else_module = new Else(pattern.map_get);
 
-  Module *if_index_allocation_success_module   = new If(pattern.map_get, index_allocation_success_condition, {index_allocation_success_condition});
-  Module *index_allocation_success_then_module = new Then(pattern.map_get);
-  Module *index_allocation_success_else_module = new Else(pattern.map_get);
-
   Module *if_collision_detected_module   = new If(pattern.map_get, collision_detected_condition, {collision_detected_condition});
   Module *collision_detected_then_module = new Then(pattern.map_get);
   Module *collision_detected_else_module = new Else(pattern.map_get);
@@ -263,10 +273,6 @@ std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern
   EPNode *if_read_node   = new EPNode(if_read_module);
   EPNode *read_then_node = new EPNode(read_then_module);
   EPNode *read_else_node = new EPNode(read_else_module);
-
-  EPNode *if_index_allocation_success_node   = new EPNode(if_index_allocation_success_module);
-  EPNode *index_allocation_success_then_node = new EPNode(index_allocation_success_then_module);
-  EPNode *index_allocation_success_else_node = new EPNode(index_allocation_success_else_module);
 
   EPNode *if_collision_detected_node   = new EPNode(if_collision_detected_module);
   EPNode *collision_detected_then_node = new EPNode(collision_detected_then_module);
@@ -281,16 +287,8 @@ std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern
   read_then_node->set_prev(if_read_node);
   read_else_node->set_prev(if_read_node);
 
-  read_else_node->set_children(if_index_allocation_success_node);
-  if_index_allocation_success_node->set_prev(read_else_node);
-
-  if_index_allocation_success_node->set_children(index_allocation_success_condition, index_allocation_success_then_node,
-                                                 index_allocation_success_else_node);
-  index_allocation_success_then_node->set_prev(if_index_allocation_success_node);
-  index_allocation_success_else_node->set_prev(if_index_allocation_success_node);
-
-  index_allocation_success_then_node->set_children(if_collision_detected_node);
-  if_collision_detected_node->set_prev(index_allocation_success_then_node);
+  read_else_node->set_children(if_collision_detected_node);
+  if_collision_detected_node->set_prev(read_else_node);
 
   if_collision_detected_node->set_children(collision_detected_condition, collision_detected_then_node, collision_detected_else_node);
   collision_detected_then_node->set_prev(if_collision_detected_node);
@@ -307,12 +305,10 @@ std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern
   tofino_ctx->place(new_ep.get(), pattern.map_get, fcfs_cached_table_data.map_objs.map, cached_table);
 
   EPLeaf on_read_leaf(read_then_node, rebuilt_bdd_result.data_plane_read_success);
-  EPLeaf on_index_allocation_failed_leaf(index_allocation_success_else_node, rebuilt_bdd_result.on_index_allocation_failed);
   EPLeaf on_collision_detected_leaf(send_to_controller_node, rebuilt_bdd_result.on_collision_detected);
   EPLeaf on_write_success_leaf(collision_detected_else_node, rebuilt_bdd_result.data_plane_write_success);
 
-  new_ep->process_leaf(fcfs_cached_table_read_write_node,
-                       {on_read_leaf, on_index_allocation_failed_leaf, on_collision_detected_leaf, on_write_success_leaf});
+  new_ep->process_leaf(fcfs_cached_table_read_write_node, {on_read_leaf, on_collision_detected_leaf, on_write_success_leaf});
   new_ep->replace_bdd(std::move(rebuilt_bdd_result.bdd));
 
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);

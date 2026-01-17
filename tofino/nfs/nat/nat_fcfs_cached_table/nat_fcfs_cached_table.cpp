@@ -12,10 +12,10 @@ struct state_t : public nf_state_t {
   state_t()
       : ingress_port_to_nf_dev(), forwarding_tbl(),
         fcfs_cached_table(
-            "fcfs_cached_table", {"Ingress.fcfs_ct_table_0"}, "Ingress.fcfs_ct_liveness_reg", "Ingress.fcfs_ct_integer_allocator_head_reg",
-            "Ingress.fcfs_ct_integer_allocator_tail_reg", "Ingress.fcfs_ct_integer_allocator_indexes_reg", "Ingress.fcfs_ct_index_reservations_reg",
+            "fcfs_cached_table", {"Ingress.fcfs_ct_table_0"}, "Ingress.fcfs_ct_liveness_reg",
+            {"Ingress.fcfs_ct_keys_0", "Ingress.fcfs_ct_keys_1", "Ingress.fcfs_ct_keys_2", "Ingress.fcfs_ct_keys_3"},
             {"Ingress.fcfs_ct_index_to_key_0", "Ingress.fcfs_ct_index_to_key_1", "Ingress.fcfs_ct_index_to_key_2", "Ingress.fcfs_ct_index_to_key_3"},
-            "IngressDeparser.fcfs_ct_digest", 4000, 1'000LL),
+            1000LL),
         vector_table_1074077160("vector_table_1074077160", {"Ingress.vector_table_1074077160_139"}),
         vector_table_1074094376("vector_table_1074094376", {"Ingress.vector_table_1074094376_187", "Ingress.vector_table_1074094376_149"}) {}
 };
@@ -701,15 +701,16 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   key.set(8, 2, bswap16(udp_hdr->src_port));
   key.set(10, 2, bswap16(udp_hdr->dst_port));
 
-  u32 new_index;
-  bool success = state->fcfs_cached_table.allocate_index_and_put(key, new_index);
-  if (!success) {
-    result.forward = false;
-    return result;
+  u32 index;
+  if (!state->fcfs_cached_table.get(key, index)) {
+    if (!state->fcfs_cached_table.allocate_index_and_put(key, index)) {
+      result.forward = false;
+      return result;
+    }
   }
 
   ipv4_hdr->src_ip  = 0x04030201;
-  udp_hdr->src_port = bswap16((u16)new_index);
+  udp_hdr->src_port = bswap16((u16)index);
 
   buffer_t value_2;
   state->vector_table_1074094376.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_2);

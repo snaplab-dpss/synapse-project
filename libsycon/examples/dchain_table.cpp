@@ -20,6 +20,10 @@ void sycon::nf_init() {
   LOG("******** Allocate new index ********");
   u32 new_index;
   bool success = state->dchain_table.allocate_new_index(new_index);
+  if (!success) {
+    ERROR("Failed to allocate new index");
+    return;
+  }
   LOG("Allocated new index %u success %d", new_index, success);
   state->dchain_table.dump();
 

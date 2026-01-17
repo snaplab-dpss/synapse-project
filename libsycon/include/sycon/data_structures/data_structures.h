@@ -11,4 +11,4 @@
 #include "count_min_sketch.h"
 #include "bloom_filter.h"
 #include "fcfs_cached_table.h"
-#include "integer_allocator.h"
+#include "fcfs_cached_set.h"

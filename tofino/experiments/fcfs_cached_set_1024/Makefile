@@ -1,4 +1,4 @@
-APP := fcfs_cached_table_65536
+APP := fcfs_cached_set_1024
 
 P4_COMPILATION_VARS := 
 CONTROLLER_ARGS :=

@@ -19,7 +19,7 @@ build_debug() {
 build_release() {
     mkdir -p $RELEASE_BUILD_DIR
     pushd $RELEASE_BUILD_DIR
-        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../.. -G Ninja
+        cmake -DCMAKE_BUILD_TYPE=Release ../.. -G Ninja
         ninja
     popd
 }

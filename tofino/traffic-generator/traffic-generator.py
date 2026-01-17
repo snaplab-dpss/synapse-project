@@ -597,11 +597,11 @@ def run_setup_set(bfrt_info, ports: Ports, broadcast, symmetric, route):
     multicaster.setup_multicast(broadcast_dev_ports)
     print("Configured broadcasting ports: {}".format(broadcast))
 
-    for dev_port in broadcast_dev_ports:
-        assert dev_port in TG_DEV_PORT_TO_DUT_PIPE
-        prefix_value = TG_DEV_PORT_TO_DUT_PIPE[dev_port]
-        packet_modifier.add_modify_packet_entry(dev_port, prefix_value)
-        print("Configured packet modifier for port: {} with prefix value: {}".format(ports.get_front_panel_port(dev_port), prefix_value))
+    # for dev_port in broadcast_dev_ports:
+    #     assert dev_port in TG_DEV_PORT_TO_DUT_PIPE
+    #     prefix_value = TG_DEV_PORT_TO_DUT_PIPE[dev_port]
+    #     packet_modifier.add_modify_packet_entry(dev_port, prefix_value)
+    #     print("Configured packet modifier for port: {} with prefix value: {}".format(ports.get_front_panel_port(dev_port), prefix_value))
 
     for port in symmetric:
         dev_port = ports.get_dev_port(port)

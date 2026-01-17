@@ -21,7 +21,7 @@ from utils.constants import *
 
 STORAGE_SERVER_DELAY_NS = 0
 KVS_GET_RATIO = 0.99
-PIPELINES = 4
+PIPELINES = 1
 
 TOTAL_FLOWS = 40_000
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
@@ -31,7 +31,7 @@ ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.0]
 
-ITERATIONS = 3
+ITERATIONS = 1
 
 
 @dataclass
@@ -147,19 +147,19 @@ SYNAPSE_NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
-    # SynapseNF(
-    #     name="synapse-nat",
-    #     description="Synapse NAT",
-    #     data_out=Path("tput_synapse_nat.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/synapse-nat.p4"),
-    #     controller=Path("synthesized/synapse-nat.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
+    SynapseNF(
+        name="gallium-nat",
+        description="Gallium NAT",
+        data_out=Path("tput_gallium_nat.csv"),
+        kvs_mode=False,
+        tofino=Path("synthesized/gallium-nat.p4"),
+        controller=Path("synthesized/gallium-nat.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+        churn=CHURN_FPM,
+        zipf=ZIPF_PARAMS,
+    ),
     # *[
     #     SynapseNF(
     #         name=f"synapse-fw-fcfs-ct-{cache_size}",
@@ -174,21 +174,21 @@ SYNAPSE_NFS = [
     #         churn=CHURN_FPM,
     #         zipf=ZIPF_PARAMS,
     #     )
-    #     for cache_size in [1024, 32768, 65536]
+    #     for cache_size in [65536, 32768, 1024]
     # ],
     SynapseNF(
         name=f"synapse-nat",
-        description=f"Synapse NAT FCFS CT",
+        description=f"Synapse NAT",
         data_out=Path(f"tput_synapse_nat.csv"),
         kvs_mode=False,
-        tofino=Path(f"tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.p4"),
-        controller=Path(f"tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.cpp"),
+        tofino=Path("tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.p4"),
+        controller=Path("tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.cpp"),
         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
         route=lambda _: [],
         churn=CHURN_FPM,
         zipf=ZIPF_PARAMS,
-    ),
+    )
     # SynapseNF(
     #     name="synapse-psd",
     #     description="Synapse PSD",

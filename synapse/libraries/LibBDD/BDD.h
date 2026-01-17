@@ -157,6 +157,7 @@ public:
   Call *add_new_symbol_generator_function(bdd_node_id_t target_id, const std::string &fn_name, const Symbols &symbols);
   BDDNode *add_cloned_non_branches(bdd_node_id_t target_id, const std::vector<const BDDNode *> &new_nodes);
   Branch *add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> condition);
+  Branch *add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> condition, BDDNode *on_true, BDDNode *on_false);
 
   static BDDNode *delete_non_branch(BDDNode *target, BDDNodeManager &manager);
   static BDDNode *delete_branch(BDDNode *target, BranchDeletionAction branch_deletion_action, BDDNodeManager &manager);

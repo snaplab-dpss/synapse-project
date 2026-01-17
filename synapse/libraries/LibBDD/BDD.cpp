@@ -976,6 +976,21 @@ Branch *BDD::add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> co
   const BDDNode *current = get_node_by_id(target_id);
   assert(current && "BDDNode not found");
 
+  BDDNode *anchor_next = get_mutable_node_by_id(current->get_id());
+
+  BDDNode *on_true_cond  = anchor_next;
+  BDDNode *on_false_cond = anchor_next->clone(manager, true);
+
+  on_true_cond->recursive_update_ids(id);
+  on_false_cond->recursive_update_ids(id);
+
+  return add_cloned_branch(target_id, condition, on_true_cond, on_false_cond);
+}
+
+Branch *BDD::add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> condition, BDDNode *on_true_cond, BDDNode *on_false_cond) {
+  const BDDNode *current = get_node_by_id(target_id);
+  assert(current && "BDDNode not found");
+
   const BDDNode *prev = current->get_prev();
   assert(prev && "No previous node");
 
@@ -984,10 +999,6 @@ Branch *BDD::add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> co
   BDDNode *anchor_next    = get_mutable_node_by_id(current->get_id());
 
   klee::ref<klee::Expr> constraint = constraint_from_expr(condition);
-
-  BDDNode *on_true_cond  = anchor_next;
-  BDDNode *on_false_cond = anchor_next->clone(manager, true);
-  on_false_cond->recursive_update_ids(id);
 
   Branch *new_branch = create_new_branch(condition);
 

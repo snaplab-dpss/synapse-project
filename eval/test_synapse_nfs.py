@@ -17,11 +17,11 @@ from utils.constants import *
 
 STORAGE_SERVER_DELAY_NS = 0
 KVS_GET_RATIO = 0.99
-PIPELINES = 4
+PIPELINES = 1
 
 TOTAL_FLOWS = 40_000
 CHURN_FPM = 100_000
-ZIPF_PARAM = 0
+ZIPF_PARAM = 1.2
 
 
 @dataclass
@@ -141,8 +141,18 @@ NFS = [
     #     name="synapse-fw-fcfs-ct",
     #     description="Synapse FW FCFS CT",
     #     kvs_mode=False,
-    #     tofino=Path("tofino/experiments/fcfs_cached_table_65536/fcfs_cached_table_65536.p4"),
-    #     controller=Path("tofino/experiments/fcfs_cached_table_65536/fcfs_cached_table_65536.cpp"),
+    #     tofino=Path("tofino/experiments/fcfs_cached_set_65536/fcfs_cached_set_65536.p4"),
+    #     controller=Path("tofino/experiments/fcfs_cached_set_65536/fcfs_cached_set_65536.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
+    # SynapseNF(
+    #     name="synapse-fw-fcfs-ct",
+    #     description="Synapse FW FCFS CT",
+    #     kvs_mode=False,
+    #     tofino=Path("tofino/experiments/fcfs_cached_set_32768/fcfs_cached_set_32768.p4"),
+    #     controller=Path("tofino/experiments/fcfs_cached_set_32768/fcfs_cached_set_32768.cpp"),
     #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
