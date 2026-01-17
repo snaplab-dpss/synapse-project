@@ -31,7 +31,7 @@ ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.0]
 
-ITERATIONS = 1
+ITERATIONS = 2
 
 
 @dataclass
@@ -134,32 +134,6 @@ SYNAPSE_NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
-    # SynapseNF(
-    #     name="synapse-fw",
-    #     description="Synapse FW",
-    #     data_out=Path("tput_synapse_fw.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/synapse-fw.p4"),
-    #     controller=Path("synthesized/synapse-fw.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
-    SynapseNF(
-        name="gallium-nat",
-        description="Gallium NAT",
-        data_out=Path("tput_gallium_nat.csv"),
-        kvs_mode=False,
-        tofino=Path("synthesized/gallium-nat.p4"),
-        controller=Path("synthesized/gallium-nat.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-        churn=CHURN_FPM,
-        zipf=ZIPF_PARAMS,
-    ),
     # *[
     #     SynapseNF(
     #         name=f"synapse-fw-fcfs-ct-{cache_size}",
@@ -176,6 +150,45 @@ SYNAPSE_NFS = [
     #     )
     #     for cache_size in [65536, 32768, 1024]
     # ],
+    SynapseNF(
+        name="gallium-fw",
+        description="Gallium FW",
+        data_out=Path("tput_gallium_fw.csv"),
+        kvs_mode=False,
+        tofino=Path("synthesized/gallium-fw.p4"),
+        controller=Path("synthesized/gallium-fw.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+        churn=CHURN_FPM,
+        zipf=ZIPF_PARAMS,
+    ),
+    SynapseNF(
+        name="synapse-fw",
+        description="Synapse FW",
+        data_out=Path("tput_synapse_fw.csv"),
+        kvs_mode=False,
+        tofino=Path(f"tofino/experiments/fcfs_cached_set_65536/fcfs_cached_set_65536.p4"),
+        controller=Path(f"tofino/experiments/fcfs_cached_set_65536/fcfs_cached_set_65536.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+        churn=CHURN_FPM,
+        zipf=ZIPF_PARAMS,
+    ),
+    SynapseNF(
+        name="gallium-nat",
+        description="Gallium NAT",
+        data_out=Path("tput_gallium_nat.csv"),
+        kvs_mode=False,
+        tofino=Path("synthesized/gallium-nat.p4"),
+        controller=Path("synthesized/gallium-nat.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+        churn=CHURN_FPM,
+        zipf=ZIPF_PARAMS,
+    ),
     SynapseNF(
         name=f"synapse-nat",
         description=f"Synapse NAT",
