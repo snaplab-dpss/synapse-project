@@ -17,17 +17,18 @@ from rich.progress import (
 from hosts.tofino_tg import TofinoTGController
 from hosts.pktgen import Pktgen
 
-MIN_THROUGHPUT = 100  # 1 Gbps
+MIN_THROUGHPUT = 100  # 100 Mbps
 MAX_THROUGHPUT = 100_000  # 100 Gbps
 ITERATION_DURATION_SEC = 5
 MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
 PORT_SETUP_PRECISION = 0.1  # 10%
 PORT_SETUP_TIME_SEC = 5
 PORT_SETUP_RATE = 1  # 1 Mbps
-WARMUP_TIME_SEC = 15
-WARMUP_RATE = 10_000  # 10 Gbps
+WARMUP_TIME_SEC = 10
+WARMUP_RATE = 1_000  # 1 Gbps
 REST_TIME_SEC = 6
 BOGUS_RETRIES = 1
+MAX_WARMUP_RETRIES = 20
 
 DEFAULT_THROUGHPUT_SEARCH_STEPS = 10
 DEFAULT_EXPERIMENT_ITERATIONS = 5
@@ -182,7 +183,31 @@ class Experiment:
             pktgen.set_churn(0)
             pktgen.set_rate(WARMUP_RATE)
             pktgen.start()
-            sleep(WARMUP_TIME_SEC)
+
+            self.log(f"Warming up DUT...")
+            loss = 1
+            warmup_retries = -1
+            while loss > MAX_ACCEPTABLE_LOSS:
+                warmup_retries += 1
+                if warmup_retries > MAX_WARMUP_RETRIES:
+                    self.log("Max warmup retries reached!")
+                    return winner_report
+
+                tg_controller.reset_stats()
+                sleep(WARMUP_TIME_SEC)
+
+                port_stats = tg_controller.get_port_stats()
+
+                nb_rx_pkts = 0
+                nb_tx_pkts = 0
+                for port, stats in port_stats.items():
+                    if port in tg_controller.broadcast_ports or port in tg_controller.symmetric_ports:
+                        nb_rx_pkts += stats.rx_pkts
+                        nb_tx_pkts += stats.tx_pkts
+
+                loss = 1 - nb_rx_pkts / nb_tx_pkts
+                self.log(f"[{warmup_retries:02}/{MAX_WARMUP_RETRIES:02}] Warmup TX pkts: {nb_tx_pkts:,}, RX pkts: {nb_rx_pkts:,}, loss: {loss*100:.3f}%")
+
             pktgen.set_rate(current_rate)
             pktgen.set_churn(churn)
             sleep(REST_TIME_SEC)
@@ -193,7 +218,6 @@ class Experiment:
             sleep(REST_TIME_SEC)
 
             port_stats = tg_controller.get_port_stats()
-            self.log(f"Stats {port_stats}")
 
             nb_rx_pkts = 0
             nb_rx_bits = 0

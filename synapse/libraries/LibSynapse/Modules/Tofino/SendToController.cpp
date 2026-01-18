@@ -9,6 +9,8 @@
 #include <LibSynapse/Modules/Controller/Else.h>
 #include <LibSynapse/Modules/Controller/AbortTransaction.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapTableLookup.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapSetTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapSetTableLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableGuardCheck.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorTableLookup.h>
@@ -19,6 +21,7 @@
 #include <LibSynapse/Modules/Tofino/ParserExtraction.h>
 #include <LibSynapse/Modules/Tofino/If.h>
 #include <LibSynapse/Modules/Tofino/MapTableLookup.h>
+#include <LibSynapse/Modules/Tofino/MapSetTableLookup.h>
 #include <LibSynapse/Modules/Tofino/GuardedMapTableLookup.h>
 #include <LibSynapse/Modules/Tofino/GuardedMapTableGuardCheck.h>
 #include <LibSynapse/Modules/Tofino/VectorTableLookup.h>
@@ -223,6 +226,15 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       EPNode *map_table_lookup_ep_node = new EPNode(ctrl_map_table_lookup);
       initial_controller_logic.update(map_table_lookup_ep_node);
     } break;
+    case ModuleType::Tofino_MapSetTableLookup: {
+      const MapSetTableLookup *map_set_table_lookup = dynamic_cast<const MapSetTableLookup *>(prev.module);
+
+      Controller::DataplaneMapSetTableLookup *ctrl_map_set_table_lookup = new Controller::DataplaneMapSetTableLookup(
+          active_leaf.next, map_set_table_lookup->get_obj(), map_set_table_lookup->get_original_key(), map_set_table_lookup->get_hit());
+
+      EPNode *map_set_table_lookup_ep_node = new EPNode(ctrl_map_set_table_lookup);
+      initial_controller_logic.update(map_set_table_lookup_ep_node);
+    } break;
     case ModuleType::Tofino_GuardedMapTableLookup: {
       const GuardedMapTableLookup *guarded_map_table_lookup = dynamic_cast<const GuardedMapTableLookup *>(prev.module);
 
@@ -339,6 +351,11 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_DataplaneMapTableLookup:
     case ModuleType::Controller_DataplaneMapTableUpdate:
     case ModuleType::Controller_DataplaneMapTableDelete:
+    case ModuleType::Controller_DataplaneMapSetTableAllocate:
+    case ModuleType::Controller_DataplaneMapSetTableLookup:
+    case ModuleType::Controller_DataplaneMapSetTableUpdate:
+    case ModuleType::Controller_DataplaneMapSetTableInsert:
+    case ModuleType::Controller_DataplaneMapSetTableDelete:
     case ModuleType::Controller_DataplaneGuardedMapTableAllocate:
     case ModuleType::Controller_DataplaneGuardedMapTableLookup:
     case ModuleType::Controller_DataplaneGuardedMapTableGuardCheck:

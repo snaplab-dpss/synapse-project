@@ -26,6 +26,7 @@ enum class DSType {
   // ========================
 
   MapTable,
+  MapSetTable,
   GuardedMapTable,
   VectorTable,
   DchainTable,
@@ -52,6 +53,8 @@ inline std::string ds_type_to_string(DSType type) {
     return "Digest";
   case DSType::MapTable:
     return "MapTable";
+  case DSType::MapSetTable:
+    return "MapSetTable";
   case DSType::GuardedMapTable:
     return "GuardedMapTable";
   case DSType::VectorTable:

@@ -1,0 +1,138 @@
+#pragma once
+
+#include <array>
+#include <optional>
+#include <unordered_set>
+
+#include "synapse_ds.h"
+#include "../config.h"
+#include "../constants.h"
+#include "../primitives/table.h"
+#include "../time.h"
+#include "../field.h"
+
+namespace sycon {
+
+class MapSetTable : public SynapseDS {
+private:
+  std::unordered_set<buffer_t, buffer_hash_t> cache;
+  std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
+  std::vector<Table> tables;
+  u32 capacity;
+  bits_t key_size;
+
+public:
+  MapSetTable(const std::string &_name, const std::vector<std::string> &table_names, std::optional<time_ms_t> timeout = std::nullopt)
+      : SynapseDS(_name), capacity(0), key_size(0) {
+    assert(!table_names.empty() && "Table name must not be empty");
+
+    for (const std::string &table_name : table_names) {
+      tables.emplace_back(table_name);
+      capacity = tables.back().get_effective_capacity();
+      for (const table_field_t &field : tables.back().get_key_fields()) {
+        key_size += field.size;
+      }
+    }
+
+    for (const Table &table : tables) {
+      assert(table.get_effective_capacity() == capacity);
+    }
+
+    if (timeout.has_value()) {
+      for (Table &table : tables) {
+        table.set_notify_mode(timeout.value(), this, MapSetTable::expiration_callback, true);
+      }
+    }
+  }
+
+  bool get(const buffer_t &k) const { return cache.find(k) != cache.end(); }
+
+  bool put(const buffer_t &k) {
+    if (cache.size() >= capacity) {
+      return false;
+    }
+
+    for (Table &table : tables) {
+      LOG_DEBUG("[%s] Put key %s", table.get_name().c_str(), k.to_string().c_str());
+      table.add_or_mod_entry(k);
+    }
+
+    cache.insert(k);
+    return true;
+  }
+
+  void del(const buffer_t &k) {
+    auto found_it = cache.find(k);
+    if (found_it == cache.end()) {
+      return;
+    }
+
+    for (Table &table : tables) {
+      LOG_DEBUG("[%s] Free key %s", table.get_name().c_str(), k.to_string().c_str());
+      table.del_entry(k);
+    }
+
+    cache.erase(found_it);
+  }
+
+  void dump() const {
+    std::stringstream ss;
+    dump(ss);
+    LOG("%s", ss.str().c_str());
+  }
+
+  void dump(std::ostream &os) const {
+    os << "================================================\n";
+    os << "Map Table Cache:\n";
+    for (const auto &k : cache) {
+      os << "  key=" << k << "\n";
+    }
+    os << "================================================\n";
+
+    for (const Table &table : tables) {
+      table.dump(os);
+    }
+  }
+
+private:
+  static void expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {
+    cfg.begin_dataplane_notification_transaction();
+
+    MapSetTable *map_table = reinterpret_cast<MapSetTable *>(cookie);
+    assert(map_table && "Invalid cookie");
+
+    const bfrt::BfRtTable *table;
+    bf_status_t status = key->tableGet(&table);
+    ASSERT_BF_STATUS(status);
+
+    std::string table_name;
+    status = table->tableNameGet(&table_name);
+    ASSERT_BF_STATUS(status);
+
+    buffer_t key_buffer;
+    bool target_table_found = false;
+    for (const Table &target_table : map_table->tables) {
+      if (target_table.get_full_name() == table_name) {
+        target_table_found = true;
+        key_buffer         = target_table.get_key_value(key);
+        break;
+      }
+    }
+
+    if (!target_table_found) {
+      ERROR("Target table %s not found", table_name.c_str());
+    }
+
+    map_table->expirations_per_key[key_buffer].insert(table_name);
+    LOG_DEBUG("Expiration callback invoked for key %s on table %s (total expirations for this key: %lu)", key_buffer.to_string().c_str(),
+              table_name.c_str(), map_table->expirations_per_key[key_buffer].size());
+    if (map_table->expirations_per_key[key_buffer].size() == map_table->tables.size()) {
+      map_table->del(key_buffer);
+      map_table->expirations_per_key.erase(key_buffer);
+    }
+
+    cfg.commit_dataplane_notification_transaction();
+  }
+};
+
+} // namespace sycon

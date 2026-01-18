@@ -3,6 +3,7 @@
 #include "forwarding_tbl.h"
 #include "ingress_port_to_nf_dev.h"
 #include "map_table.h"
+#include "map_set_table.h"
 #include "vector_table.h"
 #include "dchain_table.h"
 #include "vector_register.h"

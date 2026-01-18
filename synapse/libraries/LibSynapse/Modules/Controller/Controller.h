@@ -18,6 +18,11 @@
 #include <LibSynapse/Modules/Controller/DataplaneMapTableLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapTableUpdate.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapTableDelete.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapSetTableAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapSetTableLookup.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapSetTableUpdate.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapSetTableInsert.h>
+#include <LibSynapse/Modules/Controller/DataplaneMapSetTableDelete.h>
 #include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableGuardCheck.h>
@@ -109,6 +114,11 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneMapTableLookupFactory>());
               f.push_back(std::make_unique<DataplaneMapTableUpdateFactory>());
               f.push_back(std::make_unique<DataplaneMapTableDeleteFactory>());
+              f.push_back(std::make_unique<DataplaneMapSetTableAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneMapSetTableLookupFactory>());
+              f.push_back(std::make_unique<DataplaneMapSetTableUpdateFactory>());
+              f.push_back(std::make_unique<DataplaneMapSetTableInsertFactory>());
+              f.push_back(std::make_unique<DataplaneMapSetTableDeleteFactory>());
               f.push_back(std::make_unique<DataplaneGuardedMapTableAllocateFactory>());
               f.push_back(std::make_unique<DataplaneGuardedMapTableLookupFactory>());
               f.push_back(std::make_unique<DataplaneGuardedMapTableGuardCheckFactory>());

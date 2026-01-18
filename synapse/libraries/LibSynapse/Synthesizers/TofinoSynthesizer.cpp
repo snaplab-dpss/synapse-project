@@ -2422,6 +2422,39 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::MapSetTableLookup *node) {
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const DS_ID map_set_table_id                   = node->get_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  const std::optional<symbol_t> hit              = node->get_hit();
+
+  const MapSetTable *map_set_table = get_tofino_ds<MapSetTable>(ep, map_set_table_id);
+
+  const bdd_node_id_t node_id = node->get_node()->get_id();
+  const Table *table          = map_set_table->get_table(node_id);
+  assert(table && "Table not found");
+
+  std::vector<var_t> keys_vars;
+  transpile_table_decl(table, keys, {}, false, keys_vars);
+  assert(keys_vars.size() == keys.size());
+
+  for (const var_t &key_var : keys_vars) {
+    ingress_apply.indent();
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  }
+
+  if (hit) {
+    const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL);
+    hit_var.declare(ingress_apply, table->id + ".apply().hit");
+  } else {
+    ingress_apply.indent();
+    ingress_apply << table->id << ".apply();\n";
+  }
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 

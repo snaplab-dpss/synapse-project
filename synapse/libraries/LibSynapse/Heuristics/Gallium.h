@@ -72,6 +72,7 @@ private:
         // Tofino Gallium Inompatible
         // ========================================
 
+      case DSImpl::Tofino_MapSetTable:
       case DSImpl::Tofino_GuardedMapTable:
       case DSImpl::Tofino_FCFSCachedTable:
       case DSImpl::Tofino_Meter:

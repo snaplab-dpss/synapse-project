@@ -28,6 +28,15 @@ struct map_table_data_t {
   TimeAware time_aware;
 };
 
+struct map_set_table_data_t {
+  addr_t obj;
+  u32 capacity;
+  klee::ref<klee::Expr> original_key;
+  std::vector<klee::ref<klee::Expr>> keys;
+  symbol_t index;
+  std::optional<symbol_t> hit;
+};
+
 struct vector_table_data_t {
   addr_t obj;
   u32 capacity;
@@ -76,6 +85,13 @@ public:
 
   static MapTable *build_or_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data);
   static bool can_build_or_reuse_map_table(const EP *ep, const BDDNode *node, const map_table_data_t &data);
+
+  // ======================================================================
+  //  Map Set Table
+  // ======================================================================
+
+  static MapSetTable *build_or_reuse_map_set_table(const EP *ep, const BDDNode *node, const map_set_table_data_t &data);
+  static bool can_build_or_reuse_map_set_table(const EP *ep, const BDDNode *node, const map_set_table_data_t &data);
 
   // ======================================================================
   //  Guarded Map Table

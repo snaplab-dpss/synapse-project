@@ -1155,6 +1155,83 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableAllocate *node) {
+  const addr_t obj                         = node->get_obj();
+  const Tofino::MapSetTable *map_set_table = get_unique_tofino_ds_from_obj<Tofino::MapSetTable>(ep, obj);
+
+  transpile_map_set_table_decl(map_set_table);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableLookup *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                    = node->get_obj();
+  const klee::ref<klee::Expr> key     = node->get_key();
+  const std::optional<symbol_t> found = node->get_found();
+
+  const Tofino::MapSetTable *map_set_table = get_unique_tofino_ds_from_obj<Tofino::MapSetTable>(ep, obj);
+
+  const var_t key_var = transpile_buffer_decl_and_set(coder, map_set_table->id + "_key", key, true);
+
+  coder.indent();
+  if (found.has_value()) {
+    const var_t found_var = alloc_var("found", found->expr, {}, NO_OPTION);
+    coder << "bool " << found_var.name << " = ";
+  }
+  coder << "state->" << map_set_table->id << ".get(";
+  coder << key_var.name;
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableUpdate *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                = node->get_obj();
+  const klee::ref<klee::Expr> key = node->get_key();
+
+  const Tofino::MapTable *map_table = get_unique_tofino_ds_from_obj<Tofino::MapTable>(ep, obj);
+
+  const var_t key_var = transpile_buffer_decl_and_set(coder, map_table->id + "_key", key, true);
+
+  coder.indent();
+  coder << "state->" << map_table->id << ".put(";
+  coder << key_var.name;
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableInsert *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                = node->get_obj();
+  const klee::ref<klee::Expr> key = node->get_key();
+  const symbol_t success          = node->get_index_allocation_success();
+
+  const Tofino::MapSetTable *map_set_table = get_unique_tofino_ds_from_obj<Tofino::MapSetTable>(ep, obj);
+
+  const var_t key_var = transpile_buffer_decl_and_set(coder, map_set_table->id + "_key", key, true);
+
+  const var_t success_var = alloc_var("success", success.expr, {}, NO_OPTION);
+
+  coder.indent();
+  coder << "bool " << success_var.name << " = ";
+  coder << "state->" << map_set_table->id << ".put(";
+  coder << key_var.name;
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableDelete *node) {
+  panic("TODO: Controller::DataplaneMapSetTableDelete");
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableAllocate *node) {
   const addr_t obj                                 = node->get_obj();
   const Tofino::GuardedMapTable *guarded_map_table = get_unique_tofino_ds_from_obj<Tofino::GuardedMapTable>(ep, obj);
@@ -1959,6 +2036,40 @@ void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : map_table->tables) {
+    member_init_list << "\"Ingress." << table.id << "\",";
+    if (table.time_aware == Tofino::TimeAware::Yes) {
+      time_aware = true;
+    }
+  }
+  member_init_list << "}";
+
+  if (time_aware) {
+    member_init_list << ", " << expiration_time_ms << "LL";
+  }
+
+  member_init_list << ")";
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_map_set_table_decl(const Tofino::MapSetTable *map_set_table) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name                  = assert_unique_name(map_set_table->id);
+  const time_ns_t expiration_time    = get_expiration_time(target_ep->get_ctx());
+  const time_ms_t expiration_time_ms = expiration_time / MILLION;
+  bool time_aware                    = false;
+
+  state_fields.indent();
+  state_fields << "MapSetTable " << name << ";\n";
+
+  synapse_data_structures_instances.push_back(name);
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
+  member_init_list << "{";
+  for (const Tofino::Table &table : map_set_table->tables) {
     member_init_list << "\"Ingress." << table.id << "\",";
     if (table.time_aware == Tofino::TimeAware::Yes) {
       time_aware = true;

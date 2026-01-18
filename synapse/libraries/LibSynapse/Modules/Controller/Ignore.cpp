@@ -62,6 +62,7 @@ bool should_ignore_coalesced_state_allocation(const Context &ctx, const Call *ca
   const std::unordered_map<DSImpl, ignored_alloc_functions_t> ignored_alloc_functions_per_ds{
       {DSImpl::Tofino_FCFSCachedTable, {"dchain_allocate"}},
       {DSImpl::Tofino_HeavyHitterTable, {"dchain_allocate"}},
+      {DSImpl::Tofino_MapSetTable, {"dchain_allocate"}},
   };
 
   const call_t &call             = call_node->get_call();

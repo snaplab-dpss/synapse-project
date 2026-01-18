@@ -102,6 +102,27 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::MapSetTableLookup *node) {
+  std::stringstream label_builder;
+
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  Tofino::DS_ID tid       = node->get_id();
+  addr_t obj              = node->get_obj();
+
+  label_builder << "Map Set Table Lookup\n";
+  label_builder << "(";
+  label_builder << "tid=";
+  label_builder << tid;
+  label_builder << ", obj=";
+  label_builder << obj;
+  label_builder << ")";
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) {
   std::stringstream label_builder;
 
@@ -227,10 +248,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *node) {
   std::stringstream label_builder;
 
-  const BDDNode *bdd_node         = node->get_node();
-  TargetType target               = node->get_target();
-  Tofino::DS_ID id                = node->get_id();
-  addr_t obj                      = node->get_obj();
+  const BDDNode *bdd_node = node->get_node();
+  TargetType target       = node->get_target();
+  Tofino::DS_ID id        = node->get_id();
+  addr_t obj              = node->get_obj();
 
   label_builder << "Vector Register Conditional Update\n";
   label_builder << "(";

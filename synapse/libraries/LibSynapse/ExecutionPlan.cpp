@@ -544,10 +544,7 @@ void EP::assert_integrity() const {
     assert_or_panic(next == found_next, "Next node not found in the BDD");
   }
 
-  const BDD::inspection_report_t bdd_inspection_report = bdd->inspect();
-  if (bdd_inspection_report.status != BDD::InspectionStatus::Ok) {
-    panic("[EP=%lu] BDD inspection failed: %s", id, bdd_inspection_report.message.c_str());
-  }
+  bdd->assert_inspection();
 }
 
 hit_rate_t EP::get_active_leaf_hit_rate() const {

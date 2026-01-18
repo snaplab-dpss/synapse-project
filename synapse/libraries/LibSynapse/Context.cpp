@@ -571,6 +571,9 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   case DSImpl::Tofino_MapTable:
     os << "Tofino::MapTable";
     break;
+  case DSImpl::Tofino_MapSetTable:
+    os << "Tofino::MapSetTable";
+    break;
   case DSImpl::Tofino_GuardedMapTable:
     os << "Tofino::GuardedMapTable";
     break;

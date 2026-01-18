@@ -49,6 +49,15 @@ NFS = [
     #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_pps_scatter.pdf",
     #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_heatmap.pdf",
     # },
+    {
+        "title": "Gallium FW",
+        "data_file": DATA_DIR / "tput_gallium_fw.csv",
+        "bps_output_file": PLOTS_DIR / "tput_gallium_fw_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_gallium_fw_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_gallium_fw_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_gallium_fw_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_gallium_fw_heatmap.pdf",
+    },
     # {
     #     "title": "Firewall",
     #     "data_file": DATA_DIR / "tput_synapse_fw.csv",
@@ -59,7 +68,7 @@ NFS = [
     #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_fw_heatmap.pdf",
     # },
     {
-        "title": "NAT",
+        "title": "Gallium NAT",
         "data_file": DATA_DIR / "tput_gallium_nat.csv",
         "bps_output_file": PLOTS_DIR / "tput_gallium_nat_bps.pdf",
         "pps_output_file": PLOTS_DIR / "tput_gallium_nat_pps.pdf",
@@ -67,6 +76,15 @@ NFS = [
         "pps_scatter_output_file": PLOTS_DIR / "tput_gallium_nat_pps_scatter.pdf",
         "heatmap_output_file": PLOTS_DIR / "tput_gallium_nat_heatmap.pdf",
     },
+    # {
+    #     "title": "NAT",
+    #     "data_file": DATA_DIR / "tput_synapse_nat.csv",
+    #     "bps_output_file": PLOTS_DIR / "tput_synapse_nat_bps.pdf",
+    #     "pps_output_file": PLOTS_DIR / "tput_synapse_nat_pps.pdf",
+    #     "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_nat_bps_scatter.pdf",
+    #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_nat_pps_scatter.pdf",
+    #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_nat_heatmap.pdf",
+    # },
     # {
     #     "title": "PSD",
     #     "data_file": DATA_DIR / "tput_synapse_psd.csv",

@@ -30,9 +30,6 @@ struct GuardedMapTable : public DS {
   void debug() const override;
   std::vector<std::unordered_set<const DS *>> get_internal() const override;
 
-  bits_t get_match_xbar_consume() const;
-  bits_t get_consumed_sram() const;
-
   bool has_table(bdd_node_id_t op) const;
   const Table *get_table(bdd_node_id_t op) const;
   std::optional<DS_ID> add_table(bdd_node_id_t op, const std::vector<bits_t> &keys_sizes, TimeAware time_aware);

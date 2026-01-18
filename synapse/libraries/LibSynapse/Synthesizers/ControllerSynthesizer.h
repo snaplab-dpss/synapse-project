@@ -179,6 +179,11 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableDelete *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableGuardCheck *node) override final;
@@ -269,6 +274,7 @@ private:
 
   var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr, bool skip_alloc);
   void transpile_map_table_decl(const Tofino::MapTable *map_table);
+  void transpile_map_set_table_decl(const Tofino::MapSetTable *map_set_table);
   void transpile_guarded_map_table_decl(const Tofino::GuardedMapTable *guarded_map_table);
   void transpile_vector_table_decl(const Tofino::VectorTable *vector_table);
   void transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table, time_ns_t expiration_time);

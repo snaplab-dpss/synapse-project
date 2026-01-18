@@ -20,8 +20,8 @@ KVS_GET_RATIO = 0.99
 PIPELINES = 1
 
 TOTAL_FLOWS = 40_000
-CHURN_FPM = 100_000
-ZIPF_PARAM = 1.2
+CHURN_FPM = 0
+ZIPF_PARAM = 0
 
 
 @dataclass
@@ -107,6 +107,16 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
+    SynapseNF(
+        name="gallium-fw",
+        description="Gallium FW",
+        kvs_mode=False,
+        tofino=Path("synthesized/gallium-fw.p4"),
+        controller=Path("synthesized/gallium-fw.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+    ),
     # SynapseNF(
     #     name="synapse-nat",
     #     description="Synapse NAT",
@@ -157,16 +167,16 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
-    SynapseNF(
-        name="synapse-nat-fcfs-ct",
-        description="Synapse NAT FCFS CT",
-        kvs_mode=False,
-        tofino=Path("tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.p4"),
-        controller=Path("tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-    ),
+    # SynapseNF(
+    #     name="synapse-nat-fcfs-ct",
+    #     description="Synapse NAT FCFS CT",
+    #     kvs_mode=False,
+    #     tofino=Path("tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.p4"),
+    #     controller=Path("tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
 ]
 
 

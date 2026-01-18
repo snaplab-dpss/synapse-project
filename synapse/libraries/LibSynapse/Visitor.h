@@ -22,6 +22,7 @@ class ParserCondition;
 class ParserReject;
 class ModifyHeader;
 class MapTableLookup;
+class MapSetTableLookup;
 class GuardedMapTableLookup;
 class GuardedMapTableGuardCheck;
 class DchainTableLookup;
@@ -65,6 +66,11 @@ class DataplaneMapTableAllocate;
 class DataplaneMapTableLookup;
 class DataplaneMapTableUpdate;
 class DataplaneMapTableDelete;
+class DataplaneMapSetTableAllocate;
+class DataplaneMapSetTableLookup;
+class DataplaneMapSetTableUpdate;
+class DataplaneMapSetTableInsert;
+class DataplaneMapSetTableDelete;
 class DataplaneGuardedMapTableAllocate;
 class DataplaneGuardedMapTableLookup;
 class DataplaneGuardedMapTableGuardCheck;
@@ -198,6 +204,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserReject *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapSetTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *m) { return Action::doChildren; }
@@ -242,6 +249,11 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableDelete *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableLookup *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableInsert *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableDelete *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableGuardCheck *m) { return Action::doChildren; }

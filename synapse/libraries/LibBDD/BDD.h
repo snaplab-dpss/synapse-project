@@ -101,6 +101,9 @@ public:
   // A valid BDD should always pass this check.
   [[nodiscard]] inspection_report_t inspect() const;
 
+  // Asserts that the BDD passes the inspection check, and crashes otherwise.
+  void assert_inspection() const;
+
   klee::ConstraintManager get_constraints(const BDDNode *node) const;
   bool get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const;
   bool get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing_objs_t &map_objs) const;

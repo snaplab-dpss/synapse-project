@@ -1425,6 +1425,19 @@ BDD::inspection_report_t BDD::inspect() const {
   return report;
 }
 
+void BDD::assert_inspection() const {
+  const BDD::inspection_report_t bdd_inspection_report = inspect();
+  if (bdd_inspection_report.status != BDD::InspectionStatus::Ok) {
+    const std::filesystem::path bad_bdd_path{"bad_bdd.bdd"};
+    const std::filesystem::path bad_bdd_dot_path{"bad_bdd.dot"};
+    serialize(bad_bdd_path);
+    BDDViz::dump_to_file(this, bad_bdd_dot_path);
+    panic("BDD inspection failed: %s.\n"
+          "Dumping for analysis: %s (%s)\n",
+          bdd_inspection_report.message.c_str(), bad_bdd_path.c_str(), bad_bdd_dot_path.c_str());
+  }
+}
+
 void BDD::delete_vector_key_operations(addr_t map) {
   std::unordered_set<const BDDNode *> candidates;
   Symbols key_symbols;

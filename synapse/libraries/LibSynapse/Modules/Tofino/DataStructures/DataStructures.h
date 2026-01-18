@@ -10,6 +10,7 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/CountMinSketch.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/LPM.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/MapTable.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/MapSetTable.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/VectorTable.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/DchainTable.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/VectorRegister.h>

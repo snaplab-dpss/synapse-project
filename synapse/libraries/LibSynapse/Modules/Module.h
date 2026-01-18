@@ -38,6 +38,7 @@ enum class ModuleType {
   Tofino_ParserReject,
   Tofino_ModifyHeader,
   Tofino_MapTableLookup,
+  Tofino_MapSetTableLookup,
   Tofino_GuardedMapTableLookup,
   Tofino_GuardedMapTableGuardCheck,
   Tofino_VectorTableLookup,
@@ -83,6 +84,11 @@ enum class ModuleType {
   Controller_DataplaneMapTableLookup,
   Controller_DataplaneMapTableUpdate,
   Controller_DataplaneMapTableDelete,
+  Controller_DataplaneMapSetTableAllocate,
+  Controller_DataplaneMapSetTableLookup,
+  Controller_DataplaneMapSetTableUpdate,
+  Controller_DataplaneMapSetTableInsert,
+  Controller_DataplaneMapSetTableDelete,
   Controller_DataplaneVectorTableAllocate,
   Controller_DataplaneVectorTableLookup,
   Controller_DataplaneVectorTableUpdate,
@@ -230,6 +236,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_MapTableLookup:
     os << "Tofino_MapTableLookup";
     break;
+  case ModuleType::Tofino_MapSetTableLookup:
+    os << "Tofino_MapSetTableLookup";
+    break;
   case ModuleType::Tofino_GuardedMapTableLookup:
     os << "Tofino_GuardedMapTableLookup";
     break;
@@ -349,6 +358,21 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneMapTableDelete:
     os << "Controller_DataplaneMapTableDelete";
+    break;
+  case ModuleType::Controller_DataplaneMapSetTableAllocate:
+    os << "Controller_DataplaneMapSetTableAllocate";
+    break;
+  case ModuleType::Controller_DataplaneMapSetTableLookup:
+    os << "Controller_DataplaneMapSetTableLookup";
+    break;
+  case ModuleType::Controller_DataplaneMapSetTableUpdate:
+    os << "Controller_DataplaneMapSetTableUpdate";
+    break;
+  case ModuleType::Controller_DataplaneMapSetTableInsert:
+    os << "Controller_DataplaneMapSetTableInsert";
+    break;
+  case ModuleType::Controller_DataplaneMapSetTableDelete:
+    os << "Controller_DataplaneMapSetTableDelete";
     break;
   case ModuleType::Controller_DataplaneGuardedMapTableAllocate:
     os << "Controller_DataplaneGuardedMapTableAllocate";

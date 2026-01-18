@@ -84,16 +84,16 @@ void map_set_entry_condition(struct Map *map, map_entry_condition *cond, void *c
   map->ent_cond_state = cond_state;
 }
 
-#define TRACE_KEY_FIELDS(key, map)                                                                                                         \
-  {                                                                                                                                        \
-    for (int i = 0; i < map->key_field_count; ++i) {                                                                                       \
-      klee_trace_param_ptr_field_arr_directed(key, map->key_fields[i].offset, map->key_fields[i].width, map->key_fields[i].count,          \
-                                              map->key_fields[i].name, TD_BOTH);                                                           \
-    }                                                                                                                                      \
-    for (int i = 0; i < map->nested_key_field_count; ++i) {                                                                                \
-      klee_trace_param_ptr_nested_field_arr_directed(key, map->key_nests[i].base_offset, map->key_nests[i].offset,                         \
-                                                     map->key_nests[i].width, map->key_nests[i].count, map->key_nests[i].name, TD_BOTH);   \
-    }                                                                                                                                      \
+#define TRACE_KEY_FIELDS(key, map)                                                                                                                   \
+  {                                                                                                                                                  \
+    for (int i = 0; i < map->key_field_count; ++i) {                                                                                                 \
+      klee_trace_param_ptr_field_arr_directed(key, map->key_fields[i].offset, map->key_fields[i].width, map->key_fields[i].count,                    \
+                                              map->key_fields[i].name, TD_BOTH);                                                                     \
+    }                                                                                                                                                \
+    for (int i = 0; i < map->nested_key_field_count; ++i) {                                                                                          \
+      klee_trace_param_ptr_nested_field_arr_directed(key, map->key_nests[i].base_offset, map->key_nests[i].offset, map->key_nests[i].width,          \
+                                                     map->key_nests[i].count, map->key_nests[i].name, TD_BOTH);                                      \
+    }                                                                                                                                                \
   }
 
 __attribute__((noinline)) int map_get(struct Map *map, void *key, int *value_out) {
@@ -132,8 +132,8 @@ __attribute__((noinline)) int map_get(struct Map *map, void *key, int *value_out
       klee_assume(map->ent_cond(map->keyp[n], map->allocated_index[n], map->ent_cond_state));
       klee_assume(map->ent_cond(map->key_copyp[n], map->allocated_index[n], map->ent_cond_state));
     }
+    *value_out = allocated_index;
   }
-  *value_out = allocated_index;
   return map_has_this_key;
 }
 
