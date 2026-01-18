@@ -107,7 +107,7 @@ std::optional<spec_impl_t> DataplaneMapSetTableInsertFactory::speculate(const EP
 
   const map_set_table_data_t data = get_map_set_table_update_data(pattern.map_put);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> coalescing_objs = ctx.get_map_coalescing_objs(data.obj);
+  const std::optional<map_coalescing_objs_t> coalescing_objs = ctx.get_map_coalescing_objs(data.obj);
   if (!coalescing_objs.has_value()) {
     return {};
   }
@@ -135,7 +135,7 @@ std::vector<impl_t> DataplaneMapSetTableInsertFactory::process_node(const EP *ep
 
   const map_set_table_data_t data = get_map_set_table_update_data(pattern.map_put);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> coalescing_objs = ep->get_ctx().get_map_coalescing_objs(data.obj);
+  const std::optional<map_coalescing_objs_t> coalescing_objs = ep->get_ctx().get_map_coalescing_objs(data.obj);
   if (!coalescing_objs.has_value()) {
     return {};
   }
@@ -174,7 +174,7 @@ std::unique_ptr<Module> DataplaneMapSetTableInsertFactory::create(const BDD *bdd
 
   const map_set_table_data_t data = get_map_set_table_update_data(pattern.map_put);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> coalescing_objs = ctx.get_map_coalescing_objs(data.obj);
+  const std::optional<map_coalescing_objs_t> coalescing_objs = ctx.get_map_coalescing_objs(data.obj);
   if (!coalescing_objs.has_value()) {
     return {};
   }

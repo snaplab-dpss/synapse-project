@@ -17,7 +17,7 @@ using Tofino::Table;
 
 namespace {
 
-DS_ID get_fcfs_cached_table_id(const Context &ctx, addr_t obj) {
+DS_ID get_fcfs_ct_id(const Context &ctx, addr_t obj) {
   const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>();
   const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_data_structures().get_ds(obj);
   assert(data_structures.size() == 1 && "Multiple data structures found");
@@ -26,15 +26,15 @@ DS_ID get_fcfs_cached_table_id(const Context &ctx, addr_t obj) {
   return ds->id;
 }
 
-const FCFSCachedTableReadWrite *get_fcfs_cached_table_read_write_op(const EP *ep, const DS_ID &fcfs_cached_table_id) {
+const FCFSCachedTableReadWrite *get_fcfs_ct_read_write_op(const EP *ep, const DS_ID &fcfs_ct_id) {
   const EPLeaf active_leaf = ep->get_active_leaf();
   const EPNode *prev       = active_leaf.node->get_prev();
   while (prev != nullptr) {
     const Module *module = prev->get_module();
     if (module->get_type() == ModuleType::Tofino_FCFSCachedTableReadWrite) {
-      const FCFSCachedTableReadWrite *fcfs_cached_table_read_write = dynamic_cast<const FCFSCachedTableReadWrite *>(module);
-      if (fcfs_cached_table_read_write->get_fcfs_cached_table_id() == fcfs_cached_table_id) {
-        return fcfs_cached_table_read_write;
+      const FCFSCachedTableReadWrite *fcfs_ct_read_write = dynamic_cast<const FCFSCachedTableReadWrite *>(module);
+      if (fcfs_ct_read_write->get_fcfs_ct_id() == fcfs_ct_id) {
+        return fcfs_ct_read_write;
       }
     }
     prev = prev->get_prev();
@@ -86,15 +86,14 @@ std::vector<impl_t> DataplaneFCFSCachedTableWriteFactory::process_node(const EP 
     return {};
   }
 
-  const DS_ID id                                                  = get_fcfs_cached_table_id(ep->get_ctx(), obj);
-  const FCFSCachedTableReadWrite *fcfs_cached_table_read_write_op = get_fcfs_cached_table_read_write_op(ep, id);
+  const DS_ID id                                        = get_fcfs_ct_id(ep->get_ctx(), obj);
+  const FCFSCachedTableReadWrite *fcfs_ct_read_write_op = get_fcfs_ct_read_write_op(ep, id);
 
-  if (!fcfs_cached_table_read_write_op) {
+  if (!fcfs_ct_read_write_op) {
     return {};
   }
 
-  Module *module  = new DataplaneFCFSCachedTableWrite(node, id, obj, fcfs_cached_table_read_write_op->get_keys(),
-                                                      fcfs_cached_table_read_write_op->get_write_value());
+  Module *module  = new DataplaneFCFSCachedTableWrite(node, id, obj, fcfs_ct_read_write_op->get_keys(), fcfs_ct_read_write_op->get_write_value());
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

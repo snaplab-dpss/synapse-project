@@ -33,6 +33,10 @@ class VectorRegisterConditionalUpdate;
 class FCFSCachedTableRead;
 class FCFSCachedTableReadWrite;
 class FCFSCachedTableWrite;
+class FCFSCachedSetRead;
+class FCFSCachedSetReadWrite;
+class FCFSCachedSetWrite;
+class FCFSCachedSetInsert;
 class MeterUpdate;
 class HHTableRead;
 class HHTableOutOfBandUpdate;
@@ -92,6 +96,10 @@ class DataplaneFCFSCachedTableAllocate;
 class DataplaneFCFSCachedTableRead;
 class DataplaneFCFSCachedTableWrite;
 class DataplaneFCFSCachedTableAllocateAndWrite;
+class DataplaneFCFSCachedSetAllocate;
+class DataplaneFCFSCachedSetRead;
+class DataplaneFCFSCachedSetWrite;
+class DataplaneFCFSCachedSetAllocateAndWrite;
 class DataplaneHHTableAllocate;
 class DataplaneHHTableRead;
 class DataplaneHHTableUpdate;
@@ -215,6 +223,10 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetInsert *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MeterUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *m) { return Action::doChildren; }
@@ -289,6 +301,12 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocateAndWrite *m) {
+    return Action::doChildren;
+  }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetRead *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocateAndWrite *m) {
     return Action::doChildren;
   }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *m) { return Action::doChildren; }

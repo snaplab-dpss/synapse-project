@@ -59,6 +59,10 @@
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableWrite.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableAllocateAndWrite.h>
+#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedSetAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedSetRead.h>
+#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedSetWrite.h>
+#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedSetAllocateAndWrite.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableUpdate.h>
@@ -154,6 +158,10 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneFCFSCachedTableReadFactory>());
               f.push_back(std::make_unique<DataplaneFCFSCachedTableWriteFactory>());
               f.push_back(std::make_unique<DataplaneFCFSCachedTableAllocateAndWriteFactory>());
+              f.push_back(std::make_unique<DataplaneFCFSCachedSetAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneFCFSCachedSetReadFactory>());
+              f.push_back(std::make_unique<DataplaneFCFSCachedSetWriteFactory>());
+              f.push_back(std::make_unique<DataplaneFCFSCachedSetAllocateAndWriteFactory>());
               f.push_back(std::make_unique<DataplaneHHTableAllocateFactory>());
               f.push_back(std::make_unique<DataplaneHHTableReadFactory>());
               f.push_back(std::make_unique<DataplaneHHTableUpdateFactory>());

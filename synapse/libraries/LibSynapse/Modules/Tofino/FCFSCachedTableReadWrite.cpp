@@ -23,7 +23,7 @@ using LibCore::expr_addr_to_obj_addr;
 
 namespace {
 
-struct fcfs_cached_table_data_t {
+struct fcfs_ct_data_t {
   addr_t obj;
   klee::ref<klee::Expr> original_key;
   std::vector<klee::ref<klee::Expr>> keys;
@@ -34,11 +34,11 @@ struct fcfs_cached_table_data_t {
   map_coalescing_objs_t map_objs;
 };
 
-std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *bdd, const Context &ctx, const Call *map_get, const Call *map_put) {
+std::optional<fcfs_ct_data_t> build_fcfs_ct_data(const BDD *bdd, const Context &ctx, const Call *map_get, const Call *map_put) {
   const call_t &get_call = map_get->get_call();
   const call_t &put_call = map_put->get_call();
 
-  fcfs_cached_table_data_t data;
+  fcfs_ct_data_t data;
   data.obj              = expr_addr_to_obj_addr(get_call.args.at("map").expr);
   data.original_key     = get_call.args.at("key").in;
   data.keys             = Table::build_keys(data.original_key, ctx.get_expr_structs());
@@ -175,7 +175,7 @@ struct rebuilt_bdd_result_t {
   BDDNode *data_plane_read_success;
 };
 
-rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const read_write_pattern_t &pattern, const fcfs_cached_table_data_t &fcfs_cached_table_data,
+rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const read_write_pattern_t &pattern, const fcfs_ct_data_t &fcfs_ct_data,
                                  const symbol_t &collision_detected, klee::ref<klee::Expr> collision_detected_condition, u32 cache_capacity) {
   rebuilt_bdd_result_t result;
 
@@ -210,8 +210,8 @@ rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const read_write_pattern_t &pattern
                                                                                         ? BDD::BranchDeletionAction::KeepOnTrue
                                                                                         : BDD::BranchDeletionAction::KeepOnFalse);
 
-  const hit_rate_t cache_collision_probability = TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(
-      new_ep->get_ctx(), pattern.map_put, fcfs_cached_table_data.original_key, cache_capacity);
+  const hit_rate_t cache_collision_probability =
+      TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(new_ep->get_ctx(), pattern.map_put, fcfs_ct_data.original_key, cache_capacity);
 
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(pattern.on_write_success->get_ordered_branch_constraints(),
                                                                    collision_detected_condition, cache_collision_probability);
@@ -228,19 +228,15 @@ rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const read_write_pattern_t &pattern
   return result;
 }
 
-std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern, const fcfs_cached_table_data_t &fcfs_cached_table_data,
+std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern, const fcfs_ct_data_t &fcfs_ct_data,
                                const symbol_t &collision_detected, u32 cache_capacity) {
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  FCFSCachedTable *cached_table =
-      TofinoModuleFactory::build_or_reuse_fcfs_cached_table(new_ep.get(), pattern.map_get, fcfs_cached_table_data.obj,
-                                                            fcfs_cached_table_data.original_key, fcfs_cached_table_data.capacity, cache_capacity);
+  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_ct(new_ep.get(), pattern.map_get, fcfs_ct_data.obj,
+                                                                              fcfs_ct_data.original_key, fcfs_ct_data.capacity, cache_capacity);
   if (!cached_table) {
     return nullptr;
   }
-
-  cached_table->set_total_indices_reserved_for_controller(TofinoModuleFactory::get_fcfs_ct_expected_controller_flows(
-      new_ep->get_ctx(), pattern.map_put, fcfs_cached_table_data.original_key, cache_capacity));
 
   klee::ref<klee::Expr> map_has_this_key_condition = solver_toolbox.exprBuilder->Ne(
       pattern.map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, pattern.map_has_this_key.expr->getWidth()));
@@ -250,13 +246,13 @@ std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern
       solver_toolbox.exprBuilder->Ne(collision_detected.expr, solver_toolbox.exprBuilder->Constant(0, collision_detected.expr->getWidth()));
 
   rebuilt_bdd_result_t rebuilt_bdd_result =
-      rebuild_bdd(new_ep.get(), pattern, fcfs_cached_table_data, collision_detected, collision_detected_condition, cache_capacity);
+      rebuild_bdd(new_ep.get(), pattern, fcfs_ct_data, collision_detected, collision_detected_condition, cache_capacity);
 
   const Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, pattern.on_write_success);
 
-  Module *module = new FCFSCachedTableReadWrite(pattern.map_get, cached_table->id, cached_table->tables.back().id, fcfs_cached_table_data.obj,
-                                                fcfs_cached_table_data.keys, fcfs_cached_table_data.read_value, fcfs_cached_table_data.write_value,
-                                                fcfs_cached_table_data.map_has_this_key, collision_detected, pattern.index_allocation_success);
+  Module *module = new FCFSCachedTableReadWrite(pattern.map_get, cached_table->id, cached_table->tables.back().id, fcfs_ct_data.obj,
+                                                fcfs_ct_data.keys, fcfs_ct_data.read_value, fcfs_ct_data.write_value, fcfs_ct_data.map_has_this_key,
+                                                collision_detected, pattern.index_allocation_success);
 
   Module *if_read_module   = new If(pattern.map_get, map_has_this_key_condition, {map_has_this_key_condition});
   Module *read_then_module = new Then(pattern.map_get);
@@ -268,7 +264,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern
 
   Module *send_to_controller_module = new SendToController(pattern.map_get, symbols);
 
-  EPNode *fcfs_cached_table_read_write_node = new EPNode(module);
+  EPNode *fcfs_ct_read_write_node = new EPNode(module);
 
   EPNode *if_read_node   = new EPNode(if_read_module);
   EPNode *read_then_node = new EPNode(read_then_module);
@@ -280,8 +276,8 @@ std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern
 
   EPNode *send_to_controller_node = new EPNode(send_to_controller_module);
 
-  fcfs_cached_table_read_write_node->set_children(if_read_node);
-  if_read_node->set_prev(fcfs_cached_table_read_write_node);
+  fcfs_ct_read_write_node->set_children(if_read_node);
+  if_read_node->set_prev(fcfs_ct_read_write_node);
 
   if_read_node->set_children(map_has_this_key_condition, read_then_node, read_else_node);
   read_then_node->set_prev(if_read_node);
@@ -298,17 +294,17 @@ std::unique_ptr<EP> concretize(const EP *ep, const read_write_pattern_t &pattern
   send_to_controller_node->set_prev(collision_detected_then_node);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(fcfs_cached_table_data.map_objs.map, DSImpl::Tofino_FCFSCachedTable);
-  ctx.save_ds_impl(fcfs_cached_table_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+  ctx.save_ds_impl(fcfs_ct_data.map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+  ctx.save_ds_impl(fcfs_ct_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
-  tofino_ctx->place(new_ep.get(), pattern.map_get, fcfs_cached_table_data.map_objs.map, cached_table);
+  tofino_ctx->place(new_ep.get(), pattern.map_get, fcfs_ct_data.map_objs.map, cached_table);
 
   EPLeaf on_read_leaf(read_then_node, rebuilt_bdd_result.data_plane_read_success);
   EPLeaf on_collision_detected_leaf(send_to_controller_node, rebuilt_bdd_result.on_collision_detected);
   EPLeaf on_write_success_leaf(collision_detected_else_node, rebuilt_bdd_result.data_plane_write_success);
 
-  new_ep->process_leaf(fcfs_cached_table_read_write_node, {on_read_leaf, on_collision_detected_leaf, on_write_success_leaf});
+  new_ep->process_leaf(fcfs_ct_read_write_node, {on_read_leaf, on_collision_detected_leaf, on_write_success_leaf});
   new_ep->replace_bdd(std::move(rebuilt_bdd_result.bdd));
 
   const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
@@ -324,33 +320,32 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
-  const std::optional<fcfs_cached_table_data_t> fcfs_cached_table_data =
-      build_fcfs_cached_table_data(ep->get_bdd(), ep->get_ctx(), pattern.map_get, pattern.map_put);
-  if (!fcfs_cached_table_data.has_value()) {
+  const std::optional<fcfs_ct_data_t> fcfs_ct_data = build_fcfs_ct_data(ep->get_bdd(), ep->get_ctx(), pattern.map_get, pattern.map_put);
+  if (!fcfs_ct_data.has_value()) {
     return {};
   }
 
-  if (!ctx.can_impl_ds(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.can_impl_ds(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.can_impl_ds(fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ctx.can_impl_ds(fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
   if (ep->get_id() == 69) {
     if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
       std::cerr << "EP node leaf: " << ep_node_leaf->dump() << "\n";
-      if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(fcfs_cached_table_data->map_objs.map))) {
+      if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(fcfs_ct_data->map_objs.map))) {
         std::cerr << "FCFSCachedTableReadWriteFactory::speculate: skipping speculation on EP 69 for DS already used\n";
       }
     }
   }
 
   if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(fcfs_cached_table_data->map_objs.map))) {
+    if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(fcfs_ct_data->map_objs.map))) {
       return {};
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_capacities();
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities();
 
   hit_rate_t chosen_collision_probability = 1_hr;
   u32 chosen_cache_capacity               = 0;
@@ -359,10 +354,9 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
   // We can use a different method for picking the right estimation depending on the time it takes to find a solution.
   for (u32 cache_capacity : allowed_cache_capacities) {
     const hit_rate_t cache_collision_probability =
-        get_fcfs_ct_cache_collision_probability(ep->get_ctx(), pattern.map_put, fcfs_cached_table_data->original_key, cache_capacity);
+        get_fcfs_ct_cache_collision_probability(ep->get_ctx(), pattern.map_put, fcfs_ct_data->original_key, cache_capacity);
 
-    if (!can_build_or_reuse_fcfs_cached_table(ep, node, fcfs_cached_table_data->obj, fcfs_cached_table_data->original_key,
-                                              fcfs_cached_table_data->capacity, cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_ct(ep, node, fcfs_ct_data->obj, fcfs_ct_data->original_key, fcfs_ct_data->capacity, cache_capacity)) {
       continue;
     }
 
@@ -383,8 +377,8 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
   const hit_rate_t hr         = new_ctx.get_profiler().get_hr(pattern.on_write_success);
   const hit_rate_t on_fail_hr = hit_rate_t{hr * chosen_collision_probability};
 
-  new_ctx.save_ds_impl(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable);
-  new_ctx.save_ds_impl(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_hr);
   for (const Route *route : pattern.on_write_success->get_future_routing_decisions()) {
@@ -416,7 +410,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadWriteFactory::speculate(const EP *
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
 
   std::vector<const BDDNode *> ignore_nodes =
-      get_nodes_to_speculatively_ignore(ep, pattern.map_get, fcfs_cached_table_data->map_objs, fcfs_cached_table_data->original_key);
+      get_nodes_to_speculatively_ignore(ep, pattern.map_get, fcfs_ct_data->map_objs, fcfs_ct_data->original_key);
   for (const BDDNode *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
   }
@@ -430,29 +424,28 @@ std::vector<impl_t> FCFSCachedTableReadWriteFactory::process_node(const EP *ep, 
     return {};
   }
 
-  const std::optional<fcfs_cached_table_data_t> fcfs_cached_table_data =
-      build_fcfs_cached_table_data(ep->get_bdd(), ep->get_ctx(), pattern.map_get, pattern.map_put);
-  if (!fcfs_cached_table_data.has_value()) {
+  const std::optional<fcfs_ct_data_t> fcfs_ct_data = build_fcfs_ct_data(ep->get_bdd(), ep->get_ctx(), pattern.map_get, pattern.map_put);
+  if (!fcfs_ct_data.has_value()) {
     return {};
   }
 
-  if (!ep->get_ctx().can_impl_ds(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ep->get_ctx().can_impl_ds(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ep->get_ctx().can_impl_ds(fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ep->get_ctx().can_impl_ds(fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
   if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(fcfs_cached_table_data->map_objs.map))) {
+    if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(fcfs_ct_data->map_objs.map))) {
       return {};
     }
   }
 
   const symbol_t collision_detected               = symbol_manager->create_symbol("collision_detected", 32);
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_capacities();
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities();
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-    std::unique_ptr<EP> new_ep = concretize(ep, pattern, fcfs_cached_table_data.value(), collision_detected, cache_capacity);
+    std::unique_ptr<EP> new_ep = concretize(ep, pattern, fcfs_ct_data.value(), collision_detected, cache_capacity);
     if (new_ep) {
       impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(std::move(impl));

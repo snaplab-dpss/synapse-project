@@ -1635,6 +1635,34 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocate *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  panic("TODO: Controller::FCFSCachedSetAllocate");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetRead *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  panic("TODO: Controller::FCFSCachedSetRead");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetWrite *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  panic("TODO: Controller::FCFSCachedSetWrite");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocateAndWrite *node) {
+  coder_t &coder = get_current_coder();
+  coder.indent();
+  panic("TODO: Controller::FCFSCachedSetAllocateAndWrite");
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *node) {
   const addr_t obj                = node->get_obj();
   const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());

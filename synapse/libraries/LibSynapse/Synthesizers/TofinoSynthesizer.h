@@ -230,6 +230,10 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) override final;
@@ -277,7 +281,7 @@ private:
   void transpile_hash_decl(const Hash *hash);
   void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash);
   void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
-  void transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, const std::vector<klee::ref<klee::Expr>> &keys);
+  void transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, const std::vector<klee::ref<klee::Expr>> &keys);
   void transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
   std::vector<code_t> cms_get_hashes_values(const CountMinSketch *cms);
   std::vector<code_t> cms_get_hashes_calculators(const CountMinSketch *cms, const EPNode *ep_node);

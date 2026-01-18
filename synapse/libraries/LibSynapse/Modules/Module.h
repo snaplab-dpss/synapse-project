@@ -49,6 +49,10 @@ enum class ModuleType {
   Tofino_FCFSCachedTableRead,
   Tofino_FCFSCachedTableReadWrite,
   Tofino_FCFSCachedTableWrite,
+  Tofino_FCFSCachedSetRead,
+  Tofino_FCFSCachedSetReadWrite,
+  Tofino_FCFSCachedSetWrite,
+  Tofino_FCFSCachedSetInsert,
   Tofino_MeterUpdate,
   Tofino_HHTableRead,
   Tofino_HHTableOutOfBandUpdate,
@@ -104,6 +108,10 @@ enum class ModuleType {
   Controller_DataplaneFCFSCachedTableRead,
   Controller_DataplaneFCFSCachedTableWrite,
   Controller_DataplaneFCFSCachedTableAllocateAndWrite,
+  Controller_DataplaneFCFSCachedSetAllocate,
+  Controller_DataplaneFCFSCachedSetRead,
+  Controller_DataplaneFCFSCachedSetWrite,
+  Controller_DataplaneFCFSCachedSetAllocateAndWrite,
   Controller_DataplaneHHTableAllocate,
   Controller_DataplaneHHTableRead,
   Controller_DataplaneHHTableUpdate,
@@ -269,6 +277,18 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_FCFSCachedTableWrite:
     os << "Tofino_FCFSCachedTableWrite";
     break;
+  case ModuleType::Tofino_FCFSCachedSetRead:
+    os << "Tofino_FCFSCachedSetRead";
+    break;
+  case ModuleType::Tofino_FCFSCachedSetReadWrite:
+    os << "Tofino_FCFSCachedSetReadWrite";
+    break;
+  case ModuleType::Tofino_FCFSCachedSetWrite:
+    os << "Tofino_FCFSCachedSetWrite";
+    break;
+  case ModuleType::Tofino_FCFSCachedSetInsert:
+    os << "Tofino_FCFSCachedSetInsert";
+    break;
   case ModuleType::Tofino_MeterUpdate:
     os << "Tofino_MeterUpdate";
     break;
@@ -424,6 +444,18 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneFCFSCachedTableAllocateAndWrite:
     os << "Controller_DataplaneFCFSCachedTableAllocateAndWrite";
+    break;
+  case ModuleType::Controller_DataplaneFCFSCachedSetAllocate:
+    os << "Controller_DataplaneFCFSCachedSetAllocate";
+    break;
+  case ModuleType::Controller_DataplaneFCFSCachedSetRead:
+    os << "Controller_DataplaneFCFSCachedSetRead";
+    break;
+  case ModuleType::Controller_DataplaneFCFSCachedSetWrite:
+    os << "Controller_DataplaneFCFSCachedSetWrite";
+    break;
+  case ModuleType::Controller_DataplaneFCFSCachedSetAllocateAndWrite:
+    os << "Controller_DataplaneFCFSCachedSetAllocateAndWrite";
     break;
   case ModuleType::Controller_DataplaneHHTableAllocate:
     os << "Controller_DataplaneHHTableAllocate";

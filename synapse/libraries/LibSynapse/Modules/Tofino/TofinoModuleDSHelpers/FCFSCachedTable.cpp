@@ -9,7 +9,7 @@ namespace Tofino {
 
 namespace {
 
-FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const BDDNode *node, DS_ID id, klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity) {
+FCFSCachedTable *build_fcfs_ct(const EP *ep, const BDDNode *node, DS_ID id, klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity) {
   const Context &ctx                 = ep->get_ctx();
   const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>();
   const TNA &tna                     = tofino_ctx->get_tna();
@@ -24,17 +24,17 @@ FCFSCachedTable *build_fcfs_cached_table(const EP *ep, const BDDNode *node, DS_I
 
   const u8 used_digests = tofino_ctx->get_tna().pipeline.get_used_digests() + 1;
 
-  FCFSCachedTable *fcfs_cached_table = new FCFSCachedTable(properties, id, node->get_id(), cache_capacity, capacity, keys_sizes, used_digests);
+  FCFSCachedTable *fcfs_ct = new FCFSCachedTable(properties, id, node->get_id(), cache_capacity, capacity, keys_sizes, used_digests);
 
-  if (!tofino_ctx->can_place(ep, node, fcfs_cached_table)) {
-    delete fcfs_cached_table;
-    fcfs_cached_table = nullptr;
+  if (!tofino_ctx->can_place(ep, node, fcfs_ct)) {
+    delete fcfs_ct;
+    fcfs_ct = nullptr;
   }
 
-  return fcfs_cached_table;
+  return fcfs_ct;
 }
 
-FCFSCachedTable *internal_get_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj) {
+FCFSCachedTable *internal_get_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj) {
   const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
 
@@ -50,95 +50,93 @@ FCFSCachedTable *internal_get_fcfs_cached_table(const EP *ep, const BDDNode *nod
   return dynamic_cast<FCFSCachedTable *>(*ds.begin());
 }
 
-FCFSCachedTable *reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity) {
-  FCFSCachedTable *fcfs_cached_table = internal_get_fcfs_cached_table(ep, node, obj);
-  assert(fcfs_cached_table && "FCFS cached table not found");
+FCFSCachedTable *reuse_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity) {
+  FCFSCachedTable *fcfs_ct = internal_get_fcfs_ct(ep, node, obj);
+  assert(fcfs_ct && "FCFS cached table not found");
 
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
-  assert(!fcfs_cached_table->has_table(node->get_id()));
+  assert(!fcfs_ct->has_table(node->get_id()));
 
-  if (fcfs_cached_table->cache_capacity != cache_capacity) {
+  if (fcfs_ct->cache_capacity != cache_capacity) {
     return nullptr;
   }
 
   std::optional<DS_ID> added_table_id;
-  if (!fcfs_cached_table->has_table(node->get_id())) {
-    added_table_id = fcfs_cached_table->add_table(node->get_id());
+  if (!fcfs_ct->has_table(node->get_id())) {
+    added_table_id = fcfs_ct->add_table(node->get_id());
   }
 
-  if (!tofino_ctx->can_place(ep, node, fcfs_cached_table)) {
+  if (!tofino_ctx->can_place(ep, node, fcfs_ct)) {
     if (added_table_id.has_value()) {
-      fcfs_cached_table->remove_table(added_table_id.value());
+      fcfs_ct->remove_table(added_table_id.value());
     }
-    fcfs_cached_table = nullptr;
+    fcfs_ct = nullptr;
   }
 
-  return fcfs_cached_table;
+  return fcfs_ct;
 }
 
 } // namespace
 
-DS_ID TofinoModuleFactory::build_fcfs_cached_table_id(addr_t obj) { return "fcfs_cached_table_" + std::to_string(obj); }
+DS_ID TofinoModuleFactory::build_fcfs_ct_id(addr_t obj) { return "fcfs_ct_" + std::to_string(obj); }
 
-FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key,
-                                                                       u32 capacity, u32 cache_capacity) {
-  FCFSCachedTable *fcfs_cached_table = nullptr;
+FCFSCachedTable *TofinoModuleFactory::build_or_reuse_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
+                                                             u32 cache_capacity) {
+  FCFSCachedTable *fcfs_ct = nullptr;
 
   const Context &ctx        = ep->get_ctx();
   const bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable);
 
   if (already_placed) {
-    fcfs_cached_table = reuse_fcfs_cached_table(ep, node, obj, cache_capacity);
+    fcfs_ct = reuse_fcfs_ct(ep, node, obj, cache_capacity);
   } else {
-    const DS_ID id    = build_fcfs_cached_table_id(obj);
-    fcfs_cached_table = build_fcfs_cached_table(ep, node, id, key, capacity, cache_capacity);
+    const DS_ID id = build_fcfs_ct_id(obj);
+    fcfs_ct        = build_fcfs_ct(ep, node, id, key, capacity, cache_capacity);
   }
 
-  return fcfs_cached_table;
+  return fcfs_ct;
 }
 
-bool TofinoModuleFactory::can_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity) {
-  FCFSCachedTable *fcfs_cached_table = internal_get_fcfs_cached_table(ep, node, obj);
-  assert(fcfs_cached_table && "FCFS cached table not found");
+bool TofinoModuleFactory::can_reuse_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity) {
+  FCFSCachedTable *fcfs_ct = internal_get_fcfs_ct(ep, node, obj);
+  assert(fcfs_ct && "FCFS cached table not found");
 
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
-  assert(!fcfs_cached_table->has_table(node->get_id()));
+  assert(!fcfs_ct->has_table(node->get_id()));
 
-  if (fcfs_cached_table->cache_capacity != cache_capacity) {
+  if (fcfs_ct->cache_capacity != cache_capacity) {
     return false;
   }
 
-  std::unique_ptr<FCFSCachedTable> clone = std::unique_ptr<FCFSCachedTable>(dynamic_cast<FCFSCachedTable *>(fcfs_cached_table->clone()));
+  std::unique_ptr<FCFSCachedTable> clone = std::unique_ptr<FCFSCachedTable>(dynamic_cast<FCFSCachedTable *>(fcfs_ct->clone()));
   clone->add_table(node->get_id());
 
   return tofino_ctx->can_place(ep, node, clone.get());
 }
 
-bool TofinoModuleFactory::can_build_or_reuse_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
-                                                               u32 cache_capacity) {
+bool TofinoModuleFactory::can_build_or_reuse_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
+                                                     u32 cache_capacity) {
   const Context &ctx        = ep->get_ctx();
   const bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable);
 
   if (already_placed) {
-    return can_reuse_fcfs_cached_table(ep, node, obj, cache_capacity);
+    return can_reuse_fcfs_ct(ep, node, obj, cache_capacity);
   }
 
-  const DS_ID id                     = build_fcfs_cached_table_id(obj);
-  FCFSCachedTable *fcfs_cached_table = build_fcfs_cached_table(ep, node, id, key, capacity, cache_capacity);
+  const DS_ID id           = build_fcfs_ct_id(obj);
+  FCFSCachedTable *fcfs_ct = build_fcfs_ct(ep, node, id, key, capacity, cache_capacity);
 
-  if (!fcfs_cached_table) {
+  if (!fcfs_ct) {
     return false;
   }
 
-  delete fcfs_cached_table;
+  delete fcfs_ct;
   return true;
 }
 
-FCFSCachedTable *TofinoModuleFactory::get_fcfs_cached_table(const EP *ep, const BDDNode *node, addr_t obj) {
-  return internal_get_fcfs_cached_table(ep, node, obj);
-}
+FCFSCachedTable *TofinoModuleFactory::get_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj) { return internal_get_fcfs_ct(ep, node, obj); }
 
-std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_capacities() {
+std::vector<u32> TofinoModuleFactory::enum_fcfs_ct_cache_capacities() {
   std::vector<u32> capacities;
 
   u32 cache_capacity = 8;
@@ -153,8 +151,7 @@ std::vector<u32> TofinoModuleFactory::enum_fcfs_cache_capacities() {
 hit_rate_t TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key,
                                                                         u32 cache_capacity) {
   const flow_stats_t flow_stats = ctx.get_profiler().get_flow_stats(map_put, key);
-  const u32 pipelines           = ctx.get_target_ctx<TofinoContext>()->get_tna().tna_config.properties.pipes;
-  const u32 mask                = (pipelines * cache_capacity) - 1;
+  const u32 mask                = cache_capacity - 1;
   assert_or_panic(flow_stats.crc32_hashes_per_mask.contains(mask), "Failed to find crc32 hash for mask %u", mask);
   const u64 total_flow_hashes = flow_stats.crc32_hashes_per_mask.at(mask);
 
@@ -168,14 +165,6 @@ hit_rate_t TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(const Co
   // std::cerr << "Expected controller flows: " << controller_flows << "\n";
 
   return collision_probability;
-}
-
-u64 TofinoModuleFactory::get_fcfs_ct_expected_controller_flows(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key,
-                                                               u32 cache_capacity) {
-  const hit_rate_t collision_probability = get_fcfs_ct_cache_collision_probability(ctx, map_put, key, cache_capacity);
-  const flow_stats_t flow_stats          = ctx.get_profiler().get_flow_stats(map_put, key);
-  const u64 controller_flows             = flow_stats.flows * collision_probability.value;
-  return controller_flows;
 }
 
 } // namespace Tofino

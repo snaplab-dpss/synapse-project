@@ -6,6 +6,7 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/Hash.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Digest.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/FCFSCachedTable.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/FCFSCachedSet.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/HHTable.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/CountMinSketch.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/LPM.h>

@@ -38,7 +38,7 @@ map_set_table_data_t get_map_set_table_data(const Context &ctx, const Call *call
 }
 
 std::unique_ptr<BDD> rebuild_bdd(EP *new_ep, const BDDNode *node, const map_set_table_data_t &map_set_table_data,
-                                 const LibBDD::map_coalescing_objs_t &map_coalescing_objs, BDDNode *&new_next) {
+                                 const map_coalescing_objs_t &map_coalescing_objs, BDDNode *&new_next) {
   const BDD *old_bdd       = new_ep->get_bdd();
   std::unique_ptr<BDD> bdd = std::make_unique<BDD>(*old_bdd);
 
@@ -75,7 +75,7 @@ std::optional<spec_impl_t> MapSetTableLookupFactory::speculate(const EP *ep, con
 
   const map_set_table_data_t data = get_map_set_table_data(ep->get_ctx(), map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> coalescing_objs = ctx.get_map_coalescing_objs(data.obj);
+  const std::optional<map_coalescing_objs_t> coalescing_objs = ctx.get_map_coalescing_objs(data.obj);
   if (!coalescing_objs.has_value()) {
     return {};
   }
@@ -84,7 +84,7 @@ std::optional<spec_impl_t> MapSetTableLookupFactory::speculate(const EP *ep, con
     return {};
   }
 
-  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(coalescing_objs->dchain)) {
+  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(coalescing_objs->dchain)) {
     return {};
   }
 
@@ -117,7 +117,7 @@ std::vector<impl_t> MapSetTableLookupFactory::process_node(const EP *ep, const B
 
   const map_set_table_data_t data = get_map_set_table_data(ep->get_ctx(), map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> coalescing_objs = ep->get_ctx().get_map_coalescing_objs(data.obj);
+  const std::optional<map_coalescing_objs_t> coalescing_objs = ep->get_ctx().get_map_coalescing_objs(data.obj);
   if (!coalescing_objs.has_value()) {
     return {};
   }
@@ -126,7 +126,7 @@ std::vector<impl_t> MapSetTableLookupFactory::process_node(const EP *ep, const B
     return {};
   }
 
-  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(coalescing_objs->dchain)) {
+  if (!ep->get_ctx().is_dchain_used_exclusively_for_linking_maps_with_vectors(coalescing_objs->dchain)) {
     return {};
   }
 
@@ -179,7 +179,7 @@ std::unique_ptr<Module> MapSetTableLookupFactory::create(const BDD *bdd, const C
 
   const map_set_table_data_t data = get_map_set_table_data(ctx, map_get);
 
-  const std::optional<LibBDD::map_coalescing_objs_t> coalescing_objs = ctx.get_map_coalescing_objs(data.obj);
+  const std::optional<map_coalescing_objs_t> coalescing_objs = ctx.get_map_coalescing_objs(data.obj);
   if (!coalescing_objs.has_value()) {
     return {};
   }
@@ -188,7 +188,7 @@ std::unique_ptr<Module> MapSetTableLookupFactory::create(const BDD *bdd, const C
     return {};
   }
 
-  if (!bdd->is_dchain_used_exclusively_for_linking_maps_with_vectors(coalescing_objs->dchain)) {
+  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(coalescing_objs->dchain)) {
     return {};
   }
 

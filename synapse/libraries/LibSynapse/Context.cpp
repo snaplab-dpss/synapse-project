@@ -92,6 +92,10 @@ void Context::bdd_pre_processing_get_coalescing_candidates(const BDD *bdd) {
       map_coalescing_objs_t candidate;
       if (bdd->get_map_coalescing_objs(addr, candidate)) {
         coalescing_candidates.push_back(candidate);
+
+        if (bdd->is_dchain_used_exclusively_for_linking_maps_with_vectors(candidate.dchain)) {
+          dchains_used_exclusively_for_linking_maps_with_vectors.insert(candidate.dchain);
+        }
       }
     }
   }
@@ -334,6 +338,12 @@ void Context::bdd_pre_processing_log() {
     std::cerr << "]\n";
   }
 
+  std::cerr << "Dchains used exclusively for linking maps with vectors: [";
+  for (const addr_t dchain : dchains_used_exclusively_for_linking_maps_with_vectors) {
+    std::cerr << dchain << " ";
+  }
+  std::cerr << "]\n";
+
   std::cerr << "Hit rates of dchains failing to allocate new index:\n";
   for (const auto &[dchain, hit_rates] : dchains_failing_to_allocate_new_index_hit_rates) {
     std::cerr << "  dchain=" << dchain << ", hit rates={";
@@ -389,6 +399,7 @@ Context::Context(const Context &other)
     : profiler(other.profiler), perf_oracle(other.perf_oracle), map_configs(other.map_configs), vector_configs(other.vector_configs),
       dchain_configs(other.dchain_configs), cms_configs(other.cms_configs), bf_configs(other.bf_configs), cht_configs(other.cht_configs),
       tb_configs(other.tb_configs), coalescing_candidates(other.coalescing_candidates),
+      dchains_used_exclusively_for_linking_maps_with_vectors(other.dchains_used_exclusively_for_linking_maps_with_vectors),
       dchains_failing_to_allocate_new_index_hit_rates(other.dchains_failing_to_allocate_new_index_hit_rates), expiration_data(other.expiration_data),
       expr_structs(other.expr_structs), ds_impls(other.ds_impls) {
   for (auto &target_ctx_pair : other.target_ctxs) {
@@ -401,6 +412,7 @@ Context::Context(Context &&other)
       vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)), cms_configs(std::move(other.cms_configs)),
       bf_configs(std::move(other.bf_configs)), cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
       coalescing_candidates(std::move(other.coalescing_candidates)),
+      dchains_used_exclusively_for_linking_maps_with_vectors(std::move(dchains_used_exclusively_for_linking_maps_with_vectors)),
       dchains_failing_to_allocate_new_index_hit_rates(std::move(other.dchains_failing_to_allocate_new_index_hit_rates)),
       expiration_data(std::move(other.expiration_data)), expr_structs(std::move(other.expr_structs)), ds_impls(std::move(other.ds_impls)),
       target_ctxs(std::move(other.target_ctxs)) {}
@@ -426,20 +438,21 @@ Context &Context::operator=(const Context &other) {
     }
   }
 
-  profiler                                        = other.profiler;
-  perf_oracle                                     = other.perf_oracle;
-  map_configs                                     = other.map_configs;
-  vector_configs                                  = other.vector_configs;
-  dchain_configs                                  = other.dchain_configs;
-  cms_configs                                     = other.cms_configs;
-  bf_configs                                      = other.bf_configs;
-  cht_configs                                     = other.cht_configs;
-  tb_configs                                      = other.tb_configs;
-  coalescing_candidates                           = other.coalescing_candidates;
-  dchains_failing_to_allocate_new_index_hit_rates = other.dchains_failing_to_allocate_new_index_hit_rates;
-  expiration_data                                 = other.expiration_data;
-  expr_structs                                    = other.expr_structs;
-  ds_impls                                        = other.ds_impls;
+  profiler                                               = other.profiler;
+  perf_oracle                                            = other.perf_oracle;
+  map_configs                                            = other.map_configs;
+  vector_configs                                         = other.vector_configs;
+  dchain_configs                                         = other.dchain_configs;
+  cms_configs                                            = other.cms_configs;
+  bf_configs                                             = other.bf_configs;
+  cht_configs                                            = other.cht_configs;
+  tb_configs                                             = other.tb_configs;
+  coalescing_candidates                                  = other.coalescing_candidates;
+  dchains_used_exclusively_for_linking_maps_with_vectors = other.dchains_used_exclusively_for_linking_maps_with_vectors;
+  dchains_failing_to_allocate_new_index_hit_rates        = other.dchains_failing_to_allocate_new_index_hit_rates;
+  expiration_data                                        = other.expiration_data;
+  expr_structs                                           = other.expr_structs;
+  ds_impls                                               = other.ds_impls;
 
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
@@ -460,21 +473,22 @@ Context &Context::operator=(Context &&other) {
     }
   }
 
-  profiler                                        = std::move(other.profiler);
-  perf_oracle                                     = std::move(other.perf_oracle);
-  map_configs                                     = std::move(other.map_configs);
-  vector_configs                                  = std::move(other.vector_configs);
-  dchain_configs                                  = std::move(other.dchain_configs);
-  cms_configs                                     = std::move(other.cms_configs);
-  bf_configs                                      = std::move(other.bf_configs);
-  cht_configs                                     = std::move(other.cht_configs);
-  tb_configs                                      = std::move(other.tb_configs);
-  coalescing_candidates                           = std::move(other.coalescing_candidates);
-  dchains_failing_to_allocate_new_index_hit_rates = std::move(other.dchains_failing_to_allocate_new_index_hit_rates);
-  expiration_data                                 = std::move(other.expiration_data);
-  expr_structs                                    = std::move(other.expr_structs);
-  ds_impls                                        = std::move(other.ds_impls);
-  target_ctxs                                     = std::move(other.target_ctxs);
+  profiler                                               = std::move(other.profiler);
+  perf_oracle                                            = std::move(other.perf_oracle);
+  map_configs                                            = std::move(other.map_configs);
+  vector_configs                                         = std::move(other.vector_configs);
+  dchain_configs                                         = std::move(other.dchain_configs);
+  cms_configs                                            = std::move(other.cms_configs);
+  bf_configs                                             = std::move(other.bf_configs);
+  cht_configs                                            = std::move(other.cht_configs);
+  tb_configs                                             = std::move(other.tb_configs);
+  coalescing_candidates                                  = std::move(other.coalescing_candidates);
+  dchains_used_exclusively_for_linking_maps_with_vectors = std::move(other.dchains_used_exclusively_for_linking_maps_with_vectors);
+  dchains_failing_to_allocate_new_index_hit_rates        = std::move(other.dchains_failing_to_allocate_new_index_hit_rates);
+  expiration_data                                        = std::move(other.expiration_data);
+  expr_structs                                           = std::move(other.expr_structs);
+  ds_impls                                               = std::move(other.ds_impls);
+  target_ctxs                                            = std::move(other.target_ctxs);
 
   return *this;
 }
@@ -536,6 +550,10 @@ std::optional<map_coalescing_objs_t> Context::get_map_coalescing_objs(addr_t obj
   return {};
 }
 
+bool Context::is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const {
+  return dchains_used_exclusively_for_linking_maps_with_vectors.contains(dchain);
+}
+
 const std::vector<hit_rate_t> &Context::get_failing_to_allocate_new_index_hit_rates(addr_t dchain) const {
   auto found_it = dchains_failing_to_allocate_new_index_hit_rates.find(dchain);
   assert(found_it != dchains_failing_to_allocate_new_index_hit_rates.end() && "Dchain not found");
@@ -588,6 +606,9 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
     break;
   case DSImpl::Tofino_FCFSCachedTable:
     os << "Tofino::FCFSCachedTable";
+    break;
+  case DSImpl::Tofino_FCFSCachedSet:
+    os << "Tofino::FCFSCachedSet";
     break;
   case DSImpl::Tofino_Meter:
     os << "Tofino::Meter";

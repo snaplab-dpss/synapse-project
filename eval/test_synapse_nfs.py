@@ -107,16 +107,16 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
-    SynapseNF(
-        name="gallium-fw",
-        description="Gallium FW",
-        kvs_mode=False,
-        tofino=Path("synthesized/gallium-fw.p4"),
-        controller=Path("synthesized/gallium-fw.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-    ),
+    # SynapseNF(
+    #     name="gallium-fw",
+    #     description="Gallium FW",
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/gallium-fw.p4"),
+    #     controller=Path("synthesized/gallium-fw.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
     # SynapseNF(
     #     name="synapse-nat",
     #     description="Synapse NAT",
@@ -177,6 +177,16 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
+    SynapseNF(
+        name="gallium-cl",
+        description="Gallium CL",
+        kvs_mode=False,
+        tofino=Path("synthesized/gallium-cl.p4"),
+        controller=Path("synthesized/gallium-cl.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+    ),
 ]
 
 

@@ -75,6 +75,7 @@ private:
       case DSImpl::Tofino_MapSetTable:
       case DSImpl::Tofino_GuardedMapTable:
       case DSImpl::Tofino_FCFSCachedTable:
+      case DSImpl::Tofino_FCFSCachedSet:
       case DSImpl::Tofino_Meter:
       case DSImpl::Tofino_HeavyHitterTable:
       case DSImpl::Tofino_IntegerAllocator:

@@ -7,7 +7,7 @@ namespace Tofino {
 
 class FCFSCachedTableReadWrite : public TofinoModule {
 private:
-  DS_ID fcfs_cached_table_id;
+  DS_ID fcfs_ct_id;
   DS_ID used_table_id;
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
@@ -18,22 +18,22 @@ private:
   symbol_t index_allocation_success;
 
 public:
-  FCFSCachedTableReadWrite(const BDDNode *_node, DS_ID _fcfs_cached_table_id, DS_ID _used_table_id, addr_t _obj,
+  FCFSCachedTableReadWrite(const BDDNode *_node, DS_ID _fcfs_ct_id, DS_ID _used_table_id, addr_t _obj,
                            const std::vector<klee::ref<klee::Expr>> &_keys, klee::ref<klee::Expr> _read_value, klee::ref<klee::Expr> _write_value,
                            const symbol_t &_map_has_this_key, const symbol_t &_collision_detected, const symbol_t &_index_allocation_success)
-      : TofinoModule(ModuleType::Tofino_FCFSCachedTableReadWrite, "FCFSCachedTableReadWrite", _node), fcfs_cached_table_id(_fcfs_cached_table_id),
+      : TofinoModule(ModuleType::Tofino_FCFSCachedTableReadWrite, "FCFSCachedTableReadWrite", _node), fcfs_ct_id(_fcfs_ct_id),
         used_table_id(_used_table_id), obj(_obj), keys(_keys), read_value(_read_value), write_value(_write_value),
         map_has_this_key(_map_has_this_key), collision_detected(_collision_detected), index_allocation_success(_index_allocation_success) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new FCFSCachedTableReadWrite(node, fcfs_cached_table_id, used_table_id, obj, keys, read_value, write_value, map_has_this_key,
+    Module *cloned = new FCFSCachedTableReadWrite(node, fcfs_ct_id, used_table_id, obj, keys, read_value, write_value, map_has_this_key,
                                                   collision_detected, index_allocation_success);
     return cloned;
   }
 
-  DS_ID get_fcfs_cached_table_id() const { return fcfs_cached_table_id; }
+  DS_ID get_fcfs_ct_id() const { return fcfs_ct_id; }
   DS_ID get_used_table_id() const { return used_table_id; }
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
@@ -43,7 +43,7 @@ public:
   const symbol_t &get_collision_detected() const { return collision_detected; }
   const symbol_t &get_index_allocation_success() const { return index_allocation_success; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {fcfs_cached_table_id}; }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {fcfs_ct_id}; }
 };
 
 class FCFSCachedTableReadWriteFactory : public TofinoModuleFactory {

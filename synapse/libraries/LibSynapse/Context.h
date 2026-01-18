@@ -40,6 +40,7 @@ enum class DSImpl {
   Tofino_DchainTable,
   Tofino_VectorRegister,
   Tofino_FCFSCachedTable,
+  Tofino_FCFSCachedSet,
   Tofino_Meter,
   Tofino_HeavyHitterTable,
   Tofino_IntegerAllocator,
@@ -104,6 +105,7 @@ private:
   std::unordered_map<addr_t, tb_config_t> tb_configs;
 
   std::vector<map_coalescing_objs_t> coalescing_candidates;
+  std::unordered_set<addr_t> dchains_used_exclusively_for_linking_maps_with_vectors;
   std::unordered_map<addr_t, std::vector<hit_rate_t>> dchains_failing_to_allocate_new_index_hit_rates;
   std::optional<expiration_data_t> expiration_data;
   std::vector<expr_struct_t> expr_structs;
@@ -137,6 +139,7 @@ public:
   const tb_config_t &get_tb_config(addr_t addr) const;
 
   std::optional<map_coalescing_objs_t> get_map_coalescing_objs(addr_t obj) const;
+  bool is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const;
   const std::vector<hit_rate_t> &get_failing_to_allocate_new_index_hit_rates(addr_t dchain) const;
   const std::optional<expiration_data_t> &get_expiration_data() const;
   const std::vector<expr_struct_t> &get_expr_structs() const;

@@ -1347,17 +1347,17 @@ void TofinoSynthesizer::transpile_digest_decl(const Digest *digest, const std::v
   ingress_deparser << "Digest<" << digest_hdr << ">() " << digest->id << ";\n";
 }
 
-void TofinoSynthesizer::transpile_fcfs_cached_table_decl(const FCFSCachedTable *fcfs_cached_table, const std::vector<klee::ref<klee::Expr>> &keys) {
-  if (declared_ds.find(fcfs_cached_table->id) != declared_ds.end()) {
+void TofinoSynthesizer::transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, const std::vector<klee::ref<klee::Expr>> &keys) {
+  if (declared_ds.find(fcfs_ct->id) != declared_ds.end()) {
     return;
   }
 
-  declared_ds.insert(fcfs_cached_table->id);
+  declared_ds.insert(fcfs_ct->id);
 
-  transpile_hash_decl(&fcfs_cached_table->hash);
-  // transpile_register_decl(&fcfs_cached_table->cache_expirator);
+  transpile_hash_decl(&fcfs_ct->hash);
+  // transpile_register_decl(&fcfs_ct->cache_expirator);
 
-  for (const Register &reg_key : fcfs_cached_table->cache_keys) {
+  for (const Register &reg_key : fcfs_ct->cache_keys) {
     transpile_register_decl(&reg_key);
   }
 
@@ -2810,16 +2810,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) {
   // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  const DS_ID fcfscached_table_id                = node->get_fcfs_cached_table_id();
+  const DS_ID fcfscached_table_id                = node->get_fcfs_ct_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
 
-  const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
-  const DS_ID table_id                     = node->get_used_table_id();
-  fcfs_cached_table->debug();
-  const Table *table = fcfs_cached_table->get_table(table_id);
+  const FCFSCachedTable *fcfs_ct = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
+  const DS_ID table_id           = node->get_used_table_id();
+  fcfs_ct->debug();
+  const Table *table = fcfs_ct->get_table(table_id);
   assert(table && "Table not found");
 
-  transpile_fcfs_cached_table_decl(fcfs_cached_table, keys);
+  transpile_fcfs_ct_decl(fcfs_ct, keys);
 
   std::vector<var_t> keys_vars;
   transpile_table_decl(table, keys, {}, true, keys_vars);
@@ -2827,15 +2827,15 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   todo();
 
   // const code_t cache_expirator_action_name =
-  //     build_register_action_name(&fcfs_cached_table->cache_expirator, RegisterActionType::QueryTimestamp, ep_node);
+  //     build_register_action_name(&fcfs_ct->cache_expirator, RegisterActionType::QueryTimestamp, ep_node);
 
-  // transpile_register_action_decl(&fcfs_cached_table->cache_expirator, cache_expirator_action_name, RegisterActionType::QueryTimestamp,
+  // transpile_register_action_decl(&fcfs_ct->cache_expirator, cache_expirator_action_name, RegisterActionType::QueryTimestamp,
   //                                std::to_string(FCFSCachedTable::ENTRY_TIMEOUT));
 
-  // assert(fcfs_cached_table->cache_keys.size() == keys_vars.size());
+  // assert(fcfs_ct->cache_keys.size() == keys_vars.size());
   // std::vector<code_t> reg_keys_read_actions;
   // for (size_t i = 0; i < keys_vars.size(); i++) {
-  //   const Register &reg                   = fcfs_cached_table->cache_keys[i];
+  //   const Register &reg                   = fcfs_ct->cache_keys[i];
   //   const code_t reg_key_read_action_name = build_register_action_name(&reg, RegisterActionType::CheckValue, ep_node);
   //   reg_keys_read_actions.push_back(reg_key_read_action_name);
   //   transpile_register_action_decl(&reg, reg_key_read_action_name, RegisterActionType::CheckValue, keys_vars[i].name);
@@ -2847,7 +2847,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // }
   // code_t hash_calculator;
   // code_t output_hash;
-  // transpile_hash_calculation(&fcfs_cached_table->hash, hash_inputs, hash_calculator, output_hash);
+  // transpile_hash_calculation(&fcfs_ct->hash, hash_inputs, hash_calculator, output_hash);
 
   // for (const var_t &key_var : keys_vars) {
   //   ingress_apply.indent();
@@ -2902,15 +2902,15 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) {
   // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  const DS_ID fcfscached_table_id                = node->get_fcfs_cached_table_id();
+  const DS_ID fcfscached_table_id                = node->get_fcfs_ct_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
 
-  const FCFSCachedTable *fcfs_cached_table = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
-  const bdd_node_id_t node_id              = node->get_node()->get_id();
-  const Table *table                       = fcfs_cached_table->get_table(node_id);
+  const FCFSCachedTable *fcfs_ct = get_tofino_ds<FCFSCachedTable>(ep, fcfscached_table_id);
+  const bdd_node_id_t node_id    = node->get_node()->get_id();
+  const Table *table             = fcfs_ct->get_table(node_id);
   assert(table && "Table not found");
 
-  transpile_fcfs_cached_table_decl(fcfs_cached_table, keys);
+  transpile_fcfs_ct_decl(fcfs_ct, keys);
 
   std::vector<var_t> keys_vars;
   transpile_table_decl(table, keys, {}, true, keys_vars);
@@ -2918,15 +2918,15 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   todo();
 
   // const code_t cache_expirator_action_name =
-  //     build_register_action_name(&fcfs_cached_table->cache_expirator, RegisterActionType::QueryAndRefreshTimestamp, ep_node);
+  //     build_register_action_name(&fcfs_ct->cache_expirator, RegisterActionType::QueryAndRefreshTimestamp, ep_node);
 
-  // transpile_register_action_decl(&fcfs_cached_table->cache_expirator, cache_expirator_action_name, RegisterActionType::QueryAndRefreshTimestamp,
+  // transpile_register_action_decl(&fcfs_ct->cache_expirator, cache_expirator_action_name, RegisterActionType::QueryAndRefreshTimestamp,
   //                                std::to_string(FCFSCachedTable::ENTRY_TIMEOUT));
 
-  // assert(fcfs_cached_table->cache_keys.size() == keys_vars.size());
+  // assert(fcfs_ct->cache_keys.size() == keys_vars.size());
   // std::vector<code_t> reg_keys_read_actions;
   // for (size_t i = 0; i < keys_vars.size(); i++) {
-  //   const Register &reg                   = fcfs_cached_table->cache_keys[i];
+  //   const Register &reg                   = fcfs_ct->cache_keys[i];
   //   const code_t reg_key_read_action_name = build_register_action_name(&reg, RegisterActionType::CheckValue, ep_node);
   //   reg_keys_read_actions.push_back(reg_key_read_action_name);
   //   transpile_register_action_decl(&reg, reg_key_read_action_name, RegisterActionType::CheckValue, keys_vars[i].name);
@@ -2934,13 +2934,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   // std::vector<code_t> reg_keys_write_actions;
   // for (size_t i = 0; i < keys_vars.size(); i++) {
-  //   const Register &reg                    = fcfs_cached_table->cache_keys[i];
+  //   const Register &reg                    = fcfs_ct->cache_keys[i];
   //   const code_t reg_key_write_action_name = build_register_action_name(&reg, RegisterActionType::Write, ep_node);
   //   reg_keys_write_actions.push_back(reg_key_write_action_name);
   //   transpile_register_action_decl(&reg, reg_key_write_action_name, RegisterActionType::Write, keys_vars[i].name);
   // }
 
-  // transpile_digest_decl(&fcfs_cached_table->digest, keys);
+  // transpile_digest_decl(&fcfs_ct->digest, keys);
 
   // std::vector<code_t> hash_inputs;
   // for (const var_t &key_var : keys_vars) {
@@ -2948,7 +2948,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // }
   // code_t hash_calculator;
   // code_t output_hash;
-  // transpile_hash_calculation(&fcfs_cached_table->hash, hash_inputs, hash_calculator, output_hash);
+  // transpile_hash_calculation(&fcfs_ct->hash, hash_inputs, hash_calculator, output_hash);
 
   // for (const var_t &key_var : keys_vars) {
   //   ingress_apply.indent();
@@ -3015,7 +3015,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // }
 
   // ingress_apply.indent();
-  // ingress_apply << "ig_dprsr_md.digest_type = " << fcfs_cached_table->digest.digest_type << ";\n";
+  // ingress_apply << "ig_dprsr_md.digest_type = " << fcfs_ct->digest.digest_type << ";\n";
 
   // ingress_apply.dec();
   // ingress_apply.indent();
@@ -3025,13 +3025,33 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // ingress_apply.indent();
   // ingress_apply << "}\n";
 
-  // transpile_digest(fcfs_cached_table->digest, keys);
+  // transpile_digest(fcfs_ct->digest, keys);
 
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) {
   panic("TODO: FCFSCachedTableWrite");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *node) {
+  panic("TODO: FCFSCachedSetRead");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadWrite *node) {
+  panic("TODO: FCFSCachedSetReadWrite");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetWrite *node) {
+  panic("TODO: FCFSCachedSetWrite");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetInsert *node) {
+  panic("TODO: FCFSCachedSetInsert");
   return EPVisitor::Action::doChildren;
 }
 

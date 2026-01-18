@@ -33,7 +33,7 @@ bool can_ignore_vector_register_op(const Call *call_node) {
   return false;
 }
 
-bool can_ignore_fcfs_cached_table_op(const Context &ctx, const call_t &call) {
+bool can_ignore_fcfs_ct_op(const Context &ctx, const call_t &call) {
   if (call.function_name != "dchain_free_index") {
     return false;
   }
@@ -42,6 +42,21 @@ bool can_ignore_fcfs_cached_table_op(const Context &ctx, const call_t &call) {
   const addr_t dchain_addr     = expr_addr_to_obj_addr(dchain);
 
   if (!ctx.check_ds_impl(dchain_addr, DSImpl::Tofino_FCFSCachedTable)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool can_ignore_fcfs_cs_op(const Context &ctx, const call_t &call) {
+  if (call.function_name != "dchain_free_index") {
+    return false;
+  }
+
+  klee::ref<klee::Expr> dchain = call.args.at("chain").expr;
+  const addr_t dchain_addr     = expr_addr_to_obj_addr(dchain);
+
+  if (!ctx.check_ds_impl(dchain_addr, DSImpl::Tofino_FCFSCachedSet)) {
     return false;
   }
 
@@ -60,7 +75,7 @@ bool can_ignore_dchain_rejuvenation(const Context &ctx, const call_t &call) {
   const addr_t chain_addr     = expr_addr_to_obj_addr(chain);
 
   if (ctx.check_ds_impl(chain_addr, DSImpl::Tofino_MapSetTable) || ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedTable) ||
-      ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HeavyHitterTable)) {
+      ctx.check_ds_impl(chain_addr, DSImpl::Tofino_FCFSCachedSet) || ctx.check_ds_impl(chain_addr, DSImpl::Tofino_HeavyHitterTable)) {
     return true;
   }
 
@@ -83,7 +98,11 @@ bool should_ignore(const Context &ctx, const BDDNode *node) {
     return true;
   }
 
-  if (can_ignore_fcfs_cached_table_op(ctx, call)) {
+  if (can_ignore_fcfs_ct_op(ctx, call)) {
+    return true;
+  }
+
+  if (can_ignore_fcfs_cs_op(ctx, call)) {
     return true;
   }
 

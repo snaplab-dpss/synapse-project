@@ -219,6 +219,10 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocateAndWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocateAndWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *node) override final;

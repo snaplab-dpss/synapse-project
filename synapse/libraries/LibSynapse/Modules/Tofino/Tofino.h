@@ -29,6 +29,10 @@
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableRead.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableReadWrite.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableWrite.h>
+#include <LibSynapse/Modules/Tofino/FCFSCachedSetRead.h>
+#include <LibSynapse/Modules/Tofino/FCFSCachedSetReadWrite.h>
+#include <LibSynapse/Modules/Tofino/FCFSCachedSetWrite.h>
+#include <LibSynapse/Modules/Tofino/FCFSCachedSetInsert.h>
 #include <LibSynapse/Modules/Tofino/MeterUpdate.h>
 #include <LibSynapse/Modules/Tofino/HHTableRead.h>
 #include <LibSynapse/Modules/Tofino/HHTableOutOfBandUpdate.h>
@@ -77,6 +81,10 @@ struct TofinoTarget : public Target {
               // f.push_back(std::make_unique<FCFSCachedTableReadFactory>());
               // f.push_back(std::make_unique<FCFSCachedTableReadWriteFactory>());
               // f.push_back(std::make_unique<FCFSCachedTableWriteFactory>());
+              f.push_back(std::make_unique<FCFSCachedSetReadFactory>());
+              // f.push_back(std::make_unique<FCFSCachedSetReadWriteFactory>());
+              // f.push_back(std::make_unique<FCFSCachedSetWriteFactory>());
+              f.push_back(std::make_unique<FCFSCachedSetInsertFactory>());
               f.push_back(std::make_unique<MeterUpdateFactory>());
               f.push_back(std::make_unique<HHTableReadFactory>());
               f.push_back(std::make_unique<HHTableOutOfBandUpdateFactory>());

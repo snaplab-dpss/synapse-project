@@ -18,7 +18,7 @@ using Tofino::Table;
 
 namespace {
 
-DS_ID get_fcfs_cached_table_id(const Context &ctx, addr_t obj) {
+DS_ID get_fcfs_ct_id(const Context &ctx, addr_t obj) {
   const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>();
   const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_data_structures().get_ds(obj);
   assert(data_structures.size() == 1 && "Multiple data structures found");
@@ -82,17 +82,17 @@ bool is_allocate_and_write(const BDD *bdd, const BDDNode *node, allocate_and_wri
   return true;
 }
 
-struct fcfs_cached_table_data_t {
+struct fcfs_ct_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> write_value;
   map_coalescing_objs_t map_objs;
 };
 
-std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const Context &ctx, const allocate_and_write_pattern_t &pattern) {
+std::optional<fcfs_ct_data_t> build_fcfs_ct_data(const Context &ctx, const allocate_and_write_pattern_t &pattern) {
   const call_t &put_call = pattern.map_puts.at(0)->get_call();
 
-  fcfs_cached_table_data_t data;
+  fcfs_ct_data_t data;
   data.obj         = expr_addr_to_obj_addr(put_call.args.at("map").expr);
   data.key         = put_call.args.at("key").in;
   data.write_value = put_call.args.at("value").expr;
@@ -106,8 +106,8 @@ std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const Conte
   return data;
 }
 
-std::unique_ptr<BDD> rebuild_bdd(EP *new_ep, const BDDNode *node, const allocate_and_write_pattern_t &pattern,
-                                 const fcfs_cached_table_data_t &fcfs_cached_table_data, const BDDNode *&new_next_node) {
+std::unique_ptr<BDD> rebuild_bdd(EP *new_ep, const BDDNode *node, const allocate_and_write_pattern_t &pattern, const fcfs_ct_data_t &fcfs_ct_data,
+                                 const BDDNode *&new_next_node) {
   const BDD *old_bdd       = new_ep->get_bdd();
   std::unique_ptr<BDD> bdd = std::make_unique<BDD>(*old_bdd);
 
@@ -135,12 +135,12 @@ std::optional<spec_impl_t> DataplaneFCFSCachedTableAllocateAndWriteFactory::spec
     return {};
   }
 
-  std::optional<fcfs_cached_table_data_t> fcfs_cached_table_data = build_fcfs_cached_table_data(ctx, pattern);
-  if (!fcfs_cached_table_data.has_value()) {
+  std::optional<fcfs_ct_data_t> fcfs_ct_data = build_fcfs_ct_data(ctx, pattern);
+  if (!fcfs_ct_data.has_value()) {
     return {};
   }
 
-  if (!ctx.check_ds_impl(fcfs_cached_table_data->obj, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.check_ds_impl(fcfs_ct_data->obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
@@ -163,25 +163,25 @@ std::vector<impl_t> DataplaneFCFSCachedTableAllocateAndWriteFactory::process_nod
     return {};
   }
 
-  std::optional<fcfs_cached_table_data_t> fcfs_cached_table_data = build_fcfs_cached_table_data(ep->get_ctx(), pattern);
-  if (!fcfs_cached_table_data.has_value()) {
+  std::optional<fcfs_ct_data_t> fcfs_ct_data = build_fcfs_ct_data(ep->get_ctx(), pattern);
+  if (!fcfs_ct_data.has_value()) {
     return {};
   }
 
-  if (!ep->get_ctx().check_ds_impl(fcfs_cached_table_data->obj, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ep->get_ctx().check_ds_impl(fcfs_ct_data->obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
-  const DS_ID id = get_fcfs_cached_table_id(ep->get_ctx(), fcfs_cached_table_data->obj);
+  const DS_ID id = get_fcfs_ct_id(ep->get_ctx(), fcfs_ct_data->obj);
 
-  Module *module  = new DataplaneFCFSCachedTableAllocateAndWrite(node, id, fcfs_cached_table_data->obj, fcfs_cached_table_data->key,
-                                                                 fcfs_cached_table_data->write_value, pattern.index_allocation_success);
+  Module *module  = new DataplaneFCFSCachedTableAllocateAndWrite(node, id, fcfs_ct_data->obj, fcfs_ct_data->key, fcfs_ct_data->write_value,
+                                                                 pattern.index_allocation_success);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   const BDDNode *next_node     = node->get_next();
-  std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep.get(), node, pattern, fcfs_cached_table_data.value(), next_node);
+  std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep.get(), node, pattern, fcfs_ct_data.value(), next_node);
 
   const EPLeaf leaf(ep_node, next_node);
   new_ep->process_leaf(ep_node, {leaf});

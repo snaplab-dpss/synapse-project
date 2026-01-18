@@ -69,7 +69,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node          = node->get_node();
-  TargetType target                = node->get_target();
+  const TargetType target          = node->get_target();
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
 
   label_builder << "Forward (";
@@ -85,9 +85,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
+  const TargetType target = node->get_target();
   Tofino::DS_ID tid       = node->get_id();
-  addr_t obj              = node->get_obj();
+  const addr_t obj        = node->get_obj();
 
   label_builder << "Map Table Lookup\n";
   label_builder << "(";
@@ -106,9 +106,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
+  const TargetType target = node->get_target();
   Tofino::DS_ID tid       = node->get_id();
-  addr_t obj              = node->get_obj();
+  const addr_t obj        = node->get_obj();
 
   label_builder << "Map Set Table Lookup\n";
   label_builder << "(";
@@ -127,9 +127,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
+  const TargetType target = node->get_target();
   Tofino::DS_ID tid       = node->get_id();
-  addr_t obj              = node->get_obj();
+  const addr_t obj        = node->get_obj();
 
   label_builder << "Guarded Map Table Lookup\n";
   label_builder << "(";
@@ -148,9 +148,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
+  const TargetType target = node->get_target();
   Tofino::DS_ID tid       = node->get_id();
-  addr_t obj              = node->get_obj();
+  const addr_t obj        = node->get_obj();
 
   label_builder << "Guarded Map Table Guard Check\n";
   label_builder << "(";
@@ -169,9 +169,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
+  const TargetType target = node->get_target();
   Tofino::DS_ID tid       = node->get_id();
-  addr_t obj              = node->get_obj();
+  const addr_t obj        = node->get_obj();
 
   label_builder << "Vector Table Lookup\n";
   label_builder << "(";
@@ -190,9 +190,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
+  const TargetType target = node->get_target();
   Tofino::DS_ID tid       = node->get_id();
-  addr_t obj              = node->get_obj();
+  const addr_t obj        = node->get_obj();
 
   label_builder << "Dchain Table Lookup\n";
   label_builder << "(";
@@ -211,9 +211,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
-  Tofino::DS_ID id        = node->get_id();
-  addr_t obj              = node->get_obj();
+  const TargetType target = node->get_target();
+  const Tofino::DS_ID id  = node->get_id();
+  const addr_t obj        = node->get_obj();
 
   label_builder << "Vector Register Lookup\n";
   label_builder << "(";
@@ -230,9 +230,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
-  Tofino::DS_ID id        = node->get_id();
-  addr_t obj              = node->get_obj();
+  const TargetType target = node->get_target();
+  const Tofino::DS_ID id  = node->get_id();
+  const addr_t obj        = node->get_obj();
 
   label_builder << "Vector Register Update\n";
   label_builder << "(";
@@ -249,9 +249,9 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
-  Tofino::DS_ID id        = node->get_id();
-  addr_t obj              = node->get_obj();
+  const TargetType target = node->get_target();
+  const Tofino::DS_ID id  = node->get_id();
+  const addr_t obj        = node->get_obj();
 
   label_builder << "Vector Register Conditional Update\n";
   label_builder << "(";
@@ -268,10 +268,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
-  addr_t obj              = node->get_obj();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
 
-  Tofino::DS_ID id                        = node->get_fcfs_cached_table_id();
+  const Tofino::DS_ID id                  = node->get_fcfs_ct_id();
   const Context &ctx                      = ep->get_ctx();
   const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
   const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
@@ -295,10 +295,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
-  addr_t obj              = node->get_obj();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
 
-  Tofino::DS_ID id                        = node->get_fcfs_cached_table_id();
+  const Tofino::DS_ID id                  = node->get_fcfs_ct_id();
   const Context &ctx                      = ep->get_ctx();
   const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
   const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
@@ -322,10 +322,10 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
-  addr_t obj              = node->get_obj();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
 
-  Tofino::DS_ID id                        = node->get_fcfs_cached_table_id();
+  const Tofino::DS_ID id                  = node->get_fcfs_ct_id();
   const Context &ctx                      = ep->get_ctx();
   const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
   const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
@@ -345,11 +345,118 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *node) {
+  std::stringstream label_builder;
+
+  const BDDNode *bdd_node = node->get_node();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
+
+  const Tofino::DS_ID id                  = node->get_fcfs_cs_id();
+  const Context &ctx                      = ep->get_ctx();
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
+  assert(ds->type == Tofino::DSType::FCFSCachedSet && "Invalid Tofino::DS type");
+  const Tofino::FCFSCachedSet *cached_set = dynamic_cast<const Tofino::FCFSCachedSet *>(ds);
+
+  label_builder << "FCFS Cached Set Read\n";
+
+  label_builder << "obj=";
+  label_builder << obj;
+  label_builder << ", ";
+  label_builder << "size=";
+  label_builder << cached_set->cache_capacity;
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadWrite *node) {
+  std::stringstream label_builder;
+
+  const BDDNode *bdd_node = node->get_node();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
+
+  const Tofino::DS_ID id                  = node->get_fcfs_cs_id();
+  const Context &ctx                      = ep->get_ctx();
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
+  assert(ds->type == Tofino::DSType::FCFSCachedSet && "Invalid Tofino::DS type");
+  const Tofino::FCFSCachedSet *cached_set = dynamic_cast<const Tofino::FCFSCachedSet *>(ds);
+
+  label_builder << "FCFS Cached Set Read/Write\n";
+
+  label_builder << "obj=";
+  label_builder << obj;
+  label_builder << ", ";
+  label_builder << "size=";
+  label_builder << cached_set->cache_capacity;
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetWrite *node) {
+  std::stringstream label_builder;
+
+  const BDDNode *bdd_node = node->get_node();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
+
+  const Tofino::DS_ID id                  = node->get_fcfs_cs_id();
+  const Context &ctx                      = ep->get_ctx();
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
+  assert(ds->type == Tofino::DSType::FCFSCachedSet && "Invalid Tofino::DS type");
+  const Tofino::FCFSCachedSet *cached_set = dynamic_cast<const Tofino::FCFSCachedSet *>(ds);
+
+  label_builder << "FCFS Cached Set Write\n";
+
+  label_builder << "obj=";
+  label_builder << obj;
+  label_builder << ", ";
+  label_builder << "size=";
+  label_builder << cached_set->cache_capacity;
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetInsert *node) {
+  std::stringstream label_builder;
+
+  const BDDNode *bdd_node = node->get_node();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
+
+  const Tofino::DS_ID id                  = node->get_fcfs_cs_id();
+  const Context &ctx                      = ep->get_ctx();
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
+  assert(ds->type == Tofino::DSType::FCFSCachedSet && "Invalid Tofino::DS type");
+  const Tofino::FCFSCachedSet *cached_set = dynamic_cast<const Tofino::FCFSCachedSet *>(ds);
+
+  label_builder << "FCFS Cached Set Insert\n";
+
+  label_builder << "obj=";
+  label_builder << obj;
+  label_builder << ", ";
+  label_builder << "size=";
+  label_builder << cached_set->cache_capacity;
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserExtraction *node) {
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
+  const TargetType target = node->get_target();
   bytes_t size            = node->get_length();
 
   label_builder << "Parse Header (";
@@ -366,8 +473,8 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   std::stringstream label_builder;
 
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
-  addr_t obj              = node->get_obj();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
 
   label_builder << "Meter Update\n";
   label_builder << "obj=";
@@ -380,8 +487,8 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
 
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *node) {
   const BDDNode *bdd_node = node->get_node();
-  TargetType target       = node->get_target();
-  addr_t obj              = node->get_obj();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
 
   const Tofino::DS *ds = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_data_structures().get_ds_from_id(node->get_hh_table_id());
 

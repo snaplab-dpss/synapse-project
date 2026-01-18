@@ -28,7 +28,7 @@ public:
     return cloned;
   }
 
-  DS_ID get_fcfs_cached_table_id() const { return cached_table_id; }
+  DS_ID get_fcfs_ct_id() const { return cached_table_id; }
   DS_ID get_used_table_id() const { return used_table_id; }
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_original_key() const { return original_key; }

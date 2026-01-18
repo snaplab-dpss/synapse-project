@@ -15,14 +15,14 @@ using Tofino::FCFSCachedTable;
 
 namespace {
 
-struct fcfs_cached_table_allocation_data_t {
+struct fcfs_ct_allocation_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key_size;
   klee::ref<klee::Expr> value_size;
   klee::ref<klee::Expr> capacity;
 };
 
-fcfs_cached_table_allocation_data_t get_fcfs_cached_table_allocation_data(const Context &ctx, const Call *call_node) {
+fcfs_ct_allocation_data_t get_fcfs_ct_allocation_data(const Context &ctx, const Call *call_node) {
   const call_t &call = call_node->get_call();
   assert(call.function_name == "map_allocate" && "Not a map_allocate call");
 
@@ -72,7 +72,7 @@ std::vector<impl_t> DataplaneFCFSCachedTableAllocateFactory::process_node(const 
     return {};
   }
 
-  const fcfs_cached_table_allocation_data_t data = get_fcfs_cached_table_allocation_data(ep->get_ctx(), call_node);
+  const fcfs_ct_allocation_data_t data = get_fcfs_ct_allocation_data(ep->get_ctx(), call_node);
 
   if (!ep->get_ctx().check_ds_impl(data.obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -103,7 +103,7 @@ std::unique_ptr<Module> DataplaneFCFSCachedTableAllocateFactory::create(const BD
     return {};
   }
 
-  const fcfs_cached_table_allocation_data_t data = get_fcfs_cached_table_allocation_data(ctx, call_node);
+  const fcfs_ct_allocation_data_t data = get_fcfs_ct_allocation_data(ctx, call_node);
 
   if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};

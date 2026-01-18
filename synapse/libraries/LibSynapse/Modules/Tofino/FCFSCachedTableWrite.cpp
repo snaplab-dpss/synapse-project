@@ -17,7 +17,7 @@ using LibBDD::call_t;
 using LibCore::expr_addr_to_obj_addr;
 
 namespace {
-struct fcfs_cached_table_data_t {
+struct fcfs_ct_data_t {
   addr_t obj;
   klee::ref<klee::Expr> original_key;
   std::vector<klee::ref<klee::Expr>> keys;
@@ -25,10 +25,10 @@ struct fcfs_cached_table_data_t {
   map_coalescing_objs_t map_objs;
 };
 
-std::optional<fcfs_cached_table_data_t> build_fcfs_cached_table_data(const BDD *bdd, const Context &ctx, const Call *map_put) {
+std::optional<fcfs_ct_data_t> build_fcfs_ct_data(const BDD *bdd, const Context &ctx, const Call *map_put) {
   const call_t &put_call = map_put->get_call();
 
-  fcfs_cached_table_data_t data;
+  fcfs_ct_data_t data;
   data.obj          = expr_addr_to_obj_addr(put_call.args.at("map").expr);
   data.original_key = put_call.args.at("key").in;
   data.capacity     = ctx.get_map_config(data.obj).capacity;
@@ -151,10 +151,9 @@ void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, BDDNode *on_succ
   }
 }
 
-std::unique_ptr<BDD> branch_bdd_on_cache_write_success(const EP *ep, const BDDNode *dchain_allocate_new_index,
-                                                       const fcfs_cached_table_data_t &fcfs_cached_table_data, const symbol_t &cache_write_success,
-                                                       klee::ref<klee::Expr> cache_write_success_condition, BDDNode *&on_cache_write_success,
-                                                       BDDNode *&on_cache_write_failed,
+std::unique_ptr<BDD> branch_bdd_on_cache_write_success(const EP *ep, const BDDNode *dchain_allocate_new_index, const fcfs_ct_data_t &fcfs_ct_data,
+                                                       const symbol_t &cache_write_success, klee::ref<klee::Expr> cache_write_success_condition,
+                                                       BDDNode *&on_cache_write_success, BDDNode *&on_cache_write_failed,
                                                        std::optional<std::vector<klee::ref<klee::Expr>>> &deleted_branch_constraints) {
   const BDD *old_bdd           = ep->get_bdd();
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
@@ -169,16 +168,16 @@ std::unique_ptr<BDD> branch_bdd_on_cache_write_success(const EP *ep, const BDDNo
 
   add_dchain_allocate_new_index_clone_on_cache_write_failed(ep, new_bdd.get(), dchain_allocate_new_index, cache_write_branch, on_cache_write_failed);
   replicate_hdr_parsing_ops_on_cache_write_failed(ep, new_bdd.get(), cache_write_branch, on_cache_write_failed);
-  delete_coalescing_nodes_on_success(ep, new_bdd.get(), on_cache_write_success, fcfs_cached_table_data.map_objs, fcfs_cached_table_data.original_key,
+  delete_coalescing_nodes_on_success(ep, new_bdd.get(), on_cache_write_success, fcfs_ct_data.map_objs, fcfs_ct_data.original_key,
                                      deleted_branch_constraints);
 
   return new_bdd;
 }
 
-std::unique_ptr<EP> concretize_cached_table_write(const EP *ep, const BDDNode *node, const fcfs_cached_table_data_t &fcfs_cached_table_data,
-                                                  const symbol_t &cache_write_success, u32 cache_capacity, const Call *map_put) {
-  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cached_table(
-      ep, node, fcfs_cached_table_data.obj, fcfs_cached_table_data.original_key, fcfs_cached_table_data.capacity, cache_capacity);
+std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_ct_data_t &fcfs_ct_data, const symbol_t &cache_write_success,
+                               u32 cache_capacity, const Call *map_put) {
+  FCFSCachedTable *cached_table =
+      TofinoModuleFactory::build_or_reuse_fcfs_ct(ep, node, fcfs_ct_data.obj, fcfs_ct_data.original_key, fcfs_ct_data.capacity, cache_capacity);
 
   if (!cached_table) {
     return nullptr;
@@ -186,7 +185,7 @@ std::unique_ptr<EP> concretize_cached_table_write(const EP *ep, const BDDNode *n
 
   klee::ref<klee::Expr> cache_write_success_condition = build_cache_write_success_condition(cache_write_success);
 
-  Module *module = new FCFSCachedTableWrite(node, cached_table->id, fcfs_cached_table_data.obj, fcfs_cached_table_data.keys, cache_write_success);
+  Module *module                  = new FCFSCachedTableWrite(node, cached_table->id, fcfs_ct_data.obj, fcfs_ct_data.keys, cache_write_success);
   EPNode *cached_table_write_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -196,8 +195,8 @@ std::unique_ptr<EP> concretize_cached_table_write(const EP *ep, const BDDNode *n
   std::optional<std::vector<klee::ref<klee::Expr>>> deleted_branch_constraints;
 
   std::unique_ptr<BDD> new_bdd =
-      branch_bdd_on_cache_write_success(new_ep.get(), node, fcfs_cached_table_data, cache_write_success, cache_write_success_condition,
-                                        on_cache_write_success, on_cache_write_failed, deleted_branch_constraints);
+      branch_bdd_on_cache_write_success(new_ep.get(), node, fcfs_ct_data, cache_write_success, cache_write_success_condition, on_cache_write_success,
+                                        on_cache_write_failed, deleted_branch_constraints);
 
   Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
 
@@ -224,21 +223,21 @@ std::unique_ptr<EP> concretize_cached_table_write(const EP *ep, const BDDNode *n
   send_to_controller_node->set_prev(else_node);
 
   const hit_rate_t cache_write_success_estimation_rel =
-      get_cache_success_estimation_rel(ep, node, map_put, fcfs_cached_table_data.original_key, cache_capacity);
+      get_cache_success_estimation_rel(ep, node, map_put, fcfs_ct_data.original_key, cache_capacity);
 
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(), cache_write_success_condition,
                                                                    cache_write_success_estimation_rel);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(fcfs_cached_table_data.map_objs.map, DSImpl::Tofino_FCFSCachedTable);
-  ctx.save_ds_impl(fcfs_cached_table_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+  ctx.save_ds_impl(fcfs_ct_data.map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+  ctx.save_ds_impl(fcfs_ct_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   if (deleted_branch_constraints.has_value()) {
     ctx.get_mutable_profiler().remove(deleted_branch_constraints.value());
   }
 
   TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
-  tofino_ctx->place(new_ep.get(), node, fcfs_cached_table_data.map_objs.map, cached_table);
+  tofino_ctx->place(new_ep.get(), node, fcfs_ct_data.map_objs.map, cached_table);
 
   EPLeaf on_cache_write_success_leaf(then_node, on_cache_write_success);
   EPLeaf on_cache_write_failed_leaf(send_to_controller_node, on_cache_write_failed);
@@ -275,23 +274,23 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
 
   const Call *map_put = future_map_puts[0];
 
-  const std::optional<fcfs_cached_table_data_t> fcfs_cached_table_data = build_fcfs_cached_table_data(ep->get_bdd(), ep->get_ctx(), map_put);
-  if (!fcfs_cached_table_data.has_value()) {
+  const std::optional<fcfs_ct_data_t> fcfs_ct_data = build_fcfs_ct_data(ep->get_bdd(), ep->get_ctx(), map_put);
+  if (!fcfs_ct_data.has_value()) {
     return {};
   }
 
-  if (!ctx.can_impl_ds(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.can_impl_ds(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.can_impl_ds(fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ctx.can_impl_ds(fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
   if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(fcfs_cached_table_data->map_objs.map))) {
+    if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(fcfs_ct_data->map_objs.map))) {
       return {};
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_capacities();
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities();
 
   hit_rate_t chosen_success_estimation = 0_hr;
   u32 chosen_cache_capacity            = 0;
@@ -300,10 +299,9 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
   // We can use a different method for picking the right estimation depending
   // on the time it takes to find a solution.
   for (u32 cache_capacity : allowed_cache_capacities) {
-    const hit_rate_t success_estimation = get_cache_success_estimation_rel(ep, node, map_put, fcfs_cached_table_data->original_key, cache_capacity);
+    const hit_rate_t success_estimation = get_cache_success_estimation_rel(ep, node, map_put, fcfs_ct_data->original_key, cache_capacity);
 
-    if (!can_build_or_reuse_fcfs_cached_table(ep, node, fcfs_cached_table_data->obj, fcfs_cached_table_data->original_key,
-                                              fcfs_cached_table_data->capacity, cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_ct(ep, node, fcfs_ct_data->obj, fcfs_ct_data->original_key, fcfs_ct_data->capacity, cache_capacity)) {
       break;
     }
 
@@ -326,15 +324,15 @@ std::optional<spec_impl_t> FCFSCachedTableWriteFactory::speculate(const EP *ep, 
   const hit_rate_t on_fail_fraction = hit_rate_t{fraction * (1 - chosen_success_estimation)};
 
   new_ctx.get_mutable_profiler().scale(node->get_ordered_branch_constraints(), chosen_success_estimation.value);
-  new_ctx.save_ds_impl(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable);
-  new_ctx.save_ds_impl(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_fraction);
 
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
 
   const std::vector<const BDDNode *> ignore_nodes =
-      get_nodes_to_speculatively_ignore(ep, dchain_allocate_new_index, fcfs_cached_table_data->map_objs, fcfs_cached_table_data->original_key);
+      get_nodes_to_speculatively_ignore(ep, dchain_allocate_new_index, fcfs_ct_data->map_objs, fcfs_ct_data->original_key);
   for (const BDDNode *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
   }
@@ -364,29 +362,28 @@ std::vector<impl_t> FCFSCachedTableWriteFactory::process_node(const EP *ep, cons
 
   const Call *map_put = future_map_puts[0];
 
-  const std::optional<fcfs_cached_table_data_t> fcfs_cached_table_data = build_fcfs_cached_table_data(ep->get_bdd(), ep->get_ctx(), map_put);
-  if (!fcfs_cached_table_data.has_value()) {
+  const std::optional<fcfs_ct_data_t> fcfs_ct_data = build_fcfs_ct_data(ep->get_bdd(), ep->get_ctx(), map_put);
+  if (!fcfs_ct_data.has_value()) {
     return {};
   }
 
-  if (!ep->get_ctx().can_impl_ds(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ep->get_ctx().can_impl_ds(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ep->get_ctx().can_impl_ds(fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ep->get_ctx().can_impl_ds(fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
   if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_cached_table_id(fcfs_cached_table_data->map_objs.map))) {
+    if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(fcfs_ct_data->map_objs.map))) {
       return {};
     }
   }
 
   const symbol_t cache_write_success              = symbol_manager->create_symbol("cache_write_success", 32);
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cache_capacities();
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities();
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-    std::unique_ptr<EP> new_ep =
-        concretize_cached_table_write(ep, node, fcfs_cached_table_data.value(), cache_write_success, cache_capacity, map_put);
+    std::unique_ptr<EP> new_ep = concretize(ep, node, fcfs_ct_data.value(), cache_write_success, cache_capacity, map_put);
     if (new_ep) {
       impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(std::move(impl));
@@ -418,24 +415,23 @@ std::unique_ptr<Module> FCFSCachedTableWriteFactory::create(const BDD *bdd, cons
 
   const Call *map_put = future_map_puts[0];
 
-  const std::optional<fcfs_cached_table_data_t> fcfs_cached_table_data = build_fcfs_cached_table_data(bdd, ctx, map_put);
-  if (!fcfs_cached_table_data.has_value()) {
+  const std::optional<fcfs_ct_data_t> fcfs_ct_data = build_fcfs_ct_data(bdd, ctx, map_put);
+  if (!fcfs_ct_data.has_value()) {
     return {};
   }
 
-  if (!ctx.check_ds_impl(fcfs_cached_table_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.check_ds_impl(fcfs_cached_table_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.check_ds_impl(fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !ctx.check_ds_impl(fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
   symbol_t mock_cache_write_failed;
 
-  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(fcfs_cached_table_data->map_objs.map);
+  const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(fcfs_ct_data->map_objs.map);
   assert(ds.size() == 1 && "Expected exactly one DS");
-  const FCFSCachedTable *fcfs_cached_table = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
+  const FCFSCachedTable *fcfs_ct = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedTableWrite>(node, fcfs_cached_table->id, fcfs_cached_table_data->obj, fcfs_cached_table_data->keys,
-                                                mock_cache_write_failed);
+  return std::make_unique<FCFSCachedTableWrite>(node, fcfs_ct->id, fcfs_ct_data->obj, fcfs_ct_data->keys, mock_cache_write_failed);
 }
 
 } // namespace Tofino

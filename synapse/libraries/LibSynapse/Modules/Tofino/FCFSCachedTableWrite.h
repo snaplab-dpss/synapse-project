@@ -25,7 +25,7 @@ public:
     return cloned;
   }
 
-  DS_ID get_fcfs_cached_table_id() const { return cached_table_id; }
+  DS_ID get_fcfs_ct_id() const { return cached_table_id; }
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
   const symbol_t &get_cache_write_success() const { return cache_write_success; }

@@ -32,6 +32,7 @@ enum class DSType {
   DchainTable,
   VectorRegister,
   FCFSCachedTable,
+  FCFSCachedSet,
   HHTable,
   CountMinSketch,
   BloomFilter,
@@ -65,6 +66,8 @@ inline std::string ds_type_to_string(DSType type) {
     return "VectorRegister";
   case DSType::FCFSCachedTable:
     return "FCFSCachedTable";
+  case DSType::FCFSCachedSet:
+    return "FCFSCachedSet";
   case DSType::HHTable:
     return "HHTable";
   case DSType::CountMinSketch:

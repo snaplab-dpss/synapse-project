@@ -1,0 +1,151 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     cl.bdd
+  Name:               gallium-cl
+  Targets config:     tofino2.toml
+  Heuristic:          gallium
+  Profile file:       cl-f40000-c0-unif.json
+  Seed:               0
+  Targets:
+    Tofino (35 modules)
+    Ctrl (89 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+
+Winner:
+  Score: <0,0,0,42,59>
+  Tput: 1.58 Tbps (2.25 Gpps)
+  Spec: 1.58 Tbps (2.25 Gpps)
+
+Stateful Implementations:
+  1074080288: Tofino::CMS
+  1074079872: Tofino::DchainTable
+  1074110080: Tofino::VectorTable
+  1074047888: Tofino::MapTable
+  1074092864: Tofino::VectorTable
+
+Search Metadata:
+  Elapsed time:       88 seconds
+  Steps:              60
+  Backtracks:         0
+  Search space size:  187
+  Unfinished EPs:     127
+  Finished EPs:       1
+  Avg BDD size:       60
+  Branching factor:   2
+  Total SS size est.: 8'275'684'269'424
+  Avg children per node:
+    Node 169: 0
+    Node 168: 0
+    Node 167: 0
+    Node 149: 2
+    Node 187: 6
+    Node 148: 3
+    Node 186: 6
+    Node 176: 6
+    Node 147: 0
+    Node 185: 3
+    Node 175: 6
+    Node 146: 4
+    Node 184: 6
+    Node 174: 6
+    Node 145: 6
+    Node 183: 4
+    Node 144: 6
+    Node 143: 4
+    Node 193: 2
+    Node 134: 2
+    Node 135: 3
+    Node 194: 3
+    Node 138: 3
+    Node 136: 3
+    Node 195: 2
+    Node 142: 6
+    Node 139: 4
+    Node 191: 3
+    Node 137: 3
+    Node 140: 5
+    Node 192: 3
+    Node 141: 9
+    Node 170: 3
+    Node 177: 3
+    Node 188: 6
+    Node 150: 0
+    Node 171: 3
+    Node 178: 3
+    Node 189: 4
+    Node 190: 2
+    Node 151: 0
+    Node 159: 0
+    Node 172: 3
+    Node 179: 4
+    Node 152: 0
+    Node 160: 0
+    Node 173: 2
+    Node 180: 3
+    Node 153: 0
+    Node 161: 0
+    Node 181: 2
+    Node 182: 2
+    Node 154: 0
+    Node 162: 0
+    Node 155: 0
+    Node 163: 0
+    Node 156: 0
+    Node 164: 0
+    Node 157: 0
+    Node 158: 0
+    Node 165: 0
+    Node 166: 0
+
+Global Stats:
+  Num phase 1 speculations: 26'801 (100%)
+  Num phase 2 speculations: 1'550 (5.78337%)
+  Num phase 3 speculations: 1'550 (5.78337%)
+
+Switch placement:
+
+====================== TNA Pipeline ======================
+-------------------------------------
+Stage 0
+SRAM: 786'426/1'310'720 B (59.9995%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 786'426/786'432 B (99.9992%)
+Exact Match Crossbar: 25/128 B (19.5312%)
+Objs: [vector_table_1074092864_141,map_table_1074047888_144,vector_table_1074110080_183,vector_table_1074110080_175]
+-------------------------------------
+-------------------------------------
+Stage 1
+SRAM: 763'952/1'310'720 B (58.2849%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 763'952/786'432 B (97.1415%)
+Exact Match Crossbar: 27/128 B (21.0938%)
+Objs: [cms_1074080288_row_0,cms_1074080288_hash_0,map_table_1074047888_144,dchain_table_1074079872_174]
+-------------------------------------
+-------------------------------------
+Stage 2
+SRAM: 20'480/1'310'720 B (1.5625%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 20'480/786'432 B (2.60417%)
+Exact Match Crossbar: 10/128 B (7.8125%)
+Objs: [cms_1074080288_row_1,cms_1074080288_hash_1]
+-------------------------------------
+-------------------------------------
+Stage 3
+SRAM: 20'480/1'310'720 B (1.5625%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 20'480/786'432 B (2.60417%)
+Exact Match Crossbar: 10/128 B (7.8125%)
+Objs: [cms_1074080288_row_2,cms_1074080288_hash_2]
+-------------------------------------
+-------------------------------------
+Stage 4
+SRAM: 20'480/1'310'720 B (1.5625%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 20'480/786'432 B (2.60417%)
+Exact Match Crossbar: 10/128 B (7.8125%)
+Objs: [cms_1074080288_row_3,cms_1074080288_hash_3]
+-------------------------------------
+==========================================================
+========================================================

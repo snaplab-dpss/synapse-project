@@ -373,7 +373,7 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
-  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
+  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
     return {};
   }
 
@@ -463,7 +463,7 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
     return {};
   }
 
-  if (!ep->get_bdd()->is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
+  if (!ep->get_ctx().is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
     return {};
   }
 
