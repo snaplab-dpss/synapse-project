@@ -1,9 +1,9 @@
 {
   "bdd": "cl.bdd",
   "global_stats": {
-    "num_phase1_speculations": 26801,
-    "num_phase2_speculations": 1550,
-    "num_phase3_speculations": 1550
+    "num_phase1_speculations": 26530,
+    "num_phase2_speculations": 1436,
+    "num_phase3_speculations": 1436
   },
   "heuristic": {
     "meta": [
@@ -20,8 +20,8 @@
       0,
       0,
       0,
-      42,
-      59
+      38,
+      60
     ]
   },
   "implementations": [
@@ -47,7 +47,7 @@
     }
   ],
   "name": "gallium-cl",
-  "profile_file": "cl-f40000-c0-unif.json",
+  "profile_file": "cl-f40000-c0-zipf1_2.json",
   "search_meta": {
     "avg_bdd_size": 60,
     "avg_children_per_node": [
@@ -64,7 +64,7 @@
         "node_id": 167
       },
       {
-        "avg": 2.0,
+        "avg": 0.0,
         "node_id": 149
       },
       {
@@ -72,7 +72,7 @@
         "node_id": 187
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 148
       },
       {
@@ -84,7 +84,7 @@
         "node_id": 176
       },
       {
-        "avg": 0.0,
+        "avg": 2.0,
         "node_id": 147
       },
       {
@@ -180,7 +180,7 @@
         "node_id": 141
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 170
       },
       {
@@ -196,7 +196,7 @@
         "node_id": 150
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 171
       },
       {
@@ -220,7 +220,7 @@
         "node_id": 159
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 172
       },
       {
@@ -236,7 +236,7 @@
         "node_id": 160
       },
       {
-        "avg": 2.0,
+        "avg": 0.0,
         "node_id": 173
       },
       {
@@ -301,13 +301,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.903225806451613,
-    "elapsed_time_seconds": 88,
+    "branching_factor": 2.7580645161290325,
+    "elapsed_time_seconds": 98,
     "finished_eps": 1,
-    "ss_size": 187,
-    "steps": 60,
-    "total_ss_size_estimation": 8275684269424.68,
-    "unfinished_eps": 127
+    "ss_size": 179,
+    "steps": 61,
+    "total_ss_size_estimation": 2121751732228.6772,
+    "unfinished_eps": 118
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

@@ -4,7 +4,7 @@ Args:
   Name:               gallium-cl
   Targets config:     tofino2.toml
   Heuristic:          gallium
-  Profile file:       cl-f40000-c0-unif.json
+  Profile file:       cl-f40000-c0-zipf1_2.json
   Seed:               0
   Targets:
     Tofino (35 modules)
@@ -14,7 +14,7 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,0,0,42,59>
+  Score: <0,0,0,38,60>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
 
@@ -26,25 +26,25 @@ Stateful Implementations:
   1074092864: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       88 seconds
-  Steps:              60
+  Elapsed time:       98 seconds
+  Steps:              61
   Backtracks:         0
-  Search space size:  187
-  Unfinished EPs:     127
+  Search space size:  179
+  Unfinished EPs:     118
   Finished EPs:       1
   Avg BDD size:       60
   Branching factor:   2
-  Total SS size est.: 8'275'684'269'424
+  Total SS size est.: 2'121'751'732'228
   Avg children per node:
     Node 169: 0
     Node 168: 0
     Node 167: 0
-    Node 149: 2
+    Node 149: 0
     Node 187: 6
-    Node 148: 3
+    Node 148: 0
     Node 186: 6
     Node 176: 6
-    Node 147: 0
+    Node 147: 2
     Node 185: 3
     Node 175: 6
     Node 146: 4
@@ -68,21 +68,21 @@ Search Metadata:
     Node 140: 5
     Node 192: 3
     Node 141: 9
-    Node 170: 3
+    Node 170: 0
     Node 177: 3
     Node 188: 6
     Node 150: 0
-    Node 171: 3
+    Node 171: 0
     Node 178: 3
     Node 189: 4
     Node 190: 2
     Node 151: 0
     Node 159: 0
-    Node 172: 3
+    Node 172: 0
     Node 179: 4
     Node 152: 0
     Node 160: 0
-    Node 173: 2
+    Node 173: 0
     Node 180: 3
     Node 153: 0
     Node 161: 0
@@ -100,9 +100,9 @@ Search Metadata:
     Node 166: 0
 
 Global Stats:
-  Num phase 1 speculations: 26'801 (100%)
-  Num phase 2 speculations: 1'550 (5.78337%)
-  Num phase 3 speculations: 1'550 (5.78337%)
+  Num phase 1 speculations: 26'530 (100%)
+  Num phase 2 speculations: 1'436 (5.41274%)
+  Num phase 3 speculations: 1'436 (5.41274%)
 
 Switch placement:
 
