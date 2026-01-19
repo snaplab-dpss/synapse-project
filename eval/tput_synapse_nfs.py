@@ -24,10 +24,12 @@ KVS_GET_RATIO = 0.99
 PIPELINES = 1
 
 TOTAL_FLOWS = 40_000
-# CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
-CHURN_FPM = [10_000]
-# ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
-ZIPF_PARAMS = [0.6, 0.8]
+
+CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
+ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
+
+# CHURN_FPM = [10_000]
+# ZIPF_PARAMS = [0.6, 0.8]
 
 # TOTAL_FLOWS = 40_000
 # CHURN_FPM = [0]
@@ -262,13 +264,26 @@ SYNAPSE_NFS = [
     #     )
     #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
     # ],
+    # SynapseNF(
+    #     name="gallium-cl",
+    #     description="Gallium CL",
+    #     data_out=Path("tput_gallium_cl.csv"),
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/gallium-cl.p4"),
+    #     controller=Path("synthesized/gallium-cl.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    #     churn=CHURN_FPM,
+    #     zipf=ZIPF_PARAMS,
+    # ),
     SynapseNF(
-        name="gallium-cl",
-        description="Gallium CL",
-        data_out=Path("tput_gallium_cl.csv"),
+        name=f"synapse-psd",
+        description=f"Synapse PSD",
+        data_out=Path(f"tput_synapse_psd.csv"),
         kvs_mode=False,
-        tofino=Path("synthesized/gallium-cl.p4"),
-        controller=Path("synthesized/gallium-cl.cpp"),
+        tofino=Path("tofino/nfs/psd/psd_fcfs_cached_table.p4"),
+        controller=Path("tofino/nfs/psd/psd_fcfs_cached_table.cpp"),
         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
         route=lambda _: [],
