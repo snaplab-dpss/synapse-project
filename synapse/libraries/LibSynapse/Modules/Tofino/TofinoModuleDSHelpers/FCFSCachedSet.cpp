@@ -158,11 +158,6 @@ hit_rate_t TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(const Co
   // FIXME: we are assuming uniform distribution of flows here.
 
   const hit_rate_t collision_probability = 1_hr - hit_rate_t(total_flow_hashes, flow_stats.flows);
-  std::cerr << "Cache capacity: " << cache_capacity << "\n";
-  std::cerr << "Flows: " << flow_stats.flows << "\n";
-  std::cerr << "Total flow hashes: " << total_flow_hashes << "\n";
-  std::cerr << "Collision probability: " << collision_probability << "\n";
-  dbg_pause();
 
   // std::cerr << "\n";
   // std::cerr << "Cache capacity: " << cache_capacity << "\n";

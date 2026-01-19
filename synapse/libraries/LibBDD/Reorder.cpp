@@ -572,6 +572,28 @@ bool anchor_reaches_candidate(const vector_t &anchor, const BDDNode *candidate) 
   return candidate->is_reachable(anchor_next_id);
 }
 
+bool anchor_crosses_barrier_on_path_to_candidate(const vector_t &anchor, const BDDNode *candidate, const symbol_t &reordering_barrier_symbol) {
+  if (!candidate)
+    return false;
+
+  const BDDNode *anchor_next = get_vector_next(anchor);
+
+  if (!anchor_next)
+    return false;
+
+  while (candidate != anchor.node && candidate) {
+    if (candidate->get_type() == BDDNodeType::Call) {
+      const Call *call_node = dynamic_cast<const Call *>(candidate);
+      if (call_node->has_local_symbol(reordering_barrier_symbol.name)) {
+        return true;
+      }
+    }
+    candidate = candidate->get_prev();
+  }
+
+  return false;
+}
+
 bdd_node_id_t get_next_branch(const BDDNode *node) {
   assert(node && "BDDNode not found");
   bdd_node_id_t next_branch_id = -1;
@@ -1103,7 +1125,13 @@ std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd, const anchor_info_t &a
     return true;
   };
 
-  next->visit_nodes([&ops, &bdd, anchor, next, anchor_info, allow_candidate](const BDDNode *node) {
+  const symbol_t reordering_barrier_symbol = bdd->get_reordering_barrier_symbol();
+
+  next->visit_nodes([&ops, &bdd, &reordering_barrier_symbol, anchor, next, anchor_info, allow_candidate](const BDDNode *node) {
+    if (anchor_crosses_barrier_on_path_to_candidate(anchor, node, reordering_barrier_symbol)) {
+      return BDDNodeVisitAction::Continue;
+    }
+
     const candidate_info_t proposed_candidate = concretize_reordering_candidate(bdd, anchor, node->get_id());
 
     if (proposed_candidate.status == ReorderingCandidateStatus::Valid && allow_candidate(proposed_candidate)) {

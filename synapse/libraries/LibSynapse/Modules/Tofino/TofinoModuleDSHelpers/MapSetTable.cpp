@@ -19,8 +19,6 @@ MapSetTable *build_map_set_table(const EP *ep, const BDDNode *node, const map_se
     keys_size.push_back(key->getWidth());
   }
 
-  assert(data.value->getWidth() == klee::Expr::Int32);
-
   const DS_ID id = "map_set_table_" + std::to_string(data.obj);
 
   MapSetTable *map_set_table = new MapSetTable(id, data.capacity, key_size);

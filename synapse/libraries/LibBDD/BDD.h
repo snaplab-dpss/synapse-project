@@ -74,6 +74,12 @@ public:
   std::unordered_set<u16> get_devices() const;
 
   Symbols get_generated_symbols(const BDDNode *node) const;
+
+  // Symbol used to prevent reordering of BDD nodes across certain points.
+  // Basically all Call nodes that generate this symbol act as reordering barriers.
+  // More implementation details regarding this in Reoder.cpp.
+  symbol_t get_reordering_barrier_symbol() const;
+
   void visit(BDDVisitor &visitor) const;
   void serialize(const std::filesystem::path &fpath) const;
   void deserialize(const std::filesystem::path &fpath);
@@ -111,6 +117,7 @@ public:
   bool is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new_index) const;
   bool is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) const;
   branch_direction_t find_branch_checking_index_alloc(const Call *dchain_allocate_new_index) const;
+  branch_direction_t find_branch_checking_index_alloc(const Call *dchain_allocate_new_index, const BDDNode *start) const;
   std::vector<branch_direction_t> find_all_branches_checking_index_alloc(addr_t dchain_obj) const;
   bool is_fwd_pattern_depending_on_lpm(const BDDNode *node, std::vector<const BDDNode *> &fwd_logic) const;
   bool is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_tracing, const Call *&tb_update_and_check) const;
@@ -155,12 +162,11 @@ public:
   BDDNode *delete_constraints(const klee::ConstraintManager &target);
 
   Branch *create_new_branch(klee::ref<klee::Expr> condition);
-  Call *create_new_call(const BDDNode *current, const call_t &call, const Symbols &generated_symbols);
+  Call *create_new_call(const call_t &call, const Symbols &generated_symbols);
 
   Call *add_new_symbol_generator_function(bdd_node_id_t target_id, const std::string &fn_name, const Symbols &symbols);
   BDDNode *add_cloned_non_branches(bdd_node_id_t target_id, const std::vector<const BDDNode *> &new_nodes);
   Branch *add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> condition);
-  Branch *add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> condition, BDDNode *on_true, BDDNode *on_false);
 
   static BDDNode *delete_non_branch(BDDNode *target, BDDNodeManager &manager);
   static BDDNode *delete_branch(BDDNode *target, BranchDeletionAction branch_deletion_action, BDDNodeManager &manager);

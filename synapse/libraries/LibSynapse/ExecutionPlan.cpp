@@ -10,7 +10,7 @@ namespace LibSynapse {
 
 namespace {
 
-constexpr const pps_t STABLE_TPUT_PRECISION{100};
+constexpr const pps_t STABLE_TPUT_PRECISION{10'000};
 constexpr const pps_t TPUT_PRECISION{1'000};
 
 using LibBDD::BDDNodeType;
@@ -465,7 +465,7 @@ void EP::debug_active_leaves() const {
 
 void EP::debug_speculations() const {
   if (!cached_speculations.has_value()) {
-    speculate_tput_pps();
+    speculate();
     assert(cached_speculations.has_value());
   }
 

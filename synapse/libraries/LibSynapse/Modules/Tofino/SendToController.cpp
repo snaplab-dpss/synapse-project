@@ -57,7 +57,9 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node
   std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
   new_bdd->add_cloned_non_branches(node->get_id(), hdr_parsing_ops);
 
-  next = new_bdd->get_node_by_id(node->get_id());
+  if (node->get_id() == next->get_id()) {
+    next = new_bdd->get_node_by_id(node->get_id());
+  }
 
   return new_bdd;
 }
@@ -489,6 +491,14 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
     return {};
   }
 
+  bool force_send_to_controller_bdd_node = false;
+  if (node->get_type() == BDDNodeType::Call) {
+    const Call *call_node = dynamic_cast<const Call *>(node);
+    if (call_node->get_call().function_name == SendToController::force_send_to_controller_bdd_node_function_name()) {
+      force_send_to_controller_bdd_node = true;
+    }
+  }
+
   // Otherwise we can always send to the controller, at any point in time.
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
@@ -512,13 +522,14 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
   }
 
   // Now we need to replicate the parsing operations that were done before.
-  const BDDNode *next          = node;
+  const BDDNode *next          = force_send_to_controller_bdd_node ? node->get_next() : node;
   std::unique_ptr<BDD> new_bdd = replicate_hdr_parsing_ops(ep, node, next);
 
   // Note that we don't point to the next BDD node, as it was not actually implemented.
   // We are delegating the implementation to other platform.
+  const EP::BDDNodeMarking bdd_node_marking = force_send_to_controller_bdd_node ? EP::BDDNodeMarking::Processed : EP::BDDNodeMarking::Unprocessed;
   EPLeaf leaf(ep_node_leaf, next);
-  new_ep->process_leaf(s2c_node, {leaf}, EP::BDDNodeMarking::Unprocessed);
+  new_ep->process_leaf(s2c_node, {leaf}, bdd_node_marking);
 
   if (new_bdd) {
     new_ep->replace_bdd(std::move(new_bdd));

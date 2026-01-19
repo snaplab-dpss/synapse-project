@@ -21,6 +21,9 @@ public:
   }
 
   const Symbols &get_symbols() const { return symbols; }
+
+  // Dummy BDD node function to force a SendToController module creation.
+  static std::string force_send_to_controller_bdd_node_function_name() { return "tofino_force_send_to_controller"; }
 };
 
 class SendToControllerFactory : public TofinoModuleFactory {

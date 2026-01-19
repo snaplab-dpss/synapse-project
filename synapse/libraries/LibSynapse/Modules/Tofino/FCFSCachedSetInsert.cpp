@@ -100,171 +100,148 @@ std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, con
   return nodes_to_ignore;
 }
 
-klee::ref<klee::Expr> build_cache_write_success_condition(const symbol_t &cache_write_success) {
-  klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, cache_write_success.expr->getWidth());
-  return solver_toolbox.exprBuilder->Ne(cache_write_success.expr, zero);
+klee::ref<klee::Expr> build_cached_insert_success_condition(const symbol_t &cached_insert_success) {
+  klee::ref<klee::Expr> zero = solver_toolbox.exprBuilder->Constant(0, cached_insert_success.expr->getWidth());
+  return solver_toolbox.exprBuilder->Ne(cached_insert_success.expr, zero);
 }
 
-void add_dchain_allocate_new_index_clone_on_cache_write_failed(const EP *ep, BDD *bdd, const BDDNode *dchain_allocate_new_index,
-                                                               const Branch *cache_write_branch, BDDNode *&new_on_cache_write_failed) {
-  bdd_node_id_t &id                                        = bdd->get_mutable_id();
-  BDDNodeManager &manager                                  = bdd->get_mutable_manager();
-  BDDNode *dchain_allocate_new_index_on_cache_write_failed = dchain_allocate_new_index->clone(manager, false);
-  dchain_allocate_new_index_on_cache_write_failed->recursive_update_ids(id);
-
-  new_on_cache_write_failed =
-      bdd->add_cloned_non_branches(cache_write_branch->get_on_false()->get_id(), {dchain_allocate_new_index_on_cache_write_failed});
+BDDNode *add_dchain_allocate_new_index_clone_on_cached_insert_failed(BDD *bdd, const BDDNode *dchain_allocate_new_index,
+                                                                     const Branch *cached_insert_branch) {
+  bdd_node_id_t &id                                          = bdd->get_mutable_id();
+  BDDNodeManager &manager                                    = bdd->get_mutable_manager();
+  BDDNode *dchain_allocate_new_index_on_cached_insert_failed = dchain_allocate_new_index->clone(manager, true);
+  dchain_allocate_new_index_on_cached_insert_failed->recursive_update_ids(id);
+  return bdd->add_cloned_non_branches(cached_insert_branch->get_on_false()->get_id(), {dchain_allocate_new_index_on_cached_insert_failed});
 }
 
-void replicate_hdr_parsing_ops_on_cache_write_failed(const EP *ep, BDD *bdd, const Branch *cache_write_branch, BDDNode *&new_on_cache_write_failed) {
-  const BDDNode *on_cache_write_failed = cache_write_branch->get_on_false();
-
-  std::list<const Call *> prev_borrows =
-      on_cache_write_failed->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
-
-  if (prev_borrows.empty()) {
-    return;
-  }
-
-  std::vector<const BDDNode *> non_branch_nodes_to_add;
-  for (const Call *prev_borrow : prev_borrows) {
-    non_branch_nodes_to_add.push_back(prev_borrow);
-  }
-
-  new_on_cache_write_failed = bdd->add_cloned_non_branches(on_cache_write_failed->get_id(), non_branch_nodes_to_add);
+BDDNode *send_to_controller_on_cached_insert_failed(BDD *bdd, const Branch *cached_insert_branch) {
+  const BDDNode *on_cached_insert_failed = cached_insert_branch->get_on_false();
+  symbol_t symbol_reordering_barrier     = bdd->get_reordering_barrier_symbol();
+  return bdd->add_new_symbol_generator_function(
+      on_cached_insert_failed->get_id(), SendToController::force_send_to_controller_bdd_node_function_name(), Symbols({symbol_reordering_barrier}));
 }
 
-void delete_coalescing_nodes_on_success(const EP *ep, BDD *bdd, BDDNode *on_success, const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key,
-                                        std::optional<std::vector<klee::ref<klee::Expr>>> &deleted_branch_constraints) {
+BDDNode *delete_coalescing_nodes_and_alloc_failure_on_success(BDD *bdd, BDDNode *on_success, const pattern_t &pattern,
+                                                              const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key,
+                                                              std::vector<klee::ref<klee::Expr>> &deleted_branch_constraints) {
   const std::vector<const Call *> targets = on_success->get_coalescing_nodes_from_key(key, map_objs);
-
   for (const BDDNode *target : targets) {
-    const Call *call_target = dynamic_cast<const Call *>(target);
-    const call_t &call      = call_target->get_call();
+    BDDNode *new_node = bdd->delete_non_branch(target->get_id());
+    if (target->get_id() == on_success->get_id()) {
+      on_success = new_node;
+    }
+  }
 
-    if (call.function_name == "dchain_allocate_new_index") {
-      const branch_direction_t index_alloc_check = bdd->find_branch_checking_index_alloc(call_target);
-      if (index_alloc_check.branch) {
-        assert(!deleted_branch_constraints.has_value() && "Multiple branch checking index allocation detected");
-        deleted_branch_constraints = index_alloc_check.branch->get_ordered_branch_constraints();
+  const branch_direction_t index_alloc_check = bdd->find_branch_checking_index_alloc(pattern.dchain_allocate_new_index, on_success);
+  if (index_alloc_check.branch) {
+    deleted_branch_constraints = index_alloc_check.branch->get_ordered_branch_constraints();
 
-        klee::ref<klee::Expr> extra_constraint = index_alloc_check.branch->get_condition();
+    klee::ref<klee::Expr> extra_constraint = index_alloc_check.branch->get_condition();
 
-        // If we want to keep the direction on true, we must remove the on false.
-        if (index_alloc_check.direction) {
-          extra_constraint = solver_toolbox.exprBuilder->Not(extra_constraint);
-        }
-
-        deleted_branch_constraints->push_back(extra_constraint);
-
-        const BDD::BranchDeletionAction branch_deletion_action =
-            index_alloc_check.direction ? BDD::BranchDeletionAction::KeepOnTrue : BDD::BranchDeletionAction::KeepOnFalse;
-        bdd->delete_branch(index_alloc_check.branch->get_id(), branch_deletion_action);
-      }
+    // If we want to keep the direction on true, we must remove the on false.
+    if (index_alloc_check.direction) {
+      extra_constraint = solver_toolbox.exprBuilder->Not(extra_constraint);
     }
 
-    bdd->delete_non_branch(target->get_id());
+    deleted_branch_constraints.push_back(extra_constraint);
+
+    const BDD::BranchDeletionAction branch_deletion_action =
+        index_alloc_check.direction ? BDD::BranchDeletionAction::KeepOnTrue : BDD::BranchDeletionAction::KeepOnFalse;
+    BDDNode *new_node = bdd->delete_branch(index_alloc_check.branch->get_id(), branch_deletion_action);
+    if (index_alloc_check.branch->get_id() == on_success->get_id()) {
+      on_success = new_node;
+    }
   }
+
+  return on_success;
 }
 
-std::unique_ptr<BDD> branch_bdd_on_cache_write_success(const EP *ep, const BDDNode *dchain_allocate_new_index, const fcfs_cs_data_t &fcfs_cs_data,
-                                                       const map_coalescing_objs_t &coalescing_objs, const symbol_t &cache_write_success,
-                                                       klee::ref<klee::Expr> cache_write_success_condition, BDDNode *&on_cache_write_success,
-                                                       BDDNode *&on_cache_write_failed,
-                                                       std::optional<std::vector<klee::ref<klee::Expr>>> &deleted_branch_constraints) {
-  const BDD *old_bdd           = ep->get_bdd();
-  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
+struct rebuilt_bdd_result_t {
+  std::unique_ptr<BDD> bdd;
+  BDDNode *on_cached_insert_success;
+  BDDNode *on_cached_insert_failed;
+};
 
-  const BDDNode *next = dchain_allocate_new_index->get_next();
-  assert(next && "No next node");
+rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const pattern_t &pattern, const fcfs_cs_data_t &fcfs_cs_data,
+                                 const map_coalescing_objs_t &coalescing_objs, const symbol_t &cached_insert_success,
+                                 klee::ref<klee::Expr> cached_insert_success_condition, u32 cache_capacity) {
+  rebuilt_bdd_result_t result;
 
-  dynamic_cast<Call *>(new_bdd->get_mutable_node_by_id(dchain_allocate_new_index->get_id()))->add_local_symbol(cache_write_success);
+  const BDD *old_bdd = new_ep->get_bdd();
+  result.bdd         = std::make_unique<BDD>(*old_bdd);
 
-  Branch *cache_write_branch = new_bdd->add_cloned_branch(next->get_id(), cache_write_success_condition);
-  on_cache_write_success     = cache_write_branch->get_mutable_on_true();
+  dynamic_cast<Call *>(result.bdd->get_mutable_node_by_id(pattern.dchain_allocate_new_index->get_id()))->add_local_symbol(cached_insert_success);
 
-  add_dchain_allocate_new_index_clone_on_cache_write_failed(ep, new_bdd.get(), dchain_allocate_new_index, cache_write_branch, on_cache_write_failed);
-  replicate_hdr_parsing_ops_on_cache_write_failed(ep, new_bdd.get(), cache_write_branch, on_cache_write_failed);
-  delete_coalescing_nodes_on_success(ep, new_bdd.get(), on_cache_write_success, coalescing_objs, fcfs_cs_data.original_key,
-                                     deleted_branch_constraints);
+  Branch *cached_insert_branch =
+      result.bdd->add_cloned_branch(pattern.dchain_allocate_new_index->get_next()->get_id(), cached_insert_success_condition);
+  result.on_cached_insert_success = cached_insert_branch->get_mutable_on_true();
 
-  return new_bdd;
+  result.on_cached_insert_failed =
+      add_dchain_allocate_new_index_clone_on_cached_insert_failed(result.bdd.get(), pattern.dchain_allocate_new_index, cached_insert_branch);
+  result.on_cached_insert_failed = send_to_controller_on_cached_insert_failed(result.bdd.get(), cached_insert_branch);
+
+  std::vector<klee::ref<klee::Expr>> deleted_branch_constraints;
+  result.on_cached_insert_success = delete_coalescing_nodes_and_alloc_failure_on_success(
+      result.bdd.get(), result.on_cached_insert_success, pattern, coalescing_objs, fcfs_cs_data.original_key, deleted_branch_constraints);
+
+  const hit_rate_t cache_collision_probability =
+      TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(new_ep->get_ctx(), pattern.map_put, fcfs_cs_data.original_key, cache_capacity);
+
+  new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(), cached_insert_success_condition,
+                                                                   1_hr - cache_collision_probability);
+
+  if (!deleted_branch_constraints.empty()) {
+    new_ep->get_mutable_ctx().get_mutable_profiler().remove(deleted_branch_constraints);
+  }
+
+  return result;
 }
 
-std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cs_data_t &fcfs_cs_data, const map_coalescing_objs_t &coalescing_objs,
-                               const symbol_t &cache_write_success, u32 cache_capacity, const Call *map_put) {
-  FCFSCachedSet *cached_table =
+std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const pattern_t &pattern, const fcfs_cs_data_t &fcfs_cs_data,
+                               const map_coalescing_objs_t &coalescing_objs, const symbol_t &cached_insert_success, u32 cache_capacity,
+                               const Call *map_put) {
+  FCFSCachedSet *fcfs_cached_set =
       TofinoModuleFactory::build_or_reuse_fcfs_cs(ep, node, fcfs_cs_data.obj, fcfs_cs_data.original_key, fcfs_cs_data.capacity, cache_capacity);
-
-  if (!cached_table) {
+  if (!fcfs_cached_set) {
     return nullptr;
   }
 
-  klee::ref<klee::Expr> cache_write_success_condition = build_cache_write_success_condition(cache_write_success);
-
-  Module *module                  = new FCFSCachedSetInsert(node, cached_table->id, fcfs_cs_data.obj, fcfs_cs_data.keys, cache_write_success);
-  EPNode *cached_table_write_node = new EPNode(module);
-
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  BDDNode *on_cache_write_success;
-  BDDNode *on_cache_write_failed;
-  std::optional<std::vector<klee::ref<klee::Expr>>> deleted_branch_constraints;
+  klee::ref<klee::Expr> cached_insert_success_condition = build_cached_insert_success_condition(cached_insert_success);
+  rebuilt_bdd_result_t rebuilt_bdd_result =
+      rebuild_bdd(new_ep.get(), pattern, fcfs_cs_data, coalescing_objs, cached_insert_success, cached_insert_success_condition, cache_capacity);
 
-  std::unique_ptr<BDD> new_bdd =
-      branch_bdd_on_cache_write_success(new_ep.get(), node, fcfs_cs_data, coalescing_objs, cache_write_success, cache_write_success_condition,
-                                        on_cache_write_success, on_cache_write_failed, deleted_branch_constraints);
+  Module *module      = new FCFSCachedSetInsert(node, fcfs_cached_set->id, fcfs_cs_data.obj, fcfs_cs_data.keys, cached_insert_success);
+  Module *if_module   = new If(node, cached_insert_success_condition, {cached_insert_success_condition});
+  Module *then_module = new Then(node);
+  Module *else_module = new Else(node);
 
-  Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, node);
+  EPNode *cached_set_insert_node = new EPNode(module);
+  EPNode *if_node                = new EPNode(if_module);
+  EPNode *then_node              = new EPNode(then_module);
+  EPNode *else_node              = new EPNode(else_module);
 
-  Module *if_module                 = new If(node, cache_write_success_condition, {cache_write_success_condition});
-  Module *then_module               = new Then(node);
-  Module *else_module               = new Else(node);
-  Module *send_to_controller_module = new SendToController(on_cache_write_failed, symbols);
+  cached_set_insert_node->set_children(if_node);
 
-  EPNode *if_node                 = new EPNode(if_module);
-  EPNode *then_node               = new EPNode(then_module);
-  EPNode *else_node               = new EPNode(else_module);
-  EPNode *send_to_controller_node = new EPNode(send_to_controller_module);
-
-  cached_table_write_node->set_children(if_node);
-
-  if_node->set_prev(cached_table_write_node);
-  if_node->set_children(cache_write_success_condition, then_node, else_node);
+  if_node->set_prev(cached_set_insert_node);
+  if_node->set_children(cached_insert_success_condition, then_node, else_node);
 
   then_node->set_prev(if_node);
-
   else_node->set_prev(if_node);
-  else_node->set_children(send_to_controller_node);
-
-  send_to_controller_node->set_prev(else_node);
-
-  const hit_rate_t map_put_hr = new_ep->get_ctx().get_profiler().get_hr(map_put);
-  const hit_rate_t cache_collision_probability =
-      TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(ep->get_ctx(), map_put, fcfs_cs_data.original_key, cache_capacity);
-
-  new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(new_ep->get_active_leaf().node->get_constraints(), cache_write_success_condition,
-                                                                   hit_rate_t{map_put_hr * (1_hr - cache_collision_probability)});
 
   Context &ctx = new_ep->get_mutable_ctx();
   ctx.save_ds_impl(coalescing_objs.map, DSImpl::Tofino_FCFSCachedSet);
   ctx.save_ds_impl(coalescing_objs.dchain, DSImpl::Tofino_FCFSCachedSet);
 
-  if (deleted_branch_constraints.has_value()) {
-    ctx.get_mutable_profiler().remove(deleted_branch_constraints.value());
-  }
-
   TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
-  tofino_ctx->place(new_ep.get(), node, coalescing_objs.map, cached_table);
+  tofino_ctx->place(new_ep.get(), node, coalescing_objs.map, fcfs_cached_set);
 
-  EPLeaf on_cache_write_success_leaf(then_node, on_cache_write_success);
-  EPLeaf on_cache_write_failed_leaf(send_to_controller_node, on_cache_write_failed);
+  EPLeaf on_cached_insert_success_leaf(then_node, rebuilt_bdd_result.on_cached_insert_success);
+  EPLeaf on_cached_insert_failed_leaf(else_node, rebuilt_bdd_result.on_cached_insert_failed);
 
-  new_ep->process_leaf(cached_table_write_node, {on_cache_write_success_leaf, on_cache_write_failed_leaf});
-  new_ep->replace_bdd(std::move(new_bdd));
-
-  const hit_rate_t hr = new_ep->get_ctx().get_profiler().get_hr(send_to_controller_node);
-  new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_controller_traffic(new_ep->get_node_egress(hr, send_to_controller_node));
+  new_ep->process_leaf(cached_set_insert_node, {on_cached_insert_success_leaf, on_cached_insert_failed_leaf});
+  new_ep->replace_bdd(std::move(rebuilt_bdd_result.bdd));
 
   return new_ep;
 }
@@ -306,15 +283,13 @@ std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, c
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cs_cache_capacities(data.capacity);
-
   hit_rate_t chosen_success_estimation = 0_hr;
   u32 chosen_cache_capacity            = 0;
   bool successfully_placed             = false;
 
   // We can use a different method for picking the right estimation depending
   // on the time it takes to find a solution.
-  for (u32 cache_capacity : allowed_cache_capacities) {
+  for (u32 cache_capacity : enum_fcfs_cs_cache_capacities(data.capacity)) {
     const hit_rate_t success_estimation =
         1_hr - TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(ep->get_ctx(), pattern.map_put, data.original_key, cache_capacity);
 
@@ -339,14 +314,6 @@ std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, c
 
   const hit_rate_t fraction         = profiler.get_hr(node);
   const hit_rate_t on_fail_fraction = hit_rate_t{fraction * (1_hr - chosen_success_estimation)};
-
-  if (node->get_id() == 161) {
-    std::cerr << "cache_capacity: " << chosen_cache_capacity << "\n";
-    std::cerr << "success rate: " << chosen_success_estimation << "\n";
-    std::cerr << "on_success_fraction: " << fraction * chosen_success_estimation << "\n";
-    std::cerr << "on_fail_fraction: " << on_fail_fraction << "\n";
-    dbg_pause();
-  }
 
   new_ctx.get_mutable_profiler().scale(node->get_ordered_branch_constraints(), chosen_success_estimation.value);
   new_ctx.save_ds_impl(coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet);
@@ -401,12 +368,12 @@ std::vector<impl_t> FCFSCachedSetInsertFactory::process_node(const EP *ep, const
     }
   }
 
-  const symbol_t cache_write_success              = symbol_manager->create_symbol("cache_write_success", 32);
+  const symbol_t cached_insert_success            = symbol_manager->create_symbol("cached_insert_success", 32);
   const std::vector<u32> allowed_cache_capacities = enum_fcfs_cs_cache_capacities(data.capacity);
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-    std::unique_ptr<EP> new_ep = concretize(ep, node, data, coalescing_objs.value(), cache_write_success, cache_capacity, pattern.map_put);
+    std::unique_ptr<EP> new_ep = concretize(ep, node, pattern, data, coalescing_objs.value(), cached_insert_success, cache_capacity, pattern.map_put);
     if (new_ep) {
       impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_SET_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(std::move(impl));
@@ -446,13 +413,13 @@ std::unique_ptr<Module> FCFSCachedSetInsertFactory::create(const BDD *bdd, const
     return {};
   }
 
-  symbol_t mock_cache_write_failed;
+  symbol_t mock_cached_insert_failed;
 
   const std::unordered_set<Tofino::DS *> ds = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_ds(coalescing_objs->map);
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedSet *fcfs_cs = dynamic_cast<const FCFSCachedSet *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedSetInsert>(node, fcfs_cs->id, data.obj, data.keys, mock_cache_write_failed);
+  return std::make_unique<FCFSCachedSetInsert>(node, fcfs_cs->id, data.obj, data.keys, mock_cached_insert_failed);
 }
 
 } // namespace Tofino

@@ -125,23 +125,23 @@ bool is_read_write_pattern(const BDD *bdd, const BDDNode *node, read_write_patte
   return true;
 }
 
-BDDNode *replicate_hdr_parsing_ops_on_collision_detected(const EP *ep, BDD *bdd, const Branch *collision_detected) {
-  const BDDNode *on_collision_detected = collision_detected->get_on_true();
+// BDDNode *replicate_hdr_parsing_ops_on_collision_detected(const EP *ep, BDD *bdd, const Branch *collision_detected) {
+//   const BDDNode *on_collision_detected = collision_detected->get_on_true();
 
-  std::list<const Call *> prev_borrows =
-      on_collision_detected->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
+//   std::list<const Call *> prev_borrows =
+//       on_collision_detected->get_prev_functions({"packet_borrow_next_chunk"}, ep->get_target_roots(ep->get_active_target()));
 
-  if (prev_borrows.empty()) {
-    return nullptr;
-  }
+//   if (prev_borrows.empty()) {
+//     return nullptr;
+//   }
 
-  std::vector<const BDDNode *> non_branch_nodes_to_add;
-  for (const Call *prev_borrow : prev_borrows) {
-    non_branch_nodes_to_add.push_back(prev_borrow);
-  }
+//   std::vector<const BDDNode *> non_branch_nodes_to_add;
+//   for (const Call *prev_borrow : prev_borrows) {
+//     non_branch_nodes_to_add.push_back(prev_borrow);
+//   }
 
-  return bdd->add_cloned_non_branches(on_collision_detected->get_id(), non_branch_nodes_to_add);
-}
+//   return bdd->add_cloned_non_branches(on_collision_detected->get_id(), non_branch_nodes_to_add);
+// }
 
 std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, const BDDNode *node, const map_coalescing_objs_t &map_objs,
                                                                klee::ref<klee::Expr> key) {
@@ -176,51 +176,51 @@ rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const read_write_pattern_t &pattern
                                  const symbol_t &collision_detected, klee::ref<klee::Expr> collision_detected_condition, u32 cache_capacity) {
   rebuilt_bdd_result_t result;
 
-  const BDD *old_bdd = new_ep->get_bdd();
-  result.bdd         = std::make_unique<BDD>(*old_bdd);
+  // const BDD *old_bdd = new_ep->get_bdd();
+  // result.bdd         = std::make_unique<BDD>(*old_bdd);
 
-  Call *new_map_get = dynamic_cast<Call *>(result.bdd->get_mutable_node_by_id(pattern.map_get->get_id()));
-  new_map_get->add_local_symbol(collision_detected);
+  // Call *new_map_get = dynamic_cast<Call *>(result.bdd->get_mutable_node_by_id(pattern.map_get->get_id()));
+  // new_map_get->add_local_symbol(collision_detected);
 
-  BDDNode *new_dchain_allocate_new_index = pattern.dchain_allocate_new_index->clone(result.bdd->get_mutable_manager(), true);
-  new_dchain_allocate_new_index->recursive_update_ids(result.bdd->get_mutable_id());
+  // BDDNode *new_dchain_allocate_new_index = pattern.dchain_allocate_new_index->clone(result.bdd->get_mutable_manager(), true);
+  // new_dchain_allocate_new_index->recursive_update_ids(result.bdd->get_mutable_id());
 
-  BDDNode *on_write_success = result.bdd->get_mutable_node_by_id(pattern.on_write_success->get_id());
-  Branch *collision_detected_branch =
-      result.bdd->add_cloned_branch(on_write_success->get_id(), collision_detected_condition, new_dchain_allocate_new_index, on_write_success);
+  // BDDNode *on_write_success = result.bdd->get_mutable_node_by_id(pattern.on_write_success->get_id());
+  // Branch *collision_detected_branch =
+  //     result.bdd->add_cloned_branch(on_write_success->get_id(), collision_detected_condition, new_dchain_allocate_new_index, on_write_success);
 
-  result.data_plane_read_success  = result.bdd->get_mutable_node_by_id(pattern.on_read_success->get_id());
-  result.data_plane_write_success = collision_detected_branch->get_mutable_on_false();
+  // result.data_plane_read_success  = result.bdd->get_mutable_node_by_id(pattern.on_read_success->get_id());
+  // result.data_plane_write_success = collision_detected_branch->get_mutable_on_false();
 
-  BDDNode *new_on_collision_detected_with_hdr_parsing =
-      replicate_hdr_parsing_ops_on_collision_detected(new_ep, result.bdd.get(), collision_detected_branch);
-  if (new_on_collision_detected_with_hdr_parsing == nullptr) {
-    result.on_collision_detected = collision_detected_branch->get_mutable_on_true();
-  } else {
-    result.on_collision_detected = new_on_collision_detected_with_hdr_parsing;
-  }
+  // BDDNode *new_on_collision_detected_with_hdr_parsing =
+  //     replicate_hdr_parsing_ops_on_collision_detected(new_ep, result.bdd.get(), collision_detected_branch);
+  // if (new_on_collision_detected_with_hdr_parsing == nullptr) {
+  //   result.on_collision_detected = collision_detected_branch->get_mutable_on_true();
+  // } else {
+  //   result.on_collision_detected = new_on_collision_detected_with_hdr_parsing;
+  // }
 
-  const std::vector<klee::ref<klee::Expr>> index_alloc_failed_on_dataplane_constraints =
-      pattern.index_alloc_success_direction.get_failure_node()->get_ordered_branch_constraints();
+  // const std::vector<klee::ref<klee::Expr>> index_alloc_failed_on_dataplane_constraints =
+  //     pattern.index_alloc_success_direction.get_failure_node()->get_ordered_branch_constraints();
 
-  result.bdd->delete_branch(pattern.index_alloc_success_direction.branch->get_id(), pattern.index_alloc_success_direction.direction
-                                                                                        ? BDD::BranchDeletionAction::KeepOnTrue
-                                                                                        : BDD::BranchDeletionAction::KeepOnFalse);
+  // result.bdd->delete_branch(pattern.index_alloc_success_direction.branch->get_id(), pattern.index_alloc_success_direction.direction
+  //                                                                                       ? BDD::BranchDeletionAction::KeepOnTrue
+  //                                                                                       : BDD::BranchDeletionAction::KeepOnFalse);
 
-  const hit_rate_t cache_collision_probability =
-      TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(new_ep->get_ctx(), pattern.map_put, fcfs_cs_data.original_key, cache_capacity);
+  // const hit_rate_t cache_collision_probability =
+  //     TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(new_ep->get_ctx(), pattern.map_put, fcfs_cs_data.original_key, cache_capacity);
 
-  new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(pattern.on_write_success->get_ordered_branch_constraints(),
-                                                                   collision_detected_condition, cache_collision_probability);
-  new_ep->get_mutable_ctx().get_mutable_profiler().remove(index_alloc_failed_on_dataplane_constraints);
+  // new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(pattern.on_write_success->get_ordered_branch_constraints(),
+  //                                                                  collision_detected_condition, cache_collision_probability);
+  // new_ep->get_mutable_ctx().get_mutable_profiler().remove(index_alloc_failed_on_dataplane_constraints);
 
-  BDDViz::visualize(result.bdd.get(), false);
-  const BDD::inspection_report_t bdd_inspection_report = result.bdd->inspect();
-  if (bdd_inspection_report.status != BDD::InspectionStatus::Ok) {
-    panic("BDD inspection failed: %s", bdd_inspection_report.message.c_str());
-  }
-  ProfilerViz::visualize(result.bdd.get(), new_ep->get_ctx().get_profiler(), false);
-  dbg_pause();
+  // BDDViz::visualize(result.bdd.get(), false);
+  // const BDD::inspection_report_t bdd_inspection_report = result.bdd->inspect();
+  // if (bdd_inspection_report.status != BDD::InspectionStatus::Ok) {
+  //   panic("BDD inspection failed: %s", bdd_inspection_report.message.c_str());
+  // }
+  // ProfilerViz::visualize(result.bdd.get(), new_ep->get_ctx().get_profiler(), false);
+  // dbg_pause();
 
   return result;
 }

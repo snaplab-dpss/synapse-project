@@ -905,7 +905,7 @@ Branch *BDD::create_new_branch(klee::ref<klee::Expr> condition) {
   return new_branch;
 }
 
-Call *BDD::create_new_call(const BDDNode *current, const call_t &call, const Symbols &generated_symbols) {
+Call *BDD::create_new_call(const call_t &call, const Symbols &generated_symbols) {
   Call *new_call = new Call(id++, symbol_manager, call, generated_symbols);
   manager.add_node(new_call);
   return new_call;
@@ -913,7 +913,7 @@ Call *BDD::create_new_call(const BDDNode *current, const call_t &call, const Sym
 
 BDDNode *BDD::add_cloned_non_branches(bdd_node_id_t target_id, const std::vector<const BDDNode *> &new_nodes) {
   const BDDNode *current = get_node_by_id(target_id);
-  assert(current && "BDDNode not found");
+  assert_or_panic(current, "BDDNode not found");
 
   BDDNode *new_current = nullptr;
 
@@ -922,7 +922,7 @@ BDDNode *BDD::add_cloned_non_branches(bdd_node_id_t target_id, const std::vector
   }
 
   const BDDNode *prev = current->get_prev();
-  assert(prev && "No previous node");
+  assert_or_panic(prev, "No previous node");
 
   bdd_node_id_t anchor_id = prev->get_id();
   BDDNode *anchor         = get_mutable_node_by_id(anchor_id);
@@ -976,21 +976,6 @@ Branch *BDD::add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> co
   const BDDNode *current = get_node_by_id(target_id);
   assert(current && "BDDNode not found");
 
-  BDDNode *anchor_next = get_mutable_node_by_id(current->get_id());
-
-  BDDNode *on_true_cond  = anchor_next;
-  BDDNode *on_false_cond = anchor_next->clone(manager, true);
-
-  on_true_cond->recursive_update_ids(id);
-  on_false_cond->recursive_update_ids(id);
-
-  return add_cloned_branch(target_id, condition, on_true_cond, on_false_cond);
-}
-
-Branch *BDD::add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> condition, BDDNode *on_true_cond, BDDNode *on_false_cond) {
-  const BDDNode *current = get_node_by_id(target_id);
-  assert(current && "BDDNode not found");
-
   const BDDNode *prev = current->get_prev();
   assert(prev && "No previous node");
 
@@ -999,6 +984,10 @@ Branch *BDD::add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> co
   BDDNode *anchor_next    = get_mutable_node_by_id(current->get_id());
 
   klee::ref<klee::Expr> constraint = constraint_from_expr(condition);
+
+  BDDNode *on_true_cond  = anchor_next;
+  BDDNode *on_false_cond = anchor_next->clone(manager, true);
+  on_false_cond->recursive_update_ids(id);
 
   Branch *new_branch = create_new_branch(condition);
 
@@ -1037,10 +1026,10 @@ Branch *BDD::add_cloned_branch(bdd_node_id_t target_id, klee::ref<klee::Expr> co
 
 Call *BDD::add_new_symbol_generator_function(bdd_node_id_t target_id, const std::string &fn_name, const Symbols &symbols) {
   const BDDNode *current = get_node_by_id(target_id);
-  assert(current && "BDDNode not found");
+  assert_or_panic(current, "BDDNode not found");
 
   const BDDNode *prev = current->get_prev();
-  assert(prev && "No previous node");
+  assert_or_panic(prev, "No previous node");
 
   const call_t call{
       .function_name = fn_name,
@@ -1049,7 +1038,7 @@ Call *BDD::add_new_symbol_generator_function(bdd_node_id_t target_id, const std:
       .ret           = {},
   };
 
-  Call *new_node = create_new_call(current, call, symbols);
+  Call *new_node = create_new_call(call, symbols);
 
   bdd_node_id_t anchor_id = prev->get_id();
   BDDNode *anchor         = get_mutable_node_by_id(anchor_id);
@@ -1637,8 +1626,10 @@ klee::ConstraintManager BDD::get_constraints(const BDDNode *node) const {
   return constraints;
 }
 
-branch_direction_t BDD::find_branch_checking_index_alloc(const Call *dchain_allocate_new_index) const {
+branch_direction_t BDD::find_branch_checking_index_alloc(const Call *dchain_allocate_new_index, const BDDNode *start) const {
   assert_or_panic(dchain_allocate_new_index, "dchain_allocate_new_index cannot be null");
+  assert_or_panic(start, "start cannot be null");
+
   branch_direction_t index_alloc_check;
 
   const call_t &call = dchain_allocate_new_index->get_call();
@@ -1648,7 +1639,7 @@ branch_direction_t BDD::find_branch_checking_index_alloc(const Call *dchain_allo
 
   const symbol_t not_out_of_space = dchain_allocate_new_index->get_local_symbol("not_out_of_space");
 
-  dchain_allocate_new_index->visit_nodes([&not_out_of_space, &index_alloc_check](const BDDNode *node) {
+  start->visit_nodes([&not_out_of_space, &index_alloc_check](const BDDNode *node) {
     if (node->get_type() != BDDNodeType::Branch) {
       return BDDNodeVisitAction::Continue;
     }
@@ -1687,6 +1678,10 @@ branch_direction_t BDD::find_branch_checking_index_alloc(const Call *dchain_allo
   }
 
   return index_alloc_check;
+}
+
+branch_direction_t BDD::find_branch_checking_index_alloc(const Call *dchain_allocate_new_index) const {
+  return find_branch_checking_index_alloc(dchain_allocate_new_index, dchain_allocate_new_index);
 }
 
 bool BDD::is_map_get_followed_by_map_puts_on_miss(const Call *map_get, std::vector<const Call *> &map_puts) const {
@@ -2122,6 +2117,14 @@ BDDNode *BDD::delete_constraints(const klee::ConstraintManager &target_constrain
   }
 
   return delete_non_branch(target_node_for_deletion, manager);
+}
+
+symbol_t BDD::get_reordering_barrier_symbol() const {
+  const std::string symbol_preventing_reordering_name = "__BDD_REORDERING_BARRIER__";
+  if (symbol_manager->has_symbol(symbol_preventing_reordering_name)) {
+    return symbol_manager->get_symbol(symbol_preventing_reordering_name);
+  }
+  return symbol_manager->create_symbol(symbol_preventing_reordering_name, 32);
 }
 
 } // namespace LibBDD
