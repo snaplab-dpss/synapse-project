@@ -6,6 +6,7 @@ extern "C" {
 #include <lib/state/double-chain.h>
 #include <lib/state/cht.h>
 #include <lib/state/cms.h>
+#include <lib/state/bloom-filter.h>
 #include <lib/state/token-bucket.h>
 #include <lib/state/lpm-dir-24-8.h>
 
@@ -1007,9 +1008,9 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  stats_per_map[1074044752].init(174);
-  stats_per_map[1074044752].init(159);
-  stats_per_map[1074044752].init(142);
+  stats_per_map[1074044048].init(174);
+  stats_per_map[1074044048].init(159);
+  stats_per_map[1074044048].init(142);
   forwarding_stats_per_route_op.insert({147, PortStats{}});
   forwarding_stats_per_route_op.insert({195, PortStats{}});
   forwarding_stats_per_route_op.insert({157, PortStats{}});
@@ -1148,7 +1149,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[12] = *(hdr2+9);
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074044752].update(142, key, 13, now);
+        stats_per_map[1074044048].update(142, key, 13, now);
         // BDDNode 143
         inc_path_counter(143);
         if ((0) == (map_hit)) {
@@ -1226,7 +1227,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key2[12] = *(hdr2+9);
         int value2;
         int map_hit2 = map_get(map, key2, &value2);
-        stats_per_map[1074044752].update(159, key2, 13, now);
+        stats_per_map[1074044048].update(159, key2, 13, now);
         // BDDNode 160
         inc_path_counter(160);
         if ((0) == (map_hit2)) {
@@ -1283,7 +1284,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             inc_path_counter(174);
             memcpy((void*)vector_value_out68, (void*)key2, 13);
             map_put(map, vector_value_out68, index);
-            stats_per_map[1074044752].update(174, vector_value_out68, 13, now);
+            stats_per_map[1074044048].update(174, vector_value_out68, 13, now);
             // BDDNode 175
             inc_path_counter(175);
             // BDDNode 176

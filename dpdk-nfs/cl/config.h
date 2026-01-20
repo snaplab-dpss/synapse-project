@@ -21,7 +21,7 @@ struct nf_config {
   uint32_t max_flows;
 
   // Maximum allowed number of clients
-  uint16_t max_clients;
+  uint32_t max_clients;
 
   // Expiration time in microseconds
   uint64_t expiration_time;

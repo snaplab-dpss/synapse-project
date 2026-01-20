@@ -9,15 +9,15 @@
 #include "nf-log.h"
 
 const uint32_t DEFAULT_MAX_FLOWS               = 65536;
-const uint16_t DEFAULT_MAX_CLIENTS             = 60;
+const uint32_t DEFAULT_MAX_CLIENTS             = 60;
 const uint64_t DEFAULT_EXPIRATION_TIME         = 1000000; // 1s
 const uint32_t DEFAULT_SKETCH_HEIGHT           = 4;
 const uint32_t DEFAULT_SKETCH_WIDTH            = 1024;
 const uint64_t DEFAULT_SKETCH_CLEANUP_INTERVAL = 10000000; // 10s
 
-#define PARSE_ERROR(format, ...)                                                                                                           \
-  nf_config_usage();                                                                                                                       \
-  fprintf(stderr, format, ##__VA_ARGS__);                                                                                                  \
+#define PARSE_ERROR(format, ...)                                                                                                                     \
+  nf_config_usage();                                                                                                                                 \
+  fprintf(stderr, format, ##__VA_ARGS__);                                                                                                            \
   exit(EXIT_FAILURE);
 
 void nf_config_init(int argc, char **argv) {
@@ -131,7 +131,7 @@ void nf_config_usage(void) {
           "\t--max-flows <max-flows>: maximum number of flows,"
           " default: %" PRIu32 ".\n"
           "\t--max-clients <max-clients>: maximum allowed number of clients,"
-          " default: %" PRIu16 ".\n"
+          " default: %" PRIu32 ".\n"
           "\t--expire <time>: expiration time (us),"
           " default: %" PRIu64 ".\n"
           "\t--sketch-height <height>: CMS height,"
@@ -158,7 +158,7 @@ void nf_config_print(void) {
   }
 
   NF_INFO("Max flows: %" PRIu32, config.max_flows);
-  NF_INFO("Max clients: %" PRIu16, config.max_clients);
+  NF_INFO("Max clients: %" PRIu32, config.max_clients);
   NF_INFO("Expiration time: %" PRIu64, config.expiration_time);
   NF_INFO("CMS sketch height: %" PRIu32, config.sketch_height);
   NF_INFO("CMS sketch width: %" PRIu32, config.sketch_width);

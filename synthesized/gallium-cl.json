@@ -26,23 +26,23 @@
   },
   "implementations": [
     {
-      "addr": 1074080288,
+      "addr": 1074080304,
       "implementation": "Tofino::CMS"
     },
     {
-      "addr": 1074079872,
+      "addr": 1074079888,
       "implementation": "Tofino::DchainTable"
     },
     {
-      "addr": 1074110080,
+      "addr": 1074110096,
       "implementation": "Tofino::VectorTable"
     },
     {
-      "addr": 1074047888,
+      "addr": 1074047904,
       "implementation": "Tofino::MapTable"
     },
     {
-      "addr": 1074092864,
+      "addr": 1074092880,
       "implementation": "Tofino::VectorTable"
     }
   ],
@@ -302,7 +302,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.7580645161290325,
-    "elapsed_time_seconds": 98,
+    "elapsed_time_seconds": 94,
     "finished_eps": 1,
     "ss_size": 179,
     "steps": 61,

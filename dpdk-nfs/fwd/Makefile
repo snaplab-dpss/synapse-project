@@ -1,9 +1,8 @@
 NF_DEVICES := 32
 
-NF_FILES := cl_main.c config.c state.c flow.c client.c
+NF_FILES := fwd_main.c config.c loop.c state.c
 
-NF_ARGS := --internal-devs 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 \
-           --fwd-rule 0,1 --fwd-rule 1,0 \
+NF_ARGS := --fwd-rule 0,1 --fwd-rule 1,0 \
            --fwd-rule 2,3 --fwd-rule 3,2 \
            --fwd-rule 4,5 --fwd-rule 5,4 \
            --fwd-rule 6,7 --fwd-rule 7,6 \
@@ -18,14 +17,6 @@ NF_ARGS := --internal-devs 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 \
            --fwd-rule 24,25 --fwd-rule 25,24 \
            --fwd-rule 26,27 --fwd-rule 27,26 \
            --fwd-rule 28,29 --fwd-rule 29,28 \
-           --fwd-rule 30,31 --fwd-rule 31,30 \
-           --max-flows $(or $(CAPACITY),65536) \
-           --max-clients $(or $(MAX_PORTS),131072) \
-           --expire $(or $(EXPIRATION_TIME),1000000) \
-           --sketch-height $(or $(SKETCH_HEIGHT),4) \
-           --sketch-width $(or $(SKETCH_WIDTH),1024) \
-           --sketch-cleanup-interval $(or $(SKETCH_CLEANUP_INTERVAL),10000000) 
-
-NF_LAYER := 4
+           --fwd-rule 30,31 --fwd-rule 31,30
 
 include $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/../Makefile
