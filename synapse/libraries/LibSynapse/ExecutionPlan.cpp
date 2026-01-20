@@ -10,8 +10,8 @@ namespace LibSynapse {
 
 namespace {
 
-constexpr const pps_t STABLE_TPUT_PRECISION{10'000};
-constexpr const pps_t TPUT_PRECISION{1'000};
+constexpr const pps_t STABLE_TPUT_PRECISION{100};
+constexpr const pps_t TPUT_PRECISION{100};
 
 using LibBDD::BDDNodeType;
 using LibBDD::BDDNodeVisitAction;

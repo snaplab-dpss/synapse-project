@@ -106,7 +106,7 @@ void TrafficGenerator::generate() {
     const device_t dev        = client_to_active_device.at(client_dev);
     advance_client_dev();
 
-    if (client_dev == first_client_dev) {
+    if (dev == first_client_dev) {
       tick();
       flow_idx = get_next_flow_idx();
       if (next_alarm >= 0 && current_time >= next_alarm) {

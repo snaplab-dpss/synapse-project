@@ -20,7 +20,7 @@ KVS_GET_RATIO = 0.99
 PIPELINES = 1
 
 TOTAL_FLOWS = 40_000
-CHURN_FPM = 100_000
+CHURN_FPM = 0
 ZIPF_PARAM = 1.2
 
 
@@ -177,26 +177,26 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
-    # SynapseNF(
-    #     name="gallium-cl",
-    #     description="Gallium CL",
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/gallium-cl.p4"),
-    #     controller=Path("synthesized/gallium-cl.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
     SynapseNF(
-        name="synapse-psd-fcfs-ct",
-        description="Synapse PSD FCFS CT",
+        name="gallium-cl",
+        description="Gallium CL",
         kvs_mode=False,
-        tofino=Path("tofino/nfs/psd/psd_fcfs_cached_table.p4"),
-        controller=Path("tofino/nfs/psd/psd_fcfs_cached_table.cpp"),
+        tofino=Path("synthesized/gallium-cl.p4"),
+        controller=Path("synthesized/gallium-cl.cpp"),
         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
         route=lambda _: [],
     ),
+    # SynapseNF(
+    #     name="synapse-psd-fcfs-ct",
+    #     description="Synapse PSD FCFS CT",
+    #     kvs_mode=False,
+    #     tofino=Path("tofino/nfs/psd/psd_fcfs_cached_table.p4"),
+    #     controller=Path("tofino/nfs/psd/psd_fcfs_cached_table.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
 ]
 
 

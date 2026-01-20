@@ -9,8 +9,8 @@ public:
   DSPrefFCFSCachedSet()
       : HeuristicCfg("DSPrefFCFSCachedSet", {
                                                 BUILD_METRIC(DSPrefFCFSCachedSet, get_ds_score, Objective::Max),
-                                                BUILD_METRIC(DSPrefFCFSCachedSet, get_bdd_progress, Objective::Max),
                                                 BUILD_METRIC(DSPrefFCFSCachedSet, get_tput_speculation, Objective::Max),
+                                                BUILD_METRIC(DSPrefFCFSCachedSet, get_bdd_progress, Objective::Max),
                                             }) {}
 
   DSPrefFCFSCachedSet &operator=(const DSPrefFCFSCachedSet &other) {

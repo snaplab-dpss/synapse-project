@@ -106,7 +106,7 @@ std::optional<spec_impl_t> FCFSCachedSetReadFactory::speculate(const EP *ep, con
   }
 
   std::vector<u32> allowed_cache_capacities = enum_fcfs_cs_cache_capacities(fcfs_cs_data->capacity);
-  std::sort(allowed_cache_capacities.begin(), allowed_cache_capacities.end());
+  std::sort(allowed_cache_capacities.begin(), allowed_cache_capacities.end(), std::greater<int>());
 
   // Let's optimistically pick the largest cache capacity that we can build or reuse.
   std::optional<u32> cache_capacity;
@@ -167,10 +167,12 @@ std::vector<impl_t> FCFSCachedSetReadFactory::process_node(const EP *ep, const B
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cs_cache_capacities(fcfs_cs_data->capacity);
-
   std::vector<impl_t> impls;
-  for (u32 cache_capacity : allowed_cache_capacities) {
+  for (u32 cache_capacity : enum_fcfs_cs_cache_capacities(fcfs_cs_data->capacity)) {
+    if (!can_build_or_reuse_fcfs_cs(ep, node, fcfs_cs_data->obj, fcfs_cs_data->original_key, fcfs_cs_data->capacity, cache_capacity)) {
+      continue;
+    }
+
     std::unique_ptr<EP> new_ep = concretize(ep, node, fcfs_cs_data.value(), cache_capacity);
     if (new_ep) {
       impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_SET_CACHE_SIZE_PARAM, cache_capacity}});

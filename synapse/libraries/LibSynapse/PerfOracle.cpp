@@ -210,8 +210,9 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
   // from the surplus recirculations.
   std::vector<bps_t> Tout(max_depth.value() + 1, 0);
 
-  const double Tin = pps2bps(global_ingress * recirc_ports_ingress.global.value, avg_pkt_size) / recirculation_ports_capacities.size();
-  if (Tin == 0) {
+  const bps_t global_ingress_bps = pps2bps(global_ingress, avg_pkt_size);
+  const double Tin_bps_per_pipe  = (global_ingress_bps * recirc_ports_ingress.global.value) / recirculation_ports_capacities.size();
+  if (Tin_bps_per_pipe == 0) {
     return Tout;
   }
 
@@ -220,24 +221,20 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
          "All recirculation ports must have the same capacity");
   const double Cr = recirculation_ports_capacities.begin()->second;
 
-  // std::cerr << "Tin: " << tput2str(Tin, "bps") << "\n";
-  // std::cerr << "Cr: " << tput2str(Cr, "bps") << " " << tput2str(bps2pps(Cr, avg_pkt_size), "pps") << "\n";
-
   hit_rate_t cummulative_recirc_hr = recirc_ports_ingress.global;
   for (auto &[rdepth, hr] : recirc_ports_ingress.recirc) {
     cummulative_recirc_hr = cummulative_recirc_hr + hr;
   }
-  // std::cerr << "Commulative recirc HR: " << cummulative_recirc_hr << "\n";
-  if (Tin * cummulative_recirc_hr <= Cr) {
-    // std::cerr << "No recirculation congestion\n";
-    Tout[0] = Tin * recirc_ports_ingress.global.value;
+
+  if (Tin_bps_per_pipe * cummulative_recirc_hr.value <= Cr) {
+    Tout[0] = global_ingress_bps * recirc_ports_ingress.global.value;
     for (auto &[rdepth, hr] : recirc_ports_ingress.recirc) {
       assert(static_cast<size_t>(rdepth + 1) < Tout.size());
-      Tout[rdepth + 1] = Tin * hr.value;
+      Tout[rdepth + 1] = global_ingress_bps * hr.value;
     }
     std::vector<pps_t> Tout_pps(Tout.size());
     for (size_t i = 0; i < Tout.size(); i++) {
-      Tout_pps[i] = bps2pps(Tout[i], avg_pkt_size) * recirculation_ports_capacities.size();
+      Tout_pps[i] = bps2pps(Tout[i], avg_pkt_size);
     }
     return Tout_pps;
   }
@@ -246,7 +243,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
   case 1: {
     // Single recirculation, easy.
     // Receiving traffic only from global ingress, no surplus.
-    Tout[0] = std::min(Tin, Cr);
+    Tout[0] = std::min(Tin_bps_per_pipe, Cr);
     // std::cerr << "[Single recirc] Tout[0] = " << tput2str(Tout[0], "bps") << "\n";
   } break;
   case 2: {
@@ -254,10 +251,10 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
     // s is relative to the first recirculation.
 
     const double s  = recirc_ports_ingress.get_hr_at_recirc_depth(0) / recirc_ports_ingress.global;
-    const double Ts = std::min((-Tin + sqrt(Tin * Tin + 4 * Cr * Tin * s)) / 2, Tin);
+    const double Ts = std::min((-Tin_bps_per_pipe + sqrt(Tin_bps_per_pipe * Tin_bps_per_pipe + 4 * Cr * Tin_bps_per_pipe * s)) / 2, Tin_bps_per_pipe);
 
-    Tout[0] = (Tin / (Tin + Ts)) * Cr * (1.0 - s);
-    Tout[1] = (Ts / (Tin + Ts)) * Cr;
+    Tout[0] = (Tin_bps_per_pipe / (Tin_bps_per_pipe + Ts)) * Cr * (1.0 - s);
+    Tout[1] = (Ts / (Tin_bps_per_pipe + Ts)) * Cr;
 
     // std::cerr << "[Double recirc] s = " << s << "\n";
     // std::cerr << "[Double recirc] Ts = " << tput2str(Ts, "bps") << "\n";
@@ -279,18 +276,18 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
     const double s0 = hr_surplus_0 / recirc_ports_ingress.global;
     const double s1 = hr_surplus_1 / hr_surplus_0;
 
-    const double a = (s1 / s0) * (1.0 / Tin);
+    const double a = (s1 / s0) * (1.0 / Tin_bps_per_pipe);
     const double b = 1;
-    const double c = Tin;
-    const double d = -1.0 * Tin * Cr * s0;
+    const double c = Tin_bps_per_pipe;
+    const double d = -1.0 * Tin_bps_per_pipe * Cr * s0;
 
     const std::vector<double> Ts0_coefficients = {d, c, b, a};
     const double Ts0                           = newton_root_finder(Ts0_coefficients, 0, Cr);
-    const double Ts1                           = Ts0 * Ts0 * (1.0 / Tin) * (s1 / s0);
+    const double Ts1                           = Ts0 * Ts0 * (1.0 / Tin_bps_per_pipe) * (s1 / s0);
 
-    Tout[0] = (Tin / static_cast<double>(Tin + Ts0 + Ts1)) * Cr * (1.0 - s0);
-    Tout[1] = (Ts0 / static_cast<double>(Tin + Ts0 + Ts1)) * Cr * (1.0 - s1);
-    Tout[2] = (Ts1 / static_cast<double>(Tin + Ts0 + Ts1)) * Cr;
+    Tout[0] = (Tin_bps_per_pipe / static_cast<double>(Tin_bps_per_pipe + Ts0 + Ts1)) * Cr * (1.0 - s0);
+    Tout[1] = (Ts0 / static_cast<double>(Tin_bps_per_pipe + Ts0 + Ts1)) * Cr * (1.0 - s1);
+    Tout[2] = (Ts1 / static_cast<double>(Tin_bps_per_pipe + Ts0 + Ts1)) * Cr;
   } break;
   default: {
     // s0 is relative to the first recirculation
@@ -325,8 +322,8 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
 
     std::vector<double> Ts0_coefficients;
 
-    Ts0_coefficients.push_back(-1.0 * Tin * Cr * s[0]);
-    Ts0_coefficients.push_back(Tin);
+    Ts0_coefficients.push_back(-1.0 * Tin_bps_per_pipe * Cr * s[0]);
+    Ts0_coefficients.push_back(Tin_bps_per_pipe);
     Ts0_coefficients.push_back(1.0);
 
     for (u8 i = 1; i < s.size(); i++) {
@@ -334,7 +331,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
       for (u8 j = 1; j <= i; j++) {
         coefficient *= s[j];
       }
-      coefficient /= pow(Tin * s[0], i);
+      coefficient /= pow(Tin_bps_per_pipe * s[0], i);
       Ts0_coefficients.push_back(coefficient);
     }
 
@@ -343,7 +340,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
       if (i == 0) {
         Ts[0] = newton_root_finder(Ts0_coefficients, 0, Cr);
       } else {
-        Ts[i] = pow(Ts[0], i + 1) * (1.0 / pow(Tin * s[0], i));
+        Ts[i] = pow(Ts[0], i + 1) * (1.0 / pow(Tin_bps_per_pipe * s[0], i));
         for (u8 j = 1; j <= i; j++) {
           Ts[i] *= s[j];
         }
@@ -357,11 +354,11 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
 
     for (u8 i = 0; i < s.size() + 1; i++) {
       if (i == 0) {
-        Tout[i] = (Tin / (Tin + Ts_sum)) * Cr * (1.0 - s[i]);
+        Tout[i] = (Tin_bps_per_pipe / (Tin_bps_per_pipe + Ts_sum)) * Cr * (1.0 - s[i]);
       } else if (i < s.size()) {
-        Tout[i] = (Ts[i - 1] / (Tin + Ts_sum)) * Cr * (1.0 - s[i]);
+        Tout[i] = (Ts[i - 1] / (Tin_bps_per_pipe + Ts_sum)) * Cr * (1.0 - s[i]);
       } else {
-        Tout[i] = (Tin / (Tin + Ts_sum)) * Cr;
+        Tout[i] = (Tin_bps_per_pipe / (Tin_bps_per_pipe + Ts_sum)) * Cr;
       }
     }
   }
@@ -371,12 +368,6 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
   for (size_t i = 0; i < Tout.size(); i++) {
     Tout_pps[i] = bps2pps(Tout[i], avg_pkt_size) * recirculation_ports_capacities.size();
   }
-
-  // std::cerr << "Tout (bps): ";
-  // for (size_t i = 0; i < Tout.size(); i++) {
-  //   std::cerr << "d[" << i << "] = " << tput2str(Tout[i], "bps") << " ";
-  // }
-  // std::cerr << "\n";
 
   return Tout_pps;
 }
@@ -395,11 +386,13 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   // Recirculation traffic can only come from global ingress and other recirculation ports.
   const std::vector<pps_t> recirc_egress = get_recirculated_egress(ingress);
 
+  const hit_rate_t global_recirc_hr = recirc_ports_ingress.global;
+
   // 2. Then we calculate the controller throughput (as it can be a bottleneck).
   // The controller can receive traffic from both global ingress and recirculation ports.
   pps_t controller_tput = ingress * controller_ingress.global.value;
   for (const auto &[recirc_depth, hr] : controller_ingress.recirc) {
-    controller_tput += recirc_egress.at(recirc_depth) * hr.value;
+    controller_tput += recirc_egress.at(recirc_depth) * (hr / global_recirc_hr);
   }
 
   controller_tput = std::min(controller_tput, controller_capacity);
@@ -420,7 +413,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     }
 
     for (const auto &[recirc_depth, hr] : port_ingress.recirc) {
-      port_tput += recirc_egress.at(recirc_depth) * hr.value;
+      port_tput += recirc_egress.at(recirc_depth) * (hr / global_recirc_hr);
     }
 
     const pps_t port_capacity = bps2pps(front_panel_ports_capacities.at(fwd_port), avg_pkt_size);
@@ -444,6 +437,9 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
 
   // And finally considering the switch bottleneck.
   tput = std::min(tput, max_switch_capacity);
+
+  // std::cerr << "Estimated throughput: " << tput2str(tput, "pps") << "\n";
+  // std::cerr << "Estimated throughput (bps): " << tput2str(pps2bps(tput, avg_pkt_size), "bps") << "\n";
 
   return tput;
 }

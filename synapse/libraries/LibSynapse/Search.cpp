@@ -119,7 +119,7 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
     std::cerr << "Backtracked to " << ep->get_id() << "\n";
     ep->debug();
     BDDViz::visualize(ep->get_bdd(), false);
-    // EPViz::visualize(ep, false);
+    EPViz::visualize(ep, false);
     SSViz::visualize(search_space, ep, true);
   }
 }

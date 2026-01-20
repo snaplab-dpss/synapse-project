@@ -287,17 +287,21 @@ std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, c
   u32 chosen_cache_capacity            = 0;
   bool successfully_placed             = false;
 
-  // We can use a different method for picking the right estimation depending
-  // on the time it takes to find a solution.
-  for (u32 cache_capacity : enum_fcfs_cs_cache_capacities(data.capacity)) {
+  const Call *map_get          = pattern.map_put->get_past_map_get_from_map_put();
+  const Call *target_for_stats = map_get ? map_get : pattern.map_put;
+
+  std::vector<u32> allowed_cache_capacities = enum_fcfs_cs_cache_capacities(data.capacity);
+  std::sort(allowed_cache_capacities.begin(), allowed_cache_capacities.end(), std::greater<int>());
+
+  for (u32 cache_capacity : allowed_cache_capacities) {
     const hit_rate_t success_estimation =
-        1_hr - TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(ep->get_ctx(), pattern.map_put, data.original_key, cache_capacity);
+        1_hr - TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(ep->get_ctx(), target_for_stats, data.original_key, cache_capacity);
 
     if (!can_build_or_reuse_fcfs_cs(ep, node, data.obj, data.original_key, data.capacity, cache_capacity)) {
-      break;
+      continue;
     }
 
-    if (success_estimation > chosen_success_estimation) {
+    if (!successfully_placed || success_estimation > chosen_success_estimation) {
       chosen_success_estimation = success_estimation;
       chosen_cache_capacity     = cache_capacity;
     }
@@ -309,17 +313,12 @@ std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, c
     return {};
   }
 
-  Context new_ctx          = ctx;
-  const Profiler &profiler = new_ctx.get_profiler();
+  Context new_ctx = ctx;
 
-  const hit_rate_t fraction         = profiler.get_hr(node);
-  const hit_rate_t on_fail_fraction = hit_rate_t{fraction * (1_hr - chosen_success_estimation)};
-
-  new_ctx.get_mutable_profiler().scale(node->get_ordered_branch_constraints(), chosen_success_estimation.value);
   new_ctx.save_ds_impl(coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet);
   new_ctx.save_ds_impl(coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedSet);
 
-  new_ctx.get_mutable_perf_oracle().add_controller_traffic(on_fail_fraction);
+  speculate_sending_to_controller(ep, node, new_ctx, 1_hr - chosen_success_estimation);
 
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_SET_CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
 
@@ -368,11 +367,14 @@ std::vector<impl_t> FCFSCachedSetInsertFactory::process_node(const EP *ep, const
     }
   }
 
-  const symbol_t cached_insert_success            = symbol_manager->create_symbol("cached_insert_success", 32);
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_cs_cache_capacities(data.capacity);
+  const symbol_t cached_insert_success = symbol_manager->create_symbol("cached_insert_success", 32);
 
   std::vector<impl_t> impls;
-  for (u32 cache_capacity : allowed_cache_capacities) {
+  for (u32 cache_capacity : enum_fcfs_cs_cache_capacities(data.capacity)) {
+    if (!can_build_or_reuse_fcfs_cs(ep, node, data.obj, data.original_key, data.capacity, cache_capacity)) {
+      continue;
+    }
+
     std::unique_ptr<EP> new_ep = concretize(ep, node, pattern, data, coalescing_objs.value(), cached_insert_success, cache_capacity, pattern.map_put);
     if (new_ep) {
       impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_SET_CACHE_SIZE_PARAM, cache_capacity}});

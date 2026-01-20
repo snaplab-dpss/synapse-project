@@ -143,30 +143,28 @@ std::vector<u32> TofinoModuleFactory::enum_fcfs_cs_cache_capacities(u32 capacity
   //   cache_capacity *= 2;
   // }
   capacities.push_back(32768);
-  // FIXME:
 
   return capacities;
 }
 
-hit_rate_t TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key,
+hit_rate_t TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(const Context &ctx, const BDDNode *map_get, klee::ref<klee::Expr> key,
                                                                         u32 cache_capacity) {
-  const flow_stats_t flow_stats = ctx.get_profiler().get_flow_stats(map_put, key);
+  const flow_stats_t flow_stats = ctx.get_profiler().get_flow_stats(map_get, key);
   const u32 mask                = cache_capacity - 1;
   assert_or_panic(flow_stats.crc32_hashes_per_mask.contains(mask), "Failed to find crc32 hash for mask %u", mask);
-  const u64 total_flow_hashes = flow_stats.crc32_hashes_per_mask.at(mask);
+  const u64 total_hashes    = flow_stats.crc32_hashes_per_mask.at(mask);
+  const hit_rate_t top_k_hr = flow_stats.calculate_top_k_hit_rate(total_hashes);
 
-  // FIXME: we are assuming uniform distribution of flows here.
-
-  const hit_rate_t collision_probability = 1_hr - hit_rate_t(total_flow_hashes, flow_stats.flows);
-
+  // const hit_rate_t collision_probability = 1_hr - hit_rate_t(total_hashes, flow_stats.flows);
   // std::cerr << "\n";
   // std::cerr << "Cache capacity: " << cache_capacity << "\n";
-  // std::cerr << "Total flow hashes for mask " << mask << ": " << total_flow_hashes << "\n";
-  // std::cerr << "Collision probability: " << collision_probability << "\n";
-  // const u64 controller_flows             = flow_stats.flows * collision_probability.value;
-  // std::cerr << "Expected controller flows: " << controller_flows << "\n";
+  // std::cerr << "Total hashes:   " << total_hashes << "\n";
+  // std::cerr << "Collision prob: " << collision_probability << "\n";
+  // std::cerr << "Top k hit rate: " << top_k_hr << "\n";
+  // std::cerr << "Final prob:     " << (1_hr - top_k_hr) << "\n";
+  // dbg_pause();
 
-  return collision_probability;
+  return 1_hr - top_k_hr;
 }
 
 } // namespace Tofino

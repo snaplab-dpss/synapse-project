@@ -292,7 +292,7 @@ class Orchestrator:
 
     async def _worker(
         self,
-        queue: asyncio.Queue,
+        queue: asyncio.LifoQueue,
         skip_if_already_produced: bool,
     ):
         task: Optional[Task] = None
@@ -314,7 +314,7 @@ class Orchestrator:
                 if success:
                     for next_task in task.next:
                         if next_task.is_ready():
-                            queue.put_nowait(next_task)
+                            await queue.put(next_task)
             except Exception as e:
                 rich.print(f"[{ERROR_COLOR}]Error in worker: {e}[/{ERROR_COLOR}]")
                 pass
@@ -324,12 +324,14 @@ class Orchestrator:
     async def _run(
         self,
         skip_if_already_produced: bool,
+        max_concurrent_tasks: int = -1,
     ):
-        queue = asyncio.Queue()
+        queue = asyncio.LifoQueue()
         loop = asyncio.get_running_loop()
         shutdown_event = asyncio.Event()
 
-        cpu_count = os.cpu_count() or 8
+        if max_concurrent_tasks <= 0:
+            max_concurrent_tasks = os.cpu_count() or 8
 
         def handle_sigint():
             shutdown_event.set()
@@ -340,10 +342,10 @@ class Orchestrator:
             loop.add_signal_handler(signal.SIGTERM, handle_sigint)
 
         for task in self.initial_tasks:
-            queue.put_nowait(task)
+            await queue.put(task)
 
         async_tasks = []
-        for _ in range(cpu_count):
+        for _ in range(max_concurrent_tasks):
             task = asyncio.create_task(self._worker(queue, skip_if_already_produced))
             async_tasks.append(task)
 
@@ -357,9 +359,10 @@ class Orchestrator:
     def run(
         self,
         skip_if_already_produced: bool = True,
+        max_concurrent_tasks: int = -1,
     ):
         start = time.perf_counter()
-        asyncio.run(self._run(skip_if_already_produced))
+        asyncio.run(self._run(skip_if_already_produced, max_concurrent_tasks))
         end = time.perf_counter()
 
         delta = timedelta(seconds=end - start)

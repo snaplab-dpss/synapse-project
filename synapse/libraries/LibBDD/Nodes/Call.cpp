@@ -560,4 +560,28 @@ std::optional<Call::vector_conditional_write_result_t> Call::get_vector_conditio
   return result;
 }
 
+const Call *Call::get_past_map_get_from_map_put() const {
+  if (call.function_name != "map_put") {
+    return nullptr;
+  }
+
+  const addr_t put_map          = expr_addr_to_obj_addr(call.args.at("map").expr);
+  klee::ref<klee::Expr> put_key = call.args.at("key").in;
+
+  const Call *target_map_get = nullptr;
+
+  for (const Call *map_get : get_prev_functions({"map_get"})) {
+    const call_t &mg             = map_get->get_call();
+    const addr_t mg_map          = expr_addr_to_obj_addr(mg.args.at("map").expr);
+    klee::ref<klee::Expr> mg_key = mg.args.at("key").in;
+
+    if (mg_map == put_map && solver_toolbox.are_exprs_always_equal(mg_key, put_key)) {
+      target_map_get = map_get;
+      break;
+    }
+  }
+
+  return target_map_get;
+}
+
 } // namespace LibBDD

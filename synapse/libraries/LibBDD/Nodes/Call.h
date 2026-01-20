@@ -42,6 +42,7 @@ public:
   klee::ref<klee::Expr> get_obj() const;
   std::vector<const Call *> get_vector_returns_from_borrow() const;
   const Call *get_vector_borrow_from_return() const;
+  const Call *get_past_map_get_from_map_put() const;
   bool is_vector_read() const;
   bool is_vector_write() const;
   bool is_vector_borrow_value_ignored() const;

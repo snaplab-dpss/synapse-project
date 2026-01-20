@@ -30,8 +30,8 @@ DEVICES = list(range(2, 32))
 DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd"]
 # DEFAULT_RATE = [100_000_000_000]  # 100 Gbps
 # DEFAULT_TOTAL_PACKETS = [160_000_000]
-DEFAULT_RATE = [20_000_000_000]  # 20 Gbps
-DEFAULT_TOTAL_PACKETS = [32_000_000]
+DEFAULT_RATE = [10_000_000_000]  # 10 Gbps
+DEFAULT_TOTAL_PACKETS = [40_000_000]
 DEFAULT_PACKET_SIZE = [64]
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
@@ -424,6 +424,7 @@ if __name__ == "__main__":
     parser.add_argument("--churn", type=int, nargs="+", default=DEFAULT_CHURN_FPM, help="Churn rate (fpm)")
     parser.add_argument("--debug", action="store_true", default=False, help="Enable debug mode (synapse runs much slower)")
 
+    parser.add_argument("--max-concurrent-tasks", type=int, default=-1, help="Maximum number of concurrent tasks to run. If <= 0, uses number of CPU cores.")
     parser.add_argument("--skip-pcap-generation", action="store_true", default=False, help="Skip pcap generation")
     parser.add_argument("--skip-profiler-generation", action="store_true", default=False, help="Skip profiler generation")
     parser.add_argument("--show-cmds-output", action="store_true", default=False, help="Show command output during execution")
@@ -581,4 +582,5 @@ if __name__ == "__main__":
 
     orchestrator.run(
         skip_if_already_produced=not args.force,
+        max_concurrent_tasks=args.max_concurrent_tasks,
     )

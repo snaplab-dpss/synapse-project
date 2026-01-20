@@ -119,6 +119,7 @@ private:
         ModuleType::Tofino_Recirculate,
         ModuleType::Tofino_VectorRegisterConditionalUpdate,
         ModuleType::Tofino_BloomFilterQueryAndSet,
+        ModuleType::Tofino_CMSIncAndQuery,
     };
 
     i64 count = 0;
