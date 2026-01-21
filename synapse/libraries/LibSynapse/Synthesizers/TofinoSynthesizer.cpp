@@ -1150,7 +1150,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress << "}\n";
   } break;
   case RegisterActionType::QueryAndRefreshTimestamp: {
-    assert_or_panic(extras.has_value() && extras->external_var.has_value(), "Expected a global variable for the timeout value");
+    assert_or_panic(extras.has_value() && extras->extra_constant.has_value(), "Expected a global variable for the timeout value");
     ingress.indent();
     ingress << "void apply(inout bit<32> alarm, out bool was_alive) {\n";
     ingress.inc();
@@ -1162,7 +1162,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "was_alive = false;\n";
     ingress.indent();
-    ingress << "alarm = meta.time + " << extras->external_var.value() << ";\n";
+    ingress << "alarm = meta.time + " << extras->extra_constant.value() << ";\n";
 
     ingress.dec();
     ingress.indent();
@@ -1207,16 +1207,6 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress << "}\n";
   } break;
   case RegisterActionType::IntegerAllocatorHeadReadAndUpdate:
-    /*
-if (meta.fcfs_ct_integer_allocator_tail != head) {
-  out_head = head;
-  if (head == FCFS_CT_CAPACITY - 1) {
-    head = 0;
-  } else {
-    head = head + 1;
-  }
-}
-    */
     assert_or_panic(extras.has_value() && extras->external_var.has_value(), "Expected a global variable for the tail value");
     assert_or_panic(extras.has_value() && extras->extra_constant.has_value(), "Expected an extra constant for the maximum head value");
     ingress.indent();
@@ -1362,6 +1352,39 @@ void TofinoSynthesizer::transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, c
   }
 
   todo();
+}
+
+void TofinoSynthesizer::transpile_fcfs_cs_decl(const FCFSCachedSet *fcfs_cs, const EPNode *ep_node) {
+  if (declared_ds.find(fcfs_cs->id) != declared_ds.end()) {
+    return;
+  }
+
+  declared_ds.insert(fcfs_cs->id);
+
+  const fcfs_cs_internal_names_t fcfs_cs_internal_names = fcfs_cs_get_internal_names(fcfs_cs);
+
+  for (const Hash &hash : fcfs_cs->hashes) {
+    transpile_hash_decl(&hash);
+  }
+
+  transpile_register_decl(&fcfs_cs->reg_liveness);
+  transpile_register_action_decl(&fcfs_cs->reg_liveness, fcfs_cs_internal_names.liveness_query, RegisterActionType::QueryTimestamp);
+  transpile_register_action_decl(&fcfs_cs->reg_liveness, fcfs_cs_internal_names.liveness_query_and_refresh,
+                                 RegisterActionType::QueryAndRefreshTimestamp,
+                                 register_action_extras_t{
+                                     .external_var             = {},
+                                     .extra_constant           = 16384, // 1s
+                                     .extra_condition          = {},
+                                     .write_value              = {},
+                                     .temporary_transpilations = {},
+                                 });
+
+  for (const Register &reg_key : fcfs_cs->cache_keys) {
+    transpile_register_decl(&reg_key);
+    for (RegisterActionType action_type : reg_key.actions) {
+      transpile_register_action_decl(&reg_key, fcfs_cs_internal_names.keys_reg_actions.at({reg_key.id, action_type}), action_type);
+    }
+  }
 }
 
 code_t TofinoSynthesizer::var_t::get_type() const { return force_bool ? "bool" : TofinoSynthesizer::Transpiler::type_from_expr(expr); }
@@ -3030,13 +3053,216 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
+TofinoSynthesizer::fcfs_cs_internal_names_t TofinoSynthesizer::fcfs_cs_get_internal_names(const FCFSCachedSet *fcfs_cs) const {
+  fcfs_cs_internal_names_t names;
+
+  names.liveness_query             = build_register_action_name(&fcfs_cs->reg_liveness, RegisterActionType::QueryTimestamp);
+  names.liveness_query_and_refresh = build_register_action_name(&fcfs_cs->reg_liveness, RegisterActionType::QueryAndRefreshTimestamp);
+
+  for (const Register &reg : fcfs_cs->cache_keys) {
+    for (const RegisterActionType &action_type : reg.actions) {
+      const code_t action_name                      = build_register_action_name(&reg, action_type);
+      names.keys_reg_actions[{reg.id, action_type}] = action_name;
+    }
+  }
+
+  return names;
+}
+
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *node) {
-  panic("TODO: FCFSCachedSetRead");
+  const DS_ID fcfs_cs_id                         = node->get_fcfs_cs_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  const std::optional<symbol_t> hit              = node->get_map_has_this_key();
+
+  const FCFSCachedSet *fcfs_cs = get_tofino_ds<FCFSCachedSet>(ep, fcfs_cs_id);
+  const bdd_node_id_t node_id  = node->get_node()->get_id();
+
+  const fcfs_cs_internal_names_t fcfs_cs_internal_names = fcfs_cs_get_internal_names(fcfs_cs);
+
+  transpile_fcfs_cs_decl(fcfs_cs, ep_node);
+
+  const Table *table = fcfs_cs->get_table(node_id);
+  assert(table && "Table not found");
+  std::vector<var_t> keys_vars;
+  transpile_table_decl(table, keys, {}, true, keys_vars);
+
+  const Hash *hash = fcfs_cs->get_hash(node_id);
+  assert(hash && "Hash not found");
+
+  std::vector<code_t> hash_inputs;
+  for (const var_t &key_var : keys_vars) {
+    hash_inputs.push_back(key_var.name);
+  }
+
+  code_t hash_calculator;
+  code_t hash_value;
+  transpile_hash_calculation(hash, hash_inputs, hash_calculator, hash_value);
+
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  for (const var_t &key_var : keys_vars) {
+    ingress_apply.indent();
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  }
+
+  const code_t hit_var_name = create_unique_name("hit");
+
+  if (hit) {
+    const var_t hit_var = alloc_var(hit_var_name, hit->expr, FORCE_BOOL);
+    hit_var.declare(ingress_apply, table->id + ".apply().hit");
+  } else {
+    ingress_apply.indent();
+    ingress_apply << table->id << ".apply();\n";
+  }
+
+  ingress_apply.indent();
+  ingress_apply << hash_calculator << "();\n";
+
+  const code_t is_alive_var_name = create_unique_name("fcfs_cs_is_alive");
+  ingress_apply.indent();
+  ingress_apply << "bool " << is_alive_var_name << " = ";
+  ingress_apply << fcfs_cs_internal_names.liveness_query << ".execute(" << hash_value << ");\n";
+
+  ingress_apply.indent();
+  ingress_apply << "if (";
+  ingress_apply << "!" << hit_var_name;
+  ingress_apply << " && ";
+  ingress_apply << is_alive_var_name;
+  ingress_apply << ") {\n";
+  ingress_apply.inc();
+
+  const code_t match_counter_var_name = create_unique_name("match_counter");
+  ingress_apply.indent();
+  ingress_apply << "bit<8>" << match_counter_var_name << " = 0;\n";
+  for (const Register &reg_key : fcfs_cs->cache_keys) {
+    ingress_apply.indent();
+    ingress_apply << match_counter_var_name << " = " << match_counter_var_name << " + "
+                  << fcfs_cs_internal_names.keys_reg_actions.at({reg_key.id, RegisterActionType::CheckValue}) << ".execute(" << hash_value << ");\n";
+  }
+  ingress_apply.indent();
+  ingress_apply << "if (" << match_counter_var_name << " == " << keys_vars.size() << ") {\n";
+  ingress_apply.inc();
+
+  ingress_apply.indent();
+  ingress_apply << hit_var_name << " = true;\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadInsert *node) {
-  panic("TODO: FCFSCachedSetReadInsert");
+  const DS_ID fcfs_cs_id                         = node->get_fcfs_cs_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  const std::optional<symbol_t> hit              = node->get_map_has_this_key();
+  const symbol_t &cached_insert_success          = node->get_cached_insert_success();
+
+  const FCFSCachedSet *fcfs_cs = get_tofino_ds<FCFSCachedSet>(ep, fcfs_cs_id);
+  const bdd_node_id_t node_id  = node->get_node()->get_id();
+
+  const fcfs_cs_internal_names_t fcfs_cs_internal_names = fcfs_cs_get_internal_names(fcfs_cs);
+
+  transpile_fcfs_cs_decl(fcfs_cs, ep_node);
+
+  const Table *table = fcfs_cs->get_table(node_id);
+  assert(table && "Table not found");
+  std::vector<var_t> keys_vars;
+  transpile_table_decl(table, keys, {}, true, keys_vars);
+
+  const Hash *hash = fcfs_cs->get_hash(node_id);
+  assert(hash && "Hash not found");
+
+  std::vector<code_t> hash_inputs;
+  for (const var_t &key_var : keys_vars) {
+    hash_inputs.push_back(key_var.name);
+  }
+
+  code_t hash_calculator;
+  code_t hash_value;
+  transpile_hash_calculation(hash, hash_inputs, hash_calculator, hash_value);
+
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  for (const var_t &key_var : keys_vars) {
+    ingress_apply.indent();
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  }
+
+  const code_t hit_var_name = create_unique_name("hit");
+
+  if (hit) {
+    const var_t hit_var = alloc_var(hit_var_name, hit->expr, FORCE_BOOL);
+    hit_var.declare(ingress_apply, table->id + ".apply().hit");
+  } else {
+    ingress_apply.indent();
+    ingress_apply << table->id << ".apply();\n";
+  }
+
+  const var_t cached_insert_success_var = alloc_var("cached_insert_success", cached_insert_success.expr);
+  cached_insert_success_var.declare(ingress_apply, "0");
+
+  ingress_apply.indent();
+  ingress_apply << "if (!" << hit_var_name << ") {\n";
+  ingress_apply.inc();
+
+  ingress_apply.indent();
+  ingress_apply << hash_calculator << "();\n";
+
+  const code_t is_alive_var_name = create_unique_name("fcfs_cs_is_alive");
+  ingress_apply.indent();
+  ingress_apply << "bool " << is_alive_var_name << " = ";
+  ingress_apply << fcfs_cs_internal_names.liveness_query_and_refresh << ".execute(" << hash_value << ");\n";
+
+  ingress_apply.indent();
+  ingress_apply << "if (" << is_alive_var_name << ") {\n";
+  ingress_apply.inc();
+
+  const code_t match_counter_var_name = create_unique_name("match_counter");
+  ingress_apply.indent();
+  ingress_apply << "bit<8>" << match_counter_var_name << " = 0;\n";
+  for (const Register &reg_key : fcfs_cs->cache_keys) {
+    ingress_apply.indent();
+    ingress_apply << match_counter_var_name << " = " << match_counter_var_name << " + "
+                  << fcfs_cs_internal_names.keys_reg_actions.at({reg_key.id, RegisterActionType::CheckValue}) << ".execute(" << hash_value << ");\n";
+  }
+  ingress_apply.indent();
+  ingress_apply << "if (" << match_counter_var_name << " == " << keys_vars.size() << ") {\n";
+  ingress_apply.inc();
+
+  ingress_apply.indent();
+  ingress_apply << hit_var_name << " = true;\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "} else {\n";
+  ingress_apply.inc();
+
+  for (const Register &reg_key : fcfs_cs->cache_keys) {
+    ingress_apply.indent();
+    ingress_apply << fcfs_cs_internal_names.keys_reg_actions.at({reg_key.id, RegisterActionType::Write}) << ".execute(" << hash_value << ");\n";
+  }
+
+  ingress_apply.indent();
+  ingress_apply << cached_insert_success_var.name << " = 1;\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
   return EPVisitor::Action::doChildren;
 }
 

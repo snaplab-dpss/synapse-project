@@ -251,13 +251,25 @@ private:
 
   code_t build_register_action_name(const Register *reg, RegisterActionType action, const EPNode *node = nullptr) const;
 
+  struct fcfs_cs_internal_names_t {
+    code_t liveness_query;
+    code_t liveness_query_and_refresh;
+    std::map<std::pair<DS_ID, RegisterActionType>, code_t> keys_reg_actions;
+  };
+
+  fcfs_cs_internal_names_t fcfs_cs_get_internal_names(const FCFSCachedSet *fcfs_cs) const;
+
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_reg_actions(const CountMinSketch *cms);
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_actions(const CountMinSketch *cms);
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_values(const CountMinSketch *cms);
+  std::vector<code_t> cms_get_hashes_values(const CountMinSketch *cms);
+  std::vector<code_t> cms_get_hashes_calculators(const CountMinSketch *cms, const EPNode *ep_node);
 
   std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_reg_actions(const BloomFilter *bf);
   std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_actions(const BloomFilter *bf);
   std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_values(const BloomFilter *bf);
+  std::vector<code_t> bf_get_hashes_values(const BloomFilter *bf);
+  std::vector<code_t> bf_get_hashes_calculators(const BloomFilter *bf, const EPNode *ep_node);
 
   void transpile_parser(const Parser &parser);
   void transpile_action_decl(const code_t &action_name, const std::vector<code_t> &body);
@@ -280,13 +292,12 @@ private:
   void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash);
   void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
   void transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, const std::vector<klee::ref<klee::Expr>> &keys);
+  void transpile_fcfs_cs_decl(const FCFSCachedSet *fcfs_cs, const EPNode *ep_node);
   void transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
-  std::vector<code_t> cms_get_hashes_values(const CountMinSketch *cms);
-  std::vector<code_t> cms_get_hashes_calculators(const CountMinSketch *cms, const EPNode *ep_node);
+
   void transpile_cms_hash_calculator_decl(const CountMinSketch *cms, const EPNode *ep_node, const std::vector<var_t> &keys_vars);
   void transpile_cms_decl(const CountMinSketch *cms, const EPNode *ep_node);
-  std::vector<code_t> bf_get_hashes_values(const BloomFilter *bf);
-  std::vector<code_t> bf_get_hashes_calculators(const BloomFilter *bf, const EPNode *ep_node);
+
   void transpile_bf_hash_calculator_decl(const BloomFilter *bf, const EPNode *ep_node, const std::vector<var_t> &keys_vars);
   void transpile_bf_decl(const BloomFilter *bf, const EPNode *ep_node);
   void transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table);

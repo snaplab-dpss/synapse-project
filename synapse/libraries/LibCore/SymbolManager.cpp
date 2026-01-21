@@ -1,5 +1,6 @@
 #include <LibCore/SymbolManager.h>
 #include <LibCore/Solver.h>
+#include <LibCore/Debug.h>
 
 #include <klee/util/ExprVisitor.h>
 #include <klee/Constraints.h>
@@ -95,7 +96,7 @@ const std::unordered_map<std::string, const klee::Array *> &SymbolManager::get_n
 
 const klee::Array *SymbolManager::get_array(const std::string &name) const {
   auto names_it = names.find(name);
-  assert(names_it != names.end() && "Array not found");
+  assert_or_panic(names_it != names.end(), "Array \"%s\" not found", name.c_str());
   return names_it->second;
 }
 
@@ -115,7 +116,7 @@ void SymbolManager::remove_symbol(const std::string &name) {
 
 symbol_t SymbolManager::get_symbol(const std::string &name) const {
   auto symbols_it = symbols.find(name);
-  assert(symbols_it != symbols.end() && "Symbol not found");
+  assert_or_panic(symbols_it != symbols.end(), "Symbol \"%s\" not found", name.c_str());
   return symbols_it->second;
 }
 

@@ -64,6 +64,9 @@ public:
   BDDNodeType get_type() const { return type; }
   bdd_node_id_t get_id() const { return id; }
 
+  const SymbolManager *get_symbol_manager() const { return symbol_manager; }
+  SymbolManager *get_mutable_symbol_manager() { return symbol_manager; }
+
   std::vector<klee::ref<klee::Expr>> get_ordered_branch_constraints() const;
 
   BDDNode *get_mutable_next() { return next; }

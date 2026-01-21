@@ -9,28 +9,22 @@ using Tofino::DS_ID;
 
 class DataplaneFCFSCachedSetWrite : public ControllerModule {
 private:
-  DS_ID id;
   addr_t obj;
-  std::vector<klee::ref<klee::Expr>> keys;
-  klee::ref<klee::Expr> value;
+  klee::ref<klee::Expr> key;
 
 public:
-  DataplaneFCFSCachedSetWrite(const BDDNode *_node, DS_ID _id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-                              klee::ref<klee::Expr> _value)
-      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedSetWrite, "DataplaneFCFSCachedSetWrite", _node), id(_id), obj(_obj), keys(_keys),
-        value(_value) {}
+  DataplaneFCFSCachedSetWrite(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key)
+      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedSetWrite, "DataplaneFCFSCachedSetWrite", _node), obj(_obj), key(_key) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneFCFSCachedSetWrite *cloned = new DataplaneFCFSCachedSetWrite(node, id, obj, keys, value);
+    DataplaneFCFSCachedSetWrite *cloned = new DataplaneFCFSCachedSetWrite(node, obj, key);
     return cloned;
   }
 
-  DS_ID get_id() const { return id; }
   addr_t get_obj() const { return obj; }
-  const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
-  klee::ref<klee::Expr> get_value() const { return value; }
+  klee::ref<klee::Expr> get_key() const { return key; }
 };
 
 class DataplaneFCFSCachedSetWriteFactory : public ControllerModuleFactory {

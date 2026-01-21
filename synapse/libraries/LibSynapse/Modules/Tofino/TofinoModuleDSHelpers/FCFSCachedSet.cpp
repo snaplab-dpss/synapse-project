@@ -64,9 +64,17 @@ FCFSCachedSet *reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, u32 
     added_table_id = fcfs_cs->add_table(node->get_id());
   }
 
+  std::optional<DS_ID> added_hash_id;
+  if (!fcfs_cs->has_hash(node->get_id())) {
+    added_hash_id = fcfs_cs->add_hash(node->get_id());
+  }
+
   if (!tofino_ctx->can_place(ep, node, fcfs_cs)) {
     if (added_table_id.has_value()) {
       fcfs_cs->remove_table(added_table_id.value());
+    }
+    if (added_hash_id.has_value()) {
+      fcfs_cs->remove_hash(added_hash_id.value());
     }
     fcfs_cs = nullptr;
   }
@@ -101,6 +109,7 @@ bool TofinoModuleFactory::can_reuse_fcfs_cs(const EP *ep, const BDDNode *node, a
 
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
   assert(!fcfs_cs->has_table(node->get_id()));
+  assert(!fcfs_cs->has_hash(node->get_id()));
 
   if (fcfs_cs->cache_capacity != cache_capacity) {
     return false;
@@ -108,6 +117,7 @@ bool TofinoModuleFactory::can_reuse_fcfs_cs(const EP *ep, const BDDNode *node, a
 
   std::unique_ptr<FCFSCachedSet> clone = std::unique_ptr<FCFSCachedSet>(dynamic_cast<FCFSCachedSet *>(fcfs_cs->clone()));
   clone->add_table(node->get_id());
+  clone->add_hash(node->get_id());
 
   return tofino_ctx->can_place(ep, node, clone.get());
 }
@@ -137,12 +147,13 @@ FCFSCachedSet *TofinoModuleFactory::get_fcfs_cs(const EP *ep, const BDDNode *nod
 std::vector<u32> TofinoModuleFactory::enum_fcfs_cs_cache_capacities(u32 capacity) {
   std::vector<u32> capacities;
 
-  // u32 cache_capacity = 8;
-  // while (cache_capacity < FCFSCachedSet::MAX_CACHE_CAPACITY && cache_capacity < capacity) {
-  //   capacities.push_back(cache_capacity);
-  //   cache_capacity *= 2;
-  // }
-  capacities.push_back(32768);
+  // Notice the <= capacity here in constrast with the "< capacity" on the FCFS Cached Table.
+  // This is very much intentional, as the FCFS Cached Set has no need to store indexes for the controller,
+  // so it can use the full capacity even when equal to the total capacity.
+  for (u32 cache_capacity = 8; cache_capacity <= FCFSCachedSet::MAX_CACHE_CAPACITY && cache_capacity <= capacity; cache_capacity *= 2) {
+    capacities.push_back(cache_capacity);
+    cache_capacity *= 2;
+  }
 
   return capacities;
 }
@@ -154,15 +165,6 @@ hit_rate_t TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(const Co
   assert_or_panic(flow_stats.crc32_hashes_per_mask.contains(mask), "Failed to find crc32 hash for mask %u", mask);
   const u64 total_hashes    = flow_stats.crc32_hashes_per_mask.at(mask);
   const hit_rate_t top_k_hr = flow_stats.calculate_top_k_hit_rate(total_hashes);
-
-  // const hit_rate_t collision_probability = 1_hr - hit_rate_t(total_hashes, flow_stats.flows);
-  // std::cerr << "\n";
-  // std::cerr << "Cache capacity: " << cache_capacity << "\n";
-  // std::cerr << "Total hashes:   " << total_hashes << "\n";
-  // std::cerr << "Collision prob: " << collision_probability << "\n";
-  // std::cerr << "Top k hit rate: " << top_k_hr << "\n";
-  // std::cerr << "Final prob:     " << (1_hr - top_k_hr) << "\n";
-  // dbg_pause();
 
   return 1_hr - top_k_hr;
 }

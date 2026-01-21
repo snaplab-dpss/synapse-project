@@ -136,11 +136,12 @@ bool TofinoModuleFactory::can_build_or_reuse_fcfs_ct(const EP *ep, const BDDNode
 
 FCFSCachedTable *TofinoModuleFactory::get_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj) { return internal_get_fcfs_ct(ep, node, obj); }
 
-std::vector<u32> TofinoModuleFactory::enum_fcfs_ct_cache_capacities() {
+std::vector<u32> TofinoModuleFactory::enum_fcfs_ct_cache_capacities(u32 capacity) {
   std::vector<u32> capacities;
 
-  u32 cache_capacity = 8;
-  while (cache_capacity <= FCFSCachedTable::MAX_CACHE_CAPACITY) {
+  // The cache can't be the same size as the total capacity, as we need some indices allocated specifically for the controller.
+  // Also check the FCFS Cached Set, in which we allow cache_capacity == capacity.
+  for (u32 cache_capacity = 8; cache_capacity <= FCFSCachedSet::MAX_CACHE_CAPACITY && cache_capacity < capacity; cache_capacity *= 2) {
     capacities.push_back(cache_capacity);
     cache_capacity *= 2;
   }

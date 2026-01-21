@@ -345,7 +345,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP 
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities();
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities(fcfs_ct_data->capacity);
 
   hit_rate_t chosen_collision_probability = 1_hr;
   u32 chosen_cache_capacity               = 0;
@@ -441,7 +441,7 @@ std::vector<impl_t> FCFSCachedTableReadInsertFactory::process_node(const EP *ep,
   }
 
   const symbol_t collision_detected               = symbol_manager->create_symbol("collision_detected", 32);
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities();
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities(fcfs_ct_data->capacity);
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {

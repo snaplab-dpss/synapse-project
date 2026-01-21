@@ -29,6 +29,7 @@
 #include <LibSynapse/Modules/Tofino/DchainTableLookup.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableRead.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedSetRead.h>
+#include <LibSynapse/Modules/Tofino/FCFSCachedSetReadInsert.h>
 #include <LibSynapse/Modules/Tofino/HHTableRead.h>
 #include <LibSynapse/Modules/Tofino/IntegerAllocatorIsAllocated.h>
 #include <LibSynapse/Modules/Tofino/LPMLookup.h>
@@ -182,6 +183,11 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       const BDDNode *if_node                = if_module->get_node();
       assert(if_node);
 
+      const std::unordered_set<std::string> names = symbol_t::get_symbols_names(condition);
+      for (const std::string &name : names) {
+        initial_controller_logic.extra_symbols.add(if_node->get_symbol_manager()->get_symbol(name));
+      }
+
       initial_controller_logic.extra_symbols.add(if_node->get_used_symbols());
 
       Controller::If *ctrl_if                              = new Controller::If(active_leaf.next, condition);
@@ -294,11 +300,20 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Tofino_FCFSCachedSetRead: {
       const FCFSCachedSetRead *fcfs_cs_read = dynamic_cast<const FCFSCachedSetRead *>(prev.module);
 
-      Controller::DataplaneFCFSCachedSetRead *ctrl_fcfs_cs_read =
-          new Controller::DataplaneFCFSCachedSetRead(active_leaf.next, fcfs_cs_read->get_fcfs_cs_id(), fcfs_cs_read->get_obj(),
-                                                     fcfs_cs_read->get_original_key(), fcfs_cs_read->get_map_has_this_key());
+      Controller::DataplaneFCFSCachedSetRead *ctrl_fcfs_cs_read = new Controller::DataplaneFCFSCachedSetRead(
+          active_leaf.next, fcfs_cs_read->get_obj(), fcfs_cs_read->get_original_key(), fcfs_cs_read->get_map_has_this_key());
+
       EPNode *fcfs_cs_read_ep_node = new EPNode(ctrl_fcfs_cs_read);
       initial_controller_logic.update(fcfs_cs_read_ep_node);
+    } break;
+    case ModuleType::Tofino_FCFSCachedSetReadInsert: {
+      const FCFSCachedSetReadInsert *fcfs_cs_read_insert = dynamic_cast<const FCFSCachedSetReadInsert *>(prev.module);
+
+      Controller::DataplaneFCFSCachedSetRead *ctrl_fcfs_cs_read = new Controller::DataplaneFCFSCachedSetRead(
+          active_leaf.next, fcfs_cs_read_insert->get_obj(), fcfs_cs_read_insert->get_original_key(), fcfs_cs_read_insert->get_map_has_this_key());
+
+      EPNode *fcfs_cs_read_insert_ep_node = new EPNode(ctrl_fcfs_cs_read);
+      initial_controller_logic.update(fcfs_cs_read_insert_ep_node);
     } break;
     case ModuleType::Tofino_HHTableRead: {
       const HHTableRead *hh_table_read = dynamic_cast<const HHTableRead *>(prev.module);
@@ -337,7 +352,6 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Tofino_VectorRegisterUpdate:
     case ModuleType::Tofino_VectorRegisterConditionalUpdate:
     case ModuleType::Tofino_FCFSCachedTableReadInsert:
-    case ModuleType::Tofino_FCFSCachedSetReadInsert:
     case ModuleType::Tofino_FCFSCachedSetInsert:
     case ModuleType::Tofino_MeterUpdate:
     case ModuleType::Tofino_HHTableOutOfBandUpdate:

@@ -17,7 +17,7 @@ Register build_reg_liveness(const tna_properties_t &properties, DS_ID id, u32 ca
   const bits_t hash_size  = bits_from_pow2_capacity(cache_capacity);
   const bits_t match_size = 8;
   return Register(properties, id + "_reg_liveness", cache_capacity, hash_size, match_size,
-                  {RegisterActionType::Read, RegisterActionType::SetToOneAndReturnOldValue});
+                  {RegisterActionType::QueryTimestamp, RegisterActionType::QueryAndRefreshTimestamp});
 }
 
 Register build_reg_integer_allocator_head(const tna_properties_t &properties, DS_ID id, u32 capacity) {
@@ -51,7 +51,7 @@ std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID
   int i = 0;
   for (bits_t key_size : elements_sizes) {
     Register cache_key(properties, id + "_reg_key_" + std::to_string(i), capacity, hash_size, key_size,
-                       {RegisterActionType::Read, RegisterActionType::Swap});
+                       {RegisterActionType::CheckValue, RegisterActionType::Write});
     i++;
     registers.push_back(cache_key);
   }
@@ -62,7 +62,7 @@ std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID
 Register build_cache_value(const tna_properties_t &properties, DS_ID id, u32 capacity) {
   const bits_t hash_size  = bits_from_pow2_capacity(capacity);
   const bits_t value_size = 32;
-  return Register(properties, id + "_reg_value", capacity, hash_size, value_size, {RegisterActionType::Read, RegisterActionType::Swap});
+  return Register(properties, id + "_reg_value", capacity, hash_size, value_size, {RegisterActionType::Read, RegisterActionType::Write});
 }
 
 Hash build_hash(DS_ID id, const std::vector<bits_t> &keys_sizes, u32 capacity) {

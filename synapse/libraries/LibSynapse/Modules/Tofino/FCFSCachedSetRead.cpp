@@ -28,7 +28,6 @@ std::optional<fcfs_cs_data_t> build_fcfs_cs_data(const BDD *bdd, const Context &
   data.obj              = expr_addr_to_obj_addr(call.args.at("map").expr);
   data.original_key     = call.args.at("key").in;
   data.keys             = Table::build_keys(data.original_key, ctx.get_expr_structs());
-  data.value            = call.args.at("value_out").out;
   data.map_has_this_key = map_get->get_local_symbol("map_has_this_key");
   data.capacity         = ctx.get_map_config(data.obj).capacity;
 
@@ -50,8 +49,8 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cs_
     return nullptr;
   }
 
-  Module *module  = new FCFSCachedSetRead(node, cached_table->id, cached_table->tables.back().id, fcfs_cs_data.obj, fcfs_cs_data.original_key,
-                                          fcfs_cs_data.keys, fcfs_cs_data.value, fcfs_cs_data.map_has_this_key);
+  Module *module =
+      new FCFSCachedSetRead(node, cached_table->id, fcfs_cs_data.obj, fcfs_cs_data.original_key, fcfs_cs_data.keys, fcfs_cs_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   Context &ctx = new_ep->get_mutable_ctx();
@@ -217,8 +216,8 @@ std::unique_ptr<Module> FCFSCachedSetReadFactory::create(const BDD *bdd, const C
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedSet *fcfs_cs = dynamic_cast<const FCFSCachedSet *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedSetRead>(node, fcfs_cs->id, fcfs_cs->tables.back().id, fcfs_cs_data->obj, fcfs_cs_data->original_key,
-                                             fcfs_cs_data->keys, fcfs_cs_data->value, fcfs_cs_data->map_has_this_key);
+  return std::make_unique<FCFSCachedSetRead>(node, fcfs_cs->id, fcfs_cs_data->obj, fcfs_cs_data->original_key, fcfs_cs_data->keys,
+                                             fcfs_cs_data->map_has_this_key);
 }
 
 } // namespace Tofino

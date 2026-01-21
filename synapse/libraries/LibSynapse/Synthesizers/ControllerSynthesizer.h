@@ -284,6 +284,7 @@ private:
   void transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table, time_ns_t expiration_time);
   void transpile_vector_register_decl(const Tofino::VectorRegister *vector_register);
   void transpile_hh_table_decl(const Tofino::HHTable *hh_table, time_ns_t expiration_time);
+  void transpile_fcfs_cs_decl(const Tofino::FCFSCachedSet *fcfs_cs, time_ns_t expiration_time);
   void transpile_cms_decl(const Tofino::CountMinSketch *cms, time_ns_t periodic_cleanup_interval);
   void transpile_bf_decl(const Tofino::BloomFilter *bf, time_ns_t periodic_cleanup_interval);
 

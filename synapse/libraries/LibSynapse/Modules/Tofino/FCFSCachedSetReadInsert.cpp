@@ -276,7 +276,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const pattern_t &pattern, const fcf
   const Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, pattern.on_insert_success);
 
   Module *module =
-      new FCFSCachedSetReadInsert(pattern.map_get, cached_table->id, cached_table->tables.back().id, fcfs_cs_data.obj, fcfs_cs_data.keys,
+      new FCFSCachedSetReadInsert(pattern.map_get, cached_table->id, fcfs_cs_data.obj, fcfs_cs_data.original_key, fcfs_cs_data.keys,
                                   fcfs_cs_data.read_value, fcfs_cs_data.write_value, fcfs_cs_data.map_has_this_key, cached_insert_success);
 
   Module *if_read_module                    = new If(pattern.map_get, map_has_this_key_condition, {map_has_this_key_condition});

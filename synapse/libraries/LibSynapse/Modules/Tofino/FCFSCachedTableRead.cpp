@@ -98,7 +98,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities();
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities(fcfs_ct_data->capacity);
 
   // Let's optimistically pick the largest cache capacity that we can build or reuse.
   std::optional<u32> cache_capacity;
@@ -151,7 +151,7 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
     }
   }
 
-  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities();
+  const std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities(fcfs_ct_data->capacity);
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {

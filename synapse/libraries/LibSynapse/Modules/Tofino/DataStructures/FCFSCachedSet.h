@@ -22,7 +22,7 @@ struct FCFSCachedSet : public DS {
   std::vector<Table> tables;
   Register reg_liveness;
   std::vector<Register> cache_keys;
-  Hash hash;
+  std::vector<Hash> hashes;
 
   static constexpr u32 MAX_CACHE_CAPACITY{65536};
 
@@ -35,10 +35,16 @@ struct FCFSCachedSet : public DS {
   std::vector<std::unordered_set<const DS *>> get_internal() const override;
 
   bool has_table(u32 op) const;
-  std::optional<DS_ID> add_table(u32 op);
+  DS_ID add_table(u32 op);
   const Table *get_table(u32 op) const;
   const Table *get_table(const DS_ID &table_id) const;
   void remove_table(const DS_ID &table_id);
+
+  bool has_hash(u32 op) const;
+  DS_ID add_hash(u32 op);
+  const Hash *get_hash(u32 op) const;
+  const Hash *get_hash(const DS_ID &hash_id) const;
+  void remove_hash(const DS_ID &hash_id);
 };
 
 } // namespace Tofino

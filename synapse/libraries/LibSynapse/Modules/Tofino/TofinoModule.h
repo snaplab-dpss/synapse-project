@@ -132,7 +132,7 @@ public:
                                                  u32 cache_capacity);
   static bool can_build_or_reuse_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity);
   static bool can_reuse_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity);
-  static std::vector<u32> enum_fcfs_ct_cache_capacities();
+  static std::vector<u32> enum_fcfs_ct_cache_capacities(u32 capacity);
   static hit_rate_t get_fcfs_ct_cache_collision_probability(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key,
                                                             u32 cache_capacity);
 

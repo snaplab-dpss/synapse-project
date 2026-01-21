@@ -9,27 +9,25 @@ using Tofino::DS_ID;
 
 class DataplaneFCFSCachedSetRead : public ControllerModule {
 private:
-  DS_ID id;
   addr_t obj;
   klee::ref<klee::Expr> key;
-  std::optional<symbol_t> found;
+  symbol_t found;
 
 public:
-  DataplaneFCFSCachedSetRead(const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key, std::optional<symbol_t> _found)
-      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedSetRead, "DataplaneFCFSCachedSetRead", _node), id(_id), obj(_obj), key(_key),
+  DataplaneFCFSCachedSetRead(const BDDNode *_node, addr_t _obj, klee::ref<klee::Expr> _key, symbol_t _found)
+      : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedSetRead, "DataplaneFCFSCachedSetRead", _node), obj(_obj), key(_key),
         found(_found) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new DataplaneFCFSCachedSetRead(node, id, obj, key, found);
+    Module *cloned = new DataplaneFCFSCachedSetRead(node, obj, key, found);
     return cloned;
   }
 
-  DS_ID get_id() const { return id; }
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_key() const { return key; }
-  std::optional<symbol_t> get_found() const { return found; }
+  const symbol_t &get_found() const { return found; }
 };
 
 class DataplaneFCFSCachedSetReadFactory : public ControllerModuleFactory {

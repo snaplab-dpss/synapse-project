@@ -13,19 +13,7 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-using Tofino::DS_ID;
-using Tofino::Table;
-
 namespace {
-
-DS_ID get_fcfs_cs_id(const Context &ctx, addr_t obj) {
-  const Tofino::TofinoContext *tofino_ctx                 = ctx.get_target_ctx<Tofino::TofinoContext>();
-  const std::unordered_set<Tofino::DS *> &data_structures = tofino_ctx->get_data_structures().get_ds(obj);
-  assert(data_structures.size() == 1 && "Multiple data structures found");
-  const Tofino::DS *ds = *data_structures.begin();
-  assert(ds->type == Tofino::DSType::FCFSCachedSet && "Not a FCFS cached table");
-  return ds->id;
-}
 
 struct allocate_and_write_pattern_t {
   const Call *dchain_allocate_new_index;
@@ -85,7 +73,6 @@ bool is_allocate_and_write(const BDD *bdd, const BDDNode *node, allocate_and_wri
 struct fcfs_cs_data_t {
   addr_t obj;
   klee::ref<klee::Expr> key;
-  klee::ref<klee::Expr> write_value;
   map_coalescing_objs_t map_objs;
 };
 
@@ -93,9 +80,8 @@ std::optional<fcfs_cs_data_t> build_fcfs_cs_data(const Context &ctx, const alloc
   const call_t &put_call = pattern.map_puts.at(0)->get_call();
 
   fcfs_cs_data_t data;
-  data.obj         = expr_addr_to_obj_addr(put_call.args.at("map").expr);
-  data.key         = put_call.args.at("key").in;
-  data.write_value = put_call.args.at("value").expr;
+  data.obj = expr_addr_to_obj_addr(put_call.args.at("map").expr);
+  data.key = put_call.args.at("key").in;
 
   const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(data.obj);
   if (!map_objs.has_value()) {
@@ -172,10 +158,7 @@ std::vector<impl_t> DataplaneFCFSCachedSetAllocateAndWriteFactory::process_node(
     return {};
   }
 
-  const DS_ID id = get_fcfs_cs_id(ep->get_ctx(), fcfs_cs_data->obj);
-
-  Module *module  = new DataplaneFCFSCachedSetAllocateAndWrite(node, id, fcfs_cs_data->obj, fcfs_cs_data->key, fcfs_cs_data->write_value,
-                                                               pattern.index_allocation_success);
+  Module *module  = new DataplaneFCFSCachedSetAllocateAndWrite(node, fcfs_cs_data->obj, fcfs_cs_data->key, pattern.index_allocation_success);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

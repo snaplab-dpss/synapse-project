@@ -1636,30 +1636,73 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocate *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::FCFSCachedSetAllocate");
+  const addr_t obj                = node->get_obj();
+  const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());
+
+  const Tofino::FCFSCachedSet *fcfs_cs = get_unique_tofino_ds_from_obj<Tofino::FCFSCachedSet>(ep, obj);
+
+  transpile_fcfs_cs_decl(fcfs_cs, expiration_time);
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetRead *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                = node->get_obj();
+  const klee::ref<klee::Expr> key = node->get_key();
+  const symbol_t &found           = node->get_found();
+
+  const Tofino::FCFSCachedSet *fcfs_cs = get_unique_tofino_ds_from_obj<Tofino::FCFSCachedSet>(ep, obj);
+
+  const var_t key_var   = transpile_buffer_decl_and_set(coder, fcfs_cs->id + "_key", key, true);
+  const var_t found_var = alloc_var("found", found.expr, {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::FCFSCachedSetRead");
+  coder << "bool " << found_var.name << " = ";
+  coder << "state->" << fcfs_cs->id << ".get(";
+  coder << key_var.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetWrite *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                = node->get_obj();
+  const klee::ref<klee::Expr> key = node->get_key();
+
+  const Tofino::FCFSCachedSet *fcfs_cs = get_unique_tofino_ds_from_obj<Tofino::FCFSCachedSet>(ep, obj);
+
+  const var_t key_var = transpile_buffer_decl_and_set(coder, fcfs_cs->id + "_key", key, true);
+
   coder.indent();
-  panic("TODO: Controller::FCFSCachedSetWrite");
+  coder << "state->" << fcfs_cs->id << ".put(";
+  coder << key_var.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocateAndWrite *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                = node->get_obj();
+  const klee::ref<klee::Expr> key = node->get_key();
+  const symbol_t &success         = node->get_allocation_successful_symbol();
+
+  const Tofino::FCFSCachedSet *fcfs_cs = get_unique_tofino_ds_from_obj<Tofino::FCFSCachedSet>(ep, obj);
+
+  const var_t key_var     = transpile_buffer_decl_and_set(coder, fcfs_cs->id + "_key", key, true);
+  const var_t success_var = alloc_var("success", success.expr, {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::FCFSCachedSetAllocateAndWrite");
+  coder << "bool " << success_var.name << " = ";
+  coder << "state->" << fcfs_cs->id << ".put(";
+  coder << key_var.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -2076,6 +2119,7 @@ void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map
   }
 
   member_init_list << ")";
+
   state_member_init_list.push_back(member_init_list.dump());
 }
 
@@ -2110,6 +2154,7 @@ void ControllerSynthesizer::transpile_map_set_table_decl(const Tofino::MapSetTab
   }
 
   member_init_list << ")";
+
   state_member_init_list.push_back(member_init_list.dump());
 }
 
@@ -2145,6 +2190,7 @@ void ControllerSynthesizer::transpile_guarded_map_table_decl(const Tofino::Guard
   }
 
   member_init_list << ")";
+
   state_member_init_list.push_back(member_init_list.dump());
 }
 
@@ -2168,6 +2214,7 @@ void ControllerSynthesizer::transpile_vector_table_decl(const Tofino::VectorTabl
   }
   member_init_list << "}";
   member_init_list << ")";
+
   state_member_init_list.push_back(member_init_list.dump());
 }
 
@@ -2193,6 +2240,7 @@ void ControllerSynthesizer::transpile_dchain_table_decl(const Tofino::DchainTabl
   member_init_list << "}";
   member_init_list << ", " << expiration_time_ms << "LL";
   member_init_list << ")";
+
   state_member_init_list.push_back(member_init_list.dump());
 }
 
@@ -2216,6 +2264,7 @@ void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorR
   }
   member_init_list << "}";
   member_init_list << ")";
+
   state_member_init_list.push_back(member_init_list.dump());
 }
 
@@ -2249,6 +2298,33 @@ void ControllerSynthesizer::transpile_hh_table_decl(const Tofino::HHTable *hh_ta
   member_init_list << ", \"IngressDeparser." << hh_table->digest.id << "\"";
   member_init_list << ", " << expiration_time_ms << "LL";
   member_init_list << ")";
+
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_fcfs_cs_decl(const Tofino::FCFSCachedSet *fcfs_cs, time_ns_t expiration_time) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name                  = assert_unique_name(fcfs_cs->id);
+  const time_ms_t expiration_time_ms = expiration_time / MILLION;
+
+  state_fields.indent();
+  state_fields << "FCFSCachedSet " << name << ";\n";
+
+  synapse_data_structures_instances.push_back(name);
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
+  member_init_list << "{";
+  for (const Tofino::Table &table : fcfs_cs->tables) {
+    member_init_list << "\"Ingress." << table.id << "\", ";
+  }
+  member_init_list << "}";
+  member_init_list << ", " << expiration_time_ms << "LL";
+  member_init_list << ")";
+
   state_member_init_list.push_back(member_init_list.dump());
 }
 
@@ -2274,6 +2350,7 @@ void ControllerSynthesizer::transpile_cms_decl(const Tofino::CountMinSketch *cms
   member_init_list << "}";
   member_init_list << ", " << periodic_cleanup_interval_ms << "LL";
   member_init_list << ")";
+
   state_member_init_list.push_back(member_init_list.dump());
 }
 
