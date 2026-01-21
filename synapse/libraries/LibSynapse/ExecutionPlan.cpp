@@ -545,6 +545,9 @@ void EP::assert_integrity() const {
   }
 
   bdd->assert_inspection();
+
+  // Force profiler to check its integrity against the BDD.
+  ctx.get_profiler().get_hr_per_node(bdd.get());
 }
 
 hit_rate_t EP::get_active_leaf_hit_rate() const {

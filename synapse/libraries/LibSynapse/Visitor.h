@@ -31,11 +31,9 @@ class VectorRegisterLookup;
 class VectorRegisterUpdate;
 class VectorRegisterConditionalUpdate;
 class FCFSCachedTableRead;
-class FCFSCachedTableReadWrite;
-class FCFSCachedTableWrite;
+class FCFSCachedTableReadInsert;
 class FCFSCachedSetRead;
-class FCFSCachedSetReadWrite;
-class FCFSCachedSetWrite;
+class FCFSCachedSetReadInsert;
 class FCFSCachedSetInsert;
 class MeterUpdate;
 class HHTableRead;
@@ -221,11 +219,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadWrite *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadInsert *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetInsert *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MeterUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *m) { return Action::doChildren; }

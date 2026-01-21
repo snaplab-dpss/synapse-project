@@ -336,10 +336,8 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Tofino_VectorRegisterLookup:
     case ModuleType::Tofino_VectorRegisterUpdate:
     case ModuleType::Tofino_VectorRegisterConditionalUpdate:
-    case ModuleType::Tofino_FCFSCachedTableReadWrite:
-    case ModuleType::Tofino_FCFSCachedTableWrite:
-    case ModuleType::Tofino_FCFSCachedSetReadWrite:
-    case ModuleType::Tofino_FCFSCachedSetWrite:
+    case ModuleType::Tofino_FCFSCachedTableReadInsert:
+    case ModuleType::Tofino_FCFSCachedSetReadInsert:
     case ModuleType::Tofino_FCFSCachedSetInsert:
     case ModuleType::Tofino_MeterUpdate:
     case ModuleType::Tofino_HHTableOutOfBandUpdate:

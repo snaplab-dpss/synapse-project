@@ -21,7 +21,7 @@ using LibBDD::BDDViz;
 class ProfilerViz : public BDDViz {
 public:
   static void visualize(const BDD *bdd, const Profiler &profiler, bool interrupt) {
-    const std::unordered_map<bdd_node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
+    const std::unordered_map<bdd_node_id_t, hit_rate_t> hrpn = profiler.get_hr_per_node(bdd);
 
     bdd_visualizer_opts_t opts;
 
@@ -35,7 +35,7 @@ public:
   static void dump_to_file(const BDD *bdd, const Profiler &profiler, const std::filesystem::path &file_name) {
     assert(bdd && "Invalid BDD");
 
-    const std::unordered_map<bdd_node_id_t, hit_rate_t> hrpn = hr_per_node(bdd, profiler);
+    const std::unordered_map<bdd_node_id_t, hit_rate_t> hrpn = profiler.get_hr_per_node(bdd);
 
     bdd_visualizer_opts_t opts;
     opts.fname                = file_name;
@@ -47,19 +47,6 @@ public:
   }
 
 private:
-  static std::unordered_map<bdd_node_id_t, hit_rate_t> hr_per_node(const BDD *bdd, const Profiler &profiler) {
-    std::unordered_map<bdd_node_id_t, hit_rate_t> fractions_per_node;
-    const BDDNode *root = bdd->get_root();
-
-    root->visit_nodes([&fractions_per_node, profiler](const BDDNode *node) {
-      const hit_rate_t fraction          = profiler.get_hr(node);
-      fractions_per_node[node->get_id()] = fraction;
-      return BDDNodeVisitAction::Continue;
-    });
-
-    return fractions_per_node;
-  }
-
   static std::unordered_map<bdd_node_id_t, std::string> get_annocations_per_node(const BDD *bdd, const Profiler &profiler,
                                                                                  const std::unordered_map<bdd_node_id_t, hit_rate_t> &hrpn) {
     std::unordered_map<bdd_node_id_t, std::string> annocations_per_node;

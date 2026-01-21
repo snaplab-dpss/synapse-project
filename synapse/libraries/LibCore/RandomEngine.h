@@ -97,6 +97,8 @@ public:
   // Source:
   // https://github.com/nal-epfl/castan/blob/master/scripts/pcap_tools/create_zipfian_distribution_pcap.py
   u64 generate() {
+    assert(zipf_param > 0.0 && "zipf_param must be positive");
+    assert(zipf_param != 1.0 && "zipf_param cannot be 1.0");
     const double probability = rand.generate();
     assert(probability >= 0 && probability <= 1 && "Invalid probability");
 
@@ -130,11 +132,10 @@ public:
 
 private:
   static double fix_zipf_param(double zipf_param) {
-    if (zipf_param != 0 && zipf_param != 1) {
-      return zipf_param;
-    } else {
-      return zipf_param + EPSILON;
+    if (zipf_param == 0.0 || zipf_param == 1.0) {
+      zipf_param += 1e-6;
     }
+    return zipf_param;
   }
 };
 

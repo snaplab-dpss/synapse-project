@@ -2899,7 +2899,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) {
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *node) {
   // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   const DS_ID fcfscached_table_id                = node->get_fcfs_ct_id();
@@ -3030,23 +3030,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) {
-  panic("TODO: FCFSCachedTableWrite");
-  return EPVisitor::Action::doChildren;
-}
-
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *node) {
   panic("TODO: FCFSCachedSetRead");
   return EPVisitor::Action::doChildren;
 }
 
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadWrite *node) {
-  panic("TODO: FCFSCachedSetReadWrite");
-  return EPVisitor::Action::doChildren;
-}
-
-EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetWrite *node) {
-  panic("TODO: FCFSCachedSetWrite");
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadInsert *node) {
+  panic("TODO: FCFSCachedSetReadInsert");
   return EPVisitor::Action::doChildren;
 }
 

@@ -1,11 +1,11 @@
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedSetWrite.h>
-#include <LibSynapse/Modules/Tofino/FCFSCachedSetReadWrite.h>
+#include <LibSynapse/Modules/Tofino/FCFSCachedSetReadInsert.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
 namespace Controller {
 
-using LibSynapse::Tofino::FCFSCachedSetReadWrite;
+using LibSynapse::Tofino::FCFSCachedSetReadInsert;
 
 using LibBDD::Call;
 using LibBDD::call_t;
@@ -26,13 +26,13 @@ DS_ID get_fcfs_cs_id(const Context &ctx, addr_t obj) {
   return ds->id;
 }
 
-const FCFSCachedSetReadWrite *get_fcfs_cs_read_write_op(const EP *ep, const DS_ID &fcfs_cs_id) {
+const FCFSCachedSetReadInsert *get_fcfs_cs_read_write_op(const EP *ep, const DS_ID &fcfs_cs_id) {
   const EPLeaf active_leaf = ep->get_active_leaf();
   const EPNode *prev       = active_leaf.node->get_prev();
   while (prev != nullptr) {
     const Module *module = prev->get_module();
-    if (module->get_type() == ModuleType::Tofino_FCFSCachedSetReadWrite) {
-      const FCFSCachedSetReadWrite *fcfs_cs_read_write = dynamic_cast<const FCFSCachedSetReadWrite *>(module);
+    if (module->get_type() == ModuleType::Tofino_FCFSCachedSetReadInsert) {
+      const FCFSCachedSetReadInsert *fcfs_cs_read_write = dynamic_cast<const FCFSCachedSetReadInsert *>(module);
       if (fcfs_cs_read_write->get_fcfs_cs_id() == fcfs_cs_id) {
         return fcfs_cs_read_write;
       }
@@ -86,8 +86,8 @@ std::vector<impl_t> DataplaneFCFSCachedSetWriteFactory::process_node(const EP *e
     return {};
   }
 
-  const DS_ID id                                      = get_fcfs_cs_id(ep->get_ctx(), obj);
-  const FCFSCachedSetReadWrite *fcfs_cs_read_write_op = get_fcfs_cs_read_write_op(ep, id);
+  const DS_ID id                                       = get_fcfs_cs_id(ep->get_ctx(), obj);
+  const FCFSCachedSetReadInsert *fcfs_cs_read_write_op = get_fcfs_cs_read_write_op(ep, id);
 
   if (!fcfs_cs_read_write_op) {
     return {};

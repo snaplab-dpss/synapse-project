@@ -9,6 +9,7 @@ namespace LibBDD {
 
 using LibCore::expr_struct_t;
 using LibCore::symbol_t;
+using LibCore::symbol_translation_t;
 using LibCore::SymbolManager;
 using LibCore::Symbols;
 
@@ -35,6 +36,7 @@ public:
   void add_local_symbol(const symbol_t &symbol) { generated_symbols.add(symbol); }
   void remove_local_symbol(const std::string &name) { generated_symbols.remove(name); }
   void set_local_symbols(const Symbols &new_generated_symbols) { generated_symbols = new_generated_symbols; }
+  std::vector<symbol_translation_t> sync_local_symbols_and_recursively_update_children();
 
   BDDNode *clone(BDDNodeManager &manager, bool recursive = false) const override final;
   std::string dump(bool one_liner = false, bool id_name_only = false) const;

@@ -218,6 +218,8 @@ public:
   hit_rate_t get_hr(const EPNode *node) const;
   hit_rate_t get_hr(const BDDNode *node) const;
 
+  std::unordered_map<bdd_node_id_t, hit_rate_t> get_hr_per_node(const BDD *bdd) const;
+
   flow_stats_t get_flow_stats(const BDDNode *node, klee::ref<klee::Expr> flow) const;
   fwd_stats_t get_fwd_stats(const BDDNode *node) const;
   std::unordered_set<u16> get_candidate_fwd_ports(const BDDNode *node) const;

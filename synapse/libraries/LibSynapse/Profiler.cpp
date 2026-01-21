@@ -372,7 +372,7 @@ ProfilerNode *Profiler::get_node(const std::vector<klee::ref<klee::Expr>> &const
       }
       std::cerr << "Current constraints:\n";
       std::cerr << "  " << pretty_print_expr(current->constraint, true) << "\n";
-      panic("Could find profiler node (invalid constraints)");
+      panic("Couldn't find profiler node (invalid constraints)");
     }
   }
 
@@ -947,6 +947,18 @@ void Profiler::set(ProfilerNode *node, hit_rate_t new_hr) {
     recursive_update_fractions(closest_family.sibling->on_true, sibling_old_fraction, sibling_new_fraction);
     recursive_update_fractions(closest_family.sibling->on_false, sibling_old_fraction, sibling_new_fraction);
   }
+}
+
+std::unordered_map<bdd_node_id_t, hit_rate_t> Profiler::get_hr_per_node(const BDD *bdd) const {
+  std::unordered_map<bdd_node_id_t, hit_rate_t> fractions_per_node;
+
+  bdd->get_root()->visit_nodes([&fractions_per_node, this](const BDDNode *node) {
+    const hit_rate_t fraction          = get_hr(node);
+    fractions_per_node[node->get_id()] = fraction;
+    return BDDNodeVisitAction::Continue;
+  });
+
+  return fractions_per_node;
 }
 
 } // namespace LibSynapse

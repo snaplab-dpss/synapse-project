@@ -584,4 +584,24 @@ const Call *Call::get_past_map_get_from_map_put() const {
   return target_map_get;
 }
 
+std::vector<symbol_translation_t> Call::sync_local_symbols_and_recursively_update_children() {
+  std::vector<symbol_translation_t> translations;
+
+  const Symbols current_generated_symbols = generated_symbols;
+  for (const symbol_t &symbol : current_generated_symbols.get()) {
+    const std::string new_name = symbol.base + "__" + std::to_string(id);
+    if (new_name == symbol.name) {
+      continue;
+    }
+
+    assert(!symbol_manager->has_symbol(new_name) && "Symbol should not exist in the symbol manager");
+    const symbol_t new_symbol = symbol_manager->create_symbol(new_name, symbol.expr->getWidth());
+    recursive_translate_symbol(symbol, new_symbol);
+
+    translations.emplace_back(symbol, new_symbol);
+  }
+
+  return translations;
+}
+
 } // namespace LibBDD

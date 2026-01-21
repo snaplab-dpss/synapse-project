@@ -57,11 +57,9 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadWrite *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadWrite *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MeterUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *node) override final;

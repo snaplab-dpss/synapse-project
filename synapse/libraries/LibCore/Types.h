@@ -33,7 +33,7 @@ using Bps_t = u64;
 using fpm_t = u64;
 using fps_t = u64;
 
-constexpr const double EPSILON = 1e-10;
+constexpr const double EPSILON = 1e-8;
 
 constexpr const u64 THOUSAND = 1000LLU;
 constexpr const u64 MILLION  = THOUSAND * THOUSAND;

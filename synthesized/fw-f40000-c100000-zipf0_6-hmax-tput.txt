@@ -7,134 +7,158 @@ Args:
   Profile file:       fw-f40000-c100000-zipf0_6.json
   Seed:               0
   Targets:
-    Tofino (35 modules)
-    Ctrl (80 modules)
+    Tofino (36 modules)
+    Ctrl (89 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <2'250'129'000,0,85,-9,-39'796'896>
-  Tput: 1.58 Tbps (2.25 Gpps)
-  Spec: 1.58 Tbps (2.25 Gpps)
+  Score: <668'187'000,0,99,-5,-24'066'528>
+  Tput: 470.40 Gbps (668.19 Mpps)
+  Spec: 470.40 Gbps (668.19 Mpps)
   Recirculations: 0
-  BDD Progress: 85 / 90
-  Stages: 9
-  Memory Usage: 39796896 bits
+  BDD Progress: 99 / 105
+  Stages: 5
+  Memory Usage: 24066528 bits
 
 Stateful Implementations:
-  1074093944: Tofino::VectorTable
-  1074076304: Tofino::FCFSCachedTable
-  1074044320: Tofino::FCFSCachedTable
-  1074076728: Tofino::VectorTable
+  1074093672: Tofino::VectorTable
+  1074076032: Tofino::FCFSCachedSet
+  1074044048: Tofino::FCFSCachedSet
+  1074076456: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       313 seconds
-  Steps:              85
-  Backtracks:         0
-  Search space size:  306
-  Unfinished EPs:     221
+  Elapsed time:       124 seconds
+  Steps:              100
+  Backtracks:         2
+  Search space size:  292
+  Unfinished EPs:     192
   Finished EPs:       1
-  Avg BDD size:       69
+  Avg BDD size:       68
   Branching factor:   3
-  Total SS size est.: 25'108'863'360'075
+  Total SS size est.: 2'389'747'044'284
   Avg children per node:
-    Node 184: 0
-    Node 183: 0
-    Node 185: 0
-    Node 182: 0
-    Node 181: 0
-    Node 180: 0
-    Node 171: 4
-    Node 170: 2
+    Node 337: 0
+    Node 333: 0
+    Node 336: 0
+    Node 332: 0
+    Node 335: 0
+    Node 331: 0
+    Node 334: 0
+    Node 330: 0
+    Node 311: 2
+    Node 184: 2
+    Node 310: 0
+    Node 183: 2
+    Node 312: 3
+    Node 185: 2
+    Node 309: 0
+    Node 182: 3
+    Node 308: 0
+    Node 181: 4
+    Node 307: 0
+    Node 180: 3
+    Node 298: 0
+    Node 171: 0
+    Node 297: 0
+    Node 170: 0
+    Node 322: 3
     Node 195: 2
-    Node 194: 3
-    Node 277: 0
-    Node 150: 5
-    Node 273: 2
+    Node 321: 3
+    Node 194: 2
+    Node 150: 6
     Node 146: 3
-    Node 187: 10
-    Node 149: 4
-    Node 272: 2
+    Node 314: 3
+    Node 187: 6
+    Node 149: 7
     Node 145: 3
-    Node 186: 7
+    Node 313: 3
+    Node 186: 6
     Node 288: 0
     Node 161: 0
-    Node 148: 4
-    Node 271: 3
+    Node 148: 5
     Node 144: 3
-    Node 287: 6
     Node 160: 0
-    Node 286: 3
-    Node 159: 4
+    Node 159: 5.5
+    Node 289: 0
     Node 162: 0
     Node 133: 2
+    Node 319: 3
     Node 192: 4
-    Node 163: 3
+    Node 290: 0
+    Node 163: 0
     Node 134: 3
-    Node 193: 4
-    Node 268: 5
+    Node 320: 3
+    Node 193: 3
     Node 141: 5
     Node 200: 3
-    Node 199: 4
-    Node 267: 5
+    Node 326: 3
+    Node 199: 2
     Node 140: 8
     Node 135: 3
-    Node 269: 4
-    Node 142: 18
+    Node 142: 6
     Node 201: 2
     Node 136: 3
-    Node 270: 3
     Node 143: 5
     Node 137: 4
+    Node 323: 3
     Node 196: 2
-    Node 265: 4
     Node 138: 8
+    Node 324: 3
     Node 197: 3
-    Node 266: 5
     Node 139: 8
-    Node 198: 6
+    Node 325: 3
+    Node 198: 3
     Node 173: 0
-    Node 188: 6
-    Node 274: 2
+    Node 315: 3
+    Node 188: 3
     Node 147: 2
-    Node 278: 0
-    Node 151: 3
-    Node 164: 3
+    Node 151: 6
+    Node 291: 0
+    Node 164: 0
+    Node 301: 0
     Node 174: 0
-    Node 189: 6
-    Node 279: 0
-    Node 152: 3
-    Node 165: 3
+    Node 316: 3
+    Node 189: 3
+    Node 152: 6
+    Node 292: 0
+    Node 165: 0
+    Node 302: 0
     Node 175: 0
-    Node 190: 6
-    Node 280: 0
-    Node 153: 3
-    Node 166: 3
-    Node 176: 0
-    Node 191: 5
-    Node 281: 3
-    Node 154: 4
-    Node 167: 3
-    Node 177: 0
-    Node 282: 3
-    Node 155: 3
-    Node 285: 3
+    Node 317: 3
+    Node 190: 3
+    Node 153: 5
+    Node 293: 0
+    Node 166: 0
+    Node 303: 0
+    Node 176: 4
+    Node 318: 3
+    Node 191: 3
+    Node 154: 5
+    Node 294: 0
+    Node 167: 0
+    Node 304: 0
+    Node 177: 5
+    Node 155: 4
     Node 158: 2
-    Node 168: 5
-    Node 178: 0
-    Node 283: 3
-    Node 156: 2
-    Node 284: 3
-    Node 157: 4
-    Node 169: 3
-    Node 172: 2
-    Node 179: 0
+    Node 295: 0
+    Node 168: 0
+    Node 305: 0
+    Node 178: 3
+    Node 156: 3
+    Node 157: 2
+    Node 296: 0
+    Node 169: 0
+    Node 299: 0
+    Node 172: 0
+    Node 306: 0
+    Node 179: 3
 
 Global Stats:
-  Num phase 1 speculations: 71'142 (100%)
-  Num phase 2 speculations: 3'006 (4.22535%)
-  Num phase 3 speculations: 3'002 (4.21973%)
+  Num phase 1 speculations: 46'871 (100%)
+  Num phase 2 speculations: 2'421 (5.16524%)
+  Num phase 3 speculations: 2'405 (5.1311%)
 
 Switch placement:
 
@@ -145,7 +169,7 @@ SRAM: 288/1'310'720 B (0.0219727%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_table_1074076728_139]
+Objs: [vector_table_1074076456_139]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -153,63 +177,31 @@ SRAM: 1'310'720/1'310'720 B (100%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 26/128 B (20.3125%)
-Objs: [fcfs_cached_table_1074044320_table_159,fcfs_cached_table_1074044320_table_142]
+Objs: [fcfs_cs_1074044048_table_159,fcfs_cs_1074044048_table_142]
 -------------------------------------
 -------------------------------------
 Stage 2
-SRAM: 664'468/1'310'720 B (50.6949%)
+SRAM: 631'700/1'310'720 B (48.1949%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 81'920/786'432 B (10.4167%)
+MapRAM: 49'152/786'432 B (6.25%)
 Exact Match Crossbar: 15/128 B (11.7188%)
-Objs: [fcfs_cached_table_1074044320_reg_liveness,fcfs_cached_table_1074044320_table_159]
+Objs: [fcfs_cs_1074044048_reg_liveness,fcfs_cs_1074044048_table_159]
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 147'456/1'310'720 B (11.25%)
+SRAM: 507'904/1'310'720 B (38.75%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 147'456/786'432 B (18.75%)
-Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [fcfs_cached_table_1074044320_reg_integer_allocator_tail]
+MapRAM: 507'904/786'432 B (64.5833%)
+Exact Match Crossbar: 10/128 B (7.8125%)
+Objs: [fcfs_cs_1074044048_reg_key_4,fcfs_cs_1074044048_reg_key_3,fcfs_cs_1074044048_reg_key_2,fcfs_cs_1074044048_reg_key_1,fcfs_cs_1074044048_reg_key_0]
 -------------------------------------
 -------------------------------------
 Stage 4
-SRAM: 147'456/1'310'720 B (11.25%)
-TCAM: 0/67'584 B (0%)
-MapRAM: 147'456/786'432 B (18.75%)
-Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [fcfs_cached_table_1074044320_reg_integer_allocator_head]
--------------------------------------
--------------------------------------
-Stage 5
-SRAM: 229'376/1'310'720 B (17.5%)
-TCAM: 0/67'584 B (0%)
-MapRAM: 229'376/786'432 B (29.1667%)
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [fcfs_cached_table_1074044320_reg_integer_allocator_pending,fcfs_cached_table_1074044320_reg_integer_allocator_indexes]
--------------------------------------
--------------------------------------
-Stage 6
-SRAM: 655'360/1'310'720 B (50%)
-TCAM: 0/67'584 B (0%)
-MapRAM: 655'360/786'432 B (83.3333%)
-Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [fcfs_cached_table_1074044320_digest,fcfs_cached_table_1074044320_reg_key_2,fcfs_cached_table_1074044320_reg_key_1,fcfs_cached_table_1074044320_reg_key_4,fcfs_cached_table_1074044320_reg_key_0]
--------------------------------------
--------------------------------------
-Stage 7
-SRAM: 278'528/1'310'720 B (21.25%)
-TCAM: 0/67'584 B (0%)
-MapRAM: 278'528/786'432 B (35.4167%)
-Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [fcfs_cached_table_1074044320_reg_key_3]
--------------------------------------
--------------------------------------
-Stage 8
-SRAM: 864/1'310'720 B (0.065918%)
+SRAM: 648/1'310'720 B (0.0494385%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
-Exact Match Crossbar: 16/128 B (12.5%)
-Objs: [vector_table_1074093944_163,vector_table_1074093944_265,vector_table_1074093944_149,vector_table_1074093944_187]
+Exact Match Crossbar: 12/128 B (9.375%)
+Objs: [vector_table_1074093672_176,vector_table_1074093672_187,vector_table_1074093672_149]
 -------------------------------------
 ==========================================================
 ========================================================

@@ -47,11 +47,9 @@ enum class ModuleType {
   Tofino_VectorRegisterUpdate,
   Tofino_VectorRegisterConditionalUpdate,
   Tofino_FCFSCachedTableRead,
-  Tofino_FCFSCachedTableReadWrite,
-  Tofino_FCFSCachedTableWrite,
+  Tofino_FCFSCachedTableReadInsert,
   Tofino_FCFSCachedSetRead,
-  Tofino_FCFSCachedSetReadWrite,
-  Tofino_FCFSCachedSetWrite,
+  Tofino_FCFSCachedSetReadInsert,
   Tofino_FCFSCachedSetInsert,
   Tofino_MeterUpdate,
   Tofino_HHTableRead,
@@ -271,20 +269,14 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_FCFSCachedTableRead:
     os << "Tofino_FCFSCachedTableRead";
     break;
-  case ModuleType::Tofino_FCFSCachedTableReadWrite:
-    os << "Tofino_FCFSCachedTableReadWrite";
-    break;
-  case ModuleType::Tofino_FCFSCachedTableWrite:
-    os << "Tofino_FCFSCachedTableWrite";
+  case ModuleType::Tofino_FCFSCachedTableReadInsert:
+    os << "Tofino_FCFSCachedTableReadInsert";
     break;
   case ModuleType::Tofino_FCFSCachedSetRead:
     os << "Tofino_FCFSCachedSetRead";
     break;
-  case ModuleType::Tofino_FCFSCachedSetReadWrite:
-    os << "Tofino_FCFSCachedSetReadWrite";
-    break;
-  case ModuleType::Tofino_FCFSCachedSetWrite:
-    os << "Tofino_FCFSCachedSetWrite";
+  case ModuleType::Tofino_FCFSCachedSetReadInsert:
+    os << "Tofino_FCFSCachedSetReadInsert";
     break;
   case ModuleType::Tofino_FCFSCachedSetInsert:
     os << "Tofino_FCFSCachedSetInsert";

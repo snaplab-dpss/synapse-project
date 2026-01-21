@@ -1,11 +1,11 @@
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedSetAllocateAndWrite.h>
-#include <LibSynapse/Modules/Tofino/FCFSCachedSetReadWrite.h>
+#include <LibSynapse/Modules/Tofino/FCFSCachedSetReadInsert.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
 namespace Controller {
 
-using LibSynapse::Tofino::FCFSCachedSetReadWrite;
+using LibSynapse::Tofino::FCFSCachedSetReadInsert;
 
 using LibBDD::branch_direction_t;
 using LibBDD::Call;

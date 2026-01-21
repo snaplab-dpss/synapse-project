@@ -227,6 +227,7 @@ std::unique_ptr<Module> IfFactory::create(const BDD *bdd, const Context &ctx, co
     if (!tna.condition_meets_phv_limit(sub_condition)) {
       std::optional<If::phv_limitation_workaround_t> phv_limitation_workaround = get_phv_limitation_workaround(simplified);
       if (!phv_limitation_workaround.has_value()) {
+        // TODO: if this is a comparison with a non pow2 - 1 constant, we can implement it by using a register.
         panic("TODO: deal with this not compatible condition: %s", expr_to_string(simplified, true).c_str());
       }
       conditions.push_back({simplified, *phv_limitation_workaround});

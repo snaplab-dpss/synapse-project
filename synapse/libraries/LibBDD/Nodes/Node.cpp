@@ -278,10 +278,15 @@ void BDDNode::recursive_update_ids(bdd_node_id_t &new_id) {
     if (on_false)
       on_false->recursive_update_ids(new_id);
   } break;
-  case BDDNodeType::Call:
-  case BDDNodeType::Route: {
-    if (next)
+  case BDDNodeType::Call: {
+    if (next) {
       next->recursive_update_ids(new_id);
+    }
+  } break;
+  case BDDNodeType::Route: {
+    if (next) {
+      next->recursive_update_ids(new_id);
+    }
   } break;
   }
 }
