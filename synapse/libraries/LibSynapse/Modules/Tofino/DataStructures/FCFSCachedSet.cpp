@@ -17,19 +17,19 @@ DS_ID build_hash_name(DS_ID id, u32 hash_num) { return id + "_hash_" + std::to_s
 
 Register build_reg_liveness(const tna_properties_t &properties, DS_ID id, u32 cache_capacity) {
   const bits_t hash_size  = bits_from_pow2_capacity(cache_capacity);
-  const bits_t match_size = 8;
-  return Register(properties, id + "_reg_liveness", cache_capacity, hash_size, match_size,
+  const bits_t value_size = 32;
+  return Register(properties, id + "_reg_liveness", cache_capacity, hash_size, value_size,
                   {RegisterActionType::QueryTimestamp, RegisterActionType::QueryAndRefreshTimestamp});
 }
 
-std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &elements_sizes, u32 capacity) {
+std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &elements_sizes, u32 cache_capacity) {
   std::vector<Register> registers;
 
-  const bits_t hash_size = bits_from_pow2_capacity(capacity);
+  const bits_t hash_size = bits_from_pow2_capacity(cache_capacity);
 
   int i = 0;
   for (bits_t key_size : elements_sizes) {
-    Register cache_key(properties, id + "_reg_key_" + std::to_string(i), capacity, hash_size, key_size,
+    Register cache_key(properties, id + "_reg_key_" + std::to_string(i), cache_capacity, hash_size, key_size,
                        {RegisterActionType::CheckValue, RegisterActionType::Write});
     i++;
     registers.push_back(cache_key);
@@ -59,7 +59,7 @@ DS *FCFSCachedSet::clone() const { return new FCFSCachedSet(*this); }
 
 void FCFSCachedSet::debug() const {
   std::cerr << "\n";
-  std::cerr << "======== FCFS CACHED TABLE ========\n";
+  std::cerr << "======== FCFS CACHED SET ========\n";
   std::cerr << "ID:      " << id << "\n";
   std::cerr << "Entries: " << capacity << "\n";
   std::cerr << "Cache:   " << cache_capacity << "\n";

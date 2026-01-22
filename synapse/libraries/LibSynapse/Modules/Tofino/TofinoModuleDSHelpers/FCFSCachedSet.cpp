@@ -150,9 +150,8 @@ std::vector<u32> TofinoModuleFactory::enum_fcfs_cs_cache_capacities(u32 capacity
   // Notice the <= capacity here in constrast with the "< capacity" on the FCFS Cached Table.
   // This is very much intentional, as the FCFS Cached Set has no need to store indexes for the controller,
   // so it can use the full capacity even when equal to the total capacity.
-  for (u32 cache_capacity = 8; cache_capacity <= FCFSCachedSet::MAX_CACHE_CAPACITY && cache_capacity <= capacity; cache_capacity *= 2) {
+  for (u32 cache_capacity = 8; (cache_capacity <= FCFSCachedSet::MAX_CACHE_CAPACITY) && (cache_capacity <= capacity); cache_capacity *= 2) {
     capacities.push_back(cache_capacity);
-    cache_capacity *= 2;
   }
 
   return capacities;

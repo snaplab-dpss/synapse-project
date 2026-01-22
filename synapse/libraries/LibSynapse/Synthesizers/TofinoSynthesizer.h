@@ -51,6 +51,7 @@ private:
 
     static code_t type_from_size(bits_t size);
     static code_t type_from_expr(klee::ref<klee::Expr> expr);
+    static code_t type_from_register_out_value(RegisterActionOutValueSize out_value_size, bits_t stored_value_size);
     static code_t transpile_literal(u64 value, bits_t size, bool hex = false);
     static code_t transpile_constant(klee::ref<klee::Expr> expr, bool swap_endianness);
     static code_t swap_endianness(const code_t &expr, bits_t size);
@@ -138,11 +139,14 @@ private:
     void push(const Stack &stack);
     void clear();
 
+    std::optional<var_t> get(const code_t &name) const;
     std::optional<var_t> get(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     std::optional<var_t> get_exact(klee::ref<klee::Expr> expr) const;
     std::optional<var_t> get_hdr(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     std::optional<var_t> get_exact_hdr(klee::ref<klee::Expr> expr) const;
     std::vector<var_t> get_all() const;
+
+    bool set_var_expr(const code_t &name, klee::ref<klee::Expr> expr);
   };
 
   class Stacks {
@@ -167,10 +171,13 @@ private:
 
     Stack squash() const;
     Stack squash_hdrs_only() const;
+    std::optional<var_t> get(const code_t &name) const;
     std::optional<var_t> get(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     std::optional<var_t> get_hdr(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     std::vector<Stack> get_all() const;
     Stack get_first_stack() const { return stacks.front(); }
+
+    bool set_var_expr(const code_t &name, klee::ref<klee::Expr> expr);
   };
 
   using alloc_opt_t = u32;
@@ -247,17 +254,19 @@ private:
 
   code_t create_unique_name(const code_t &name);
   var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, alloc_opt_t option = 0);
+  var_t alloc_var(const code_t &name, bits_t size, alloc_opt_t option = 0);
   code_path_t alloc_recirc_coder();
 
   code_t build_register_action_name(const Register *reg, RegisterActionType action, const EPNode *node = nullptr) const;
 
-  struct fcfs_cs_internal_names_t {
+  struct fcfs_cs_internals_t {
     code_t liveness_query;
     code_t liveness_query_and_refresh;
+    std::vector<var_t> keys;
     std::map<std::pair<DS_ID, RegisterActionType>, code_t> keys_reg_actions;
   };
 
-  fcfs_cs_internal_names_t fcfs_cs_get_internal_names(const FCFSCachedSet *fcfs_cs) const;
+  fcfs_cs_internals_t fcfs_cs_get_internals(const FCFSCachedSet *fcfs_cs);
 
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_reg_actions(const CountMinSketch *cms);
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_actions(const CountMinSketch *cms);
@@ -276,6 +285,8 @@ private:
   void transpile_action_decl(const code_t &action_name, const std::vector<klee::ref<klee::Expr>> &params, bool params_are_buffers);
   void transpile_table_decl(const Table *table, const std::vector<klee::ref<klee::Expr>> &keys, const std::vector<klee::ref<klee::Expr>> &values,
                             bool values_are_buffers, std::vector<var_t> &keys_vars);
+  void transpile_table_decl(const Table *table, const std::vector<var_t> &keys_vars, const std::vector<klee::ref<klee::Expr>> &values,
+                            bool values_are_buffers);
   void transpile_register_decl(const Register *reg);
 
   struct register_action_extras_t {

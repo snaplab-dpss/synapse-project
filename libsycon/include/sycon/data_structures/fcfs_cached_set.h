@@ -42,13 +42,19 @@ public:
     return true;
   }
 
-  void put(const buffer_t &k) {
+  bool put(const buffer_t &k) {
+    if (!get(k) && (cache.size() >= capacity)) {
+      return false;
+    }
+
     for (Table &table : tables) {
       LOG_DEBUG("[%s] Put key %s", table.get_name().c_str(), k.to_string().c_str());
       table.add_or_mod_entry(k);
     }
 
     cache.insert(k);
+
+    return true;
   }
 
   void del(const buffer_t &k) {

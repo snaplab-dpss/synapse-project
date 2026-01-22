@@ -594,7 +594,6 @@ std::vector<symbol_translation_t> Call::sync_local_symbols_and_recursively_updat
       continue;
     }
 
-    assert(!symbol_manager->has_symbol(new_name) && "Symbol should not exist in the symbol manager");
     const symbol_t new_symbol = symbol_manager->create_symbol(new_name, symbol.expr->getWidth());
     recursive_translate_symbol(symbol, new_symbol);
 

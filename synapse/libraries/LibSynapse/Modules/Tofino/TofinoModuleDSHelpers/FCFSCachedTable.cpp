@@ -143,7 +143,6 @@ std::vector<u32> TofinoModuleFactory::enum_fcfs_ct_cache_capacities(u32 capacity
   // Also check the FCFS Cached Set, in which we allow cache_capacity == capacity.
   for (u32 cache_capacity = 8; cache_capacity <= FCFSCachedSet::MAX_CACHE_CAPACITY && cache_capacity < capacity; cache_capacity *= 2) {
     capacities.push_back(cache_capacity);
-    cache_capacity *= 2;
   }
 
   return capacities;

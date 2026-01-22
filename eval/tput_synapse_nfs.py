@@ -264,19 +264,19 @@ SYNAPSE_NFS = [
     #     )
     #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
     # ],
-    SynapseNF(
-        name="gallium-cl",
-        description="Gallium CL",
-        data_out=Path("tput_gallium_cl.csv"),
-        kvs_mode=False,
-        tofino=Path("synthesized/gallium-cl.p4"),
-        controller=Path("synthesized/gallium-cl.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-        churn=CHURN_FPM,
-        zipf=ZIPF_PARAMS,
-    ),
+    # SynapseNF(
+    #     name="gallium-cl",
+    #     description="Gallium CL",
+    #     data_out=Path("tput_gallium_cl.csv"),
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/gallium-cl.p4"),
+    #     controller=Path("synthesized/gallium-cl.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    #     churn=CHURN_FPM,
+    #     zipf=ZIPF_PARAMS,
+    # ),
     # SynapseNF(
     #     name=f"synapse-psd",
     #     description=f"Synapse PSD",
@@ -290,6 +290,22 @@ SYNAPSE_NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
+    *[
+        SynapseNF(
+            name=build_synapse_nf_name("fw", churn, s),
+            description=f"Synapse {build_synapse_nf_name('fw', churn, s)}",
+            data_out=Path(f"tput_synapse_fw.csv"),
+            kvs_mode=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+            churn=[churn],
+            zipf=[s],
+        )
+        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    ],
 ]
 
 

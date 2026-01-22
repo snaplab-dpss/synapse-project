@@ -36,6 +36,12 @@ class SynapseNF:
     route: Callable[[list[int]], list[tuple[int, int]]]
 
 
+def build_synapse_nf_name(nf: str, churn: int, zipf: float) -> str:
+    dist = f"{'unif' if zipf == 0.0 else 'zipf'}{str(int(zipf) if int(zipf) == zipf else zipf).replace('.', '_') if zipf != 0.0 else ''}"
+    heuristic = "max-tput"
+    return f"{nf}-f{TOTAL_FLOWS}-c{churn}-{dist}-h{heuristic}"
+
+
 NFS = [
     # SynapseNF(
     #     name="echo",
@@ -177,16 +183,16 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
-    SynapseNF(
-        name="gallium-cl",
-        description="Gallium CL",
-        kvs_mode=False,
-        tofino=Path("synthesized/gallium-cl.p4"),
-        controller=Path("synthesized/gallium-cl.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-    ),
+    # SynapseNF(
+    #     name="gallium-cl",
+    #     description="Gallium CL",
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/gallium-cl.p4"),
+    #     controller=Path("synthesized/gallium-cl.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
     # SynapseNF(
     #     name="synapse-psd-fcfs-ct",
     #     description="Synapse PSD FCFS CT",
@@ -197,6 +203,16 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
+    SynapseNF(
+        name=build_synapse_nf_name("fw", 0, 1.2),
+        description=f"Synapse {build_synapse_nf_name('fw', 0, 1.2)}",
+        kvs_mode=False,
+        tofino=Path(f"synthesized/{build_synapse_nf_name('fw', 0, 1.2)}.p4"),
+        controller=Path(f"synthesized/{build_synapse_nf_name('fw', 0, 1.2)}.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+    ),
 ]
 
 

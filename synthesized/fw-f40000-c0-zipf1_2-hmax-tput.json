@@ -1,9 +1,9 @@
 {
   "bdd": "fw.bdd",
   "global_stats": {
-    "num_phase1_speculations": 14444,
-    "num_phase2_speculations": 850,
-    "num_phase3_speculations": 834
+    "num_phase1_speculations": 17796,
+    "num_phase2_speculations": 1018,
+    "num_phase3_speculations": 1002
   },
   "heuristic": {
     "meta": [
@@ -20,7 +20,7 @@
         "name": "Recirculations"
       },
       {
-        "description": "72 / 75",
+        "description": "83 / 86",
         "name": "BDD Progress"
       },
       {
@@ -35,7 +35,7 @@
     "score": [
       2250000000,
       0,
-      72,
+      83,
       -3,
       -15151904
     ]
@@ -104,6 +104,10 @@
         "node_id": 194
       },
       {
+        "avg": 0.0,
+        "node_id": 277
+      },
+      {
         "avg": 6.0,
         "node_id": 150
       },
@@ -118,6 +122,10 @@
       {
         "avg": 6.0,
         "node_id": 187
+      },
+      {
+        "avg": 0.0,
+        "node_id": 276
       },
       {
         "avg": 4.0,
@@ -160,6 +168,10 @@
         "node_id": 160
       },
       {
+        "avg": 0.0,
+        "node_id": 286
+      },
+      {
         "avg": 3.0,
         "node_id": 159
       },
@@ -172,7 +184,7 @@
         "node_id": 133
       },
       {
-        "avg": 3.0,
+        "avg": 6.0,
         "node_id": 192
       },
       {
@@ -200,6 +212,10 @@
         "node_id": 199
       },
       {
+        "avg": 3.0,
+        "node_id": 267
+      },
+      {
         "avg": 8.0,
         "node_id": 140
       },
@@ -208,11 +224,7 @@
         "node_id": 135
       },
       {
-        "avg": 0.0,
-        "node_id": 269
-      },
-      {
-        "avg": 6.0,
+        "avg": 19.0,
         "node_id": 142
       },
       {
@@ -222,10 +234,6 @@
       {
         "avg": 3.0,
         "node_id": 136
-      },
-      {
-        "avg": 0.0,
-        "node_id": 270
       },
       {
         "avg": 3.0,
@@ -252,6 +260,10 @@
         "node_id": 197
       },
       {
+        "avg": 3.0,
+        "node_id": 266
+      },
+      {
         "avg": 8.0,
         "node_id": 139
       },
@@ -276,6 +288,10 @@
         "node_id": 147
       },
       {
+        "avg": 0.0,
+        "node_id": 278
+      },
+      {
         "avg": 6.0,
         "node_id": 151
       },
@@ -292,6 +308,10 @@
         "node_id": 189
       },
       {
+        "avg": 0.0,
+        "node_id": 279
+      },
+      {
         "avg": 6.0,
         "node_id": 152
       },
@@ -304,8 +324,12 @@
         "node_id": 175
       },
       {
-        "avg": 6.0,
+        "avg": 3.0,
         "node_id": 190
+      },
+      {
+        "avg": 0.0,
+        "node_id": 280
       },
       {
         "avg": 6.0,
@@ -324,6 +348,10 @@
         "node_id": 191
       },
       {
+        "avg": 0.0,
+        "node_id": 281
+      },
+      {
         "avg": 6.0,
         "node_id": 154
       },
@@ -336,8 +364,16 @@
         "node_id": 177
       },
       {
+        "avg": 0.0,
+        "node_id": 282
+      },
+      {
         "avg": 3.0,
         "node_id": 155
+      },
+      {
+        "avg": 0.0,
+        "node_id": 285
       },
       {
         "avg": 2.0,
@@ -352,8 +388,16 @@
         "node_id": 178
       },
       {
+        "avg": 0.0,
+        "node_id": 283
+      },
+      {
         "avg": 2.0,
         "node_id": 156
+      },
+      {
+        "avg": 0.0,
+        "node_id": 284
       },
       {
         "avg": 2.0,
@@ -373,13 +417,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.8,
-    "elapsed_time_seconds": 73,
+    "branching_factor": 2.986111111111111,
+    "elapsed_time_seconds": 78,
     "finished_eps": 1,
-    "ss_size": 208,
-    "steps": 73,
-    "total_ss_size_estimation": 169340693759.96576,
-    "unfinished_eps": 135
+    "ss_size": 231,
+    "steps": 84,
+    "total_ss_size_estimation": 762146433067.5424,
+    "unfinished_eps": 147
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

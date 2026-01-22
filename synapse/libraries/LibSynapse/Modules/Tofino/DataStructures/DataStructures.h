@@ -110,6 +110,11 @@ public:
       }
       std::cerr << "]\n";
     }
+    for (const auto &[_, dss] : data_per_obj) {
+      for (const DS *ds : dss) {
+        ds->debug();
+      }
+    }
     std::cerr << "*****************************************\n";
   }
 };

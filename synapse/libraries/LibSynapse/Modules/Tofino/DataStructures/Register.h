@@ -37,20 +37,22 @@ enum class RegisterActionType {
   IntegerAllocatorHeadReadAndUpdate,
 };
 
-const std::unordered_set<RegisterActionType> register_action_types_with_out_value = {
-    RegisterActionType::Read,
-    RegisterActionType::Swap,
-    RegisterActionType::SetToOneAndReturnOldValue,
-    RegisterActionType::ConditionalSetToOneAndReturnOldValue,
-    RegisterActionType::IncrementAndReturnNewValue,
-    RegisterActionType::ConditionalIncrementAndReturnOldValue,
-    RegisterActionType::ReadConditionalWrite,
-    RegisterActionType::CalculateDiff,
-    RegisterActionType::SampleEveryFourth,
-    RegisterActionType::QueryTimestamp,
-    RegisterActionType::QueryAndRefreshTimestamp,
-    RegisterActionType::CheckValue,
-    RegisterActionType::IntegerAllocatorHeadReadAndUpdate,
+enum class RegisterActionOutValueSize { SameAsStoredValue, Bool, UInt8, UInt16, UInt32 };
+
+const std::unordered_map<RegisterActionType, RegisterActionOutValueSize> register_action_types_with_out_value = {
+    {RegisterActionType::Read, RegisterActionOutValueSize::SameAsStoredValue},
+    {RegisterActionType::Swap, RegisterActionOutValueSize::SameAsStoredValue},
+    {RegisterActionType::SetToOneAndReturnOldValue, RegisterActionOutValueSize::SameAsStoredValue},
+    {RegisterActionType::ConditionalSetToOneAndReturnOldValue, RegisterActionOutValueSize::SameAsStoredValue},
+    {RegisterActionType::IncrementAndReturnNewValue, RegisterActionOutValueSize::SameAsStoredValue},
+    {RegisterActionType::ConditionalIncrementAndReturnOldValue, RegisterActionOutValueSize::SameAsStoredValue},
+    {RegisterActionType::ReadConditionalWrite, RegisterActionOutValueSize::SameAsStoredValue},
+    {RegisterActionType::CalculateDiff, RegisterActionOutValueSize::SameAsStoredValue},
+    {RegisterActionType::SampleEveryFourth, RegisterActionOutValueSize::SameAsStoredValue},
+    {RegisterActionType::QueryTimestamp, RegisterActionOutValueSize::Bool},
+    {RegisterActionType::QueryAndRefreshTimestamp, RegisterActionOutValueSize::Bool},
+    {RegisterActionType::CheckValue, RegisterActionOutValueSize::UInt8},
+    {RegisterActionType::IntegerAllocatorHeadReadAndUpdate, RegisterActionOutValueSize::SameAsStoredValue},
 };
 
 struct Register : public DS {
