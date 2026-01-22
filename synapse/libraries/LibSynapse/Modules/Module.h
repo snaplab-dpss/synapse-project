@@ -48,6 +48,8 @@ enum class ModuleType {
   Tofino_VectorRegisterConditionalUpdate,
   Tofino_FCFSCachedTableRead,
   Tofino_FCFSCachedTableReadInsert,
+  Tofino_FCFSCachedTableInsert,
+  Tofino_FCFSCachedTableIsIndexAllocated,
   Tofino_FCFSCachedSetRead,
   Tofino_FCFSCachedSetReadInsert,
   Tofino_FCFSCachedSetInsert,
@@ -106,6 +108,7 @@ enum class ModuleType {
   Controller_DataplaneFCFSCachedTableRead,
   Controller_DataplaneFCFSCachedTableWrite,
   Controller_DataplaneFCFSCachedTableAllocateAndWrite,
+  Controller_DataplaneFCFSCachedTableIsIndexAllocated,
   Controller_DataplaneFCFSCachedSetAllocate,
   Controller_DataplaneFCFSCachedSetRead,
   Controller_DataplaneFCFSCachedSetWrite,
@@ -272,6 +275,12 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_FCFSCachedTableReadInsert:
     os << "Tofino_FCFSCachedTableReadInsert";
     break;
+  case ModuleType::Tofino_FCFSCachedTableInsert:
+    os << "Tofino_FCFSCachedTableInsert";
+    break;
+  case ModuleType::Tofino_FCFSCachedTableIsIndexAllocated:
+    os << "Tofino_FCFSCachedTableIsIndexAllocated";
+    break;
   case ModuleType::Tofino_FCFSCachedSetRead:
     os << "Tofino_FCFSCachedSetRead";
     break;
@@ -436,6 +445,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneFCFSCachedTableAllocateAndWrite:
     os << "Controller_DataplaneFCFSCachedTableAllocateAndWrite";
+    break;
+  case ModuleType::Controller_DataplaneFCFSCachedTableIsIndexAllocated:
+    os << "Controller_DataplaneFCFSCachedTableIsIndexAllocated";
     break;
   case ModuleType::Controller_DataplaneFCFSCachedSetAllocate:
     os << "Controller_DataplaneFCFSCachedSetAllocate";

@@ -1607,31 +1607,110 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocate *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::FCFSCachedTableAllocate");
+  const addr_t obj                = node->get_obj();
+  const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());
+
+  const Tofino::FCFSCachedTable *fcfs_ct = get_unique_tofino_ds_from_obj<Tofino::FCFSCachedTable>(ep, obj);
+
+  transpile_fcfs_ct_decl(fcfs_ct, expiration_time);
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> key   = node->get_key();
+  const klee::ref<klee::Expr> value = node->get_value();
+  const symbol_t &found             = node->get_found();
+
+  const Tofino::FCFSCachedTable *fcfs_ct = get_unique_tofino_ds_from_obj<Tofino::FCFSCachedTable>(ep, obj);
+
+  const var_t key_var   = transpile_buffer_decl_and_set(coder, fcfs_ct->id + "_key", key, true);
+  const var_t value_var = alloc_var("value", value, {}, NO_OPTION);
+  const var_t found_var = alloc_var("found", found.expr, {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::FCFSCachedTableRead");
+  coder << "u32 " << value_var.name << ";\n";
+
+  coder.indent();
+  coder << "bool " << found_var.name << " = ";
+  coder << "state->" << fcfs_ct->id << ".get(";
+  coder << key_var.name;
+  coder << ", " << value_var.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> key   = node->get_key();
+  const klee::ref<klee::Expr> value = node->get_value();
+
+  const Tofino::FCFSCachedTable *fcfs_ct = get_unique_tofino_ds_from_obj<Tofino::FCFSCachedTable>(ep, obj);
+
+  const var_t key_var = transpile_buffer_decl_and_set(coder, fcfs_ct->id + "_key", key, true);
+
   coder.indent();
-  panic("TODO: Controller::FCFSCachedTableWrite");
+  coder << "state->" << fcfs_ct->id << ".put(";
+  coder << key_var.name;
+  coder << ", " << transpiler.transpile(value);
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node,
                                                const Controller::DataplaneFCFSCachedTableAllocateAndWrite *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> key   = node->get_key();
+  const klee::ref<klee::Expr> value = node->get_value();
+  const symbol_t &success           = node->get_allocation_successful_symbol();
+
+  const Tofino::FCFSCachedTable *fcfs_ct = get_unique_tofino_ds_from_obj<Tofino::FCFSCachedTable>(ep, obj);
+
+  const var_t key_var     = transpile_buffer_decl_and_set(coder, fcfs_ct->id + "_key", key, true);
+  const var_t success_var = alloc_var("success", success.expr, {}, NO_OPTION);
+  const var_t value_var   = alloc_var("value", value, {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::FCFSCachedTableAllocateAndWrite");
+  coder << "u32 " << value_var.name << ";\n";
+
+  coder.indent();
+  coder << "bool " << success_var.name << " = ";
+  coder << "state->" << fcfs_ct->id << ".allocate_index_and_put(";
+  coder << key_var.name;
+  coder << ", " << value_var.name;
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node,
+                                               const Controller::DataplaneFCFSCachedTableIsIndexAllocated *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> index = node->get_index();
+  const symbol_t &is_allocated      = node->get_is_allocated();
+
+  const Tofino::FCFSCachedTable *fcfs_ct = get_unique_tofino_ds_from_obj<Tofino::FCFSCachedTable>(ep, obj);
+
+  const var_t index_var        = alloc_var("index", index, {}, NO_OPTION);
+  const var_t is_allocated_var = alloc_var("is_allocated", is_allocated.expr, {}, NO_OPTION);
+
+  coder.indent();
+  coder << "bool " << is_allocated_var.name << " = ";
+  coder << "state->" << fcfs_ct->id << ".is_index_allocated(";
+  coder << index_var.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -2316,10 +2395,42 @@ void ControllerSynthesizer::transpile_fcfs_cs_decl(const Tofino::FCFSCachedSet *
   coder_t member_init_list;
   member_init_list << name;
   member_init_list << "(";
-  member_init_list << "\"" << name << "\",";
-  member_init_list << "{";
+  member_init_list << "\"" << name << "\"";
+  member_init_list << ", {";
   for (const Tofino::Table &table : fcfs_cs->tables) {
     member_init_list << "\"Ingress." << table.id << "\", ";
+  }
+  member_init_list << "}";
+  member_init_list << ", " << expiration_time_ms << "LL";
+  member_init_list << ")";
+
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_fcfs_ct_decl(const Tofino::FCFSCachedTable *fcfs_ct, time_ns_t expiration_time) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name                  = assert_unique_name(fcfs_ct->id);
+  const time_ms_t expiration_time_ms = expiration_time / MILLION;
+
+  state_fields.indent();
+  state_fields << "FCFSCachedTable " << name << ";\n";
+
+  synapse_data_structures_instances.push_back(name);
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"" << name << "\"";
+  member_init_list << ", {";
+  for (const Tofino::Table &table : fcfs_ct->tables) {
+    member_init_list << "\"Ingress." << table.id << "\", ";
+  }
+  member_init_list << "}";
+  member_init_list << ", " << fcfs_ct->reg_liveness.id;
+  member_init_list << ", {";
+  for (const Tofino::Register &index_to_key_reg : fcfs_ct->index_to_keys) {
+    member_init_list << "\"Ingress." << index_to_key_reg.id << "\", ";
   }
   member_init_list << "}";
   member_init_list << ", " << expiration_time_ms << "LL";

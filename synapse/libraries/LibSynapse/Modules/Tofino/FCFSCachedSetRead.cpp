@@ -15,7 +15,6 @@ struct fcfs_cs_data_t {
   addr_t obj;
   klee::ref<klee::Expr> original_key;
   std::vector<klee::ref<klee::Expr>> keys;
-  klee::ref<klee::Expr> value;
   symbol_t map_has_this_key;
   u32 capacity;
   map_coalescing_objs_t map_objs;
@@ -43,14 +42,14 @@ std::optional<fcfs_cs_data_t> build_fcfs_cs_data(const BDD *bdd, const Context &
 std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cs_data_t &fcfs_cs_data, u32 cache_capacity) {
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  FCFSCachedSet *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cs(new_ep.get(), node, fcfs_cs_data.obj, fcfs_cs_data.original_key,
-                                                                            fcfs_cs_data.capacity, cache_capacity);
-  if (!cached_table) {
+  FCFSCachedSet *fcfs_cs = TofinoModuleFactory::build_or_reuse_fcfs_cs(new_ep.get(), node, fcfs_cs_data.obj, fcfs_cs_data.original_key,
+                                                                       fcfs_cs_data.capacity, cache_capacity);
+  if (!fcfs_cs) {
     return nullptr;
   }
 
   Module *module =
-      new FCFSCachedSetRead(node, cached_table->id, fcfs_cs_data.obj, fcfs_cs_data.original_key, fcfs_cs_data.keys, fcfs_cs_data.map_has_this_key);
+      new FCFSCachedSetRead(node, fcfs_cs->id, fcfs_cs_data.obj, fcfs_cs_data.original_key, fcfs_cs_data.keys, fcfs_cs_data.map_has_this_key);
   EPNode *ep_node = new EPNode(module);
 
   Context &ctx = new_ep->get_mutable_ctx();
@@ -58,7 +57,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cs_
   ctx.save_ds_impl(fcfs_cs_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedSet);
 
   TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
-  tofino_ctx->place(new_ep.get(), node, fcfs_cs_data.map_objs.map, cached_table);
+  tofino_ctx->place(new_ep.get(), node, fcfs_cs_data.map_objs.map, fcfs_cs);
 
   EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

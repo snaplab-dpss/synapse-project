@@ -1,11 +1,8 @@
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableAllocateAndWrite.h>
-#include <LibSynapse/Modules/Tofino/FCFSCachedTableReadInsert.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
 namespace Controller {
-
-using LibSynapse::Tofino::FCFSCachedTableReadInsert;
 
 using LibBDD::branch_direction_t;
 using LibBDD::Call;

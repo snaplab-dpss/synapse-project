@@ -2127,4 +2127,24 @@ symbol_t BDD::get_reordering_barrier_symbol() const {
   return symbol_manager->create_symbol(symbol_preventing_reordering_name, 32);
 }
 
+std::vector<const Call *> BDD::get_map_gets(addr_t map) const {
+  std::vector<const Call *> map_gets;
+
+  for (const Call *map_get : root->get_future_functions({"map_get"})) {
+    const call_t &mg_call = map_get->get_call();
+    assert(mg_call.function_name == "map_get" && "Unexpected function");
+
+    klee::ref<klee::Expr> map_expr = mg_call.args.at("map").expr;
+    const addr_t obj               = expr_addr_to_obj_addr(map_expr);
+
+    if (obj != map) {
+      continue;
+    }
+
+    map_gets.push_back(map_get);
+  }
+
+  return map_gets;
+}
+
 } // namespace LibBDD

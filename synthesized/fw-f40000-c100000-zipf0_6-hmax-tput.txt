@@ -7,18 +7,18 @@ Args:
   Profile file:       fw-f40000-c100000-zipf0_6.json
   Seed:               0
   Targets:
-    Tofino (36 modules)
+    Tofino (39 modules)
     Ctrl (89 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <1'110'467'000,0,93,-6,-34'552'288>
+  Score: <1'110'467'000,0,100,-6,-34'552'288>
   Tput: 781.77 Gbps (1.11 Gpps)
   Spec: 781.77 Gbps (1.11 Gpps)
   Recirculations: 0
-  BDD Progress: 93 / 99
+  BDD Progress: 100 / 106
   Stages: 6
   Memory Usage: 34552288 bits
 
@@ -29,19 +29,23 @@ Stateful Implementations:
   1074076456: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       117 seconds
-  Steps:              107
-  Backtracks:         15
-  Search space size:  373
-  Unfinished EPs:     266
+  Elapsed time:       216 seconds
+  Steps:              127
+  Backtracks:         28
+  Search space size:  480
+  Unfinished EPs:     353
   Finished EPs:       1
   Avg BDD size:       67
   Branching factor:   3
-  Total SS size est.: 13'422'213'041'722
+  Total SS size est.: 15'766'606'252'588
   Avg children per node:
-    Node 331: 0
-    Node 330: 0
-    Node 329: 0
+    Node 336: 0
+    Node 335: 0
+    Node 338: 0
+    Node 334: 0
+    Node 337: 0
+    Node 333: 0
+    Node 329: 3
     Node 311: 2
     Node 184: 2
     Node 310: 0
@@ -58,23 +62,24 @@ Search Metadata:
     Node 171: 0
     Node 297: 0
     Node 170: 0
+    Node 322: 3
     Node 195: 2
     Node 321: 3
     Node 194: 2
     Node 150: 6
     Node 146: 3
     Node 314: 3
-    Node 187: 4
+    Node 187: 6
     Node 149: 7
     Node 145: 3
     Node 313: 3
-    Node 186: 4
+    Node 186: 6
     Node 288: 0
     Node 161: 0
     Node 148: 5
     Node 144: 3
     Node 160: 0
-    Node 159: 5.93333
+    Node 159: 5.96429
     Node 289: 0
     Node 162: 0
     Node 133: 2
@@ -86,42 +91,44 @@ Search Metadata:
     Node 320: 3
     Node 193: 3
     Node 141: 5
-    Node 327: 0
+    Node 327: 3
     Node 200: 3
-    Node 326: 0
+    Node 326: 3
     Node 199: 2
     Node 140: 8
     Node 135: 3
-    Node 142: 19
-    Node 328: 0
+    Node 142: 32
+    Node 328: 3
     Node 201: 2
     Node 136: 3
     Node 143: 5
     Node 137: 4
+    Node 323: 3
     Node 196: 2
     Node 138: 8
+    Node 324: 3
     Node 197: 3
     Node 139: 8
-    Node 325: 0
+    Node 325: 3
     Node 198: 3
     Node 173: 0
     Node 315: 3
     Node 188: 5
     Node 147: 2
-    Node 151: 6
+    Node 151: 4
     Node 291: 0
     Node 164: 0
     Node 301: 0
     Node 174: 0
     Node 316: 3
-    Node 189: 5
-    Node 152: 6
+    Node 189: 3
+    Node 152: 4
     Node 292: 0
     Node 165: 0
     Node 302: 0
     Node 175: 0
     Node 317: 3
-    Node 190: 5
+    Node 190: 3
     Node 153: 4
     Node 293: 0
     Node 166: 0
@@ -139,7 +146,7 @@ Search Metadata:
     Node 295: 0
     Node 168: 0
     Node 305: 0
-    Node 178: 5
+    Node 178: 3
     Node 156: 3
     Node 157: 2
     Node 296: 0
@@ -147,12 +154,12 @@ Search Metadata:
     Node 299: 0
     Node 172: 0
     Node 306: 0
-    Node 179: 5
+    Node 179: 3
 
 Global Stats:
-  Num phase 1 speculations: 43'901 (100%)
-  Num phase 2 speculations: 2'463 (5.61035%)
-  Num phase 3 speculations: 2'447 (5.5739%)
+  Num phase 1 speculations: 81'191 (100%)
+  Num phase 2 speculations: 3'794 (4.67293%)
+  Num phase 3 speculations: 3'778 (4.65322%)
 
 Switch placement:
 

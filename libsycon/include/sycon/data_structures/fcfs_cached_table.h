@@ -19,6 +19,7 @@ private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
   std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
   std::vector<u32> control_plane_free_indices;
+  std::unordered_set<u32> control_plane_allocated_indices;
 
   std::vector<Table> tables;
   Register reg_liveness;
@@ -63,6 +64,8 @@ public:
     return true;
   }
 
+  bool is_index_allocated(u32 index) const { return control_plane_allocated_indices.find(index) != control_plane_allocated_indices.end(); }
+
   bool allocate_index_and_put(const buffer_t &k, u32 &new_index) {
     if (control_plane_free_indices.empty()) {
       LOG_DEBUG("WARNING: Attempted to add key to map, but no free indices are available");
@@ -71,6 +74,7 @@ public:
 
     new_index = control_plane_free_indices.back();
     control_plane_free_indices.pop_back();
+    control_plane_allocated_indices.insert(new_index);
 
     put(k, new_index);
     return true;
@@ -109,6 +113,7 @@ public:
     const u32 index = found_it->second;
     if (index >= cache_capacity) {
       control_plane_free_indices.push_back(index);
+      control_plane_allocated_indices.erase(index);
       reg_liveness.set(index, 0);
     }
     cache.erase(found_it);

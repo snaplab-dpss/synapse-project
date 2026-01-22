@@ -144,6 +144,8 @@ public:
   // (3) All map_puts with the target obj also have the same key as the map_get
   bool is_map_get_followed_by_map_puts_on_miss(const Call *map_get, std::vector<const Call *> &map_puts) const;
 
+  std::vector<const Call *> get_map_gets(addr_t map) const;
+
   const BDDNode *get_node_by_id(bdd_node_id_t id) const;
   BDDNode *get_mutable_node_by_id(bdd_node_id_t id);
 

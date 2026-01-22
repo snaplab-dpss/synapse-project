@@ -22,9 +22,7 @@ FCFSCachedTable *build_fcfs_ct(const EP *ep, const BDDNode *node, DS_ID id, klee
     keys_sizes.push_back(k->getWidth());
   }
 
-  const u8 used_digests = tofino_ctx->get_tna().pipeline.get_used_digests() + 1;
-
-  FCFSCachedTable *fcfs_ct = new FCFSCachedTable(properties, id, node->get_id(), cache_capacity, capacity, keys_sizes, used_digests);
+  FCFSCachedTable *fcfs_ct = new FCFSCachedTable(properties, id, node->get_id(), cache_capacity, capacity, keys_sizes);
 
   if (!tofino_ctx->can_place(ep, node, fcfs_ct)) {
     delete fcfs_ct;
@@ -66,9 +64,17 @@ FCFSCachedTable *reuse_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj, u3
     added_table_id = fcfs_ct->add_table(node->get_id());
   }
 
+  std::optional<DS_ID> added_hash_id;
+  if (!fcfs_ct->has_hash(node->get_id())) {
+    added_hash_id = fcfs_ct->add_hash(node->get_id());
+  }
+
   if (!tofino_ctx->can_place(ep, node, fcfs_ct)) {
     if (added_table_id.has_value()) {
       fcfs_ct->remove_table(added_table_id.value());
+    }
+    if (added_hash_id.has_value()) {
+      fcfs_ct->remove_hash(added_hash_id.value());
     }
     fcfs_ct = nullptr;
   }
@@ -110,6 +116,7 @@ bool TofinoModuleFactory::can_reuse_fcfs_ct(const EP *ep, const BDDNode *node, a
 
   std::unique_ptr<FCFSCachedTable> clone = std::unique_ptr<FCFSCachedTable>(dynamic_cast<FCFSCachedTable *>(fcfs_ct->clone()));
   clone->add_table(node->get_id());
+  clone->add_hash(node->get_id());
 
   return tofino_ctx->can_place(ep, node, clone.get());
 }
@@ -148,23 +155,15 @@ std::vector<u32> TofinoModuleFactory::enum_fcfs_ct_cache_capacities(u32 capacity
   return capacities;
 }
 
-hit_rate_t TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key,
+hit_rate_t TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(const Context &ctx, const BDDNode *map_op, klee::ref<klee::Expr> key,
                                                                         u32 cache_capacity) {
-  const flow_stats_t flow_stats = ctx.get_profiler().get_flow_stats(map_put, key);
+  const flow_stats_t flow_stats = ctx.get_profiler().get_flow_stats(map_op, key);
   const u32 mask                = cache_capacity - 1;
   assert_or_panic(flow_stats.crc32_hashes_per_mask.contains(mask), "Failed to find crc32 hash for mask %u", mask);
-  const u64 total_flow_hashes = flow_stats.crc32_hashes_per_mask.at(mask);
-
-  const hit_rate_t collision_probability = 1_hr - hit_rate_t(total_flow_hashes, flow_stats.flows);
-
-  // std::cerr << "\n";
-  // std::cerr << "Cache capacity: " << cache_capacity << "\n";
-  // std::cerr << "Total flow hashes for mask " << mask << ": " << total_flow_hashes << "\n";
-  // std::cerr << "Collision probability: " << collision_probability << "\n";
-  // const u64 controller_flows             = flow_stats.flows * collision_probability.value;
-  // std::cerr << "Expected controller flows: " << controller_flows << "\n";
-
-  return collision_probability;
+  const u64 total_hashes                = flow_stats.crc32_hashes_per_mask.at(mask);
+  const hit_rate_t top_k_hr             = flow_stats.calculate_top_k_hit_rate(total_hashes);
+  const hit_rate_t cache_collision_prob = 1_hr - top_k_hr;
+  return cache_collision_prob;
 }
 
 } // namespace Tofino

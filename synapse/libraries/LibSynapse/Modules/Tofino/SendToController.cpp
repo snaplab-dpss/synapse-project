@@ -16,6 +16,7 @@
 #include <LibSynapse/Modules/Controller/DataplaneVectorTableLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneDchainTableIsIndexAllocated.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableRead.h>
+#include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableIsIndexAllocated.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedSetRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableRead.h>
 
@@ -28,6 +29,8 @@
 #include <LibSynapse/Modules/Tofino/VectorTableLookup.h>
 #include <LibSynapse/Modules/Tofino/DchainTableLookup.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableRead.h>
+#include <LibSynapse/Modules/Tofino/FCFSCachedTableReadInsert.h>
+#include <LibSynapse/Modules/Tofino/FCFSCachedTableIsIndexAllocated.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedSetRead.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedSetReadInsert.h>
 #include <LibSynapse/Modules/Tofino/HHTableRead.h>
@@ -291,11 +294,32 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       const FCFSCachedTableRead *fcfs_ct_read = dynamic_cast<const FCFSCachedTableRead *>(prev.module);
 
       Controller::DataplaneFCFSCachedTableRead *ctrl_fcfs_ct_read =
-          new Controller::DataplaneFCFSCachedTableRead(active_leaf.next, fcfs_ct_read->get_fcfs_ct_id(), fcfs_ct_read->get_obj(),
-                                                       fcfs_ct_read->get_original_key(), fcfs_ct_read->get_map_has_this_key());
+          new Controller::DataplaneFCFSCachedTableRead(active_leaf.next, fcfs_ct_read->get_obj(), fcfs_ct_read->get_original_key(),
+                                                       fcfs_ct_read->get_value(), fcfs_ct_read->get_map_has_this_key());
 
       EPNode *fcfs_ct_read_ep_node = new EPNode(ctrl_fcfs_ct_read);
       initial_controller_logic.update(fcfs_ct_read_ep_node);
+    } break;
+    case ModuleType::Tofino_FCFSCachedTableReadInsert: {
+      const FCFSCachedTableReadInsert *fcfs_ct_read_insert = dynamic_cast<const FCFSCachedTableReadInsert *>(prev.module);
+
+      Controller::DataplaneFCFSCachedTableRead *ctrl_fcfs_ct_read =
+          new Controller::DataplaneFCFSCachedTableRead(active_leaf.next, fcfs_ct_read_insert->get_obj(), fcfs_ct_read_insert->get_original_key(),
+                                                       fcfs_ct_read_insert->get_read_value(), fcfs_ct_read_insert->get_map_has_this_key());
+
+      EPNode *fcfs_ct_read_insert_ep_node = new EPNode(ctrl_fcfs_ct_read);
+      initial_controller_logic.update(fcfs_ct_read_insert_ep_node);
+    } break;
+    case ModuleType::Tofino_FCFSCachedTableIsIndexAllocated: {
+      const FCFSCachedTableIsIndexAllocated *fcfs_ct_is_index_allocated = dynamic_cast<const FCFSCachedTableIsIndexAllocated *>(prev.module);
+
+      Controller::DataplaneFCFSCachedTableIsIndexAllocated *ctrl_fcfs_ct_is_index_allocated =
+          new Controller::DataplaneFCFSCachedTableIsIndexAllocated(active_leaf.next, fcfs_ct_is_index_allocated->get_obj(),
+                                                                   fcfs_ct_is_index_allocated->get_index(),
+                                                                   fcfs_ct_is_index_allocated->get_is_allocated());
+
+      EPNode *fcfs_ct_is_index_allocated_ep_node = new EPNode(ctrl_fcfs_ct_is_index_allocated);
+      initial_controller_logic.update(fcfs_ct_is_index_allocated_ep_node);
     } break;
     case ModuleType::Tofino_FCFSCachedSetRead: {
       const FCFSCachedSetRead *fcfs_cs_read = dynamic_cast<const FCFSCachedSetRead *>(prev.module);
@@ -351,7 +375,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Tofino_VectorRegisterLookup:
     case ModuleType::Tofino_VectorRegisterUpdate:
     case ModuleType::Tofino_VectorRegisterConditionalUpdate:
-    case ModuleType::Tofino_FCFSCachedTableReadInsert:
+    case ModuleType::Tofino_FCFSCachedTableInsert:
     case ModuleType::Tofino_FCFSCachedSetInsert:
     case ModuleType::Tofino_MeterUpdate:
     case ModuleType::Tofino_HHTableOutOfBandUpdate:
@@ -404,6 +428,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleType::Controller_DataplaneFCFSCachedTableRead:
     case ModuleType::Controller_DataplaneFCFSCachedTableWrite:
     case ModuleType::Controller_DataplaneFCFSCachedTableAllocateAndWrite:
+    case ModuleType::Controller_DataplaneFCFSCachedTableIsIndexAllocated:
     case ModuleType::Controller_DataplaneFCFSCachedSetAllocate:
     case ModuleType::Controller_DataplaneFCFSCachedSetRead:
     case ModuleType::Controller_DataplaneFCFSCachedSetWrite:

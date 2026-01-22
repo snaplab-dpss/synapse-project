@@ -58,6 +58,8 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableIsIndexAllocated *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetInsert *node) override final;
@@ -124,6 +126,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocateAndWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableIsIndexAllocated *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocateAndWrite *node) override final;

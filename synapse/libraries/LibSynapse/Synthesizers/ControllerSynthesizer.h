@@ -219,6 +219,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocateAndWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableIsIndexAllocated *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetWrite *node) override final;
@@ -285,6 +286,7 @@ private:
   void transpile_vector_register_decl(const Tofino::VectorRegister *vector_register);
   void transpile_hh_table_decl(const Tofino::HHTable *hh_table, time_ns_t expiration_time);
   void transpile_fcfs_cs_decl(const Tofino::FCFSCachedSet *fcfs_cs, time_ns_t expiration_time);
+  void transpile_fcfs_ct_decl(const Tofino::FCFSCachedTable *fcfs_ct, time_ns_t expiration_time);
   void transpile_cms_decl(const Tofino::CountMinSketch *cms, time_ns_t periodic_cleanup_interval);
   void transpile_bf_decl(const Tofino::BloomFilter *bf, time_ns_t periodic_cleanup_interval);
 

@@ -24,22 +24,17 @@ struct fcfs_cs_data_t {
   addr_t obj;
   klee::ref<klee::Expr> original_key;
   std::vector<klee::ref<klee::Expr>> keys;
-  klee::ref<klee::Expr> read_value;
-  klee::ref<klee::Expr> write_value;
   symbol_t map_has_this_key;
   u32 capacity;
 };
 
-fcfs_cs_data_t get_fcfs_cs_data(const Context &ctx, const Call *map_get, const Call *map_put) {
+fcfs_cs_data_t get_fcfs_cs_data(const Context &ctx, const Call *map_get) {
   const call_t &get_call = map_get->get_call();
-  const call_t &put_call = map_put->get_call();
 
   fcfs_cs_data_t data;
   data.obj              = expr_addr_to_obj_addr(get_call.args.at("map").expr);
   data.original_key     = get_call.args.at("key").in;
   data.keys             = Table::build_keys(data.original_key, ctx.get_expr_structs());
-  data.read_value       = get_call.args.at("value_out").out;
-  data.write_value      = put_call.args.at("value").expr;
   data.map_has_this_key = map_get->get_local_symbol("map_has_this_key");
   data.capacity         = ctx.get_map_config(data.obj).capacity;
 
@@ -262,9 +257,9 @@ std::unique_ptr<EP> concretize(const EP *ep, const pattern_t &pattern, const fcf
                                const map_coalescing_objs_t &map_coalescing_objs, const symbol_t &cached_insert_success, u32 cache_capacity) {
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  FCFSCachedSet *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_cs(new_ep.get(), pattern.map_get, fcfs_cs_data.obj,
-                                                                            fcfs_cs_data.original_key, fcfs_cs_data.capacity, cache_capacity);
-  if (!cached_table) {
+  FCFSCachedSet *fcfs_cs = TofinoModuleFactory::build_or_reuse_fcfs_cs(new_ep.get(), pattern.map_get, fcfs_cs_data.obj, fcfs_cs_data.original_key,
+                                                                       fcfs_cs_data.capacity, cache_capacity);
+  if (!fcfs_cs) {
     return nullptr;
   }
 
@@ -275,9 +270,8 @@ std::unique_ptr<EP> concretize(const EP *ep, const pattern_t &pattern, const fcf
 
   const Symbols symbols = TofinoModuleFactory::get_relevant_dataplane_state(ep, pattern.on_insert_success);
 
-  Module *module =
-      new FCFSCachedSetReadInsert(pattern.map_get, cached_table->id, fcfs_cs_data.obj, fcfs_cs_data.original_key, fcfs_cs_data.keys,
-                                  fcfs_cs_data.read_value, fcfs_cs_data.write_value, fcfs_cs_data.map_has_this_key, cached_insert_success);
+  Module *module = new FCFSCachedSetReadInsert(pattern.map_get, fcfs_cs->id, fcfs_cs_data.obj, fcfs_cs_data.original_key, fcfs_cs_data.keys,
+                                               fcfs_cs_data.map_has_this_key, cached_insert_success);
 
   Module *if_read_module                    = new If(pattern.map_get, map_has_this_key_condition, {map_has_this_key_condition});
   Module *read_then_module                  = new Then(pattern.map_get);
@@ -313,7 +307,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const pattern_t &pattern, const fcf
   ctx.save_ds_impl(map_coalescing_objs.dchain, DSImpl::Tofino_FCFSCachedSet);
 
   TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
-  tofino_ctx->place(new_ep.get(), pattern.map_get, map_coalescing_objs.map, cached_table);
+  tofino_ctx->place(new_ep.get(), pattern.map_get, map_coalescing_objs.map, fcfs_cs);
 
   EPLeaf on_read_leaf(read_then_node, rebuilt_bdd_result.on_read_success);
   EPLeaf on_cached_insert_success_leaf(cached_insert_success_then_node, rebuilt_bdd_result.on_cached_insert_success);
@@ -332,7 +326,7 @@ std::optional<spec_impl_t> FCFSCachedSetReadInsertFactory::speculate(const EP *e
     return {};
   }
 
-  const fcfs_cs_data_t data = get_fcfs_cs_data(ep->get_ctx(), pattern.map_get, pattern.map_put);
+  const fcfs_cs_data_t data = get_fcfs_cs_data(ep->get_ctx(), pattern.map_get);
 
   const std::optional<map_coalescing_objs_t> map_coalescing_objs = ep->get_ctx().get_map_coalescing_objs(data.obj);
   if (!map_coalescing_objs.has_value()) {
@@ -412,7 +406,7 @@ std::vector<impl_t> FCFSCachedSetReadInsertFactory::process_node(const EP *ep, c
     return {};
   }
 
-  const fcfs_cs_data_t data = get_fcfs_cs_data(ep->get_ctx(), pattern.map_get, pattern.map_put);
+  const fcfs_cs_data_t data = get_fcfs_cs_data(ep->get_ctx(), pattern.map_get);
 
   const std::optional<map_coalescing_objs_t> map_coalescing_objs = ep->get_ctx().get_map_coalescing_objs(data.obj);
   if (!map_coalescing_objs.has_value()) {

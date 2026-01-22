@@ -32,6 +32,8 @@ class VectorRegisterUpdate;
 class VectorRegisterConditionalUpdate;
 class FCFSCachedTableRead;
 class FCFSCachedTableReadInsert;
+class FCFSCachedTableInsert;
+class FCFSCachedTableIsIndexAllocated;
 class FCFSCachedSetRead;
 class FCFSCachedSetReadInsert;
 class FCFSCachedSetInsert;
@@ -94,6 +96,7 @@ class DataplaneFCFSCachedTableAllocate;
 class DataplaneFCFSCachedTableRead;
 class DataplaneFCFSCachedTableWrite;
 class DataplaneFCFSCachedTableAllocateAndWrite;
+class DataplaneFCFSCachedTableIsIndexAllocated;
 class DataplaneFCFSCachedSetAllocate;
 class DataplaneFCFSCachedSetRead;
 class DataplaneFCFSCachedSetWrite;
@@ -220,6 +223,8 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableIsIndexAllocated *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadInsert *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetInsert *m) { return Action::doChildren; }
@@ -297,6 +302,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocateAndWrite *m) {
+    return Action::doChildren;
+  }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableIsIndexAllocated *m) {
     return Action::doChildren;
   }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocate *m) { return Action::doChildren; }

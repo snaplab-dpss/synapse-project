@@ -7,30 +7,29 @@ namespace Tofino {
 
 class FCFSCachedSetInsert : public TofinoModule {
 private:
-  DS_ID cached_table_id;
+  DS_ID fcfs_cs_id;
   addr_t obj;
   std::vector<klee::ref<klee::Expr>> keys;
   symbol_t success;
 
 public:
-  FCFSCachedSetInsert(const BDDNode *_node, DS_ID _cached_table_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys,
-                      const symbol_t &_success)
-      : TofinoModule(ModuleType::Tofino_FCFSCachedSetInsert, "FCFSCachedSetInsert", _node), cached_table_id(_cached_table_id), obj(_obj), keys(_keys),
+  FCFSCachedSetInsert(const BDDNode *_node, DS_ID _fcfs_cs_id, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys, const symbol_t &_success)
+      : TofinoModule(ModuleType::Tofino_FCFSCachedSetInsert, "FCFSCachedSetInsert", _node), fcfs_cs_id(_fcfs_cs_id), obj(_obj), keys(_keys),
         success(_success) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new FCFSCachedSetInsert(node, cached_table_id, obj, keys, success);
+    Module *cloned = new FCFSCachedSetInsert(node, fcfs_cs_id, obj, keys, success);
     return cloned;
   }
 
-  DS_ID get_fcfs_cs_id() const { return cached_table_id; }
+  DS_ID get_fcfs_cs_id() const { return fcfs_cs_id; }
   addr_t get_obj() const { return obj; }
   const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
   const symbol_t &get_success() const { return success; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {cached_table_id}; }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {fcfs_cs_id}; }
 };
 
 class FCFSCachedSetInsertFactory : public TofinoModuleFactory {

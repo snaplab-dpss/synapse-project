@@ -318,6 +318,60 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *node) {
+  std::stringstream label_builder;
+
+  const BDDNode *bdd_node = node->get_node();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
+
+  const Tofino::DS_ID id                  = node->get_fcfs_ct_id();
+  const Context &ctx                      = ep->get_ctx();
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
+  assert(ds->type == Tofino::DSType::FCFSCachedTable && "Invalid Tofino::DS type");
+  const Tofino::FCFSCachedTable *cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(ds);
+
+  label_builder << "FCFS Cached Table Insert\n";
+
+  label_builder << "obj=";
+  label_builder << obj;
+  label_builder << ", ";
+  label_builder << "size=";
+  label_builder << cached_table->cache_capacity;
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableIsIndexAllocated *node) {
+  std::stringstream label_builder;
+
+  const BDDNode *bdd_node = node->get_node();
+  const TargetType target = node->get_target();
+  const addr_t obj        = node->get_obj();
+
+  const Tofino::DS_ID id                  = node->get_fcfs_ct_id();
+  const Context &ctx                      = ep->get_ctx();
+  const Tofino::TofinoContext *tofino_ctx = ctx.get_target_ctx<Tofino::TofinoContext>();
+  const Tofino::DS *ds                    = tofino_ctx->get_data_structures().get_ds_from_id(id);
+  assert(ds->type == Tofino::DSType::FCFSCachedTable && "Invalid Tofino::DS type");
+  const Tofino::FCFSCachedTable *cached_table = dynamic_cast<const Tofino::FCFSCachedTable *>(ds);
+
+  label_builder << "FCFS Cached Table Is Index Allocated\n";
+
+  label_builder << "obj=";
+  label_builder << obj;
+  label_builder << ", ";
+  label_builder << "size=";
+  label_builder << cached_table->cache_capacity;
+
+  function_call(ep_node, bdd_node, target, label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *node) {
   std::stringstream label_builder;
 

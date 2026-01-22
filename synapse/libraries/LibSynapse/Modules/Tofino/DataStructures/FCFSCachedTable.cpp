@@ -13,44 +13,23 @@ namespace {
 
 DS_ID build_table_name(DS_ID id, u32 table_num) { return id + "_table_" + std::to_string(table_num); }
 
+DS_ID build_hash_name(DS_ID id, u32 hash_num) { return id + "_hash_" + std::to_string(hash_num); }
+
 Register build_reg_liveness(const tna_properties_t &properties, DS_ID id, u32 cache_capacity) {
   const bits_t hash_size  = bits_from_pow2_capacity(cache_capacity);
-  const bits_t match_size = 8;
-  return Register(properties, id + "_reg_liveness", cache_capacity, hash_size, match_size,
+  const bits_t value_size = 32;
+  return Register(properties, id + "_reg_liveness", cache_capacity, hash_size, value_size,
                   {RegisterActionType::QueryTimestamp, RegisterActionType::QueryAndRefreshTimestamp});
 }
 
-Register build_reg_integer_allocator_head(const tna_properties_t &properties, DS_ID id, u32 capacity) {
-  const bits_t index_size = bits_from_pow2_capacity(capacity);
-  return Register(properties, id + "_reg_integer_allocator_head", capacity, index_size, index_size,
-                  {RegisterActionType::IntegerAllocatorHeadReadAndUpdate});
-}
-
-Register build_reg_integer_allocator_tail(const tna_properties_t &properties, DS_ID id, u32 capacity) {
-  const bits_t index_size = bits_from_pow2_capacity(capacity);
-  return Register(properties, id + "_reg_integer_allocator_tail", capacity, index_size, index_size, {RegisterActionType::Read});
-}
-
-Register build_reg_integer_allocator_indexes(const tna_properties_t &properties, DS_ID id, u32 capacity) {
-  const bits_t index_size = bits_from_pow2_capacity(capacity);
-  return Register(properties, id + "_reg_integer_allocator_indexes", capacity, index_size, index_size, {RegisterActionType::Read});
-}
-
-Register build_reg_integer_allocator_pending(const tna_properties_t &properties, DS_ID id, u32 capacity) {
-  const bits_t index_size = bits_from_pow2_capacity(capacity);
-  const bits_t match_size = 8;
-  return Register(properties, id + "_reg_integer_allocator_pending", capacity, index_size, match_size,
-                  {RegisterActionType::Read, RegisterActionType::Write});
-}
-
-std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &elements_sizes, u32 capacity) {
+std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &elements_sizes, u32 cache_capacity) {
   std::vector<Register> registers;
 
-  const bits_t hash_size = bits_from_pow2_capacity(capacity);
+  const bits_t hash_size = bits_from_pow2_capacity(cache_capacity);
 
   int i = 0;
   for (bits_t key_size : elements_sizes) {
-    Register cache_key(properties, id + "_reg_key_" + std::to_string(i), capacity, hash_size, key_size,
+    Register cache_key(properties, id + "_reg_key_" + std::to_string(i), cache_capacity, hash_size, key_size,
                        {RegisterActionType::CheckValue, RegisterActionType::Write});
     i++;
     registers.push_back(cache_key);
@@ -59,72 +38,62 @@ std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID
   return registers;
 }
 
-Register build_cache_value(const tna_properties_t &properties, DS_ID id, u32 capacity) {
-  const bits_t hash_size  = bits_from_pow2_capacity(capacity);
-  const bits_t value_size = 32;
-  return Register(properties, id + "_reg_value", capacity, hash_size, value_size, {RegisterActionType::Read, RegisterActionType::Write});
-}
+std::vector<Register> build_index_to_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &keys_sizes, u32 cache_capacity) {
+  std::vector<Register> registers;
 
-Hash build_hash(DS_ID id, const std::vector<bits_t> &keys_sizes, u32 capacity) {
-  const bits_t hash_size = bits_from_pow2_capacity(capacity);
-  return Hash(id + "_hash", keys_sizes, hash_size);
-}
+  const bits_t hash_size = bits_from_pow2_capacity(cache_capacity);
 
-Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type) {
-  const DS_ID digest_id = id + "_digest";
-  return Digest(digest_id, fields, digest_type);
+  int i = 0;
+  for (bits_t key_size : keys_sizes) {
+    Register cache_key(properties, id + "_reg_index_to_key_" + std::to_string(i), cache_capacity, hash_size, key_size,
+                       {RegisterActionType::Read, RegisterActionType::Write});
+    i++;
+    registers.push_back(cache_key);
+  }
+
+  return registers;
 }
 
 } // namespace
 
 FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _capacity,
-                                 const std::vector<bits_t> &_keys_sizes, u8 digest_type)
-    : DS(DSType::FCFSCachedTable, false, _id), cache_capacity(_cache_capacity), capacity(_capacity),
-      total_indices_reserved_for_controller(properties.pipes * cache_capacity > capacity ? 0 : properties.pipes * cache_capacity - cache_capacity),
-      keys_sizes(_keys_sizes), reg_liveness(build_reg_liveness(properties, id, cache_capacity)),
-      reg_integer_allocator_head(build_reg_integer_allocator_head(properties, id, capacity)),
-      reg_integer_allocator_tail(build_reg_integer_allocator_tail(properties, id, capacity)),
-      reg_integer_allocator_indexes(build_reg_integer_allocator_indexes(properties, id, capacity)),
-      reg_integer_allocator_pending(build_reg_integer_allocator_pending(properties, id, capacity)),
-      cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)), cache_value(build_cache_value(properties, id, cache_capacity)),
-      hash(build_hash(_id, _keys_sizes, _capacity)), digest(build_digest(_id, _keys_sizes, digest_type)) {
-  assert(cache_capacity > 0 && "Cache capacity must be greater than 0");
-  assert(capacity > 0 && "Number of entries must be greater than 0");
-  assert(cache_capacity <= capacity && "Cache capacity must be less than the "
-                                       "number of entries");
+                                 const std::vector<bits_t> &_keys_sizes)
+    : DS(DSType::FCFSCachedTable, false, _id), cache_capacity(_cache_capacity), capacity(_capacity), keys_sizes(_keys_sizes),
+      reg_liveness(build_reg_liveness(properties, id, cache_capacity)), cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)),
+      index_to_keys(build_index_to_keys(properties, id, keys_sizes, cache_capacity)) {
+  assert(cache_capacity > 0);
+  assert(capacity > 0);
+  assert(cache_capacity < capacity);
   add_table(_op);
+  add_hash(_op);
 }
 
 FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
     : DS(other.type, other.primitive, other.id), cache_capacity(other.cache_capacity), capacity(other.capacity), keys_sizes(other.keys_sizes),
-      tables(other.tables), reg_liveness(other.reg_liveness), reg_integer_allocator_head(other.reg_integer_allocator_head),
-      reg_integer_allocator_tail(other.reg_integer_allocator_tail), reg_integer_allocator_indexes(other.reg_integer_allocator_indexes),
-      reg_integer_allocator_pending(other.reg_integer_allocator_pending), cache_keys(other.cache_keys), cache_value(other.cache_value),
-      hash(other.hash), digest(other.digest) {}
+      tables(other.tables), reg_liveness(other.reg_liveness), cache_keys(other.cache_keys), index_to_keys(other.index_to_keys), hashes(other.hashes) {
+}
 
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 
 void FCFSCachedTable::debug() const {
   std::cerr << "\n";
-  std::cerr << "======== FCFS CACHED TABLE ========\n";
-  std::cerr << "ID:                 " << id << "\n";
-  std::cerr << "Entries:            " << capacity << "\n";
-  std::cerr << "Cache:              " << cache_capacity << "\n";
-  std::cerr << "Controller indices: " << total_indices_reserved_for_controller << "\n";
+  std::cerr << "======== FCFS CACHED SET ========\n";
+  std::cerr << "ID:      " << id << "\n";
+  std::cerr << "Entries: " << capacity << "\n";
+  std::cerr << "Cache:   " << cache_capacity << "\n";
   for (const Table &table : tables) {
     table.debug();
   }
   reg_liveness.debug();
-  reg_integer_allocator_head.debug();
-  reg_integer_allocator_tail.debug();
-  reg_integer_allocator_indexes.debug();
-  reg_integer_allocator_pending.debug();
   for (const Register &cache_key : cache_keys) {
     cache_key.debug();
   }
-  cache_value.debug();
-  hash.debug();
-  digest.debug();
+  for (const Hash &hash : hashes) {
+    hash.debug();
+  }
+  for (const Register &index_to_key : index_to_keys) {
+    index_to_key.debug();
+  }
   std::cerr << "==============================\n";
 }
 
@@ -132,26 +101,23 @@ std::vector<std::unordered_set<const DS *>> FCFSCachedTable::get_internal() cons
   std::vector<std::unordered_set<const DS *>> internal_ds;
 
   internal_ds.emplace_back();
-  for (const Table &table : tables)
+  for (const Table &table : tables) {
     internal_ds.back().insert(&table);
+  }
+  for (const Register &index_to_key : index_to_keys) {
+    internal_ds.back().insert(&index_to_key);
+  }
 
   internal_ds.emplace_back();
+  for (const Hash &hash : hashes) {
+    internal_ds.back().insert(&hash);
+  }
   internal_ds.back().insert(&reg_liveness);
 
   internal_ds.emplace_back();
-  internal_ds.back().insert(&reg_integer_allocator_tail);
-
-  internal_ds.emplace_back();
-  internal_ds.back().insert(&reg_integer_allocator_head);
-
-  internal_ds.emplace_back();
-  internal_ds.back().insert(&reg_integer_allocator_indexes);
-  internal_ds.back().insert(&reg_integer_allocator_pending);
-
-  internal_ds.emplace_back();
-  for (const Register &cache_key : cache_keys)
+  for (const Register &cache_key : cache_keys) {
     internal_ds.back().insert(&cache_key);
-  internal_ds.back().insert(&digest);
+  }
 
   return internal_ds;
 }
@@ -166,8 +132,8 @@ bool FCFSCachedTable::has_table(u32 op) const {
   return false;
 }
 
-std::optional<DS_ID> FCFSCachedTable::add_table(u32 op) {
-  Table new_table(build_table_name(id, op), capacity, keys_sizes, {});
+DS_ID FCFSCachedTable::add_table(u32 op) {
+  Table new_table(build_table_name(id, op), capacity, keys_sizes, {}, TimeAware::Yes);
   tables.push_back(new_table);
   return new_table.id;
 }
@@ -190,8 +156,39 @@ const Table *FCFSCachedTable::get_table(const DS_ID &table_id) const {
   return nullptr;
 }
 
-void FCFSCachedTable::set_total_indices_reserved_for_controller(u32 flows) {
-  total_indices_reserved_for_controller = std::max(total_indices_reserved_for_controller, flows);
+bool FCFSCachedTable::has_hash(u32 op) const {
+  const DS_ID hash_id = build_hash_name(id, op);
+  for (const Hash &hash : hashes) {
+    if (hash.id == hash_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+DS_ID FCFSCachedTable::add_hash(u32 op) {
+  const bits_t hash_size = bits_from_pow2_capacity(capacity);
+  Hash new_hash(build_hash_name(id, op), keys_sizes, hash_size);
+  hashes.push_back(new_hash);
+  return new_hash.id;
+}
+
+const Hash *FCFSCachedTable::get_hash(u32 op) const {
+  const DS_ID hash_id = build_hash_name(id, op);
+  return get_hash(hash_id);
+}
+
+const Hash *FCFSCachedTable::get_hash(const DS_ID &hash_id) const {
+  for (const Hash &hash : hashes) {
+    if (hash.id == hash_id) {
+      return &hash;
+    }
+  }
+  return nullptr;
+}
+
+void FCFSCachedTable::remove_hash(const DS_ID &hash_id) {
+  hashes.erase(std::remove_if(hashes.begin(), hashes.end(), [&hash_id](const Hash &hash) { return hash.id == hash_id; }), hashes.end());
 }
 
 } // namespace Tofino

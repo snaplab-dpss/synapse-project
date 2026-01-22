@@ -109,7 +109,7 @@ bool FCFSCachedSet::has_table(u32 op) const {
 }
 
 DS_ID FCFSCachedSet::add_table(u32 op) {
-  Table new_table(build_table_name(id, op), capacity, keys_sizes, {});
+  Table new_table(build_table_name(id, op), capacity, keys_sizes, {}, TimeAware::Yes);
   tables.push_back(new_table);
   return new_table.id;
 }

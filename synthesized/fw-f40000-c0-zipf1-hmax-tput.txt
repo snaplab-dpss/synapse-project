@@ -7,18 +7,18 @@ Args:
   Profile file:       fw-f40000-c0-zipf1.json
   Seed:               0
   Targets:
-    Tofino (36 modules)
+    Tofino (39 modules)
     Ctrl (89 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <2'250'000'000,0,83,-3,-15'151'904>
+  Score: <2'250'000'000,0,76,-3,-15'151'904>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
-  BDD Progress: 83 / 86
+  BDD Progress: 76 / 79
   Stages: 3
   Memory Usage: 15151904 bits
 
@@ -29,15 +29,15 @@ Stateful Implementations:
   1074076456: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       71 seconds
-  Steps:              84
+  Elapsed time:       125 seconds
+  Steps:              77
   Backtracks:         0
-  Search space size:  231
-  Unfinished EPs:     147
+  Search space size:  250
+  Unfinished EPs:     173
   Finished EPs:       1
   Avg BDD size:       65
-  Branching factor:   2
-  Total SS size est.: 762'146'433'067
+  Branching factor:   3
+  Total SS size est.: 3'937'797'403'734
   Avg children per node:
     Node 184: 0
     Node 183: 0
@@ -56,16 +56,13 @@ Search Metadata:
     Node 187: 6
     Node 276: 0
     Node 149: 4
-    Node 272: 0
     Node 145: 3
     Node 186: 0
     Node 161: 2
     Node 275: 0
     Node 148: 0
-    Node 271: 0
     Node 144: 3
     Node 160: 3
-    Node 286: 0
     Node 159: 3
     Node 162: 0
     Node 133: 2
@@ -73,13 +70,15 @@ Search Metadata:
     Node 163: 0
     Node 134: 3
     Node 193: 3
+    Node 268: 3
     Node 141: 5
     Node 200: 3
     Node 199: 2
     Node 267: 3
     Node 140: 8
     Node 135: 3
-    Node 142: 19
+    Node 269: 3
+    Node 142: 32
     Node 201: 2
     Node 136: 3
     Node 143: 3
@@ -104,34 +103,28 @@ Search Metadata:
     Node 152: 6
     Node 165: 0
     Node 175: 0
-    Node 190: 3
-    Node 280: 0
-    Node 153: 6
+    Node 190: 6
+    Node 153: 3
     Node 166: 0
     Node 176: 0
     Node 191: 3
-    Node 281: 0
     Node 154: 6
     Node 167: 0
     Node 177: 0
-    Node 282: 0
-    Node 155: 3
-    Node 285: 0
+    Node 155: 6
     Node 158: 2
     Node 168: 0
     Node 178: 0
-    Node 283: 0
     Node 156: 2
-    Node 284: 0
     Node 157: 2
     Node 169: 0
     Node 172: 0
     Node 179: 0
 
 Global Stats:
-  Num phase 1 speculations: 18'166 (100%)
-  Num phase 2 speculations: 1'018 (5.60388%)
-  Num phase 3 speculations: 1'002 (5.5158%)
+  Num phase 1 speculations: 25'177 (100%)
+  Num phase 2 speculations: 1'244 (4.94102%)
+  Num phase 3 speculations: 1'228 (4.87747%)
 
 Switch placement:
 

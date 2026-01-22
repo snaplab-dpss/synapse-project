@@ -236,6 +236,8 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableIsIndexAllocated *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetInsert *node) override final;
@@ -267,6 +269,16 @@ private:
   };
 
   fcfs_cs_internals_t fcfs_cs_get_internals(const FCFSCachedSet *fcfs_cs);
+
+  struct fcfs_ct_internals_t {
+    code_t liveness_query;
+    code_t liveness_query_and_refresh;
+    std::vector<var_t> keys;
+    std::map<std::pair<DS_ID, RegisterActionType>, code_t> keys_reg_actions;
+    std::map<std::pair<DS_ID, RegisterActionType>, code_t> index_to_keys_reg_actions;
+  };
+
+  fcfs_ct_internals_t fcfs_ct_get_internals(const FCFSCachedTable *fcfs_ct);
 
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_reg_actions(const CountMinSketch *cms);
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_actions(const CountMinSketch *cms);
@@ -302,7 +314,7 @@ private:
   void transpile_hash_decl(const Hash *hash);
   void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash);
   void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
-  void transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, const std::vector<klee::ref<klee::Expr>> &keys);
+  void transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, const EPNode *ep_node);
   void transpile_fcfs_cs_decl(const FCFSCachedSet *fcfs_cs, const EPNode *ep_node);
   void transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
 

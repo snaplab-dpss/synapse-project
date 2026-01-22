@@ -12,27 +12,26 @@ private:
   DS_ID id;
   addr_t obj;
   klee::ref<klee::Expr> key;
-  klee::ref<klee::Expr> write_value;
+  klee::ref<klee::Expr> value;
   symbol_t allocation_successful;
 
 public:
-  DataplaneFCFSCachedTableAllocateAndWrite(const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key,
-                                           klee::ref<klee::Expr> _write_value, const symbol_t &_allocation_successful)
+  DataplaneFCFSCachedTableAllocateAndWrite(const BDDNode *_node, DS_ID _id, addr_t _obj, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value,
+                                           const symbol_t &_allocation_successful)
       : ControllerModule(ModuleType::Controller_DataplaneFCFSCachedTableAllocateAndWrite, "DataplaneFCFSCachedTableAllocateAndWrite", _node), id(_id),
-        obj(_obj), key(_key), write_value(_write_value), allocation_successful(_allocation_successful) {}
+        obj(_obj), key(_key), value(_value), allocation_successful(_allocation_successful) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneFCFSCachedTableAllocateAndWrite *cloned =
-        new DataplaneFCFSCachedTableAllocateAndWrite(node, id, obj, key, write_value, allocation_successful);
+    DataplaneFCFSCachedTableAllocateAndWrite *cloned = new DataplaneFCFSCachedTableAllocateAndWrite(node, id, obj, key, value, allocation_successful);
     return cloned;
   }
 
   DS_ID get_id() const { return id; }
   addr_t get_obj() const { return obj; }
   klee::ref<klee::Expr> get_key() const { return key; }
-  klee::ref<klee::Expr> get_write_value() const { return write_value; }
+  klee::ref<klee::Expr> get_value() const { return value; }
   symbol_t get_allocation_successful_symbol() const { return allocation_successful; }
 };
 

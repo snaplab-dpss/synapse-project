@@ -4,7 +4,6 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Register.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Hash.h>
-#include <LibSynapse/Modules/Tofino/DataStructures/Digest.h>
 #include <LibCore/Types.h>
 
 #include <vector>
@@ -18,24 +17,17 @@ constexpr const char *const FCFS_CACHED_TABLE_CACHE_SIZE_PARAM = "cache_size";
 struct FCFSCachedTable : public DS {
   u32 cache_capacity;
   u32 capacity;
-  u32 total_indices_reserved_for_controller;
   std::vector<bits_t> keys_sizes;
 
   std::vector<Table> tables;
   Register reg_liveness;
-  Register reg_integer_allocator_head;
-  Register reg_integer_allocator_tail;
-  Register reg_integer_allocator_indexes;
-  Register reg_integer_allocator_pending;
   std::vector<Register> cache_keys;
-  Register cache_value;
-  Hash hash;
-  Digest digest;
+  std::vector<Register> index_to_keys;
+  std::vector<Hash> hashes;
 
   static constexpr u32 MAX_CACHE_CAPACITY{65536};
 
-  FCFSCachedTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 cache_capacity, u32 capacity, const std::vector<bits_t> &keys_sizes,
-                  u8 digest_type);
+  FCFSCachedTable(const tna_properties_t &properties, DS_ID id, u32 op, u32 cache_capacity, u32 capacity, const std::vector<bits_t> &keys_sizes);
 
   FCFSCachedTable(const FCFSCachedTable &other);
 
@@ -44,11 +36,16 @@ struct FCFSCachedTable : public DS {
   std::vector<std::unordered_set<const DS *>> get_internal() const override;
 
   bool has_table(u32 op) const;
-  std::optional<DS_ID> add_table(u32 op);
+  DS_ID add_table(u32 op);
   const Table *get_table(u32 op) const;
   const Table *get_table(const DS_ID &table_id) const;
   void remove_table(const DS_ID &table_id);
-  void set_total_indices_reserved_for_controller(u32 flows);
+
+  bool has_hash(u32 op) const;
+  DS_ID add_hash(u32 op);
+  const Hash *get_hash(u32 op) const;
+  const Hash *get_hash(const DS_ID &hash_id) const;
+  void remove_hash(const DS_ID &hash_id);
 };
 
 } // namespace Tofino
