@@ -46,7 +46,8 @@ bf_allocation_data_t get_bf_allocatino_data(const Context &ctx, const Call *call
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneBloomFilterAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneBloomFilterAllocateFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                          const speculations_t &speculations) const {
   // We don't need this for now.
   return {};
 }

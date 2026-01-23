@@ -83,7 +83,7 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const BDDNode *node, const std::v
 
 } // namespace
 
-std::optional<spec_impl_t> BloomFilterQueryAndSetFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> BloomFilterQueryAndSetFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -95,9 +95,9 @@ std::optional<spec_impl_t> BloomFilterQueryAndSetFactory::speculate(const EP *ep
     return {};
   }
 
-  const bf_data_t bf_data(ctx, bf_query);
+  const bf_data_t bf_data(speculations.ctx, bf_query);
 
-  if (!ctx.can_impl_ds(bf_data.obj, DSImpl::Tofino_BloomFilter)) {
+  if (!speculations.ctx.can_impl_ds(bf_data.obj, DSImpl::Tofino_BloomFilter)) {
     return {};
   }
 
@@ -107,14 +107,13 @@ std::optional<spec_impl_t> BloomFilterQueryAndSetFactory::speculate(const EP *ep
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_bf_id(bf_data.obj))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, bf_data.obj, DSImpl::Tofino_BloomFilter,
+                          build_bf_id(bf_data.obj))) {
+    return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(bf_data.obj, DSImpl::Tofino_BloomFilter);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), bf_data.obj, DSImpl::Tofino_BloomFilter);
 
   spec_impl_t spec_impl = spec_impl_t(decide(ep, node), new_ctx);
 
@@ -165,7 +164,7 @@ std::vector<impl_t> BloomFilterQueryAndSetFactory::process_node(const EP *ep, co
   std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep.get(), node, bf_sets, new_next_node);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(bf_data.obj, DSImpl::Tofino_BloomFilter);
+  ctx.save_ds_impl(node->get_id(), bf_data.obj, DSImpl::Tofino_BloomFilter);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, bf_data.obj, bf);

@@ -10,7 +10,8 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> DataplaneExpireItemsSingleMapIterativelyFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneExpireItemsSingleMapIterativelyFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                                      const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -22,7 +23,7 @@ std::optional<spec_impl_t> DataplaneExpireItemsSingleMapIterativelyFactory::spec
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneExpireItemsSingleMapIterativelyFactory::process_node(const EP *ep, const BDDNode *node,

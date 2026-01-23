@@ -919,4 +919,14 @@ std::vector<klee::ref<klee::Expr>> BDDNode::get_additional_constraints_against_b
   return additional_constraints;
 }
 
+std::vector<const BDDNode *> BDDNode::get_ancestors() const {
+  std::vector<const BDDNode *> ancestors;
+  const BDDNode *node = this->get_prev();
+  while (node) {
+    ancestors.push_back(node);
+    node = node->get_prev();
+  }
+  return ancestors;
+}
+
 } // namespace LibBDD

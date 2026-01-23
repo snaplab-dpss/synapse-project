@@ -1,15 +1,17 @@
 #pragma once
 
-#include <unordered_map>
-
 #include <LibSynapse/PerfOracle.h>
 #include <LibSynapse/Profiler.h>
 #include <LibSynapse/Target.h>
+
 #include <LibBDD/BDD.h>
 #include <LibBDD/Config.h>
 #include <LibBDD/Profile.h>
+
 #include <LibCore/Symbol.h>
 #include <LibCore/Types.h>
+
+#include <unordered_map>
 
 namespace LibSynapse {
 
@@ -111,6 +113,7 @@ private:
   std::vector<expr_struct_t> expr_structs;
 
   std::unordered_map<addr_t, DSImpl> ds_impls;
+  std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> ds_impls_decisions_per_bdd_node_and_obj;
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
 
 public:
@@ -149,7 +152,9 @@ public:
   template <class TCtx> TCtx *get_mutable_target_ctx();
 
   const std::unordered_map<addr_t, DSImpl> &get_ds_impls() const;
-  void save_ds_impl(addr_t obj, DSImpl impl);
+  const std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> &get_ds_impls_decisions_per_bdd_node_and_obj() const;
+
+  void save_ds_impl(bdd_node_id_t node_id, addr_t obj, DSImpl impl);
   bool has_ds_impl(addr_t obj) const;
   DSImpl get_ds_impl(addr_t obj) const;
   bool check_ds_impl(addr_t obj, DSImpl impl) const;

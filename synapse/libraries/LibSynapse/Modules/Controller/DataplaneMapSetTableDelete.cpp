@@ -35,7 +35,7 @@ map_table_data_t get_table_delete_data(const Context &ctx, const Call *call_node
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneMapSetTableDeleteFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneMapSetTableDeleteFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -47,13 +47,13 @@ std::optional<spec_impl_t> DataplaneMapSetTableDeleteFactory::speculate(const EP
     return {};
   }
 
-  const map_table_data_t data = get_table_delete_data(ctx, map_erase);
+  const map_table_data_t data = get_table_delete_data(speculations.ctx, map_erase);
 
-  if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_MapSetTable)) {
+  if (!speculations.ctx.can_impl_ds(data.obj, DSImpl::Tofino_MapSetTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneMapSetTableDeleteFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

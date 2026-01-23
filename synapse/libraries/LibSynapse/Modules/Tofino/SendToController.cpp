@@ -69,8 +69,8 @@ std::unique_ptr<BDD> replicate_hdr_parsing_ops(const EP *ep, const BDDNode *node
 }
 } // namespace
 
-std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
-  Context new_ctx = ctx;
+std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
+  Context new_ctx = speculations.ctx;
 
   // Don't send to the controller if the node is already a route.
   if (node->get_type() == BDDNodeType::Route) {

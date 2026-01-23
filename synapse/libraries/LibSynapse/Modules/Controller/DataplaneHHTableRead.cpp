@@ -37,7 +37,7 @@ struct table_data_t {
 };
 } // namespace
 
-std::optional<spec_impl_t> DataplaneHHTableReadFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneHHTableReadFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -56,11 +56,12 @@ std::optional<spec_impl_t> DataplaneHHTableReadFactory::speculate(const EP *ep, 
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) || !ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!speculations.ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
+      !speculations.ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneHHTableReadFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

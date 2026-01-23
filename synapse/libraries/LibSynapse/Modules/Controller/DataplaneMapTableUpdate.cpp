@@ -38,7 +38,7 @@ map_table_data_t get_map_table_update_data(const Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneMapTableUpdateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneMapTableUpdateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -52,11 +52,11 @@ std::optional<spec_impl_t> DataplaneMapTableUpdateFactory::speculate(const EP *e
 
   const map_table_data_t data = get_map_table_update_data(call_node);
 
-  if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_MapTable)) {
+  if (!speculations.ctx.can_impl_ds(data.obj, DSImpl::Tofino_MapTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneMapTableUpdateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

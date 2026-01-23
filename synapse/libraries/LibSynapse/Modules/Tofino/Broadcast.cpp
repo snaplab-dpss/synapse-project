@@ -7,7 +7,7 @@ namespace Tofino {
 using LibBDD::Route;
 using LibBDD::RouteOp;
 
-std::optional<spec_impl_t> BroadcastFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> BroadcastFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Route) {
     return {};
   }
@@ -19,7 +19,8 @@ std::optional<spec_impl_t> BroadcastFactory::speculate(const EP *ep, const BDDNo
     return {};
   }
 
-  Context new_ctx             = ctx;
+  Context new_ctx = speculations.ctx;
+
   const fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(node);
   assert(fwd_stats.operation == RouteOp::Broadcast);
 

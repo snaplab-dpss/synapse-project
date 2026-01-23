@@ -9,7 +9,7 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> LPMLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> LPMLookupFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -23,7 +23,7 @@ std::optional<spec_impl_t> LPMLookupFactory::speculate(const EP *ep, const BDDNo
 
   const addr_t obj = expr_addr_to_obj_addr(call.args.at("lpm").expr);
 
-  if (!ctx.can_impl_ds(obj, DSImpl::Tofino_LPM)) {
+  if (!speculations.ctx.can_impl_ds(obj, DSImpl::Tofino_LPM)) {
     return {};
   }
 
@@ -31,8 +31,8 @@ std::optional<spec_impl_t> LPMLookupFactory::speculate(const EP *ep, const BDDNo
     return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(obj, DSImpl::Tofino_LPM);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), obj, DSImpl::Tofino_LPM);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -72,7 +72,7 @@ std::vector<impl_t> LPMLookupFactory::process_node(const EP *ep, const BDDNode *
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(obj, DSImpl::Tofino_LPM);
+  ctx.save_ds_impl(node->get_id(), obj, DSImpl::Tofino_LPM);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, obj, lpm);

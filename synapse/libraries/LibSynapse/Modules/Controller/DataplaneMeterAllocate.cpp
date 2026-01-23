@@ -37,7 +37,7 @@ tb_allocation_data_t get_tb_data(const Call *tb_allocate) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneMeterAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneMeterAllocateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -51,11 +51,11 @@ std::optional<spec_impl_t> DataplaneMeterAllocateFactory::speculate(const EP *ep
 
   const tb_allocation_data_t data = get_tb_data(tb_allocate);
 
-  if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_Meter)) {
+  if (!speculations.ctx.can_impl_ds(data.obj, DSImpl::Tofino_Meter)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneMeterAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

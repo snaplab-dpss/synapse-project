@@ -346,7 +346,7 @@ void update_profiler(Profiler &profiler, const BDD *new_bdd, const BDDNode *old_
 
 } // namespace
 
-std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -364,7 +364,7 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
-  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(cuckoo_hash_table_data.obj);
+  const std::optional<map_coalescing_objs_t> map_objs = speculations.ctx.get_map_coalescing_objs(cuckoo_hash_table_data.obj);
   if (!map_objs.has_value()) {
     return {};
   }
@@ -373,12 +373,13 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
-  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
+  if (!speculations.ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
     return {};
   }
 
-  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_CuckooHashTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_CuckooHashTable) ||
-      !ctx.can_impl_ds(*map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable)) {
+  if (!speculations.ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_CuckooHashTable) ||
+      !speculations.ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_CuckooHashTable) ||
+      !speculations.ctx.can_impl_ds(*map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable)) {
     return {};
   }
 
@@ -400,18 +401,18 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable);
-  new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_CuckooHashTable);
-  new_ctx.save_ds_impl(*map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), map_objs->map, DSImpl::Tofino_CuckooHashTable);
+  new_ctx.save_ds_impl(node->get_id(), map_objs->dchain, DSImpl::Tofino_CuckooHashTable);
+  new_ctx.save_ds_impl(node->get_id(), *map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable);
 
   const hit_rate_t expected_cache_hit_rate =
       calculate_expected_cache_hit_rate(ep, node, read_write_pattern, cuckoo_hash_table_data.key, cuckoo_hash_table_data.capacity);
 
-  if (!ctx.get_profiler().can_set(read_write_pattern.on_read_failure->get_ordered_branch_constraints(),
-                                  hit_rate_t(read_write_pattern.get_hr * (1 - expected_cache_hit_rate))) ||
-      !ctx.get_profiler().can_set(read_write_pattern.on_write_failure->get_ordered_branch_constraints(),
-                                  hit_rate_t(read_write_pattern.put_hr * (1 - expected_cache_hit_rate)))) {
+  if (!new_ctx.get_profiler().can_set(read_write_pattern.on_read_failure->get_ordered_branch_constraints(),
+                                      hit_rate_t(read_write_pattern.get_hr * (1 - expected_cache_hit_rate))) ||
+      !new_ctx.get_profiler().can_set(read_write_pattern.on_write_failure->get_ordered_branch_constraints(),
+                                      hit_rate_t(read_write_pattern.put_hr * (1 - expected_cache_hit_rate)))) {
     return {};
   }
 
@@ -558,9 +559,9 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
   update_profiler(new_ep->get_mutable_ctx().get_mutable_profiler(), new_bdd.get(), node, read_write_pattern, cuckoo_success_condition,
                   expected_cache_hit_rate);
 
-  new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable);
-  new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_CuckooHashTable);
-  new_ep->get_mutable_ctx().save_ds_impl(*map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), map_objs->map, DSImpl::Tofino_CuckooHashTable);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), map_objs->dchain, DSImpl::Tofino_CuckooHashTable);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), *map_objs->vectors.begin(), DSImpl::Tofino_CuckooHashTable);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, map_objs->map, cuckoo_hash_table);

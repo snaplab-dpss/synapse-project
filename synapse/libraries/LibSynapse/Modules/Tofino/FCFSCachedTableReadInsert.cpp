@@ -268,7 +268,7 @@ klee::ref<klee::Expr> build_cached_insert_success_condition(const symbol_t &cach
   return solver_toolbox.exprBuilder->Ne(cached_insert_success.expr, zero);
 }
 
-std::unique_ptr<EP> concretize(const EP *ep, const pattern_t &pattern, const fcfs_ct_data_t &fcfs_ct_data,
+std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const pattern_t &pattern, const fcfs_ct_data_t &fcfs_ct_data,
                                const map_coalescing_objs_t &map_coalescing_objs, const symbol_t &cached_insert_success, u32 cache_capacity) {
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
@@ -319,8 +319,8 @@ std::unique_ptr<EP> concretize(const EP *ep, const pattern_t &pattern, const fcf
   cached_insert_success_else_node->set_prev(if_cached_insert_success_node);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(map_coalescing_objs.map, DSImpl::Tofino_FCFSCachedTable);
-  ctx.save_ds_impl(map_coalescing_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+  ctx.save_ds_impl(node->get_id(), map_coalescing_objs.map, DSImpl::Tofino_FCFSCachedTable);
+  ctx.save_ds_impl(node->get_id(), map_coalescing_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), pattern.map_get, map_coalescing_objs.map, fcfs_ct);
@@ -336,7 +336,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const pattern_t &pattern, const fcf
 }
 } // namespace
 
-std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   pattern_t pattern;
   if (!is_read_insert_pattern(ep->get_bdd(), node, pattern)) {
     return {};
@@ -349,15 +349,14 @@ std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP 
     return {};
   }
 
-  if (!ctx.can_impl_ds(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.can_impl_ds(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!speculations.ctx.can_impl_ds(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
+      !speculations.ctx.can_impl_ds(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(map_coalescing_objs->map))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable,
+                          build_fcfs_ct_id(map_coalescing_objs->map))) {
+    return {};
   }
 
   hit_rate_t chosen_success_estimation = 0_hr;
@@ -390,10 +389,10 @@ std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP 
     return {};
   }
 
-  Context new_ctx = ctx;
+  Context new_ctx = speculations.ctx;
 
-  new_ctx.save_ds_impl(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable);
-  new_ctx.save_ds_impl(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(node->get_id(), map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(node->get_id(), map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedTable);
 
   speculate_sending_to_controller(ep, pattern.dchain_allocate_new_index, new_ctx, 1_hr - chosen_success_estimation);
 
@@ -426,10 +425,8 @@ std::vector<impl_t> FCFSCachedTableReadInsertFactory::process_node(const EP *ep,
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(map_coalescing_objs->map))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), build_fcfs_ct_id(map_coalescing_objs->map))) {
+    return {};
   }
 
   const symbol_t cached_insert_success            = symbol_manager->create_symbol("cached_insert_success", 32);
@@ -437,7 +434,7 @@ std::vector<impl_t> FCFSCachedTableReadInsertFactory::process_node(const EP *ep,
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : allowed_cache_capacities) {
-    std::unique_ptr<EP> new_ep = concretize(ep, pattern, data, map_coalescing_objs.value(), cached_insert_success, cache_capacity);
+    std::unique_ptr<EP> new_ep = concretize(ep, node, pattern, data, map_coalescing_objs.value(), cached_insert_success, cache_capacity);
     if (new_ep) {
       impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
       impls.push_back(std::move(impl));

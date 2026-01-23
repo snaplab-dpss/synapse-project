@@ -95,7 +95,7 @@ std::unique_ptr<BDD> rebuild_bdd(EP *new_ep, const BDDNode *node, const pattern_
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneMapSetTableInsertFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneMapSetTableInsertFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -107,17 +107,17 @@ std::optional<spec_impl_t> DataplaneMapSetTableInsertFactory::speculate(const EP
 
   const map_set_table_data_t data = get_map_set_table_update_data(pattern.map_put);
 
-  const std::optional<map_coalescing_objs_t> coalescing_objs = ctx.get_map_coalescing_objs(data.obj);
+  const std::optional<map_coalescing_objs_t> coalescing_objs = speculations.ctx.get_map_coalescing_objs(data.obj);
   if (!coalescing_objs.has_value()) {
     return {};
   }
 
-  if (!ctx.check_ds_impl(coalescing_objs->map, DSImpl::Tofino_MapSetTable) ||
-      !ctx.check_ds_impl(coalescing_objs->dchain, DSImpl::Tofino_MapSetTable)) {
+  if (!speculations.ctx.check_ds_impl(coalescing_objs->map, DSImpl::Tofino_MapSetTable) ||
+      !speculations.ctx.check_ds_impl(coalescing_objs->dchain, DSImpl::Tofino_MapSetTable)) {
     return {};
   }
 
-  spec_impl_t spec_impl(decide(ep, node), ctx);
+  spec_impl_t spec_impl(decide(ep, node), speculations.ctx);
   spec_impl.skip.insert(pattern.map_put->get_id());
 
   return spec_impl;

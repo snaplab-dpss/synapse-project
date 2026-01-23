@@ -9,7 +9,8 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> FCFSCachedTableIsIndexAllocatedFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedTableIsIndexAllocatedFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                             const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -24,21 +25,21 @@ std::optional<spec_impl_t> FCFSCachedTableIsIndexAllocatedFactory::speculate(con
   klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
   const addr_t obj               = expr_addr_to_obj_addr(obj_expr);
 
-  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(obj);
+  const std::optional<map_coalescing_objs_t> map_objs = speculations.ctx.get_map_coalescing_objs(obj);
   if (!map_objs.has_value()) {
     return {};
   }
 
-  const u32 capacity = ctx.get_map_config(map_objs->map).capacity;
+  const u32 capacity = speculations.ctx.get_map_config(map_objs->map).capacity;
 
-  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!speculations.ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
+      !speculations.ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(map_objs->map))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, map_objs->map, DSImpl::Tofino_FCFSCachedTable,
+                          build_fcfs_ct_id(map_objs->map))) {
+    return {};
   }
 
   const std::vector<const Call *> map_gets = ep->get_bdd()->get_map_gets(map_objs->map);
@@ -64,10 +65,10 @@ std::optional<spec_impl_t> FCFSCachedTableIsIndexAllocatedFactory::speculate(con
     return {};
   }
 
-  Context new_ctx = ctx;
+  Context new_ctx = speculations.ctx;
 
-  new_ctx.save_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable);
-  new_ctx.save_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(node->get_id(), map_objs->map, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(node->get_id(), map_objs->dchain, DSImpl::Tofino_FCFSCachedTable);
 
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity.value()}}), new_ctx);
 
@@ -101,10 +102,8 @@ std::vector<impl_t> FCFSCachedTableIsIndexAllocatedFactory::process_node(const E
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(map_objs->map))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), build_fcfs_ct_id(map_objs->map))) {
+    return {};
   }
 
   const u32 capacity          = ep->get_ctx().get_map_config(map_objs->map).capacity;
@@ -137,8 +136,8 @@ std::vector<impl_t> FCFSCachedTableIsIndexAllocatedFactory::process_node(const E
     const EPLeaf leaf(ep_node, node->get_next());
     new_ep->process_leaf(ep_node, {leaf});
 
-    new_ep->get_mutable_ctx().save_ds_impl(map_objs->map, DSImpl::Tofino_FCFSCachedTable);
-    new_ep->get_mutable_ctx().save_ds_impl(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable);
+    new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), map_objs->map, DSImpl::Tofino_FCFSCachedTable);
+    new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), map_objs->dchain, DSImpl::Tofino_FCFSCachedTable);
 
     impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
     impls.push_back(std::move(impl));

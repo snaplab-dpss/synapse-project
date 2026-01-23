@@ -22,14 +22,14 @@ DS *DchainTable::clone() const { return new DchainTable(*this); }
 
 void DchainTable::debug() const {
   std::cerr << "\n";
-  std::cerr << "======== MAP TABLE ========\n";
+  std::cerr << "======== DCHAIN TABLE ========\n";
   std::cerr << "ID:         " << id << "\n";
   std::cerr << "Entries:    " << capacity << "\n";
   std::cerr << "Key size:   " << key_size << "\n";
   for (const Table &table : tables) {
     table.debug();
   }
-  std::cerr << "===========================\n";
+  std::cerr << "==============================\n";
 }
 
 std::vector<std::unordered_set<const DS *>> DchainTable::get_internal() const {

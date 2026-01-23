@@ -9,7 +9,7 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> DchainAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DchainAllocateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -24,11 +24,11 @@ std::optional<spec_impl_t> DchainAllocateFactory::speculate(const EP *ep, const 
   klee::ref<klee::Expr> chain_out = call.args.at("chain_out").out;
   const addr_t dchain_addr        = expr_addr_to_obj_addr(chain_out);
 
-  if (!ctx.can_impl_ds(dchain_addr, DSImpl::Controller_DoubleChain)) {
+  if (!speculations.ctx.can_impl_ds(dchain_addr, DSImpl::Controller_DoubleChain)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DchainAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -58,7 +58,7 @@ std::vector<impl_t> DchainAllocateFactory::process_node(const EP *ep, const BDDN
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(dchain_addr, DSImpl::Controller_DoubleChain);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), dchain_addr, DSImpl::Controller_DoubleChain);
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

@@ -9,7 +9,8 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> DataplaneFCFSCachedTableIsIndexAllocatedFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneFCFSCachedTableIsIndexAllocatedFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                                      const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -24,11 +25,11 @@ std::optional<spec_impl_t> DataplaneFCFSCachedTableIsIndexAllocatedFactory::spec
   klee::ref<klee::Expr> obj_expr = call.args.at("chain").expr;
   const addr_t obj               = expr_addr_to_obj_addr(obj_expr);
 
-  if (!ctx.can_impl_ds(obj, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!speculations.ctx.can_impl_ds(obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneFCFSCachedTableIsIndexAllocatedFactory::process_node(const EP *ep, const BDDNode *node,
@@ -67,7 +68,7 @@ std::vector<impl_t> DataplaneFCFSCachedTableIsIndexAllocatedFactory::process_nod
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), obj, DSImpl::Tofino_FCFSCachedTable);
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

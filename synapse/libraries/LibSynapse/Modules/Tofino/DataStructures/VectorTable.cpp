@@ -25,7 +25,7 @@ DS *VectorTable::clone() const { return new VectorTable(*this); }
 
 void VectorTable::debug() const {
   std::cerr << "\n";
-  std::cerr << "======== MAP TABLE ========\n";
+  std::cerr << "======== VECTOR TABLE ========\n";
   std::cerr << "ID:         " << id << "\n";
   std::cerr << "Entries:    " << capacity << "\n";
   std::cerr << "Key size:   " << key_size << "\n";
@@ -33,7 +33,7 @@ void VectorTable::debug() const {
   for (const Table &table : tables) {
     table.debug();
   }
-  std::cerr << "===========================\n";
+  std::cerr << "==============================\n";
 }
 
 std::vector<std::unordered_set<const DS *>> VectorTable::get_internal() const {

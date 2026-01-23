@@ -69,6 +69,8 @@ public:
   TofinoModuleFactory(ModuleType _type, const std::string &_name) : ModuleFactory(_type, TargetType::Tofino, _name) {}
 
   bool was_ds_already_used(const EPNode *leaf, DS_ID ds_id) const;
+  bool was_ds_already_used(const EPNode *leaf, const speculations_t &speculations, const BDDNode *node, addr_t obj, DSImpl ds_impl,
+                           DS_ID ds_id) const;
 
   static const TofinoContext *get_tofino_ctx(const EP *ep);
   static TofinoContext *get_mutable_tofino_ctx(EP *ep);

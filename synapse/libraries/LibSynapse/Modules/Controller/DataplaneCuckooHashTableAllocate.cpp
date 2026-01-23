@@ -35,7 +35,8 @@ cuckoo_hash_table_allocation_data_t get_cuckoo_hash_table_allocation_data(const 
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneCuckooHashTableAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneCuckooHashTableAllocateFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                              const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -54,11 +55,11 @@ std::optional<spec_impl_t> DataplaneCuckooHashTableAllocateFactory::speculate(co
     return {};
   }
 
-  if (!ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable)) {
+  if (!speculations.ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_CuckooHashTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneCuckooHashTableAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

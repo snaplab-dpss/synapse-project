@@ -4,7 +4,8 @@
 namespace LibSynapse {
 namespace Controller {
 
-std::optional<spec_impl_t> DataplaneGuardedMapTableGuardCheckFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneGuardedMapTableGuardCheckFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                                const speculations_t &speculations) const {
   // We don't need this for now.
   return {};
 }

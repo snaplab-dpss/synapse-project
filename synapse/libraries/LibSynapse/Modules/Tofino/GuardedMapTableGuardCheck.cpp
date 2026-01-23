@@ -127,7 +127,7 @@ bool update_profiler(EP *new_ep, double guard_allow_probability, const new_bdd_n
 
 } // namespace
 
-std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -143,7 +143,7 @@ std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP 
 
   for (const Call *map_put : future_map_puts) {
     const addr_t obj = expr_addr_to_obj_addr(map_put->get_obj());
-    if (!ctx.check_ds_impl(obj, DSImpl::Tofino_GuardedMapTable)) {
+    if (!speculations.ctx.check_ds_impl(obj, DSImpl::Tofino_GuardedMapTable)) {
       return {};
     }
   }
@@ -155,7 +155,7 @@ std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP 
 
   const std::vector<const Route *> future_routing_decisions = branch_direction.get_failure_node()->get_future_routing_decisions();
 
-  Context new_ctx = ctx;
+  Context new_ctx = speculations.ctx;
 
   for (const Route *route : future_routing_decisions) {
     const fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(route);

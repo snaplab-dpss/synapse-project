@@ -39,7 +39,7 @@ map_table_data_t get_guarded_map_table_data(const Context &ctx, const Call *call
 
 } // namespace
 
-std::optional<spec_impl_t> GuardedMapTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> GuardedMapTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -53,7 +53,7 @@ std::optional<spec_impl_t> GuardedMapTableLookupFactory::speculate(const EP *ep,
 
   const map_table_data_t data = get_guarded_map_table_data(ep->get_ctx(), map_get);
 
-  if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_GuardedMapTable)) {
+  if (!speculations.ctx.can_impl_ds(data.obj, DSImpl::Tofino_GuardedMapTable)) {
     return {};
   }
 
@@ -61,8 +61,8 @@ std::optional<spec_impl_t> GuardedMapTableLookupFactory::speculate(const EP *ep,
     return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(data.obj, DSImpl::Tofino_GuardedMapTable);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), data.obj, DSImpl::Tofino_GuardedMapTable);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -97,7 +97,7 @@ std::vector<impl_t> GuardedMapTableLookupFactory::process_node(const EP *ep, con
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(data.obj, DSImpl::Tofino_GuardedMapTable);
+  ctx.save_ds_impl(node->get_id(), data.obj, DSImpl::Tofino_GuardedMapTable);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, data.obj, guarded_map_table);

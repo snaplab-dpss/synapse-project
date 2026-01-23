@@ -118,12 +118,12 @@ bool should_ignore(const Context &ctx, const BDDNode *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
-  if (!should_ignore(ctx, node)) {
+std::optional<spec_impl_t> IgnoreFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
+  if (!should_ignore(speculations.ctx, node)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> IgnoreFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

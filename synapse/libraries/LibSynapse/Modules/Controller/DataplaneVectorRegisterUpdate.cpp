@@ -11,7 +11,8 @@ using LibCore::build_expr_mods;
 using LibCore::expr_addr_to_obj_addr;
 using LibCore::expr_mod_t;
 
-std::optional<spec_impl_t> DataplaneVectorRegisterUpdateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneVectorRegisterUpdateFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                           const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -26,11 +27,11 @@ std::optional<spec_impl_t> DataplaneVectorRegisterUpdateFactory::speculate(const
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   const addr_t vector_addr               = expr_addr_to_obj_addr(vector_addr_expr);
 
-  if (!ctx.can_impl_ds(vector_addr, DSImpl::Tofino_VectorRegister)) {
+  if (!speculations.ctx.can_impl_ds(vector_addr, DSImpl::Tofino_VectorRegister)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneVectorRegisterUpdateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

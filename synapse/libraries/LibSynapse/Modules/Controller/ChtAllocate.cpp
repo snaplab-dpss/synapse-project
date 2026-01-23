@@ -9,7 +9,7 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> ChtAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> ChtAllocateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -24,11 +24,11 @@ std::optional<spec_impl_t> ChtAllocateFactory::speculate(const EP *ep, const BDD
   klee::ref<klee::Expr> cht = call.args.at("cht").expr;
   const addr_t cht_addr     = expr_addr_to_obj_addr(cht);
 
-  if (!ctx.can_impl_ds(cht_addr, DSImpl::Controller_ConsistentHashTable)) {
+  if (!speculations.ctx.can_impl_ds(cht_addr, DSImpl::Controller_ConsistentHashTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> ChtAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -61,7 +61,7 @@ std::vector<impl_t> ChtAllocateFactory::process_node(const EP *ep, const BDDNode
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(cht_addr, DSImpl::Controller_ConsistentHashTable);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), cht_addr, DSImpl::Controller_ConsistentHashTable);
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

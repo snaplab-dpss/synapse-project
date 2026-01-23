@@ -4,8 +4,11 @@
 #include <LibSynapse/Meta.h>
 #include <LibSynapse/Context.h>
 #include <LibSynapse/Visualizers/EPVisualizer.h>
+#include <LibSynapse/Decision.h>
+
 #include <LibBDD/BDD.h>
 #include <LibBDD/Reorder.h>
+
 #include <LibCore/Types.h>
 
 #include <unordered_map>
@@ -27,7 +30,6 @@ using translator_t = std::unordered_map<bdd_node_id_t, bdd_node_id_t>;
 using ep_id_t      = u64;
 
 class Profiler;
-struct spec_impl_t;
 
 struct EPLeaf {
   EPNode *node;
@@ -35,11 +37,6 @@ struct EPLeaf {
 
   EPLeaf(EPNode *_node, const BDDNode *_next) : node(_node), next(_next) {}
   EPLeaf(const EPLeaf &other) : node(other.node), next(other.next) {}
-};
-
-struct speculations_t {
-  std::vector<spec_impl_t> speculations_per_node;
-  Context final_ctx;
 };
 
 class EP {
@@ -168,7 +165,7 @@ private:
 
   speculations_t speculate(const Context &ctx, std::list<speculation_target_t> speculation_target_nodes, pps_t ingress,
                            SpeculationStrategy lookahead = SpeculationStrategy::WithLookahead) const;
-  spec_impl_t get_best_speculation(const speculation_target_t &speculation_target, const Context &ctx, pps_t ingress,
+  spec_impl_t get_best_speculation(const speculation_target_t &speculation_target, const speculations_t &speculations, pps_t ingress,
                                    const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy lookahead) const;
   bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const speculation_target_t &speculation_target,
                              pps_t ingress, const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy lookahead) const;

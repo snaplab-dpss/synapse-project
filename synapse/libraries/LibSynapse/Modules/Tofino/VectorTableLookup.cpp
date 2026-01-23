@@ -35,7 +35,7 @@ vector_table_data_t get_vector_table_data(const Context &ctx, const Call *call_n
 
 } // namespace
 
-std::optional<spec_impl_t> VectorTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> VectorTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -53,7 +53,7 @@ std::optional<spec_impl_t> VectorTableLookupFactory::speculate(const EP *ep, con
 
   const vector_table_data_t data = get_vector_table_data(ep->get_ctx(), call_node);
 
-  if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_VectorTable)) {
+  if (!speculations.ctx.can_impl_ds(data.obj, DSImpl::Tofino_VectorTable)) {
     return {};
   }
 
@@ -61,8 +61,8 @@ std::optional<spec_impl_t> VectorTableLookupFactory::speculate(const EP *ep, con
     return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(data.obj, DSImpl::Tofino_VectorTable);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), data.obj, DSImpl::Tofino_VectorTable);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -101,7 +101,7 @@ std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const B
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(data.obj, DSImpl::Tofino_VectorTable);
+  ctx.save_ds_impl(node->get_id(), data.obj, DSImpl::Tofino_VectorTable);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, data.obj, vector_table);

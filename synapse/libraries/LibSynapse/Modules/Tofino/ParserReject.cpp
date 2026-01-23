@@ -24,7 +24,7 @@ bool is_parser_reject(const EP *ep) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> ParserRejectFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   // No need to speculate this.
   return {};
 }

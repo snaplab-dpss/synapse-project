@@ -23,14 +23,14 @@ DS *MapSetTable::clone() const { return new MapSetTable(*this); }
 
 void MapSetTable::debug() const {
   std::cerr << "\n";
-  std::cerr << "======== MAP TABLE ========\n";
+  std::cerr << "======== MAP SET TABLE ========\n";
   std::cerr << "ID:         " << id << "\n";
   std::cerr << "Entries:    " << capacity << "\n";
   std::cerr << "Key size:   " << key_size << "\n";
   for (const Table &table : tables) {
     table.debug();
   }
-  std::cerr << "===========================\n";
+  std::cerr << "================================\n";
 }
 
 std::vector<std::unordered_set<const DS *>> MapSetTable::get_internal() const {

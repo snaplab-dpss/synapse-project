@@ -9,7 +9,7 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> VectorAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> VectorAllocateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -27,11 +27,11 @@ std::optional<spec_impl_t> VectorAllocateFactory::speculate(const EP *ep, const 
 
   const addr_t vector_addr = expr_addr_to_obj_addr(vector_out);
 
-  if (!ctx.can_impl_ds(vector_addr, DSImpl::Controller_Vector)) {
+  if (!speculations.ctx.can_impl_ds(vector_addr, DSImpl::Controller_Vector)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> VectorAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -64,7 +64,7 @@ std::vector<impl_t> VectorAllocateFactory::process_node(const EP *ep, const BDDN
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(vector_addr, DSImpl::Controller_Vector);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), vector_addr, DSImpl::Controller_Vector);
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

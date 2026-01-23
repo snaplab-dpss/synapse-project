@@ -36,7 +36,7 @@ vector_register_data_t get_vector_register_data(const Context &ctx, const Call *
 
 } // namespace
 
-std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -50,7 +50,7 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
 
   const vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), vector_borrow);
 
-  if (!ctx.can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
+  if (!speculations.ctx.can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
     return {};
   }
 
@@ -58,14 +58,13 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_vector_register_id(vector_register_data.obj))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, vector_register_data.obj, DSImpl::Tofino_VectorRegister,
+                          build_vector_register_id(vector_register_data.obj))) {
+    return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), vector_register_data.obj, DSImpl::Tofino_VectorRegister);
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
   return spec_impl;
@@ -107,7 +106,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(vector_register_data.obj, DSImpl::Tofino_VectorRegister);
+  ctx.save_ds_impl(node->get_id(), vector_register_data.obj, DSImpl::Tofino_VectorRegister);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, vector_register_data.obj, vector_register);

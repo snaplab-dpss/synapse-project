@@ -9,7 +9,7 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> CMSIncrementFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> CMSIncrementFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -24,12 +24,12 @@ std::optional<spec_impl_t> CMSIncrementFactory::speculate(const EP *ep, const BD
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
   const addr_t cms_addr               = expr_addr_to_obj_addr(cms_addr_expr);
 
-  if (!ctx.can_impl_ds(cms_addr, DSImpl::Controller_CountMinSketch)) {
+  if (!speculations.ctx.can_impl_ds(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), cms_addr, DSImpl::Controller_CountMinSketch);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -60,7 +60,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNod
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), cms_addr, DSImpl::Controller_CountMinSketch);
 
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

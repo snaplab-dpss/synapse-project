@@ -40,7 +40,7 @@ map_set_table_data_t table_data_from_map_op(const Context &ctx, const Call *call
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneMapSetTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneMapSetTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -52,13 +52,13 @@ std::optional<spec_impl_t> DataplaneMapSetTableLookupFactory::speculate(const EP
     return {};
   }
 
-  const map_set_table_data_t data = table_data_from_map_op(ctx, map_get);
+  const map_set_table_data_t data = table_data_from_map_op(speculations.ctx, map_get);
 
-  if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapSetTable)) {
+  if (!speculations.ctx.check_ds_impl(data.obj, DSImpl::Tofino_MapSetTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneMapSetTableLookupFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

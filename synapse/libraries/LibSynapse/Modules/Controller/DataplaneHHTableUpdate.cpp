@@ -32,7 +32,7 @@ struct table_data_t {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneHHTableUpdateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneHHTableUpdateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -47,11 +47,11 @@ std::optional<spec_impl_t> DataplaneHHTableUpdateFactory::speculate(const EP *ep
   klee::ref<klee::Expr> obj_expr = call.args.at("map").expr;
   const addr_t obj               = expr_addr_to_obj_addr(obj_expr);
 
-  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!speculations.ctx.check_ds_impl(obj, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneHHTableUpdateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

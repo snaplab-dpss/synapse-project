@@ -4,7 +4,7 @@
 namespace LibSynapse {
 namespace Tofino {
 
-std::optional<spec_impl_t> RecirculateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> RecirculateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   // No reason to speculatively predict recirculations.
   return {};
 }

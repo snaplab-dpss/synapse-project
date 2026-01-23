@@ -32,7 +32,7 @@ struct cms_data_t {
 
 } // namespace
 
-std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -44,9 +44,9 @@ std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const BDDNod
     return {};
   }
 
-  const cms_data_t cms_data(ctx, call_node);
+  const cms_data_t cms_data(speculations.ctx, call_node);
 
-  if (!ctx.can_impl_ds(cms_data.obj, DSImpl::Tofino_CountMinSketch)) {
+  if (!speculations.ctx.can_impl_ds(cms_data.obj, DSImpl::Tofino_CountMinSketch)) {
     return {};
   }
 
@@ -56,14 +56,13 @@ std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const BDDNod
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_cms_id(cms_data.obj))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, cms_data.obj, DSImpl::Tofino_CountMinSketch,
+                          build_cms_id(cms_data.obj))) {
+    return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(cms_data.obj, DSImpl::Tofino_CountMinSketch);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), cms_data.obj, DSImpl::Tofino_CountMinSketch);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -105,7 +104,7 @@ std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const BDDNode *n
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(cms_data.obj, DSImpl::Tofino_CountMinSketch);
+  ctx.save_ds_impl(node->get_id(), cms_data.obj, DSImpl::Tofino_CountMinSketch);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, cms_data.obj, cms);

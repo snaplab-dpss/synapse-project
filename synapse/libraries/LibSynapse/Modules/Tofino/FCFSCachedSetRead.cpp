@@ -53,8 +53,8 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cs_
   EPNode *ep_node = new EPNode(module);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(fcfs_cs_data.map_objs.map, DSImpl::Tofino_FCFSCachedSet);
-  ctx.save_ds_impl(fcfs_cs_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedSet);
+  ctx.save_ds_impl(node->get_id(), fcfs_cs_data.map_objs.map, DSImpl::Tofino_FCFSCachedSet);
+  ctx.save_ds_impl(node->get_id(), fcfs_cs_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedSet);
 
   TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, fcfs_cs_data.map_objs.map, fcfs_cs);
@@ -67,7 +67,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_cs_
 
 } // namespace
 
-std::optional<spec_impl_t> FCFSCachedSetReadFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedSetReadFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -88,19 +88,18 @@ std::optional<spec_impl_t> FCFSCachedSetReadFactory::speculate(const EP *ep, con
     return {};
   }
 
-  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(fcfs_cs_data->map_objs.dchain)) {
+  if (!speculations.ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(fcfs_cs_data->map_objs.dchain)) {
     return {};
   }
 
-  if (!ctx.can_impl_ds(fcfs_cs_data->map_objs.map, DSImpl::Tofino_FCFSCachedSet) ||
-      !ctx.can_impl_ds(fcfs_cs_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedSet)) {
+  if (!speculations.ctx.can_impl_ds(fcfs_cs_data->map_objs.map, DSImpl::Tofino_FCFSCachedSet) ||
+      !speculations.ctx.can_impl_ds(fcfs_cs_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedSet)) {
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_cs_id(fcfs_cs_data->map_objs.map))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, fcfs_cs_data->map_objs.map, DSImpl::Tofino_FCFSCachedSet,
+                          build_fcfs_cs_id(fcfs_cs_data->map_objs.map))) {
+    return {};
   }
 
   std::vector<u32> allowed_cache_capacities = enum_fcfs_cs_cache_capacities(fcfs_cs_data->capacity);
@@ -119,10 +118,10 @@ std::optional<spec_impl_t> FCFSCachedSetReadFactory::speculate(const EP *ep, con
     return {};
   }
 
-  Context new_ctx = ctx;
+  Context new_ctx = speculations.ctx;
 
-  new_ctx.save_ds_impl(fcfs_cs_data->map_objs.map, DSImpl::Tofino_FCFSCachedSet);
-  new_ctx.save_ds_impl(fcfs_cs_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedSet);
+  new_ctx.save_ds_impl(node->get_id(), fcfs_cs_data->map_objs.map, DSImpl::Tofino_FCFSCachedSet);
+  new_ctx.save_ds_impl(node->get_id(), fcfs_cs_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedSet);
 
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_SET_CACHE_SIZE_PARAM, cache_capacity.value()}}), new_ctx);
 
@@ -159,10 +158,8 @@ std::vector<impl_t> FCFSCachedSetReadFactory::process_node(const EP *ep, const B
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_cs_id(fcfs_cs_data->map_objs.map))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), build_fcfs_cs_id(fcfs_cs_data->map_objs.map))) {
+    return {};
   }
 
   std::vector<impl_t> impls;

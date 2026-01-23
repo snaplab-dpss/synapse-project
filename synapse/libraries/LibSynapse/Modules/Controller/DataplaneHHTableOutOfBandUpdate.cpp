@@ -58,7 +58,8 @@ std::unique_ptr<BDD> rebuild_bdd(const EP *ep, const BDDNode *node, const branch
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneHHTableOutOfBandUpdateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneHHTableOutOfBandUpdateFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                             const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -82,9 +83,10 @@ std::optional<spec_impl_t> DataplaneHHTableOutOfBandUpdateFactory::speculate(con
   const Call *map_put = get_future_map_put(node, map_objs.map);
   assert(map_put && "map_put not found");
 
-  const hh_table_data_t table_data(ctx, map_put);
+  const hh_table_data_t table_data(speculations.ctx, map_put);
 
-  if (!ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) || !ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!speculations.ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
+      !speculations.ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
@@ -100,7 +102,7 @@ std::optional<spec_impl_t> DataplaneHHTableOutOfBandUpdateFactory::speculate(con
   const BDDNode *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true() : index_alloc_check.branch->get_on_false();
   std::vector<const Call *> targets = on_hh->get_coalescing_nodes_from_key(table_data.key, map_objs);
 
-  spec_impl_t spec_impl(decide(ep, node), ctx);
+  spec_impl_t spec_impl(decide(ep, node), speculations.ctx);
 
   // Ignore all coalescing nodes if the index allocation is successful (i.e. it is a heavy hitter).
   for (const BDDNode *tgt : targets) {

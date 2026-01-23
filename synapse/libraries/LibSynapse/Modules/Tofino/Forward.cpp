@@ -8,7 +8,7 @@ namespace Tofino {
 using LibBDD::Route;
 using LibBDD::RouteOp;
 
-std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Route) {
     return {};
   }
@@ -22,10 +22,10 @@ std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode
 
   const EPNode *leaf_node = ep->get_leaf_ep_node_from_bdd_node(node);
 
-  Context new_ctx = ctx;
+  Context new_ctx = speculations.ctx;
 
-  const fwd_stats_t fwd_stats                       = ctx.get_profiler().get_fwd_stats(node);
-  const std::unordered_set<u16> candidate_fwd_ports = ctx.get_profiler().get_candidate_fwd_ports(node);
+  const fwd_stats_t fwd_stats                       = new_ctx.get_profiler().get_fwd_stats(node);
+  const std::unordered_set<u16> candidate_fwd_ports = new_ctx.get_profiler().get_candidate_fwd_ports(node);
   assert(fwd_stats.operation == RouteOp::Forward);
   for (const u16 device : candidate_fwd_ports) {
     const hit_rate_t dev_hr = fwd_stats.ports.at(device);

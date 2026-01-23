@@ -250,8 +250,8 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const pattern_
   else_node->set_prev(if_node);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(map_coalescing_objs.map, DSImpl::Tofino_FCFSCachedSet);
-  ctx.save_ds_impl(map_coalescing_objs.dchain, DSImpl::Tofino_FCFSCachedSet);
+  ctx.save_ds_impl(node->get_id(), map_coalescing_objs.map, DSImpl::Tofino_FCFSCachedSet);
+  ctx.save_ds_impl(node->get_id(), map_coalescing_objs.dchain, DSImpl::Tofino_FCFSCachedSet);
 
   TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, map_coalescing_objs.map, fcfs_cached_set);
@@ -266,7 +266,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const pattern_
 }
 } // namespace
 
-std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   pattern_t pattern;
   if (!is_write_pattern(ep->get_bdd(), node, pattern)) {
     return {};
@@ -283,19 +283,18 @@ std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, c
     return {};
   }
 
-  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(map_coalescing_objs->dchain)) {
+  if (!speculations.ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(map_coalescing_objs->dchain)) {
     return {};
   }
 
-  if (!ctx.can_impl_ds(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet) ||
-      !ctx.can_impl_ds(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedSet)) {
+  if (!speculations.ctx.can_impl_ds(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet) ||
+      !speculations.ctx.can_impl_ds(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedSet)) {
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_cs_id(map_coalescing_objs->map))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet,
+                          build_fcfs_cs_id(map_coalescing_objs->map))) {
+    return {};
   }
 
   hit_rate_t chosen_success_estimation = 0_hr;
@@ -328,10 +327,10 @@ std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, c
     return {};
   }
 
-  Context new_ctx = ctx;
+  Context new_ctx = speculations.ctx;
 
-  new_ctx.save_ds_impl(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet);
-  new_ctx.save_ds_impl(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedSet);
+  new_ctx.save_ds_impl(node->get_id(), map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet);
+  new_ctx.save_ds_impl(node->get_id(), map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedSet);
 
   speculate_sending_to_controller(ep, node, new_ctx, 1_hr - chosen_success_estimation);
 
@@ -372,10 +371,8 @@ std::vector<impl_t> FCFSCachedSetInsertFactory::process_node(const EP *ep, const
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_cs_id(map_coalescing_objs->map))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), build_fcfs_cs_id(map_coalescing_objs->map))) {
+    return {};
   }
 
   const symbol_t cached_insert_success = symbol_manager->create_symbol("cached_insert_success", 32);

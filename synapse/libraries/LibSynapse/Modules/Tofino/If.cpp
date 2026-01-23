@@ -127,7 +127,7 @@ std::optional<If::phv_limitation_workaround_t> get_phv_limitation_workaround(kle
 
 } // namespace
 
-std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Branch) {
     return {};
   }
@@ -138,7 +138,7 @@ std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *nod
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

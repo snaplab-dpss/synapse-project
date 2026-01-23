@@ -55,8 +55,8 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_ct_
   EPNode *ep_node = new EPNode(module);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(fcfs_ct_data.map_objs.map, DSImpl::Tofino_FCFSCachedTable);
-  ctx.save_ds_impl(fcfs_ct_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+  ctx.save_ds_impl(node->get_id(), fcfs_ct_data.map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+  ctx.save_ds_impl(node->get_id(), fcfs_ct_data.map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, fcfs_ct_data.map_objs.map, cached_table);
@@ -69,7 +69,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_ct_
 
 } // namespace
 
-std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -86,15 +86,14 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
     return {};
   }
 
-  if (!ctx.can_impl_ds(fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
-      !ctx.can_impl_ds(fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!speculations.ctx.can_impl_ds(fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable) ||
+      !speculations.ctx.can_impl_ds(fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(fcfs_ct_data->map_objs.map))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable,
+                          build_fcfs_ct_id(fcfs_ct_data->map_objs.map))) {
+    return {};
   }
 
   std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities(fcfs_ct_data->capacity);
@@ -113,10 +112,10 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
     return {};
   }
 
-  Context new_ctx = ctx;
+  Context new_ctx = speculations.ctx;
 
-  new_ctx.save_ds_impl(fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable);
-  new_ctx.save_ds_impl(fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(node->get_id(), fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable);
+  new_ctx.save_ds_impl(node->get_id(), fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity.value()}}), new_ctx);
 
@@ -145,10 +144,8 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
     return {};
   }
 
-  if (const EPNode *ep_node_leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
-    if (was_ds_already_used(ep_node_leaf, build_fcfs_ct_id(fcfs_ct_data->map_objs.map))) {
-      return {};
-    }
+  if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), build_fcfs_ct_id(fcfs_ct_data->map_objs.map))) {
+    return {};
   }
 
   std::vector<impl_t> impls;

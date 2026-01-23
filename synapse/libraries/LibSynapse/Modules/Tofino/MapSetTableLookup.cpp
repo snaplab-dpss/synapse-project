@@ -61,7 +61,7 @@ std::unique_ptr<BDD> rebuild_bdd(EP *new_ep, const BDDNode *node, const map_set_
 
 } // namespace
 
-std::optional<spec_impl_t> MapSetTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> MapSetTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -75,7 +75,7 @@ std::optional<spec_impl_t> MapSetTableLookupFactory::speculate(const EP *ep, con
 
   const map_set_table_data_t data = get_map_set_table_data(ep->get_ctx(), map_get);
 
-  const std::optional<map_coalescing_objs_t> coalescing_objs = ctx.get_map_coalescing_objs(data.obj);
+  const std::optional<map_coalescing_objs_t> coalescing_objs = speculations.ctx.get_map_coalescing_objs(data.obj);
   if (!coalescing_objs.has_value()) {
     return {};
   }
@@ -84,11 +84,12 @@ std::optional<spec_impl_t> MapSetTableLookupFactory::speculate(const EP *ep, con
     return {};
   }
 
-  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(coalescing_objs->dchain)) {
+  if (!speculations.ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(coalescing_objs->dchain)) {
     return {};
   }
 
-  if (!ctx.can_impl_ds(coalescing_objs->map, DSImpl::Tofino_MapSetTable) || !ctx.can_impl_ds(coalescing_objs->dchain, DSImpl::Tofino_MapSetTable)) {
+  if (!speculations.ctx.can_impl_ds(coalescing_objs->map, DSImpl::Tofino_MapSetTable) ||
+      !speculations.ctx.can_impl_ds(coalescing_objs->dchain, DSImpl::Tofino_MapSetTable)) {
     return {};
   }
 
@@ -96,9 +97,9 @@ std::optional<spec_impl_t> MapSetTableLookupFactory::speculate(const EP *ep, con
     return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(coalescing_objs->map, DSImpl::Tofino_MapSetTable);
-  new_ctx.save_ds_impl(coalescing_objs->dchain, DSImpl::Tofino_MapSetTable);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), coalescing_objs->map, DSImpl::Tofino_MapSetTable);
+  new_ctx.save_ds_impl(node->get_id(), coalescing_objs->dchain, DSImpl::Tofino_MapSetTable);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -150,8 +151,8 @@ std::vector<impl_t> MapSetTableLookupFactory::process_node(const EP *ep, const B
   std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep.get(), node, data, *coalescing_objs, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(coalescing_objs->map, DSImpl::Tofino_MapSetTable);
-  ctx.save_ds_impl(coalescing_objs->dchain, DSImpl::Tofino_MapSetTable);
+  ctx.save_ds_impl(node->get_id(), coalescing_objs->map, DSImpl::Tofino_MapSetTable);
+  ctx.save_ds_impl(node->get_id(), coalescing_objs->dchain, DSImpl::Tofino_MapSetTable);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, data.obj, map_set_table);

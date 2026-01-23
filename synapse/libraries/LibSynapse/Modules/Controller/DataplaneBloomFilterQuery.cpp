@@ -37,7 +37,7 @@ bf_data_t get_bf_data(const Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneBloomFilterQueryFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneBloomFilterQueryFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -51,11 +51,11 @@ std::optional<spec_impl_t> DataplaneBloomFilterQueryFactory::speculate(const EP 
 
   const bf_data_t bf_data = get_bf_data(call_node);
 
-  if (!ctx.check_ds_impl(bf_data.obj, DSImpl::Tofino_BloomFilter)) {
+  if (!speculations.ctx.check_ds_impl(bf_data.obj, DSImpl::Tofino_BloomFilter)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneBloomFilterQueryFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

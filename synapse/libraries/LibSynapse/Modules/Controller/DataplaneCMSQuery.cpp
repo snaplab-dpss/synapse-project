@@ -37,7 +37,7 @@ cms_data_t get_cms_data(const Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneCMSQueryFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneCMSQueryFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -51,11 +51,11 @@ std::optional<spec_impl_t> DataplaneCMSQueryFactory::speculate(const EP *ep, con
 
   const cms_data_t cms_data = get_cms_data(call_node);
 
-  if (!ctx.check_ds_impl(cms_data.obj, DSImpl::Tofino_CountMinSketch)) {
+  if (!speculations.ctx.check_ds_impl(cms_data.obj, DSImpl::Tofino_CountMinSketch)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneCMSQueryFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

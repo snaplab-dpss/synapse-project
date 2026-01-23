@@ -27,7 +27,7 @@ bool bdd_node_match_pattern(const BDDNode *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> VectorReadFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> VectorReadFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
@@ -38,11 +38,11 @@ std::optional<spec_impl_t> VectorReadFactory::speculate(const EP *ep, const BDDN
   klee::ref<klee::Expr> vector_addr_expr = call.args.at("vector").expr;
   const addr_t vector_addr               = expr_addr_to_obj_addr(vector_addr_expr);
 
-  if (!ctx.can_impl_ds(vector_addr, DSImpl::x86_Vector)) {
+  if (!speculations.ctx.can_impl_ds(vector_addr, DSImpl::x86_Vector)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> VectorReadFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -73,7 +73,7 @@ std::vector<impl_t> VectorReadFactory::process_node(const EP *ep, const BDDNode 
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(vector_addr, DSImpl::x86_Vector);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), vector_addr, DSImpl::x86_Vector);
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

@@ -9,7 +9,7 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> IntegerAllocatorRejuvenateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> IntegerAllocatorRejuvenateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -24,12 +24,12 @@ std::optional<spec_impl_t> IntegerAllocatorRejuvenateFactory::speculate(const EP
   klee::ref<klee::Expr> dchain_addr_expr = call.args.at("chain").expr;
   const addr_t dchain_addr               = expr_addr_to_obj_addr(dchain_addr_expr);
 
-  if (!ctx.can_impl_ds(dchain_addr, DSImpl::Tofino_IntegerAllocator)) {
+  if (!speculations.ctx.can_impl_ds(dchain_addr, DSImpl::Tofino_IntegerAllocator)) {
     return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(dchain_addr, DSImpl::Tofino_IntegerAllocator);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), dchain_addr, DSImpl::Tofino_IntegerAllocator);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -61,7 +61,7 @@ std::vector<impl_t> IntegerAllocatorRejuvenateFactory::process_node(const EP *ep
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  new_ep->get_mutable_ctx().save_ds_impl(dchain_addr, DSImpl::Tofino_IntegerAllocator);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), dchain_addr, DSImpl::Tofino_IntegerAllocator);
 
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

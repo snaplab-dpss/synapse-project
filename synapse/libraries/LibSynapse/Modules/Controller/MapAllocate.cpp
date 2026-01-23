@@ -9,7 +9,7 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> MapAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> MapAllocateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -24,11 +24,11 @@ std::optional<spec_impl_t> MapAllocateFactory::speculate(const EP *ep, const BDD
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   const addr_t map_addr               = expr_addr_to_obj_addr(map_addr_expr);
 
-  if (!ctx.can_impl_ds(map_addr, DSImpl::Controller_Map)) {
+  if (!speculations.ctx.can_impl_ds(map_addr, DSImpl::Controller_Map)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> MapAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -61,7 +61,7 @@ std::vector<impl_t> MapAllocateFactory::process_node(const EP *ep, const BDDNode
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(map_addr, DSImpl::Controller_Map);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), map_addr, DSImpl::Controller_Map);
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

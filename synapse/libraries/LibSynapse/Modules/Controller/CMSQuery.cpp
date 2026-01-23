@@ -9,7 +9,7 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -24,11 +24,11 @@ std::optional<spec_impl_t> CMSQueryFactory::speculate(const EP *ep, const BDDNod
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
   const addr_t cms_addr               = expr_addr_to_obj_addr(cms_addr_expr);
 
-  if (!ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
+  if (!speculations.ctx.check_ds_impl(cms_addr, DSImpl::Controller_CountMinSketch)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> CMSQueryFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

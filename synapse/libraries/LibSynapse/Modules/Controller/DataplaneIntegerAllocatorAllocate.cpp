@@ -9,7 +9,8 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> DataplaneIntegerAllocatorAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneIntegerAllocatorAllocateFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                               const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -26,11 +27,11 @@ std::optional<spec_impl_t> DataplaneIntegerAllocatorAllocateFactory::speculate(c
 
   const addr_t dchain_addr = expr_addr_to_obj_addr(chain_out);
 
-  if (!ctx.check_ds_impl(dchain_addr, DSImpl::Tofino_IntegerAllocator)) {
+  if (!speculations.ctx.check_ds_impl(dchain_addr, DSImpl::Tofino_IntegerAllocator)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneIntegerAllocatorAllocateFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

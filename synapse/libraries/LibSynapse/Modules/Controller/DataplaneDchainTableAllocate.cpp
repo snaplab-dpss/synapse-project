@@ -43,7 +43,8 @@ dchain_table_allocation_data_t get_dchain_table_data(const Context &ctx, const C
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneDchainTableAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneDchainTableAllocateFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                          const speculations_t &speculations) const {
   // We don't need this for now.
   return {};
 }

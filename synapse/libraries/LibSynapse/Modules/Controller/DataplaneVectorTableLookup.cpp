@@ -38,7 +38,7 @@ vector_table_data_t get_vector_table_data(const Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneVectorTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneVectorTableLookupFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -56,11 +56,11 @@ std::optional<spec_impl_t> DataplaneVectorTableLookupFactory::speculate(const EP
 
   const vector_table_data_t data = get_vector_table_data(vector_borrow);
 
-  if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_VectorTable)) {
+  if (!speculations.ctx.can_impl_ds(data.obj, DSImpl::Tofino_VectorTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneVectorTableLookupFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

@@ -37,7 +37,8 @@ vector_table_allocation_data_t get_vector_table_data(const Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneVectorTableAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneVectorTableAllocateFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                          const speculations_t &speculations) const {
   // We don't need this for now.
   return {};
 }

@@ -26,12 +26,12 @@ bool bdd_node_match_pattern(const BDDNode *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> ForwardFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> ForwardFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

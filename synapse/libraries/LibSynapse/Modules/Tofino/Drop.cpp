@@ -25,7 +25,7 @@ bool is_parser_reject(const EP *ep) {
 
 } // namespace
 
-std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Route) {
     return {};
   }
@@ -37,7 +37,8 @@ std::optional<spec_impl_t> DropFactory::speculate(const EP *ep, const BDDNode *n
     return {};
   }
 
-  Context new_ctx             = ctx;
+  Context new_ctx = speculations.ctx;
+
   const fwd_stats_t fwd_stats = new_ctx.get_profiler().get_fwd_stats(node);
   assert(fwd_stats.operation == RouteOp::Drop);
   new_ctx.get_mutable_perf_oracle().add_dropped_traffic(fwd_stats.drop);

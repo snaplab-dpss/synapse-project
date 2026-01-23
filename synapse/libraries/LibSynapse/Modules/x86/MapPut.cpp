@@ -27,7 +27,7 @@ bool bdd_node_match_pattern(const BDDNode *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> MapPutFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> MapPutFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
@@ -38,11 +38,11 @@ std::optional<spec_impl_t> MapPutFactory::speculate(const EP *ep, const BDDNode 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   const addr_t map_addr               = expr_addr_to_obj_addr(map_addr_expr);
 
-  if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
+  if (!speculations.ctx.can_impl_ds(map_addr, DSImpl::x86_Map)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> MapPutFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -73,7 +73,7 @@ std::vector<impl_t> MapPutFactory::process_node(const EP *ep, const BDDNode *nod
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(map_addr, DSImpl::x86_Map);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), map_addr, DSImpl::x86_Map);
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

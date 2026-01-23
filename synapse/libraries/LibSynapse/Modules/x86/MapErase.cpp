@@ -27,7 +27,7 @@ bool bdd_node_match_pattern(const BDDNode *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> MapEraseFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> MapEraseFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
@@ -42,7 +42,7 @@ std::optional<spec_impl_t> MapEraseFactory::speculate(const EP *ep, const BDDNod
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> MapEraseFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -71,7 +71,7 @@ std::vector<impl_t> MapEraseFactory::process_node(const EP *ep, const BDDNode *n
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
 
-  new_ep->get_mutable_ctx().save_ds_impl(map_addr, DSImpl::x86_Map);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), map_addr, DSImpl::x86_Map);
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

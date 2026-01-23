@@ -23,7 +23,7 @@ void get_map_erase_data(const Context &ctx, const Call *call_node, addr_t &obj, 
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneHHTableDeleteFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneHHTableDeleteFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -38,11 +38,11 @@ std::optional<spec_impl_t> DataplaneHHTableDeleteFactory::speculate(const EP *ep
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   const addr_t map_addr               = expr_addr_to_obj_addr(map_addr_expr);
 
-  if (!ctx.can_impl_ds(map_addr, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!speculations.ctx.can_impl_ds(map_addr, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneHHTableDeleteFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

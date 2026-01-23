@@ -37,7 +37,7 @@ map_table_allocation_data_t get_map_table_data(const Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneMapTableAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneMapTableAllocateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   // We don't need this for now.
   return {};
 }

@@ -2,6 +2,7 @@
 #include <LibSynapse/Modules/Module.h>
 #include <LibSynapse/Modules/ModuleFactory.h>
 #include <LibSynapse/GlobalStats.h>
+#include <LibSynapse/Modules/ModuleFactory.h>
 #include <LibCore/Expr.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
@@ -470,7 +471,7 @@ void EP::debug_speculations() const {
   }
 
   auto egress_estimation_from_ingress = [this](pps_t tput) -> tput_estimation_t {
-    const PerfOracle &perf_oracle = cached_speculations->final_ctx.get_perf_oracle();
+    const PerfOracle &perf_oracle = cached_speculations->ctx.get_perf_oracle();
 
     const tput_estimation_t estimation = {
         .ingress           = tput,
@@ -487,7 +488,7 @@ void EP::debug_speculations() const {
 
   std::cerr << speculations2str(this, cached_speculations->speculations_per_node);
   std::cerr << "Speculative context:\n";
-  cached_speculations->final_ctx.debug();
+  cached_speculations->ctx.debug();
 
   const bps_t ingress_bps = pps2bps(ingress, ctx.get_profiler().get_avg_pkt_bytes());
   const bps_t egress_bps  = pps2bps(egress, ctx.get_profiler().get_avg_pkt_bytes());
@@ -498,7 +499,7 @@ void EP::debug_speculations() const {
   std::cerr << "Stable:  " << stable_bps << " (" << tput2str(stable_egress, "pps", true) << " | " << tput2str(stable_bps, "bps", true) << ")\n";
 
   std::cerr << "BDD profiled with speculative decisions:\n";
-  ProfilerViz::visualize(bdd.get(), cached_speculations->final_ctx.get_profiler(), false);
+  ProfilerViz::visualize(bdd.get(), cached_speculations->ctx.get_profiler(), false);
 }
 
 void EP::assert_integrity() const {
@@ -681,8 +682,8 @@ EP::tput_cmp_t EP::compare_speculations_by_ignored_nodes(const spec_impl_t &old_
   const speculations_t complete_speculation_peek_new =
       speculate(new_speculation.ctx, new_speculation_target_nodes, ingress, SpeculationStrategy::OneShot);
 
-  const pps_t old_pps = complete_speculation_peek_old.final_ctx.get_perf_oracle().estimate_tput(ingress);
-  const pps_t new_pps = complete_speculation_peek_new.final_ctx.get_perf_oracle().estimate_tput(ingress);
+  const pps_t old_pps = complete_speculation_peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
+  const pps_t new_pps = complete_speculation_peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
 
   return {.old_pps = old_pps, .new_pps = new_pps};
 }
@@ -720,8 +721,8 @@ EP::tput_cmp_t EP::compare_speculations_with_reachable_nodes_lookahead(const spe
   const speculations_t complete_speculation_peek_new =
       speculate(new_speculation.ctx, new_speculation_target_nodes, ingress, SpeculationStrategy::WithoutLookahead);
 
-  const pps_t old_pps = complete_speculation_peek_old.final_ctx.get_perf_oracle().estimate_tput(ingress);
-  const pps_t new_pps = complete_speculation_peek_new.final_ctx.get_perf_oracle().estimate_tput(ingress);
+  const pps_t old_pps = complete_speculation_peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
+  const pps_t new_pps = complete_speculation_peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
 
   return {.old_pps = old_pps, .new_pps = new_pps};
 }
@@ -746,8 +747,8 @@ EP::tput_cmp_t EP::compare_speculations_with_unexplored_nodes_lookahead(const sp
   const speculations_t complete_speculation_peek_new =
       speculate(new_speculation.ctx, new_speculation_target_nodes, ingress, SpeculationStrategy::WithoutLookahead);
 
-  const pps_t old_pps = complete_speculation_peek_old.final_ctx.get_perf_oracle().estimate_tput(ingress);
-  const pps_t new_pps = complete_speculation_peek_new.final_ctx.get_perf_oracle().estimate_tput(ingress);
+  const pps_t old_pps = complete_speculation_peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
+  const pps_t new_pps = complete_speculation_peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
 
   return {.old_pps = old_pps, .new_pps = new_pps};
 }
@@ -822,7 +823,7 @@ bool EP::is_better_speculation(const spec_impl_t &old_speculation, const spec_im
   return false;
 }
 
-spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_target, const Context &spec_ctx, pps_t ingress,
+spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_target, const speculations_t &speculations, pps_t ingress,
                                      const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy strategy) const {
   std::optional<spec_impl_t> best;
 
@@ -835,7 +836,7 @@ spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_tar
       // if (id == 56 && speculation_target.node->get_id() == 159) {
       //   std::cerr << "Trying module: " << modgen->get_name() << "\n";
       // }
-      const std::optional<spec_impl_t> spec = modgen->speculate(this, speculation_target.node, spec_ctx);
+      const std::optional<spec_impl_t> spec = modgen->speculate(this, speculation_target.node, speculations);
 
       if (!spec.has_value()) {
         continue;
@@ -888,7 +889,7 @@ spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_tar
   }
 
   if (!best.has_value()) {
-    spec_ctx.debug();
+    speculations.ctx.debug();
     // EPViz::visualize(this, false);
     // BDDViz::visualize(bdd.get(), false);
 
@@ -906,7 +907,7 @@ speculations_t EP::speculate(const Context &current_ctx, std::list<speculation_t
                              SpeculationStrategy strategy) const {
   speculations_t complete_speculation = {
       .speculations_per_node = {},
-      .final_ctx             = current_ctx,
+      .ctx                   = current_ctx,
   };
 
   while (!speculation_target_nodes.empty()) {
@@ -919,11 +920,10 @@ speculations_t EP::speculate(const Context &current_ctx, std::list<speculation_t
       continue;
     }
 
-    const spec_impl_t speculation =
-        get_best_speculation(speculation_target, complete_speculation.final_ctx, ingress, speculation_target_nodes, strategy);
+    const spec_impl_t speculation = get_best_speculation(speculation_target, complete_speculation, ingress, speculation_target_nodes, strategy);
 
     complete_speculation.speculations_per_node.push_back(speculation);
-    complete_speculation.final_ctx = speculation.ctx;
+    complete_speculation.ctx = speculation.ctx;
 
     if (speculation.next_target.has_value()) {
       std::unordered_set<const BDDNode *> affected_nodes;
@@ -968,7 +968,7 @@ pps_t EP::speculate_tput_pps() const {
   const speculations_t complete_speculation = speculate();
 
   auto egress_estimation_from_ingress = [&complete_speculation](pps_t tput) -> tput_estimation_t {
-    const PerfOracle &perf_oracle = complete_speculation.final_ctx.get_perf_oracle();
+    const PerfOracle &perf_oracle = complete_speculation.ctx.get_perf_oracle();
 
     const tput_estimation_t estimation = {
         .ingress           = tput,

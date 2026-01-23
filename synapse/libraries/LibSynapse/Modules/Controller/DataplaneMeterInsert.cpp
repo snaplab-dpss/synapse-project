@@ -27,7 +27,7 @@ void get_tb_data(const Context &ctx, const Call *tb_trace, addr_t &obj, std::vec
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneMeterInsertFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneMeterInsertFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -42,11 +42,11 @@ std::optional<spec_impl_t> DataplaneMeterInsertFactory::speculate(const EP *ep, 
   klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
   const addr_t tb_addr               = expr_addr_to_obj_addr(tb_addr_expr);
 
-  if (!ctx.can_impl_ds(tb_addr, DSImpl::Tofino_Meter)) {
+  if (!speculations.ctx.can_impl_ds(tb_addr, DSImpl::Tofino_Meter)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneMeterInsertFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

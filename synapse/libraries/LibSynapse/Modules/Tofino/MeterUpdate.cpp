@@ -86,7 +86,7 @@ std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const BDDNode *node, const 
 }
 } // namespace
 
-std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -100,7 +100,7 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const BDD
 
   const tb_data_t data = get_tb_data(ep->get_ctx(), tb_is_tracing, tb_update_and_check);
 
-  if (!ctx.can_impl_ds(data.obj, DSImpl::Tofino_Meter)) {
+  if (!speculations.ctx.can_impl_ds(data.obj, DSImpl::Tofino_Meter)) {
     return {};
   }
 
@@ -112,8 +112,8 @@ std::optional<spec_impl_t> MeterUpdateFactory::speculate(const EP *ep, const BDD
 
   delete meter;
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(data.obj, DSImpl::Tofino_Meter);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), data.obj, DSImpl::Tofino_Meter);
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
   spec_impl.skip.insert(tb_update_and_check->get_id());
@@ -154,7 +154,7 @@ std::vector<impl_t> MeterUpdateFactory::process_node(const EP *ep, const BDDNode
   std::unique_ptr<BDD> new_bdd = delete_future_tb_update(new_ep.get(), node, tb_update_and_check, new_next);
 
   Context &ctx = new_ep->get_mutable_ctx();
-  ctx.save_ds_impl(data.obj, DSImpl::Tofino_Meter);
+  ctx.save_ds_impl(node->get_id(), data.obj, DSImpl::Tofino_Meter);
 
   TofinoContext *tofino_ctx = get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, data.obj, meter);

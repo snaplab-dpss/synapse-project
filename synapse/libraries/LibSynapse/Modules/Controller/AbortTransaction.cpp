@@ -4,7 +4,7 @@
 namespace LibSynapse {
 namespace Controller {
 
-std::optional<spec_impl_t> AbortTransactionFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> AbortTransactionFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   // Never explicitly generate this module from the BDD.
   return {};
 }

@@ -46,7 +46,7 @@ std::vector<expr_mod_t> filter_out_checksum_mods(const std::vector<expr_mod_t> &
 
 } // namespace
 
-std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -58,7 +58,7 @@ std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const BD
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

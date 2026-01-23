@@ -90,7 +90,7 @@ std::vector<parser_selection_t> ParserConditionFactory::build_parser_select(klee
   return {selection};
 }
 
-std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Branch) {
     return {};
   }
@@ -101,7 +101,7 @@ std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

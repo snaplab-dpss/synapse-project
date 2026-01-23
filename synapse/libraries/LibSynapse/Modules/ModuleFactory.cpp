@@ -172,7 +172,6 @@ void ModuleFactory::speculate_sending_to_controller(const EP *ep, const BDDNode 
   }
 
   ctx.get_mutable_perf_oracle().add_controller_traffic(controller_node_egress);
-  ctx.get_mutable_profiler().scale(node->get_ordered_branch_constraints(), (1_hr - relative_hr_sent_to_controller).value);
 
   node->visit_nodes([&ctx, relative_hr_sent_to_controller, controller_node_egress](const BDDNode *future_node) {
     if (future_node->get_type() != BDDNodeType::Route) {
@@ -192,8 +191,8 @@ void ModuleFactory::speculate_sending_to_controller(const EP *ep, const BDDNode 
           continue;
         }
 
-        port_ingress_t node_egress = controller_node_egress;
-        node_egress.controller     = dev_hr;
+        port_ingress_t node_egress;
+        node_egress.controller = dev_hr;
 
         ctx.get_mutable_perf_oracle().add_fwd_traffic(device, node_egress);
       }
@@ -203,8 +202,8 @@ void ModuleFactory::speculate_sending_to_controller(const EP *ep, const BDDNode 
     } break;
     case RouteOp::Broadcast: {
       for (const auto &[device, _] : fwd_stats.ports) {
-        port_ingress_t node_egress = controller_node_egress;
-        node_egress.controller     = fwd_stats.ports.at(device) * relative_hr_sent_to_controller.value;
+        port_ingress_t node_egress;
+        node_egress.controller = fwd_stats.ports.at(device) * relative_hr_sent_to_controller.value;
         ctx.get_mutable_perf_oracle().add_fwd_traffic(device, node_egress);
       }
     } break;
@@ -212,6 +211,8 @@ void ModuleFactory::speculate_sending_to_controller(const EP *ep, const BDDNode 
 
     return BDDNodeVisitAction::Continue;
   });
+
+  ctx.get_mutable_profiler().scale(node->get_ordered_branch_constraints(), (1_hr - relative_hr_sent_to_controller).value);
 }
 
 } // namespace LibSynapse

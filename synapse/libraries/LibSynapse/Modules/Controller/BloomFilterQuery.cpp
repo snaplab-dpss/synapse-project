@@ -9,7 +9,7 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-std::optional<spec_impl_t> BloomFilterQueryFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> BloomFilterQueryFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -24,12 +24,12 @@ std::optional<spec_impl_t> BloomFilterQueryFactory::speculate(const EP *ep, cons
   klee::ref<klee::Expr> bf_addr_expr = call.args.at("bf").expr;
   const addr_t bf_addr               = expr_addr_to_obj_addr(bf_addr_expr);
 
-  if (!ctx.can_impl_ds(bf_addr, DSImpl::Controller_BloomFilter)) {
+  if (!speculations.ctx.can_impl_ds(bf_addr, DSImpl::Controller_BloomFilter)) {
     return {};
   }
 
-  Context new_ctx = ctx;
-  new_ctx.save_ds_impl(bf_addr, DSImpl::Controller_BloomFilter);
+  Context new_ctx = speculations.ctx;
+  new_ctx.save_ds_impl(node->get_id(), bf_addr, DSImpl::Controller_BloomFilter);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }
@@ -61,7 +61,7 @@ std::vector<impl_t> BloomFilterQueryFactory::process_node(const EP *ep, const BD
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  new_ep->get_mutable_ctx().save_ds_impl(bf_addr, DSImpl::Controller_BloomFilter);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), bf_addr, DSImpl::Controller_BloomFilter);
 
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

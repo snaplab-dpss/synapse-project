@@ -110,6 +110,8 @@ public:
   std::vector<const BDDNode *> get_reachable_nodes() const;
   std::vector<BDDNode *> get_mutable_reachable_nodes();
 
+  std::vector<const BDDNode *> get_ancestors() const;
+
   virtual std::vector<const BDDNode *> get_leaves() const;
   virtual std::vector<BDDNode *> get_mutable_leaves();
   virtual BDDNode *clone(BDDNodeManager &manager, bool recursive = false) const     = 0;

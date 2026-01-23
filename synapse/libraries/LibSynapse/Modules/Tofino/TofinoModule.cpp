@@ -100,6 +100,39 @@ bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) c
   return false;
 }
 
+bool TofinoModuleFactory::was_ds_already_used(const EPNode *leaf, const speculations_t &speculations, const BDDNode *node, addr_t obj, DSImpl ds_impl,
+                                              DS_ID ds_id) const {
+  if (was_ds_already_used(leaf, ds_id)) {
+    return true;
+  }
+
+  if (!node) {
+    return false;
+  }
+
+  const BDDNode *root = nullptr;
+  if (leaf && leaf->get_module()) {
+    root = leaf->get_module()->get_node();
+  }
+
+  const std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> &ds_impls_decisions_per_bdd_node_and_obj =
+      speculations.ctx.get_ds_impls_decisions_per_bdd_node_and_obj();
+
+  const BDDNode *ancestor = node->get_prev();
+  while (ancestor && ancestor != root) {
+    auto found_it = ds_impls_decisions_per_bdd_node_and_obj.find({ancestor->get_id(), obj});
+    if (found_it != ds_impls_decisions_per_bdd_node_and_obj.end()) {
+      if (found_it->second == ds_impl) {
+        return true;
+      }
+    }
+
+    ancestor = ancestor->get_prev();
+  }
+
+  return false;
+}
+
 TofinoContext *TofinoModuleFactory::get_mutable_tofino_ctx(EP *ep) {
   Context &ctx = ep->get_mutable_ctx();
   return ctx.get_mutable_target_ctx<TofinoContext>();

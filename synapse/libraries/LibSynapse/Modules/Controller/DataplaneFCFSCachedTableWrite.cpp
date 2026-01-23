@@ -42,7 +42,8 @@ map_table_data_t get_map_table_update_data(const Call *call_node) {
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneFCFSCachedTableWriteFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneFCFSCachedTableWriteFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                           const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -56,11 +57,11 @@ std::optional<spec_impl_t> DataplaneFCFSCachedTableWriteFactory::speculate(const
 
   const map_table_data_t data = get_map_table_update_data(call_node);
 
-  if (!ctx.check_ds_impl(data.obj, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!speculations.ctx.check_ds_impl(data.obj, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> DataplaneFCFSCachedTableWriteFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

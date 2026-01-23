@@ -27,7 +27,7 @@ bool bdd_node_match_pattern(const BDDNode *node) {
 }
 } // namespace
 
-std::optional<spec_impl_t> CMSPeriodicCleanupFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> CMSPeriodicCleanupFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
@@ -38,11 +38,11 @@ std::optional<spec_impl_t> CMSPeriodicCleanupFactory::speculate(const EP *ep, co
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
   const addr_t cms_addr               = expr_addr_to_obj_addr(cms_addr_expr);
 
-  if (!ctx.can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
+  if (!speculations.ctx.can_impl_ds(cms_addr, DSImpl::x86_CountMinSketch)) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), ctx);
+  return spec_impl_t(decide(ep, node), speculations.ctx);
 }
 
 std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -66,7 +66,7 @@ std::vector<impl_t> CMSPeriodicCleanupFactory::process_node(const EP *ep, const 
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  new_ep->get_mutable_ctx().save_ds_impl(cms_addr, DSImpl::x86_CountMinSketch);
+  new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), cms_addr, DSImpl::x86_CountMinSketch);
 
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

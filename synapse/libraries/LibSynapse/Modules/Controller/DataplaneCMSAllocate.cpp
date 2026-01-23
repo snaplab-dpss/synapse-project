@@ -46,7 +46,7 @@ cms_allocation_data_t get_cms_allocatino_data(const Context &ctx, const Call *ca
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneCMSAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneCMSAllocateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   // We don't need this for now.
   return {};
 }

@@ -108,7 +108,8 @@ std::unique_ptr<BDD> rebuild_bdd(EP *new_ep, const BDDNode *node, const allocate
 
 } // namespace
 
-std::optional<spec_impl_t> DataplaneFCFSCachedSetAllocateAndWriteFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> DataplaneFCFSCachedSetAllocateAndWriteFactory::speculate(const EP *ep, const BDDNode *node,
+                                                                                    const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -118,16 +119,16 @@ std::optional<spec_impl_t> DataplaneFCFSCachedSetAllocateAndWriteFactory::specul
     return {};
   }
 
-  std::optional<fcfs_cs_data_t> fcfs_cs_data = build_fcfs_cs_data(ctx, pattern);
+  std::optional<fcfs_cs_data_t> fcfs_cs_data = build_fcfs_cs_data(speculations.ctx, pattern);
   if (!fcfs_cs_data.has_value()) {
     return {};
   }
 
-  if (!ctx.check_ds_impl(fcfs_cs_data->obj, DSImpl::Tofino_FCFSCachedSet)) {
+  if (!speculations.ctx.check_ds_impl(fcfs_cs_data->obj, DSImpl::Tofino_FCFSCachedSet)) {
     return {};
   }
 
-  spec_impl_t spec_impl(decide(ep, node), ctx);
+  spec_impl_t spec_impl(decide(ep, node), speculations.ctx);
   for (const Call *map_put : pattern.map_puts) {
     spec_impl.skip.insert(map_put->get_id());
   }
