@@ -78,9 +78,9 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<VectorRegisterLookupFactory>());
               f.push_back(std::make_unique<VectorRegisterUpdateFactory>());
               f.push_back(std::make_unique<VectorRegisterConditionalUpdateFactory>());
-              f.push_back(std::make_unique<FCFSCachedSetReadFactory>());
-              f.push_back(std::make_unique<FCFSCachedSetInsertFactory>());
-              f.push_back(std::make_unique<FCFSCachedSetReadInsertFactory>());
+              // f.push_back(std::make_unique<FCFSCachedSetReadFactory>());
+              // f.push_back(std::make_unique<FCFSCachedSetInsertFactory>());
+              // f.push_back(std::make_unique<FCFSCachedSetReadInsertFactory>());
               f.push_back(std::make_unique<FCFSCachedTableReadFactory>());
               f.push_back(std::make_unique<FCFSCachedTableReadInsertFactory>());
               f.push_back(std::make_unique<FCFSCachedTableInsertFactory>());

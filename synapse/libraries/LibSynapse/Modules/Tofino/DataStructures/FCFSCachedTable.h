@@ -22,7 +22,6 @@ struct FCFSCachedTable : public DS {
   std::vector<Table> tables;
   Register reg_liveness;
   std::vector<Register> cache_keys;
-  std::vector<Register> index_to_keys;
   std::vector<Hash> hashes;
 
   static constexpr u32 MAX_CACHE_CAPACITY{65536};

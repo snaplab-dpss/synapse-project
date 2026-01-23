@@ -315,6 +315,8 @@ private:
   void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash);
   void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
   void transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, const EPNode *ep_node);
+  void transpile_fcfs_ct_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, const var_t &fcfs_ct_value, code_t &hash_calculator,
+                                          code_t &output_hash);
   void transpile_fcfs_cs_decl(const FCFSCachedSet *fcfs_cs, const EPNode *ep_node);
   void transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
 

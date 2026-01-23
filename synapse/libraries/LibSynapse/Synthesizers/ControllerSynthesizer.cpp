@@ -2427,10 +2427,10 @@ void ControllerSynthesizer::transpile_fcfs_ct_decl(const Tofino::FCFSCachedTable
     member_init_list << "\"Ingress." << table.id << "\", ";
   }
   member_init_list << "}";
-  member_init_list << ", " << fcfs_ct->reg_liveness.id;
+  member_init_list << ", \"Ingress." << fcfs_ct->reg_liveness.id << "\"";
   member_init_list << ", {";
-  for (const Tofino::Register &index_to_key_reg : fcfs_ct->index_to_keys) {
-    member_init_list << "\"Ingress." << index_to_key_reg.id << "\", ";
+  for (const Tofino::Register &reg : fcfs_ct->cache_keys) {
+    member_init_list << "\"Ingress." << reg.id << "\", ";
   }
   member_init_list << "}";
   member_init_list << ", " << expiration_time_ms << "LL";

@@ -24,7 +24,6 @@ private:
   std::vector<Table> tables;
   Register reg_liveness;
   std::vector<Register> reg_cached_keys;
-  std::vector<Register> regs_index_to_key;
 
   const u32 capacity;
   const u32 cache_capacity;
@@ -32,12 +31,10 @@ private:
 
 public:
   FCFSCachedTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_liveness_name,
-                  const std::vector<std::string> &reg_cached_keys_names, const std::vector<std::string> &regs_index_to_key_names,
-                  std::optional<time_ms_t> timeout = std::nullopt)
+                  const std::vector<std::string> &reg_cached_keys_names, std::optional<time_ms_t> timeout = std::nullopt)
       : SynapseDS(_name), tables(build_tables(table_names)), reg_liveness(reg_liveness_name),
-        reg_cached_keys(build_regs_cached_keys(reg_cached_keys_names)), regs_index_to_key(build_regs_index_to_key(regs_index_to_key_names)),
-        capacity(get_capacity(reg_liveness, tables, regs_index_to_key)), cache_capacity(get_cache_capacity(reg_cached_keys)),
-        key_size(get_key_size(tables)) {
+        reg_cached_keys(build_regs_cached_keys(reg_cached_keys_names)), capacity(get_capacity(reg_liveness, tables)),
+        cache_capacity(get_cache_capacity(reg_cached_keys)), key_size(get_key_size(tables)) {
     assert(cache_capacity < capacity && "Cache capacity must be less than the total capacity, otherwise we can't handle hash collisions");
 
     cache.reserve(capacity);
@@ -95,7 +92,6 @@ public:
     }
 
     cache.emplace(k, v);
-    fill_index_to_key(v, k);
     reg_liveness.set(v, 0xffffffff);
   }
 
@@ -139,16 +135,6 @@ public:
   }
 
 private:
-  void fill_index_to_key(u32 index, const buffer_t &key) {
-    bytes_t offset = 0;
-    for (Register &reg_index_to_key : regs_index_to_key) {
-      const bytes_t value_size = reg_index_to_key.get_value_size() / 8;
-      const u32 value          = static_cast<u32>(key.get(offset, value_size));
-      reg_index_to_key.set(index, value);
-      offset += value_size;
-    }
-  }
-
   static void expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {
     cfg.begin_dataplane_notification_transaction();
 
@@ -197,15 +183,11 @@ private:
     return tables;
   }
 
-  static u32 get_capacity(const Register &reg_liveness, const std::vector<Table> &tables, const std::vector<Register> &regs_index_to_key) {
+  static u32 get_capacity(const Register &reg_liveness, const std::vector<Table> &tables) {
     const u32 capacity = reg_liveness.get_capacity();
 
     for (const Table &table : tables) {
       assert(table.get_effective_capacity() >= capacity);
-    }
-
-    for (const Register &reg_index_to_key : regs_index_to_key) {
-      assert(reg_index_to_key.get_capacity() == capacity);
     }
 
     return capacity;
@@ -246,17 +228,6 @@ private:
 
     std::vector<Register> regs_keys;
     for (const std::string &reg_name : regs_cached_keys) {
-      regs_keys.emplace_back(reg_name);
-    }
-
-    return regs_keys;
-  }
-
-  static std::vector<Register> build_regs_index_to_key(const std::vector<std::string> &regs_index_to_key) {
-    assert(!regs_index_to_key.empty() && "Register keys names must not be empty");
-
-    std::vector<Register> regs_keys;
-    for (const std::string &reg_name : regs_index_to_key) {
       regs_keys.emplace_back(reg_name);
     }
 

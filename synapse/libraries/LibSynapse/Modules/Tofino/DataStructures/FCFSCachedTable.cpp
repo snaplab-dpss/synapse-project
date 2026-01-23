@@ -15,10 +15,10 @@ DS_ID build_table_name(DS_ID id, u32 table_num) { return id + "_table_" + std::t
 
 DS_ID build_hash_name(DS_ID id, u32 hash_num) { return id + "_hash_" + std::to_string(hash_num); }
 
-Register build_reg_liveness(const tna_properties_t &properties, DS_ID id, u32 cache_capacity) {
-  const bits_t hash_size  = bits_from_pow2_capacity(cache_capacity);
+Register build_reg_liveness(const tna_properties_t &properties, DS_ID id, u32 capacity) {
+  const bits_t index_size = 32;
   const bits_t value_size = 32;
-  return Register(properties, id + "_reg_liveness", cache_capacity, hash_size, value_size,
+  return Register(properties, id + "_reg_liveness", capacity, index_size, value_size,
                   {RegisterActionType::QueryTimestamp, RegisterActionType::QueryAndRefreshTimestamp});
 }
 
@@ -38,29 +38,12 @@ std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID
   return registers;
 }
 
-std::vector<Register> build_index_to_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &keys_sizes, u32 cache_capacity) {
-  std::vector<Register> registers;
-
-  const bits_t hash_size = bits_from_pow2_capacity(cache_capacity);
-
-  int i = 0;
-  for (bits_t key_size : keys_sizes) {
-    Register cache_key(properties, id + "_reg_index_to_key_" + std::to_string(i), cache_capacity, hash_size, key_size,
-                       {RegisterActionType::Read, RegisterActionType::Write});
-    i++;
-    registers.push_back(cache_key);
-  }
-
-  return registers;
-}
-
 } // namespace
 
 FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _capacity,
                                  const std::vector<bits_t> &_keys_sizes)
     : DS(DSType::FCFSCachedTable, false, _id), cache_capacity(_cache_capacity), capacity(_capacity), keys_sizes(_keys_sizes),
-      reg_liveness(build_reg_liveness(properties, id, cache_capacity)), cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)),
-      index_to_keys(build_index_to_keys(properties, id, keys_sizes, cache_capacity)) {
+      reg_liveness(build_reg_liveness(properties, id, capacity)), cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)) {
   assert(cache_capacity > 0);
   assert(capacity > 0);
   assert(cache_capacity < capacity);
@@ -70,14 +53,13 @@ FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, 
 
 FCFSCachedTable::FCFSCachedTable(const FCFSCachedTable &other)
     : DS(other.type, other.primitive, other.id), cache_capacity(other.cache_capacity), capacity(other.capacity), keys_sizes(other.keys_sizes),
-      tables(other.tables), reg_liveness(other.reg_liveness), cache_keys(other.cache_keys), index_to_keys(other.index_to_keys), hashes(other.hashes) {
-}
+      tables(other.tables), reg_liveness(other.reg_liveness), cache_keys(other.cache_keys), hashes(other.hashes) {}
 
 DS *FCFSCachedTable::clone() const { return new FCFSCachedTable(*this); }
 
 void FCFSCachedTable::debug() const {
   std::cerr << "\n";
-  std::cerr << "======== FCFS CACHED SET ========\n";
+  std::cerr << "======== FCFS CACHED TABLE ========\n";
   std::cerr << "ID:      " << id << "\n";
   std::cerr << "Entries: " << capacity << "\n";
   std::cerr << "Cache:   " << cache_capacity << "\n";
@@ -91,9 +73,6 @@ void FCFSCachedTable::debug() const {
   for (const Hash &hash : hashes) {
     hash.debug();
   }
-  for (const Register &index_to_key : index_to_keys) {
-    index_to_key.debug();
-  }
   std::cerr << "==============================\n";
 }
 
@@ -103,9 +82,6 @@ std::vector<std::unordered_set<const DS *>> FCFSCachedTable::get_internal() cons
   internal_ds.emplace_back();
   for (const Table &table : tables) {
     internal_ds.back().insert(&table);
-  }
-  for (const Register &index_to_key : index_to_keys) {
-    internal_ds.back().insert(&index_to_key);
   }
 
   internal_ds.emplace_back();
@@ -167,7 +143,7 @@ bool FCFSCachedTable::has_hash(u32 op) const {
 }
 
 DS_ID FCFSCachedTable::add_hash(u32 op) {
-  const bits_t hash_size = bits_from_pow2_capacity(capacity);
+  const bits_t hash_size = bits_from_pow2_capacity(cache_capacity);
   Hash new_hash(build_hash_name(id, op), keys_sizes, hash_size);
   hashes.push_back(new_hash);
   return new_hash.id;

@@ -35,10 +35,10 @@ run() {
 
 # run "echo"
 # run "fwd"
-# run "fw"
+run "fw"
 # run "nat"
 # run "kvs"
 # run "pol"
-run "cl"
+# run "cl"
 # run "psd"
 # run "lb"

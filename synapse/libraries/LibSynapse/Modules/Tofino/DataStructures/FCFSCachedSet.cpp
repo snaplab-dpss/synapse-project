@@ -143,7 +143,7 @@ bool FCFSCachedSet::has_hash(u32 op) const {
 }
 
 DS_ID FCFSCachedSet::add_hash(u32 op) {
-  const bits_t hash_size = bits_from_pow2_capacity(capacity);
+  const bits_t hash_size = bits_from_pow2_capacity(cache_capacity);
   Hash new_hash(build_hash_name(id, op), keys_sizes, hash_size);
   hashes.push_back(new_hash);
   return new_hash.id;

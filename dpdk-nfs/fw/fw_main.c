@@ -34,10 +34,6 @@ uint16_t get_dst_dev(uint16_t src_dev) {
   dst_dev = *destination_device;
   vector_return(flow_manager->state->fwd_rules, src_dev, destination_device);
 
-  if (src_dev == dst_dev) {
-    return DROP;
-  }
-
   return dst_dev;
 }
 
@@ -59,22 +55,20 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
 
   if (is_internal(device)) {
     struct FlowId id = {
-        .src_port = tcpudp_header->src_port,
-        .dst_port = tcpudp_header->dst_port,
         .src_ip   = rte_ipv4_header->src_addr,
         .dst_ip   = rte_ipv4_header->dst_addr,
-        .protocol = rte_ipv4_header->next_proto_id,
+        .src_port = tcpudp_header->src_port,
+        .dst_port = tcpudp_header->dst_port,
     };
 
     flow_manager_allocate_or_refresh_flow(flow_manager, &id, now);
   } else {
     // Inverse the src and dst for the "reply flow"
     struct FlowId id = {
-        .src_port = tcpudp_header->dst_port,
-        .dst_port = tcpudp_header->src_port,
         .src_ip   = rte_ipv4_header->dst_addr,
         .dst_ip   = rte_ipv4_header->src_addr,
-        .protocol = rte_ipv4_header->next_proto_id,
+        .src_port = tcpudp_header->dst_port,
+        .dst_port = tcpudp_header->src_port,
     };
 
     if (!flow_manager_get_refresh_flow(flow_manager, &id, now)) {

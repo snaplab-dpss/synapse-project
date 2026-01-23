@@ -1336,6 +1336,42 @@ void TofinoSynthesizer::transpile_hash_calculation(const Hash *hash, const std::
   transpile_action_decl(hash_calculator, hash_calculation_body.split_lines());
 }
 
+void TofinoSynthesizer::transpile_fcfs_ct_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, const var_t &fcfs_ct_value,
+                                                           code_t &hash_calculator, code_t &output_hash) {
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+
+  output_hash = hash->id + "_value";
+
+  ingress.indent();
+  ingress << Transpiler::type_from_size(hash->size) << " " << output_hash << ";\n";
+
+  coder_t hash_calculation_body;
+
+  hash_calculation_body.indent();
+  hash_calculation_body << output_hash << " = " << hash->id << ".get({\n";
+
+  hash_calculation_body.inc();
+
+  for (size_t i = 0; i < inputs.size(); i++) {
+    const code_t &input = inputs[i];
+    hash_calculation_body.indent();
+    hash_calculation_body << input;
+    if (i != inputs.size() - 1) {
+      hash_calculation_body << ",";
+    }
+    hash_calculation_body << "\n";
+  }
+
+  hash_calculation_body.indent();
+  hash_calculation_body << "});\n";
+
+  hash_calculation_body.indent();
+  hash_calculation_body << fcfs_ct_value.get_slice(0, hash->size).name << " = " << output_hash << ";\n";
+
+  hash_calculator = hash->id + "_calc";
+  transpile_action_decl(hash_calculator, hash_calculation_body.split_lines());
+}
+
 void TofinoSynthesizer::transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys) {
   coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER);
   coder_t &custom_headers   = get(MARKER_CUSTOM_HEADERS);
@@ -1400,17 +1436,6 @@ void TofinoSynthesizer::transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, c
       register_action_extras_t extras;
       extras.external_var = fcfs_ct_internals.keys.at(key_idx).name;
       transpile_register_action_decl(&reg_key, fcfs_ct_internals.keys_reg_actions.at({reg_key.id, action_type}), action_type, extras);
-    }
-  }
-
-  for (size_t key_idx = 0; key_idx < fcfs_ct->cache_keys.size(); key_idx++) {
-    const Register &reg_index_to_key = fcfs_ct->index_to_keys.at(key_idx);
-    transpile_register_decl(&reg_index_to_key);
-    for (RegisterActionType action_type : reg_index_to_key.actions) {
-      register_action_extras_t extras;
-      extras.external_var = fcfs_ct_internals.keys.at(key_idx).name;
-      transpile_register_action_decl(&reg_index_to_key, fcfs_ct_internals.keys_reg_actions.at({reg_index_to_key.id, action_type}), action_type,
-                                     extras);
     }
   }
 }
@@ -2986,7 +3011,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   code_t hash_calculator;
   code_t hash_value;
-  transpile_hash_calculation(hash, hash_inputs, hash_calculator, hash_value);
+  transpile_fcfs_ct_hash_calculation(hash, hash_inputs, value_var.value(), hash_calculator, hash_value);
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -3002,8 +3027,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   ingress_apply.indent();
   ingress_apply << hash_calculator << "();\n";
-  ingress_apply.indent();
-  ingress_apply << value_var->get_slice(0, hash->size).name << " = " << hash_value << ";\n";
 
   const code_t is_alive_var_name = create_unique_name("fcfs_ct_is_alive");
   ingress_apply.indent();
@@ -3076,7 +3099,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   code_t hash_calculator;
   code_t hash_value;
-  transpile_hash_calculation(hash, hash_inputs, hash_calculator, hash_value);
+  transpile_fcfs_ct_hash_calculation(hash, hash_inputs, value_var.value(), hash_calculator, hash_value);
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -3099,8 +3122,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   ingress_apply.indent();
   ingress_apply << hash_calculator << "();\n";
-  ingress_apply.indent();
-  ingress_apply << value_var->get_slice(0, hash->size).name << " = " << hash_value << ";\n";
 
   const code_t is_alive_var_name = create_unique_name("fcfs_ct_is_alive");
   ingress_apply.indent();
@@ -3138,11 +3159,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   for (const Register &reg_key : fcfs_ct->cache_keys) {
     ingress_apply.indent();
     ingress_apply << fcfs_ct_internals.keys_reg_actions.at({reg_key.id, RegisterActionType::Write}) << ".execute(" << hash_value << ");\n";
-  }
-
-  for (const Register &reg_index_to_key : fcfs_ct->index_to_keys) {
-    ingress_apply.indent();
-    ingress_apply << fcfs_ct_internals.keys_reg_actions.at({reg_index_to_key.id, RegisterActionType::Write}) << ".execute(" << hash_value << ");\n";
   }
 
   ingress_vars.set_var_expr(value_var->name, write_value);
@@ -3225,11 +3241,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   for (const Register &reg_key : fcfs_ct->cache_keys) {
     ingress_apply.indent();
     ingress_apply << fcfs_ct_internals.keys_reg_actions.at({reg_key.id, RegisterActionType::Write}) << ".execute(" << hash_value << ");\n";
-  }
-
-  for (const Register &reg_index_to_key : fcfs_ct->index_to_keys) {
-    ingress_apply.indent();
-    ingress_apply << fcfs_ct_internals.keys_reg_actions.at({reg_index_to_key.id, RegisterActionType::Write}) << ".execute(" << hash_value << ");\n";
   }
 
   const var_t value_var = alloc_var("value", value);
@@ -3327,13 +3338,6 @@ TofinoSynthesizer::fcfs_ct_internals_t TofinoSynthesizer::fcfs_ct_get_internals(
   }
 
   for (const Register &reg : fcfs_ct->cache_keys) {
-    for (const RegisterActionType &action_type : reg.actions) {
-      const code_t action_name                          = build_register_action_name(&reg, action_type);
-      internals.keys_reg_actions[{reg.id, action_type}] = action_name;
-    }
-  }
-
-  for (const Register &reg : fcfs_ct->index_to_keys) {
     for (const RegisterActionType &action_type : reg.actions) {
       const code_t action_name                          = build_register_action_name(&reg, action_type);
       internals.keys_reg_actions[{reg.id, action_type}] = action_name;

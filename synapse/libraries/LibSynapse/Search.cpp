@@ -1,7 +1,10 @@
 #include <LibSynapse/Search.h>
-#include <LibBDD/Visitors/BDDVisualizer.h>
 #include <LibSynapse/Visualizers/EPVisualizer.h>
 #include <LibSynapse/Visualizers/SSVisualizer.h>
+#include <LibSynapse/GlobalStats.h>
+
+#include <LibBDD/Visitors/BDDVisualizer.h>
+
 #include <LibCore/Debug.h>
 
 #include <chrono>
@@ -184,6 +187,8 @@ search_report_t SearchEngine::search() {
         if (target->type == TargetType::Tofino) {
           children += implementations.size();
         }
+
+        GlobalStats::num_execution_plans_generated += implementations.size();
 
         search_space->add_to_active_leaf(ep.get(), node, factory.get(), implementations);
         report.save(factory.get(), implementations);

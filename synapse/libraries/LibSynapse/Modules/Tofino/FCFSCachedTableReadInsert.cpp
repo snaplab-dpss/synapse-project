@@ -244,7 +244,7 @@ rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const pattern_t &pattern, const fcf
       result.bdd.get(), result.on_cached_insert_success, pattern, map_coalescing_objs, fcfs_ct_data.original_key, deleted_branch_constraints);
 
   const hit_rate_t cache_collision_probability =
-      TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(new_ep->get_ctx(), pattern.map_put, fcfs_ct_data.original_key, cache_capacity);
+      TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(new_ep->get_ctx(), pattern.map_get, fcfs_ct_data.original_key, cache_capacity);
 
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(pattern.dchain_allocate_new_index->get_ordered_branch_constraints(),
                                                                    cached_insert_success_condition, 1_hr - cache_collision_probability);
@@ -363,15 +363,12 @@ std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP 
   u32 chosen_cache_capacity            = 0;
   bool successfully_placed             = false;
 
-  const Call *map_get          = pattern.map_put->get_past_map_get_from_map_put();
-  const Call *target_for_stats = map_get ? map_get : pattern.map_put;
-
   std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities(data.capacity);
   std::sort(allowed_cache_capacities.begin(), allowed_cache_capacities.end(), std::greater<int>());
 
   for (u32 cache_capacity : allowed_cache_capacities) {
     const hit_rate_t success_estimation =
-        1_hr - TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(ep->get_ctx(), target_for_stats, data.original_key, cache_capacity);
+        1_hr - TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(ep->get_ctx(), pattern.map_get, data.original_key, cache_capacity);
 
     if (!can_build_or_reuse_fcfs_ct(ep, node, data.obj, data.original_key, data.capacity, cache_capacity)) {
       continue;

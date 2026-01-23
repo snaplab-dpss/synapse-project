@@ -842,6 +842,8 @@ spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_tar
         continue;
       }
 
+      GlobalStats::num_speculated_modules++;
+
       // if (id == 49 && speculation_target.node->get_id() == 159) {
       //   std::cerr << "\n\n";
       //   std::cerr << "EP id: " << id << "\n";
