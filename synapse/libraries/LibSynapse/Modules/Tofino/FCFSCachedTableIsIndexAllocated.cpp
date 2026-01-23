@@ -31,14 +31,6 @@ std::optional<spec_impl_t> FCFSCachedTableIsIndexAllocatedFactory::speculate(con
 
   const u32 capacity = ctx.get_map_config(map_objs->map).capacity;
 
-  if (!map_objs->vectors.empty()) {
-    return {};
-  }
-
-  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
-    return {};
-  }
-
   if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
@@ -62,7 +54,7 @@ std::optional<spec_impl_t> FCFSCachedTableIsIndexAllocatedFactory::speculate(con
   // Let's optimistically pick the largest cache capacity that we can build or reuse.
   std::optional<u32> cache_capacity;
   for (u32 cache_capacity_candidate : allowed_cache_capacities) {
-    if (can_build_or_reuse_fcfs_ct(ep, node, obj, original_key, capacity, cache_capacity_candidate)) {
+    if (can_build_or_reuse_fcfs_ct(ep, node, map_objs->map, original_key, capacity, cache_capacity_candidate)) {
       cache_capacity = cache_capacity_candidate;
       break;
     }
@@ -104,14 +96,6 @@ std::vector<impl_t> FCFSCachedTableIsIndexAllocatedFactory::process_node(const E
     return {};
   }
 
-  if (!map_objs->vectors.empty()) {
-    return {};
-  }
-
-  if (!ep->get_ctx().is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
-    return {};
-  }
-
   if (!ep->get_ctx().can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
       !ep->get_ctx().can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -136,18 +120,18 @@ std::vector<impl_t> FCFSCachedTableIsIndexAllocatedFactory::process_node(const E
   std::vector<impl_t> impls;
 
   for (u32 cache_capacity : enum_fcfs_ct_cache_capacities(capacity)) {
-    if (!can_build_or_reuse_fcfs_ct(ep, node, obj, original_key, capacity, cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_ct(ep, node, map_objs->map, original_key, capacity, cache_capacity)) {
       continue;
     }
 
     std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-    FCFSCachedTable *fcfs_ct = TofinoModuleFactory::build_or_reuse_fcfs_ct(new_ep.get(), node, obj, original_key, capacity, cache_capacity);
+    FCFSCachedTable *fcfs_ct = TofinoModuleFactory::build_or_reuse_fcfs_ct(new_ep.get(), node, map_objs->map, original_key, capacity, cache_capacity);
     if (!fcfs_ct) {
       continue;
     }
 
-    Module *module  = new FCFSCachedTableIsIndexAllocated(node, fcfs_ct->id, obj, index, is_allocated);
+    Module *module  = new FCFSCachedTableIsIndexAllocated(node, fcfs_ct->id, map_objs->map, index, is_allocated);
     EPNode *ep_node = new EPNode(module);
 
     const EPLeaf leaf(ep_node, node->get_next());
@@ -186,15 +170,7 @@ std::unique_ptr<Module> FCFSCachedTableIsIndexAllocatedFactory::create(const BDD
     return {};
   }
 
-  if (!map_objs->vectors.empty()) {
-    return {};
-  }
-
-  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(map_objs->dchain)) {
-    return {};
-  }
-
-  if (!ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedTable)) {
+  if (!ctx.can_impl_ds(map_objs->map, DSImpl::Tofino_FCFSCachedTable) || !ctx.can_impl_ds(map_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
   }
 
@@ -202,7 +178,7 @@ std::unique_ptr<Module> FCFSCachedTableIsIndexAllocatedFactory::create(const BDD
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_ct = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
-  return std::make_unique<FCFSCachedTableIsIndexAllocated>(node, fcfs_ct->id, obj, index, is_allocated);
+  return std::make_unique<FCFSCachedTableIsIndexAllocated>(node, fcfs_ct->id, map_objs->map, index, is_allocated);
 }
 
 } // namespace Tofino

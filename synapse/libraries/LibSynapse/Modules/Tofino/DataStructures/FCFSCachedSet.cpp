@@ -46,7 +46,7 @@ FCFSCachedSet::FCFSCachedSet(const tna_properties_t &properties, DS_ID _id, u32 
       reg_liveness(build_reg_liveness(properties, id, cache_capacity)), cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)) {
   assert(cache_capacity > 0);
   assert(capacity > 0);
-  assert(cache_capacity < capacity);
+  assert(cache_capacity <= capacity);
   add_table(_op);
   add_hash(_op);
 }

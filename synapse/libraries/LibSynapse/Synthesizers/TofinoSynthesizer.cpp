@@ -3246,37 +3246,39 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableIsIndexAllocated *node) {
-  // const DS_ID fcfs_ct_id       = node->get_fcfs_ct_id();
-  // const symbol_t &is_allocated = node->get_is_allocated();
+  const DS_ID fcfs_ct_id            = node->get_fcfs_ct_id();
+  const klee::ref<klee::Expr> index = node->get_index();
+  const symbol_t &is_allocated      = node->get_is_allocated();
 
-  // const FCFSCachedTable *fcfs_ct = get_tofino_ds<FCFSCachedTable>(ep, fcfs_ct_id);
-  // const bdd_node_id_t node_id    = node->get_node()->get_id();
+  const FCFSCachedTable *fcfs_ct = get_tofino_ds<FCFSCachedTable>(ep, fcfs_ct_id);
 
-  // const fcfs_ct_internals_t fcfs_ct_internals = fcfs_ct_get_internals(fcfs_ct);
+  const fcfs_ct_internals_t fcfs_ct_internals = fcfs_ct_get_internals(fcfs_ct);
 
-  // transpile_fcfs_ct_decl(fcfs_ct, ep_node);
+  transpile_fcfs_ct_decl(fcfs_ct, ep_node);
 
-  // const Hash *hash = fcfs_ct->get_hash(node_id);
-  // assert(hash && "Hash not found");
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  // std::vector<code_t> hash_inputs;
-  // for (const var_t &key_var : fcfs_ct_internals.keys) {
-  //   hash_inputs.push_back(key_var.name);
-  // }
+  const var_t value_var = alloc_var("index", index);
+  value_var.declare(ingress_apply, transpiler.transpile(index));
 
-  // code_t hash_calculator;
-  // code_t hash_value;
-  // transpile_hash_calculation(hash, hash_inputs, hash_calculator, hash_value);
+  const var_t is_allocated_var = alloc_var("is_allocated", is_allocated.expr);
+  is_allocated_var.declare(ingress_apply, "false");
 
-  // coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  ingress_apply.indent();
+  ingress_apply << "if(" << fcfs_ct_internals.liveness_query + ".execute(" + value_var.name + ")"
+                << ") {\n";
+  ingress_apply.inc();
 
-  // for (size_t i = 0; i < keys.size(); i++) {
-  //   const klee::ref<klee::Expr> key_expr = keys[i];
-  //   const var_t &key_var                 = fcfs_ct_internals.keys[i];
-  //   ingress_apply.indent();
-  //   ingress_apply << key_var.name << " = " << transpiler.transpile(key_expr) << ";\n";
-  // }
-  todo();
+  ingress_apply << is_allocated_var.name << " = true;\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  // FIXME: remove this
+  std::cerr << ingress_apply.dump();
+  dbg_pause();
+
   return EPVisitor::Action::doChildren;
 }
 

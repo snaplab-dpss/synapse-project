@@ -87,6 +87,14 @@ hit_rate_t port_ingress_t::get_hr_at_recirc_depth(u8 depth) const {
   return total_hr;
 }
 
+void port_ingress_t::scale(double factor) {
+  global     = global * factor;
+  controller = controller * factor;
+  for (auto &[_, hr] : recirc) {
+    hr = hr * factor;
+  }
+}
+
 PerfOracle::PerfOracle(const targets_config_t &targets_config, bytes_t _avg_pkt_size)
     : front_panel_ports_capacities(get_front_panel_port_capacities(targets_config.tofino_config)),
       recirculation_ports_capacities(get_recirculation_port_capacities(targets_config.tofino_config)),

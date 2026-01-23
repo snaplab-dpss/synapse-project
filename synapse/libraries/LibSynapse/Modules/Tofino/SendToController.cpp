@@ -77,7 +77,19 @@ std::optional<spec_impl_t> SendToControllerFactory::speculate(const EP *ep, cons
     return {};
   }
 
-  new_ctx.get_mutable_perf_oracle().add_controller_traffic(ep->get_active_leaf_node_egress());
+  port_ingress_t node_egress = ep->get_active_leaf_node_egress();
+  const hit_rate_t node_hr   = new_ctx.get_profiler().get_hr(node);
+
+  double scale_factor = 1;
+  if (!ep->get_active_leaf().node) {
+    scale_factor = node_hr.value;
+  } else {
+    const hit_rate_t leaf_hr = new_ctx.get_profiler().get_hr(ep->get_active_leaf().node);
+    scale_factor             = node_hr / leaf_hr;
+  }
+
+  node_egress.scale(scale_factor);
+  new_ctx.get_mutable_perf_oracle().add_controller_traffic(node_egress);
 
   spec_impl_t spec_impl(decide(ep, node), new_ctx);
   spec_impl.next_target = TargetType::Controller;

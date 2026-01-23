@@ -29,6 +29,7 @@ struct port_ingress_t {
 
   hit_rate_t get_total_hr() const;
   hit_rate_t get_hr_at_recirc_depth(u8 depth) const;
+  void scale(double factor);
 };
 
 std::ostream &operator<<(std::ostream &os, const port_ingress_t &ingress);

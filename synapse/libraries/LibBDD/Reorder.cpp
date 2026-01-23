@@ -1114,10 +1114,7 @@ std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd, const anchor_info_t &a
 
   auto allow_candidate = [next_branch, allow_shape_altering_ops](const candidate_info_t &candidate_info) {
     if (!allow_shape_altering_ops) {
-      const bool is_unexpected_branch = (candidate_info.is_branch && (candidate_info.id != next_branch));
-      const bool has_condition        = !candidate_info.condition.isNull();
-
-      if (is_unexpected_branch || has_condition) {
+      if (candidate_info.is_branch || !candidate_info.condition.isNull()) {
         return false;
       }
     }

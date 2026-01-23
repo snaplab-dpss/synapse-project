@@ -164,8 +164,15 @@ void ModuleFactory::speculate_sending_to_controller(const EP *ep, const BDDNode 
   const hit_rate_t node_hr       = profiler.get_hr(node);
   const hit_rate_t controller_hr = node_hr * relative_hr_sent_to_controller.value;
 
-  const port_ingress_t controller_node_egress = ep->get_node_egress(controller_hr, ep->get_active_leaf().node);
+  port_ingress_t controller_node_egress;
+  if (ep->get_active_leaf().node) {
+    controller_node_egress = ep->get_node_egress(controller_hr, ep->get_active_leaf().node);
+  } else {
+    controller_node_egress.global = controller_hr;
+  }
+
   ctx.get_mutable_perf_oracle().add_controller_traffic(controller_node_egress);
+  ctx.get_mutable_profiler().scale(node->get_ordered_branch_constraints(), (1_hr - relative_hr_sent_to_controller).value);
 
   node->visit_nodes([&ctx, relative_hr_sent_to_controller, controller_node_egress](const BDDNode *future_node) {
     if (future_node->get_type() != BDDNodeType::Route) {
@@ -205,8 +212,6 @@ void ModuleFactory::speculate_sending_to_controller(const EP *ep, const BDDNode 
 
     return BDDNodeVisitAction::Continue;
   });
-
-  ctx.get_mutable_profiler().scale(node->get_ordered_branch_constraints(), (1_hr - relative_hr_sent_to_controller).value);
 }
 
 } // namespace LibSynapse

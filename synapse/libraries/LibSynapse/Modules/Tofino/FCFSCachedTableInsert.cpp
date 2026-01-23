@@ -78,8 +78,11 @@ bool is_write_pattern(const BDD *bdd, const BDDNode *node, pattern_t &pattern) {
   return true;
 }
 
-std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, const Call *dchain_allocate_new_index,
-                                                               const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key) {
+std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, const Call *dchain_allocate_new_index, map_coalescing_objs_t map_objs,
+                                                               klee::ref<klee::Expr> key) {
+  // Don't ignore the vectors.
+  map_objs.vectors.clear();
+
   std::vector<const Call *> coalescing_nodes = dchain_allocate_new_index->get_coalescing_nodes_from_key(key, map_objs);
 
   std::vector<const BDDNode *> nodes_to_ignore;
@@ -138,9 +141,12 @@ BDDNode *send_to_controller_on_cached_insert_failed(BDD *bdd, const Branch *cach
       on_cached_insert_failed->get_id(), SendToController::force_send_to_controller_bdd_node_function_name(), Symbols({symbol_reordering_barrier}));
 }
 
-BDDNode *delete_coalescing_nodes_and_alloc_failure_on_success(BDD *bdd, BDDNode *on_success, const pattern_t &pattern,
-                                                              const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key,
+BDDNode *delete_coalescing_nodes_and_alloc_failure_on_success(BDD *bdd, BDDNode *on_success, const pattern_t &pattern, map_coalescing_objs_t map_objs,
+                                                              klee::ref<klee::Expr> key,
                                                               std::vector<klee::ref<klee::Expr>> &deleted_branch_constraints) {
+  // Don't remove the vectors, we only care about the map and dchain for FCFS CT.
+  map_objs.vectors.clear();
+
   const std::vector<const Call *> targets = on_success->get_coalescing_nodes_from_key(key, map_objs);
   for (const BDDNode *target : targets) {
     BDDNode *new_node = bdd->delete_non_branch(target->get_id());
@@ -282,14 +288,6 @@ std::optional<spec_impl_t> FCFSCachedTableInsertFactory::speculate(const EP *ep,
     return {};
   }
 
-  if (!map_coalescing_objs->vectors.empty()) {
-    return {};
-  }
-
-  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(map_coalescing_objs->dchain)) {
-    return {};
-  }
-
   if (!ctx.can_impl_ds(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
       !ctx.can_impl_ds(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -362,14 +360,6 @@ std::vector<impl_t> FCFSCachedTableInsertFactory::process_node(const EP *ep, con
     return {};
   }
 
-  if (!map_coalescing_objs->vectors.empty()) {
-    return {};
-  }
-
-  if (!ep->get_ctx().is_dchain_used_exclusively_for_linking_maps_with_vectors(map_coalescing_objs->dchain)) {
-    return {};
-  }
-
   if (!ep->get_ctx().can_impl_ds(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
       !ep->get_ctx().can_impl_ds(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -413,16 +403,13 @@ std::unique_ptr<Module> FCFSCachedTableInsertFactory::create(const BDD *bdd, con
     return {};
   }
 
-  if (!map_coalescing_objs->vectors.empty()) {
-    return {};
-  }
-
-  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(map_coalescing_objs->dchain)) {
-    return {};
-  }
-
   if (!ctx.check_ds_impl(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
       !ctx.check_ds_impl(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
+    return {};
+  }
+
+  if (std::any_of(map_coalescing_objs->vectors.begin(), map_coalescing_objs->vectors.end(),
+                  [&](addr_t vector) { return !ctx.can_impl_ds(vector, DSImpl::Tofino_FCFSCachedTable); })) {
     return {};
   }
 

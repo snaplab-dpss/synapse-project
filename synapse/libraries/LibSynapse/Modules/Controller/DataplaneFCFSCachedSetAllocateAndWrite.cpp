@@ -30,9 +30,6 @@ bool is_allocate_and_write(const BDD *bdd, const BDDNode *node, allocate_and_wri
   }
 
   const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
-  if (!bdd->is_index_alloc_on_unsuccessful_map_get(dchain_allocate_new_index)) {
-    return false;
-  }
 
   const branch_direction_t index_alloc_success_direction = bdd->find_branch_checking_index_alloc(dchain_allocate_new_index);
   if (index_alloc_success_direction.branch == nullptr) {

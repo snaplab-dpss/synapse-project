@@ -387,12 +387,12 @@ std::optional<spec_impl_t> FCFSCachedSetReadInsertFactory::speculate(const EP *e
   new_ctx.save_ds_impl(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet);
   new_ctx.save_ds_impl(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedSet);
 
-  speculate_sending_to_controller(ep, node, new_ctx, 1_hr - chosen_success_estimation);
+  speculate_sending_to_controller(ep, pattern.dchain_allocate_new_index, new_ctx, 1_hr - chosen_success_estimation);
 
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_SET_CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
 
   const std::vector<const BDDNode *> ignore_nodes =
-      get_nodes_to_speculatively_ignore(ep, pattern.dchain_allocate_new_index, map_coalescing_objs.value(), data.original_key);
+      get_nodes_to_speculatively_ignore(ep, pattern.map_get, map_coalescing_objs.value(), data.original_key);
   for (const BDDNode *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
   }

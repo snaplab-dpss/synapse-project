@@ -37,7 +37,7 @@ struct EPLeaf {
   EPLeaf(const EPLeaf &other) : node(other.node), next(other.next) {}
 };
 
-struct complete_speculation_t {
+struct speculations_t {
   std::vector<spec_impl_t> speculations_per_node;
   Context final_ctx;
 };
@@ -64,7 +64,7 @@ private:
 
   mutable std::optional<pps_t> cached_tput_estimation;
   mutable std::optional<pps_t> cached_tput_speculation;
-  mutable std::optional<complete_speculation_t> cached_speculations;
+  mutable std::optional<speculations_t> cached_speculations;
 
 public:
   EP(const BDD &bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
@@ -138,7 +138,7 @@ public:
   // 2. Speculative decisions that would perform BDD manipulations don't actually make them. Newer parts of the BDD are
   // abandoned during speculation, along with their hit rates.
   //   - This makes the speculation pessismistic, as part of the traffic will be lost.
-  complete_speculation_t speculate() const;
+  speculations_t speculate() const;
   pps_t speculate_tput_pps() const;
 
   void debug() const;
@@ -166,8 +166,8 @@ private:
     WithoutLookahead,
   };
 
-  complete_speculation_t speculate(const Context &ctx, std::list<speculation_target_t> speculation_target_nodes, pps_t ingress,
-                                   SpeculationStrategy lookahead = SpeculationStrategy::WithLookahead) const;
+  speculations_t speculate(const Context &ctx, std::list<speculation_target_t> speculation_target_nodes, pps_t ingress,
+                           SpeculationStrategy lookahead = SpeculationStrategy::WithLookahead) const;
   spec_impl_t get_best_speculation(const speculation_target_t &speculation_target, const Context &ctx, pps_t ingress,
                                    const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy lookahead) const;
   bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const speculation_target_t &speculation_target,

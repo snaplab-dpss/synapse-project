@@ -122,8 +122,11 @@ bool is_read_insert_pattern(const BDD *bdd, const BDDNode *node, pattern_t &patt
   return true;
 }
 
-std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, const BDDNode *node, const map_coalescing_objs_t &map_objs,
+std::vector<const BDDNode *> get_nodes_to_speculatively_ignore(const EP *ep, const BDDNode *node, map_coalescing_objs_t map_objs,
                                                                klee::ref<klee::Expr> key) {
+  // Don't ignore the vectors.
+  map_objs.vectors.clear();
+
   const std::vector<const Call *> coalescing_nodes = node->get_coalescing_nodes_from_key(key, map_objs);
 
   std::vector<const BDDNode *> nodes_to_ignore;
@@ -169,9 +172,12 @@ BDDNode *send_to_controller_on_cached_insert_failed(BDD *bdd, const Branch *cach
       on_cached_insert_failed->get_id(), SendToController::force_send_to_controller_bdd_node_function_name(), Symbols({symbol_reordering_barrier}));
 }
 
-BDDNode *delete_coalescing_nodes_and_alloc_failure_on_success(BDD *bdd, BDDNode *on_success, const pattern_t &pattern,
-                                                              const map_coalescing_objs_t &map_objs, klee::ref<klee::Expr> key,
+BDDNode *delete_coalescing_nodes_and_alloc_failure_on_success(BDD *bdd, BDDNode *on_success, const pattern_t &pattern, map_coalescing_objs_t map_objs,
+                                                              klee::ref<klee::Expr> key,
                                                               std::vector<klee::ref<klee::Expr>> &deleted_branch_constraints) {
+  // Don't remove the vectors, we only care about the map and dchain for FCFS CT.
+  map_objs.vectors.clear();
+
   const std::vector<const Call *> targets = on_success->get_coalescing_nodes_from_key(key, map_objs);
   for (const BDDNode *target : targets) {
     BDDNode *new_node = bdd->delete_non_branch(target->get_id());
@@ -343,14 +349,6 @@ std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP 
     return {};
   }
 
-  if (!map_coalescing_objs->vectors.empty()) {
-    return {};
-  }
-
-  if (!ctx.is_dchain_used_exclusively_for_linking_maps_with_vectors(map_coalescing_objs->dchain)) {
-    return {};
-  }
-
   if (!ctx.can_impl_ds(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
       !ctx.can_impl_ds(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
     return {};
@@ -397,12 +395,12 @@ std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP 
   new_ctx.save_ds_impl(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable);
   new_ctx.save_ds_impl(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedTable);
 
-  speculate_sending_to_controller(ep, node, new_ctx, 1_hr - chosen_success_estimation);
+  speculate_sending_to_controller(ep, pattern.dchain_allocate_new_index, new_ctx, 1_hr - chosen_success_estimation);
 
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
 
   const std::vector<const BDDNode *> ignore_nodes =
-      get_nodes_to_speculatively_ignore(ep, pattern.dchain_allocate_new_index, map_coalescing_objs.value(), data.original_key);
+      get_nodes_to_speculatively_ignore(ep, pattern.map_get, map_coalescing_objs.value(), data.original_key);
   for (const BDDNode *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
   }
@@ -420,14 +418,6 @@ std::vector<impl_t> FCFSCachedTableReadInsertFactory::process_node(const EP *ep,
 
   const std::optional<map_coalescing_objs_t> map_coalescing_objs = ep->get_ctx().get_map_coalescing_objs(data.obj);
   if (!map_coalescing_objs.has_value()) {
-    return {};
-  }
-
-  if (!map_coalescing_objs->vectors.empty()) {
-    return {};
-  }
-
-  if (!ep->get_ctx().is_dchain_used_exclusively_for_linking_maps_with_vectors(map_coalescing_objs->dchain)) {
     return {};
   }
 
