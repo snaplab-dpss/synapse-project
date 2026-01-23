@@ -14,9 +14,9 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <719'668'900,0,56,-5,-25'785'024>
-  Tput: 506.65 Gbps (719.67 Mpps)
-  Spec: 506.65 Gbps (719.67 Mpps)
+  Score: <403'265'800,0,56,-5,-25'785'024>
+  Tput: 283.90 Gbps (403.27 Mpps)
+  Spec: 283.90 Gbps (403.27 Mpps)
   Recirculations: 0
   BDD Progress: 56 / 62
   Stages: 5
@@ -109,10 +109,10 @@ Search Metadata:
     Node 249: 0
 
 Global Stats:
-  Num phase 1 speculations: 18'284 (100%)
-  Num phase 2 speculations: 912 (4.98797%)
-  Num phase 3 speculations: 896 (4.90046%)
-  Num speculated modules:   226'836
+  Num phase 1 speculations: 18'252 (100%)
+  Num phase 2 speculations: 898 (4.92001%)
+  Num phase 3 speculations: 882 (4.83235%)
+  Num speculated modules:   226'028
   Num EPs generated:        175
 
 Switch placement:
@@ -140,7 +140,7 @@ SRAM: 715'440/1'310'720 B (54.5837%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 278'528/786'432 B (35.4167%)
 Exact Match Crossbar: 40/128 B (31.25%)
-Objs: [fcfs_ct_1074044080_reg_liveness,fcfs_ct_1074044080_hash_155,fcfs_ct_1074044080_hash_142,fcfs_ct_1074044080_table_155]
+Objs: [fcfs_ct_1074044080_hash_155,fcfs_ct_1074044080_reg_liveness,fcfs_ct_1074044080_hash_142,fcfs_ct_1074044080_table_155]
 -------------------------------------
 -------------------------------------
 Stage 3

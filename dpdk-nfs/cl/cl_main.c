@@ -64,9 +64,9 @@ int allocate_flow(struct flow *flow, time_ns_t time) {
     return false;
   }
 
-  NF_DEBUG("Allocating %u.%u.%u.%u:%u => %u.%u.%u.%u:%u", (flow->src_ip >> 0) & 0xff, (flow->src_ip >> 8) & 0xff,
-           (flow->src_ip >> 16) & 0xff, (flow->src_ip >> 24) & 0xff, flow->src_port, (flow->dst_ip >> 0) & 0xff, (flow->dst_ip >> 8) & 0xff,
-           (flow->dst_ip >> 16) & 0xff, (flow->dst_ip >> 24) & 0xff, flow->dst_port);
+  NF_DEBUG("Allocating %u.%u.%u.%u:%u => %u.%u.%u.%u:%u", (flow->src_ip >> 0) & 0xff, (flow->src_ip >> 8) & 0xff, (flow->src_ip >> 16) & 0xff,
+           (flow->src_ip >> 24) & 0xff, flow->src_port, (flow->dst_ip >> 0) & 0xff, (flow->dst_ip >> 8) & 0xff, (flow->dst_ip >> 16) & 0xff,
+           (flow->dst_ip >> 24) & 0xff, flow->dst_port);
 
   struct flow *new_flow = NULL;
   vector_borrow(state->flows_keys, flow_index, (void **)&new_flow);
@@ -130,18 +130,17 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
     NF_DEBUG("Outgoing packet. Not limiting clients.");
   } else {
     struct flow flow = {
-        .src_port = tcpudp_header->src_port,
-        .dst_port = tcpudp_header->dst_port,
         .src_ip   = rte_ipv4_header->src_addr,
         .dst_ip   = rte_ipv4_header->dst_addr,
-        .protocol = rte_ipv4_header->next_proto_id,
+        .src_port = tcpudp_header->src_port,
+        .dst_port = tcpudp_header->dst_port,
     };
 
     if (limit_clients(&flow, now) == 0) {
       // Drop packet.
-      NF_DEBUG("Limiting   %u.%u.%u.%u:%u => %u.%u.%u.%u:%u", (flow.src_ip >> 0) & 0xff, (flow.src_ip >> 8) & 0xff,
-               (flow.src_ip >> 16) & 0xff, (flow.src_ip >> 24) & 0xff, flow.src_port, (flow.dst_ip >> 0) & 0xff, (flow.dst_ip >> 8) & 0xff,
-               (flow.dst_ip >> 16) & 0xff, (flow.dst_ip >> 24) & 0xff, flow.dst_port);
+      NF_DEBUG("Limiting   %u.%u.%u.%u:%u => %u.%u.%u.%u:%u", (flow.src_ip >> 0) & 0xff, (flow.src_ip >> 8) & 0xff, (flow.src_ip >> 16) & 0xff,
+               (flow.src_ip >> 24) & 0xff, flow.src_port, (flow.dst_ip >> 0) & 0xff, (flow.dst_ip >> 8) & 0xff, (flow.dst_ip >> 16) & 0xff,
+               (flow.dst_ip >> 24) & 0xff, flow.dst_port);
       return DROP;
     }
   }

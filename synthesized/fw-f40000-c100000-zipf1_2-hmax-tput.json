@@ -2,10 +2,10 @@
   "bdd": "fw.bdd",
   "global_stats": {
     "num_execution_plans_generated": 175,
-    "num_phase1_speculations": 18284,
-    "num_phase2_speculations": 912,
-    "num_phase3_speculations": 896,
-    "num_speculated_modules": 226836
+    "num_phase1_speculations": 18252,
+    "num_phase2_speculations": 898,
+    "num_phase3_speculations": 882,
+    "num_speculated_modules": 226028
   },
   "heuristic": {
     "meta": [
@@ -30,7 +30,7 @@
         "name": "Stages"
       },
       {
-        "description": "22639296 bits",
+        "description": "25785024 bits",
         "name": "Memory Usage"
       }
     ],
@@ -39,7 +39,7 @@
       0,
       56,
       -5,
-      -22639296
+      -25785024
     ]
   },
   "implementations": [

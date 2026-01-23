@@ -14,9 +14,9 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <230'572'200,0,56,-5,-25'785'024>
-  Tput: 162.32 Gbps (230.57 Mpps)
-  Spec: 162.32 Gbps (230.57 Mpps)
+  Score: <122'625'400,0,56,-5,-25'785'024>
+  Tput: 86.33 Gbps (122.63 Mpps)
+  Spec: 86.33 Gbps (122.63 Mpps)
   Recirculations: 0
   BDD Progress: 56 / 62
   Stages: 5
@@ -109,10 +109,10 @@ Search Metadata:
     Node 249: 0
 
 Global Stats:
-  Num phase 1 speculations: 18'572 (100%)
-  Num phase 2 speculations: 918 (4.94292%)
-  Num phase 3 speculations: 902 (4.85677%)
-  Num speculated modules:   230'454
+  Num phase 1 speculations: 18'540 (100%)
+  Num phase 2 speculations: 904 (4.87594%)
+  Num phase 3 speculations: 888 (4.78964%)
+  Num speculated modules:   229'646
   Num EPs generated:        175
 
 Switch placement:

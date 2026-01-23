@@ -19,7 +19,7 @@ struct State *allocated_nf_state = NULL;
 bool port_validity(void *value, int index, void *state) {
   uint16_t dev       = *(uint16_t *)value;
   uint16_t dev_count = rte_eth_dev_count_avail();
-  return (dev >= 0) AND((dev < dev_count) OR(dev == DROP));
+  return (dev >= 0) AND(dev < dev_count);
 }
 
 bool bool_invariant(void *value, int index, void *state) { return (*(int *)value == 0) | (*(int *)value == 1); }

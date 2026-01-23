@@ -344,8 +344,8 @@ control Ingress(
     size = 36;
   }
 
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) fcfs_ct_1074044080_hash_142;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) fcfs_ct_1074044080_hash_155;
+  Hash<bit<12>>(HashAlgorithm_t.CRC32) fcfs_ct_1074044080_hash_142;
+  Hash<bit<12>>(HashAlgorithm_t.CRC32) fcfs_ct_1074044080_hash_155;
   Register<bit<32>,_>(65536, 0) fcfs_ct_1074044080_reg_liveness;
   RegisterAction<bit<32>, bit<32>, bool>(fcfs_ct_1074044080_reg_liveness) fcfs_ct_1074044080_reg_liveness_query_timestamp = {
     void apply(inout bit<32> alarm, out bool was_alive) {
@@ -368,14 +368,14 @@ control Ingress(
     }
   };
 
-  Register<bit<32>,_>(1024, 0) fcfs_ct_1074044080_reg_key_0;
-  RegisterAction<bit<32>, bit<10>, void>(fcfs_ct_1074044080_reg_key_0) fcfs_ct_1074044080_reg_key_0_write = {
+  Register<bit<32>,_>(4096, 0) fcfs_ct_1074044080_reg_key_0;
+  RegisterAction<bit<32>, bit<12>, void>(fcfs_ct_1074044080_reg_key_0) fcfs_ct_1074044080_reg_key_0_write = {
     void apply(inout bit<32> value) {
       value = meta.fcfs_ct_1074044080_key_32b_0;
     }
   };
 
-  RegisterAction<bit<32>, bit<10>, bit<8>>(fcfs_ct_1074044080_reg_key_0) fcfs_ct_1074044080_reg_key_0_check_value = {
+  RegisterAction<bit<32>, bit<12>, bit<8>>(fcfs_ct_1074044080_reg_key_0) fcfs_ct_1074044080_reg_key_0_check_value = {
     void apply(inout bit<32> curr_value, out bit<8> match) {
       if (curr_value == meta.fcfs_ct_1074044080_key_32b_0) {
         match = 1;
@@ -385,14 +385,14 @@ control Ingress(
     }
   };
 
-  Register<bit<32>,_>(1024, 0) fcfs_ct_1074044080_reg_key_1;
-  RegisterAction<bit<32>, bit<10>, void>(fcfs_ct_1074044080_reg_key_1) fcfs_ct_1074044080_reg_key_1_write = {
+  Register<bit<32>,_>(4096, 0) fcfs_ct_1074044080_reg_key_1;
+  RegisterAction<bit<32>, bit<12>, void>(fcfs_ct_1074044080_reg_key_1) fcfs_ct_1074044080_reg_key_1_write = {
     void apply(inout bit<32> value) {
       value = meta.fcfs_ct_1074044080_key_32b_1;
     }
   };
 
-  RegisterAction<bit<32>, bit<10>, bit<8>>(fcfs_ct_1074044080_reg_key_1) fcfs_ct_1074044080_reg_key_1_check_value = {
+  RegisterAction<bit<32>, bit<12>, bit<8>>(fcfs_ct_1074044080_reg_key_1) fcfs_ct_1074044080_reg_key_1_check_value = {
     void apply(inout bit<32> curr_value, out bit<8> match) {
       if (curr_value == meta.fcfs_ct_1074044080_key_32b_1) {
         match = 1;
@@ -402,14 +402,14 @@ control Ingress(
     }
   };
 
-  Register<bit<16>,_>(1024, 0) fcfs_ct_1074044080_reg_key_2;
-  RegisterAction<bit<16>, bit<10>, void>(fcfs_ct_1074044080_reg_key_2) fcfs_ct_1074044080_reg_key_2_write = {
+  Register<bit<16>,_>(4096, 0) fcfs_ct_1074044080_reg_key_2;
+  RegisterAction<bit<16>, bit<12>, void>(fcfs_ct_1074044080_reg_key_2) fcfs_ct_1074044080_reg_key_2_write = {
     void apply(inout bit<16> value) {
       value = meta.fcfs_ct_1074044080_key_16b_2;
     }
   };
 
-  RegisterAction<bit<16>, bit<10>, bit<8>>(fcfs_ct_1074044080_reg_key_2) fcfs_ct_1074044080_reg_key_2_check_value = {
+  RegisterAction<bit<16>, bit<12>, bit<8>>(fcfs_ct_1074044080_reg_key_2) fcfs_ct_1074044080_reg_key_2_check_value = {
     void apply(inout bit<16> curr_value, out bit<8> match) {
       if (curr_value == meta.fcfs_ct_1074044080_key_16b_2) {
         match = 1;
@@ -419,14 +419,14 @@ control Ingress(
     }
   };
 
-  Register<bit<16>,_>(1024, 0) fcfs_ct_1074044080_reg_key_3;
-  RegisterAction<bit<16>, bit<10>, void>(fcfs_ct_1074044080_reg_key_3) fcfs_ct_1074044080_reg_key_3_write = {
+  Register<bit<16>,_>(4096, 0) fcfs_ct_1074044080_reg_key_3;
+  RegisterAction<bit<16>, bit<12>, void>(fcfs_ct_1074044080_reg_key_3) fcfs_ct_1074044080_reg_key_3_write = {
     void apply(inout bit<16> value) {
       value = meta.fcfs_ct_1074044080_key_16b_3;
     }
   };
 
-  RegisterAction<bit<16>, bit<10>, bit<8>>(fcfs_ct_1074044080_reg_key_3) fcfs_ct_1074044080_reg_key_3_check_value = {
+  RegisterAction<bit<16>, bit<12>, bit<8>>(fcfs_ct_1074044080_reg_key_3) fcfs_ct_1074044080_reg_key_3_check_value = {
     void apply(inout bit<16> curr_value, out bit<8> match) {
       if (curr_value == meta.fcfs_ct_1074044080_key_16b_3) {
         match = 1;
@@ -455,7 +455,7 @@ control Ingress(
     idle_timeout = true;
   }
 
-  bit<10> fcfs_ct_1074044080_hash_142_value;
+  bit<12> fcfs_ct_1074044080_hash_142_value;
   action fcfs_ct_1074044080_hash_142_calc() {
     fcfs_ct_1074044080_hash_142_value = fcfs_ct_1074044080_hash_142.get({
       meta.fcfs_ct_1074044080_key_32b_0,
@@ -463,7 +463,7 @@ control Ingress(
       meta.fcfs_ct_1074044080_key_16b_2,
       meta.fcfs_ct_1074044080_key_16b_3
       });
-      fcfs_ct_1074044080_table_142_get_value_param0[9:0] = fcfs_ct_1074044080_hash_142_value;
+      fcfs_ct_1074044080_table_142_get_value_param0[11:0] = fcfs_ct_1074044080_hash_142_value;
   }
   bit<16> vector_table_1074093704_149_get_value_param0 = 16w0;
   action vector_table_1074093704_149_get_value(bit<16> _vector_table_1074093704_149_get_value_param0) {
@@ -499,7 +499,7 @@ control Ingress(
     idle_timeout = true;
   }
 
-  bit<10> fcfs_ct_1074044080_hash_155_value;
+  bit<12> fcfs_ct_1074044080_hash_155_value;
   action fcfs_ct_1074044080_hash_155_calc() {
     fcfs_ct_1074044080_hash_155_value = fcfs_ct_1074044080_hash_155.get({
       meta.fcfs_ct_1074044080_key_32b_0,
@@ -507,7 +507,7 @@ control Ingress(
       meta.fcfs_ct_1074044080_key_16b_2,
       meta.fcfs_ct_1074044080_key_16b_3
       });
-      fcfs_ct_1074044080_table_155_get_value_param0[9:0] = fcfs_ct_1074044080_hash_155_value;
+      fcfs_ct_1074044080_table_155_get_value_param0[11:0] = fcfs_ct_1074044080_hash_155_value;
   }
   bit<16> vector_table_1074093704_175_get_value_param0 = 16w0;
   action vector_table_1074093704_175_get_value(bit<16> _vector_table_1074093704_175_get_value_param0) {
@@ -578,7 +578,7 @@ control Ingress(
             if ((32w0x00000000) == (vector_table_1074076488_139_get_value_param0)){
               // EP node  332:Then
               // BDD node 141:if
-              // EP node  554:FCFSCachedTableRead
+              // EP node  586:FCFSCachedTableRead
               // BDD node 142:map_get
               meta.fcfs_ct_1074044080_key_32b_0 = hdr.hdr1.data4;
               meta.fcfs_ct_1074044080_key_32b_1 = hdr.hdr1.data3;
@@ -623,7 +623,7 @@ control Ingress(
             } else {
               // EP node  333:Else
               // BDD node 141:if
-              // EP node  821:FCFSCachedTableReadInsert
+              // EP node  853:FCFSCachedTableReadInsert
               // BDD node 155:map_get
               meta.fcfs_ct_1074044080_key_32b_0 = hdr.hdr1.data3;
               meta.fcfs_ct_1074044080_key_32b_1 = hdr.hdr1.data4;
@@ -651,10 +651,10 @@ control Ingress(
                   cached_insert_success0 = 1;
                 }
               }
-              // EP node  822:If
+              // EP node  854:If
               // BDD node 155:map_get
               if (hit1){
-                // EP node  823:Then
+                // EP node  855:Then
                 // BDD node 155:map_get
                 // EP node  2139:VectorTableLookup
                 // BDD node 175:vector_borrow
@@ -668,12 +668,12 @@ control Ingress(
                 // BDD node 180:FORWARD
                 nf_dev[15:0] = vector_table_1074093704_175_get_value_param0;
               } else {
-                // EP node  824:Else
+                // EP node  856:Else
                 // BDD node 155:map_get
-                // EP node  825:If
+                // EP node  857:If
                 // BDD node 155:map_get
                 if ((cached_insert_success0) != (32w0x00000000)){
-                  // EP node  826:Then
+                  // EP node  858:Then
                   // BDD node 155:map_get
                   // EP node  2948:VectorTableLookup
                   // BDD node 168:vector_borrow
@@ -685,7 +685,7 @@ control Ingress(
                   // BDD node 173:FORWARD
                   nf_dev[15:0] = vector_table_1074093704_168_get_value_param0;
                 } else {
-                  // EP node  827:Else
+                  // EP node  859:Else
                   // BDD node 155:map_get
                   // EP node  3711:SendToController
                   // BDD node 263:tofino_force_send_to_controller
