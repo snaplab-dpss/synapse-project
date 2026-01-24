@@ -250,6 +250,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *map_table_lookup_ep_node = new EPNode(ctrl_map_table_lookup);
       initial_controller_logic.update(map_table_lookup_ep_node);
+
+      if (map_table_lookup->get_node()) {
+        initial_controller_logic.extra_symbols.add(map_table_lookup->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_MapSetTableLookup: {
       const MapSetTableLookup *map_set_table_lookup = dynamic_cast<const MapSetTableLookup *>(prev.module);
@@ -259,6 +263,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *map_set_table_lookup_ep_node = new EPNode(ctrl_map_set_table_lookup);
       initial_controller_logic.update(map_set_table_lookup_ep_node);
+
+      if (map_set_table_lookup->get_node()) {
+        initial_controller_logic.extra_symbols.add(map_set_table_lookup->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_GuardedMapTableLookup: {
       const GuardedMapTableLookup *guarded_map_table_lookup = dynamic_cast<const GuardedMapTableLookup *>(prev.module);
@@ -269,6 +277,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *guarded_map_table_lookup_ep_node = new EPNode(ctrl_guarded_map_table_lookup);
       initial_controller_logic.update(guarded_map_table_lookup_ep_node);
+
+      if (guarded_map_table_lookup->get_node()) {
+        initial_controller_logic.extra_symbols.add(guarded_map_table_lookup->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_GuardedMapTableGuardCheck: {
       const GuardedMapTableGuardCheck *guarded_map_table_guard_check = dynamic_cast<const GuardedMapTableGuardCheck *>(prev.module);
@@ -279,6 +291,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *guarded_map_table_guard_check_ep_node = new EPNode(ctrl_guarded_map_table_guard_check);
       initial_controller_logic.update(guarded_map_table_guard_check_ep_node);
+
+      if (guarded_map_table_guard_check->get_node()) {
+        initial_controller_logic.extra_symbols.add(guarded_map_table_guard_check->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_VectorTableLookup: {
       const VectorTableLookup *vector_table_lookup = dynamic_cast<const VectorTableLookup *>(prev.module);
@@ -288,6 +304,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *vector_table_lookup_ep_node = new EPNode(ctrl_vector_table_lookup);
       initial_controller_logic.update(vector_table_lookup_ep_node);
+
+      if (vector_table_lookup->get_node()) {
+        initial_controller_logic.extra_symbols.add(vector_table_lookup->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_DchainTableLookup: {
       const DchainTableLookup *dchain_table_lookup = dynamic_cast<const DchainTableLookup *>(prev.module);
@@ -301,6 +321,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *dchain_is_index_allocated_ep_node = new EPNode(ctrl_dchain_is_index_allocated);
       initial_controller_logic.update(dchain_is_index_allocated_ep_node);
+
+      if (dchain_table_lookup->get_node()) {
+        initial_controller_logic.extra_symbols.add(dchain_table_lookup->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_FCFSCachedTableRead: {
       const FCFSCachedTableRead *fcfs_ct_read = dynamic_cast<const FCFSCachedTableRead *>(prev.module);
@@ -311,6 +335,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *fcfs_ct_read_ep_node = new EPNode(ctrl_fcfs_ct_read);
       initial_controller_logic.update(fcfs_ct_read_ep_node);
+
+      if (fcfs_ct_read->get_node()) {
+        initial_controller_logic.extra_symbols.add(fcfs_ct_read->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_FCFSCachedTableReadInsert: {
       const FCFSCachedTableReadInsert *fcfs_ct_read_insert = dynamic_cast<const FCFSCachedTableReadInsert *>(prev.module);
@@ -321,6 +349,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *fcfs_ct_read_insert_ep_node = new EPNode(ctrl_fcfs_ct_read);
       initial_controller_logic.update(fcfs_ct_read_insert_ep_node);
+
+      if (fcfs_ct_read_insert->get_node()) {
+        initial_controller_logic.extra_symbols.add(fcfs_ct_read_insert->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_FCFSCachedTableIsIndexAllocated: {
       const FCFSCachedTableIsIndexAllocated *fcfs_ct_is_index_allocated = dynamic_cast<const FCFSCachedTableIsIndexAllocated *>(prev.module);
@@ -332,6 +364,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *fcfs_ct_is_index_allocated_ep_node = new EPNode(ctrl_fcfs_ct_is_index_allocated);
       initial_controller_logic.update(fcfs_ct_is_index_allocated_ep_node);
+
+      if (fcfs_ct_is_index_allocated->get_node()) {
+        initial_controller_logic.extra_symbols.add(fcfs_ct_is_index_allocated->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_FCFSCachedSetRead: {
       const FCFSCachedSetRead *fcfs_cs_read = dynamic_cast<const FCFSCachedSetRead *>(prev.module);
@@ -341,6 +377,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *fcfs_cs_read_ep_node = new EPNode(ctrl_fcfs_cs_read);
       initial_controller_logic.update(fcfs_cs_read_ep_node);
+
+      if (fcfs_cs_read->get_node()) {
+        initial_controller_logic.extra_symbols.add(fcfs_cs_read->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_FCFSCachedSetReadInsert: {
       const FCFSCachedSetReadInsert *fcfs_cs_read_insert = dynamic_cast<const FCFSCachedSetReadInsert *>(prev.module);
@@ -350,6 +390,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *fcfs_cs_read_insert_ep_node = new EPNode(ctrl_fcfs_cs_read);
       initial_controller_logic.update(fcfs_cs_read_insert_ep_node);
+
+      if (fcfs_cs_read_insert->get_node()) {
+        initial_controller_logic.extra_symbols.add(fcfs_cs_read_insert->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_HHTableRead: {
       const HHTableRead *hh_table_read = dynamic_cast<const HHTableRead *>(prev.module);
@@ -359,6 +403,10 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
 
       EPNode *hh_table_read_ep_node = new EPNode(ctrl_hh_table_read);
       initial_controller_logic.update(hh_table_read_ep_node);
+
+      if (hh_table_read->get_node()) {
+        initial_controller_logic.extra_symbols.add(hh_table_read->get_node()->get_used_symbols());
+      }
     } break;
     case ModuleType::Tofino_IntegerAllocatorIsAllocated: {
       panic("TODO: implement controller constraints checker logic for IntegerAllocatorIsAllocated");

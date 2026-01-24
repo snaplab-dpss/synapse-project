@@ -5,6 +5,7 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibCore::dbg_mode_active;
 using LibCore::expr_to_string;
 using LibCore::get_unique_symbolic_reads;
 using LibCore::is_conditional;
@@ -103,9 +104,13 @@ code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, tran
   loaded_opt               = opt;
   temporary_transpilations = _temporary_transpilations;
 
-  std::cerr << "Transpiling: " << expr_to_string(expr) << "\n";
+  if (LibCore::dbg_mode_active) {
+    std::cerr << "Transpiling: " << expr_to_string(expr) << "\n";
+  }
   expr = simplify(expr);
-  std::cerr << "Simplified:  " << expr_to_string(expr) << "\n";
+  if (LibCore::dbg_mode_active) {
+    std::cerr << "Simplified:  " << expr_to_string(expr) << "\n";
+  }
 
   coders.emplace();
   coder_t &coder = coders.top();
@@ -1577,7 +1582,10 @@ std::string TofinoSynthesizer::var_t::to_string() const {
   return ss.str();
 }
 
-void TofinoSynthesizer::Stack::push(const var_t &var) {
+void TofinoSynthesizer::Stack::push(const var_t &var, bool allow_duplicated) {
+  if (!allow_duplicated && names.contains(var.name)) {
+    return;
+  }
   frames.push_back(var);
   names.insert(var.name);
 }
@@ -1729,10 +1737,10 @@ void TofinoSynthesizer::Stacks::push() { stacks.emplace_back(); }
 
 void TofinoSynthesizer::Stacks::pop() { stacks.pop_back(); }
 
-void TofinoSynthesizer::Stacks::insert_front(const var_t &var) { stacks.front().push(var); }
+void TofinoSynthesizer::Stacks::insert_front(const var_t &var, bool allow_duplicates) { stacks.front().push(var, allow_duplicates); }
 void TofinoSynthesizer::Stacks::insert_front(const Stack &stack) { stacks.front().push(stack); }
 
-void TofinoSynthesizer::Stacks::insert_back(const var_t &var) { stacks.back().push(var); }
+void TofinoSynthesizer::Stacks::insert_back(const var_t &var, bool allow_duplicates) { stacks.back().push(var, allow_duplicates); }
 void TofinoSynthesizer::Stacks::insert_back(const Stack &stack) { stacks.back().push(stack); }
 
 TofinoSynthesizer::Stack TofinoSynthesizer::Stacks::squash() const {
@@ -2835,10 +2843,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  DS_ID id                          = node->get_id();
-  klee::ref<klee::Expr> index       = node->get_index();
-  klee::ref<klee::Expr> value       = node->get_read_value();
-  klee::ref<klee::Expr> write_value = node->get_write_value();
+  const DS_ID id                          = node->get_id();
+  const klee::ref<klee::Expr> index       = node->get_index();
+  const klee::ref<klee::Expr> value       = node->get_read_value();
+  const klee::ref<klee::Expr> write_value = node->get_write_value();
 
   const VectorRegister *vector_register = get_tofino_ds<VectorRegister>(ep, id);
 
@@ -2864,7 +2872,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
     if (!reg_write_var) {
       const code_t write_expr       = transpiler.transpile(reg_write_expr);
-      const var_t new_reg_write_var = alloc_var("reg_write", reg_write_expr);
+      const var_t new_reg_write_var = alloc_var("reg_write", reg_write_expr, IS_INGRESS_METADATA);
+      declare_var_in_ingress_metadata(new_reg_write_var);
 
       ingress_apply.indent();
       ingress_apply << new_reg_write_var.name << " = " << write_expr << ";\n";
@@ -3162,7 +3171,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // HACK
   var_t value_written_var = *value_var;
   value_written_var.expr  = write_value;
-  ingress_vars.insert_back(value_written_var);
+  ingress_vars.insert_back(value_written_var, true);
 
   ingress_apply.indent();
   ingress_apply << cached_insert_success_var.name << " = 1;\n";

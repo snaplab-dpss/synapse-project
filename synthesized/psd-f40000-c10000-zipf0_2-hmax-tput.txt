@@ -1,0 +1,166 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     psd.bdd
+  Name:               psd-f40000-c10000-zipf0_2-hmax-tput
+  Targets config:     tofino2.toml
+  Heuristic:          max-tput
+  Profile file:       psd-f40000-c10000-zipf0_2.json
+  Seed:               0
+  Targets:
+    Tofino (37 modules)
+    Ctrl (90 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+
+Winner:
+  Score: <1'396'951'100,0,73,-3,-19'096'704>
+  Tput: 983.45 Gbps (1.40 Gpps)
+  Spec: 983.45 Gbps (1.40 Gpps)
+  Recirculations: 0
+  BDD Progress: 73 / 82
+  Stages: 3
+  Memory Usage: 19096704 bits
+
+Stateful Implementations:
+  1074079432: Tofino::Register
+  1074126776: Tofino::VectorTable
+  1074096984: Tofino::BloomFilter
+  1074096568: Tofino::FCFSCachedTable
+  1074048392: Tofino::FCFSCachedTable
+  1074109560: Tofino::VectorTable
+
+Search Metadata:
+  Elapsed time:       93 seconds
+  Steps:              76
+  Backtracks:         2
+  Search space size:  279
+  Unfinished EPs:     203
+  Finished EPs:       1
+  Avg BDD size:       67
+  Branching factor:   3
+  Total SS size est.: 2'847'000'753'441'250
+  Avg children per node:
+    Node 293: 0
+    Node 166: 2
+    Node 179: 0
+    Node 292: 0
+    Node 165: 3
+    Node 191: 4
+    Node 178: 0
+    Node 291: 0
+    Node 164: 3
+    Node 190: 5
+    Node 184: 2
+    Node 177: 0
+    Node 282: 0
+    Node 155: 0
+    Node 149: 0
+    Node 148: 0
+    Node 147: 0
+    Node 146: 0
+    Node 192: 6
+    Node 145: 30
+    Node 193: 5
+    Node 135: 2
+    Node 194: 5
+    Node 136: 3
+    Node 195: 5
+    Node 137: 3
+    Node 196: 5
+    Node 144: 4
+    Node 202: 2
+    Node 143: 5
+    Node 294: 0
+    Node 167: 8
+    Node 138: 3
+    Node 197: 4
+    Node 295: 0
+    Node 168: 5
+    Node 139: 4
+    Node 198: 3
+    Node 296: 0
+    Node 169: 8
+    Node 140: 6
+    Node 199: 6
+    Node 200: 4
+    Node 141: 6
+    Node 142: 7
+    Node 201: 3
+    Node 150: 0
+    Node 283: 0
+    Node 156: 0
+    Node 297: 0
+    Node 170: 0
+    Node 151: 0
+    Node 284: 0
+    Node 157: 0
+    Node 298: 0
+    Node 171: 6
+    Node 152: 0
+    Node 285: 0
+    Node 158: 7
+    Node 299: 0
+    Node 172: 3
+    Node 185: 6
+    Node 153: 0
+    Node 286: 0
+    Node 159: 4
+    Node 300: 2
+    Node 173: 2
+    Node 180: 3
+    Node 186: 5
+    Node 154: 0
+    Node 287: 0
+    Node 160: 6
+    Node 174: 3
+    Node 181: 3
+    Node 187: 5
+    Node 288: 0
+    Node 161: 7
+    Node 175: 3
+    Node 182: 3
+    Node 188: 5
+    Node 289: 0
+    Node 162: 3
+    Node 176: 0
+    Node 183: 3
+    Node 189: 5
+    Node 163: 3
+
+Global Stats:
+  Num phase 1 speculations: 44'116 (100%)
+  Num phase 2 speculations: 1'936 (4.38843%)
+  Num phase 3 speculations: 1'841 (4.17309%)
+  Num speculated modules:   605'045
+  Num EPs generated:        279
+
+Switch placement:
+
+====================== TNA Pipeline ======================
+-------------------------------------
+Stage 0
+SRAM: 783'944/1'310'720 B (59.8102%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 783'944/786'432 B (99.6836%)
+Exact Match Crossbar: 40/128 B (31.25%)
+Objs: [vector_table_1074126776_161,vector_table_1074126776_192,vector_table_1074126776_174,fcfs_ct_1074048392_reg_key_0,bf_1074096984_hash_0,fcfs_ct_1074048392_hash_145,fcfs_ct_1074048392_table_145,fcfs_ct_1074048392_reg_liveness,vector_table_1074126776_186,vector_table_1074109560_142]
+-------------------------------------
+-------------------------------------
+Stage 1
+SRAM: 81'920/1'310'720 B (6.25%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 81'920/786'432 B (10.4167%)
+Exact Match Crossbar: 26/128 B (20.3125%)
+Objs: [bf_1074096984_hash_1,bf_1074096984_row_3,bf_1074096984_hash_2,bf_1074096984_row_2,bf_1074096984_row_1,bf_1074096984_row_0,bf_1074096984_hash_3]
+-------------------------------------
+-------------------------------------
+Stage 2
+SRAM: 327'680/1'310'720 B (25%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 327'680/786'432 B (41.6667%)
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1074079432_0]
+-------------------------------------
+==========================================================
+========================================================

@@ -9,6 +9,7 @@ namespace Controller {
 namespace {
 
 using LibCore::bytes_in_expr;
+using LibCore::dbg_mode_active;
 using LibCore::expr_to_string;
 using LibCore::get_unique_symbolic_reads;
 using LibCore::is_constant;
@@ -90,9 +91,13 @@ ControllerSynthesizer::Transpiler::Transpiler(const ControllerSynthesizer *_synt
 code_t ControllerSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, transpiler_opt_t opt) {
   loaded_opt = opt;
 
-  std::cerr << "Transpiling: " << expr_to_string(expr) << "\n";
+  if (LibCore::dbg_mode_active) {
+    std::cerr << "Transpiling: " << expr_to_string(expr) << "\n";
+  }
   expr = simplify(expr);
-  std::cerr << "Simplified:  " << expr_to_string(expr) << "\n";
+  if (LibCore::dbg_mode_active) {
+    std::cerr << "Simplified:  " << expr_to_string(expr) << "\n";
+  }
 
   coders.emplace();
   coder_t &coder = coders.top();

@@ -135,7 +135,7 @@ private:
     Stack(Stack &&other)                 = default;
     Stack &operator=(const Stack &other) = default;
 
-    void push(const var_t &var);
+    void push(const var_t &var, bool allow_duplicates = false);
     void push(const Stack &stack);
     void clear();
 
@@ -163,10 +163,10 @@ private:
     void pop();
     void clear();
 
-    void insert_front(const var_t &var);
+    void insert_front(const var_t &var, bool allow_duplicates = false);
     void insert_front(const Stack &stack);
 
-    void insert_back(const var_t &var);
+    void insert_back(const var_t &var, bool allow_duplicates = false);
     void insert_back(const Stack &stack);
 
     Stack squash() const;
