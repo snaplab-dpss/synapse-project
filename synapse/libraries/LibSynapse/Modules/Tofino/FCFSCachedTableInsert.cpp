@@ -238,8 +238,8 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const pattern_
                                const Call *map_put) {
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  FCFSCachedTable *fcfs_cached_set = TofinoModuleFactory::build_or_reuse_fcfs_ct(new_ep.get(), node, map_coalescing_objs.map,
-                                                                                 fcfs_ct_data.original_key, fcfs_ct_data.capacity, cache_capacity);
+  FCFSCachedTable *fcfs_cached_set = TofinoModuleFactory::build_or_reuse_fcfs_ct(
+      new_ep.get(), node, map_coalescing_objs.map, fcfs_ct_data.original_key, fcfs_ct_data.capacity, cache_capacity, false);
   if (!fcfs_cached_set) {
     return nullptr;
   }
@@ -321,7 +321,7 @@ std::optional<spec_impl_t> FCFSCachedTableInsertFactory::speculate(const EP *ep,
     const hit_rate_t success_estimation =
         1_hr - TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(ep->get_ctx(), target_for_stats, data.original_key, cache_capacity);
 
-    if (!can_build_or_reuse_fcfs_ct(ep, node, map_coalescing_objs->map, data.original_key, data.capacity, cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_ct(ep, node, map_coalescing_objs->map, data.original_key, data.capacity, cache_capacity, false)) {
       continue;
     }
 
@@ -381,7 +381,7 @@ std::vector<impl_t> FCFSCachedTableInsertFactory::process_node(const EP *ep, con
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : enum_fcfs_ct_cache_capacities(data.capacity)) {
-    if (!can_build_or_reuse_fcfs_ct(ep, node, map_coalescing_objs->map, data.original_key, data.capacity, cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_ct(ep, node, map_coalescing_objs->map, data.original_key, data.capacity, cache_capacity, false)) {
       continue;
     }
 

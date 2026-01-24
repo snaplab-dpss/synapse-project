@@ -55,7 +55,7 @@ std::optional<spec_impl_t> FCFSCachedTableIsIndexAllocatedFactory::speculate(con
   // Let's optimistically pick the largest cache capacity that we can build or reuse.
   std::optional<u32> cache_capacity;
   for (u32 cache_capacity_candidate : allowed_cache_capacities) {
-    if (can_build_or_reuse_fcfs_ct(ep, node, map_objs->map, original_key, capacity, cache_capacity_candidate)) {
+    if (can_build_or_reuse_fcfs_ct(ep, node, map_objs->map, original_key, capacity, cache_capacity_candidate, false)) {
       cache_capacity = cache_capacity_candidate;
       break;
     }
@@ -119,13 +119,13 @@ std::vector<impl_t> FCFSCachedTableIsIndexAllocatedFactory::process_node(const E
   std::vector<impl_t> impls;
 
   for (u32 cache_capacity : enum_fcfs_ct_cache_capacities(capacity)) {
-    if (!can_build_or_reuse_fcfs_ct(ep, node, map_objs->map, original_key, capacity, cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_ct(ep, node, map_objs->map, original_key, capacity, cache_capacity, false)) {
       continue;
     }
 
     std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-    FCFSCachedTable *fcfs_ct = build_or_reuse_fcfs_ct(new_ep.get(), node, map_objs->map, original_key, capacity, cache_capacity);
+    FCFSCachedTable *fcfs_ct = build_or_reuse_fcfs_ct(new_ep.get(), node, map_objs->map, original_key, capacity, cache_capacity, false);
     if (!fcfs_ct) {
       continue;
     }

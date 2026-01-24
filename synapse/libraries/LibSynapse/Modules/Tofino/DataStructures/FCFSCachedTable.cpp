@@ -47,7 +47,6 @@ FCFSCachedTable::FCFSCachedTable(const tna_properties_t &properties, DS_ID _id, 
   assert(cache_capacity > 0);
   assert(capacity > 0);
   assert(cache_capacity < capacity);
-  add_table(_op);
   add_hash(_op);
 }
 

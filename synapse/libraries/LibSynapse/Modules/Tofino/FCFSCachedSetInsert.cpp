@@ -231,7 +231,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const pattern_
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   FCFSCachedSet *fcfs_cached_set = TofinoModuleFactory::build_or_reuse_fcfs_cs(new_ep.get(), node, fcfs_cs_data.obj, fcfs_cs_data.original_key,
-                                                                               fcfs_cs_data.capacity, cache_capacity);
+                                                                               fcfs_cs_data.capacity, cache_capacity, false);
   if (!fcfs_cached_set) {
     return nullptr;
   }
@@ -320,7 +320,7 @@ std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, c
     const hit_rate_t success_estimation =
         1_hr - TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(ep->get_ctx(), target_for_stats, data.original_key, cache_capacity);
 
-    if (!can_build_or_reuse_fcfs_cs(ep, node, data.obj, data.original_key, data.capacity, cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_cs(ep, node, data.obj, data.original_key, data.capacity, cache_capacity, false)) {
       continue;
     }
 
@@ -388,7 +388,7 @@ std::vector<impl_t> FCFSCachedSetInsertFactory::process_node(const EP *ep, const
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : enum_fcfs_cs_cache_capacities(data.capacity)) {
-    if (!can_build_or_reuse_fcfs_cs(ep, node, data.obj, data.original_key, data.capacity, cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_cs(ep, node, data.obj, data.original_key, data.capacity, cache_capacity, false)) {
       continue;
     }
 

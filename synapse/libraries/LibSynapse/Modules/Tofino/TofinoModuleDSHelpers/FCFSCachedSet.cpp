@@ -9,7 +9,8 @@ namespace Tofino {
 
 namespace {
 
-FCFSCachedSet *build_fcfs_cs(const EP *ep, const BDDNode *node, DS_ID id, klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity) {
+FCFSCachedSet *build_fcfs_cs(const EP *ep, const BDDNode *node, DS_ID id, klee::ref<klee::Expr> key, u32 capacity, u32 cache_capacity,
+                             bool required_additional_table) {
   const Context &ctx                 = ep->get_ctx();
   const TofinoContext *tofino_ctx    = ctx.get_target_ctx<TofinoContext>();
   const TNA &tna                     = tofino_ctx->get_tna();
@@ -23,6 +24,10 @@ FCFSCachedSet *build_fcfs_cs(const EP *ep, const BDDNode *node, DS_ID id, klee::
   }
 
   FCFSCachedSet *fcfs_cs = new FCFSCachedSet(properties, id, node->get_id(), cache_capacity, capacity, keys_sizes);
+
+  if (required_additional_table) {
+    fcfs_cs->add_table(node->get_id());
+  }
 
   if (!tofino_ctx->can_place(ep, node, fcfs_cs)) {
     delete fcfs_cs;
@@ -48,7 +53,7 @@ FCFSCachedSet *internal_get_fcfs_cs(const EP *ep, const BDDNode *node, addr_t ob
   return dynamic_cast<FCFSCachedSet *>(*ds.begin());
 }
 
-FCFSCachedSet *reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity) {
+FCFSCachedSet *reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity, bool required_additional_table) {
   FCFSCachedSet *fcfs_cs = internal_get_fcfs_cs(ep, node, obj);
   assert(fcfs_cs && "FCFS cached table not found");
 
@@ -60,7 +65,7 @@ FCFSCachedSet *reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, u32 
   }
 
   std::optional<DS_ID> added_table_id;
-  if (!fcfs_cs->has_table(node->get_id())) {
+  if (!fcfs_cs->has_table(node->get_id()) && required_additional_table) {
     added_table_id = fcfs_cs->add_table(node->get_id());
   }
 
@@ -87,23 +92,23 @@ FCFSCachedSet *reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, u32 
 DS_ID TofinoModuleFactory::build_fcfs_cs_id(addr_t obj) { return "fcfs_cs_" + std::to_string(obj); }
 
 FCFSCachedSet *TofinoModuleFactory::build_or_reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
-                                                           u32 cache_capacity) {
+                                                           u32 cache_capacity, bool required_additional_table) {
   FCFSCachedSet *fcfs_cs = nullptr;
 
   const Context &ctx        = ep->get_ctx();
   const bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedSet);
 
   if (already_placed) {
-    fcfs_cs = reuse_fcfs_cs(ep, node, obj, cache_capacity);
+    fcfs_cs = reuse_fcfs_cs(ep, node, obj, cache_capacity, required_additional_table);
   } else {
     const DS_ID id = build_fcfs_cs_id(obj);
-    fcfs_cs        = build_fcfs_cs(ep, node, id, key, capacity, cache_capacity);
+    fcfs_cs        = build_fcfs_cs(ep, node, id, key, capacity, cache_capacity, required_additional_table);
   }
 
   return fcfs_cs;
 }
 
-bool TofinoModuleFactory::can_reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity) {
+bool TofinoModuleFactory::can_reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity, bool required_additional_table) {
   FCFSCachedSet *fcfs_cs = internal_get_fcfs_cs(ep, node, obj);
   assert(fcfs_cs && "FCFS cached table not found");
 
@@ -116,23 +121,25 @@ bool TofinoModuleFactory::can_reuse_fcfs_cs(const EP *ep, const BDDNode *node, a
   }
 
   std::unique_ptr<FCFSCachedSet> clone = std::unique_ptr<FCFSCachedSet>(dynamic_cast<FCFSCachedSet *>(fcfs_cs->clone()));
-  clone->add_table(node->get_id());
+  if (required_additional_table) {
+    clone->add_table(node->get_id());
+  }
   clone->add_hash(node->get_id());
 
   return tofino_ctx->can_place(ep, node, clone.get());
 }
 
 bool TofinoModuleFactory::can_build_or_reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> key, u32 capacity,
-                                                     u32 cache_capacity) {
+                                                     u32 cache_capacity, bool required_additional_table) {
   const Context &ctx        = ep->get_ctx();
   const bool already_placed = ctx.check_ds_impl(obj, DSImpl::Tofino_FCFSCachedSet);
 
   if (already_placed) {
-    return can_reuse_fcfs_cs(ep, node, obj, cache_capacity);
+    return can_reuse_fcfs_cs(ep, node, obj, cache_capacity, required_additional_table);
   }
 
   const DS_ID id         = build_fcfs_cs_id(obj);
-  FCFSCachedSet *fcfs_cs = build_fcfs_cs(ep, node, id, key, capacity, cache_capacity);
+  FCFSCachedSet *fcfs_cs = build_fcfs_cs(ep, node, id, key, capacity, cache_capacity, required_additional_table);
 
   if (!fcfs_cs) {
     return false;
