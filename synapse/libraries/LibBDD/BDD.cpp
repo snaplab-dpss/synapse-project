@@ -1086,6 +1086,10 @@ bool BDD::get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const
     return false;
   }
 
+  if (candidates.maps.size() != 1) {
+    panic("Expecting a single map");
+  }
+
   assert(candidates.maps.size() == 1 && "Expecting a single map");
   assert(candidates.dchains.size() == 1 && "Expecting a single dchain");
 
@@ -1123,23 +1127,18 @@ bool BDD::get_map_coalescing_objs_from_dchain_op(const Call *dchain_op, map_coal
   } else if (call.args.find("chain_out") != call.args.end()) {
     obj = expr_addr_to_obj_addr(call.args.at("chain_out").out);
   } else {
-    panic("No chain argument");
+    return false;
   }
 
   return get_map_coalescing_objs(obj, map_objs);
 }
 
-bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new_index) const {
+bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new_index, const map_coalescing_objs_t &map_objs) const {
   assert(dchain_allocate_new_index && "No dchain_allocate_new_index node");
 
   const call_t &call = dchain_allocate_new_index->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
-    return false;
-  }
-
-  map_coalescing_objs_t map_objs;
-  if (!get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
     return false;
   }
 
@@ -1180,17 +1179,13 @@ bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new
   return solver_toolbox.is_expr_always_false(constraints, found_key);
 }
 
-bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) const {
+bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, const map_coalescing_objs_t &map_objs,
+                                    std::vector<const Call *> &map_puts) const {
   assert(dchain_allocate_new_index && "No dchain_allocate_new_index node");
 
   const call_t &call = dchain_allocate_new_index->get_call();
 
   if (call.function_name != "dchain_allocate_new_index") {
-    return false;
-  }
-
-  map_coalescing_objs_t map_objs;
-  if (!get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
     return false;
   }
 

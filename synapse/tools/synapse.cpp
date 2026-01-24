@@ -71,6 +71,8 @@ struct args_t {
     std::cout << "]\n";
     std::cout << "  Pause on BT:        " << search_config.pause_and_show_on_backtrack << "\n";
     std::cout << "  Not greedy:         " << search_config.not_greedy << "\n";
+    std::cout << "  Assert integrity:   " << search_config.assert_integrity << "\n";
+
     std::cout << "Debug:\n";
     std::cout << "  Show prof:          " << show_prof << "\n";
     std::cout << "  Show EP:            " << show_ep << "\n";
@@ -266,6 +268,7 @@ int main(int argc, char **argv) {
   app.add_flag("--show-ep", args.show_ep, "Show winner Execution Plan.");
   app.add_flag("--show-ss", args.show_ss, "Show the entire search space.");
   app.add_flag("--show-bdd", args.show_bdd, "Show the BDD's solution.");
+  app.add_flag("--assert-integrity", args.search_config.assert_integrity, "Assert integrity of EPs during search.");
   app.add_flag("--backtrack", args.search_config.pause_and_show_on_backtrack, "Pause on backtrack.");
   app.add_flag("--not-greedy", args.search_config.not_greedy, "Don't stop on first solution.");
   app.add_flag("--random-uniform-profile", args.random_uniform_profile, "Use a random uniform profile for the BDD.");

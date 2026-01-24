@@ -72,7 +72,7 @@ anchor_info_t get_anchor_info(const EP *ep) {
   return {anchor->get_id(), false};
 }
 
-std::vector<std::unique_ptr<EP>> get_reordered(const EP *ep) {
+std::vector<std::unique_ptr<EP>> get_reordered(const EP *ep, bool assert_integrity) {
   const BDDNode *next = ep->get_next_node();
   if (!next) {
     return {};
@@ -103,7 +103,7 @@ std::vector<std::unique_ptr<EP>> get_reordered(const EP *ep) {
 
     new_ep->replace_bdd(std::move(new_bdd.bdd), translation_data);
 
-    if (dbg_mode_active) {
+    if (assert_integrity) {
       new_ep->assert_integrity();
     }
 
@@ -122,14 +122,15 @@ impl_t ModuleFactory::implement(const EP *ep, const BDDNode *node, std::unique_p
   return impl_t(decide(ep, node, params), std::move(result), false);
 }
 
-std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager, bool reorder_bdd) const {
+std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager, bool reorder_bdd,
+                                             bool assert_integrity) const {
   if (!can_process_platform(ep, target)) {
     return {};
   }
 
   std::vector<impl_t> implementations;
   for (impl_t &internal_decision : process_node(ep, node, symbol_manager)) {
-    if (dbg_mode_active) {
+    if (assert_integrity) {
       internal_decision.result->assert_integrity();
     }
     implementations.push_back(std::move(internal_decision));
@@ -141,7 +142,7 @@ std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, 
 
   std::vector<impl_t> reordered_implementations;
   for (const impl_t &impl : implementations) {
-    for (std::unique_ptr<EP> &reordered_ep : get_reordered(impl.result.get())) {
+    for (std::unique_ptr<EP> &reordered_ep : get_reordered(impl.result.get(), assert_integrity)) {
       reordered_ep->get_mutable_meta().reordered_nodes++;
       impl_t new_implementation(impl.decision, std::move(reordered_ep), true);
       reordered_implementations.push_back(std::move(new_implementation));

@@ -134,16 +134,27 @@ std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP 
 
   const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
+  if (dchain_allocate_new_index->get_call().function_name != "dchain_allocate_new_index") {
+    return {};
+  }
+
+  const addr_t obj = expr_addr_to_obj_addr(dchain_allocate_new_index->get_call().args.at("chain").expr);
+
+  const std::optional<map_coalescing_objs_t> map_objs = speculations.ctx.get_map_coalescing_objs(obj);
+  if (!map_objs.has_value()) {
+    return {};
+  }
+
   std::vector<const Call *> future_map_puts;
-  if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
+  if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, map_objs.value(), future_map_puts)) {
     return {};
   }
 
   assert(!future_map_puts.empty());
 
   for (const Call *map_put : future_map_puts) {
-    const addr_t obj = expr_addr_to_obj_addr(map_put->get_obj());
-    if (!speculations.ctx.check_ds_impl(obj, DSImpl::Tofino_GuardedMapTable)) {
+    const addr_t map_obj = expr_addr_to_obj_addr(map_put->get_obj());
+    if (!speculations.ctx.check_ds_impl(map_obj, DSImpl::Tofino_GuardedMapTable)) {
       return {};
     }
   }
@@ -189,17 +200,27 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
 
   const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
+  if (dchain_allocate_new_index->get_call().function_name != "dchain_allocate_new_index") {
+    return {};
+  }
+
+  const addr_t obj = expr_addr_to_obj_addr(dchain_allocate_new_index->get_call().args.at("chain").expr);
+
+  const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(obj);
+  if (!map_objs.has_value()) {
+    return {};
+  }
+
   std::vector<const Call *> future_map_puts;
-  if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
+  if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, map_objs.value(), future_map_puts)) {
     return {};
   }
 
   assert(!future_map_puts.empty());
 
   for (const Call *map_put : future_map_puts) {
-    const addr_t obj = expr_addr_to_obj_addr(map_put->get_obj());
-
-    if (!ep->get_ctx().check_ds_impl(obj, DSImpl::Tofino_GuardedMapTable)) {
+    const addr_t map_obj = expr_addr_to_obj_addr(map_put->get_obj());
+    if (!ep->get_ctx().check_ds_impl(map_obj, DSImpl::Tofino_GuardedMapTable)) {
       return {};
     }
   }
@@ -209,13 +230,11 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
     return {};
   }
 
-  const addr_t obj = expr_addr_to_obj_addr(future_map_puts[0]->get_obj());
-
-  if (guarded_map_table_guard_check_already_performed(ep, obj)) {
+  if (guarded_map_table_guard_check_already_performed(ep, map_objs->map)) {
     return {};
   }
 
-  const GuardedMapTable *guarded_map_table = get_tofino_ctx(ep)->get_data_structures().get_single_ds<GuardedMapTable>(obj);
+  const GuardedMapTable *guarded_map_table = get_tofino_ctx(ep)->get_data_structures().get_single_ds<GuardedMapTable>(map_objs->map);
   const symbol_t guard_check_symbol        = create_guard_check_symbol(guarded_map_table->id, symbol_manager, node);
 
   const double guard_allow_probability              = get_guard_allow_probability(ep, branch_direction);
@@ -229,7 +248,7 @@ std::vector<impl_t> GuardedMapTableGuardCheckFactory::process_node(const EP *ep,
     return {};
   }
 
-  Module *guard_check_module = new GuardedMapTableGuardCheck(node, guarded_map_table->id, obj, guard_check_symbol, guard_allow_condition);
+  Module *guard_check_module = new GuardedMapTableGuardCheck(node, guarded_map_table->id, map_objs->map, guard_check_symbol, guard_allow_condition);
   Module *if_module          = new If(node, guard_allow_condition);
   Module *then_module        = new Then(node);
   Module *else_module        = new Else(node);
@@ -264,28 +283,37 @@ std::unique_ptr<Module> GuardedMapTableGuardCheckFactory::create(const BDD *bdd,
 
   const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
+  if (dchain_allocate_new_index->get_call().function_name != "dchain_allocate_new_index") {
+    return {};
+  }
+
+  const addr_t obj = expr_addr_to_obj_addr(dchain_allocate_new_index->get_call().args.at("chain").expr);
+
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(obj);
+  if (!map_objs.has_value()) {
+    return {};
+  }
+
   std::vector<const Call *> future_map_puts;
-  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
+  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, map_objs.value(), future_map_puts)) {
     return {};
   }
 
   assert(!future_map_puts.empty());
 
   for (const Call *map_put : future_map_puts) {
-    const addr_t obj = expr_addr_to_obj_addr(map_put->get_obj());
-
-    if (!ctx.check_ds_impl(obj, DSImpl::Tofino_GuardedMapTable)) {
+    const addr_t map_obj = expr_addr_to_obj_addr(map_put->get_obj());
+    if (!ctx.check_ds_impl(map_obj, DSImpl::Tofino_GuardedMapTable)) {
       return {};
     }
   }
 
-  const addr_t obj                         = expr_addr_to_obj_addr(future_map_puts[0]->get_obj());
-  const GuardedMapTable *guarded_map_table = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_single_ds<GuardedMapTable>(obj);
+  const GuardedMapTable *guarded_map_table = ctx.get_target_ctx<TofinoContext>()->get_data_structures().get_single_ds<GuardedMapTable>(map_objs->map);
 
   const symbol_t mock_guard_symbol;
   klee::ref<klee::Expr> mock_condition;
 
-  return std::make_unique<GuardedMapTableGuardCheck>(node, guarded_map_table->id, obj, mock_guard_symbol, mock_condition);
+  return std::make_unique<GuardedMapTableGuardCheck>(node, guarded_map_table->id, map_objs->map, mock_guard_symbol, mock_condition);
 }
 
 } // namespace Tofino

@@ -7,139 +7,150 @@ Args:
   Profile file:       nat-f40000-c0-zipf1.json
   Seed:               0
   Targets:
-    Tofino (28 modules)
-    Ctrl (73 modules)
+    Tofino (37 modules)
+    Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <2'250'000'000,0,102,-4>
+  Score: <2'250'000'000,0,61,-5,-25'637'696>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
-  BDD Progress: 102 / 105
-  Stages: 4
+  BDD Progress: 61 / 64
+  Stages: 5
+  Memory Usage: 25637696 bits
 
 Stateful Implementations:
-  1074102792: Tofino::VectorTable
-  1074066992: Tofino::VectorTable
-  1074053168: Tofino::MapTable
-  1074085152: Tofino::DchainTable
-  1074085576: Tofino::VectorTable
+  1074102760: Tofino::VectorTable
+  1074066960: Tofino::VectorTable
+  1074053136: Tofino::MapTable
+  1074085120: Tofino::DchainTable
+  1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       329 seconds
-  Steps:              103
+  Elapsed time:       85 seconds
+  Steps:              62
   Backtracks:         0
-  Search space size:  311
-  Unfinished EPs:     208
+  Search space size:  213
+  Unfinished EPs:     151
   Finished EPs:       1
-  Avg BDD size:       73
+  Avg BDD size:       61
   Branching factor:   3
-  Total SS size est.: 8'933'008'494'373
+  Total SS size est.: 2'397'262'654'213
   Avg children per node:
-    Node 187: 0
-    Node 186: 0
-    Node 188: 0
-    Node 185: 0
-    Node 284: 3
-    Node 157: 2
-    Node 283: 3
-    Node 156: 2
-    Node 184: 0
-    Node 285: 3
-    Node 158: 2
-    Node 282: 3
-    Node 155: 3
-    Node 183: 0
-    Node 281: 3
-    Node 154: 6
-    Node 199: 2
-    Node 198: 2
-    Node 182: 0
-    Node 190: 6
-    Node 189: 9
-    Node 298: 0
-    Node 171: 0
-    Node 142: 3
-    Node 201: 3
-    Node 297: 0
-    Node 170: 0
-    Node 141: 5
-    Node 200: 2
-    Node 133: 2
-    Node 192: 6
-    Node 290: 0
-    Node 163: 3
-    Node 134: 3
-    Node 193: 6
-    Node 291: 0
-    Node 164: 3
-    Node 135: 3
-    Node 194: 3
-    Node 292: 0
-    Node 165: 3
-    Node 136: 3
-    Node 195: 3
-    Node 143: 3
-    Node 202: 3
-    Node 273: 3
-    Node 146: 3
-    Node 205: 2
-    Node 204: 3
-    Node 145: 6
-    Node 295: 0
-    Node 168: 6
-    Node 139: 8
-    Node 137: 4
-    Node 196: 3
-    Node 144: 8
-    Node 203: 2
-    Node 296: 0
-    Node 169: 2
-    Node 140: 8
-    Node 294: 0
-    Node 167: 4
-    Node 138: 8
-    Node 197: 6
-    Node 302: 0
-    Node 175: 0
-    Node 191: 4
-    Node 274: 3
-    Node 147: 6
-    Node 293: 0
-    Node 166: 2
-    Node 299: 0
-    Node 172: 0
-    Node 303: 0
-    Node 176: 0
-    Node 275: 3
-    Node 148: 6
-    Node 159: 3
-    Node 300: 0
-    Node 173: 0
-    Node 304: 0
-    Node 177: 0
-    Node 276: 3
-    Node 149: 6
-    Node 160: 3
-    Node 301: 0
-    Node 174: 0
-    Node 178: 0
-    Node 277: 3
-    Node 150: 3
-    Node 161: 3
-    Node 179: 0
-    Node 278: 3
-    Node 151: 3
-    Node 289: 0
-    Node 162: 2
     Node 180: 0
-    Node 279: 3
+    Node 179: 0
+    Node 146: 6
+    Node 182: 3
+    Node 145: 6
+    Node 181: 6
+    Node 159: 3
+    Node 144: 8
+    Node 143: 3
+    Node 142: 32
+    Node 141: 3
+    Node 165: 2
+    Node 136: 3
+    Node 163: 4
+    Node 134: 3
+    Node 193: 2
+    Node 192: 3
+    Node 133: 2
+    Node 140: 5
+    Node 166: 0
+    Node 137: 4
+    Node 160: 3
+    Node 189: 3
+    Node 164: 6
+    Node 135: 3
+    Node 167: 0
+    Node 138: 6
+    Node 161: 3
+    Node 190: 3
+    Node 139: 6
+    Node 191: 2
+    Node 171: 0
+    Node 183: 4
+    Node 147: 3
+    Node 162: 2
+    Node 168: 0
+    Node 172: 0
+    Node 184: 6
+    Node 148: 3
+    Node 155: 3
+    Node 169: 0
+    Node 173: 0
+    Node 185: 3
+    Node 149: 3
+    Node 156: 3
+    Node 170: 0
+    Node 174: 0
+    Node 186: 3
+    Node 150: 3
+    Node 157: 3
+    Node 175: 0
+    Node 187: 3
+    Node 151: 3
+    Node 158: 2
+    Node 176: 0
+    Node 188: 2
     Node 152: 3
-    Node 181: 0
-    Node 280: 3
+    Node 177: 0
     Node 153: 3
+    Node 178: 0
+    Node 154: 2
 
+Global Stats:
+  Num phase 1 speculations: 27'790 (100%)
+  Num phase 2 speculations: 1'157 (4.16337%)
+  Num phase 3 speculations: 1'154 (4.15257%)
+  Num speculated modules:   394'769
+  Num EPs generated:        213
+
+Switch placement:
+
+====================== TNA Pipeline ======================
+-------------------------------------
+Stage 0
+SRAM: 288/1'310'720 B (0.0219727%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_table_1074085544_139]
+-------------------------------------
+-------------------------------------
+Stage 1
+SRAM: 873'816/1'310'720 B (66.6669%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 12/128 B (9.375%)
+Objs: [dchain_table_1074085120_146,dchain_table_1074085120_181,dchain_table_1074085120_142]
+-------------------------------------
+-------------------------------------
+Stage 2
+SRAM: 1'165'088/1'310'720 B (88.8892%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 12/128 B (9.375%)
+Objs: [map_table_1074053136_163]
+-------------------------------------
+-------------------------------------
+Stage 3
+SRAM: 1'165'088/1'310'720 B (88.8892%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_table_1074066960_144]
+-------------------------------------
+-------------------------------------
+Stage 4
+SRAM: 432/1'310'720 B (0.032959%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 8/128 B (6.25%)
+Objs: [vector_table_1074102760_149,vector_table_1074102760_183]
+-------------------------------------
+==========================================================
 ========================================================

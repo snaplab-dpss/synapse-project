@@ -53,8 +53,9 @@ struct search_config_t {
   bool pause_and_show_on_backtrack;
   bool not_greedy;
   bool no_deadends;
+  bool assert_integrity;
 
-  search_config_t() : no_reorder(false), pause_and_show_on_backtrack(false), not_greedy(false), no_deadends(true) {}
+  search_config_t() : no_reorder(false), pause_and_show_on_backtrack(false), not_greedy(false), no_deadends(true), assert_integrity(false) {}
 };
 
 class SearchEngine {

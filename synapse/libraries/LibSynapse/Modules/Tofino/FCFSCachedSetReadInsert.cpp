@@ -55,7 +55,7 @@ struct pattern_t {
   symbol_t index_allocation_success;
 };
 
-bool is_read_insert_pattern(const BDD *bdd, const BDDNode *node, pattern_t &pattern) {
+bool is_read_insert_pattern(const Context &ctx, const BDD *bdd, const BDDNode *node, pattern_t &pattern) {
   if (node->get_type() != BDDNodeType::Call) {
     return false;
   }
@@ -74,8 +74,16 @@ bool is_read_insert_pattern(const BDD *bdd, const BDDNode *node, pattern_t &patt
     return false;
   }
 
+  const addr_t obj = expr_addr_to_obj_addr(map_get->get_call().args.at("map").expr);
+
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(obj);
+  if (!map_objs.has_value()) {
+    return false;
+  }
+
   const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(on_read_failure);
-  if (!bdd->is_index_alloc_on_unsuccessful_map_get(dchain_allocate_new_index)) {
+
+  if (!bdd->is_index_alloc_on_unsuccessful_map_get(dchain_allocate_new_index, map_objs.value())) {
     return false;
   }
 
@@ -91,20 +99,17 @@ bool is_read_insert_pattern(const BDD *bdd, const BDDNode *node, pattern_t &patt
     return false;
   }
 
-  const Call *map_put = dynamic_cast<const Call *>(on_index_allocation_success);
   std::vector<const Call *> future_map_puts;
-  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts) || future_map_puts.size() != 1 || future_map_puts[0] != map_put) {
+  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, map_objs.value(), future_map_puts) || future_map_puts.size() != 1) {
     return false;
   }
 
-  const BDDNode *on_insert_success = map_put->get_next();
-
   pattern.map_get                   = map_get;
-  pattern.map_put                   = map_put;
+  pattern.map_put                   = future_map_puts[0];
   pattern.dchain_allocate_new_index = dchain_allocate_new_index;
   pattern.on_read_success           = on_read_success;
   pattern.on_read_failure           = on_read_failure;
-  pattern.on_insert_success         = on_insert_success;
+  pattern.on_insert_success         = on_index_allocation_success;
   pattern.on_insert_failure         = on_index_allocation_failure;
   pattern.map_has_this_key          = map_get->get_local_symbol("map_has_this_key");
   pattern.new_index                 = dchain_allocate_new_index->get_local_symbol("new_index");
@@ -322,7 +327,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const pattern_
 
 std::optional<spec_impl_t> FCFSCachedSetReadInsertFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   pattern_t pattern;
-  if (!is_read_insert_pattern(ep->get_bdd(), node, pattern)) {
+  if (!is_read_insert_pattern(speculations.ctx, ep->get_bdd(), node, pattern)) {
     return {};
   }
 
@@ -398,7 +403,7 @@ std::optional<spec_impl_t> FCFSCachedSetReadInsertFactory::speculate(const EP *e
 
 std::vector<impl_t> FCFSCachedSetReadInsertFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   pattern_t pattern;
-  if (!is_read_insert_pattern(ep->get_bdd(), node, pattern)) {
+  if (!is_read_insert_pattern(ep->get_ctx(), ep->get_bdd(), node, pattern)) {
     return {};
   }
 

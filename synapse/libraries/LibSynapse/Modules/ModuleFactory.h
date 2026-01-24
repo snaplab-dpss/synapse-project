@@ -29,7 +29,7 @@ public:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const = 0;
   virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const                     = 0;
 
-  std::vector<impl_t> implement(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager, bool reorder_bdd) const;
+  std::vector<impl_t> implement(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager, bool reorder_bdd, bool assert_integrity) const;
 
   ModuleType get_type() const { return type; }
   TargetType get_target() const { return target; }

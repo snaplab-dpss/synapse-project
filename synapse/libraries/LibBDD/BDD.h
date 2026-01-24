@@ -114,8 +114,9 @@ public:
   bool get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const;
   bool get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing_objs_t &map_objs) const;
   bool get_map_coalescing_objs_from_dchain_op(const Call *dchain_op, map_coalescing_objs_t &map_objs) const;
-  bool is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new_index) const;
-  bool is_map_update_with_dchain(const Call *dchain_allocate_new_index, std::vector<const Call *> &map_puts) const;
+  bool is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new_index, const map_coalescing_objs_t &map_coalescing_objs) const;
+  bool is_map_update_with_dchain(const Call *dchain_allocate_new_index, const map_coalescing_objs_t &map_coalescing_objs,
+                                 std::vector<const Call *> &map_puts) const;
   branch_direction_t find_branch_checking_index_alloc(const Call *dchain_allocate_new_index) const;
   branch_direction_t find_branch_checking_index_alloc(const Call *dchain_allocate_new_index, const BDDNode *start) const;
   std::vector<branch_direction_t> find_all_branches_checking_index_alloc(addr_t dchain_obj) const;

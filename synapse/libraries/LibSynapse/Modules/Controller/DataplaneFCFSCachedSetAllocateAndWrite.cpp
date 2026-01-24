@@ -24,7 +24,7 @@ struct allocate_and_write_pattern_t {
   symbol_t index_allocation_success;
 };
 
-bool is_allocate_and_write(const BDD *bdd, const BDDNode *node, allocate_and_write_pattern_t &pattern) {
+bool is_allocate_and_write(const Context &ctx, const BDD *bdd, const BDDNode *node, allocate_and_write_pattern_t &pattern) {
   if (node->get_type() != BDDNodeType::Call) {
     return false;
   }
@@ -43,19 +43,19 @@ bool is_allocate_and_write(const BDD *bdd, const BDDNode *node, allocate_and_wri
     return false;
   }
 
-  const Call *map_put = dynamic_cast<const Call *>(on_index_allocation_success);
-  std::vector<const Call *> future_map_puts;
-  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts) || future_map_puts.empty()) {
+  const addr_t obj = expr_addr_to_obj_addr(dchain_allocate_new_index->get_call().args.at("chain").expr);
+
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(obj);
+  if (!map_objs.has_value()) {
     return false;
   }
 
-  for (const Call *future_map_put : future_map_puts) {
-    if (!future_map_put->equals(map_put)) {
-      return false;
-    }
+  std::vector<const Call *> future_map_puts;
+  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, map_objs.value(), future_map_puts)) {
+    return false;
   }
 
-  const BDDNode *on_write_success = map_put->get_next();
+  const BDDNode *on_write_success = on_index_allocation_success->get_next();
 
   pattern.map_puts                  = future_map_puts;
   pattern.dchain_allocate_new_index = dchain_allocate_new_index;
@@ -115,7 +115,7 @@ std::optional<spec_impl_t> DataplaneFCFSCachedSetAllocateAndWriteFactory::specul
   }
 
   allocate_and_write_pattern_t pattern;
-  if (!is_allocate_and_write(ep->get_bdd(), node, pattern)) {
+  if (!is_allocate_and_write(speculations.ctx, ep->get_bdd(), node, pattern)) {
     return {};
   }
 
@@ -143,7 +143,7 @@ std::vector<impl_t> DataplaneFCFSCachedSetAllocateAndWriteFactory::process_node(
   }
 
   allocate_and_write_pattern_t pattern;
-  if (!is_allocate_and_write(ep->get_bdd(), node, pattern)) {
+  if (!is_allocate_and_write(ep->get_ctx(), ep->get_bdd(), node, pattern)) {
     return {};
   }
 

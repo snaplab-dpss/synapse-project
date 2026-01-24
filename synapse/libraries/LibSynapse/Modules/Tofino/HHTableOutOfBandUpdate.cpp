@@ -64,27 +64,33 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
 
   const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
+  if (dchain_allocate_new_index->get_call().function_name != "dchain_allocate_new_index") {
+    return {};
+  }
+
+  const addr_t obj = expr_addr_to_obj_addr(dchain_allocate_new_index->get_call().args.at("chain").expr);
+
+  const std::optional<map_coalescing_objs_t> map_objs = speculations.ctx.get_map_coalescing_objs(obj);
+  if (!map_objs.has_value()) {
+    return {};
+  }
+
   std::vector<const Call *> future_map_puts;
-  if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
+  if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, map_objs.value(), future_map_puts)) {
     return {};
   }
 
-  if (!ep->get_bdd()->is_index_alloc_on_unsuccessful_map_get(dchain_allocate_new_index)) {
+  if (!ep->get_bdd()->is_index_alloc_on_unsuccessful_map_get(dchain_allocate_new_index, map_objs.value())) {
     return {};
   }
 
-  map_coalescing_objs_t map_objs;
-  if (!ep->get_bdd()->get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
-    return {};
-  }
-
-  const Call *map_put = get_future_map_put(node, map_objs.map);
+  const Call *map_put = get_future_map_put(node, map_objs->map);
   assert(map_put && "map_put not found");
 
   const hh_table_data_t table_data(speculations.ctx, map_put);
 
-  if (!speculations.ctx.check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-      !speculations.ctx.check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!speculations.ctx.check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
+      !speculations.ctx.check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
@@ -98,7 +104,7 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
   }
 
   const BDDNode *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true() : index_alloc_check.branch->get_on_false();
-  std::vector<const Call *> targets = on_hh->get_coalescing_nodes_from_key(table_data.key, map_objs);
+  std::vector<const Call *> targets = on_hh->get_coalescing_nodes_from_key(table_data.key, map_objs.value());
 
   spec_impl_t spec_impl(decide(ep, node), speculations.ctx);
 
@@ -117,17 +123,23 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
 
   const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(node);
 
+  if (dchain_allocate_new_index->get_call().function_name != "dchain_allocate_new_index") {
+    return {};
+  }
+
+  const addr_t obj = expr_addr_to_obj_addr(dchain_allocate_new_index->get_call().args.at("chain").expr);
+
+  const std::optional<map_coalescing_objs_t> map_objs = ep->get_ctx().get_map_coalescing_objs(obj);
+  if (!map_objs.has_value()) {
+    return {};
+  }
+
   std::vector<const Call *> future_map_puts;
-  if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts)) {
+  if (!ep->get_bdd()->is_map_update_with_dchain(dchain_allocate_new_index, map_objs.value(), future_map_puts)) {
     return {};
   }
 
-  if (!ep->get_bdd()->is_index_alloc_on_unsuccessful_map_get(dchain_allocate_new_index)) {
-    return {};
-  }
-
-  map_coalescing_objs_t map_objs;
-  if (!ep->get_bdd()->get_map_coalescing_objs_from_dchain_op(dchain_allocate_new_index, map_objs)) {
+  if (!ep->get_bdd()->is_index_alloc_on_unsuccessful_map_get(dchain_allocate_new_index, map_objs.value())) {
     return {};
   }
 
@@ -147,12 +159,12 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
   // We require the HH table to be implemented by the HH Table Read module.
   // We actually don't really need this, we could query the CMS right here, but we leave it like this for now.
 
-  if (!ep->get_ctx().check_ds_impl(map_objs.map, DSImpl::Tofino_HeavyHitterTable) ||
-      !ep->get_ctx().check_ds_impl(map_objs.dchain, DSImpl::Tofino_HeavyHitterTable)) {
+  if (!ep->get_ctx().check_ds_impl(map_objs->map, DSImpl::Tofino_HeavyHitterTable) ||
+      !ep->get_ctx().check_ds_impl(map_objs->dchain, DSImpl::Tofino_HeavyHitterTable)) {
     return {};
   }
 
-  const Call *map_put = get_future_map_put(node, map_objs.map);
+  const Call *map_put = get_future_map_put(node, map_objs->map);
   assert(map_put && "map_put not found");
 
   const hh_table_data_t table_data(ep->get_ctx(), map_put);
@@ -164,7 +176,7 @@ std::vector<impl_t> HHTableOutOfBandUpdateFactory::process_node(const EP *ep, co
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   const BDDNode *node_replacing_index_check;
-  std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep.get(), node, index_alloc_check, map_objs, table_data.key, node_replacing_index_check);
+  std::unique_ptr<BDD> new_bdd = rebuild_bdd(new_ep.get(), node, index_alloc_check, map_objs.value(), table_data.key, node_replacing_index_check);
 
   const BDDNode *new_next_node = node_replacing_index_check;
   if (logic_before_dchain_check) {

@@ -125,7 +125,7 @@ std::vector<impl_t> FCFSCachedTableIsIndexAllocatedFactory::process_node(const E
 
     std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-    FCFSCachedTable *fcfs_ct = TofinoModuleFactory::build_or_reuse_fcfs_ct(new_ep.get(), node, map_objs->map, original_key, capacity, cache_capacity);
+    FCFSCachedTable *fcfs_ct = build_or_reuse_fcfs_ct(new_ep.get(), node, map_objs->map, original_key, capacity, cache_capacity);
     if (!fcfs_ct) {
       continue;
     }
@@ -138,6 +138,9 @@ std::vector<impl_t> FCFSCachedTableIsIndexAllocatedFactory::process_node(const E
 
     new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), map_objs->map, DSImpl::Tofino_FCFSCachedTable);
     new_ep->get_mutable_ctx().save_ds_impl(node->get_id(), map_objs->dchain, DSImpl::Tofino_FCFSCachedTable);
+
+    TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
+    tofino_ctx->place(new_ep.get(), node, map_objs->map, fcfs_ct);
 
     impl_t impl = implement(ep, node, std::move(new_ep), {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity}});
     impls.push_back(std::move(impl));

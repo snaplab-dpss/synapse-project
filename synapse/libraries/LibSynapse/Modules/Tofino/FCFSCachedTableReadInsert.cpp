@@ -64,7 +64,36 @@ struct pattern_t {
   symbol_t index_allocation_success;
 };
 
-bool is_read_insert_pattern(const BDD *bdd, const BDDNode *node, pattern_t &pattern) {
+bool is_acceptable_vector_borrow(const Context &ctx, const BDD *bdd, const BDDNode *node, const Call *map_put) {
+  if (node->get_type() != BDDNodeType::Call) {
+    return false;
+  }
+
+  const Call *vector_borrow = dynamic_cast<const Call *>(node);
+  if (!vector_borrow->is_vector_write()) {
+    return false;
+  }
+
+  const addr_t map_obj    = expr_addr_to_obj_addr(map_put->get_call().args.at("map").expr);
+  const addr_t vector_obj = expr_addr_to_obj_addr(vector_borrow->get_call().args.at("vector").expr);
+
+  const std::optional<map_coalescing_objs_t> map_coalescing_objs = ctx.get_map_coalescing_objs(vector_obj);
+  if (!map_coalescing_objs.has_value()) {
+    return false;
+  }
+
+  if (map_coalescing_objs->map != map_obj) {
+    return false;
+  }
+
+  if (vector_borrow->get_next() != map_put) {
+    return false;
+  }
+
+  return true;
+}
+
+bool is_read_insert_pattern(const Context &ctx, const BDD *bdd, const BDDNode *node, pattern_t &pattern) {
   if (node->get_type() != BDDNodeType::Call) {
     return false;
   }
@@ -83,8 +112,15 @@ bool is_read_insert_pattern(const BDD *bdd, const BDDNode *node, pattern_t &patt
     return false;
   }
 
+  const addr_t obj = expr_addr_to_obj_addr(map_get->get_call().args.at("map").expr);
+
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(obj);
+  if (!map_objs.has_value()) {
+    return false;
+  }
+
   const Call *dchain_allocate_new_index = dynamic_cast<const Call *>(on_read_failure);
-  if (!bdd->is_index_alloc_on_unsuccessful_map_get(dchain_allocate_new_index)) {
+  if (!bdd->is_index_alloc_on_unsuccessful_map_get(dchain_allocate_new_index, map_objs.value())) {
     return false;
   }
 
@@ -100,20 +136,23 @@ bool is_read_insert_pattern(const BDD *bdd, const BDDNode *node, pattern_t &patt
     return false;
   }
 
-  const Call *map_put = dynamic_cast<const Call *>(on_index_allocation_success);
   std::vector<const Call *> future_map_puts;
-  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts) || future_map_puts.size() != 1 || future_map_puts[0] != map_put) {
+  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, map_objs.value(), future_map_puts) || future_map_puts.size() != 1) {
     return false;
   }
 
-  const BDDNode *on_insert_success = map_put->get_next();
+  const Call *map_put = dynamic_cast<const Call *>(future_map_puts[0]);
+
+  if (on_index_allocation_success != map_put && !is_acceptable_vector_borrow(ctx, bdd, on_index_allocation_success, map_put)) {
+    return false;
+  }
 
   pattern.map_get                   = map_get;
   pattern.map_put                   = map_put;
   pattern.dchain_allocate_new_index = dchain_allocate_new_index;
   pattern.on_read_success           = on_read_success;
   pattern.on_read_failure           = on_read_failure;
-  pattern.on_insert_success         = on_insert_success;
+  pattern.on_insert_success         = map_put->get_next();
   pattern.on_insert_failure         = on_index_allocation_failure;
   pattern.map_has_this_key          = map_get->get_local_symbol("map_has_this_key");
   pattern.new_index                 = dchain_allocate_new_index->get_local_symbol("new_index");
@@ -272,8 +311,8 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const pattern_
                                const map_coalescing_objs_t &map_coalescing_objs, const symbol_t &cached_insert_success, u32 cache_capacity) {
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  FCFSCachedTable *fcfs_ct = TofinoModuleFactory::build_or_reuse_fcfs_ct(new_ep.get(), pattern.map_get, fcfs_ct_data.obj, fcfs_ct_data.original_key,
-                                                                         fcfs_ct_data.capacity, cache_capacity);
+  FCFSCachedTable *fcfs_ct = TofinoModuleFactory::build_or_reuse_fcfs_ct(new_ep.get(), pattern.map_get, map_coalescing_objs.map,
+                                                                         fcfs_ct_data.original_key, fcfs_ct_data.capacity, cache_capacity);
   if (!fcfs_ct) {
     return nullptr;
   }
@@ -338,7 +377,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const pattern_
 
 std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   pattern_t pattern;
-  if (!is_read_insert_pattern(ep->get_bdd(), node, pattern)) {
+  if (!is_read_insert_pattern(ep->get_ctx(), ep->get_bdd(), node, pattern)) {
     return {};
   }
 
@@ -370,7 +409,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP 
     const hit_rate_t success_estimation =
         1_hr - TofinoModuleFactory::get_fcfs_ct_cache_collision_probability(ep->get_ctx(), pattern.map_get, data.original_key, cache_capacity);
 
-    if (!can_build_or_reuse_fcfs_ct(ep, node, data.obj, data.original_key, data.capacity, cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_ct(ep, node, map_coalescing_objs->map, data.original_key, data.capacity, cache_capacity)) {
       continue;
     }
 
@@ -406,7 +445,7 @@ std::optional<spec_impl_t> FCFSCachedTableReadInsertFactory::speculate(const EP 
 
 std::vector<impl_t> FCFSCachedTableReadInsertFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   pattern_t pattern;
-  if (!is_read_insert_pattern(ep->get_bdd(), node, pattern)) {
+  if (!is_read_insert_pattern(ep->get_ctx(), ep->get_bdd(), node, pattern)) {
     return {};
   }
 

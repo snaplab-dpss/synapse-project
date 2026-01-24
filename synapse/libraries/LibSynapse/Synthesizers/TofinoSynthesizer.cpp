@@ -1578,10 +1578,8 @@ std::string TofinoSynthesizer::var_t::to_string() const {
 }
 
 void TofinoSynthesizer::Stack::push(const var_t &var) {
-  if (names.find(var.name) == names.end()) {
-    frames.push_back(var);
-    names.insert(var.name);
-  }
+  frames.push_back(var);
+  names.insert(var.name);
 }
 
 void TofinoSynthesizer::Stack::push(const Stack &stack) {
@@ -3161,7 +3159,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << fcfs_ct_internals.keys_reg_actions.at({reg_key.id, RegisterActionType::Write}) << ".execute(" << hash_value << ");\n";
   }
 
-  ingress_vars.set_var_expr(value_var->name, write_value);
+  // HACK
+  var_t value_written_var = *value_var;
+  value_written_var.expr  = write_value;
+  ingress_vars.insert_back(value_written_var);
 
   ingress_apply.indent();
   ingress_apply << cached_insert_success_var.name << " = 1;\n";
@@ -3269,26 +3270,24 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  const var_t value_var = alloc_var("index", index);
-  value_var.declare(ingress_apply, transpiler.transpile(index));
+  const code_t index_pre_transpilatation = transpiler.transpile(index);
+  const var_t value_var                  = alloc_var("index", index);
+  value_var.declare(ingress_apply, index_pre_transpilatation);
 
   const var_t is_allocated_var = alloc_var("is_allocated", is_allocated.expr);
-  is_allocated_var.declare(ingress_apply, "false");
+  is_allocated_var.declare(ingress_apply, "0");
 
   ingress_apply.indent();
   ingress_apply << "if(" << fcfs_ct_internals.liveness_query + ".execute(" + value_var.name + ")"
                 << ") {\n";
   ingress_apply.inc();
 
-  ingress_apply << is_allocated_var.name << " = true;\n";
+  ingress_apply.indent();
+  ingress_apply << is_allocated_var.name << " = 1;\n";
 
   ingress_apply.dec();
   ingress_apply.indent();
   ingress_apply << "}\n";
-
-  // FIXME: remove this
-  std::cerr << ingress_apply.dump();
-  dbg_pause();
 
   return EPVisitor::Action::doChildren;
 }

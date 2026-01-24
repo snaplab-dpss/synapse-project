@@ -42,7 +42,7 @@ struct pattern_t {
   symbol_t index_allocation_success;
 };
 
-bool is_write_pattern(const BDD *bdd, const BDDNode *node, pattern_t &pattern) {
+bool is_write_pattern(const Context &ctx, const BDD *bdd, const BDDNode *node, pattern_t &pattern) {
   if (node->get_type() != BDDNodeType::Call) {
     return false;
   }
@@ -59,13 +59,19 @@ bool is_write_pattern(const BDD *bdd, const BDDNode *node, pattern_t &pattern) {
     return false;
   }
 
-  const Call *map_put = dynamic_cast<const Call *>(on_index_allocation_success);
-  std::vector<const Call *> future_map_puts;
-  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, future_map_puts) || future_map_puts.size() != 1 || future_map_puts[0] != map_put) {
+  const addr_t obj = expr_addr_to_obj_addr(dchain_allocate_new_index->get_call().args.at("chain").expr);
+
+  const std::optional<map_coalescing_objs_t> map_objs = ctx.get_map_coalescing_objs(obj);
+  if (!map_objs.has_value()) {
     return false;
   }
 
-  pattern.map_put                   = map_put;
+  std::vector<const Call *> future_map_puts;
+  if (!bdd->is_map_update_with_dchain(dchain_allocate_new_index, map_objs.value(), future_map_puts) || future_map_puts.size() != 1) {
+    return false;
+  }
+
+  pattern.map_put                   = future_map_puts[0];
   pattern.dchain_allocate_new_index = dchain_allocate_new_index;
   pattern.new_index                 = dchain_allocate_new_index->get_local_symbol("new_index");
   pattern.index_allocation_success  = dchain_allocate_new_index->get_local_symbol("not_out_of_space");
@@ -101,7 +107,7 @@ std::optional<spec_impl_t> DataplaneMapSetTableInsertFactory::speculate(const EP
   }
 
   pattern_t pattern;
-  if (!is_write_pattern(ep->get_bdd(), node, pattern)) {
+  if (!is_write_pattern(speculations.ctx, ep->get_bdd(), node, pattern)) {
     return {};
   }
 
@@ -129,7 +135,7 @@ std::vector<impl_t> DataplaneMapSetTableInsertFactory::process_node(const EP *ep
   }
 
   pattern_t pattern;
-  if (!is_write_pattern(ep->get_bdd(), node, pattern)) {
+  if (!is_write_pattern(ep->get_ctx(), ep->get_bdd(), node, pattern)) {
     return {};
   }
 
@@ -168,7 +174,7 @@ std::unique_ptr<Module> DataplaneMapSetTableInsertFactory::create(const BDD *bdd
   }
 
   pattern_t pattern;
-  if (!is_write_pattern(bdd, node, pattern)) {
+  if (!is_write_pattern(ctx, bdd, node, pattern)) {
     return {};
   }
 

@@ -543,7 +543,7 @@ std::optional<map_coalescing_objs_t> Context::get_map_coalescing_objs(addr_t obj
 
     match = match || candidate.map == obj;
     match = match || candidate.dchain == obj;
-    match = match || candidate.vectors.find(obj) != candidate.vectors.end();
+    match = match || candidate.vectors.contains(obj);
 
     if (match) {
       return candidate;

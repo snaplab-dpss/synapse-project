@@ -44,8 +44,8 @@ std::optional<fcfs_ct_data_t> build_fcfs_ct_data(const BDD *bdd, const Context &
 std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_ct_data_t &fcfs_ct_data, u32 cache_capacity) {
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_ct(new_ep.get(), node, fcfs_ct_data.obj, fcfs_ct_data.original_key,
-                                                                              fcfs_ct_data.capacity, cache_capacity);
+  FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_ct(new_ep.get(), node, fcfs_ct_data.map_objs.map,
+                                                                              fcfs_ct_data.original_key, fcfs_ct_data.capacity, cache_capacity);
   if (!cached_table) {
     return nullptr;
   }
@@ -102,7 +102,8 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
   // Let's optimistically pick the largest cache capacity that we can build or reuse.
   std::optional<u32> cache_capacity;
   for (u32 cache_capacity_candidate : allowed_cache_capacities) {
-    if (can_build_or_reuse_fcfs_ct(ep, node, fcfs_ct_data->obj, fcfs_ct_data->original_key, fcfs_ct_data->capacity, cache_capacity_candidate)) {
+    if (can_build_or_reuse_fcfs_ct(ep, node, fcfs_ct_data->map_objs.map, fcfs_ct_data->original_key, fcfs_ct_data->capacity,
+                                   cache_capacity_candidate)) {
       cache_capacity = cache_capacity_candidate;
       break;
     }
@@ -150,7 +151,7 @@ std::vector<impl_t> FCFSCachedTableReadFactory::process_node(const EP *ep, const
 
   std::vector<impl_t> impls;
   for (u32 cache_capacity : enum_fcfs_ct_cache_capacities(fcfs_ct_data->capacity)) {
-    if (!can_build_or_reuse_fcfs_ct(ep, node, fcfs_ct_data->obj, fcfs_ct_data->original_key, fcfs_ct_data->capacity, cache_capacity)) {
+    if (!can_build_or_reuse_fcfs_ct(ep, node, fcfs_ct_data->map_objs.map, fcfs_ct_data->original_key, fcfs_ct_data->capacity, cache_capacity)) {
       continue;
     }
 
