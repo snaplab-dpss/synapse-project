@@ -20,8 +20,8 @@ KVS_GET_RATIO = 0.99
 PIPELINES = 1
 
 TOTAL_FLOWS = 40_000
-CHURN_FPM = 10_000
-ZIPF_PARAM = 0.6
+CHURN_FPM = 0
+ZIPF_PARAM = 1_2
 
 
 @dataclass
@@ -203,12 +203,22 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
+    # SynapseNF(
+    #     name=build_synapse_nf_name("fw", CHURN_FPM, ZIPF_PARAM),
+    #     description=f"Synapse {build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}",
+    #     kvs_mode=False,
+    #     tofino=Path(f"synthesized/{build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}.p4"),
+    #     controller=Path(f"synthesized/{build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
     SynapseNF(
-        name=build_synapse_nf_name("fw", CHURN_FPM, ZIPF_PARAM),
-        description=f"Synapse {build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}",
+        name="synapse-cl",
+        description="Synapse CL",
         kvs_mode=False,
-        tofino=Path(f"synthesized/{build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}.p4"),
-        controller=Path(f"synthesized/{build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+        tofino=Path("synthesized/synapse-cl.p4"),
+        controller=Path("synthesized/synapse-cl.cpp"),
         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
         route=lambda _: [],

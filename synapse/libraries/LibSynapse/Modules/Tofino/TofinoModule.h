@@ -81,6 +81,10 @@ public:
   static Symbols get_relevant_dataplane_state(const EP *ep, const BDDNode *node);
   static bool expr_fits_in_action(klee::ref<klee::Expr> expr);
 
+  static std::vector<klee::ref<klee::Expr>> partition_expr_for_registers(const Context &ctx, klee::ref<klee::Expr> expr) {
+    return Register::partition_value(ctx.get_target_ctx<TofinoContext>()->get_tna().tna_config.properties, expr, ctx.get_expr_structs());
+  }
+
   // ======================================================================
   //  Map Table
   // ======================================================================

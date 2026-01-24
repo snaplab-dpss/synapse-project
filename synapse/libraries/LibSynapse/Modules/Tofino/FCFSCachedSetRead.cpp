@@ -26,7 +26,7 @@ std::optional<fcfs_cs_data_t> build_fcfs_cs_data(const BDD *bdd, const Context &
   fcfs_cs_data_t data;
   data.obj              = expr_addr_to_obj_addr(call.args.at("map").expr);
   data.original_key     = call.args.at("key").in;
-  data.keys             = Table::build_keys(data.original_key, ctx.get_expr_structs());
+  data.keys             = TofinoModuleFactory::partition_expr_for_registers(ctx, data.original_key);
   data.map_has_this_key = map_get->get_local_symbol("map_has_this_key");
   data.capacity         = ctx.get_map_config(data.obj).capacity;
 

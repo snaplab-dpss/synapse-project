@@ -32,7 +32,7 @@ fcfs_ct_data_t get_fcfs_ct_data(const Context &ctx, const Call *map_put) {
   fcfs_ct_data_t data;
   data.obj          = expr_addr_to_obj_addr(put_call.args.at("map").expr);
   data.original_key = put_call.args.at("key").in;
-  data.keys         = Table::build_keys(data.original_key, ctx.get_expr_structs());
+  data.keys         = TofinoModuleFactory::partition_expr_for_registers(ctx, data.original_key);
   data.value        = put_call.args.at("value").expr;
   data.capacity     = ctx.get_map_config(data.obj).capacity;
 

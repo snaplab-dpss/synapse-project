@@ -28,21 +28,24 @@ protected:
 public:
   const std::string name;
   const std::vector<Metric> metrics;
+  const size_t total_metrics;
+  std::unordered_set<ep_id_t> forced_search_decisions;
 
-  HeuristicCfg(const std::string &_name, const std::vector<Metric> &_metrics) : name(_name), metrics(_metrics) {}
+  HeuristicCfg(const std::string &_name, const std::vector<Metric> &_metrics) : name(_name), metrics(_metrics), total_metrics(_metrics.size()) {}
 
   virtual ~HeuristicCfg() = default;
 
-  Score score(const EP *e) const {
-    const size_t N = metrics.size();
-    std::vector<i64> values(N);
+  Score score(const EP *ep) const {
+    std::vector<i64> values(total_metrics + 1);
 
-    for (size_t i = 0; i < metrics.size(); i++) {
-      values[i] = (metrics[i].computer)(e);
+    values[0] = get_enforced_decisions(ep);
+
+    for (size_t i = 0; i < total_metrics; i++) {
+      values[i + 1] = (metrics[i].computer)(ep);
 
       switch (metrics[i].objective) {
       case Objective::Min: {
-        values[i] *= -1;
+        values[i + 1] *= -1;
       } break;
       case Objective::Max: {
         // Do nothing
@@ -57,9 +60,29 @@ public:
   virtual bool mutates(const EP *ep) const { return false; }
   virtual std::vector<heuristic_metadata_t> get_metadata(const EP *ep) const { return {}; }
 
+  void set_forced_search_decisions(const std::vector<ep_id_t> &decisions) {
+    forced_search_decisions = std::unordered_set<ep_id_t>(decisions.begin(), decisions.end());
+  }
+
 protected:
   static heuristic_metadata_t build_meta_tput_estimate(const EP *ep);
   static heuristic_metadata_t build_meta_tput_speculation(const EP *ep);
+
+  i64 get_enforced_decisions(const EP *ep) const {
+    u32 enforced_decisions = 0;
+
+    if (forced_search_decisions.contains(ep->get_id())) {
+      enforced_decisions++;
+    }
+
+    for (ep_id_t ancestor_id : ep->get_ancestors()) {
+      if (forced_search_decisions.contains(ancestor_id)) {
+        enforced_decisions++;
+      }
+    }
+
+    return enforced_decisions;
+  }
 };
 
 } // namespace LibSynapse

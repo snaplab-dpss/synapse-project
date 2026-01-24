@@ -8,21 +8,20 @@ namespace Controller {
 class DataplaneMapSetTableDelete : public ControllerModule {
 private:
   addr_t obj;
-  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> key;
 
 public:
-  DataplaneMapSetTableDelete(const BDDNode *_node, addr_t _obj, const std::vector<klee::ref<klee::Expr>> &_keys)
-      : ControllerModule(ModuleType::Controller_DataplaneMapSetTableDelete, "DataplaneMapSetTableDelete", _node), obj(_obj), keys(_keys) {}
-
+  DataplaneMapSetTableDelete(const BDDNode *_node, addr_t _obj, const klee::ref<klee::Expr> &_key)
+      : ControllerModule(ModuleType::Controller_DataplaneMapSetTableDelete, "DataplaneMapSetTableDelete", _node), obj(_obj), key(_key) {}
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    DataplaneMapSetTableDelete *cloned = new DataplaneMapSetTableDelete(node, obj, keys);
+    DataplaneMapSetTableDelete *cloned = new DataplaneMapSetTableDelete(node, obj, key);
     return cloned;
   }
 
   addr_t get_obj() const { return obj; }
-  const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
+  const klee::ref<klee::Expr> &get_key() const { return key; }
 };
 
 class DataplaneMapSetTableDeleteFactory : public ControllerModuleFactory {

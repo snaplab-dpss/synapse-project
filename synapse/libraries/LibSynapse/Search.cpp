@@ -127,11 +127,12 @@ void peek_backtrack(const EP *ep, SearchSpace *search_space, bool pause_and_show
   }
 }
 
-std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, const BDD &bdd, const Targets &targets,
-                                           const targets_config_t &targets_config, const Profiler &profiler) {
+std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy, const std::vector<ep_id_t> &forced_search_decisions, const BDD &bdd,
+                                           const Targets &targets, const targets_config_t &targets_config, const Profiler &profiler) {
   std::unique_ptr<HeuristicCfg> heuristic_cfg = build_heuristic_cfg(hopt);
-  std::unique_ptr<EP> starting_ep             = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
-  std::unique_ptr<Heuristic> heuristic        = std::make_unique<Heuristic>(std::move(heuristic_cfg), std::move(starting_ep), !not_greedy);
+  heuristic_cfg->set_forced_search_decisions(forced_search_decisions);
+  std::unique_ptr<EP> starting_ep      = std::make_unique<EP>(bdd, targets.get_view(), targets_config, profiler);
+  std::unique_ptr<Heuristic> heuristic = std::make_unique<Heuristic>(std::move(heuristic_cfg), std::move(starting_ep), !not_greedy);
   return heuristic;
 }
 } // namespace
@@ -139,7 +140,7 @@ std::unique_ptr<Heuristic> build_heuristic(HeuristicOption hopt, bool not_greedy
 SearchEngine::SearchEngine(const BDD &_bdd, HeuristicOption _hopt, const Profiler &_profiler, const targets_config_t &_targets_config,
                            const search_config_t &_search_config)
     : targets_config(_targets_config), search_config(_search_config), bdd(_bdd), targets(Targets(_targets_config)), profiler(_profiler),
-      heuristic(build_heuristic(_hopt, search_config.not_greedy, bdd, targets, targets_config, profiler)) {}
+      heuristic(build_heuristic(_hopt, search_config.not_greedy, search_config.forced_search_decisions, bdd, targets, targets_config, profiler)) {}
 
 search_report_t SearchEngine::search() {
   const auto start_search                   = std::chrono::steady_clock::now();

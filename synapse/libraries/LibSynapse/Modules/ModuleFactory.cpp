@@ -128,6 +128,10 @@ std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, 
     return {};
   }
 
+  auto consumed_bdd_node = [ep](const impl_t &impl) -> bool {
+    return ep->get_meta().processed_nodes.size() != impl.result->get_meta().processed_nodes.size();
+  };
+
   std::vector<impl_t> implementations;
   for (impl_t &internal_decision : process_node(ep, node, symbol_manager)) {
     if (assert_integrity) {
@@ -142,6 +146,12 @@ std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, 
 
   std::vector<impl_t> reordered_implementations;
   for (const impl_t &impl : implementations) {
+    // This prevents the problem of reordering when the BDD node was not consumed.
+    // That was problematic, as the EP node leaf would point to a BDD node that was now in the future.
+    if (!consumed_bdd_node(impl)) {
+      continue;
+    }
+
     for (std::unique_ptr<EP> &reordered_ep : get_reordered(impl.result.get(), assert_integrity)) {
       reordered_ep->get_mutable_meta().reordered_nodes++;
       impl_t new_implementation(impl.decision, std::move(reordered_ep), true);

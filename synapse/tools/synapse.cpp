@@ -69,6 +69,14 @@ struct args_t {
       std::cout << search_config.peek[i];
     }
     std::cout << "]\n";
+    std::cout << "  Forced decisions:   [";
+    for (size_t i = 0; i < search_config.forced_search_decisions.size(); i++) {
+      if (i != 0) {
+        std::cout << ",";
+      }
+      std::cout << search_config.forced_search_decisions[i];
+    }
+    std::cout << "]\n";
     std::cout << "  Pause on BT:        " << search_config.pause_and_show_on_backtrack << "\n";
     std::cout << "  Not greedy:         " << search_config.not_greedy << "\n";
     std::cout << "  Assert integrity:   " << search_config.assert_integrity << "\n";
@@ -263,6 +271,7 @@ int main(int argc, char **argv) {
   app.add_option("--profile", args.profile_file, "BDD profile file JSON.");
   app.add_option("--seed", args.seed, "Random seed.")->default_val(std::random_device()());
   app.add_option("--peek", args.search_config.peek, "Peek execution plans.");
+  app.add_option("--force-decisions", args.search_config.forced_search_decisions, "Force search to use these EPs.");
   app.add_flag("--no-reorder", args.search_config.no_reorder, "Deactivate BDD reordering.");
   app.add_flag("--show-prof", args.show_prof, "Show NF profiling.");
   app.add_flag("--show-ep", args.show_ep, "Show winner Execution Plan.");

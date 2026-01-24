@@ -2205,8 +2205,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_vars.push();
   visit(ep, next);
   ingress_vars.pop();
-  recirc.dec();
 
+  recirc.dec();
   recirc.indent();
   recirc << "}\n";
 
@@ -3020,6 +3020,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   code_t hash_value;
   transpile_fcfs_ct_hash_calculation(hash, hash_inputs, value_var.value(), hash_calculator, hash_value);
 
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   for (size_t i = 0; i < keys.size(); i++) {
@@ -3049,13 +3050,24 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.inc();
 
   const code_t match_counter_var_name = create_unique_name("match_counter");
-  ingress_apply.indent();
-  ingress_apply << "bit<8> " << match_counter_var_name << " = 0;\n";
-  for (const Register &reg_key : fcfs_ct->cache_keys) {
+
+  ingress.indent();
+  ingress << "bit<8> " << match_counter_var_name << " = 0;\n";
+
+  for (size_t i = 0; i < fcfs_ct->cache_keys.size(); i++) {
+    coder_t action_body;
+    action_body.indent();
+    action_body << match_counter_var_name << " = " << match_counter_var_name << " + "
+                << fcfs_ct_internals.keys_reg_actions.at({fcfs_ct->cache_keys[i].id, RegisterActionType::CheckValue}) << ".execute(" << hash_value
+                << ");\n";
+
+    const code_t action_name = fcfs_ct_id + "_check_key_" + std::to_string(i) + "_" + std::to_string(node_id);
+    transpile_action_decl(action_name, action_body.split_lines());
+
     ingress_apply.indent();
-    ingress_apply << match_counter_var_name << " = " << match_counter_var_name << " + "
-                  << fcfs_ct_internals.keys_reg_actions.at({reg_key.id, RegisterActionType::CheckValue}) << ".execute(" << hash_value << ");\n";
+    ingress_apply << action_name << "();\n";
   }
+
   ingress_apply.indent();
   ingress_apply << "if (" << match_counter_var_name << " == " << fcfs_ct->cache_keys.size() << ") {\n";
   ingress_apply.inc();
@@ -3108,6 +3120,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   code_t hash_value;
   transpile_fcfs_ct_hash_calculation(hash, hash_inputs, value_var.value(), hash_calculator, hash_value);
 
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   for (size_t i = 0; i < keys.size(); i++) {
@@ -3140,13 +3153,24 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.inc();
 
   const code_t match_counter_var_name = create_unique_name("match_counter");
-  ingress_apply.indent();
-  ingress_apply << "bit<8> " << match_counter_var_name << " = 0;\n";
-  for (const Register &reg_key : fcfs_ct->cache_keys) {
+
+  ingress.indent();
+  ingress << "bit<8> " << match_counter_var_name << " = 0;\n";
+
+  for (size_t i = 0; i < fcfs_ct->cache_keys.size(); i++) {
+    coder_t action_body;
+    action_body.indent();
+    action_body << match_counter_var_name << " = " << match_counter_var_name << " + "
+                << fcfs_ct_internals.keys_reg_actions.at({fcfs_ct->cache_keys[i].id, RegisterActionType::CheckValue}) << ".execute(" << hash_value
+                << ");\n";
+
+    const code_t action_name = fcfs_ct_id + "_check_key_" + std::to_string(i) + "_" + std::to_string(node_id);
+    transpile_action_decl(action_name, action_body.split_lines());
+
     ingress_apply.indent();
-    ingress_apply << match_counter_var_name << " = " << match_counter_var_name << " + "
-                  << fcfs_ct_internals.keys_reg_actions.at({reg_key.id, RegisterActionType::CheckValue}) << ".execute(" << hash_value << ");\n";
+    ingress_apply << action_name << "();\n";
   }
+
   ingress_apply.indent();
   ingress_apply << "if (" << match_counter_var_name << " == " << fcfs_ct->cache_keys.size() << ") {\n";
   ingress_apply.inc();
@@ -3233,19 +3257,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << fcfs_ct_internals.liveness_query_and_refresh << ".execute((bit<32>)" << hash_value << ");\n";
 
   ingress_apply.indent();
-  ingress_apply << "if (" << is_alive_var_name << ") {\n";
-  ingress_apply.inc();
-
-  const code_t match_counter_var_name = create_unique_name("match_counter");
-  ingress_apply.indent();
-  ingress_apply << "bit<8> " << match_counter_var_name << " = 0;\n";
-  for (const Register &reg_key : fcfs_ct->cache_keys) {
-    ingress_apply.indent();
-    ingress_apply << match_counter_var_name << " = " << match_counter_var_name << " + "
-                  << fcfs_ct_internals.keys_reg_actions.at({reg_key.id, RegisterActionType::CheckValue}) << ".execute(" << hash_value << ");\n";
-  }
-  ingress_apply.indent();
-  ingress_apply << "if (" << match_counter_var_name << " != " << fcfs_ct->cache_keys.size() << ") {\n";
+  ingress_apply << "if (!" << is_alive_var_name << ") {\n";
   ingress_apply.inc();
 
   for (const Register &reg_key : fcfs_ct->cache_keys) {
@@ -3383,6 +3395,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   code_t hash_value;
   transpile_hash_calculation(hash, hash_inputs, hash_calculator, hash_value);
 
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   for (size_t i = 0; i < keys.size(); i++) {
@@ -3412,13 +3425,24 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.inc();
 
   const code_t match_counter_var_name = create_unique_name("match_counter");
-  ingress_apply.indent();
-  ingress_apply << "bit<8> " << match_counter_var_name << " = 0;\n";
-  for (const Register &reg_key : fcfs_cs->cache_keys) {
+
+  ingress.indent();
+  ingress << "bit<8> " << match_counter_var_name << " = 0;\n";
+
+  for (size_t i = 0; i < fcfs_cs->cache_keys.size(); i++) {
+    coder_t action_body;
+    action_body.indent();
+    action_body << match_counter_var_name << " = " << match_counter_var_name << " + "
+                << fcfs_cs_internals.keys_reg_actions.at({fcfs_cs->cache_keys[i].id, RegisterActionType::CheckValue}) << ".execute(" << hash_value
+                << ");\n";
+
+    const code_t action_name = fcfs_cs_id + "_check_key_" + std::to_string(i) + "_" + std::to_string(node_id);
+    transpile_action_decl(action_name, action_body.split_lines());
+
     ingress_apply.indent();
-    ingress_apply << match_counter_var_name << " = " << match_counter_var_name << " + "
-                  << fcfs_cs_internals.keys_reg_actions.at({reg_key.id, RegisterActionType::CheckValue}) << ".execute(" << hash_value << ");\n";
+    ingress_apply << action_name << "();\n";
   }
+
   ingress_apply.indent();
   ingress_apply << "if (" << match_counter_var_name << " == " << fcfs_cs->cache_keys.size() << ") {\n";
   ingress_apply.inc();
@@ -3466,6 +3490,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   code_t hash_value;
   transpile_hash_calculation(hash, hash_inputs, hash_calculator, hash_value);
 
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   for (size_t i = 0; i < keys.size(); i++) {
@@ -3498,13 +3523,24 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.inc();
 
   const code_t match_counter_var_name = create_unique_name("match_counter");
-  ingress_apply.indent();
-  ingress_apply << "bit<8> " << match_counter_var_name << " = 0;\n";
-  for (const Register &reg_key : fcfs_cs->cache_keys) {
+
+  ingress.indent();
+  ingress << "bit<8> " << match_counter_var_name << " = 0;\n";
+
+  for (size_t i = 0; i < fcfs_cs->cache_keys.size(); i++) {
+    coder_t action_body;
+    action_body.indent();
+    action_body << match_counter_var_name << " = " << match_counter_var_name << " + "
+                << fcfs_cs_internals.keys_reg_actions.at({fcfs_cs->cache_keys[i].id, RegisterActionType::CheckValue}) << ".execute(" << hash_value
+                << ");\n";
+
+    const code_t action_name = fcfs_cs_id + "_check_key_" + std::to_string(i) + "_" + std::to_string(node_id);
+    transpile_action_decl(action_name, action_body.split_lines());
+
     ingress_apply.indent();
-    ingress_apply << match_counter_var_name << " = " << match_counter_var_name << " + "
-                  << fcfs_cs_internals.keys_reg_actions.at({reg_key.id, RegisterActionType::CheckValue}) << ".execute(" << hash_value << ");\n";
+    ingress_apply << action_name << "();\n";
   }
+
   ingress_apply.indent();
   ingress_apply << "if (" << match_counter_var_name << " == " << fcfs_cs->cache_keys.size() << ") {\n";
   ingress_apply.inc();
@@ -3585,19 +3621,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << fcfs_cs_internals.liveness_query_and_refresh << ".execute(" << hash_value << ");\n";
 
   ingress_apply.indent();
-  ingress_apply << "if (" << is_alive_var_name << ") {\n";
-  ingress_apply.inc();
-
-  const code_t match_counter_var_name = create_unique_name("match_counter");
-  ingress_apply.indent();
-  ingress_apply << "bit<8> " << match_counter_var_name << " = 0;\n";
-  for (const Register &reg_key : fcfs_cs->cache_keys) {
-    ingress_apply.indent();
-    ingress_apply << match_counter_var_name << " = " << match_counter_var_name << " + "
-                  << fcfs_cs_internals.keys_reg_actions.at({reg_key.id, RegisterActionType::CheckValue}) << ".execute(" << hash_value << ");\n";
-  }
-  ingress_apply.indent();
-  ingress_apply << "if (" << match_counter_var_name << " != " << fcfs_cs->cache_keys.size() << ") {\n";
+  ingress_apply << "if (!" << is_alive_var_name << ") {\n";
   ingress_apply.inc();
 
   for (const Register &reg_key : fcfs_cs->cache_keys) {
@@ -4342,8 +4366,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << action << "();\n";
   }
 
-  assert(values.find(RegisterActionType::Read) != values.end());
-  const std::vector<code_t> &read_values = values.at(RegisterActionType::Read);
+  assert(values.find(RegisterActionType::IncrementAndReturnNewValue) != values.end());
+  const std::vector<code_t> &read_values = values.at(RegisterActionType::IncrementAndReturnNewValue);
 
   const var_t min_value = alloc_var(cms->id + "_min", min_estimate);
   for (size_t i = 0; i < cms->height; i++) {

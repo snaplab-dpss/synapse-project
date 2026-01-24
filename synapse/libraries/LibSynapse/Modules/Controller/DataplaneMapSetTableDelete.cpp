@@ -9,13 +9,11 @@ using LibBDD::call_t;
 
 using LibCore::expr_addr_to_obj_addr;
 
-using Tofino::Table;
-
 namespace {
 
 struct map_table_data_t {
   addr_t obj;
-  std::vector<klee::ref<klee::Expr>> keys;
+  klee::ref<klee::Expr> key;
 };
 
 map_table_data_t get_table_delete_data(const Context &ctx, const Call *call_node) {
@@ -26,8 +24,8 @@ map_table_data_t get_table_delete_data(const Context &ctx, const Call *call_node
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   const map_table_data_t data = {
-      .obj  = expr_addr_to_obj_addr(map_addr_expr),
-      .keys = Table::build_keys(key, ctx.get_expr_structs()),
+      .obj = expr_addr_to_obj_addr(map_addr_expr),
+      .key = key,
   };
 
   return data;
@@ -74,7 +72,7 @@ std::vector<impl_t> DataplaneMapSetTableDeleteFactory::process_node(const EP *ep
     return {};
   }
 
-  Module *module  = new DataplaneMapSetTableDelete(node, data.obj, data.keys);
+  Module *module  = new DataplaneMapSetTableDelete(node, data.obj, data.key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -105,7 +103,7 @@ std::unique_ptr<Module> DataplaneMapSetTableDeleteFactory::create(const BDD *bdd
     return {};
   }
 
-  return std::make_unique<DataplaneMapSetTableDelete>(node, data.obj, data.keys);
+  return std::make_unique<DataplaneMapSetTableDelete>(node, data.obj, data.key);
 }
 
 } // namespace Controller

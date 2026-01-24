@@ -41,7 +41,7 @@ fcfs_ct_data_t get_fcfs_ct_data(const Context &ctx, const Call *map_get, const C
   fcfs_ct_data_t data;
   data.obj              = expr_addr_to_obj_addr(get_call.args.at("map").expr);
   data.original_key     = get_call.args.at("key").in;
-  data.keys             = Table::build_keys(data.original_key, ctx.get_expr_structs());
+  data.keys             = TofinoModuleFactory::partition_expr_for_registers(ctx, data.original_key);
   data.read_value       = get_call.args.at("value_out").out;
   data.write_value      = put_call.args.at("value").expr;
   data.map_has_this_key = map_get->get_local_symbol("map_has_this_key");

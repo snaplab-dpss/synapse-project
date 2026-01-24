@@ -50,6 +50,7 @@ struct search_config_t {
   bool no_reorder;
   std::vector<ep_id_t> peek;
   std::vector<ep_id_t> peek_speculation;
+  std::vector<ep_id_t> forced_search_decisions;
   bool pause_and_show_on_backtrack;
   bool not_greedy;
   bool no_deadends;
