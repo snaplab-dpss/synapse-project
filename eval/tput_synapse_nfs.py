@@ -25,17 +25,17 @@ PIPELINES = 1
 
 TOTAL_FLOWS = 40_000
 
-CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
-ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
+# CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
+# ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 
-# CHURN_FPM = [10_000]
-# ZIPF_PARAMS = [0.6, 0.8]
+CHURN_FPM = [10_000]
+ZIPF_PARAMS = [0.6, 0.8, 1.0, 1.2]
 
 # TOTAL_FLOWS = 40_000
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.0]
 
-ITERATIONS = 3
+ITERATIONS = 10
 
 
 @dataclass
@@ -154,22 +154,22 @@ SYNAPSE_NFS = [
     #     )
     #     for cache_size in [65536, 32768, 1024]
     # ],
-    *[
-        SynapseNF(
-            name=build_synapse_nf_name("fw", churn, s),
-            description=f"Synapse {build_synapse_nf_name('fw', churn, s)}",
-            data_out=Path(f"tput_synapse_fw.csv"),
-            kvs_mode=False,
-            tofino=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.p4"),
-            controller=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.cpp"),
-            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-            route=lambda _: [],
-            churn=[churn],
-            zipf=[s],
-        )
-        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
-    ],
+    # *[
+    #     SynapseNF(
+    #         name=build_synapse_nf_name("fw", churn, s),
+    #         description=f"Synapse {build_synapse_nf_name('fw', churn, s)}",
+    #         data_out=Path(f"tput_synapse_fw.csv"),
+    #         kvs_mode=False,
+    #         tofino=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.p4"),
+    #         controller=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.cpp"),
+    #         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #         route=lambda _: [],
+    #         churn=[churn],
+    #         zipf=[s],
+    #     )
+    #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    # ],
     SynapseNF(
         name="gallium-fw",
         description="Gallium FW",

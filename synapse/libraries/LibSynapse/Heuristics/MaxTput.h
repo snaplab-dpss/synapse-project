@@ -33,10 +33,10 @@ public:
   MaxTput()
       : HeuristicCfg("MaxTput", {
                                     BUILD_METRIC(MaxTput, get_tput_speculation, Objective::Max),
-                                    BUILD_METRIC(MaxTput, get_recirculations, Objective::Min),
                                     BUILD_METRIC(MaxTput, get_bdd_progress, Objective::Max),
                                     BUILD_METRIC(MaxTput, get_pipeline_usage, Objective::Min),
                                     BUILD_METRIC(MaxTput, get_memory_usage, Objective::Min),
+                                    BUILD_METRIC(MaxTput, get_recirculations, Objective::Min),
                                 }) {}
 
   MaxTput &operator=(const MaxTput &other) {
@@ -105,11 +105,19 @@ private:
   }
 
   i64 get_recirculations(const EP *ep) const {
+    i64 recirculations = 0;
+
     auto found_it = ep->get_meta().modules_counter.find(ModuleType::Tofino_Recirculate);
     if (found_it != ep->get_meta().modules_counter.end()) {
-      return found_it->second;
+      recirculations += found_it->second;
     }
-    return 0;
+    for (const spec_impl_t &spec : ep->get_speculations().speculations_per_node) {
+      if (spec.recirculated) {
+        recirculations++;
+      }
+    }
+
+    return recirculations;
   }
 };
 

@@ -40,7 +40,6 @@ protected:
 
   decision_t decide(const EP *ep, const BDDNode *node, std::unordered_map<std::string, i32> params = {}) const;
   impl_t implement(const EP *ep, const BDDNode *node, std::unique_ptr<EP> result, std::unordered_map<std::string, i32> params = {}) const;
-  void speculate_sending_to_controller(const EP *ep, const BDDNode *node, Context &ctx, hit_rate_t relative_hr_sent_to_controller) const;
 };
 
 } // namespace LibSynapse

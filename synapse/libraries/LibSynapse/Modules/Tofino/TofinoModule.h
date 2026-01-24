@@ -85,6 +85,9 @@ public:
     return Register::partition_value(ctx.get_target_ctx<TofinoContext>()->get_tna().tna_config.properties, expr, ctx.get_expr_structs());
   }
 
+  static void speculate_sending_to_controller(const EP *ep, const BDDNode *node, Context &ctx, const speculations_t &speculations,
+                                              hit_rate_t relative_hr_sent_to_controller, bool local_recirculation_decision);
+
   // ======================================================================
   //  Map Table
   // ======================================================================

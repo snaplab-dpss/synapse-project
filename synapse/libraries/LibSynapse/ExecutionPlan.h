@@ -125,6 +125,9 @@ public:
   hit_rate_t get_active_leaf_hit_rate() const;
   port_ingress_t get_active_leaf_node_egress() const;
   port_ingress_t get_node_egress(hit_rate_t hr, const EPNode *node) const;
+  const speculations_t &get_speculations() const;
+  port_ingress_t get_speculative_node_egress(hit_rate_t hr, const BDDNode *node, const speculations_t &speculations,
+                                             bool local_recirculation_decision = false) const;
   pps_t estimate_tput_pps() const;
 
   // Sources of error:

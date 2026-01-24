@@ -91,9 +91,10 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
     return {};
   }
 
+  bool requires_recirculation = false;
   if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable,
                           build_fcfs_ct_id(fcfs_ct_data->map_objs.map))) {
-    return {};
+    requires_recirculation = true;
   }
 
   std::vector<u32> allowed_cache_capacities = enum_fcfs_ct_cache_capacities(fcfs_ct_data->capacity);
@@ -115,10 +116,16 @@ std::optional<spec_impl_t> FCFSCachedTableReadFactory::speculate(const EP *ep, c
 
   Context new_ctx = speculations.ctx;
 
+  if (requires_recirculation) {
+    new_ctx.get_mutable_perf_oracle().add_recirculated_traffic(
+        ep->get_speculative_node_egress(new_ctx.get_profiler().get_hr(node), node, speculations));
+  }
+
   new_ctx.save_ds_impl(node->get_id(), fcfs_ct_data->map_objs.map, DSImpl::Tofino_FCFSCachedTable);
   new_ctx.save_ds_impl(node->get_id(), fcfs_ct_data->map_objs.dchain, DSImpl::Tofino_FCFSCachedTable);
 
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_TABLE_CACHE_SIZE_PARAM, cache_capacity.value()}}), new_ctx);
+  spec_impl.recirculated = requires_recirculation;
 
   return spec_impl;
 }

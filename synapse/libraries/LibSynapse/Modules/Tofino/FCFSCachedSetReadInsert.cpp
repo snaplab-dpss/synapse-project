@@ -351,9 +351,10 @@ std::optional<spec_impl_t> FCFSCachedSetReadInsertFactory::speculate(const EP *e
     return {};
   }
 
+  bool requires_recirculation = false;
   if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet,
                           build_fcfs_cs_id(map_coalescing_objs->map))) {
-    return {};
+    requires_recirculation = true;
   }
 
   hit_rate_t chosen_success_estimation = 0_hr;
@@ -388,7 +389,13 @@ std::optional<spec_impl_t> FCFSCachedSetReadInsertFactory::speculate(const EP *e
   new_ctx.save_ds_impl(node->get_id(), map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet);
   new_ctx.save_ds_impl(node->get_id(), map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedSet);
 
-  speculate_sending_to_controller(ep, pattern.dchain_allocate_new_index, new_ctx, 1_hr - chosen_success_estimation);
+  if (requires_recirculation) {
+    new_ctx.get_mutable_perf_oracle().add_recirculated_traffic(
+        ep->get_speculative_node_egress(new_ctx.get_profiler().get_hr(node), node, speculations));
+  }
+
+  speculate_sending_to_controller(ep, pattern.dchain_allocate_new_index, new_ctx, speculations, 1_hr - chosen_success_estimation,
+                                  requires_recirculation);
 
   spec_impl_t spec_impl(decide(ep, node, {{FCFS_CACHED_SET_CACHE_SIZE_PARAM, chosen_cache_capacity}}), new_ctx);
 
@@ -397,6 +404,7 @@ std::optional<spec_impl_t> FCFSCachedSetReadInsertFactory::speculate(const EP *e
   for (const BDDNode *op : ignore_nodes) {
     spec_impl.skip.insert(op->get_id());
   }
+  spec_impl.recirculated = requires_recirculation;
 
   return spec_impl;
 }

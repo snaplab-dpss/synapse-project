@@ -8,6 +8,9 @@
 namespace LibSynapse {
 namespace Tofino {
 
+using LibBDD::Route;
+using LibBDD::RouteOp;
+
 namespace {
 class ActionExprCompatibilityChecker : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -174,6 +177,58 @@ Symbols TofinoModuleFactory::get_relevant_dataplane_state(const EP *ep, const BD
   });
 
   return generated_symbols.intersect(future_used_symbols);
+}
+
+void TofinoModuleFactory::speculate_sending_to_controller(const EP *ep, const BDDNode *node, Context &ctx, const speculations_t &speculations,
+                                                          hit_rate_t relative_hr_sent_to_controller, bool local_recirculation_decision) {
+  const Profiler &profiler       = ctx.get_profiler();
+  const hit_rate_t node_hr       = profiler.get_hr(node);
+  const hit_rate_t controller_hr = node_hr * relative_hr_sent_to_controller.value;
+
+  port_ingress_t controller_node_egress = ep->get_speculative_node_egress(controller_hr, node, speculations, local_recirculation_decision);
+
+  ctx.get_mutable_perf_oracle().add_controller_traffic(controller_node_egress);
+
+  node->visit_nodes([&ctx, relative_hr_sent_to_controller, controller_node_egress](const BDDNode *future_node) {
+    if (future_node->get_type() != BDDNodeType::Route) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const Route *route_node = dynamic_cast<const Route *>(future_node);
+
+    const fwd_stats_t fwd_stats                       = ctx.get_profiler().get_fwd_stats(route_node);
+    const std::unordered_set<u16> candidate_fwd_ports = ctx.get_profiler().get_candidate_fwd_ports(route_node);
+
+    switch (fwd_stats.operation) {
+    case RouteOp::Forward: {
+      for (const u16 device : candidate_fwd_ports) {
+        const hit_rate_t dev_hr = fwd_stats.ports.at(device) * relative_hr_sent_to_controller.value;
+        if (dev_hr == 0_hr) {
+          continue;
+        }
+
+        port_ingress_t node_egress;
+        node_egress.controller = dev_hr;
+
+        ctx.get_mutable_perf_oracle().add_fwd_traffic(device, node_egress);
+      }
+    } break;
+    case RouteOp::Drop: {
+      ctx.get_mutable_perf_oracle().add_controller_dropped_traffic(fwd_stats.drop * relative_hr_sent_to_controller.value);
+    } break;
+    case RouteOp::Broadcast: {
+      for (const auto &[device, _] : fwd_stats.ports) {
+        port_ingress_t node_egress;
+        node_egress.controller = fwd_stats.ports.at(device) * relative_hr_sent_to_controller.value;
+        ctx.get_mutable_perf_oracle().add_fwd_traffic(device, node_egress);
+      }
+    } break;
+    }
+
+    return BDDNodeVisitAction::Continue;
+  });
+
+  ctx.get_mutable_profiler().scale(node->get_ordered_branch_constraints(), (1_hr - relative_hr_sent_to_controller).value);
 }
 
 } // namespace Tofino

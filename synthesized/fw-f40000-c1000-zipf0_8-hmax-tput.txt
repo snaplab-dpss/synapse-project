@@ -14,7 +14,7 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <2'250'000'000,0,48,-3,-13'986'816>
+  Score: <0,2'250'000'000,48,-3,-13'986'816,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
@@ -29,15 +29,15 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       23 seconds
+  Elapsed time:       41 seconds
   Steps:              49
   Backtracks:         0
-  Search space size:  153
-  Unfinished EPs:     104
+  Search space size:  150
+  Unfinished EPs:     101
   Finished EPs:       1
   Avg BDD size:       49
   Branching factor:   2
-  Total SS size est.: 38'184'540'819
+  Total SS size est.: 25'333'132'070
   Avg children per node:
     Node 173: 0
     Node 172: 0
@@ -68,10 +68,10 @@ Search Metadata:
     Node 182: 3
     Node 139: 6
     Node 181: 3
-    Node 138: 6
+    Node 138: 5
     Node 137: 4
     Node 184: 3
-    Node 155: 4
+    Node 155: 34
     Node 136: 3
     Node 135: 3
     Node 134: 3
@@ -79,7 +79,7 @@ Search Metadata:
     Node 156: 3
     Node 133: 2
     Node 141: 3
-    Node 142: 35
+    Node 142: 3
     Node 143: 3
     Node 144: 3
     Node 148: 0
@@ -94,11 +94,11 @@ Search Metadata:
     Node 159: 0
 
 Global Stats:
-  Num phase 1 speculations: 10'294 (100%)
-  Num phase 2 speculations: 545 (5.29435%)
-  Num phase 3 speculations: 540 (5.24577%)
-  Num speculated modules:   128'278
-  Num EPs generated:        153
+  Num phase 1 speculations: 11'682 (100%)
+  Num phase 2 speculations: 611 (5.23027%)
+  Num phase 3 speculations: 608 (5.20459%)
+  Num speculated modules:   142'634
+  Num EPs generated:        150
 
 Switch placement:
 
@@ -117,7 +117,7 @@ SRAM: 1'310'720/1'310'720 B (100%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [map_set_table_1074044080_155,map_set_table_1074044080_142]
+Objs: [map_set_table_1074044080_142,map_set_table_1074044080_155]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -125,7 +125,7 @@ SRAM: 437'344/1'310'720 B (33.3667%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 20/128 B (15.625%)
-Objs: [vector_table_1074093704_175,vector_table_1074093704_149,map_set_table_1074044080_155]
+Objs: [vector_table_1074093704_175,vector_table_1074093704_149,map_set_table_1074044080_142]
 -------------------------------------
 ==========================================================
 ========================================================

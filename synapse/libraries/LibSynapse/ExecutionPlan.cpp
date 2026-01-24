@@ -962,6 +962,13 @@ speculations_t EP::speculate() const {
   return complete_speculation;
 }
 
+const speculations_t &EP::get_speculations() const {
+  if (!cached_speculations.has_value()) {
+    speculate();
+  }
+  return cached_speculations.value();
+}
+
 pps_t EP::speculate_tput_pps() const {
   if (cached_tput_speculation.has_value()) {
     return *cached_tput_speculation;
@@ -1026,6 +1033,45 @@ port_ingress_t EP::get_node_egress(hit_rate_t hr, const EPNode *node) const {
   }
 
   const u8 past_recirculations = node->count_past_recirculations();
+
+  if (past_recirculations == 0) {
+    egress.global = hr;
+  } else {
+    egress.recirc[past_recirculations - 1] = hr;
+  }
+
+  return egress;
+}
+
+port_ingress_t EP::get_speculative_node_egress(hit_rate_t hr, const BDDNode *node, const speculations_t &speculations,
+                                               bool local_recirculation_decision) const {
+  port_ingress_t egress;
+
+  u8 past_recirculations = local_recirculation_decision ? 1 : 0;
+
+  const EPNode *leaf           = get_leaf_ep_node_from_bdd_node(node);
+  const BDDNode *last_ancestor = nullptr;
+
+  if (leaf && leaf->get_module()) {
+    if (leaf->get_module()->get_target() == TargetType::Controller) {
+      egress.controller = hr;
+      return egress;
+    } else {
+      last_ancestor = leaf->get_module()->get_node();
+      past_recirculations += leaf->count_past_recirculations();
+    }
+  }
+
+  const BDDNode *ancestor = node->get_prev();
+  while (ancestor && ancestor != last_ancestor) {
+    auto found_it = std::find_if(speculations.speculations_per_node.begin(), speculations.speculations_per_node.end(),
+                                 [ancestor](const spec_impl_t &spec) { return spec.decision.node == ancestor->get_id(); });
+    if (found_it != speculations.speculations_per_node.end() && found_it->recirculated) {
+      past_recirculations++;
+    }
+
+    ancestor = ancestor->get_prev();
+  }
 
   if (past_recirculations == 0) {
     egress.global = hr;

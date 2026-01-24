@@ -465,6 +465,19 @@ control Ingress(
       });
       fcfs_ct_1074044080_table_142_get_value_param0[14:0] = fcfs_ct_1074044080_hash_142_value;
   }
+  bit<8> match_counter0 = 0;
+  action fcfs_ct_1074044080_check_key_0_142() {
+    match_counter0 = match_counter0 + fcfs_ct_1074044080_reg_key_0_check_value.execute(fcfs_ct_1074044080_hash_142_value);
+  }
+  action fcfs_ct_1074044080_check_key_1_142() {
+    match_counter0 = match_counter0 + fcfs_ct_1074044080_reg_key_1_check_value.execute(fcfs_ct_1074044080_hash_142_value);
+  }
+  action fcfs_ct_1074044080_check_key_2_142() {
+    match_counter0 = match_counter0 + fcfs_ct_1074044080_reg_key_2_check_value.execute(fcfs_ct_1074044080_hash_142_value);
+  }
+  action fcfs_ct_1074044080_check_key_3_142() {
+    match_counter0 = match_counter0 + fcfs_ct_1074044080_reg_key_3_check_value.execute(fcfs_ct_1074044080_hash_142_value);
+  }
   bit<16> vector_table_1074093704_149_get_value_param0 = 16w0;
   action vector_table_1074093704_149_get_value(bit<16> _vector_table_1074093704_149_get_value_param0) {
     vector_table_1074093704_149_get_value_param0 = _vector_table_1074093704_149_get_value_param0;
@@ -509,6 +522,19 @@ control Ingress(
       });
       fcfs_ct_1074044080_table_155_get_value_param0[14:0] = fcfs_ct_1074044080_hash_155_value;
   }
+  bit<8> match_counter1 = 0;
+  action fcfs_ct_1074044080_check_key_0_155() {
+    match_counter1 = match_counter1 + fcfs_ct_1074044080_reg_key_0_check_value.execute(fcfs_ct_1074044080_hash_155_value);
+  }
+  action fcfs_ct_1074044080_check_key_1_155() {
+    match_counter1 = match_counter1 + fcfs_ct_1074044080_reg_key_1_check_value.execute(fcfs_ct_1074044080_hash_155_value);
+  }
+  action fcfs_ct_1074044080_check_key_2_155() {
+    match_counter1 = match_counter1 + fcfs_ct_1074044080_reg_key_2_check_value.execute(fcfs_ct_1074044080_hash_155_value);
+  }
+  action fcfs_ct_1074044080_check_key_3_155() {
+    match_counter1 = match_counter1 + fcfs_ct_1074044080_reg_key_3_check_value.execute(fcfs_ct_1074044080_hash_155_value);
+  }
   bit<16> vector_table_1074093704_175_get_value_param0 = 16w0;
   action vector_table_1074093704_175_get_value(bit<16> _vector_table_1074093704_175_get_value_param0) {
     vector_table_1074093704_175_get_value_param0 = _vector_table_1074093704_175_get_value_param0;
@@ -546,169 +572,173 @@ control Ingress(
     if (hdr.cpu.isValid() && hdr.cpu.trigger_dataplane_execution == 0) {
       nf_dev[15:0] = hdr.cpu.egress_dev;
     } else if (hdr.recirc.isValid() && !hdr.cuckoo.isValid()) {
+      if (hdr.recirc.code_path == 0) {
+        // EP node  8:ParserExtraction
+        // BDD node 134:packet_borrow_next_chunk
+        if(hdr.hdr0.isValid()) {
+          // EP node  21:ParserCondition
+          // BDD node 135:if
+          // EP node  22:Then
+          // BDD node 135:if
+          // EP node  36:ParserExtraction
+          // BDD node 136:packet_borrow_next_chunk
+          if(hdr.hdr1.isValid()) {
+            // EP node  66:ParserCondition
+            // BDD node 137:if
+            // EP node  67:Then
+            // BDD node 137:if
+            // EP node  100:ParserExtraction
+            // BDD node 138:packet_borrow_next_chunk
+            if(hdr.hdr2.isValid()) {
+              // EP node  158:VectorTableLookup
+              // BDD node 139:vector_borrow
+              meta.key_32b_0 = meta.dev;
+              vector_table_1074076488_139.apply();
+              // EP node  258:Ignore
+              // BDD node 140:vector_return
+              // EP node  328:If
+              // BDD node 141:if
+              if ((32w0x00000000) == (vector_table_1074076488_139_get_value_param0)){
+                // EP node  329:Then
+                // BDD node 141:if
+                // EP node  650:FCFSCachedTableRead
+                // BDD node 142:map_get
+                meta.fcfs_ct_1074044080_key_32b_0 = hdr.hdr1.data4;
+                meta.fcfs_ct_1074044080_key_32b_1 = hdr.hdr1.data3;
+                meta.fcfs_ct_1074044080_key_16b_2 = hdr.hdr2.data1;
+                meta.fcfs_ct_1074044080_key_16b_3 = hdr.hdr2.data0;
+                bool hit0 = fcfs_ct_1074044080_table_142.apply().hit;
+                fcfs_ct_1074044080_hash_142_calc();
+                bool fcfs_ct_is_alive0 = fcfs_ct_1074044080_reg_liveness_query_timestamp.execute(fcfs_ct_1074044080_table_142_get_value_param0);
+                if (!hit0 && fcfs_ct_is_alive0) {
+                  fcfs_ct_1074044080_check_key_0_142();
+                  fcfs_ct_1074044080_check_key_1_142();
+                  fcfs_ct_1074044080_check_key_2_142();
+                  fcfs_ct_1074044080_check_key_3_142();
+                  if (match_counter0 == 4) {
+                    hit0 = true;
+                  }
+                }
+                // EP node  991:If
+                // BDD node 143:if
+                if (!hit0){
+                  // EP node  992:Then
+                  // BDD node 143:if
+                  // EP node  4822:Drop
+                  // BDD node 147:DROP
+                  fwd_op = fwd_op_t.DROP;
+                } else {
+                  // EP node  993:Else
+                  // BDD node 143:if
+                  // EP node  1107:Ignore
+                  // BDD node 148:dchain_rejuvenate_index
+                  // EP node  1205:VectorTableLookup
+                  // BDD node 149:vector_borrow
+                  meta.key_32b_0 = meta.dev;
+                  vector_table_1074093704_149.apply();
+                  // EP node  1335:Ignore
+                  // BDD node 150:vector_return
+                  // EP node  1788:Forward
+                  // BDD node 154:FORWARD
+                  nf_dev[15:0] = vector_table_1074093704_149_get_value_param0;
+                }
+              } else {
+                // EP node  330:Else
+                // BDD node 141:if
+                // EP node  933:FCFSCachedTableReadInsert
+                // BDD node 155:map_get
+                meta.fcfs_ct_1074044080_key_32b_0 = hdr.hdr1.data3;
+                meta.fcfs_ct_1074044080_key_32b_1 = hdr.hdr1.data4;
+                meta.fcfs_ct_1074044080_key_16b_2 = hdr.hdr2.data0;
+                meta.fcfs_ct_1074044080_key_16b_3 = hdr.hdr2.data1;
+                bool hit1 = fcfs_ct_1074044080_table_155.apply().hit;
+                bit<32> cached_insert_success0 = 0;
+                if (!hit1) {
+                  fcfs_ct_1074044080_hash_155_calc();
+                  bool fcfs_ct_is_alive1 = fcfs_ct_1074044080_reg_liveness_query_and_refresh_timestamp.execute(fcfs_ct_1074044080_table_155_get_value_param0);
+                  if (fcfs_ct_is_alive1) {
+                    fcfs_ct_1074044080_check_key_0_155();
+                    fcfs_ct_1074044080_check_key_1_155();
+                    fcfs_ct_1074044080_check_key_2_155();
+                    fcfs_ct_1074044080_check_key_3_155();
+                    if (match_counter1 == 4) {
+                      hit1 = true;
+                    }
+                  } else {
+                    fcfs_ct_1074044080_reg_key_0_write.execute(fcfs_ct_1074044080_hash_155_value);
+                    fcfs_ct_1074044080_reg_key_1_write.execute(fcfs_ct_1074044080_hash_155_value);
+                    fcfs_ct_1074044080_reg_key_2_write.execute(fcfs_ct_1074044080_hash_155_value);
+                    fcfs_ct_1074044080_reg_key_3_write.execute(fcfs_ct_1074044080_hash_155_value);
+                    cached_insert_success0 = 1;
+                  }
+                }
+                // EP node  934:If
+                // BDD node 155:map_get
+                if (hit1){
+                  // EP node  935:Then
+                  // BDD node 155:map_get
+                  // EP node  1852:Ignore
+                  // BDD node 174:dchain_rejuvenate_index
+                  // EP node  1962:VectorTableLookup
+                  // BDD node 175:vector_borrow
+                  meta.key_32b_0 = meta.dev;
+                  vector_table_1074093704_175.apply();
+                  // EP node  2075:Ignore
+                  // BDD node 176:vector_return
+                  // EP node  2580:Forward
+                  // BDD node 180:FORWARD
+                  nf_dev[15:0] = vector_table_1074093704_175_get_value_param0;
+                } else {
+                  // EP node  936:Else
+                  // BDD node 155:map_get
+                  // EP node  937:If
+                  // BDD node 155:map_get
+                  if ((cached_insert_success0) != (32w0x00000000)){
+                    // EP node  938:Then
+                    // BDD node 155:map_get
+                    // EP node  2617:VectorTableLookup
+                    // BDD node 168:vector_borrow
+                    meta.key_32b_0 = meta.dev;
+                    vector_table_1074093704_168.apply();
+                    // EP node  2743:Ignore
+                    // BDD node 169:vector_return
+                    // EP node  3303:Forward
+                    // BDD node 173:FORWARD
+                    nf_dev[15:0] = vector_table_1074093704_168_get_value_param0;
+                  } else {
+                    // EP node  939:Else
+                    // BDD node 155:map_get
+                    // EP node  3398:SendToController
+                    // BDD node 263:tofino_force_send_to_controller
+                    fwd_op = fwd_op_t.FORWARD_TO_CPU;
+                    build_cpu_hdr(3398);
+                    hdr.cpu.vector_table_1074076488_139_get_value_param0 = vector_table_1074076488_139_get_value_param0;
+                    hdr.cpu.hit1 = hit1;
+                    hdr.cpu.cached_insert_success0 = cached_insert_success0;
+                    hdr.cpu.dev = meta.dev;
+                  }
+                }
+              }
+            }
+            // EP node  68:Else
+            // BDD node 137:if
+            // EP node  4515:ParserReject
+            // BDD node 183:DROP
+          }
+          // EP node  23:Else
+          // BDD node 135:if
+          // EP node  4038:ParserReject
+          // BDD node 185:DROP
+        }
+      }
 
     } else {
       // EP node  0:Ignore
       // BDD node 133:expire_items_single_map
-      // EP node  4:ParserExtraction
+      // EP node  3:Recirculate
       // BDD node 134:packet_borrow_next_chunk
-      if(hdr.hdr0.isValid()) {
-        // EP node  13:ParserCondition
-        // BDD node 135:if
-        // EP node  14:Then
-        // BDD node 135:if
-        // EP node  26:ParserExtraction
-        // BDD node 136:packet_borrow_next_chunk
-        if(hdr.hdr1.isValid()) {
-          // EP node  52:ParserCondition
-          // BDD node 137:if
-          // EP node  53:Then
-          // BDD node 137:if
-          // EP node  83:VectorTableLookup
-          // BDD node 139:vector_borrow
-          meta.key_32b_0 = meta.dev;
-          vector_table_1074076488_139.apply();
-          // EP node  157:ParserExtraction
-          // BDD node 138:packet_borrow_next_chunk
-          if(hdr.hdr2.isValid()) {
-            // EP node  240:Ignore
-            // BDD node 140:vector_return
-            // EP node  331:If
-            // BDD node 141:if
-            if ((32w0x00000000) == (vector_table_1074076488_139_get_value_param0)){
-              // EP node  332:Then
-              // BDD node 141:if
-              // EP node  634:FCFSCachedTableRead
-              // BDD node 142:map_get
-              meta.fcfs_ct_1074044080_key_32b_0 = hdr.hdr1.data4;
-              meta.fcfs_ct_1074044080_key_32b_1 = hdr.hdr1.data3;
-              meta.fcfs_ct_1074044080_key_16b_2 = hdr.hdr2.data1;
-              meta.fcfs_ct_1074044080_key_16b_3 = hdr.hdr2.data0;
-              bool hit0 = fcfs_ct_1074044080_table_142.apply().hit;
-              fcfs_ct_1074044080_hash_142_calc();
-              bool fcfs_ct_is_alive0 = fcfs_ct_1074044080_reg_liveness_query_timestamp.execute(fcfs_ct_1074044080_table_142_get_value_param0);
-              if (!hit0 && fcfs_ct_is_alive0) {
-                bit<8> match_counter0 = 0;
-                match_counter0 = match_counter0 + fcfs_ct_1074044080_reg_key_0_check_value.execute(fcfs_ct_1074044080_hash_142_value);
-                match_counter0 = match_counter0 + fcfs_ct_1074044080_reg_key_1_check_value.execute(fcfs_ct_1074044080_hash_142_value);
-                match_counter0 = match_counter0 + fcfs_ct_1074044080_reg_key_2_check_value.execute(fcfs_ct_1074044080_hash_142_value);
-                match_counter0 = match_counter0 + fcfs_ct_1074044080_reg_key_3_check_value.execute(fcfs_ct_1074044080_hash_142_value);
-                if (match_counter0 == 4) {
-                  hit0 = true;
-                }
-              }
-              // EP node  957:If
-              // BDD node 143:if
-              if (!hit0){
-                // EP node  958:Then
-                // BDD node 143:if
-                // EP node  5111:Drop
-                // BDD node 147:DROP
-                fwd_op = fwd_op_t.DROP;
-              } else {
-                // EP node  959:Else
-                // BDD node 143:if
-                // EP node  1129:Ignore
-                // BDD node 148:dchain_rejuvenate_index
-                // EP node  1264:VectorTableLookup
-                // BDD node 149:vector_borrow
-                meta.key_32b_0 = meta.dev;
-                vector_table_1074093704_149.apply();
-                // EP node  1431:Ignore
-                // BDD node 150:vector_return
-                // EP node  2046:Forward
-                // BDD node 154:FORWARD
-                nf_dev[15:0] = vector_table_1074093704_149_get_value_param0;
-              }
-            } else {
-              // EP node  333:Else
-              // BDD node 141:if
-              // EP node  901:FCFSCachedTableReadInsert
-              // BDD node 155:map_get
-              meta.fcfs_ct_1074044080_key_32b_0 = hdr.hdr1.data3;
-              meta.fcfs_ct_1074044080_key_32b_1 = hdr.hdr1.data4;
-              meta.fcfs_ct_1074044080_key_16b_2 = hdr.hdr2.data0;
-              meta.fcfs_ct_1074044080_key_16b_3 = hdr.hdr2.data1;
-              bool hit1 = fcfs_ct_1074044080_table_155.apply().hit;
-              bit<32> cached_insert_success0 = 0;
-              if (!hit1) {
-                fcfs_ct_1074044080_hash_155_calc();
-                bool fcfs_ct_is_alive1 = fcfs_ct_1074044080_reg_liveness_query_and_refresh_timestamp.execute(fcfs_ct_1074044080_table_155_get_value_param0);
-                if (fcfs_ct_is_alive1) {
-                  bit<8> match_counter1 = 0;
-                  match_counter1 = match_counter1 + fcfs_ct_1074044080_reg_key_0_check_value.execute(fcfs_ct_1074044080_hash_155_value);
-                  match_counter1 = match_counter1 + fcfs_ct_1074044080_reg_key_1_check_value.execute(fcfs_ct_1074044080_hash_155_value);
-                  match_counter1 = match_counter1 + fcfs_ct_1074044080_reg_key_2_check_value.execute(fcfs_ct_1074044080_hash_155_value);
-                  match_counter1 = match_counter1 + fcfs_ct_1074044080_reg_key_3_check_value.execute(fcfs_ct_1074044080_hash_155_value);
-                  if (match_counter1 == 4) {
-                    hit1 = true;
-                  }
-                } else {
-                  fcfs_ct_1074044080_reg_key_0_write.execute(fcfs_ct_1074044080_hash_155_value);
-                  fcfs_ct_1074044080_reg_key_1_write.execute(fcfs_ct_1074044080_hash_155_value);
-                  fcfs_ct_1074044080_reg_key_2_write.execute(fcfs_ct_1074044080_hash_155_value);
-                  fcfs_ct_1074044080_reg_key_3_write.execute(fcfs_ct_1074044080_hash_155_value);
-                  cached_insert_success0 = 1;
-                }
-              }
-              // EP node  902:If
-              // BDD node 155:map_get
-              if (hit1){
-                // EP node  903:Then
-                // BDD node 155:map_get
-                // EP node  2139:VectorTableLookup
-                // BDD node 175:vector_borrow
-                meta.key_32b_0 = meta.dev;
-                vector_table_1074093704_175.apply();
-                // EP node  2309:Ignore
-                // BDD node 174:dchain_rejuvenate_index
-                // EP node  2420:Ignore
-                // BDD node 176:vector_return
-                // EP node  2912:Forward
-                // BDD node 180:FORWARD
-                nf_dev[15:0] = vector_table_1074093704_175_get_value_param0;
-              } else {
-                // EP node  904:Else
-                // BDD node 155:map_get
-                // EP node  905:If
-                // BDD node 155:map_get
-                if ((cached_insert_success0) != (32w0x00000000)){
-                  // EP node  906:Then
-                  // BDD node 155:map_get
-                  // EP node  2948:VectorTableLookup
-                  // BDD node 168:vector_borrow
-                  meta.key_32b_0 = meta.dev;
-                  vector_table_1074093704_168.apply();
-                  // EP node  3071:Ignore
-                  // BDD node 169:vector_return
-                  // EP node  3618:Forward
-                  // BDD node 173:FORWARD
-                  nf_dev[15:0] = vector_table_1074093704_168_get_value_param0;
-                } else {
-                  // EP node  907:Else
-                  // BDD node 155:map_get
-                  // EP node  3711:SendToController
-                  // BDD node 263:tofino_force_send_to_controller
-                  fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                  build_cpu_hdr(3711);
-                  hdr.cpu.vector_table_1074076488_139_get_value_param0 = vector_table_1074076488_139_get_value_param0;
-                  hdr.cpu.hit1 = hit1;
-                  hdr.cpu.cached_insert_success0 = cached_insert_success0;
-                  hdr.cpu.dev = meta.dev;
-                }
-              }
-            }
-          }
-          // EP node  54:Else
-          // BDD node 137:if
-          // EP node  4809:ParserReject
-          // BDD node 183:DROP
-        }
-        // EP node  15:Else
-        // BDD node 135:if
-        // EP node  4340:ParserReject
-        // BDD node 185:DROP
-      }
+      fwd_op = fwd_op_t.RECIRCULATE;
+      build_recirc_hdr(0);
 
     }
 

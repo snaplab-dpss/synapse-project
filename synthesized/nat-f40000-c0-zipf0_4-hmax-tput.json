@@ -1,11 +1,11 @@
 {
   "bdd": "nat.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 213,
-    "num_phase1_speculations": 27790,
-    "num_phase2_speculations": 1157,
-    "num_phase3_speculations": 1154,
-    "num_speculated_modules": 394769
+    "num_execution_plans_generated": 199,
+    "num_phase1_speculations": 24125,
+    "num_phase2_speculations": 1030,
+    "num_phase3_speculations": 1030,
+    "num_speculated_modules": 321813
   },
   "heuristic": {
     "meta": [
@@ -35,11 +35,12 @@
       }
     ],
     "score": [
-      2250000000,
       0,
+      2250000000,
       61,
       -5,
-      -25637696
+      -25637696,
+      0
     ]
   },
   "implementations": [
@@ -52,12 +53,12 @@
       "implementation": "Tofino::VectorTable"
     },
     {
-      "addr": 1074053136,
-      "implementation": "Tofino::MapTable"
-    },
-    {
       "addr": 1074085120,
       "implementation": "Tofino::DchainTable"
+    },
+    {
+      "addr": 1074053136,
+      "implementation": "Tofino::MapTable"
     },
     {
       "addr": 1074085544,
@@ -78,7 +79,7 @@
         "node_id": 179
       },
       {
-        "avg": 6.0,
+        "avg": 3.0,
         "node_id": 146
       },
       {
@@ -86,11 +87,11 @@
         "node_id": 182
       },
       {
-        "avg": 6.0,
+        "avg": 4.0,
         "node_id": 145
       },
       {
-        "avg": 6.0,
+        "avg": 4.0,
         "node_id": 181
       },
       {
@@ -98,15 +99,15 @@
         "node_id": 159
       },
       {
-        "avg": 8.0,
+        "avg": 6.0,
         "node_id": 144
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 143
       },
       {
-        "avg": 32.0,
+        "avg": 3.0,
         "node_id": 142
       },
       {
@@ -122,7 +123,7 @@
         "node_id": 136
       },
       {
-        "avg": 4.0,
+        "avg": 32.0,
         "node_id": 163
       },
       {
@@ -142,7 +143,7 @@
         "node_id": 133
       },
       {
-        "avg": 5.0,
+        "avg": 4.0,
         "node_id": 140
       },
       {
@@ -162,7 +163,7 @@
         "node_id": 189
       },
       {
-        "avg": 6.0,
+        "avg": 3.0,
         "node_id": 164
       },
       {
@@ -174,7 +175,7 @@
         "node_id": 167
       },
       {
-        "avg": 6.0,
+        "avg": 5.0,
         "node_id": 138
       },
       {
@@ -198,7 +199,7 @@
         "node_id": 171
       },
       {
-        "avg": 4.0,
+        "avg": 6.0,
         "node_id": 183
       },
       {
@@ -218,7 +219,7 @@
         "node_id": 172
       },
       {
-        "avg": 6.0,
+        "avg": 3.0,
         "node_id": 184
       },
       {
@@ -238,7 +239,7 @@
         "node_id": 173
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 185
       },
       {
@@ -258,7 +259,7 @@
         "node_id": 174
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 186
       },
       {
@@ -315,13 +316,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.360655737704918,
-    "elapsed_time_seconds": 93,
+    "branching_factor": 3.1475409836065573,
+    "elapsed_time_seconds": 112,
     "finished_eps": 1,
-    "ss_size": 213,
+    "ss_size": 199,
     "steps": 62,
-    "total_ss_size_estimation": 2397262654213.671,
-    "unfinished_eps": 151
+    "total_ss_size_estimation": 557423681055.9896,
+    "unfinished_eps": 137
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

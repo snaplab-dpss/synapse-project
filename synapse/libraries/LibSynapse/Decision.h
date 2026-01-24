@@ -45,16 +45,15 @@ struct spec_impl_t {
   decision_t decision;
   Context ctx;
   std::optional<TargetType> next_target;
+  bool recirculated;
   bdd_node_ids_t skip;
 
-  spec_impl_t(const decision_t &_decision, const Context &_ctx) : decision(_decision), ctx(_ctx) {}
+  spec_impl_t(const decision_t &_decision, const Context &_ctx) : decision(_decision), ctx(_ctx), recirculated(false) {}
 };
 
 struct speculations_t {
   std::vector<spec_impl_t> speculations_per_node;
-
-  // Context after applying all speculations.
-  Context ctx;
+  Context ctx; // Context after applying all speculations.
 };
 
 struct impl_t {

@@ -14,7 +14,7 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <2'250'634'600,0,61,-5,-25'637'696>
+  Score: <0,2'250'634'600,61,-5,-25'637'696,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
@@ -25,73 +25,73 @@ Winner:
 Stateful Implementations:
   1074102760: Tofino::VectorTable
   1074066960: Tofino::VectorTable
-  1074053136: Tofino::MapTable
   1074085120: Tofino::DchainTable
+  1074053136: Tofino::MapTable
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       72 seconds
+  Elapsed time:       96 seconds
   Steps:              62
   Backtracks:         0
-  Search space size:  219
-  Unfinished EPs:     157
+  Search space size:  198
+  Unfinished EPs:     136
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   3
-  Total SS size est.: 4'563'123'721'076
+  Total SS size est.: 496'333'381'682
   Avg children per node:
     Node 180: 0
     Node 179: 0
-    Node 146: 4
-    Node 182: 4
-    Node 145: 5
+    Node 146: 3
+    Node 182: 3
+    Node 145: 3
     Node 181: 4
     Node 159: 3
-    Node 144: 8
-    Node 143: 3
-    Node 142: 32
+    Node 144: 6
+    Node 143: 4
+    Node 142: 3
     Node 141: 3
     Node 165: 2
     Node 136: 3
-    Node 163: 4
+    Node 163: 32
     Node 134: 3
     Node 193: 2
     Node 192: 3
     Node 133: 2
-    Node 140: 5
+    Node 140: 4
     Node 166: 0
     Node 137: 4
     Node 160: 3
     Node 189: 3
-    Node 164: 6
+    Node 164: 3
     Node 135: 3
     Node 167: 0
-    Node 138: 6
+    Node 138: 5
     Node 161: 3
     Node 190: 3
     Node 139: 6
     Node 191: 2
     Node 171: 0
-    Node 183: 8
-    Node 147: 5
+    Node 183: 6
+    Node 147: 4
     Node 162: 2
     Node 168: 0
     Node 172: 0
-    Node 184: 5
+    Node 184: 3
     Node 148: 3
     Node 155: 3
     Node 169: 0
     Node 173: 0
-    Node 185: 4
-    Node 149: 4
+    Node 185: 3
+    Node 149: 3
     Node 156: 3
     Node 170: 0
     Node 174: 0
-    Node 186: 4
+    Node 186: 3
     Node 150: 3
     Node 157: 3
     Node 175: 0
-    Node 187: 4
+    Node 187: 3
     Node 151: 3
     Node 158: 2
     Node 176: 0
@@ -103,11 +103,11 @@ Search Metadata:
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 28'986 (100%)
-  Num phase 2 speculations: 1'254 (4.32623%)
-  Num phase 3 speculations: 1'251 (4.31588%)
-  Num speculated modules:   390'081
-  Num EPs generated:        219
+  Num phase 1 speculations: 24'672 (100%)
+  Num phase 2 speculations: 1'070 (4.3369%)
+  Num phase 3 speculations: 1'070 (4.3369%)
+  Num speculated modules:   323'480
+  Num EPs generated:        198
 
 Switch placement:
 
@@ -122,19 +122,19 @@ Objs: [vector_table_1074085544_139]
 -------------------------------------
 -------------------------------------
 Stage 1
-SRAM: 873'816/1'310'720 B (66.6669%)
-TCAM: 0/67'584 B (0%)
-MapRAM: 0/786'432 B (0%)
-Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [dchain_table_1074085120_181,dchain_table_1074085120_146,dchain_table_1074085120_142]
--------------------------------------
--------------------------------------
-Stage 2
 SRAM: 1'165'088/1'310'720 B (88.8892%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 12/128 B (9.375%)
 Objs: [map_table_1074053136_163]
+-------------------------------------
+-------------------------------------
+Stage 2
+SRAM: 873'816/1'310'720 B (66.6669%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 12/128 B (9.375%)
+Objs: [dchain_table_1074085120_181,dchain_table_1074085120_146,dchain_table_1074085120_142]
 -------------------------------------
 -------------------------------------
 Stage 3
