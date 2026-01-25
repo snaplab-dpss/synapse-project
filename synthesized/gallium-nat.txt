@@ -4,151 +4,141 @@ Args:
   Name:               gallium-nat
   Targets config:     tofino2.toml
   Heuristic:          gallium
-  Profile file:       nat-f40000-c0-unif.json
+  Profile file:       nat-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (32 modules)
-    Ctrl (80 modules)
+    Tofino (40 modules)
+    Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,0,0,62,73>
-  Tput: 1.58 Tbps (2.25 Gpps)
-  Spec: 1.58 Tbps (2.25 Gpps)
+  Score: <0,0,0,0,46,61>
+  Tput: 339.65 Gbps (482.46 Mpps)
+  Spec: 339.65 Gbps (482.46 Mpps)
 
 Stateful Implementations:
-  1074102952: Tofino::VectorTable
-  1074067152: Tofino::VectorTable
-  1074053328: Tofino::MapTable
-  1074085312: Tofino::DchainTable
-  1074085736: Tofino::VectorTable
+  1074102760: Tofino::Register
+  1074066960: Tofino::Register
+  1074053136: Tofino::MapTable
+  1074085120: Tofino::DchainTable
+  1074085544: Tofino::Register
 
 Search Metadata:
   Elapsed time:       86 seconds
-  Steps:              74
+  Steps:              62
   Backtracks:         0
-  Search space size:  249
-  Unfinished EPs:     175
+  Search space size:  184
+  Unfinished EPs:     122
   Finished EPs:       1
-  Avg BDD size:       73
-  Branching factor:   3
-  Total SS size est.: 24'537'093'447'681
+  Avg BDD size:       61
+  Branching factor:   2
+  Total SS size est.: 91'718'403'977
   Avg children per node:
-    Node 187: 0
-    Node 186: 0
-    Node 188: 0
-    Node 185: 0
-    Node 157: 2
-    Node 156: 2
-    Node 184: 0
-    Node 158: 2
-    Node 155: 3
-    Node 183: 0
-    Node 154: 3
-    Node 199: 2
-    Node 198: 2
-    Node 182: 0
-    Node 190: 6
-    Node 189: 9
-    Node 171: 0
-    Node 142: 3
-    Node 201: 3
-    Node 170: 0
-    Node 141: 5
-    Node 200: 2
-    Node 133: 2
-    Node 192: 6
-    Node 163: 3
-    Node 134: 3
-    Node 193: 3
-    Node 164: 3
-    Node 135: 3
-    Node 194: 6
-    Node 165: 3
-    Node 136: 3
-    Node 195: 6
-    Node 143: 3
-    Node 202: 3
-    Node 146: 3
-    Node 205: 2
-    Node 204: 3
-    Node 145: 6
-    Node 168: 6
-    Node 139: 12
-    Node 137: 4
-    Node 196: 6
-    Node 144: 8
-    Node 203: 2
-    Node 169: 2
-    Node 140: 8
-    Node 167: 4
-    Node 138: 6
-    Node 197: 6
-    Node 175: 0
-    Node 191: 4
-    Node 147: 6
-    Node 166: 2
-    Node 172: 0
-    Node 176: 0
-    Node 148: 6
-    Node 159: 3
-    Node 173: 0
-    Node 177: 0
-    Node 149: 6
-    Node 160: 3
-    Node 174: 0
-    Node 178: 0
-    Node 150: 6
-    Node 161: 3
-    Node 179: 0
-    Node 151: 3
-    Node 162: 2
     Node 180: 0
+    Node 179: 0
+    Node 146: 3
+    Node 182: 3
+    Node 145: 3
+    Node 181: 4
+    Node 159: 3
+    Node 144: 6
+    Node 143: 3
+    Node 142: 16
+    Node 141: 3
+    Node 165: 2
+    Node 136: 3
+    Node 163: 4
+    Node 134: 3
+    Node 193: 2
+    Node 192: 3
+    Node 133: 2
+    Node 140: 5
+    Node 166: 0
+    Node 137: 4
+    Node 160: 3
+    Node 189: 3
+    Node 164: 4
+    Node 135: 3
+    Node 167: 0
+    Node 138: 5
+    Node 161: 3
+    Node 190: 3
+    Node 139: 8
+    Node 191: 2
+    Node 171: 0
+    Node 183: 4
+    Node 147: 4
+    Node 162: 2
+    Node 168: 0
+    Node 172: 0
+    Node 184: 3
+    Node 148: 3
+    Node 155: 3
+    Node 169: 0
+    Node 173: 0
+    Node 185: 3
+    Node 149: 3
+    Node 156: 3
+    Node 170: 0
+    Node 174: 0
+    Node 186: 3
+    Node 150: 3
+    Node 157: 3
+    Node 175: 0
+    Node 187: 3
+    Node 151: 3
+    Node 158: 3
+    Node 176: 0
+    Node 188: 2
     Node 152: 3
-    Node 181: 0
+    Node 177: 0
     Node 153: 3
+    Node 178: 0
+    Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 29'986 (100%)
-  Num phase 2 speculations: 1'427 (4.75889%)
-  Num phase 3 speculations: 1'427 (4.75889%)
+  Num phase 1 speculations: 23'612 (100%)
+  Num phase 2 speculations: 898 (3.80315%)
+  Num phase 3 speculations: 893 (3.78198%)
+  Num speculated modules:   315'346
+  Num EPs generated:        184
 
 Switch placement:
 
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 288/1'310'720 B (0.0219727%)
+SRAM: 786'432/1'310'720 B (60%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 0/786'432 B (0%)
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_table_1074085736_139]
+MapRAM: 786'432/786'432 B (100%)
+Exact Match Crossbar: 28/128 B (21.875%)
+Objs: [vector_register_1074085544_0,dchain_table_1074085120_142,dchain_table_1074085120_146,dchain_table_1074085120_181,map_table_1074053136_163]
 -------------------------------------
 -------------------------------------
 Stage 1
-SRAM: 1'310'720/1'310'720 B (100%)
+SRAM: 786'424/1'310'720 B (59.9994%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 0/786'432 B (0%)
-Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [map_table_1074053328_167,dchain_table_1074085312_146,dchain_table_1074085312_189,dchain_table_1074085312_142]
+MapRAM: 786'424/786'432 B (99.999%)
+Exact Match Crossbar: 12/128 B (9.375%)
+Objs: [dchain_table_1074085120_181,vector_register_1074066960_1,vector_register_1074066960_2]
 -------------------------------------
 -------------------------------------
 Stage 2
-SRAM: 1'310'720/1'310'720 B (100%)
+SRAM: 786'432/1'310'720 B (60%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 0/786'432 B (0%)
-Exact Match Crossbar: 16/128 B (12.5%)
-Objs: [vector_table_1074067152_144,map_table_1074053328_167]
+MapRAM: 786'432/786'432 B (100%)
+Exact Match Crossbar: 20/128 B (15.625%)
+Objs: [map_table_1074053136_163,vector_register_1074066960_0,vector_register_1074066960_3]
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 582'984/1'310'720 B (44.4781%)
+SRAM: 761'152/1'310'720 B (58.0713%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 0/786'432 B (0%)
-Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [vector_table_1074102952_149,vector_table_1074102952_191,vector_table_1074067152_144]
+MapRAM: 761'152/786'432 B (96.7855%)
+Exact Match Crossbar: 16/128 B (12.5%)
+Objs: [vector_register_1074102760_0,map_table_1074053136_163]
 -------------------------------------
 ==========================================================
 ========================================================

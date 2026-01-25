@@ -301,6 +301,11 @@ std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, c
     return {};
   }
 
+  if (speculations.ctx.get_ds_usage_counts().contains({map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet}) &&
+      speculations.ctx.get_ds_usage_counts().at({map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet}) >= 2) {
+    return {};
+  }
+
   bool requires_recirculation = false;
   if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet,
                           build_fcfs_cs_id(map_coalescing_objs->map))) {
@@ -384,6 +389,11 @@ std::vector<impl_t> FCFSCachedSetInsertFactory::process_node(const EP *ep, const
 
   if (!ep->get_ctx().can_impl_ds(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet) ||
       !ep->get_ctx().can_impl_ds(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedSet)) {
+    return {};
+  }
+
+  if (ep->get_ctx().get_ds_usage_counts().contains({map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet}) &&
+      ep->get_ctx().get_ds_usage_counts().at({map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedSet}) >= 2) {
     return {};
   }
 

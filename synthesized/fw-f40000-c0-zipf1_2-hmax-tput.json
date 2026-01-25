@@ -1,11 +1,11 @@
 {
   "bdd": "fw.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 150,
-    "num_phase1_speculations": 11538,
-    "num_phase2_speculations": 605,
-    "num_phase3_speculations": 602,
-    "num_speculated_modules": 148841
+    "num_execution_plans_generated": 178,
+    "num_phase1_speculations": 12427,
+    "num_phase2_speculations": 694,
+    "num_phase3_speculations": 688,
+    "num_speculated_modules": 165674
   },
   "heuristic": {
     "meta": [
@@ -195,7 +195,7 @@
         "node_id": 184
       },
       {
-        "avg": 34.0,
+        "avg": 62.0,
         "node_id": 155
       },
       {
@@ -280,13 +280,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.9056603773584904,
-    "elapsed_time_seconds": 52,
+    "branching_factor": 3.4339622641509435,
+    "elapsed_time_seconds": 73,
     "finished_eps": 1,
-    "ss_size": 150,
+    "ss_size": 178,
     "steps": 49,
-    "total_ss_size_estimation": 25333132070.28848,
-    "unfinished_eps": 101
+    "total_ss_size_estimation": 898872602927.5317,
+    "unfinished_eps": 129
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

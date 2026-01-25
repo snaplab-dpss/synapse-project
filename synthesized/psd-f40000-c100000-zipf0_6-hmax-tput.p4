@@ -724,7 +724,7 @@ control Ingress(
             // EP node  142:ParserExtraction
             // BDD node 141:packet_borrow_next_chunk
             if(hdr.hdr2.isValid()) {
-              // EP node  193:VectorTableLookup
+              // EP node  219:VectorTableLookup
               // BDD node 142:vector_borrow
               meta.key_32b_0 = meta.dev;
               vector_table_1074109560_142.apply();
@@ -882,7 +882,7 @@ control Ingress(
               } else {
                 // EP node  338:Else
                 // BDD node 144:if
-                // EP node  1023:VectorTableLookup
+                // EP node  1048:VectorTableLookup
                 // BDD node 192:vector_borrow
                 meta.key_32b_0 = meta.dev;
                 vector_table_1074126776_192.apply();

@@ -166,12 +166,15 @@ private:
     WithoutLookahead,
   };
 
-  speculations_t speculate(const Context &ctx, std::list<speculation_target_t> speculation_target_nodes, pps_t ingress,
+  speculations_t speculate(std::list<speculation_target_t> speculation_target_nodes, pps_t ingress,
+                           SpeculationStrategy lookahead = SpeculationStrategy::WithLookahead) const;
+  speculations_t speculate(const speculations_t &speculations, std::list<speculation_target_t> speculation_target_nodes, pps_t ingress,
                            SpeculationStrategy lookahead = SpeculationStrategy::WithLookahead) const;
   spec_impl_t get_best_speculation(const speculation_target_t &speculation_target, const speculations_t &speculations, pps_t ingress,
                                    const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy lookahead) const;
-  bool is_better_speculation(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation, const speculation_target_t &speculation_target,
-                             pps_t ingress, const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy lookahead) const;
+  bool is_better_speculation(const speculations_t &speculations, const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
+                             const speculation_target_t &speculation_target, pps_t ingress,
+                             const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy lookahead) const;
 
   struct tput_cmp_t {
     pps_t old_pps;
@@ -180,21 +183,23 @@ private:
 
   // Compare the performance between an old speculation decision and a new one by checking their performance as if they were subjected to the nodes
   // ignored by the other one, and vise versa.
-  tput_cmp_t compare_speculations_by_ignored_nodes(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
-                                                   const speculation_target_t &speculation_target, pps_t ingress,
+  tput_cmp_t compare_speculations_by_ignored_nodes(const speculations_t &speculations, const spec_impl_t &old_speculation,
+                                                   const spec_impl_t &new_speculation, const speculation_target_t &speculation_target, pps_t ingress,
                                                    const std::list<speculation_target_t> &speculation_target_nodes) const;
 
   // Compare the performance of an old speculation with a new one by checking their performance when considering all reachable BDD nodes from the
   // current node (down to the leaves).
-  tput_cmp_t compare_speculations_with_reachable_nodes_lookahead(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
-                                                                 const speculation_target_t &speculation_target, pps_t ingress,
+  tput_cmp_t compare_speculations_with_reachable_nodes_lookahead(const speculations_t &speculations, const spec_impl_t &old_speculation,
+                                                                 const spec_impl_t &new_speculation, const speculation_target_t &speculation_target,
+                                                                 pps_t ingress,
                                                                  const std::list<speculation_target_t> &speculation_target_nodes) const;
 
   // Compare the performance of an old speculation with a new one by checking their performance when considering _all_ unexplored BDD nodes.
   // This is much more expensive than compare_speculations_by_ignored_nodes and compare_speculations_with_reachable_nodes_lookahead, but it is useful
   // to break ties between them.
-  tput_cmp_t compare_speculations_with_unexplored_nodes_lookahead(const spec_impl_t &old_speculation, const spec_impl_t &new_speculation,
-                                                                  const speculation_target_t &speculation_target, pps_t ingress,
+  tput_cmp_t compare_speculations_with_unexplored_nodes_lookahead(const speculations_t &speculations, const spec_impl_t &old_speculation,
+                                                                  const spec_impl_t &new_speculation, const speculation_target_t &speculation_target,
+                                                                  pps_t ingress,
                                                                   const std::list<speculation_target_t> &speculation_target_nodes) const;
 };
 

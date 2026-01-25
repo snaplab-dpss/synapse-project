@@ -3,7 +3,7 @@ digraph G {
 	"26"[label="[EPNode=26,BDDNode=138]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"5605"[label="[EPNode=5605,BDDNode=200]\nParserReject",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"949"[label="[EPNode=949,BDDNode=197]\nForward (vector_data__192)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"522"[label="[EPNode=522,BDDNode=192]\nVector Table Lookup\n(tid=vector_table_1074126776, obj=1074126776)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"543"[label="[EPNode=543,BDDNode=192]\nVector Table Lookup\n(tid=vector_table_1074126776, obj=1074126776)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"7257"[label="[EPNode=7257,BDDNode=184]\nDrop",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"6450"[label="[EPNode=6450,BDDNode=173]\nElse",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"6459"[label="[EPNode=6459,BDDNode=173]\nAbortTransaction",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
@@ -52,10 +52,7 @@ digraph G {
 	"2327"[label="[EPNode=2327,BDDNode=147] \n(cached_insert_success != 0)",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"140"[label="[EPNode=140,BDDNode=145]\nFCFS Cached Table Read\nobj=1074048392, size=512",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"216"[label="[EPNode=216,BDDNode=140] ParserCondition",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"294"[label="[EPNode=294,BDDNode=142]\nVector Table Lookup\n(tid=vector_table_1074109560, obj=1074109560)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"6455"[label="[EPNode=6455,BDDNode=173]\nAbortTransaction",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
-	"4018"[label="[EPNode=4018,BDDNode=300]\nDataplaneVectorTableLookup",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
-	"1020"[label="[EPNode=1020,BDDNode=168]\nVector Register Lookup\n(id=vector_register_1074079432, obj=1074079432)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"307"[label="[EPNode=307,BDDNode=142]\nVector Table Lookup\n(tid=vector_table_1074109560, obj=1074109560)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"4016"[label="[EPNode=4016,BDDNode=300]\nParseHeader",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"7647"[label="[EPNode=7647,BDDNode=294]\nDataplaneVectorTableLookup",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"2326"[label="[EPNode=2326,BDDNode=147]\nFCFS Cached Table Insert\nobj=1074048392, size=512",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
@@ -89,6 +86,9 @@ digraph G {
 	"4477"[label="[EPNode=4477,BDDNode=172]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"4022"[label="[EPNode=4022,BDDNode=300]\nAbortTransaction",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"456"[label="[EPNode=456,BDDNode=146]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"6455"[label="[EPNode=6455,BDDNode=173]\nAbortTransaction",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
+	"4018"[label="[EPNode=4018,BDDNode=300]\nDataplaneVectorTableLookup",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
+	"1020"[label="[EPNode=1020,BDDNode=168]\nVector Register Lookup\n(id=vector_register_1074079432, obj=1074079432)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"1338"[label="[EPNode=1338,BDDNode=171]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"4028"[label="[EPNode=4028,BDDNode=300]\nThen",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"4476"[label="[EPNode=4476,BDDNode=172]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
@@ -172,11 +172,11 @@ digraph G {
 	"454" -> "456";
 	"400" -> "454";
 	"399" -> "400";
-	"522" -> "949";
-	"401" -> "522";
+	"543" -> "949";
+	"401" -> "543";
 	"399" -> "401";
-	"294" -> "399";
-	"254" -> "294";
+	"307" -> "399";
+	"254" -> "307";
 	"217" -> "254";
 	"216" -> "217";
 	"218" -> "5605";

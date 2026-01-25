@@ -464,7 +464,7 @@ control Ingress(
           // BDD node 137:if
           // EP node  53:Then
           // BDD node 137:if
-          // EP node  83:VectorTableLookup
+          // EP node  103:VectorTableLookup
           // BDD node 139:vector_borrow
           meta.key_32b_0 = meta.dev;
           vector_table_1074085544_139.apply();
@@ -494,7 +494,7 @@ control Ingress(
               if (hit1){
                 // EP node  834:Then
                 // BDD node 143:if
-                // EP node  1044:VectorTableLookup
+                // EP node  1094:VectorTableLookup
                 // BDD node 144:vector_borrow
                 meta.key_32b_0 = (bit<32>)(bswap16(hdr.hdr2.data1));
                 vector_table_1074066960_144.apply();
@@ -572,7 +572,7 @@ control Ingress(
                 // BDD node 181:dchain_rejuvenate_index
                 meta.key_32b_0 = map_table_1074053136_163_get_value_param0;
                 dchain_table_1074085120_181.apply();
-                // EP node  1209:VectorTableLookup
+                // EP node  1261:VectorTableLookup
                 // BDD node 183:vector_borrow
                 meta.key_32b_0 = meta.dev;
                 vector_table_1074102760_183.apply();

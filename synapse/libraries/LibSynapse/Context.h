@@ -114,6 +114,7 @@ private:
 
   std::unordered_map<addr_t, DSImpl> ds_impls;
   std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> ds_impls_decisions_per_bdd_node_and_obj;
+  std::map<std::pair<addr_t, DSImpl>, u32> ds_usage_counts;
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
 
 public:
@@ -153,6 +154,7 @@ public:
 
   const std::unordered_map<addr_t, DSImpl> &get_ds_impls() const;
   const std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> &get_ds_impls_decisions_per_bdd_node_and_obj() const;
+  const std::map<std::pair<addr_t, DSImpl>, u32> &get_ds_usage_counts() const;
 
   void save_ds_impl(bdd_node_id_t node_id, addr_t obj, DSImpl impl);
   bool has_ds_impl(addr_t obj) const;

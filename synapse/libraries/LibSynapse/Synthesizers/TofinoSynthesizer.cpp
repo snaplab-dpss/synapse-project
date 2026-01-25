@@ -3232,9 +3232,14 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     hash_inputs.push_back(key_var.name);
   }
 
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+
+  const var_t value_var = alloc_var("fcfs_ct_value", value);
+  value_var.declare(ingress, "0");
+
   code_t hash_calculator;
   code_t hash_value;
-  transpile_hash_calculation(hash, hash_inputs, hash_calculator, hash_value);
+  transpile_fcfs_ct_hash_calculation(hash, hash_inputs, value_var, hash_calculator, hash_value);
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -3264,9 +3269,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply.indent();
     ingress_apply << fcfs_ct_internals.keys_reg_actions.at({reg_key.id, RegisterActionType::Write}) << ".execute(" << hash_value << ");\n";
   }
-
-  const var_t value_var = alloc_var("value", value);
-  value_var.declare(ingress_apply, "(bit<32>)" + hash_value);
 
   ingress_apply.indent();
   ingress_apply << cached_insert_success_var.name << " = 1;\n";

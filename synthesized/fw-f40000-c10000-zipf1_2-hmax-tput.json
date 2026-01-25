@@ -1,11 +1,11 @@
 {
   "bdd": "fw.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 159,
-    "num_phase1_speculations": 17899,
-    "num_phase2_speculations": 792,
-    "num_phase3_speculations": 783,
-    "num_speculated_modules": 218329
+    "num_execution_plans_generated": 173,
+    "num_phase1_speculations": 17468,
+    "num_phase2_speculations": 826,
+    "num_phase3_speculations": 816,
+    "num_speculated_modules": 216728
   },
   "heuristic": {
     "meta": [
@@ -30,7 +30,7 @@
         "name": "Stages"
       },
       {
-        "description": "19591872 bits",
+        "description": "15430336 bits",
         "name": "Memory Usage"
       }
     ],
@@ -39,7 +39,7 @@
       2250000000,
       56,
       -5,
-      -19591872,
+      -15430336,
       0
     ]
   },
@@ -50,11 +50,11 @@
     },
     {
       "addr": 1074076064,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074044080,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074076488,
@@ -139,7 +139,7 @@
         "node_id": 143
       },
       {
-        "avg": 18.0,
+        "avg": 32.0,
         "node_id": 142
       },
       {
@@ -340,13 +340,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.9074074074074074,
-    "elapsed_time_seconds": 47,
+    "branching_factor": 3.1666666666666665,
+    "elapsed_time_seconds": 101,
     "finished_eps": 1,
-    "ss_size": 159,
+    "ss_size": 173,
     "steps": 56,
-    "total_ss_size_estimation": 25658833014.306744,
-    "unfinished_eps": 103
+    "total_ss_size_estimation": 158465891376.20758,
+    "unfinished_eps": 117
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

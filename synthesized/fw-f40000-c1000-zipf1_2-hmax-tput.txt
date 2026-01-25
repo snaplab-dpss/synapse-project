@@ -7,7 +7,7 @@ Args:
   Profile file:       fw-f40000-c1000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (37 modules)
+    Tofino (40 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
@@ -29,15 +29,15 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       41 seconds
+  Elapsed time:       83 seconds
   Steps:              49
   Backtracks:         0
-  Search space size:  150
-  Unfinished EPs:     101
+  Search space size:  178
+  Unfinished EPs:     129
   Finished EPs:       1
   Avg BDD size:       49
-  Branching factor:   2
-  Total SS size est.: 25'333'132'070
+  Branching factor:   3
+  Total SS size est.: 898'872'602'927
   Avg children per node:
     Node 173: 0
     Node 172: 0
@@ -71,7 +71,7 @@ Search Metadata:
     Node 138: 5
     Node 137: 4
     Node 184: 3
-    Node 155: 34
+    Node 155: 62
     Node 136: 3
     Node 135: 3
     Node 134: 3
@@ -94,11 +94,11 @@ Search Metadata:
     Node 159: 0
 
 Global Stats:
-  Num phase 1 speculations: 11'682 (100%)
-  Num phase 2 speculations: 611 (5.23027%)
-  Num phase 3 speculations: 608 (5.20459%)
-  Num speculated modules:   142'634
-  Num EPs generated:        150
+  Num phase 1 speculations: 12'691 (100%)
+  Num phase 2 speculations: 700 (5.51572%)
+  Num phase 3 speculations: 694 (5.46844%)
+  Num speculated modules:   160'125
+  Num EPs generated:        178
 
 Switch placement:
 

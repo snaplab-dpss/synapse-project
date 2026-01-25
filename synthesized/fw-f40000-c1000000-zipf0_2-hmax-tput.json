@@ -1,20 +1,20 @@
 {
   "bdd": "fw.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 159,
-    "num_phase1_speculations": 17785,
-    "num_phase2_speculations": 790,
-    "num_phase3_speculations": 783,
-    "num_speculated_modules": 216847
+    "num_execution_plans_generated": 173,
+    "num_phase1_speculations": 17372,
+    "num_phase2_speculations": 826,
+    "num_phase3_speculations": 816,
+    "num_speculated_modules": 215302
   },
   "heuristic": {
     "meta": [
       {
-        "description": "11.72 Gbps (16.65 Mpps)",
+        "description": "29.02 Gbps (41.22 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "11.72 Gbps (16.65 Mpps)",
+        "description": "29.02 Gbps (41.22 Mpps)",
         "name": "Spec"
       },
       {
@@ -26,20 +26,20 @@
         "name": "BDD Progress"
       },
       {
-        "description": "5",
+        "description": "6",
         "name": "Stages"
       },
       {
-        "description": "25785024 bits",
+        "description": "32076480 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      16645900,
+      41224500,
       56,
-      -5,
-      -25785024,
+      -6,
+      -32076480,
       0
     ]
   },
@@ -50,11 +50,11 @@
     },
     {
       "addr": 1074076064,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074044080,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074076488,
@@ -139,7 +139,7 @@
         "node_id": 143
       },
       {
-        "avg": 18.0,
+        "avg": 32.0,
         "node_id": 142
       },
       {
@@ -340,16 +340,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.9074074074074074,
-    "elapsed_time_seconds": 42,
+    "branching_factor": 3.1666666666666665,
+    "elapsed_time_seconds": 99,
     "finished_eps": 1,
-    "ss_size": 159,
+    "ss_size": 173,
     "steps": 56,
-    "total_ss_size_estimation": 25658833014.306744,
-    "unfinished_eps": 103
+    "total_ss_size_estimation": 158465891376.20758,
+    "unfinished_eps": 117
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 11718766400,
-  "tput_estimation_pps": 16645975
+  "tput_estimation_bps": 29022052224,
+  "tput_estimation_pps": 41224506
 }

@@ -5,14 +5,14 @@ using namespace sycon;
 struct state_t : public nf_state_t {
   IngressPortToNFDev ingress_port_to_nf_dev;
   ForwardingTbl forwarding_tbl;
-  FCFSCachedTable fcfs_ct_1074044080;
+  FCFSCachedSet fcfs_cs_1074044080;
   VectorTable vector_table_1074076488;
   VectorTable vector_table_1074093704;
 
   state_t()
     : ingress_port_to_nf_dev(),
       forwarding_tbl(),
-      fcfs_ct_1074044080("fcfs_ct_1074044080", {"Ingress.fcfs_ct_1074044080_table_142", "Ingress.fcfs_ct_1074044080_table_155", }, "Ingress.fcfs_ct_1074044080_reg_liveness", {"Ingress.fcfs_ct_1074044080_reg_key_0", "Ingress.fcfs_ct_1074044080_reg_key_1", "Ingress.fcfs_ct_1074044080_reg_key_2", "Ingress.fcfs_ct_1074044080_reg_key_3", }, 1000LL),
+      fcfs_cs_1074044080("fcfs_cs_1074044080", {"Ingress.fcfs_cs_1074044080_table_142", "Ingress.fcfs_cs_1074044080_table_155", }, 1000LL),
       vector_table_1074076488("vector_table_1074076488",{"Ingress.vector_table_1074076488_139",}),
       vector_table_1074093704("vector_table_1074093704",{"Ingress.vector_table_1074093704_149","Ingress.vector_table_1074093704_175","Ingress.vector_table_1074093704_168",})
     {}
@@ -97,7 +97,7 @@ void sycon::nf_init() {
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 31);
   state->forwarding_tbl.add_fwd_nf_dev_entry(31, asic_get_dev_port(32));
   // BDD node 0:map_allocate(capacity:(w32 65536), key_size:(w32 12), map_out:(w64 1074043816)[(w64 0) -> (w64 1074044080)])
-  // Module DataplaneFCFSCachedTableAllocate
+  // Module DataplaneFCFSCachedSetAllocate
   // BDD node 2:dchain_allocate(index_range:(w32 65536), chain_out:(w64 1074043832)[ -> (w64 1074076064)])
   // Module Ignore
   // BDD node 3:vector_allocate(elem_size:(w32 4), capacity:(w32 32), vector_out:(w64 1074043840)[(w64 0) -> (w64 1074076488)])
@@ -717,119 +717,117 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr->egress_dev = 0;
   cpu_hdr->trigger_dataplane_execution = 0;
 
-  if (bswap16(cpu_hdr->code_path) == 3398) {
-    // EP node  3381
+  if (bswap16(cpu_hdr->code_path) == 3479) {
+    // EP node  3462
     // BDD node 263:tofino_force_send_to_controller()
     u8* hdr_0 = packet_consume(pkt, 14);
-    // EP node  3382
+    // EP node  3463
     // BDD node 263:tofino_force_send_to_controller()
     u8* hdr_1 = packet_consume(pkt, 20);
-    // EP node  3383
+    // EP node  3464
     // BDD node 263:tofino_force_send_to_controller()
     u8* hdr_2 = packet_consume(pkt, 4);
-    // EP node  3384
+    // EP node  3465
     // BDD node 263:tofino_force_send_to_controller()
     buffer_t value_0;
     state->vector_table_1074076488.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_0);
-    // EP node  3385
+    // EP node  3466
     // BDD node 263:tofino_force_send_to_controller()
     if ((0) == ((u32)value_0.get(0, 4))) {
-      // EP node  3386
+      // EP node  3467
       // BDD node 263:tofino_force_send_to_controller()
-      // EP node  3388
+      // EP node  3469
       // BDD node 263:tofino_force_send_to_controller()
       result.abort_transaction = true;
       cpu_hdr->trigger_dataplane_execution = 1;
       return result;
     } else {
-      // EP node  3387
+      // EP node  3468
       // BDD node 263:tofino_force_send_to_controller()
-      // EP node  3389
+      // EP node  3470
       // BDD node 263:tofino_force_send_to_controller()
-      buffer_t fcfs_ct_1074044080_key_0(12);
-      fcfs_ct_1074044080_key_0[0] = *(u8*)(hdr_1 + 12);
-      fcfs_ct_1074044080_key_0[1] = *(u8*)(hdr_1 + 13);
-      fcfs_ct_1074044080_key_0[2] = *(u8*)(hdr_1 + 14);
-      fcfs_ct_1074044080_key_0[3] = *(u8*)(hdr_1 + 15);
-      fcfs_ct_1074044080_key_0[4] = *(u8*)(hdr_1 + 16);
-      fcfs_ct_1074044080_key_0[5] = *(u8*)(hdr_1 + 17);
-      fcfs_ct_1074044080_key_0[6] = *(u8*)(hdr_1 + 18);
-      fcfs_ct_1074044080_key_0[7] = *(u8*)(hdr_1 + 19);
-      fcfs_ct_1074044080_key_0[8] = *(u8*)(hdr_2 + 0);
-      fcfs_ct_1074044080_key_0[9] = *(u8*)(hdr_2 + 1);
-      fcfs_ct_1074044080_key_0[10] = *(u8*)(hdr_2 + 2);
-      fcfs_ct_1074044080_key_0[11] = *(u8*)(hdr_2 + 3);
-      u32 value_1;
-      bool found_0 = state->fcfs_ct_1074044080.get(fcfs_ct_1074044080_key_0, value_1);
-      // EP node  3390
+      buffer_t fcfs_cs_1074044080_key_0(12);
+      fcfs_cs_1074044080_key_0[0] = *(u8*)(hdr_1 + 12);
+      fcfs_cs_1074044080_key_0[1] = *(u8*)(hdr_1 + 13);
+      fcfs_cs_1074044080_key_0[2] = *(u8*)(hdr_1 + 14);
+      fcfs_cs_1074044080_key_0[3] = *(u8*)(hdr_1 + 15);
+      fcfs_cs_1074044080_key_0[4] = *(u8*)(hdr_1 + 16);
+      fcfs_cs_1074044080_key_0[5] = *(u8*)(hdr_1 + 17);
+      fcfs_cs_1074044080_key_0[6] = *(u8*)(hdr_1 + 18);
+      fcfs_cs_1074044080_key_0[7] = *(u8*)(hdr_1 + 19);
+      fcfs_cs_1074044080_key_0[8] = *(u8*)(hdr_2 + 0);
+      fcfs_cs_1074044080_key_0[9] = *(u8*)(hdr_2 + 1);
+      fcfs_cs_1074044080_key_0[10] = *(u8*)(hdr_2 + 2);
+      fcfs_cs_1074044080_key_0[11] = *(u8*)(hdr_2 + 3);
+      bool found_0 = state->fcfs_cs_1074044080.get(fcfs_cs_1074044080_key_0);
+      // EP node  3471
       // BDD node 263:tofino_force_send_to_controller()
       if ((found_0) != (0)) {
-        // EP node  3391
+        // EP node  3472
         // BDD node 263:tofino_force_send_to_controller()
-        // EP node  3393
+        // EP node  3474
         // BDD node 263:tofino_force_send_to_controller()
         result.abort_transaction = true;
         cpu_hdr->trigger_dataplane_execution = 1;
         return result;
       } else {
-        // EP node  3392
+        // EP node  3473
         // BDD node 263:tofino_force_send_to_controller()
-        // EP node  3394
+        // EP node  3475
         // BDD node 263:tofino_force_send_to_controller()
         if ((bswap32(cpu_hdr_extra->cached_insert_success)) != (0)) {
-          // EP node  3395
+          // EP node  3476
           // BDD node 263:tofino_force_send_to_controller()
-          // EP node  3397
+          // EP node  3478
           // BDD node 263:tofino_force_send_to_controller()
           result.abort_transaction = true;
           cpu_hdr->trigger_dataplane_execution = 1;
           return result;
         } else {
-          // EP node  3396
+          // EP node  3477
           // BDD node 263:tofino_force_send_to_controller()
-          // EP node  4823
+          // EP node  4880
           // BDD node 248:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__248)], time:(ReadLSB w64 (w32 0) next_time))
-          buffer_t fcfs_ct_1074044080_key_1(12);
-          fcfs_ct_1074044080_key_1[0] = *(u8*)(hdr_1 + 12);
-          fcfs_ct_1074044080_key_1[1] = *(u8*)(hdr_1 + 13);
-          fcfs_ct_1074044080_key_1[2] = *(u8*)(hdr_1 + 14);
-          fcfs_ct_1074044080_key_1[3] = *(u8*)(hdr_1 + 15);
-          fcfs_ct_1074044080_key_1[4] = *(u8*)(hdr_1 + 16);
-          fcfs_ct_1074044080_key_1[5] = *(u8*)(hdr_1 + 17);
-          fcfs_ct_1074044080_key_1[6] = *(u8*)(hdr_1 + 18);
-          fcfs_ct_1074044080_key_1[7] = *(u8*)(hdr_1 + 19);
-          fcfs_ct_1074044080_key_1[8] = *(u8*)(hdr_2 + 0);
-          fcfs_ct_1074044080_key_1[9] = *(u8*)(hdr_2 + 1);
-          fcfs_ct_1074044080_key_1[10] = *(u8*)(hdr_2 + 2);
-          fcfs_ct_1074044080_key_1[11] = *(u8*)(hdr_2 + 3);
-          u32 value_2;
-          bool success_0 = state->fcfs_ct_1074044080.allocate_index_and_put(fcfs_ct_1074044080_key_1, value_2);
-          // EP node  4883
+          buffer_t fcfs_cs_1074044080_key_1(12);
+          fcfs_cs_1074044080_key_1[0] = *(u8*)(hdr_1 + 12);
+          fcfs_cs_1074044080_key_1[1] = *(u8*)(hdr_1 + 13);
+          fcfs_cs_1074044080_key_1[2] = *(u8*)(hdr_1 + 14);
+          fcfs_cs_1074044080_key_1[3] = *(u8*)(hdr_1 + 15);
+          fcfs_cs_1074044080_key_1[4] = *(u8*)(hdr_1 + 16);
+          fcfs_cs_1074044080_key_1[5] = *(u8*)(hdr_1 + 17);
+          fcfs_cs_1074044080_key_1[6] = *(u8*)(hdr_1 + 18);
+          fcfs_cs_1074044080_key_1[7] = *(u8*)(hdr_1 + 19);
+          fcfs_cs_1074044080_key_1[8] = *(u8*)(hdr_2 + 0);
+          fcfs_cs_1074044080_key_1[9] = *(u8*)(hdr_2 + 1);
+          fcfs_cs_1074044080_key_1[10] = *(u8*)(hdr_2 + 2);
+          fcfs_cs_1074044080_key_1[11] = *(u8*)(hdr_2 + 3);
+          bool success_0 = state->fcfs_cs_1074044080.put(fcfs_cs_1074044080_key_1);
+          // EP node  4939
           // BDD node 249:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__248))
           if ((0) == (success_0)) {
-            // EP node  4884
+            // EP node  4940
             // BDD node 249:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__248))
-            // EP node  5336
+            // EP node  5385
             // BDD node 250:vector_borrow(vector:(w64 1074093704), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074211384)[ -> (w64 1074107600)])
-            buffer_t value_3;
-            state->vector_table_1074093704.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_3);
-            // EP node  5403
+            buffer_t value_1;
+            state->vector_table_1074093704.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_1);
+            // EP node  5451
             // BDD node 251:vector_return(vector:(w64 1074093704), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074107600)[(ReadLSB w16 (w32 0) vector_data__159)])
-            // EP node  5743
+            // EP node  5786
             // BDD node 255:FORWARD
-            cpu_hdr->egress_dev = bswap16((u16)value_3.get(0, 2));
+            cpu_hdr->egress_dev = bswap16((u16)value_1.get(0, 2));
           } else {
-            // EP node  4885
+            // EP node  4941
             // BDD node 249:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__248))
-            // EP node  4946
+            // EP node  5001
             // BDD node 257:vector_borrow(vector:(w64 1074093704), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074213544)[ -> (w64 1074107600)])
-            buffer_t value_4;
-            state->vector_table_1074093704.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_4);
-            // EP node  5010
+            buffer_t value_2;
+            state->vector_table_1074093704.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_2);
+            // EP node  5064
             // BDD node 258:vector_return(vector:(w64 1074093704), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074107600)[(ReadLSB w16 (w32 0) vector_data__168)])
-            // EP node  5335
+            // EP node  5384
             // BDD node 262:FORWARD
-            cpu_hdr->egress_dev = bswap16((u16)value_4.get(0, 2));
+            cpu_hdr->egress_dev = bswap16((u16)value_2.get(0, 2));
           }
         }
       }

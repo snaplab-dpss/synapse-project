@@ -7,7 +7,7 @@ Args:
   Profile file:       psd-f40000-c0-unif.json
   Seed:               0
   Targets:
-    Tofino (37 modules)
+    Tofino (40 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
@@ -31,7 +31,7 @@ Stateful Implementations:
   1074048392: Tofino::MapTable
 
 Search Metadata:
-  Elapsed time:       87 seconds
+  Elapsed time:       143 seconds
   Steps:              68
   Backtracks:         1
   Search space size:  184
@@ -111,10 +111,10 @@ Search Metadata:
     Node 163: 0
 
 Global Stats:
-  Num phase 1 speculations: 17'729 (100%)
-  Num phase 2 speculations: 688 (3.88065%)
-  Num phase 3 speculations: 688 (3.88065%)
-  Num speculated modules:   242'026
+  Num phase 1 speculations: 17'848 (100%)
+  Num phase 2 speculations: 697 (3.9052%)
+  Num phase 3 speculations: 697 (3.9052%)
+  Num speculated modules:   243'074
   Num EPs generated:        184
 
 Switch placement:
@@ -126,7 +126,7 @@ SRAM: 583'480/1'310'720 B (44.516%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 583'480/786'432 B (74.1933%)
 Exact Match Crossbar: 20/128 B (15.625%)
-Objs: [vector_table_1074126776_192,vector_table_1074126776_186,vector_table_1074109560_142,vector_table_1074126776_174,map_table_1074048392_145]
+Objs: [vector_table_1074126776_174,vector_table_1074109560_142,vector_table_1074126776_186,vector_table_1074126776_192,map_table_1074048392_145]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -134,7 +134,7 @@ SRAM: 680'392/1'310'720 B (51.9098%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 680'392/786'432 B (86.5163%)
 Exact Match Crossbar: 38/128 B (29.6875%)
-Objs: [bf_1074096984_hash_2,bf_1074096984_hash_1,bf_1074096984_hash_0,bf_1074096984_row_2,dchain_table_1074096568_167,vector_register_1074079432_0,bf_1074096984_row_0,bf_1074096984_row_1,bf_1074096984_hash_3]
+Objs: [bf_1074096984_row_2,bf_1074096984_hash_1,bf_1074096984_hash_0,dchain_table_1074096568_167,vector_register_1074079432_0,bf_1074096984_hash_2,bf_1074096984_row_1,bf_1074096984_hash_3,bf_1074096984_row_0]
 -------------------------------------
 -------------------------------------
 Stage 2

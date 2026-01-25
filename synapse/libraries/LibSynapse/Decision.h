@@ -54,6 +54,15 @@ struct spec_impl_t {
 struct speculations_t {
   std::vector<spec_impl_t> speculations_per_node;
   Context ctx; // Context after applying all speculations.
+
+  speculations_t append(const spec_impl_t &speculation) const {
+    speculations_t new_speculations = {
+        .speculations_per_node = speculations_per_node,
+        .ctx                   = speculation.ctx,
+    };
+    new_speculations.speculations_per_node.push_back(speculation);
+    return new_speculations;
+  }
 };
 
 struct impl_t {

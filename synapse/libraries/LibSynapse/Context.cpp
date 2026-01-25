@@ -402,7 +402,7 @@ Context::Context(const Context &other)
       dchains_used_exclusively_for_linking_maps_with_vectors(other.dchains_used_exclusively_for_linking_maps_with_vectors),
       dchains_failing_to_allocate_new_index_hit_rates(other.dchains_failing_to_allocate_new_index_hit_rates), expiration_data(other.expiration_data),
       expr_structs(other.expr_structs), ds_impls(other.ds_impls),
-      ds_impls_decisions_per_bdd_node_and_obj(other.ds_impls_decisions_per_bdd_node_and_obj) {
+      ds_impls_decisions_per_bdd_node_and_obj(other.ds_impls_decisions_per_bdd_node_and_obj), ds_usage_counts(other.ds_usage_counts) {
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }
@@ -416,7 +416,8 @@ Context::Context(Context &&other)
       dchains_used_exclusively_for_linking_maps_with_vectors(std::move(dchains_used_exclusively_for_linking_maps_with_vectors)),
       dchains_failing_to_allocate_new_index_hit_rates(std::move(other.dchains_failing_to_allocate_new_index_hit_rates)),
       expiration_data(std::move(other.expiration_data)), expr_structs(std::move(other.expr_structs)), ds_impls(std::move(other.ds_impls)),
-      ds_impls_decisions_per_bdd_node_and_obj(std::move(other.ds_impls_decisions_per_bdd_node_and_obj)), target_ctxs(std::move(other.target_ctxs)) {}
+      ds_impls_decisions_per_bdd_node_and_obj(std::move(other.ds_impls_decisions_per_bdd_node_and_obj)),
+      ds_usage_counts(std::move(other.ds_usage_counts)), target_ctxs(std::move(other.target_ctxs)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {
@@ -455,6 +456,7 @@ Context &Context::operator=(const Context &other) {
   expr_structs                                           = other.expr_structs;
   ds_impls                                               = other.ds_impls;
   ds_impls_decisions_per_bdd_node_and_obj                = other.ds_impls_decisions_per_bdd_node_and_obj;
+  ds_usage_counts                                        = other.ds_usage_counts;
 
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
@@ -491,6 +493,7 @@ Context &Context::operator=(Context &&other) {
   expr_structs                                           = std::move(other.expr_structs);
   ds_impls                                               = std::move(other.ds_impls);
   ds_impls_decisions_per_bdd_node_and_obj                = std::move(other.ds_impls_decisions_per_bdd_node_and_obj);
+  ds_usage_counts                                        = std::move(other.ds_usage_counts);
   target_ctxs                                            = std::move(other.target_ctxs);
 
   return *this;
@@ -571,6 +574,7 @@ void Context::save_ds_impl(bdd_node_id_t node_id, addr_t obj, DSImpl impl) {
   assert(can_impl_ds(obj, impl) && "Incompatible implementation");
   ds_impls[obj]                                           = impl;
   ds_impls_decisions_per_bdd_node_and_obj[{node_id, obj}] = impl;
+  ds_usage_counts[{obj, impl}]++;
 }
 
 bool Context::has_ds_impl(addr_t obj) const { return ds_impls.find(obj) != ds_impls.end(); }
@@ -719,5 +723,7 @@ void Context::translate(SymbolManager *symbol_manager, const std::vector<symbol_
 const std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> &Context::get_ds_impls_decisions_per_bdd_node_and_obj() const {
   return ds_impls_decisions_per_bdd_node_and_obj;
 }
+
+const std::map<std::pair<addr_t, DSImpl>, u32> &Context::get_ds_usage_counts() const { return ds_usage_counts; }
 
 } // namespace LibSynapse

@@ -7,37 +7,37 @@ Args:
   Profile file:       fw-f40000-c100000-zipf1.json
   Seed:               0
   Targets:
-    Tofino (37 modules)
+    Tofino (40 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,950'119'700,56,-5,-25'785'024,0>
-  Tput: 668.88 Gbps (950.12 Mpps)
-  Spec: 668.88 Gbps (950.12 Mpps)
+  Score: <0,1'714'394'600,56,-6,-32'076'480,0>
+  Tput: 1.21 Tbps (1.71 Gpps)
+  Spec: 1.21 Tbps (1.71 Gpps)
   Recirculations: 0
   BDD Progress: 56 / 62
-  Stages: 5
-  Memory Usage: 25785024 bits
+  Stages: 6
+  Memory Usage: 32076480 bits
 
 Stateful Implementations:
   1074093704: Tofino::VectorTable
-  1074076064: Tofino::FCFSCachedTable
-  1074044080: Tofino::FCFSCachedTable
+  1074076064: Tofino::FCFSCachedSet
+  1074044080: Tofino::FCFSCachedSet
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       48 seconds
+  Elapsed time:       98 seconds
   Steps:              56
   Backtracks:         0
-  Search space size:  159
-  Unfinished EPs:     103
+  Search space size:  173
+  Unfinished EPs:     117
   Finished EPs:       1
   Avg BDD size:       51
-  Branching factor:   2
-  Total SS size est.: 25'658'833'014
+  Branching factor:   3
+  Total SS size est.: 158'465'891'376
   Avg children per node:
     Node 255: 0
     Node 254: 0
@@ -57,7 +57,7 @@ Search Metadata:
     Node 148: 3
     Node 144: 3
     Node 143: 4
-    Node 142: 18
+    Node 142: 32
     Node 141: 3
     Node 259: 0
     Node 260: 0
@@ -109,11 +109,11 @@ Search Metadata:
     Node 249: 0
 
 Global Stats:
-  Num phase 1 speculations: 17'899 (100%)
-  Num phase 2 speculations: 792 (4.42483%)
-  Num phase 3 speculations: 783 (4.37455%)
-  Num speculated modules:   218'329
-  Num EPs generated:        159
+  Num phase 1 speculations: 17'276 (100%)
+  Num phase 2 speculations: 824 (4.76962%)
+  Num phase 3 speculations: 814 (4.71174%)
+  Num speculated modules:   214'096
+  Num EPs generated:        173
 
 Switch placement:
 
@@ -132,26 +132,34 @@ SRAM: 1'310'720/1'310'720 B (100%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [fcfs_ct_1074044080_table_155,fcfs_ct_1074044080_table_142]
+Objs: [fcfs_cs_1074044080_table_155,fcfs_cs_1074044080_table_142]
 -------------------------------------
 -------------------------------------
 Stage 2
 SRAM: 715'440/1'310'720 B (54.5837%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 278'528/786'432 B (35.4167%)
-Exact Match Crossbar: 40/128 B (31.25%)
-Objs: [fcfs_ct_1074044080_reg_liveness,fcfs_ct_1074044080_hash_155,fcfs_ct_1074044080_hash_142,fcfs_ct_1074044080_table_155]
+Exact Match Crossbar: 38/128 B (29.6875%)
+Objs: [fcfs_cs_1074044080_reg_liveness,fcfs_cs_1074044080_hash_155,fcfs_cs_1074044080_hash_142,fcfs_cs_1074044080_table_155]
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 458'752/1'310'720 B (35%)
+SRAM: 704'512/1'310'720 B (53.75%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 458'752/786'432 B (58.3333%)
-Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [fcfs_ct_1074044080_reg_key_2,fcfs_ct_1074044080_reg_key_3,fcfs_ct_1074044080_reg_key_1,fcfs_ct_1074044080_reg_key_0]
+MapRAM: 704'512/786'432 B (89.5833%)
+Exact Match Crossbar: 6/128 B (4.6875%)
+Objs: [fcfs_cs_1074044080_reg_key_2,fcfs_cs_1074044080_reg_key_1,fcfs_cs_1074044080_reg_key_0]
 -------------------------------------
 -------------------------------------
 Stage 4
+SRAM: 147'456/1'310'720 B (11.25%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 147'456/786'432 B (18.75%)
+Exact Match Crossbar: 2/128 B (1.5625%)
+Objs: [fcfs_cs_1074044080_reg_key_3]
+-------------------------------------
+-------------------------------------
+Stage 5
 SRAM: 648/1'310'720 B (0.0494385%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)

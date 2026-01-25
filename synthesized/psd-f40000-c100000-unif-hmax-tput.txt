@@ -7,7 +7,7 @@ Args:
   Profile file:       psd-f40000-c100000-unif.json
   Seed:               0
   Targets:
-    Tofino (37 modules)
+    Tofino (40 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
@@ -31,7 +31,7 @@ Stateful Implementations:
   1074109560: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       85 seconds
+  Elapsed time:       230 seconds
   Steps:              76
   Backtracks:         1
   Search space size:  230
@@ -129,10 +129,10 @@ Search Metadata:
     Node 163: 3
 
 Global Stats:
-  Num phase 1 speculations: 30'311 (100%)
-  Num phase 2 speculations: 1'329 (4.38455%)
-  Num phase 3 speculations: 1'223 (4.03484%)
-  Num speculated modules:   402'893
+  Num phase 1 speculations: 30'617 (100%)
+  Num phase 2 speculations: 1'339 (4.37339%)
+  Num phase 3 speculations: 1'237 (4.04024%)
+  Num speculated modules:   406'155
   Num EPs generated:        230
 
 Switch placement:
@@ -144,7 +144,7 @@ SRAM: 783'944/1'310'720 B (59.8102%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 783'944/786'432 B (99.6836%)
 Exact Match Crossbar: 34/128 B (26.5625%)
-Objs: [vector_table_1074126776_192,fcfs_ct_1074048392_reg_liveness,vector_table_1074126776_174,fcfs_ct_1074048392_reg_key_0,fcfs_ct_1074048392_hash_145,fcfs_ct_1074048392_table_145,vector_table_1074126776_161,vector_table_1074126776_186,vector_table_1074109560_142]
+Objs: [vector_table_1074126776_161,fcfs_ct_1074048392_reg_key_0,vector_table_1074126776_174,vector_table_1074126776_192,fcfs_ct_1074048392_reg_liveness,fcfs_ct_1074048392_table_145,fcfs_ct_1074048392_hash_145,vector_table_1074126776_186,vector_table_1074109560_142]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -152,7 +152,7 @@ SRAM: 389'120/1'310'720 B (29.6875%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 389'120/786'432 B (49.4792%)
 Exact Match Crossbar: 34/128 B (26.5625%)
-Objs: [bf_1074096984_hash_0,vector_register_1074079432_0,bf_1074096984_row_1,bf_1074096984_row_0,bf_1074096984_hash_3,bf_1074096984_hash_2,bf_1074096984_row_2,bf_1074096984_hash_1]
+Objs: [bf_1074096984_hash_0,vector_register_1074079432_0,bf_1074096984_hash_2,bf_1074096984_hash_1,bf_1074096984_row_0,bf_1074096984_row_1,bf_1074096984_hash_3,bf_1074096984_row_2]
 -------------------------------------
 -------------------------------------
 Stage 2

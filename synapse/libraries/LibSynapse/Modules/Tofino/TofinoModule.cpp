@@ -82,7 +82,7 @@ public:
 
 } // namespace
 
-bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) const {
+bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) {
   while (node) {
     if (node->get_module()->get_target() == TargetType::Tofino) {
       const TofinoModule *tofino_module = dynamic_cast<const TofinoModule *>(node->get_module());
@@ -104,13 +104,9 @@ bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) c
 }
 
 bool TofinoModuleFactory::was_ds_already_used(const EPNode *leaf, const speculations_t &speculations, const BDDNode *node, addr_t obj, DSImpl ds_impl,
-                                              DS_ID ds_id) const {
+                                              DS_ID ds_id) {
   if (was_ds_already_used(leaf, ds_id)) {
     return true;
-  }
-
-  if (!node) {
-    return false;
   }
 
   const BDDNode *root = nullptr;
@@ -121,16 +117,15 @@ bool TofinoModuleFactory::was_ds_already_used(const EPNode *leaf, const speculat
   const std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> &ds_impls_decisions_per_bdd_node_and_obj =
       speculations.ctx.get_ds_impls_decisions_per_bdd_node_and_obj();
 
-  const BDDNode *ancestor = node->get_prev();
-  while (ancestor && ancestor != root) {
-    auto found_it = ds_impls_decisions_per_bdd_node_and_obj.find({ancestor->get_id(), obj});
+  while (node && node != root) {
+    auto found_it = ds_impls_decisions_per_bdd_node_and_obj.find({node->get_id(), obj});
     if (found_it != ds_impls_decisions_per_bdd_node_and_obj.end()) {
       if (found_it->second == ds_impl) {
         return true;
       }
     }
 
-    ancestor = ancestor->get_prev();
+    node = node->get_prev();
   }
 
   return false;

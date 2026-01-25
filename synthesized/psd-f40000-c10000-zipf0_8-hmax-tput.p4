@@ -418,11 +418,13 @@ control Ingress(
     size = 36;
   }
 
+  bit<32> fcfs_ct_value0 = 0;
   bit<14> fcfs_ct_1074048392_hash_147_value;
   action fcfs_ct_1074048392_hash_147_calc() {
     fcfs_ct_1074048392_hash_147_value = fcfs_ct_1074048392_hash_147.get({
       meta.fcfs_ct_1074048392_key_32b_0
       });
+      fcfs_ct_value0[13:0] = fcfs_ct_1074048392_hash_147_value;
   }
   Register<bit<32>,_>(65536, 0) vector_register_1074079432_0;
 
@@ -724,7 +726,6 @@ control Ingress(
         bool fcfs_ct_is_alive1 = fcfs_ct_1074048392_reg_liveness_query_and_refresh_timestamp.execute((bit<32>)fcfs_ct_1074048392_hash_147_value);
         if (!fcfs_ct_is_alive1) {
           fcfs_ct_1074048392_reg_key_0_write.execute(fcfs_ct_1074048392_hash_147_value);
-          bit<32> value0 = (bit<32>)fcfs_ct_1074048392_hash_147_value;
           cached_insert_success0 = 1;
         }
         // EP node  2327:If
@@ -737,7 +738,7 @@ control Ingress(
           // EP node  2823:VectorRegisterUpdate
           // BDD node 159:vector_return
           meta.reg_write0 = 32w0x00000001;
-          vector_register_1074079432_0_write_2823.execute(value0);
+          vector_register_1074079432_0_write_2823.execute(fcfs_ct_value0);
           // EP node  3001:BloomFilterSet
           // BDD node 160:bf_set
           meta.key_32b_0 = hdr.hdr1.data3[63:32];
@@ -807,7 +808,7 @@ control Ingress(
           // EP node  254:ParserExtraction
           // BDD node 141:packet_borrow_next_chunk
           if(hdr.hdr2.isValid()) {
-            // EP node  294:VectorTableLookup
+            // EP node  307:VectorTableLookup
             // BDD node 142:vector_borrow
             meta.key_32b_0 = meta.dev;
             vector_table_1074109560_142.apply();
@@ -910,7 +911,7 @@ control Ingress(
             } else {
               // EP node  401:Else
               // BDD node 144:if
-              // EP node  522:VectorTableLookup
+              // EP node  543:VectorTableLookup
               // BDD node 192:vector_borrow
               meta.key_32b_0 = meta.dev;
               vector_table_1074126776_192.apply();

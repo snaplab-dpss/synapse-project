@@ -4,36 +4,36 @@ Args:
   Name:               gallium-fw
   Targets config:     tofino2.toml
   Heuristic:          gallium
-  Profile file:       fw-f40000-c0-unif.json
+  Profile file:       fw-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (37 modules)
+    Tofino (40 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,0,0,34,51>
-  Tput: 1.58 Tbps (2.25 Gpps)
-  Spec: 1.58 Tbps (2.25 Gpps)
+  Score: <0,0,0,0,34,51>
+  Tput: 349.82 Gbps (496.90 Mpps)
+  Spec: 349.82 Gbps (496.90 Mpps)
 
 Stateful Implementations:
-  1074093704: Tofino::Register
+  1074093704: Tofino::VectorTable
   1074076064: Tofino::DchainTable
   1074044080: Tofino::MapTable
-  1074076488: Tofino::VectorTable
+  1074076488: Tofino::Register
 
 Search Metadata:
-  Elapsed time:       32 seconds
+  Elapsed time:       45 seconds
   Steps:              52
   Backtracks:         0
-  Search space size:  159
-  Unfinished EPs:     107
+  Search space size:  162
+  Unfinished EPs:     110
   Finished EPs:       1
   Avg BDD size:       51
   Branching factor:   3
-  Total SS size est.: 49'995'823'791
+  Total SS size est.: 74'464'572'066
   Avg children per node:
     Node 173: 0
     Node 172: 0
@@ -43,7 +43,7 @@ Search Metadata:
     Node 180: 2
     Node 169: 0
     Node 163: 0
-    Node 154: 2
+    Node 154: 3
     Node 179: 3
     Node 168: 0
     Node 162: 0
@@ -60,11 +60,11 @@ Search Metadata:
     Node 176: 3
     Node 165: 0
     Node 183: 2
-    Node 140: 7
+    Node 140: 5
     Node 182: 3
-    Node 139: 10
+    Node 139: 8
     Node 181: 3
-    Node 138: 6
+    Node 138: 5
     Node 137: 4
     Node 184: 3
     Node 155: 3
@@ -72,13 +72,13 @@ Search Metadata:
     Node 135: 3
     Node 134: 3
     Node 185: 2
-    Node 156: 6
+    Node 156: 4
     Node 133: 2
-    Node 141: 5
-    Node 142: 18
+    Node 141: 3
+    Node 142: 32
     Node 143: 3
     Node 144: 3
-    Node 148: 6
+    Node 148: 3
     Node 157: 2
     Node 174: 3
     Node 145: 3
@@ -90,22 +90,22 @@ Search Metadata:
     Node 159: 0
 
 Global Stats:
-  Num phase 1 speculations: 16'707 (100%)
-  Num phase 2 speculations: 736 (4.40534%)
-  Num phase 3 speculations: 714 (4.27366%)
-  Num speculated modules:   228'177
-  Num EPs generated:        159
+  Num phase 1 speculations: 16'622 (100%)
+  Num phase 2 speculations: 700 (4.21129%)
+  Num phase 3 speculations: 680 (4.09096%)
+  Num speculated modules:   212'230
+  Num EPs generated:        162
 
 Switch placement:
 
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 288/1'310'720 B (0.0219727%)
+SRAM: 16'512/1'310'720 B (1.25977%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 0/786'432 B (0%)
+MapRAM: 16'512/786'432 B (2.09961%)
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_table_1074076488_139]
+Objs: [vector_register_1074076488_0]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -133,11 +133,11 @@ Objs: [dchain_table_1074076064_174,dchain_table_1074076064_148]
 -------------------------------------
 -------------------------------------
 Stage 4
-SRAM: 16'448/1'310'720 B (1.25488%)
+SRAM: 432/1'310'720 B (0.032959%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 16'448/786'432 B (2.09147%)
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074093704_0]
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 8/128 B (6.25%)
+Objs: [vector_table_1074093704_175,vector_table_1074093704_149]
 -------------------------------------
 ==========================================================
 ========================================================

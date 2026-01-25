@@ -1,28 +1,28 @@
 {
   "bdd": "nat.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 240,
-    "num_phase1_speculations": 40108,
-    "num_phase2_speculations": 1663,
-    "num_phase3_speculations": 1663,
-    "num_speculated_modules": 489851
+    "num_execution_plans_generated": 208,
+    "num_phase1_speculations": 31392,
+    "num_phase2_speculations": 1327,
+    "num_phase3_speculations": 1267,
+    "num_speculated_modules": 415412
   },
   "heuristic": {
     "meta": [
       {
-        "description": "500.00 Gbps (710.23 Mpps)",
+        "description": "992.77 Gbps (1.41 Gpps)",
         "name": "Tput"
       },
       {
-        "description": "500.00 Gbps (710.23 Mpps)",
+        "description": "992.77 Gbps (1.41 Gpps)",
         "name": "Spec"
       },
       {
-        "description": "1",
+        "description": "0",
         "name": "Recirculations"
       },
       {
-        "description": "71 / 75",
+        "description": "69 / 75",
         "name": "BDD Progress"
       },
       {
@@ -36,11 +36,11 @@
     ],
     "score": [
       0,
-      710227200,
-      71,
+      1410178200,
+      69,
       -5,
       -32425984,
-      -1
+      0
     ]
   },
   "implementations": [
@@ -68,7 +68,7 @@
   "name": "nat-f40000-c10000-zipf0_2-hmax-tput",
   "profile_file": "nat-f40000-c10000-zipf0_2.json",
   "search_meta": {
-    "avg_bdd_size": 61,
+    "avg_bdd_size": 62,
     "avg_children_per_node": [
       {
         "avg": 2.0,
@@ -123,7 +123,7 @@
         "node_id": 269
       },
       {
-        "avg": 2.3333333333333335,
+        "avg": 16.0,
         "node_id": 142
       },
       {
@@ -131,11 +131,11 @@
         "node_id": 268
       },
       {
-        "avg": 2.6666666666666665,
+        "avg": 3.0,
         "node_id": 141
       },
       {
-        "avg": 4.0,
+        "avg": 0.0,
         "node_id": 165
       },
       {
@@ -143,7 +143,7 @@
         "node_id": 136
       },
       {
-        "avg": 32.0,
+        "avg": 4.0,
         "node_id": 163
       },
       {
@@ -167,7 +167,7 @@
         "node_id": 267
       },
       {
-        "avg": 4.0,
+        "avg": 5.0,
         "node_id": 140
       },
       {
@@ -187,7 +187,7 @@
         "node_id": 189
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 164
       },
       {
@@ -287,7 +287,7 @@
         "node_id": 276
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 149
       },
       {
@@ -319,7 +319,7 @@
         "node_id": 157
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 175
       },
       {
@@ -335,7 +335,7 @@
         "node_id": 151
       },
       {
-        "avg": 2.0,
+        "avg": 3.0,
         "node_id": 158
       },
       {
@@ -379,17 +379,17 @@
         "node_id": 154
       }
     ],
-    "backtracks": 2,
-    "branching_factor": 3.4516129032258065,
-    "elapsed_time_seconds": 137,
+    "backtracks": 0,
+    "branching_factor": 3.1774193548387095,
+    "elapsed_time_seconds": 230,
     "finished_eps": 1,
-    "ss_size": 240,
-    "steps": 76,
-    "total_ss_size_estimation": 4349986846142.5747,
-    "unfinished_eps": 164
+    "ss_size": 208,
+    "steps": 69,
+    "total_ss_size_estimation": 687743478952.728,
+    "unfinished_eps": 139
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 499999991744,
-  "tput_estimation_pps": 710227261
+  "tput_estimation_bps": 992765499968,
+  "tput_estimation_pps": 1410178267
 }

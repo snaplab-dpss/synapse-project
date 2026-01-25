@@ -2,10 +2,10 @@
   "bdd": "psd.bdd",
   "global_stats": {
     "num_execution_plans_generated": 184,
-    "num_phase1_speculations": 17729,
-    "num_phase2_speculations": 688,
-    "num_phase3_speculations": 688,
-    "num_speculated_modules": 242026
+    "num_phase1_speculations": 17848,
+    "num_phase2_speculations": 697,
+    "num_phase3_speculations": 697,
+    "num_speculated_modules": 243074
   },
   "heuristic": {
     "meta": [
@@ -349,7 +349,7 @@
     ],
     "backtracks": 1,
     "branching_factor": 2.588235294117647,
-    "elapsed_time_seconds": 88,
+    "elapsed_time_seconds": 163,
     "finished_eps": 1,
     "ss_size": 184,
     "steps": 68,
