@@ -26,6 +26,7 @@ bool bdd_node_match_pattern(const BDDNode *node) {
   return true;
 }
 } // namespace
+
 std::optional<spec_impl_t> VectorAllocateFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
   if (!bdd_node_match_pattern(node)) {
     return {};

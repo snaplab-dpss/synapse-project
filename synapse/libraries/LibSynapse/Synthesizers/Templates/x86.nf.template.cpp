@@ -134,6 +134,30 @@ void debug_packet_info(uint16_t device, uint8_t *buffer, uint16_t length,
            rte_mbuf_refcnt_read(mbuf), packet_get_unread_length(buffer));
 }
 
+void debug_code_path(const std::string& label, const uint8_t* bytes, size_t size = 4) {
+    std::cerr << label << " code path: ";
+    for (size_t i = 0; i < size; i++) {
+        std::cerr << static_cast<int>(bytes[i]);
+        if (i < size - 1) std::cerr << " ";
+    }
+    std::cerr << " (value: ";
+    
+    uint32_t value = 0;
+    for (size_t i = 0; i < size; i++) {
+        value += (static_cast<uint32_t>(bytes[i])) << (8 * i);
+    }
+    std::cerr << value << ")" << std::endl;
+}
+
+void debug_code_path_value(const std::string& label, uint32_t value) {
+    uint8_t bytes[4];
+    bytes[0] = (value >> 0) & 0xFF;
+    bytes[1] = (value >> 8) & 0xFF;
+    bytes[2] = (value >> 16) & 0xFF;
+    bytes[3] = (value >> 24) & 0xFF;
+    debug_code_path(label, bytes);
+}
+
 void packet_debug_print_chunks(void *p) {
     std::cerr << "\n==== PACKET CHUNK DEBUG ====\n"
               << "Buffer pointer: " << p << "\n"

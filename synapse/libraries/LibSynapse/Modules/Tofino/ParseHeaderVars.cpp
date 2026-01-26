@@ -1,9 +1,8 @@
-#include <LibSynapse/Modules/x86/ParseHeaderVars.h>
+#include <LibSynapse/Modules/Tofino/ParseHeaderVars.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
-namespace x86 {
-
+namespace Tofino {
 using LibBDD::Call;
 using LibBDD::call_t;
 
@@ -71,5 +70,5 @@ std::unique_ptr<Module> ParseHeaderVarsFactory::create(const BDD *bdd, const Con
   return std::make_unique<ParseHeaderVars>(get_type().instance_id, node, code_path, symbols);
 }
 
-} // namespace x86
+} // namespace Tofino
 } // namespace LibSynapse

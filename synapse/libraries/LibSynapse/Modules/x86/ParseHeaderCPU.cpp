@@ -1,6 +1,5 @@
 #include <LibSynapse/Modules/x86/ParseHeaderCPU.h>
 #include <LibSynapse/ExecutionPlan.h>
-#include <LibCore/Expr.h>
 
 namespace LibSynapse {
 namespace x86 {

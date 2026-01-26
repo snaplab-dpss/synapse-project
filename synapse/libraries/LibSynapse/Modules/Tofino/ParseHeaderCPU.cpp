@@ -1,8 +1,8 @@
-#include <LibSynapse/Modules/x86/ParseHeaderVars.h>
+#include <LibSynapse/Modules/Tofino/ParseHeaderCPU.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
-namespace x86 {
+namespace Tofino {
 
 using LibBDD::Call;
 using LibBDD::call_t;
@@ -18,33 +18,29 @@ bool bdd_node_match_pattern(const BDDNode *node) {
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call    = call_node->get_call();
 
-  if (call.function_name != "packet_parse_header_vars") {
+  if (call.function_name != "packet_parse_header_cpu") {
     return false;
   }
 
   return true;
 }
-
 } // namespace
 
-std::optional<spec_impl_t> ParseHeaderVarsFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
+std::optional<spec_impl_t> ParseHeaderCPUFactory::speculate(const EP *ep, const BDDNode *node, const Context &ctx) const {
   if (bdd_node_match_pattern(node))
     return spec_impl_t(decide(ep, node), ctx);
   return {};
 }
 
-std::vector<impl_t> ParseHeaderVarsFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+std::vector<impl_t> ParseHeaderCPUFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call    = call_node->get_call();
+  symbol_t code_path    = call_node->get_local_symbol("code_path");
 
-  klee::ref<klee::Expr> code_path = call.args.at("code_path").expr;
-  Symbols symbols                 = call_node->get_local_symbols();
-
-  Module *module  = new ParseHeaderVars(get_type().instance_id, node, code_path, symbols);
+  Module *module  = new ParseHeaderCPU(get_type().instance_id, node, code_path);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -57,19 +53,16 @@ std::vector<impl_t> ParseHeaderVarsFactory::process_node(const EP *ep, const BDD
   return impls;
 }
 
-std::unique_ptr<Module> ParseHeaderVarsFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
+std::unique_ptr<Module> ParseHeaderCPUFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
   if (!bdd_node_match_pattern(node)) {
     return {};
   }
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  const call_t &call    = call_node->get_call();
+  symbol_t code_path    = call_node->get_local_symbol("code_path");
 
-  klee::ref<klee::Expr> code_path = call.args.at("code_path").expr;
-  Symbols symbols                 = call_node->get_local_symbols();
-
-  return std::make_unique<ParseHeaderVars>(get_type().instance_id, node, code_path, symbols);
+  return std::make_unique<ParseHeaderCPU>(get_type().instance_id, node, code_path);
 }
 
-} // namespace x86
+} // namespace Tofino
 } // namespace LibSynapse

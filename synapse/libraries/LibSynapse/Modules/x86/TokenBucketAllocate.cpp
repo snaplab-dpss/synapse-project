@@ -107,6 +107,7 @@ std::unique_ptr<Module> TokenBucketAllocateFactory::create(const BDD *bdd, const
   const addr_t tb_addr = expr_addr_to_obj_addr(tb_out);
 
   if (!ctx.check_ds_impl(tb_addr, DSImpl::x86_TokenBucket)) {
+    std::cerr << "Error: TokenBucketAllocateFactory::create called without proper DS implementation saved in context.\n";
     return {};
   }
 

@@ -58,6 +58,7 @@ public:
   const BDDNode *get_root() const { return root; }
   BDDNode *get_mutable_root() { return root; }
   const std::vector<Call *> &get_init() const { return init; }
+  std::vector<Call *> &get_init() { return init; }
 
   void set_root(BDDNode *_root) {
     root = _root;
@@ -153,6 +154,7 @@ public:
   BDDNode *delete_branch(bdd_node_id_t target_id, BranchDeletionAction branch_deletion_action);
   std::vector<BDDNode *> delete_until(bdd_node_id_t target_id, const bdd_node_ids_t &stopping_points);
 
+  Route *create_new_route(RouteOp operation, klee::ref<klee::Expr> dst_device);
   Branch *create_new_branch(klee::ref<klee::Expr> condition);
   Call *create_new_call(const BDDNode *current, const call_t &call, const Symbols &generated_symbols);
 

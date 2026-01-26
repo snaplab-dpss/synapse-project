@@ -16,7 +16,7 @@ using namespace LibClone;
 // using LibBDD::BDDViz;
 
 int main(int argc, char **argv) {
-  CLI::App app{"Network placer"};
+  CLI::App app{"Network partitioner"};
 
   std::filesystem::path input_bdd_file;
   std::filesystem::path input_physical_network_file;
@@ -34,11 +34,15 @@ int main(int argc, char **argv) {
   const BDD bdd(input_bdd_file, &symbol_manager);
 
   const PhysicalNetwork phys_net = PhysicalNetwork::parse(input_physical_network_file);
-  phys_net.debug();
 
-  NetworkPartitioner placer = NetworkPartitioner(bdd, phys_net);
+  NetworkPartitioner partitioner = NetworkPartitioner(bdd, phys_net);
 
-  std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> target_bdds = placer.process();
+  if (show_bdd) {
+    std::cerr << "Original BDD\n";
+    BDDViz::visualize(&bdd, false);
+  }
+
+  std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> target_bdds = partitioner.process();
 
   for (const auto &[target, target_bdd] : target_bdds) {
 

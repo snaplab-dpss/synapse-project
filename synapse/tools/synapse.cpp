@@ -285,7 +285,9 @@ int main(int argc, char **argv) {
     }
 
     const bdd_profile_t bdd_profile = build_bdd_profile(*target_bdd, args, targets_config.tofino_config.get_available_devs());
-    const Profiler profiler         = Profiler(target_bdd.get(), bdd_profile, targets_config.tofino_config.get_available_devs());
+    std::cerr << "Created BDD Profile\n";
+    const Profiler profiler = Profiler(target_bdd.get(), bdd_profile, targets_config.tofino_config.get_available_devs());
+    std::cerr << "Created BDD Profiler\n";
 
     if (args.show_prof) {
       profiler.debug();

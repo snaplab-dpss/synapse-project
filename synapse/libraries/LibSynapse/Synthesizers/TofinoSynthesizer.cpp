@@ -1,3 +1,4 @@
+#include "LibSynapse/Modules/Tofino/ParseHeaderVars.h"
 #include <LibSynapse/Synthesizers/TofinoSynthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Strings.h>
@@ -3159,6 +3160,20 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   code_template.dbg_code();
 
   return EPVisitor::Action::skipChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderCPU *node) {
+  panic("TODO: ParseHeaderCPU not implemented");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderVars *node) {
+  panic("TODO: ParseHeaderVars not implemented");
+  return EPVisitor::Action::doChildren;
+}
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToDevice *node) {
+  panic("TODO: SendToDevice not implemented");
+  return EPVisitor::Action::doChildren;
 }
 
 code_t TofinoSynthesizer::create_unique_name(const code_t &prefix) {

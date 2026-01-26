@@ -1,8 +1,8 @@
-#include <LibSynapse/Modules/x86/SendToDevice.h>
+#include <LibSynapse/Modules/Tofino/SendToDevice.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
-namespace x86 {
+namespace Tofino {
 using LibBDD::Call;
 using LibBDD::call_t;
 namespace {
@@ -88,5 +88,5 @@ std::unique_ptr<Module> SendToDeviceFactory::create(const BDD *bdd, const Contex
   return {};
 }
 
-} // namespace x86
+} // namespace Tofino
 } // namespace LibSynapse

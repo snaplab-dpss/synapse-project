@@ -876,6 +876,18 @@ std::vector<BDDNode *> BDD::delete_until(bdd_node_id_t target_id, const bdd_node
   return stopping_nodes;
 }
 
+Route *BDD::create_new_route(RouteOp operation, klee::ref<klee::Expr> dst_device) {
+  if (operation == RouteOp::Drop) {
+    Route *new_route = new Route(id++, symbol_manager, operation);
+    manager.add_node(new_route);
+    return new_route;
+  }
+
+  Route *new_route = new Route(id++, symbol_manager, operation, dst_device);
+  manager.add_node(new_route);
+  return new_route;
+}
+
 Branch *BDD::create_new_branch(klee::ref<klee::Expr> condition) {
   Branch *new_branch = new Branch(id++, symbol_manager, condition);
   manager.add_node(new_branch);

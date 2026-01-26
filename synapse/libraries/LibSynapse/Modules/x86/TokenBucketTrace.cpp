@@ -1,4 +1,3 @@
-#include "LibCore/Types.h"
 #include <LibSynapse/Modules/x86/TokenBucketTrace.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Expr.h>

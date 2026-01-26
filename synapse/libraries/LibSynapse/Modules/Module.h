@@ -58,6 +58,9 @@ enum class ModuleCategory {
   Tofino_CMSIncAndQuery,
   Tofino_LPMLookup,
   Tofino_CuckooHashTableReadWrite,
+  Tofino_SendToDevice,
+  Tofino_ParseHeaderCPU,
+  Tofino_ParseHeaderVars,
 
   // ========================================
   // Controller
@@ -172,13 +175,13 @@ enum class ModuleCategory {
   x86_ExpireItemsSingleMapIteratively,
   x86_ChtFindBackend,
   x86_HashObj,
-  x86_SendToDevice,
   x86_TokenBucketAllocate,
   x86_TokenBucketIsTracing,
   x86_TokenBucketTrace,
   x86_TokenBucketUpdateAndCheck,
   x86_TokenBucketExpire,
   x86_LPMAllocate,
+  x86_SendToDevice,
   x86_ParseHeaderVars,
   x86_ParseHeaderCPU,
 };
@@ -299,6 +302,15 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
     break;
   case ModuleCategory::Tofino_CuckooHashTableReadWrite:
     os << "Tofino_CuckooHashTableReadWrite";
+    break;
+  case ModuleCategory::Tofino_SendToDevice:
+    os << "Tofino_SendToDevice";
+    break;
+  case ModuleCategory::Tofino_ParseHeaderCPU:
+    os << "Tofino_ParseHeaderCPU";
+    break;
+  case ModuleCategory::Tofino_ParseHeaderVars:
+    os << "Tofino_ParseHeaderVars";
     break;
   case ModuleCategory::Controller_Ignore:
     os << "Controller_Ignore";

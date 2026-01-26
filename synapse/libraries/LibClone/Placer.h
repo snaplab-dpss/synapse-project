@@ -28,7 +28,6 @@ class NetworkPartitioner {
 private:
   std::shared_ptr<const BDD> bdd;
   const PhysicalNetwork &phys_net;
-  std::unordered_map<bdd_node_id_t, Symbols> shared_context;
 
 public:
   NetworkPartitioner(const BDD &_bdd, const PhysicalNetwork &_phys_net);
@@ -42,20 +41,5 @@ public:
   std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> process();
 
   void debug() const;
-  std::unique_ptr<BDD> add_send_to_device_nodes();
-
-private:
-  const std::vector<const BDDNode *> create_send_to_device_node(std::unique_ptr<BDD> &_bdd, bdd_node_id_t current, bdd_node_id_t next_node);
-  BDDNode *create_parse_header_cpu_node(std::unique_ptr<BDD> &_bdd);
-  std::optional<BDDNode *> create_parse_header_vars_node(std::unique_ptr<BDD> &_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id);
-  void handle_branch_node(std::unique_ptr<BDD> &_bdd, bdd_node_id_t branch_id, bdd_node_id_t on_true_id, bdd_node_id_t on_false_id, bool in_root);
-  void handle_node(std::unique_ptr<BDD> &_bdd, bdd_node_id_t current_id, bdd_node_id_t next_id);
-  Symbols get_relevant_dataplane_state(std::unique_ptr<BDD> &_bdd, const BDDNode *node, const bdd_node_ids_t &target_roots);
-  bdd_node_ids_t get_target_global_port_roots(std::unique_ptr<BDD> &_bdd, LibSynapse::TargetType target);
-  bdd_node_ids_t get_target_roots(std::unique_ptr<BDD> &_bdd, LibSynapse::TargetType target);
-  std::unique_ptr<BDD> concretize_ports(std::unique_ptr<BDD> &_bdd, bdd_node_ids_t port_roots);
-  std::unique_ptr<BDD> extract_target_bdd(std::unique_ptr<BDD> &_bdd, bdd_node_ids_t port_roots, bdd_node_ids_t roots);
-  std::unique_ptr<BDD> extract_target_bdd(std::unique_ptr<BDD> &_bdd, bdd_node_ids_t roots);
-  std::unordered_map<LibSynapse::TargetType, target_roots_t> get_target_roots(std::unique_ptr<BDD> &_bdd);
 };
 } // namespace LibClone

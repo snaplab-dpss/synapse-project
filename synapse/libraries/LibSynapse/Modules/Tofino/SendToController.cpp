@@ -327,6 +327,9 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleCategory::Tofino_CMSIncrement:
     case ModuleCategory::Tofino_CMSIncAndQuery:
     case ModuleCategory::Tofino_CuckooHashTableReadWrite:
+    case ModuleCategory::Tofino_SendToDevice:
+    case ModuleCategory::Tofino_ParseHeaderCPU:
+    case ModuleCategory::Tofino_ParseHeaderVars:
     case ModuleCategory::Controller_Ignore:
     case ModuleCategory::Controller_ParseHeader:
     case ModuleCategory::Controller_ModifyHeader:

@@ -42,6 +42,9 @@ class CMSIncrement;
 class CMSIncAndQuery;
 class LPMLookup;
 class CuckooHashTableReadWrite;
+class ParseHeaderCPU;
+class ParseHeaderVars;
+class SendToDevice;
 } // namespace Tofino
 
 namespace Controller {
@@ -215,6 +218,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderCPU *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderVars *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToDevice *m) { return Action::doChildren; }
 
   // ========================================
   // Controller
