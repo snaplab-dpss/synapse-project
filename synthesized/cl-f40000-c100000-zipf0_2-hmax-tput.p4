@@ -38,7 +38,6 @@ header cpu_h {
   bit<16> code_path;                  // Written by the data plane
   bit<16> egress_dev;                 // Written by the control plane
   bit<8> trigger_dataplane_execution; // Written by the control plane
-  bit<32> cached_insert_success0;
   bit<32> vector_table_1074092960_141_get_value_param0;
   @padding bit<31> pad_hit0;
   bool hit0;
@@ -602,31 +601,31 @@ control Ingress(
     cms_1074080384_row_3_read_value = cms_1074080384_row_3_read.execute(cms_1074080384_hash_3_value);
   }
 
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_0_1926;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_1_1926;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_2_1926;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_3_1926;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_0_1907;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_1_1907;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_2_1907;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_3_1907;
 
-  action cms_1074080384_hash_0_1926_calc_1926() {
-    cms_1074080384_hash_0_value = cms_1074080384_hash_0_1926.get({
+  action cms_1074080384_hash_0_1907_calc_1907() {
+    cms_1074080384_hash_0_value = cms_1074080384_hash_0_1907.get({
       meta.key_64b_0,
       32w0xfbc31fc7
     });
   }
-  action cms_1074080384_hash_1_1926_calc_1926() {
-    cms_1074080384_hash_1_value = cms_1074080384_hash_1_1926.get({
+  action cms_1074080384_hash_1_1907_calc_1907() {
+    cms_1074080384_hash_1_value = cms_1074080384_hash_1_1907.get({
       meta.key_64b_0,
       32w0x2681580b
     });
   }
-  action cms_1074080384_hash_2_1926_calc_1926() {
-    cms_1074080384_hash_2_value = cms_1074080384_hash_2_1926.get({
+  action cms_1074080384_hash_2_1907_calc_1907() {
+    cms_1074080384_hash_2_value = cms_1074080384_hash_2_1907.get({
       meta.key_64b_0,
       32w0x486d7e2f
     });
   }
-  action cms_1074080384_hash_3_1926_calc_1926() {
-    cms_1074080384_hash_3_value = cms_1074080384_hash_3_1926.get({
+  action cms_1074080384_hash_3_1907_calc_1907() {
+    cms_1074080384_hash_3_value = cms_1074080384_hash_3_1907.get({
       meta.key_64b_0,
       32w0x1f3a2b4d
     });
@@ -694,7 +693,7 @@ control Ingress(
       nf_dev[15:0] = hdr.cpu.egress_dev;
     } else if (hdr.recirc.isValid() && !hdr.cuckoo.isValid()) {
       if (hdr.recirc.code_path == 0) {
-        // EP node  2210:FCFSCachedTableInsert
+        // EP node  2191:FCFSCachedTableInsert
         // BDD node 149:dchain_allocate_new_index
         meta.fcfs_ct_1074047984_key_32b_0 = hdr.hdr1.data3[63:32];
         meta.fcfs_ct_1074047984_key_32b_1 = hdr.hdr1.data3[31:0];
@@ -708,28 +707,27 @@ control Ingress(
           fcfs_ct_1074047984_reg_key_2_write.execute(fcfs_ct_1074047984_hash_149_value);
           cached_insert_success0 = 1;
         }
-        // EP node  2211:If
+        // EP node  2192:If
         // BDD node 149:dchain_allocate_new_index
         if ((cached_insert_success0) != (32w0x00000000)){
-          // EP node  2212:Then
+          // EP node  2193:Then
           // BDD node 149:dchain_allocate_new_index
-          // EP node  2301:VectorTableLookup
+          // EP node  2282:VectorTableLookup
           // BDD node 160:vector_borrow
           meta.key_32b_0 = meta.dev;
           vector_table_1074110176_160.apply();
-          // EP node  2434:Ignore
+          // EP node  2411:Ignore
           // BDD node 161:vector_return
-          // EP node  3023:Forward
+          // EP node  2980:Forward
           // BDD node 165:FORWARD
           nf_dev[15:0] = vector_table_1074110176_160_get_value_param0;
         } else {
-          // EP node  2213:Else
+          // EP node  2194:Else
           // BDD node 149:dchain_allocate_new_index
-          // EP node  3124:SendToController
+          // EP node  3077:SendToController
           // BDD node 266:tofino_force_send_to_controller
           fwd_op = fwd_op_t.FORWARD_TO_CPU;
-          build_cpu_hdr(3124);
-          hdr.cpu.cached_insert_success0 = cached_insert_success0;
+          build_cpu_hdr(3077);
           hdr.cpu.vector_table_1074092960_141_get_value_param0 = hdr.recirc.vector_table_1074092960_141_get_value_param0;
           hdr.cpu.hit0 = hdr.recirc.hit0;
           hdr.cpu.cms_1074080384_min0 = hdr.recirc.cms_1074080384_min0;
@@ -779,25 +777,25 @@ control Ingress(
                 hit0 = true;
               }
             }
-            // EP node  647:Ignore
+            // EP node  646:Ignore
             // BDD node 142:vector_return
-            // EP node  695:If
+            // EP node  692:If
             // BDD node 143:if
             if ((32w0x00000000) == (vector_table_1074092960_141_get_value_param0)){
-              // EP node  696:Then
+              // EP node  693:Then
               // BDD node 143:if
-              // EP node  750:If
+              // EP node  745:If
               // BDD node 145:if
               if (!hit0){
-                // EP node  751:Then
+                // EP node  746:Then
                 // BDD node 145:if
-                // EP node  1926:CMSIncAndQuery
+                // EP node  1907:CMSIncAndQuery
                 // BDD node 146:cms_increment
                 meta.key_64b_0 = hdr.hdr1.data3;
-                cms_1074080384_hash_0_1926_calc_1926();
-                cms_1074080384_hash_1_1926_calc_1926();
-                cms_1074080384_hash_2_1926_calc_1926();
-                cms_1074080384_hash_3_1926_calc_1926();
+                cms_1074080384_hash_0_1907_calc_1907();
+                cms_1074080384_hash_1_1907_calc_1907();
+                cms_1074080384_hash_2_1907_calc_1907();
+                cms_1074080384_hash_3_1907_calc_1907();
                 cms_1074080384_row_0_inc_and_read_execute();
                 cms_1074080384_row_1_inc_and_read_execute();
                 cms_1074080384_row_2_inc_and_read_execute();
@@ -806,12 +804,12 @@ control Ingress(
                 cms_1074080384_min0 = min(cms_1074080384_min0, cms_1074080384_row_1_inc_and_read_value);
                 cms_1074080384_min0 = min(cms_1074080384_min0, cms_1074080384_row_2_inc_and_read_value);
                 cms_1074080384_min0 = min(cms_1074080384_min0, cms_1074080384_row_3_inc_and_read_value);
-                // EP node  2024:If
+                // EP node  2005:If
                 // BDD node 148:if
                 if ((cms_1074080384_min0) <= (32w0x0001ffff)){
-                  // EP node  2025:Then
+                  // EP node  2006:Then
                   // BDD node 148:if
-                  // EP node  2128:Recirculate
+                  // EP node  2109:Recirculate
                   // BDD node 149:dchain_allocate_new_index
                   fwd_op = fwd_op_t.RECIRCULATE;
                   build_recirc_hdr(0);
@@ -820,49 +818,49 @@ control Ingress(
                   hdr.recirc.hit0 = hit0;
                   hdr.recirc.cms_1074080384_min0 = cms_1074080384_min0;
                 } else {
-                  // EP node  2026:Else
+                  // EP node  2007:Else
                   // BDD node 148:if
-                  // EP node  4680:Drop
+                  // EP node  4537:Drop
                   // BDD node 169:DROP
                   fwd_op = fwd_op_t.DROP;
                 }
               } else {
-                // EP node  752:Else
+                // EP node  747:Else
                 // BDD node 145:if
-                // EP node  1293:Ignore
+                // EP node  1278:Ignore
                 // BDD node 170:dchain_rejuvenate_index
-                // EP node  1379:VectorTableLookup
+                // EP node  1364:VectorTableLookup
                 // BDD node 171:vector_borrow
                 meta.key_32b_0 = meta.dev;
                 vector_table_1074110176_171.apply();
-                // EP node  1468:Ignore
+                // EP node  1453:Ignore
                 // BDD node 172:vector_return
-                // EP node  1869:Forward
+                // EP node  1850:Forward
                 // BDD node 176:FORWARD
                 nf_dev[15:0] = vector_table_1074110176_171_get_value_param0;
               }
             } else {
-              // EP node  697:Else
+              // EP node  694:Else
               // BDD node 143:if
-              // EP node  839:VectorTableLookup
+              // EP node  833:VectorTableLookup
               // BDD node 177:vector_borrow
               meta.key_32b_0 = meta.dev;
               vector_table_1074110176_177.apply();
-              // EP node  912:Ignore
+              // EP node  905:Ignore
               // BDD node 178:vector_return
-              // EP node  1245:Forward
+              // EP node  1230:Forward
               // BDD node 182:FORWARD
               nf_dev[15:0] = vector_table_1074110176_177_get_value_param0;
             }
           }
           // EP node  71:Else
           // BDD node 139:if
-          // EP node  4344:ParserReject
+          // EP node  4221:ParserReject
           // BDD node 185:DROP
         }
         // EP node  26:Else
         // BDD node 137:if
-        // EP node  3823:ParserReject
+        // EP node  3732:ParserReject
         // BDD node 187:DROP
       }
 

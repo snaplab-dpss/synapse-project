@@ -112,7 +112,7 @@ struct initial_controller_logic_t {
   }
 };
 
-initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_leaf) {
+initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const EPLeaf active_leaf) {
   initial_controller_logic_t initial_controller_logic{.head = nullptr, .tail = nullptr, .extra_symbols = {}};
 
   struct prev_module_t {
@@ -120,9 +120,13 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     size_t chosen_child;
   };
 
-  bool branch_conditions_found{false};
+  bool branch_conditions_found = false;
 
   std::vector<prev_module_t> prev_modules;
+
+  Symbols relevant_symbols;
+  relevant_symbols.add(bdd->get_symbol_manager()->get_symbol("packet_chunks"));
+
   const EPNode *prev_node = active_leaf.node;
   const EPNode *curr_node = nullptr;
   while (prev_node) {
@@ -139,7 +143,22 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       }
     }
 
-    if (module->get_type() == ModuleType::Tofino_If || module->get_type() == ModuleType::Tofino_ParserExtraction) {
+    if (module->get_type() == ModuleType::Tofino_If) {
+      const If *if_module                   = dynamic_cast<const If *>(module);
+      const klee::ref<klee::Expr> condition = if_module->get_original_condition();
+      const BDDNode *if_node                = if_module->get_node();
+      assert(if_node);
+      const Symbols condition_symbols = if_node->get_used_symbols();
+
+      const bool var_free_condition = condition_symbols.empty();
+      const bool dev_condition      = (condition_symbols.size() == 1 && condition_symbols.has("DEVICE"));
+
+      if (!var_free_condition && !dev_condition) {
+        prev_modules.insert(prev_modules.begin(), prev_module);
+        branch_conditions_found = true;
+        relevant_symbols.add(condition_symbols);
+      }
+    } else if (module->get_type() == ModuleType::Tofino_ParserExtraction) {
       prev_modules.insert(prev_modules.begin(), prev_module);
       branch_conditions_found = true;
     } else if (module->get_target() == TargetType::Tofino) {
@@ -173,6 +192,22 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
   }
 
   for (const prev_module_t &prev : prev_modules) {
+    if (prev.module->get_node() && prev.module->get_node()->get_type() == BDDNodeType::Call) {
+      const Call *call_node           = dynamic_cast<const Call *>(prev.module->get_node());
+      const Symbols generated_symbols = call_node->get_local_symbols();
+      bool is_relevant_call           = false;
+      for (const symbol_t &symbol : generated_symbols.get()) {
+        if (relevant_symbols.has(symbol.name)) {
+          is_relevant_call = true;
+          break;
+        }
+      }
+
+      if (!is_relevant_call) {
+        continue;
+      }
+    }
+
     // Why the exhaustive switch case statement here?
     // Because later if we add new modules the compiler warns us to update this.
     // Otherwise we might forget to add a new module here, leading to a hard bug to catch.
@@ -188,11 +223,6 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
       const klee::ref<klee::Expr> condition = if_module->get_original_condition();
       const BDDNode *if_node                = if_module->get_node();
       assert(if_node);
-
-      const std::unordered_set<std::string> names = symbol_t::get_symbols_names(condition);
-      for (const std::string &name : names) {
-        initial_controller_logic.extra_symbols.add(if_node->get_symbol_manager()->get_symbol(name));
-      }
 
       initial_controller_logic.extra_symbols.add(if_node->get_used_symbols());
 
@@ -590,7 +620,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
   // Otherwise we can always send to the controller, at any point in time.
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  const initial_controller_logic_t initial_controller_logic = build_initial_controller_logic(active_leaf);
+  const initial_controller_logic_t initial_controller_logic = build_initial_controller_logic(ep->get_bdd(), active_leaf);
 
   Symbols symbols = get_relevant_dataplane_state(ep, node);
   symbols.add(initial_controller_logic.extra_symbols);

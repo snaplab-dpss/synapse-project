@@ -30,7 +30,7 @@ Stateful Implementations:
   1074092960: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       107 seconds
+  Elapsed time:       104 seconds
   Steps:              60
   Backtracks:         1
   Search space size:  209
@@ -125,16 +125,16 @@ Stage 0
 SRAM: 661'764/1'310'720 B (50.4886%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 661'764/786'432 B (84.1476%)
-Exact Match Crossbar: 54/128 B (42.1875%)
-Objs: [cms_1074080384_hash_0,cms_1074080384_row_0,cms_1074080384_row_2,vector_table_1074110176_160,vector_table_1074110176_177,cms_1074080384_row_1,cms_1074080384_hash_2,fcfs_ct_1074047984_table_144,vector_table_1074092960_141,cms_1074080384_hash_1]
+Exact Match Crossbar: 58/128 B (45.3125%)
+Objs: [cms_1074080384_row_0,cms_1074080384_hash_0,vector_table_1074092960_141,cms_1074080384_row_2,fcfs_ct_1074047984_table_144,cms_1074080384_hash_1,cms_1074080384_hash_2,vector_table_1074110176_177,cms_1074080384_row_1,cms_1074080384_hash_3]
 -------------------------------------
 -------------------------------------
 Stage 1
 SRAM: 786'428/1'310'720 B (59.9997%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 786'428/786'432 B (99.9995%)
-Exact Match Crossbar: 56/128 B (43.75%)
-Objs: [fcfs_ct_1074047984_reg_liveness,vector_table_1074110176_171,cms_1074080384_row_3,fcfs_ct_1074047984_reg_key_2,fcfs_ct_1074047984_hash_149,cms_1074080384_hash_3,fcfs_ct_1074047984_hash_144,fcfs_ct_1074047984_table_144]
+Exact Match Crossbar: 52/128 B (40.625%)
+Objs: [vector_table_1074110176_171,cms_1074080384_row_3,fcfs_ct_1074047984_reg_key_1,fcfs_ct_1074047984_reg_liveness,fcfs_ct_1074047984_hash_149,vector_table_1074110176_160,fcfs_ct_1074047984_hash_144,fcfs_ct_1074047984_table_144]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -142,7 +142,7 @@ SRAM: 327'680/1'310'720 B (25%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 327'680/786'432 B (41.6667%)
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [fcfs_ct_1074047984_reg_key_1,fcfs_ct_1074047984_reg_key_0]
+Objs: [fcfs_ct_1074047984_reg_key_2,fcfs_ct_1074047984_reg_key_0]
 -------------------------------------
 ==========================================================
 ========================================================

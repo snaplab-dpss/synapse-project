@@ -25,17 +25,17 @@ PIPELINES = 1
 
 TOTAL_FLOWS = 40_000
 
-# CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
-# ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
+CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
+ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 
-CHURN_FPM = [10_000]
-ZIPF_PARAMS = [0.6, 0.8, 1.0, 1.2]
+# CHURN_FPM = [10_000]
+# ZIPF_PARAMS = [0.6, 0.8, 1.0, 1.2]
 
 # TOTAL_FLOWS = 40_000
 # CHURN_FPM = [0]
 # ZIPF_PARAMS = [1.0]
 
-ITERATIONS = 10
+ITERATIONS = 3
 
 
 @dataclass
@@ -60,129 +60,34 @@ def build_synapse_nf_name(nf: str, churn: int, zipf: float) -> str:
 
 
 SYNAPSE_NFS = [
-    # SynapseNF(
-    #     name="echo",
-    #     description="Synapse echo",
-    #     data_out=Path("tput_synapse_echo.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/synapse-echo.p4"),
-    #     controller=Path("synthesized/synapse-echo.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
-    # SynapseNF(
-    #     name="fwd",
-    #     description="Synapse forwarder",
-    #     data_out=Path("tput_synapse_fwd.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/synapse-fwd.p4"),
-    #     controller=Path("synthesized/synapse-fwd.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
-    # SynapseNF(
-    #     name="synapse-kvs-hhtable",
-    #     description="Synapse KVS HHTable",
-    #     data_out=Path("tput_synapse_kvs_hhtable.csv"),
-    #     kvs_mode=True,
-    #     tofino=Path("synthesized/synapse-kvs-hhtable.p4"),
-    #     controller=Path("synthesized/synapse-kvs-hhtable.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
-    # SynapseNF(
-    #     name="synapse-kvs-cuckoo",
-    #     description="Synapse KVS Cuckoo",
-    #     data_out=Path("tput_synapse_kvs_cuckoo.csv"),
-    #     kvs_mode=True,
-    #     tofino=Path("synthesized/synapse-kvs-cuckoo.p4"),
-    #     controller=Path("synthesized/synapse-kvs-cuckoo.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
-    # SynapseNF(
-    #     name="synapse-kvs-maptable",
-    #     description="Synapse KVS MapTable",
-    #     data_out=Path("tput_synapse_kvs_maptable.csv"),
-    #     kvs_mode=True,
-    #     tofino=Path("synthesized/synapse-kvs-maptable.p4"),
-    #     controller=Path("synthesized/synapse-kvs-maptable.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
-    # SynapseNF(
-    #     name="synapse-kvs-guardedmaptable",
-    #     description="Synapse KVS GuardedMapTable",
-    #     data_out=Path("tput_synapse_kvs_guardedmaptable.csv"),
-    #     kvs_mode=True,
-    #     tofino=Path("synthesized/synapse-kvs-guardedmaptable.p4"),
-    #     controller=Path("synthesized/synapse-kvs-guardedmaptable.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
-    # *[
     #     SynapseNF(
-    #         name=f"synapse-fw-fcfs-ct-{cache_size}",
-    #         description=f"Synapse FW FCFS CT {cache_size}",
-    #         data_out=Path(f"tput_synapse_fw_fcfs_ct_{cache_size}.csv"),
-    #         kvs_mode=False,
-    #         tofino=Path(f"tofino/experiments/fcfs_cached_table_{cache_size}/fcfs_cached_table_{cache_size}.p4"),
-    #         controller=Path(f"tofino/experiments/fcfs_cached_table_{cache_size}/fcfs_cached_table_{cache_size}.cpp"),
-    #         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #         route=lambda _: [],
-    #         churn=CHURN_FPM,
-    #         zipf=ZIPF_PARAMS,
-    #     )
-    #     for cache_size in [65536, 32768, 1024]
-    # ],
-    # *[
-    #     SynapseNF(
-    #         name=build_synapse_nf_name("fw", churn, s),
-    #         description=f"Synapse {build_synapse_nf_name('fw', churn, s)}",
-    #         data_out=Path(f"tput_synapse_fw.csv"),
-    #         kvs_mode=False,
-    #         tofino=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.p4"),
-    #         controller=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.cpp"),
-    #         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #         name=build_synapse_nf_name("kvs", churn, s),
+    #         description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
+    #         data_out=Path(f"tput_synapse_kvs.csv"),
+    #         kvs_mode=True,
+    #         tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
+    #         controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
+    #         broadcast=lambda ports: ports,
+    #         symmetric=lambda _: [],
     #         route=lambda _: [],
     #         churn=[churn],
     #         zipf=[s],
     #     )
     #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
     # ],
-    SynapseNF(
-        name="gallium-fw",
-        description="Gallium FW",
-        data_out=Path("tput_gallium_fw.csv"),
-        kvs_mode=False,
-        tofino=Path("synthesized/gallium-fw.p4"),
-        controller=Path("synthesized/gallium-fw.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-        churn=CHURN_FPM,
-        zipf=ZIPF_PARAMS,
-    ),
+    # SynapseNF(
+    #     name="gallium-fw",
+    #     description="Gallium FW",
+    #     data_out=Path("tput_gallium_fw.csv"),
+    #     kvs_mode=False,
+    #     tofino=Path("synthesized/gallium-fw.p4"),
+    #     controller=Path("synthesized/gallium-fw.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    #     churn=CHURN_FPM,
+    #     zipf=ZIPF_PARAMS,
+    # ),
     # SynapseNF(
     #     name="gallium-nat",
     #     description="Gallium NAT",
@@ -190,32 +95,6 @@ SYNAPSE_NFS = [
     #     kvs_mode=False,
     #     tofino=Path("synthesized/gallium-nat.p4"),
     #     controller=Path("synthesized/gallium-nat.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
-    # SynapseNF(
-    #     name=f"synapse-nat",
-    #     description=f"Synapse NAT",
-    #     data_out=Path(f"tput_synapse_nat.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.p4"),
-    #     controller=Path("tofino/nfs/nat/nat_fcfs_cached_table/nat_fcfs_cached_table.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
-    # SynapseNF(
-    #     name="synapse-psd",
-    #     description="Synapse PSD",
-    #     data_out=Path("tput_synapse_psd.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("synthesized/synapse-psd.p4"),
-    #     controller=Path("synthesized/synapse-psd.cpp"),
     #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
@@ -236,37 +115,6 @@ SYNAPSE_NFS = [
     #     zipf=ZIPF_PARAMS,
     # ),
     # *[
-    #     SynapseNF(
-    #         name=build_synapse_nf_name("kvs", churn, s),
-    #         description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
-    #         data_out=Path(f"tput_synapse_kvs.csv"),
-    #         kvs_mode=True,
-    #         tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
-    #         controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
-    #         broadcast=lambda ports: ports,
-    #         symmetric=lambda _: [],
-    #         route=lambda _: [],
-    #         churn=[churn],
-    #         zipf=[s],
-    #     )
-    #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
-    # ],
-    # *[
-    #     SynapseNF(
-    #         name=build_synapse_nf_name("fw", churn, s),
-    #         description=f"Synapse {build_synapse_nf_name('fw', churn, s)}",
-    #         data_out=Path(f"tput_synapse_fw.csv"),
-    #         kvs_mode=False,
-    #         tofino=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.p4"),
-    #         controller=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.cpp"),
-    #         broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #         symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #         route=lambda _: [],
-    #         churn=[churn],
-    #         zipf=[s],
-    #     )
-    #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
-    # ],
     # SynapseNF(
     #     name="gallium-cl",
     #     description="Gallium CL",
@@ -280,19 +128,70 @@ SYNAPSE_NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
-    # SynapseNF(
-    #     name=f"synapse-psd",
-    #     description=f"Synapse PSD",
-    #     data_out=Path(f"tput_synapse_psd.csv"),
-    #     kvs_mode=False,
-    #     tofino=Path("tofino/nfs/psd/psd_fcfs_cached_table.p4"),
-    #     controller=Path("tofino/nfs/psd/psd_fcfs_cached_table.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    #     churn=CHURN_FPM,
-    #     zipf=ZIPF_PARAMS,
-    # ),
+    *[
+        SynapseNF(
+            name=build_synapse_nf_name("fw", churn, s),
+            description=f"Synapse {build_synapse_nf_name('fw', churn, s)}",
+            data_out=Path(f"tput_synapse_fw.csv"),
+            kvs_mode=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('fw', churn, s)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+            churn=[churn],
+            zipf=[s],
+        )
+        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    ],
+    *[
+        SynapseNF(
+            name=build_synapse_nf_name("nat", churn, s),
+            description=f"Synapse {build_synapse_nf_name('nat', churn, s)}",
+            data_out=Path(f"tput_synapse_nat.csv"),
+            kvs_mode=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('nat', churn, s)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('nat', churn, s)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+            churn=[churn],
+            zipf=[s],
+        )
+        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    ],
+    *[
+        SynapseNF(
+            name=build_synapse_nf_name("psd", churn, s),
+            description=f"Synapse {build_synapse_nf_name('psd', churn, s)}",
+            data_out=Path(f"tput_synapse_psd.csv"),
+            kvs_mode=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('psd', churn, s)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('psd', churn, s)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+            churn=[churn],
+            zipf=[s],
+        )
+        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    ],
+    *[
+        SynapseNF(
+            name=build_synapse_nf_name("cl", churn, s),
+            description=f"Synapse {build_synapse_nf_name('cl', churn, s)}",
+            data_out=Path(f"tput_synapse_cl.csv"),
+            kvs_mode=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('cl', churn, s)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('cl', churn, s)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+            churn=[churn],
+            zipf=[s],
+        )
+        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    ],
 ]
 
 

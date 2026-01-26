@@ -30,7 +30,7 @@ Stateful Implementations:
   1074092960: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       97 seconds
+  Elapsed time:       112 seconds
   Steps:              59
   Backtracks:         0
   Search space size:  178
@@ -126,7 +126,7 @@ SRAM: 785'616/1'310'720 B (59.9377%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 785'616/786'432 B (99.8962%)
 Exact Match Crossbar: 54/128 B (42.1875%)
-Objs: [fcfs_ct_1074047984_table_144,cms_1074080384_hash_0,cms_1074080384_hash_2,cms_1074080384_row_0,cms_1074080384_hash_1,vector_table_1074092960_141,cms_1074080384_row_2,cms_1074080384_row_1,cms_1074080384_hash_3]
+Objs: [cms_1074080384_row_0,cms_1074080384_hash_1,cms_1074080384_hash_0,vector_table_1074092960_141,cms_1074080384_row_2,fcfs_ct_1074047984_table_144,cms_1074080384_hash_2,cms_1074080384_row_1,cms_1074080384_hash_3]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -134,7 +134,7 @@ SRAM: 661'928/1'310'720 B (50.5011%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 661'928/786'432 B (84.1685%)
 Exact Match Crossbar: 44/128 B (34.375%)
-Objs: [fcfs_ct_1074047984_table_144,fcfs_ct_1074047984_reg_liveness,fcfs_ct_1074047984_reg_key_2,fcfs_ct_1074047984_hash_149,fcfs_ct_1074047984_hash_144,cms_1074080384_row_3]
+Objs: [fcfs_ct_1074047984_reg_key_0,fcfs_ct_1074047984_hash_149,fcfs_ct_1074047984_table_144,fcfs_ct_1074047984_hash_144,fcfs_ct_1074047984_reg_liveness,cms_1074080384_row_3]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -142,7 +142,7 @@ SRAM: 328'328/1'310'720 B (25.0494%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 328'328/786'432 B (41.7491%)
 Exact Match Crossbar: 16/128 B (12.5%)
-Objs: [vector_table_1074110176_171,fcfs_ct_1074047984_reg_key_0,vector_table_1074110176_177,vector_table_1074110176_160,fcfs_ct_1074047984_reg_key_1]
+Objs: [fcfs_ct_1074047984_reg_key_1,vector_table_1074110176_160,vector_table_1074110176_177,vector_table_1074110176_171,fcfs_ct_1074047984_reg_key_2]
 -------------------------------------
 ==========================================================
 ========================================================

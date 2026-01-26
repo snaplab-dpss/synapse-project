@@ -30,7 +30,7 @@ Stateful Implementations:
   1074092960: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       137 seconds
+  Elapsed time:       135 seconds
   Steps:              60
   Backtracks:         1
   Search space size:  209
@@ -125,16 +125,16 @@ Stage 0
 SRAM: 786'432/1'310'720 B (60%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 786'432/786'432 B (100%)
-Exact Match Crossbar: 54/128 B (42.1875%)
-Objs: [cms_1074080384_row_0,cms_1074080384_hash_0,cms_1074080384_row_2,cms_1074080384_hash_1,fcfs_ct_1074047984_table_144,vector_table_1074110176_171,cms_1074080384_hash_2,vector_table_1074092960_141,vector_table_1074110176_177,cms_1074080384_row_1]
+Exact Match Crossbar: 58/128 B (45.3125%)
+Objs: [cms_1074080384_row_0,cms_1074080384_hash_1,cms_1074080384_hash_2,cms_1074080384_hash_0,fcfs_ct_1074047984_table_144,vector_table_1074092960_141,cms_1074080384_row_2,vector_table_1074110176_160,cms_1074080384_row_1,cms_1074080384_hash_3]
 -------------------------------------
 -------------------------------------
 Stage 1
 SRAM: 661'760/1'310'720 B (50.4883%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 661'760/786'432 B (84.1471%)
-Exact Match Crossbar: 56/128 B (43.75%)
-Objs: [fcfs_ct_1074047984_reg_liveness,fcfs_ct_1074047984_hash_144,fcfs_ct_1074047984_reg_key_2,fcfs_ct_1074047984_hash_149,fcfs_ct_1074047984_table_144,cms_1074080384_row_3,vector_table_1074110176_160,cms_1074080384_hash_3]
+Exact Match Crossbar: 52/128 B (40.625%)
+Objs: [vector_table_1074110176_177,fcfs_ct_1074047984_reg_key_2,fcfs_ct_1074047984_hash_149,fcfs_ct_1074047984_reg_liveness,fcfs_ct_1074047984_hash_144,fcfs_ct_1074047984_table_144,vector_table_1074110176_171,cms_1074080384_row_3]
 -------------------------------------
 -------------------------------------
 Stage 2

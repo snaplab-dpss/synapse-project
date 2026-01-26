@@ -27,7 +27,6 @@ PLOTS_DIR = PROJECT_DIR / "plots"
 SYNAPSE_BUILD_DIR = SYNAPSE_DIR / "build"
 SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
-DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "psd", "cl"]
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
@@ -225,7 +224,7 @@ if __name__ == "__main__":
     parser.add_argument("--total-flows", type=int, nargs="+", default=DEFAULT_TOTAL_FLOWS, help="Total flows to generate")
     parser.add_argument("--zipf-params", type=float, nargs="+", default=DEFAULT_ZIPF_PARAMS, help="Zipf parameters")
     parser.add_argument("--churns", type=int, nargs="+", default=DEFAULT_CHURN_FPM, help="Churn rate (fpm)")
-    parser.add_argument("--heuristics", type=str, nargs="+", default=DEFAULT_HEURISTICS, help="Heuristic to use for searching")
+    parser.add_argument("--heuristics", choices=DEFAULT_HEURISTICS, type=str, nargs="+", default=DEFAULT_HEURISTICS, help="Heuristic to use for searching")
     parser.add_argument("--seed", type=int, default=0, help="Seed for random number generation")
     parser.add_argument("--debug", action="store_true", default=False, help="Enable debug mode (synapse runs much slower)")
 
