@@ -25,7 +25,8 @@
 #include <LibSynapse/Modules/Tofino/DchainTableLookup.h>
 #include <LibSynapse/Modules/Tofino/VectorRegisterLookup.h>
 #include <LibSynapse/Modules/Tofino/VectorRegisterUpdate.h>
-#include <LibSynapse/Modules/Tofino/VectorRegisterConditionalUpdate.h>
+#include <LibSynapse/Modules/Tofino/VectorRegisterReadConditionalUpdate.h>
+#include <LibSynapse/Modules/Tofino/VectorRegisterReadConditionalUpdateSingleAction.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableRead.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableReadInsert.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedTableInsert.h>
@@ -74,9 +75,10 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<GuardedMapTableLookupFactory>());
               f.push_back(std::make_unique<GuardedMapTableGuardCheckFactory>());
               f.push_back(std::make_unique<DchainTableLookupFactory>());
+              f.push_back(std::make_unique<VectorRegisterReadConditionalUpdateFactory>());
+              f.push_back(std::make_unique<VectorRegisterReadConditionalUpdateSingleActionFactory>());
               f.push_back(std::make_unique<VectorRegisterLookupFactory>());
               f.push_back(std::make_unique<VectorRegisterUpdateFactory>());
-              f.push_back(std::make_unique<VectorRegisterConditionalUpdateFactory>());
               f.push_back(std::make_unique<VectorTableLookupFactory>());
               f.push_back(std::make_unique<FCFSCachedSetReadFactory>());
               f.push_back(std::make_unique<FCFSCachedSetInsertFactory>());

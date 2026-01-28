@@ -117,7 +117,8 @@ private:
   i64 get_incompatible_modules(const EP *ep) const {
     const std::unordered_set<ModuleType> incompatible_modules = {
         ModuleType::Tofino_Recirculate,
-        ModuleType::Tofino_VectorRegisterConditionalUpdate,
+        ModuleType::Tofino_VectorRegisterReadConditionalUpdate,
+        ModuleType::Tofino_VectorRegisterReadConditionalUpdateSingleAction,
         ModuleType::Tofino_BloomFilterQueryAndSet,
         ModuleType::Tofino_CMSIncAndQuery,
     };

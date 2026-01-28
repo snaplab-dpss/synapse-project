@@ -7,30 +7,30 @@ Args:
   Profile file:       nat-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (40 modules)
+    Tofino (41 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,3'088'975'600,69,-5,-26'331'136,0>
+  Score: <0,3'088'975'500,69,-5,-26'159'104,0>
   Tput: 2.17 Tbps (3.09 Gpps)
   Spec: 2.17 Tbps (3.09 Gpps)
   Recirculations: 0
   BDD Progress: 69 / 75
   Stages: 5
-  Memory Usage: 26331136 bits
+  Memory Usage: 26159104 bits
 
 Stateful Implementations:
   1074102760: Tofino::VectorTable
-  1074066960: Tofino::Register
+  1074066960: Tofino::VectorRegister
   1074085120: Tofino::FCFSCachedTable
   1074053136: Tofino::FCFSCachedTable
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       219 seconds
+  Elapsed time:       64 seconds
   Steps:              69
   Backtracks:         0
   Search space size:  207
@@ -119,10 +119,10 @@ Search Metadata:
     Node 154: 3
 
 Global Stats:
-  Num phase 1 speculations: 29'978 (100%)
-  Num phase 2 speculations: 1'287 (4.29315%)
-  Num phase 3 speculations: 1'228 (4.09634%)
-  Num speculated modules:   396'674
+  Num phase 1 speculations: 25'670 (100%)
+  Num phase 2 speculations: 1'091 (4.2501%)
+  Num phase 3 speculations: 1'088 (4.23841%)
+  Num speculated modules:   332'931
   Num EPs generated:        207
 
 Switch placement:
@@ -154,10 +154,10 @@ Objs: [vector_register_1074066960_1,fcfs_ct_1074053136_reg_liveness,vector_regis
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 77'824/1'310'720 B (5.9375%)
+SRAM: 67'072/1'310'720 B (5.11719%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 77'824/786'432 B (9.89583%)
-Exact Match Crossbar: 8/128 B (6.25%)
+MapRAM: 67'072/786'432 B (8.52865%)
+Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [fcfs_ct_1074053136_reg_key_2,fcfs_ct_1074053136_reg_key_3,fcfs_ct_1074053136_reg_key_1,fcfs_ct_1074053136_reg_key_0]
 -------------------------------------
 -------------------------------------

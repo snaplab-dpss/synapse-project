@@ -9,6 +9,7 @@ public:
   DSPrefHHTable()
       : HeuristicCfg("DSPrefHHTable", {
                                           BUILD_METRIC(DSPrefHHTable, get_ds_score, Objective::Max),
+                                          BUILD_METRIC(DSPrefHHTable, get_tput_speculation, Objective::Max),
                                           BUILD_METRIC(DSPrefHHTable, get_bdd_progress, Objective::Max),
                                       }) {}
 

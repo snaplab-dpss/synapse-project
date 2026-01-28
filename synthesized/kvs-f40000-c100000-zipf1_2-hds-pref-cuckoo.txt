@@ -1,0 +1,226 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     kvs.bdd
+  Name:               kvs-f40000-c100000-zipf1_2-hds-pref-cuckoo
+  Targets config:     tofino2-kvs.toml
+  Heuristic:          ds-pref-cuckoo
+  Profile file:       kvs-f40000-c100000-zipf1_2.json
+  Seed:               0
+  Targets:
+    Tofino (34 modules)
+    Ctrl (90 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+
+Winner:
+  Score: <0,3,688'292'000,44>
+  BDD Progress: 44
+  DS Score: 3
+  Tput: 484.56 Gbps (688.29 Mpps)
+  Spec: 484.56 Gbps (688.29 Mpps)
+
+Stateful Implementations:
+  1073954136: Tofino::CuckooHashTable
+  1073971272: Tofino::CuckooHashTable
+  1073923096: Tofino::CuckooHashTable
+
+Search Metadata:
+  Elapsed time:       202 seconds
+  Steps:              44
+  Backtracks:         0
+  Search space size:  135
+  Unfinished EPs:     91
+  Finished EPs:       1
+  Avg BDD size:       47
+  Branching factor:   2
+  Total SS size est.: 3'748'670'066
+  Avg children per node:
+    Node 32: 0
+    Node 31: 0
+    Node 30: 0
+    Node 29: 0
+    Node 56: 3
+    Node 16: 0
+    Node 55: 3
+    Node 15: 0
+    Node 61: 2
+    Node 54: 3
+    Node 14: 0
+    Node 60: 3
+    Node 53: 3
+    Node 13: 14
+    Node 59: 3
+    Node 12: 3
+    Node 64: 2
+    Node 5: 3
+    Node 6: 3
+    Node 65: 3
+    Node 58: 3
+    Node 7: 3
+    Node 66: 2
+    Node 8: 3
+    Node 38: 0
+    Node 9: 3
+    Node 33: 3
+    Node 4: 2
+    Node 63: 3
+    Node 62: 3
+    Node 39: 0
+    Node 10: 3
+    Node 11: 4
+    Node 17: 0
+    Node 34: 3
+    Node 40: 0
+    Node 57: 2
+    Node 18: 3
+    Node 23: 0
+    Node 35: 3
+    Node 41: 0
+    Node 47: 0
+    Node 19: 3
+    Node 24: 0
+    Node 36: 3
+    Node 42: 3
+    Node 48: 3
+    Node 20: 3
+    Node 25: 0
+    Node 37: 2
+    Node 43: 3
+    Node 49: 3
+    Node 21: 3
+    Node 26: 0
+    Node 44: 3
+    Node 50: 3
+    Node 22: 2
+    Node 27: 0
+    Node 45: 3
+    Node 51: 3
+    Node 28: 0
+    Node 46: 2
+    Node 52: 2
+
+Global Stats:
+  Num phase 1 speculations: 37'818 (100%)
+  Num phase 2 speculations: 1'298 (3.43223%)
+  Num phase 3 speculations: 1'278 (3.37934%)
+  Num speculated modules:   507'998
+  Num EPs generated:        135
+
+Switch placement:
+
+====================== TNA Pipeline ======================
+-------------------------------------
+Stage 0
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 8/128 B (6.25%)
+Objs: [cuckoo_hash_table_1073923096_hash_calc_0]
+-------------------------------------
+-------------------------------------
+Stage 1
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 8/128 B (6.25%)
+Objs: [cuckoo_hash_table_1073923096_hash_calc_1]
+-------------------------------------
+-------------------------------------
+Stage 2
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 8/128 B (6.25%)
+Objs: [cuckoo_hash_table_1073923096_hash_calc_2]
+-------------------------------------
+-------------------------------------
+Stage 3
+SRAM: 32'768/1'310'720 B (2.5%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 32'768/786'432 B (4.16667%)
+Exact Match Crossbar: 2/128 B (1.5625%)
+Objs: [cuckoo_hash_table_1073923096_reg_k_1]
+-------------------------------------
+-------------------------------------
+Stage 4
+SRAM: 32'768/1'310'720 B (2.5%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 32'768/786'432 B (4.16667%)
+Exact Match Crossbar: 2/128 B (1.5625%)
+Objs: [cuckoo_hash_table_1073923096_reg_k_2]
+-------------------------------------
+-------------------------------------
+Stage 5
+SRAM: 32'768/1'310'720 B (2.5%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 32'768/786'432 B (4.16667%)
+Exact Match Crossbar: 2/128 B (1.5625%)
+Objs: [cuckoo_hash_table_1073923096_reg_v_1]
+-------------------------------------
+-------------------------------------
+Stage 6
+SRAM: 32'768/1'310'720 B (2.5%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 32'768/786'432 B (4.16667%)
+Exact Match Crossbar: 2/128 B (1.5625%)
+Objs: [cuckoo_hash_table_1073923096_reg_v_2]
+-------------------------------------
+-------------------------------------
+Stage 7
+SRAM: 32'768/1'310'720 B (2.5%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 32'768/786'432 B (4.16667%)
+Exact Match Crossbar: 2/128 B (1.5625%)
+Objs: [cuckoo_hash_table_1073923096_reg_ts_1]
+-------------------------------------
+-------------------------------------
+Stage 8
+SRAM: 32'768/1'310'720 B (2.5%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 32'768/786'432 B (4.16667%)
+Exact Match Crossbar: 2/128 B (1.5625%)
+Objs: [cuckoo_hash_table_1073923096_reg_ts_2]
+-------------------------------------
+-------------------------------------
+Stage 9
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [cuckoo_hash_table_1073923096_hash_old_key]
+-------------------------------------
+-------------------------------------
+Stage 10
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [cuckoo_hash_table_1073923096_hash_new_key]
+-------------------------------------
+-------------------------------------
+Stage 11
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [cuckoo_hash_table_1073923096_hash_old_key_2]
+-------------------------------------
+-------------------------------------
+Stage 12
+SRAM: 147'456/1'310'720 B (11.25%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 147'456/786'432 B (18.75%)
+Exact Match Crossbar: 2/128 B (1.5625%)
+Objs: [cuckoo_hash_table_1073923096_swap_transient]
+-------------------------------------
+-------------------------------------
+Stage 13
+SRAM: 147'456/1'310'720 B (11.25%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 147'456/786'432 B (18.75%)
+Exact Match Crossbar: 2/128 B (1.5625%)
+Objs: [cuckoo_hash_table_1073923096_swapped_transient]
+-------------------------------------
+==========================================================
+========================================================

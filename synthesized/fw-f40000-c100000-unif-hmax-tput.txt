@@ -7,16 +7,16 @@ Args:
   Profile file:       fw-f40000-c100000-unif.json
   Seed:               0
   Targets:
-    Tofino (40 modules)
+    Tofino (41 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,231'742'600,56,-6,-32'076'480,0>
-  Tput: 163.15 Gbps (231.74 Mpps)
-  Spec: 163.15 Gbps (231.74 Mpps)
+  Score: <0,737'484'500,56,-6,-32'076'480,0>
+  Tput: 519.19 Gbps (737.48 Mpps)
+  Spec: 519.19 Gbps (737.48 Mpps)
   Recirculations: 0
   BDD Progress: 56 / 62
   Stages: 6
@@ -29,7 +29,7 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       84 seconds
+  Elapsed time:       53 seconds
   Steps:              56
   Backtracks:         0
   Search space size:  173
@@ -109,10 +109,10 @@ Search Metadata:
     Node 249: 0
 
 Global Stats:
-  Num phase 1 speculations: 17'852 (100%)
-  Num phase 2 speculations: 836 (4.68295%)
-  Num phase 3 speculations: 826 (4.62693%)
-  Num speculated modules:   221'332
+  Num phase 1 speculations: 21'077 (100%)
+  Num phase 2 speculations: 882 (4.18466%)
+  Num phase 3 speculations: 877 (4.16093%)
+  Num speculated modules:   263'473
   Num EPs generated:        173
 
 Switch placement:

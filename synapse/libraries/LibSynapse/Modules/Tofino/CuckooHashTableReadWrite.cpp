@@ -65,7 +65,7 @@ hit_rate_t calculate_expected_cache_hit_rate(const EP *ep, const BDDNode *node, 
                                              klee::ref<klee::Expr> key, u32 capacity) {
   const flow_stats_t flow_stats                         = ep->get_ctx().get_profiler().get_flow_stats(node, key);
   const hit_rate_t probability_of_finding_item_in_table = flow_stats.calculate_top_k_hit_rate(capacity);
-  const hit_rate_t expected_cache_hit_rate              = 1_hr - ((1_hr - probability_of_finding_item_in_table) * 1.7);
+  const hit_rate_t expected_cache_hit_rate              = 1_hr - ((1_hr - probability_of_finding_item_in_table) * 1.4);
   return expected_cache_hit_rate;
 }
 
@@ -401,6 +401,11 @@ std::optional<spec_impl_t> CuckooHashTableReadWriteFactory::speculate(const EP *
     return {};
   }
 
+  // We don't model how this data structure affects the recirculation lanes.
+  if (ep->get_speculative_node_egress(speculations.ctx.get_profiler().get_hr(node), node, speculations).get_hr_at_recirc_depth(0) > 0_hr) {
+    return {};
+  }
+
   Context new_ctx = speculations.ctx;
   new_ctx.save_ds_impl(node->get_id(), map_objs->map, DSImpl::Tofino_CuckooHashTable);
   new_ctx.save_ds_impl(node->get_id(), map_objs->dchain, DSImpl::Tofino_CuckooHashTable);
@@ -485,6 +490,11 @@ std::vector<impl_t> CuckooHashTableReadWriteFactory::process_node(const EP *ep, 
 
   const branch_direction_t mpsc = map_get->get_map_get_success_check();
   if (!mpsc.branch) {
+    return {};
+  }
+
+  // We don't model how this data structure affects the recirculation lanes.
+  if (ep->get_active_leaf_node_egress().get_hr_at_recirc_depth(0) > 0_hr) {
     return {};
   }
 

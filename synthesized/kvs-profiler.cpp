@@ -6,6 +6,7 @@ extern "C" {
 #include <lib/state/double-chain.h>
 #include <lib/state/cht.h>
 #include <lib/state/cms.h>
+#include <lib/state/bloom-filter.h>
 #include <lib/state/token-bucket.h>
 #include <lib/state/lpm-dir-24-8.h>
 
@@ -810,8 +811,8 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  stats_per_map[1073923368].init(24);
-  stats_per_map[1073923368].init(13);
+  stats_per_map[1073923096].init(24);
+  stats_per_map[1073923096].init(13);
   forwarding_stats_per_route_op.insert({66, PortStats{}});
   forwarding_stats_per_route_op.insert({64, PortStats{}});
   forwarding_stats_per_route_op.insert({57, PortStats{}});
@@ -928,7 +929,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
           *(uint32_t*)key = hdr4_slice;
           int value;
           int map_hit = map_get(map, key, &value);
-          stats_per_map[1073923368].update(13, key, 4, now);
+          stats_per_map[1073923096].update(13, key, 4, now);
           // BDDNode 14
           inc_path_counter(14);
           if ((0) == (map_hit)) {
@@ -969,7 +970,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 inc_path_counter(24);
                 *(uint32_t*)vector_value_out = hdr4_slice;
                 map_put(map, vector_value_out, index);
-                stats_per_map[1073923368].update(24, vector_value_out, 4, now);
+                stats_per_map[1073923096].update(24, vector_value_out, 4, now);
                 // BDDNode 25
                 inc_path_counter(25);
                 // BDDNode 26

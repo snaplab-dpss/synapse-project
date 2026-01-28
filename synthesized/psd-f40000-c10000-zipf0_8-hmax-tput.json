@@ -1,11 +1,11 @@
 {
   "bdd": "psd.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 219,
-    "num_phase1_speculations": 26804,
-    "num_phase2_speculations": 1197,
-    "num_phase3_speculations": 1103,
-    "num_speculated_modules": 334249
+    "num_execution_plans_generated": 218,
+    "num_phase1_speculations": 34767,
+    "num_phase2_speculations": 1681,
+    "num_phase3_speculations": 1664,
+    "num_speculated_modules": 425186
   },
   "heuristic": {
     "meta": [
@@ -30,7 +30,7 @@
         "name": "Stages"
       },
       {
-        "description": "17785984 bits",
+        "description": "16770176 bits",
         "name": "Memory Usage"
       }
     ],
@@ -39,14 +39,14 @@
       2250000000,
       75,
       -3,
-      -17785984,
+      -16770176,
       -1
     ]
   },
   "implementations": [
     {
       "addr": 1074079432,
-      "implementation": "Tofino::Register"
+      "implementation": "Tofino::VectorRegister"
     },
     {
       "addr": 1074126776,
@@ -139,7 +139,7 @@
         "node_id": 148
       },
       {
-        "avg": 3.0,
+        "avg": 2.0,
         "node_id": 147
       },
       {
@@ -307,7 +307,7 @@
         "node_id": 285
       },
       {
-        "avg": 8.0,
+        "avg": 6.0,
         "node_id": 158
       },
       {
@@ -331,11 +331,11 @@
         "node_id": 286
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 159
       },
       {
-        "avg": 2.0,
+        "avg": 4.0,
         "node_id": 300
       },
       {
@@ -359,7 +359,7 @@
         "node_id": 287
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 160
       },
       {
@@ -379,7 +379,7 @@
         "node_id": 288
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 161
       },
       {
@@ -421,12 +421,12 @@
     ],
     "backtracks": 1,
     "branching_factor": 2.898550724637681,
-    "elapsed_time_seconds": 225,
+    "elapsed_time_seconds": 117,
     "finished_eps": 1,
-    "ss_size": 219,
+    "ss_size": 218,
     "steps": 78,
     "total_ss_size_estimation": 2390224748514.1846,
-    "unfinished_eps": 141
+    "unfinished_eps": 140
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

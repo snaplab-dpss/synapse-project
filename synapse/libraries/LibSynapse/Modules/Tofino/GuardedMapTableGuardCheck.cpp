@@ -188,7 +188,9 @@ std::optional<spec_impl_t> GuardedMapTableGuardCheckFactory::speculate(const EP 
     }
   }
 
+  const hit_rate_t success_hr = new_ctx.get_profiler().get_hr(branch_direction.get_success_node());
   new_ctx.get_mutable_profiler().set(branch_direction.get_failure_node()->get_ordered_branch_constraints(), 0_hr);
+  new_ctx.get_mutable_profiler().set(branch_direction.get_success_node()->get_ordered_branch_constraints(), success_hr);
 
   return spec_impl_t(decide(ep, node), new_ctx);
 }

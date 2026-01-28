@@ -2,19 +2,19 @@
   "bdd": "cl.bdd",
   "global_stats": {
     "num_execution_plans_generated": 176,
-    "num_phase1_speculations": 13608,
-    "num_phase2_speculations": 638,
-    "num_phase3_speculations": 616,
-    "num_speculated_modules": 172395
+    "num_phase1_speculations": 16074,
+    "num_phase2_speculations": 690,
+    "num_phase3_speculations": 661,
+    "num_speculated_modules": 201811
   },
   "heuristic": {
     "meta": [
       {
-        "description": "668.88 Gbps (950.12 Mpps)",
+        "description": "1.58 Tbps (2.25 Gpps)",
         "name": "Tput"
       },
       {
-        "description": "668.88 Gbps (950.12 Mpps)",
+        "description": "1.58 Tbps (2.25 Gpps)",
         "name": "Spec"
       },
       {
@@ -30,16 +30,16 @@
         "name": "Stages"
       },
       {
-        "description": "19843072 bits",
+        "description": "17745920 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      950119700,
+      2250000000,
       58,
       -8,
-      -19843072,
+      -17745920,
       -1
     ]
   },
@@ -50,7 +50,7 @@
     },
     {
       "addr": 1074079968,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074110176,
@@ -58,7 +58,7 @@
     },
     {
       "addr": 1074047984,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074092960,
@@ -349,7 +349,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.109090909090909,
-    "elapsed_time_seconds": 110,
+    "elapsed_time_seconds": 81,
     "finished_eps": 1,
     "ss_size": 176,
     "steps": 59,
@@ -358,6 +358,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 668884295552,
-  "tput_estimation_pps": 950119738
+  "tput_estimation_bps": 1584000000000,
+  "tput_estimation_pps": 2250000000
 }

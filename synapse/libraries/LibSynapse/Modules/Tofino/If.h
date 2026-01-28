@@ -69,6 +69,9 @@ protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
   virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
   virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
+
+public:
+  static std::vector<If::condition_t> get_compatible_conditions(const TNA &tna, klee::ref<klee::Expr> condition);
 };
 
 } // namespace Tofino

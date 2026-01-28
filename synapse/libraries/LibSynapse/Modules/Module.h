@@ -45,7 +45,8 @@ enum class ModuleType {
   Tofino_DchainTableLookup,
   Tofino_VectorRegisterLookup,
   Tofino_VectorRegisterUpdate,
-  Tofino_VectorRegisterConditionalUpdate,
+  Tofino_VectorRegisterReadConditionalUpdate,
+  Tofino_VectorRegisterReadConditionalUpdateSingleAction,
   Tofino_FCFSCachedTableRead,
   Tofino_FCFSCachedTableReadInsert,
   Tofino_FCFSCachedTableInsert,
@@ -266,8 +267,11 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_VectorRegisterUpdate:
     os << "Tofino_VectorRegisterUpdate";
     break;
-  case ModuleType::Tofino_VectorRegisterConditionalUpdate:
-    os << "Tofino_VectorRegisterConditionalUpdate";
+  case ModuleType::Tofino_VectorRegisterReadConditionalUpdate:
+    os << "Tofino_VectorRegisterReadConditionalUpdate";
+    break;
+  case ModuleType::Tofino_VectorRegisterReadConditionalUpdateSingleAction:
+    os << "Tofino_VectorRegisterReadConditionalUpdateSingleAction";
     break;
   case ModuleType::Tofino_FCFSCachedTableRead:
     os << "Tofino_FCFSCachedTableRead";

@@ -77,7 +77,7 @@ class HeatmapData:
         data: dict[Key, Values] = {}
         for key in self.raw_data.keys():
             if len(self.raw_data[key]) == 1:
-                data[key] = Values(0, 0, 0, 0, 0, 0, 0)
+                data[key] = Values()
             else:
                 data[key] = Values(
                     statistics.stdev([x.requested_bps for x in self.raw_data[key]]),
@@ -250,6 +250,84 @@ def plot_heatmap(data: HeatmapData, file: Path, cmap="Blues", show_errors: bool 
         avg_label = int(pps / 1e6)
         err_label = int(err / 1e6)
 
+        if avg_data[key].label is not None:
+            label = avg_data[key].label
+            assert label is not None
+        else:
+            label = f"{avg_label}±{err_label}\nMpps" if show_errors else f"{avg_label}\nMpps"
+
+        color = "black" if pps < TPUT_MPPS_MAX * 1e6 / 2 else "white"
+
+        text = ax.text(j, i, label, ha="center", va="center", color=color)
+        if avg_data[key].label is not None:
+            text.set_fontsize(5)
+        else:
+            text.set_fontsize(6)
+        text.set_fontweight("bold")
+
+    fig.set_size_inches(width * 0.6, height * 1)
+    # fig.tight_layout(pad=0.1)
+
+    print("-> ", file)
+    plt.savefig(str(file))
+
+
+def plot_heatmap_estimation(data: HeatmapData, file: Path, show_errors: bool = True):
+    plot_heatmap(data, file, cmap="Oranges", show_errors=show_errors)
+
+
+def plot_heatmap_data_structures(data: HeatmapData, file: Path, cmap="Blues", show_errors: bool = True):
+    avg_data = data.get_avg_values()
+    keys = avg_data.keys()
+    all_s = sorted(set([key.s for key in keys]))
+    all_churn = sorted(set([key.churn_fpm for key in keys]), reverse=True)
+
+    matrix = np.zeros((len(all_churn), len(all_s)))
+    for key in keys:
+        i = all_churn.index(key.churn_fpm)
+        j = all_s.index(key.s)
+        matrix[i, j] = avg_data[key].dut_egress_pps / 1e6
+
+    s_labels = [f"{s:.2f}" for s in all_s]
+    churn_labels = [f"{whole_number_to_label(c)}" for c in all_churn]
+
+    # Nice colormaps:
+    # https://matplotlib.org/stable/tutorials/colors/colormaps.html
+    # - plasma
+    # - viridis
+    # - rainbow
+    # - Blues
+    # - Reds
+
+    fig, ax = plt.subplots(constrained_layout=True)
+    ax.imshow(matrix, vmin=0, vmax=TPUT_MPPS_MAX, cmap=cmap, aspect="auto")
+
+    # Show all ticks and label them with the respective list entries
+    ax.set_xticks(range(len(all_s)), labels=s_labels)
+    ax.set_yticks(range(len(all_churn)), labels=churn_labels)
+
+    ax.set_xlabel("Skew (Zipf parameter)")
+    ax.set_ylabel("Churn (fpm)")
+
+    # Rotate the tick labels and set their alignment.
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+    ax.grid(False)
+
+    ax.spines[:].set_visible(False)
+    ax.set_xticks(np.arange(matrix.shape[1] + 1) - 0.5, minor=True)
+    ax.set_yticks(np.arange(matrix.shape[0] + 1) - 0.5, minor=True)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+    for key in keys:
+        i = all_churn.index(key.churn_fpm)
+        j = all_s.index(key.s)
+        pps = int(avg_data[key].dut_egress_pps)
+        err = int(data.get_stdev_values()[key].dut_egress_pps)
+
+        avg_label = int(pps / 1e6)
+        err_label = int(err / 1e6)
+
         label = f"{avg_label}±{err_label}\nMpps" if show_errors else f"{avg_label}\nMpps"
 
         color = "black" if pps < TPUT_MPPS_MAX * 1e6 / 2 else "white"
@@ -263,10 +341,6 @@ def plot_heatmap(data: HeatmapData, file: Path, cmap="Blues", show_errors: bool 
 
     print("-> ", file)
     plt.savefig(str(file))
-
-
-def plot_heatmap_estimation(data: HeatmapData, file: Path, show_errors: bool = True):
-    plot_heatmap(data, file, cmap="Oranges", show_errors=show_errors)
 
 
 def plot_bps_scatter(data: HeatmapData, file: Path):

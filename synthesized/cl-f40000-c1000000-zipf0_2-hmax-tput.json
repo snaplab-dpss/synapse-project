@@ -2,19 +2,19 @@
   "bdd": "cl.bdd",
   "global_stats": {
     "num_execution_plans_generated": 176,
-    "num_phase1_speculations": 13656,
-    "num_phase2_speculations": 642,
-    "num_phase3_speculations": 620,
-    "num_speculated_modules": 172747
+    "num_phase1_speculations": 15390,
+    "num_phase2_speculations": 706,
+    "num_phase3_speculations": 662,
+    "num_speculated_modules": 193267
   },
   "heuristic": {
     "meta": [
       {
-        "description": "11.72 Gbps (16.65 Mpps)",
+        "description": "93.37 Gbps (132.63 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "11.72 Gbps (16.65 Mpps)",
+        "description": "93.37 Gbps (132.63 Mpps)",
         "name": "Spec"
       },
       {
@@ -26,20 +26,20 @@
         "name": "BDD Progress"
       },
       {
-        "description": "8",
+        "description": "9",
         "name": "Stages"
       },
       {
-        "description": "19843072 bits",
+        "description": "26134528 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      16645900,
+      132631000,
       58,
-      -8,
-      -19843072,
+      -9,
+      -26134528,
       -1
     ]
   },
@@ -50,7 +50,7 @@
     },
     {
       "addr": 1074079968,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074110176,
@@ -58,7 +58,7 @@
     },
     {
       "addr": 1074047984,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074092960,
@@ -349,7 +349,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.109090909090909,
-    "elapsed_time_seconds": 109,
+    "elapsed_time_seconds": 78,
     "finished_eps": 1,
     "ss_size": 176,
     "steps": 59,
@@ -358,6 +358,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 11718766400,
-  "tput_estimation_pps": 16645975
+  "tput_estimation_bps": 93372338752,
+  "tput_estimation_pps": 132631163
 }

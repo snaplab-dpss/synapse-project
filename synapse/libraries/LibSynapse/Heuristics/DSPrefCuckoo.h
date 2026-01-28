@@ -9,6 +9,7 @@ public:
   DSPrefCuckoo()
       : HeuristicCfg("DSPrefCuckoo", {
                                          BUILD_METRIC(DSPrefCuckoo, get_ds_score, Objective::Max),
+                                         BUILD_METRIC(DSPrefCuckoo, get_tput_speculation, Objective::Max),
                                          BUILD_METRIC(DSPrefCuckoo, get_bdd_progress, Objective::Max),
                                      }) {}
 

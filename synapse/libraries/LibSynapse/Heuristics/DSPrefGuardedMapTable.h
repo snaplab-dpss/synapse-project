@@ -9,6 +9,7 @@ public:
   DSPrefGuardedMapTable()
       : HeuristicCfg("DSPrefGuardedMapTable", {
                                                   BUILD_METRIC(DSPrefGuardedMapTable, get_ds_score, Objective::Max),
+                                                  BUILD_METRIC(DSPrefGuardedMapTable, get_tput_speculation, Objective::Max),
                                                   BUILD_METRIC(DSPrefGuardedMapTable, get_bdd_progress, Objective::Max),
                                               }) {}
 

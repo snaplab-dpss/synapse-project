@@ -455,7 +455,8 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Tofino_ModifyHeader:
     case ModuleType::Tofino_VectorRegisterLookup:
     case ModuleType::Tofino_VectorRegisterUpdate:
-    case ModuleType::Tofino_VectorRegisterConditionalUpdate:
+    case ModuleType::Tofino_VectorRegisterReadConditionalUpdate:
+    case ModuleType::Tofino_VectorRegisterReadConditionalUpdateSingleAction:
     case ModuleType::Tofino_FCFSCachedTableInsert:
     case ModuleType::Tofino_FCFSCachedSetInsert:
     case ModuleType::Tofino_MeterUpdate:

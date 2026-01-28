@@ -103,10 +103,13 @@ std::optional<spec_impl_t> HHTableOutOfBandUpdateFactory::speculate(const EP *ep
     return {};
   }
 
-  const BDDNode *on_hh = index_alloc_check.direction ? index_alloc_check.branch->get_on_true() : index_alloc_check.branch->get_on_false();
+  const BDDNode *on_hh              = index_alloc_check.get_success_node();
   std::vector<const Call *> targets = on_hh->get_coalescing_nodes_from_key(table_data.key, map_objs.value());
 
-  spec_impl_t spec_impl(decide(ep, node), speculations.ctx);
+  Context new_ctx = speculations.ctx;
+  new_ctx.get_mutable_profiler().set(index_alloc_check.get_success_node()->get_ordered_branch_constraints(), 0_hr);
+
+  spec_impl_t spec_impl(decide(ep, node), new_ctx);
 
   // Ignore all coalescing nodes if the index allocation is successful (i.e. it is a heavy hitter).
   for (const BDDNode *tgt : targets) {

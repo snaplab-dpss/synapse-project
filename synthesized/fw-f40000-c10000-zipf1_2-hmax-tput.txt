@@ -7,20 +7,20 @@ Args:
   Profile file:       fw-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (40 modules)
+    Tofino (41 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'250'000'000,56,-5,-15'430'336,0>
+  Score: <0,2'250'000'000,56,-5,-15'332'032,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
   BDD Progress: 56 / 62
   Stages: 5
-  Memory Usage: 15430336 bits
+  Memory Usage: 15332032 bits
 
 Stateful Implementations:
   1074093704: Tofino::VectorTable
@@ -29,7 +29,7 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       101 seconds
+  Elapsed time:       52 seconds
   Steps:              56
   Backtracks:         0
   Search space size:  173
@@ -109,10 +109,10 @@ Search Metadata:
     Node 249: 0
 
 Global Stats:
-  Num phase 1 speculations: 17'468 (100%)
-  Num phase 2 speculations: 826 (4.72865%)
-  Num phase 3 speculations: 816 (4.6714%)
-  Num speculated modules:   216'728
+  Num phase 1 speculations: 20'552 (100%)
+  Num phase 2 speculations: 874 (4.25263%)
+  Num phase 3 speculations: 871 (4.23803%)
+  Num speculated modules:   257'596
   Num EPs generated:        173
 
 Switch placement:
@@ -136,18 +136,18 @@ Objs: [fcfs_cs_1074044080_table_155,fcfs_cs_1074044080_table_142]
 -------------------------------------
 -------------------------------------
 Stage 2
-SRAM: 455'344/1'310'720 B (34.74%)
+SRAM: 453'808/1'310'720 B (34.6228%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 18'432/786'432 B (2.34375%)
-Exact Match Crossbar: 38/128 B (29.6875%)
+MapRAM: 16'896/786'432 B (2.14844%)
+Exact Match Crossbar: 37/128 B (28.9062%)
 Objs: [fcfs_cs_1074044080_reg_liveness,fcfs_cs_1074044080_hash_155,fcfs_cs_1074044080_hash_142,fcfs_cs_1074044080_table_155]
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 71'680/1'310'720 B (5.46875%)
+SRAM: 67'072/1'310'720 B (5.11719%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 71'680/786'432 B (9.11458%)
-Exact Match Crossbar: 8/128 B (6.25%)
+MapRAM: 67'072/786'432 B (8.52865%)
+Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [fcfs_cs_1074044080_reg_key_3,fcfs_cs_1074044080_reg_key_2,fcfs_cs_1074044080_reg_key_1,fcfs_cs_1074044080_reg_key_0]
 -------------------------------------
 -------------------------------------

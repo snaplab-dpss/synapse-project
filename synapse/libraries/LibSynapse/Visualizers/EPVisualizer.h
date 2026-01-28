@@ -55,7 +55,8 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *node) override final;
-  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalUpdateSingleAction *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *node) override final;

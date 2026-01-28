@@ -7,14 +7,14 @@ Args:
   Profile file:       nat-f40000-c1000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (40 modules)
+    Tofino (41 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'556'620'200,61,-5,-25'637'696,0>
+  Score: <0,2'556'620'000,61,-5,-25'637'696,0>
   Tput: 1.80 Tbps (2.56 Gpps)
   Spec: 1.80 Tbps (2.56 Gpps)
   Recirculations: 0
@@ -30,7 +30,7 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       199 seconds
+  Elapsed time:       79 seconds
   Steps:              62
   Backtracks:         0
   Search space size:  198
@@ -103,10 +103,10 @@ Search Metadata:
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 24'578 (100%)
-  Num phase 2 speculations: 1'072 (4.36162%)
-  Num phase 3 speculations: 1'072 (4.36162%)
-  Num speculated modules:   326'115
+  Num phase 1 speculations: 22'399 (100%)
+  Num phase 2 speculations: 960 (4.28591%)
+  Num phase 3 speculations: 960 (4.28591%)
+  Num speculated modules:   297'973
   Num EPs generated:        198
 
 Switch placement:

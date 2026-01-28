@@ -2,10 +2,10 @@
   "bdd": "fw.bdd",
   "global_stats": {
     "num_execution_plans_generated": 173,
-    "num_phase1_speculations": 18140,
-    "num_phase2_speculations": 842,
-    "num_phase3_speculations": 832,
-    "num_speculated_modules": 224950
+    "num_phase1_speculations": 21320,
+    "num_phase2_speculations": 890,
+    "num_phase3_speculations": 887,
+    "num_speculated_modules": 267820
   },
   "heuristic": {
     "meta": [
@@ -26,11 +26,11 @@
         "name": "BDD Progress"
       },
       {
-        "description": "6",
+        "description": "5",
         "name": "Stages"
       },
       {
-        "description": "32076480 bits",
+        "description": "23687872 bits",
         "name": "Memory Usage"
       }
     ],
@@ -38,8 +38,8 @@
       0,
       2250000000,
       56,
-      -6,
-      -32076480,
+      -5,
+      -23687872,
       0
     ]
   },
@@ -341,7 +341,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1666666666666665,
-    "elapsed_time_seconds": 107,
+    "elapsed_time_seconds": 55,
     "finished_eps": 1,
     "ss_size": 173,
     "steps": 56,

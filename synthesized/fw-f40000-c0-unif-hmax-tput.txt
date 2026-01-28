@@ -7,7 +7,7 @@ Args:
   Profile file:       fw-f40000-c0-unif.json
   Seed:               0
   Targets:
-    Tofino (40 modules)
+    Tofino (41 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
@@ -29,15 +29,15 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       96 seconds
+  Elapsed time:       65 seconds
   Steps:              49
   Backtracks:         0
-  Search space size:  178
-  Unfinished EPs:     129
+  Search space size:  179
+  Unfinished EPs:     130
   Finished EPs:       1
   Avg BDD size:       49
   Branching factor:   3
-  Total SS size est.: 898'872'602'927
+  Total SS size est.: 1'011'059'111'402
   Avg children per node:
     Node 173: 0
     Node 172: 0
@@ -64,7 +64,7 @@ Search Metadata:
     Node 176: 3
     Node 165: 0
     Node 183: 2
-    Node 140: 3
+    Node 140: 4
     Node 182: 3
     Node 139: 6
     Node 181: 3
@@ -86,19 +86,19 @@ Search Metadata:
     Node 157: 2
     Node 174: 0
     Node 145: 3
-    Node 149: 4
+    Node 149: 3
     Node 158: 0
-    Node 175: 3
+    Node 175: 4
     Node 146: 3
     Node 150: 3
     Node 159: 0
 
 Global Stats:
-  Num phase 1 speculations: 12'427 (100%)
-  Num phase 2 speculations: 694 (5.58461%)
-  Num phase 3 speculations: 688 (5.53633%)
-  Num speculated modules:   165'674
-  Num EPs generated:        178
+  Num phase 1 speculations: 15'117 (100%)
+  Num phase 2 speculations: 731 (4.83562%)
+  Num phase 3 speculations: 731 (4.83562%)
+  Num speculated modules:   197'547
+  Num EPs generated:        179
 
 Switch placement:
 
@@ -125,7 +125,7 @@ SRAM: 437'344/1'310'720 B (33.3667%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 20/128 B (15.625%)
-Objs: [vector_table_1074093704_175,vector_table_1074093704_149,map_set_table_1074044080_142]
+Objs: [vector_table_1074093704_149,vector_table_1074093704_175,map_set_table_1074044080_142]
 -------------------------------------
 ==========================================================
 ========================================================

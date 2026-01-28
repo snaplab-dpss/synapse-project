@@ -2,10 +2,10 @@
   "bdd": "psd.bdd",
   "global_stats": {
     "num_execution_plans_generated": 181,
-    "num_phase1_speculations": 17948,
-    "num_phase2_speculations": 667,
-    "num_phase3_speculations": 667,
-    "num_speculated_modules": 244506
+    "num_phase1_speculations": 16280,
+    "num_phase2_speculations": 642,
+    "num_phase3_speculations": 642,
+    "num_speculated_modules": 227094
   },
   "heuristic": {
     "meta": [
@@ -54,7 +54,7 @@
     },
     {
       "addr": 1074079432,
-      "implementation": "Tofino::Register"
+      "implementation": "Tofino::VectorRegister"
     },
     {
       "addr": 1074126776,
@@ -349,7 +349,7 @@
     ],
     "backtracks": 1,
     "branching_factor": 2.5294117647058822,
-    "elapsed_time_seconds": 113,
+    "elapsed_time_seconds": 63,
     "finished_eps": 1,
     "ss_size": 181,
     "steps": 68,

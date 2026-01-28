@@ -111,7 +111,7 @@ private:
     if (found_it != ep->get_meta().modules_counter.end()) {
       recirculations += found_it->second;
     }
-    for (const spec_impl_t &spec : ep->get_speculations().speculations_per_node) {
+    for (const spec_impl_lite_t &spec : ep->get_speculations().speculations_per_node) {
       if (spec.recirculated) {
         recirculations++;
       }

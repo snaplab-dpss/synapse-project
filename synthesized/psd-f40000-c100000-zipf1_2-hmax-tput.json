@@ -2,10 +2,10 @@
   "bdd": "psd.bdd",
   "global_stats": {
     "num_execution_plans_generated": 219,
-    "num_phase1_speculations": 26734,
-    "num_phase2_speculations": 1197,
-    "num_phase3_speculations": 1101,
-    "num_speculated_modules": 333399
+    "num_phase1_speculations": 22778,
+    "num_phase2_speculations": 1172,
+    "num_phase3_speculations": 1078,
+    "num_speculated_modules": 293887
   },
   "heuristic": {
     "meta": [
@@ -30,7 +30,7 @@
         "name": "Stages"
       },
       {
-        "description": "19096704 bits",
+        "description": "17261696 bits",
         "name": "Memory Usage"
       }
     ],
@@ -39,14 +39,14 @@
       2250000000,
       75,
       -3,
-      -19096704,
+      -17261696,
       -1
     ]
   },
   "implementations": [
     {
       "addr": 1074079432,
-      "implementation": "Tofino::Register"
+      "implementation": "Tofino::VectorRegister"
     },
     {
       "addr": 1074126776,
@@ -421,7 +421,7 @@
     ],
     "backtracks": 1,
     "branching_factor": 2.898550724637681,
-    "elapsed_time_seconds": 248,
+    "elapsed_time_seconds": 98,
     "finished_eps": 1,
     "ss_size": 219,
     "steps": 78,

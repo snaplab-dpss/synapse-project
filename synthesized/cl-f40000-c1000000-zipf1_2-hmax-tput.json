@@ -2,19 +2,19 @@
   "bdd": "cl.bdd",
   "global_stats": {
     "num_execution_plans_generated": 176,
-    "num_phase1_speculations": 13608,
-    "num_phase2_speculations": 638,
-    "num_phase3_speculations": 616,
-    "num_speculated_modules": 172395
+    "num_phase1_speculations": 15246,
+    "num_phase2_speculations": 690,
+    "num_phase3_speculations": 646,
+    "num_speculated_modules": 192243
   },
   "heuristic": {
     "meta": [
       {
-        "description": "72.96 Gbps (103.64 Mpps)",
+        "description": "561.49 Gbps (797.57 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "72.96 Gbps (103.64 Mpps)",
+        "description": "561.49 Gbps (797.57 Mpps)",
         "name": "Spec"
       },
       {
@@ -26,20 +26,20 @@
         "name": "BDD Progress"
       },
       {
-        "description": "8",
+        "description": "9",
         "name": "Stages"
       },
       {
-        "description": "19843072 bits",
+        "description": "26134528 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      103638600,
+      797574000,
       58,
-      -8,
-      -19843072,
+      -9,
+      -26134528,
       -1
     ]
   },
@@ -50,7 +50,7 @@
     },
     {
       "addr": 1074079968,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074110176,
@@ -58,7 +58,7 @@
     },
     {
       "addr": 1074047984,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074092960,
@@ -349,7 +349,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.109090909090909,
-    "elapsed_time_seconds": 112,
+    "elapsed_time_seconds": 69,
     "finished_eps": 1,
     "ss_size": 176,
     "steps": 59,
@@ -358,6 +358,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 72961641280,
-  "tput_estimation_pps": 103638695
+  "tput_estimation_bps": 561492220608,
+  "tput_estimation_pps": 797574177
 }

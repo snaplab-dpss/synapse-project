@@ -2,10 +2,10 @@
   "bdd": "cl.bdd",
   "global_stats": {
     "num_execution_plans_generated": 176,
-    "num_phase1_speculations": 13608,
-    "num_phase2_speculations": 638,
-    "num_phase3_speculations": 616,
-    "num_speculated_modules": 172395
+    "num_phase1_speculations": 16074,
+    "num_phase2_speculations": 690,
+    "num_phase3_speculations": 661,
+    "num_speculated_modules": 201811
   },
   "heuristic": {
     "meta": [
@@ -30,7 +30,7 @@
         "name": "Stages"
       },
       {
-        "description": "19843072 bits",
+        "description": "11454464 bits",
         "name": "Memory Usage"
       }
     ],
@@ -39,7 +39,7 @@
       2250000000,
       58,
       -8,
-      -19843072,
+      -11454464,
       -1
     ]
   },
@@ -50,7 +50,7 @@
     },
     {
       "addr": 1074079968,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074110176,
@@ -58,7 +58,7 @@
     },
     {
       "addr": 1074047984,
-      "implementation": "Tofino::FCFSCachedTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074092960,
@@ -349,7 +349,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.109090909090909,
-    "elapsed_time_seconds": 112,
+    "elapsed_time_seconds": 73,
     "finished_eps": 1,
     "ss_size": 176,
     "steps": 59,

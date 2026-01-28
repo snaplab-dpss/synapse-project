@@ -413,7 +413,7 @@ Context::Context(Context &&other)
       vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)), cms_configs(std::move(other.cms_configs)),
       bf_configs(std::move(other.bf_configs)), cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
       coalescing_candidates(std::move(other.coalescing_candidates)),
-      dchains_used_exclusively_for_linking_maps_with_vectors(std::move(dchains_used_exclusively_for_linking_maps_with_vectors)),
+      dchains_used_exclusively_for_linking_maps_with_vectors(std::move(other.dchains_used_exclusively_for_linking_maps_with_vectors)),
       dchains_failing_to_allocate_new_index_hit_rates(std::move(other.dchains_failing_to_allocate_new_index_hit_rates)),
       expiration_data(std::move(other.expiration_data)), expr_structs(std::move(other.expr_structs)), ds_impls(std::move(other.ds_impls)),
       ds_impls_decisions_per_bdd_node_and_obj(std::move(other.ds_impls_decisions_per_bdd_node_and_obj)),
@@ -610,7 +610,7 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
     os << "Tofino::DchainTable";
     break;
   case DSImpl::Tofino_VectorRegister:
-    os << "Tofino::Register";
+    os << "Tofino::VectorRegister";
     break;
   case DSImpl::Tofino_FCFSCachedTable:
     os << "Tofino::FCFSCachedTable";

@@ -213,6 +213,51 @@ def plot_estimated_tput_synapse_nfs(
     )
 
 
+def plot_data_structures_synapse_nfs(
+    nf: NF,
+    total_flows: int,
+    heuristic: str,
+    zipf_params: list[float],
+    churns_fpm: list[int],
+    skip_execution: bool = False,
+    show_cmds_output: bool = False,
+    show_cmds: bool = False,
+    silence: bool = False,
+) -> Task:
+
+    reports = [f"{get_pcap_base_name(nf, total_flows, s, c)}-h{heuristic}.json" for s, c in product(zipf_params, churns_fpm)]
+
+    files_consumed = [OUT_DIR / report for report in reports]
+
+    # Force replotting every time
+    files_produced = []
+
+    cmd = f"./plot_data_structures_synapse_nfs.py"
+    cmd += f" --nf {nf.name}"
+    cmd += f" --total-flows {total_flows}"
+    cmd += f" --heuristic {heuristic}"
+    cmd += f" --zipf-params {' '.join(map(str, zipf_params))}"
+    cmd += f" --churns {' '.join(map(str, churns_fpm))}"
+
+    name = nf.name
+    name += f"-f{total_flows}"
+    name += f"-h{heuristic}"
+    name += f"-s{'_'.join(map(str, zipf_params))}"
+    name += f"-c{'_'.join(map(str, churns_fpm))}"
+
+    return Task(
+        f"run_plot_data_structures_synapse_nfs_{name}",
+        cmd,
+        cwd=PLOTS_DIR,
+        files_consumed=files_consumed,
+        files_produced=files_produced,
+        skip_execution=skip_execution,
+        show_cmds_output=show_cmds_output,
+        show_cmds=show_cmds,
+        silence=silence,
+    )
+
+
 if __name__ == "__main__":
     description = "Synapse batcher script. This will run synapse against a batch of NFs and profiling reports."
     description += f" Profiler dir: {PROFILE_DIR}."
@@ -272,7 +317,8 @@ if __name__ == "__main__":
                     churn,
                     heuristic,
                     args.seed,
-                    skip_synthesis=not args.synthesize or args.dry_run,
+                    skip_synthesis=not args.synthesize,
+                    skip_execution=args.dry_run,
                     show_cmds_output=args.show_cmds_output,
                     show_cmds=args.show_cmds,
                     silence=args.silence,
@@ -282,6 +328,20 @@ if __name__ == "__main__":
         for total_flows, heuristic in product(args.total_flows, args.heuristics):
             orchestrator.add_task(
                 plot_estimated_tput_synapse_nfs(
+                    nf,
+                    total_flows,
+                    heuristic,
+                    args.zipf_params,
+                    args.churns,
+                    skip_execution=args.dry_run,
+                    show_cmds_output=args.show_cmds_output,
+                    show_cmds=args.show_cmds,
+                    silence=args.silence,
+                )
+            )
+
+            orchestrator.add_task(
+                plot_data_structures_synapse_nfs(
                     nf,
                     total_flows,
                     heuristic,

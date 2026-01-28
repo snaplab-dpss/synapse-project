@@ -2,19 +2,19 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 207,
-    "num_phase1_speculations": 30008,
-    "num_phase2_speculations": 1287,
-    "num_phase3_speculations": 1228,
-    "num_speculated_modules": 397214
+    "num_phase1_speculations": 23811,
+    "num_phase2_speculations": 1071,
+    "num_phase3_speculations": 1012,
+    "num_speculated_modules": 310335
   },
   "heuristic": {
     "meta": [
       {
-        "description": "71.34 Gbps (101.34 Mpps)",
+        "description": "231.85 Gbps (329.33 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "71.34 Gbps (101.34 Mpps)",
+        "description": "231.84 Gbps (329.32 Mpps)",
         "name": "Spec"
       },
       {
@@ -36,7 +36,7 @@
     ],
     "score": [
       0,
-      101338500,
+      329325000,
       69,
       -5,
       -32425984,
@@ -50,7 +50,7 @@
     },
     {
       "addr": 1074066960,
-      "implementation": "Tofino::Register"
+      "implementation": "Tofino::VectorRegister"
     },
     {
       "addr": 1074085120,
@@ -381,7 +381,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.161290322580645,
-    "elapsed_time_seconds": 145,
+    "elapsed_time_seconds": 61,
     "finished_eps": 1,
     "ss_size": 207,
     "steps": 69,
@@ -390,6 +390,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 71342304704,
-  "tput_estimation_pps": 101338501
+  "tput_estimation_bps": 231845151296,
+  "tput_estimation_pps": 329325499
 }

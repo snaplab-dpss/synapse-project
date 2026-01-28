@@ -89,7 +89,7 @@ def main():
         print(f"Error: could not find report for nf {args.nf} with heuristic {args.heuristic}.")
         exit(1)
 
-    heatmap_output_file = PLOTS_DIR / f"tput_estimated_synapse_{args.nf}_f{args.total_flows}_h{args.heuristic}_heatmap.pdf"
+    heatmap_output_file = PLOTS_DIR / f"synapse_{args.nf}_f{args.total_flows}_h{args.heuristic}_estimated_tput_heatmap.pdf"
     plot_heatmap_estimation(heatmap_data, heatmap_output_file, show_errors=False)
 
 

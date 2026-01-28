@@ -51,17 +51,29 @@ struct spec_impl_t {
   spec_impl_t(const decision_t &_decision, const Context &_ctx) : decision(_decision), ctx(_ctx), recirculated(false) {}
 };
 
-struct speculations_t {
-  std::vector<spec_impl_t> speculations_per_node;
-  Context ctx; // Context after applying all speculations.
+struct spec_impl_lite_t {
+  decision_t decision;
+  std::optional<TargetType> next_target;
+  bool recirculated;
+  bdd_node_ids_t skip;
 
-  speculations_t append(const spec_impl_t &speculation) const {
-    speculations_t new_speculations = {
-        .speculations_per_node = speculations_per_node,
-        .ctx                   = speculation.ctx,
-    };
-    new_speculations.speculations_per_node.push_back(speculation);
+  spec_impl_lite_t(const spec_impl_t &_spec_impl)
+      : decision(_spec_impl.decision), next_target(_spec_impl.next_target), recirculated(_spec_impl.recirculated), skip(_spec_impl.skip) {}
+};
+
+struct speculations_t {
+  std::vector<spec_impl_lite_t> speculations_per_node;
+  Context ctx;
+
+  speculations_t copy_and_append(const spec_impl_t &spec_impl) const {
+    speculations_t new_speculations = *this;
+    new_speculations.append(spec_impl);
     return new_speculations;
+  }
+
+  void append(const spec_impl_t &spec_impl) {
+    speculations_per_node.emplace_back(spec_impl);
+    ctx = spec_impl.ctx;
   }
 };
 

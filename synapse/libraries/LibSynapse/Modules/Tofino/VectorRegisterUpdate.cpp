@@ -23,7 +23,7 @@ vector_register_data_t get_vector_register_data(const Context &ctx, const Call *
       .index       = vb.args.at("index").expr,
       .value       = vb.extra_vars.at("borrowed_cell").second,
       .write_value = vr.args.at("value").in,
-      .actions     = {RegisterActionType::Read, RegisterActionType::Swap},
+      .actions     = {RegisterActionType::Read, RegisterActionType::Write},
   };
 
   return vector_register_data;

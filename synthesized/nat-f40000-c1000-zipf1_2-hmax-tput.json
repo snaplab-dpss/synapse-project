@@ -2,10 +2,10 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 198,
-    "num_phase1_speculations": 24578,
-    "num_phase2_speculations": 1072,
-    "num_phase3_speculations": 1072,
-    "num_speculated_modules": 326115
+    "num_phase1_speculations": 22399,
+    "num_phase2_speculations": 960,
+    "num_phase3_speculations": 960,
+    "num_speculated_modules": 297973
   },
   "heuristic": {
     "meta": [
@@ -36,7 +36,7 @@
     ],
     "score": [
       0,
-      2556620200,
+      2556620000,
       61,
       -5,
       -25637696,
@@ -317,7 +317,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1311475409836067,
-    "elapsed_time_seconds": 199,
+    "elapsed_time_seconds": 79,
     "finished_eps": 1,
     "ss_size": 198,
     "steps": 62,
@@ -326,6 +326,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 1799860655296,
-  "tput_estimation_pps": 2556620249
+  "tput_estimation_bps": 1799860730624,
+  "tput_estimation_pps": 2556620356
 }

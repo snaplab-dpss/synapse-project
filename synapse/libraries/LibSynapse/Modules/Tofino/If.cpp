@@ -127,6 +127,31 @@ std::optional<If::phv_limitation_workaround_t> get_phv_limitation_workaround(kle
 
 } // namespace
 
+std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna, klee::ref<klee::Expr> condition) {
+  std::vector<If::condition_t> conditions;
+
+  for (klee::ref<klee::Expr> sub_condition : split_condition(condition)) {
+    klee::ref<klee::Expr> simplified = simplify_conditional(sub_condition);
+
+    if (!tna.is_simple_conditional_expr(simplified)) {
+      panic("TODO: deal with this not simple condition: %s", expr_to_string(simplified, true).c_str());
+      return {};
+    }
+
+    if (!tna.condition_meets_phv_limit(simplified)) {
+      std::optional<If::phv_limitation_workaround_t> phv_limitation_workaround = get_phv_limitation_workaround(simplified);
+      if (!phv_limitation_workaround.has_value()) {
+        panic("TODO: deal with this not compatible condition: %s", expr_to_string(simplified, true).c_str());
+      }
+      conditions.push_back({simplified, *phv_limitation_workaround});
+    } else {
+      conditions.push_back(simplified);
+    }
+  }
+
+  return conditions;
+}
+
 std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Branch) {
     return {};
@@ -152,27 +177,8 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
     return {};
   }
 
-  klee::ref<klee::Expr> condition = branch_node->get_condition();
-
-  std::vector<If::condition_t> conditions;
-  for (klee::ref<klee::Expr> sub_condition : split_condition(condition)) {
-    klee::ref<klee::Expr> simplified = simplify_conditional(sub_condition);
-
-    if (!get_tna(ep).is_simple_conditional_expr(simplified)) {
-      panic("TODO: deal with this not simple condition: %s", expr_to_string(simplified, true).c_str());
-      return {};
-    }
-
-    if (!get_tna(ep).condition_meets_phv_limit(simplified)) {
-      std::optional<If::phv_limitation_workaround_t> phv_limitation_workaround = get_phv_limitation_workaround(simplified);
-      if (!phv_limitation_workaround.has_value()) {
-        panic("TODO: deal with this not compatible condition: %s", expr_to_string(simplified, true).c_str());
-      }
-      conditions.push_back({simplified, *phv_limitation_workaround});
-    } else {
-      conditions.push_back(simplified);
-    }
-  }
+  klee::ref<klee::Expr> condition               = branch_node->get_condition();
+  const std::vector<If::condition_t> conditions = get_compatible_conditions(get_tna(ep), condition);
 
   assert(branch_node->get_on_true() && "Branch node without on_true");
   assert(branch_node->get_on_false() && "Branch node without on_false");

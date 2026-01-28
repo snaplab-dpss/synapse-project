@@ -9,6 +9,7 @@ public:
   DSPrefSimple()
       : HeuristicCfg("DSPrefSimple", {
                                          BUILD_METRIC(DSPrefSimple, get_bdd_progress, Objective::Max),
+                                         BUILD_METRIC(DSPrefSimple, get_tput_speculation, Objective::Max),
                                          BUILD_METRIC(DSPrefSimple, get_ds_score, Objective::Max),
                                      }) {}
 

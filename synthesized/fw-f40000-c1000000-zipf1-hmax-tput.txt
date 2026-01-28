@@ -7,16 +7,16 @@ Args:
   Profile file:       fw-f40000-c1000000-zipf1.json
   Seed:               0
   Targets:
-    Tofino (40 modules)
+    Tofino (41 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,89'081'600,56,-6,-32'076'480,0>
-  Tput: 62.71 Gbps (89.08 Mpps)
-  Spec: 62.71 Gbps (89.08 Mpps)
+  Score: <0,280'761'000,56,-6,-32'076'480,0>
+  Tput: 197.66 Gbps (280.76 Mpps)
+  Spec: 197.66 Gbps (280.76 Mpps)
   Recirculations: 0
   BDD Progress: 56 / 62
   Stages: 6
@@ -29,7 +29,7 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       101 seconds
+  Elapsed time:       51 seconds
   Steps:              56
   Backtracks:         0
   Search space size:  173
@@ -109,10 +109,10 @@ Search Metadata:
     Node 249: 0
 
 Global Stats:
-  Num phase 1 speculations: 17'276 (100%)
-  Num phase 2 speculations: 824 (4.76962%)
-  Num phase 3 speculations: 814 (4.71174%)
-  Num speculated modules:   214'096
+  Num phase 1 speculations: 20'405 (100%)
+  Num phase 2 speculations: 868 (4.25386%)
+  Num phase 3 speculations: 863 (4.22936%)
+  Num speculated modules:   254'527
   Num EPs generated:        173
 
 Switch placement:
@@ -140,7 +140,7 @@ SRAM: 715'440/1'310'720 B (54.5837%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 278'528/786'432 B (35.4167%)
 Exact Match Crossbar: 38/128 B (29.6875%)
-Objs: [fcfs_cs_1074044080_reg_liveness,fcfs_cs_1074044080_hash_155,fcfs_cs_1074044080_hash_142,fcfs_cs_1074044080_table_155]
+Objs: [fcfs_cs_1074044080_hash_155,fcfs_cs_1074044080_reg_liveness,fcfs_cs_1074044080_hash_142,fcfs_cs_1074044080_table_155]
 -------------------------------------
 -------------------------------------
 Stage 3

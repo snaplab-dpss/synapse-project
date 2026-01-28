@@ -2,10 +2,10 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 199,
-    "num_phase1_speculations": 23832,
-    "num_phase2_speculations": 1032,
-    "num_phase3_speculations": 1032,
-    "num_speculated_modules": 322756
+    "num_phase1_speculations": 22358,
+    "num_phase2_speculations": 1014,
+    "num_phase3_speculations": 1014,
+    "num_speculated_modules": 303914
   },
   "heuristic": {
     "meta": [
@@ -317,7 +317,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1475409836065573,
-    "elapsed_time_seconds": 137,
+    "elapsed_time_seconds": 93,
     "finished_eps": 1,
     "ss_size": 199,
     "steps": 62,

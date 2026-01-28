@@ -2,10 +2,10 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 207,
-    "num_phase1_speculations": 29978,
-    "num_phase2_speculations": 1287,
-    "num_phase3_speculations": 1228,
-    "num_speculated_modules": 396674
+    "num_phase1_speculations": 25670,
+    "num_phase2_speculations": 1091,
+    "num_phase3_speculations": 1088,
+    "num_speculated_modules": 332931
   },
   "heuristic": {
     "meta": [
@@ -30,16 +30,16 @@
         "name": "Stages"
       },
       {
-        "description": "26331136 bits",
+        "description": "26159104 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      3088975600,
+      3088975500,
       69,
       -5,
-      -26331136,
+      -26159104,
       0
     ]
   },
@@ -50,7 +50,7 @@
     },
     {
       "addr": 1074066960,
-      "implementation": "Tofino::Register"
+      "implementation": "Tofino::VectorRegister"
     },
     {
       "addr": 1074085120,
@@ -381,7 +381,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.161290322580645,
-    "elapsed_time_seconds": 219,
+    "elapsed_time_seconds": 64,
     "finished_eps": 1,
     "ss_size": 207,
     "steps": 69,
@@ -390,6 +390,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 2174638869568,
-  "tput_estimation_pps": 3088975667
+  "tput_estimation_bps": 2174639039232,
+  "tput_estimation_pps": 3088975908
 }

@@ -5,14 +5,14 @@ using namespace sycon;
 struct state_t : public nf_state_t {
   IngressPortToNFDev ingress_port_to_nf_dev;
   ForwardingTbl forwarding_tbl;
-  HHTable hh_table_1073923800;
-  VectorRegister vector_register_1073954840;
+  HHTable hh_table_1073923096;
+  VectorRegister vector_register_1073954136;
 
   state_t()
     : ingress_port_to_nf_dev(),
       forwarding_tbl(),
-      hh_table_1073923800("hh_table_1073923800",{"Ingress.hh_table_1073923800_table_13", }, "Ingress.hh_table_1073923800_cached_counters", {"Ingress.hh_table_1073923800_cms_row_0", "Ingress.hh_table_1073923800_cms_row_1", "Ingress.hh_table_1073923800_cms_row_2", "Ingress.hh_table_1073923800_cms_row_3", }, "Ingress.hh_table_1073923800_threshold", "IngressDeparser.hh_table_1073923800_digest", 1000LL),
-      vector_register_1073954840("vector_register_1073954840",{"Ingress.vector_register_1073954840_0",})
+      hh_table_1073923096("hh_table_1073923096",{"Ingress.hh_table_1073923096_table_13", }, "Ingress.hh_table_1073923096_cached_counters", {"Ingress.hh_table_1073923096_cms_row_0", "Ingress.hh_table_1073923096_cms_row_1", "Ingress.hh_table_1073923096_cms_row_2", "Ingress.hh_table_1073923096_cms_row_3", }, "Ingress.hh_table_1073923096_threshold", "IngressDeparser.hh_table_1073923096_digest", 1000LL),
+      vector_register_1073954136("vector_register_1073954136",{"Ingress.vector_register_1073954136_0",})
     {}
 };
 
@@ -96,11 +96,11 @@ void sycon::nf_init() {
   state->forwarding_tbl.add_fwd_nf_dev_entry(30, asic_get_dev_port(31));
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 31);
   state->forwarding_tbl.add_fwd_nf_dev_entry(31, asic_get_dev_port(32));
-  // BDD node 0:map_allocate(capacity:(w32 8192), key_size:(w32 4), map_out:(w64 1073923528)[(w64 0) -> (w64 1073923800)])
+  // BDD node 0:map_allocate(capacity:(w32 8192), key_size:(w32 4), map_out:(w64 1073922824)[(w64 0) -> (w64 1073923096)])
   // Module DataplaneHHTableAllocate
-  // BDD node 2:vector_allocate(elem_size:(w32 4), capacity:(w32 8192), vector_out:(w64 1073923544)[(w64 0) -> (w64 1073954840)])
+  // BDD node 2:vector_allocate(elem_size:(w32 4), capacity:(w32 8192), vector_out:(w64 1073922840)[(w64 0) -> (w64 1073954136)])
   // Module DataplaneVectorRegisterAllocate
-  // BDD node 3:dchain_allocate(index_range:(w32 8192), chain_out:(w64 1073923552)[ -> (w64 1073971976)])
+  // BDD node 3:dchain_allocate(index_range:(w32 8192), chain_out:(w64 1073922848)[ -> (w64 1073971272)])
   // Module Ignore
 
 }

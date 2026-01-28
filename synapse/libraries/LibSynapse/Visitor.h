@@ -29,7 +29,8 @@ class DchainTableLookup;
 class VectorTableLookup;
 class VectorRegisterLookup;
 class VectorRegisterUpdate;
-class VectorRegisterConditionalUpdate;
+class VectorRegisterReadConditionalUpdate;
+class VectorRegisterReadConditionalUpdateSingleAction;
 class FCFSCachedTableRead;
 class FCFSCachedTableReadInsert;
 class FCFSCachedTableInsert;
@@ -220,7 +221,10 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *m) { return Action::doChildren; }
-  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterConditionalUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalUpdateSingleAction *m) {
+    return Action::doChildren;
+  }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *m) { return Action::doChildren; }

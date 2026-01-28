@@ -94,8 +94,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  const EPNode *ep_node_leaf = ep->get_active_leaf().node;
-  if (ep_node_leaf && was_ds_already_used(ep_node_leaf, vector_register->id)) {
+  if (was_ds_already_used(ep->get_active_leaf().node, vector_register->id)) {
     return {};
   }
 
