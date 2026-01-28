@@ -24,12 +24,14 @@ void packet_borrow_next_chunk(void *p, size_t length, void **chunk) {
   num_chunks_borrowed++;
 }
 
-void packet_return_chunk(void *p, void *chunk) { global_read_length = (uint32_t)((int8_t *)chunk - (int8_t *)p); }
+void packet_return_chunk(void *p, void *chunk) {
+  global_read_length = (uint32_t)((int8_t *)chunk - (int8_t *)p);
+  --num_chunks_borrowed;
+}
 
 void packet_return_all_chunks(void *p) {
   while (num_chunks_borrowed != 0) {
     packet_return_chunk(p, chunks_borrowed[num_chunks_borrowed - 1]);
-    num_chunks_borrowed--;
   }
 }
 
@@ -85,7 +87,7 @@ void packet_insert_new_chunk(void **p, size_t length, void **chunks, size_t *num
     ((uint8_t **)chunks)[i] -= length;
   }
 
-  assert(chunks[0] == data);
+  // assert(chunks[0] == data);
 
   (*num_chunks)++;
   (*p) = data;

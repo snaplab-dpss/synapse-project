@@ -1149,171 +1149,6 @@ void x86Synthesizer::synthesize_nf_init_post_process() {
   coder << "}\n";
 }
 
-// void x86Synthesizer::synthesize_nf_process() {
-//   coder_t &coder = get_current_coder();
-//   const BDD *bdd = target_ep->get_bdd();
-//
-//   symbol_t device = bdd->get_device();
-//   symbol_t len    = bdd->get_packet_len();
-//   symbol_t now    = bdd->get_time();
-//
-//   var_t device_var = build_var("device", device.expr);
-//   var_t len_var    = build_var("len", len.expr);
-//   var_t now_var    = build_var("now", now.expr);
-//
-//   coder << "int nf_process(";
-//   coder << "uint16_t " << device_var.name << ", ";
-//   coder << "uint8_t *buffer, ";
-//   coder << "uint16_t " << len_var.name << ", ";
-//   coder << "time_ns_t " << now_var.name << ", ";
-//   coder << "struct rte_mbuf *mbuf";
-//   coder << ") {\n";
-//
-//   coder.inc();
-//
-//   coder.indent();
-//   coder << "debug_packet_info(";
-//   coder << device_var.name;
-//   coder << ", ";
-//   coder << "buffer";
-//   coder << ", ";
-//   coder << len_var.name;
-//   coder << ", ";
-//   coder << now_var.name;
-//   coder << ", ";
-//   coder << "mbuf";
-//   coder << ");\n";
-//
-//   coder.indent();
-//   coder << "packet_debug_print_chunks(";
-//   coder << "buffer";
-//   coder << ");\n";
-//
-//   coder.indent();
-//   coder << "packet_return_all_chunks(buffer);\n";
-//
-//   code_t trash = create_unique_name("trash");
-//
-//   coder.indent();
-//   coder << "void* ";
-//   coder << trash;
-//   coder << ";\n";
-//
-//   coder.indent();
-//   coder << "packet_borrow_next_chunk(";
-//   coder << "buffer, ";
-//   coder << "50, ";
-//   coder << "&" << trash;
-//   coder << ")";
-//   coder << ";\n";
-//
-//   code_t code_path = create_unique_name("code_path");
-//
-//   coder.indent();
-//   coder << CODE_PATH_HEADER_TYPE;
-//   coder << " ";
-//   coder << code_path;
-//   coder << " = ";
-//   coder << "0";
-//   coder << ";\n";
-//
-//   coder.indent();
-//   coder << "if (packet_get_unread_length(buffer) >= sizeof(";
-//   coder << CODE_PATH_HEADER_TYPE;
-//   coder << "))";
-//   coder << "{\n";
-//   coder.inc();
-//
-//   code_t code_path_hdr = create_unique_name("code_path_hdr");
-//
-//   coder.indent();
-//   coder << "void *" << code_path_hdr << ";\n";
-//
-//   coder.indent();
-//   coder << "packet_borrow_next_chunk(";
-//   coder << "buffer, ";
-//   coder << "sizeof(";
-//   coder << CODE_PATH_HEADER_TYPE;
-//   coder << "), ";
-//   coder << "&" << code_path_hdr;
-//   coder << ")";
-//   coder << ";\n";
-//
-//   for (int i = 0; i < CODE_PATH_HEADER_SIZE; i++) {
-//     coder.indent();
-//     coder << code_path;
-//     coder << " += ";
-//     coder << "((uint8_t *) ";
-//     coder << code_path_hdr;
-//     coder << ")[";
-//     coder << std::to_string(i);
-//     coder << "]";
-//     coder << " << ";
-//     coder << std::to_string(8 * i);
-//     coder << ";\n";
-//   }
-//
-//   coder.dec();
-//   coder.indent();
-//   coder << "}\n";
-//
-//   coder.indent();
-//   coder << "packet_return_all_chunks(buffer);\n";
-//
-//   coder.indent();
-//   coder << "std::cerr << \"CODE PATH: \" << ";
-//   coder << code_path;
-//   coder << " << \";\\n\";\n";
-//
-//   coder.indent();
-//   coder << "if (" << code_path << " == 0) {\n";
-//   code_paths.push_back(0);
-//   coder.inc();
-//
-//   vars.push();
-//
-//   vars.insert_back(device_var);
-//   vars.insert_back(len_var);
-//   vars.insert_back(now_var);
-//
-//   const BDDNode *root_node = target_ep->get_bdd()->get_root();
-//
-//   const TargetType synthesizer_target = TargetType(TargetArchitecture::x86, instance_id);
-//   const bdd_node_ids_t root_nodes     = target_ep->get_target_roots(synthesizer_target);
-//
-//   if (root_nodes.find(root_node->get_id()) != root_nodes.end()) {
-//     const EPNode *ep_node = target_ep->get_ep_node_from_bdd_node(root_node);
-//
-//     coder.indent();
-//     coder << "std::cerr << \"Received Packet From Outside Network\\n\";\n";
-//
-//     if (ep_node) {
-//       visit(target_ep, ep_node);
-//     }
-//   } else {
-//     coder.indent();
-//     coder << "return DROP;\n";
-//   }
-//
-//   coder.dec();
-//   coder.indent();
-//   coder << "}\n";
-//
-//   visit(target_ep);
-//
-//   coder.indent();
-//   coder << "else {\n";
-//   coder.inc();
-//   coder.indent();
-//   coder << "return DROP;\n";
-//   coder.dec();
-//   coder.indent();
-//   coder << "}\n";
-//
-//   coder.dec();
-//   coder << "}\n";
-// }
-//
 void x86Synthesizer::synthesize_nf_process() {
   coder_t &coder = get_current_coder();
   const BDD *bdd = target_ep->get_bdd();
@@ -1426,6 +1261,9 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   }
 
   coder.indent();
+  coder << "std::cerr << \"Packet forwarded at node " << ep_node->get_id() << "\\n\";\n";
+
+  coder.indent();
   coder << "return " << transpiler.transpile(dst_device) << ";\n";
 
   return EPVisitor::Action::doChildren;
@@ -1461,7 +1299,11 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   }
 
   coder.indent();
+  coder << "std::cerr << \"Packet dropped at node " << ep_node->get_id() << "\\n\";\n";
+
+  coder.indent();
   coder << "return DROP;\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -2305,7 +2147,44 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   coder << "packet_return_all_chunks(buffer);\n";
 
   coder.indent();
-  coder << "struct Context_" << ep_node->get_id() << "{\n";
+  coder << "packet_insert_new_chunk(";
+  coder << "(void **) &buffer, ";
+  coder << "sizeof(";
+  coder << CODE_PATH_HEADER_TYPE;
+  coder << "), ";
+  coder << CHUNKS_BORROWED << ", ";
+  coder << "&" << NUM_CHUNKS_BORROWED << ", ";
+  coder << "mbuf);\n";
+
+  code_t path_hdr = create_unique_name("code_path_hdr");
+
+  coder.indent();
+  coder << "uint8_t *";
+  coder << path_hdr;
+  coder << " = ";
+  coder << "(uint8_t *) ";
+  coder << CHUNKS_BORROWED;
+  coder << "[";
+  coder << NUM_CHUNKS_BORROWED;
+  coder << " - 1]";
+  coder << ";\n";
+
+  coder.indent();
+  coder << "// NEXT CODE PATH: " << transpiler.transpile(code_path) << "\n";
+
+  for (int i = 0; i < CODE_PATH_HEADER_SIZE; i++) {
+    coder.indent();
+    coder << path_hdr;
+    coder << "[";
+    coder << std::to_string(i);
+    coder << "] = ";
+    u64 code_path_value = solver_toolbox.value_from_expr(code_path) >> (8 * i);
+    coder << std::to_string(code_path_value & 0xFFu);
+    coder << ";\n";
+  }
+
+  coder.indent();
+  coder << "struct  Context_" << ep_node->get_id() << "{\n";
 
   coder.inc();
 
@@ -2371,46 +2250,6 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     coder << var.value().expr->getWidth() / 8;
     coder << ")";
 
-    coder << ";\n";
-  }
-
-  coder.indent();
-  coder << "packet_return_all_chunks(buffer);\n";
-
-  coder.indent();
-  coder << "packet_insert_new_chunk(";
-  coder << "(void **) &buffer, ";
-  coder << "sizeof(";
-  coder << CODE_PATH_HEADER_TYPE;
-  coder << "), ";
-  coder << CHUNKS_BORROWED << ", ";
-  coder << "&" << NUM_CHUNKS_BORROWED << ", ";
-  coder << "mbuf);\n";
-
-  code_t path_hdr = create_unique_name("code_path_hdr");
-
-  coder.indent();
-  coder << "uint8_t *";
-  coder << path_hdr;
-  coder << " = ";
-  coder << "(uint8_t *) ";
-  coder << CHUNKS_BORROWED;
-  coder << "[";
-  coder << NUM_CHUNKS_BORROWED;
-  coder << " - 1]";
-  coder << ";\n";
-
-  coder.indent();
-  coder << "// NEXT CODE PATH: " << transpiler.transpile(code_path) << "\n";
-
-  for (int i = 0; i < CODE_PATH_HEADER_SIZE; i++) {
-    coder.indent();
-    coder << path_hdr;
-    coder << "[";
-    coder << std::to_string(i);
-    coder << "] = ";
-    u64 code_path_value = solver_toolbox.value_from_expr(code_path) >> (8 * i);
-    coder << std::to_string(code_path_value & 0xFFu);
     coder << ";\n";
   }
 
@@ -2788,7 +2627,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   code_t ctx = create_unique_name("ctx");
 
   coder.indent();
-  coder << "struct __attribute__((packed)) Context_" << ep_node->get_id() << " *";
+  coder << "struct Context_" << ep_node->get_id() << " *";
   coder << ctx;
   coder << " = ";
   coder << "(struct Context_" << ep_node->get_id() << " *) " << ctx_hdr;
