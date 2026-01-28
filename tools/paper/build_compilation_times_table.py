@@ -8,7 +8,7 @@ from itertools import product
 from statistics import mean, stdev
 from prettytable import PrettyTable
 
-from synapse_compilation_report import parse_synapse_compilation_report, SynapseCompilationReport
+from synapse_compilation_report import parse_synapse_compilation_report
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PROJECT_DIR = (CURRENT_DIR / ".." / "..").resolve()
@@ -48,7 +48,6 @@ if __name__ == "__main__":
     instantiated_per_nf = {nf: [] for nf in args.nfs}
     phase1_speculations_per_nf = {nf: [] for nf in args.nfs}
     phase2_speculations_per_nf = {nf: [] for nf in args.nfs}
-    phase3_speculations_per_nf = {nf: [] for nf in args.nfs}
 
     for nf in args.nfs:
         for total_flows, churn, zipf in product(args.total_flows, args.churns, args.zipf_params):
@@ -66,7 +65,6 @@ if __name__ == "__main__":
             instantiated_per_nf[nf].append(report.global_stats.num_execution_plans_generated)
             phase1_speculations_per_nf[nf].append(report.global_stats.num_phase1_speculations)
             phase2_speculations_per_nf[nf].append(report.global_stats.num_phase2_speculations)
-            phase3_speculations_per_nf[nf].append(report.global_stats.num_phase3_speculations)
 
     avg_compilation_times_per_nf = {}
     avg_backtracks_per_nf = {}
@@ -74,7 +72,6 @@ if __name__ == "__main__":
     avg_instantiated_per_nf = {}
     avg_phase1_speculations_per_nf = {}
     avg_phase2_speculations_per_nf = {}
-    avg_phase3_speculations_per_nf = {}
 
     for nf in args.nfs:
         avg_compilation_time = mean(compilation_times_per_nf[nf])
@@ -101,10 +98,6 @@ if __name__ == "__main__":
         stdev_phase2_speculations = int(stdev(phase2_speculations_per_nf[nf]))
         avg_phase2_speculations_per_nf[nf] = (avg_phase2_speculations, stdev_phase2_speculations)
 
-        avg_phase3_speculations = int(mean(phase3_speculations_per_nf[nf]))
-        stdev_phase3_speculations = int(stdev(phase3_speculations_per_nf[nf]))
-        avg_phase3_speculations_per_nf[nf] = (avg_phase3_speculations, stdev_phase3_speculations)
-
     table = PrettyTable()
     table.field_names = [
         "NF",
@@ -114,7 +107,6 @@ if __name__ == "__main__":
         "Instantiated EPs",
         "Spec Phase 1",
         "Spec Phase 2",
-        "Spec Phase 3",
     ]
     table.align = "l"
 
@@ -125,7 +117,9 @@ if __name__ == "__main__":
         avg_instantiated, stdev_instantiated = avg_instantiated_per_nf[nf]
         avg_phase1_speculations, stdev_phase1_speculations = avg_phase1_speculations_per_nf[nf]
         avg_phase2_speculations, stdev_phase2_speculations = avg_phase2_speculations_per_nf[nf]
-        avg_phase3_speculations, stdev_phase3_speculations = avg_phase3_speculations_per_nf[nf]
+
+        avg_phase2_speculations_rel = avg_phase2_speculations / avg_phase1_speculations if avg_phase1_speculations > 0 else 0
+        stdev_phase2_speculations_rel = stdev_phase2_speculations / avg_phase1_speculations if avg_phase1_speculations > 0 else 0
 
         table.add_row(
             [
@@ -135,8 +129,7 @@ if __name__ == "__main__":
                 f"{avg_speculated:,} ± {stdev_speculated:,}",
                 f"{avg_instantiated:,} ± {stdev_instantiated:,}",
                 f"{avg_phase1_speculations:,} ± {stdev_phase1_speculations:,}",
-                f"{avg_phase2_speculations:,} ± {stdev_phase2_speculations:,}",
-                f"{avg_phase3_speculations:,} ± {stdev_phase3_speculations:,}",
+                f"{avg_phase2_speculations:,} ± {stdev_phase2_speculations:,} ({avg_phase2_speculations_rel*100:.2f} ± {stdev_phase2_speculations_rel*100:.2f} %)",
             ]
         )
     print(table)

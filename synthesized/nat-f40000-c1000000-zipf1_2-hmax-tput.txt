@@ -30,7 +30,7 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       61 seconds
+  Elapsed time:       48 seconds
   Steps:              69
   Backtracks:         0
   Search space size:  207
@@ -119,10 +119,9 @@ Search Metadata:
     Node 154: 3
 
 Global Stats:
-  Num phase 1 speculations: 23'811 (100%)
-  Num phase 2 speculations: 1'071 (4.49792%)
-  Num phase 3 speculations: 1'012 (4.25014%)
-  Num speculated modules:   310'335
+  Num phase 1 speculations: 20'172 (100%)
+  Num phase 2 speculations: 1'070 (5.30438%)
+  Num speculated modules:   238'643
   Num EPs generated:        207
 
 Switch placement:
@@ -150,7 +149,7 @@ SRAM: 704'512/1'310'720 B (53.75%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 704'512/786'432 B (89.5833%)
 Exact Match Crossbar: 36/128 B (28.125%)
-Objs: [vector_register_1074066960_1,fcfs_ct_1074053136_reg_liveness,vector_register_1074066960_3,fcfs_ct_1074053136_hash_163,fcfs_ct_1074053136_hash_142]
+Objs: [vector_register_1074066960_1,vector_register_1074066960_3,fcfs_ct_1074053136_hash_163,fcfs_ct_1074053136_reg_liveness,fcfs_ct_1074053136_hash_142]
 -------------------------------------
 -------------------------------------
 Stage 3

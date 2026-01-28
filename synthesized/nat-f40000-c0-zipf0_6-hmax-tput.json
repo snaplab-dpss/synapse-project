@@ -2,10 +2,9 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 199,
-    "num_phase1_speculations": 22358,
+    "num_phase1_speculations": 17162,
     "num_phase2_speculations": 1014,
-    "num_phase3_speculations": 1014,
-    "num_speculated_modules": 303914
+    "num_speculated_modules": 212548
   },
   "heuristic": {
     "meta": [

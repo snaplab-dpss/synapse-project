@@ -2,10 +2,9 @@
   "bdd": "fw.bdd",
   "global_stats": {
     "num_execution_plans_generated": 173,
-    "num_phase1_speculations": 20597,
-    "num_phase2_speculations": 872,
-    "num_phase3_speculations": 867,
-    "num_speculated_modules": 257083
+    "num_phase1_speculations": 16051,
+    "num_phase2_speculations": 871,
+    "num_speculated_modules": 184747
   },
   "heuristic": {
     "meta": [
@@ -341,7 +340,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1666666666666665,
-    "elapsed_time_seconds": 52,
+    "elapsed_time_seconds": 40,
     "finished_eps": 1,
     "ss_size": 173,
     "steps": 56,

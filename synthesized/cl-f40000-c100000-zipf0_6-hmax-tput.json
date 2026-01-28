@@ -2,10 +2,9 @@
   "bdd": "cl.bdd",
   "global_stats": {
     "num_execution_plans_generated": 178,
-    "num_phase1_speculations": 16117,
+    "num_phase1_speculations": 13110,
     "num_phase2_speculations": 751,
-    "num_phase3_speculations": 708,
-    "num_speculated_modules": 199963
+    "num_speculated_modules": 148857
   },
   "heuristic": {
     "meta": [
@@ -26,7 +25,7 @@
         "name": "BDD Progress"
       },
       {
-        "description": "4",
+        "description": "3",
         "name": "Stages"
       },
       {
@@ -38,7 +37,7 @@
       0,
       1431420500,
       58,
-      -4,
+      -3,
       -36278272,
       -1
     ]
@@ -349,7 +348,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1363636363636362,
-    "elapsed_time_seconds": 73,
+    "elapsed_time_seconds": 60,
     "finished_eps": 1,
     "ss_size": 178,
     "steps": 59,

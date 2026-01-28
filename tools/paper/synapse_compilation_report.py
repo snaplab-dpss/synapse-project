@@ -9,7 +9,6 @@ import json
 class GlobalStats:
     num_phase1_speculations: int
     num_phase2_speculations: int
-    num_phase3_speculations: int
     num_speculated_modules: int
     num_execution_plans_generated: int
 

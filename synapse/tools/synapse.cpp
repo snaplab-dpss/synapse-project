@@ -152,7 +152,6 @@ void dump_final_report(const args_t &args, const search_report_t &search_report)
   report_json["global_stats"] = {
       {"num_phase1_speculations", GlobalStats::num_phase1_speculations},
       {"num_phase2_speculations", GlobalStats::num_phase2_speculations},
-      {"num_phase3_speculations", GlobalStats::num_phase3_speculations},
       {"num_speculated_modules", GlobalStats::num_speculated_modules},
       {"num_execution_plans_generated", GlobalStats::num_execution_plans_generated},
   };
@@ -224,12 +223,10 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   const u64 total_speculations = GlobalStats::num_phase1_speculations;
   const float phase1_percent   = total_speculations == 0 ? 0.0f : (100.0f * GlobalStats::num_phase1_speculations) / total_speculations;
   const float phase2_percent   = total_speculations == 0 ? 0.0f : (100.0f * GlobalStats::num_phase2_speculations) / total_speculations;
-  const float phase3_percent   = total_speculations == 0 ? 0.0f : (100.0f * GlobalStats::num_phase3_speculations) / total_speculations;
 
   out_hr_report << "Global Stats:\n";
   out_hr_report << "  Num phase 1 speculations: " << int2hr(GlobalStats::num_phase1_speculations) << " (" << phase1_percent << "%)\n";
   out_hr_report << "  Num phase 2 speculations: " << int2hr(GlobalStats::num_phase2_speculations) << " (" << phase2_percent << "%)\n";
-  out_hr_report << "  Num phase 3 speculations: " << int2hr(GlobalStats::num_phase3_speculations) << " (" << phase3_percent << "%)\n";
   out_hr_report << "  Num speculated modules:   " << int2hr(GlobalStats::num_speculated_modules) << "\n";
   out_hr_report << "  Num EPs generated:        " << int2hr(GlobalStats::num_execution_plans_generated) << "\n";
 
@@ -375,8 +372,6 @@ int main(int argc, char **argv) {
             << percent2str(GlobalStats::num_phase1_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
   std::cout << "    Phase 2: " << int2hr(GlobalStats::num_phase2_speculations) << " ("
             << percent2str(GlobalStats::num_phase2_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
-  std::cout << "    Phase 3: " << int2hr(GlobalStats::num_phase3_speculations) << " ("
-            << percent2str(GlobalStats::num_phase3_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
   std::cout << "  Num speculated modules:        " << int2hr(GlobalStats::num_speculated_modules) << "\n";
   std::cout << "  Num execution plans generated: " << int2hr(GlobalStats::num_execution_plans_generated) << "\n";
 

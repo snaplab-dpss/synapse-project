@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       49 seconds
+  Elapsed time:       40 seconds
   Steps:              44
   Backtracks:         0
   Search space size:  145
@@ -103,10 +103,9 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 24'830 (100%)
-  Num phase 2 speculations: 1'455 (5.85985%)
-  Num phase 3 speculations: 1'435 (5.7793%)
-  Num speculated modules:   249'773
+  Num phase 1 speculations: 22'571 (100%)
+  Num phase 2 speculations: 1'455 (6.44632%)
+  Num speculated modules:   207'816
   Num EPs generated:        145
 
 Switch placement:

@@ -2,10 +2,9 @@
   "bdd": "kvs.bdd",
   "global_stats": {
     "num_execution_plans_generated": 180,
-    "num_phase1_speculations": 27938,
-    "num_phase2_speculations": 1682,
-    "num_phase3_speculations": 1633,
-    "num_speculated_modules": 304289
+    "num_phase1_speculations": 26342,
+    "num_phase2_speculations": 1677,
+    "num_speculated_modules": 265409
   },
   "heuristic": {
     "meta": [
@@ -337,7 +336,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.639705882352941,
-    "elapsed_time_seconds": 62,
+    "elapsed_time_seconds": 51,
     "finished_eps": 1,
     "ss_size": 180,
     "steps": 65,
