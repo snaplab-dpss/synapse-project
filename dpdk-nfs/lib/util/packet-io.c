@@ -87,7 +87,10 @@ void packet_insert_new_chunk(void **p, size_t length, void **chunks, size_t *num
     ((uint8_t **)chunks)[i] -= length;
   }
 
-  // assert(chunks[0] == data);
+  // NOTE: no need to verify when no chunks were borrowed before.
+  if (*num_chunks > 0) {
+    assert(chunks[0] == data);
+  }
 
   (*num_chunks)++;
   (*p) = data;
