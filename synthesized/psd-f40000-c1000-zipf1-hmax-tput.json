@@ -1,10 +1,10 @@
 {
   "bdd": "psd.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 181,
-    "num_phase1_speculations": 11200,
-    "num_phase2_speculations": 642,
-    "num_speculated_modules": 145464
+    "num_execution_plans_generated": 170,
+    "num_phase1_speculations": 6846,
+    "num_phase2_speculations": 574,
+    "num_speculated_modules": 88076
   },
   "heuristic": {
     "meta": [
@@ -25,7 +25,7 @@
         "name": "BDD Progress"
       },
       {
-        "description": "3",
+        "description": "2",
         "name": "Stages"
       },
       {
@@ -37,23 +37,23 @@
       0,
       2250000000,
       65,
-      -3,
+      -2,
       -20549632,
       0
     ]
   },
   "implementations": [
     {
-      "addr": 1074096984,
-      "implementation": "Tofino::BloomFilter"
+      "addr": 1074079432,
+      "implementation": "Tofino::VectorRegister"
     },
     {
       "addr": 1074096568,
       "implementation": "Tofino::DchainTable"
     },
     {
-      "addr": 1074079432,
-      "implementation": "Tofino::VectorRegister"
+      "addr": 1074096984,
+      "implementation": "Tofino::BloomFilter"
     },
     {
       "addr": 1074126776,
@@ -134,7 +134,7 @@
         "node_id": 192
       },
       {
-        "avg": 17.0,
+        "avg": 4.0,
         "node_id": 145
       },
       {
@@ -190,7 +190,7 @@
         "node_id": 197
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 168
       },
       {
@@ -202,7 +202,7 @@
         "node_id": 198
       },
       {
-        "avg": 4.0,
+        "avg": 7.0,
         "node_id": 169
       },
       {
@@ -347,13 +347,13 @@
       }
     ],
     "backtracks": 1,
-    "branching_factor": 2.5294117647058822,
-    "elapsed_time_seconds": 46,
+    "branching_factor": 2.3676470588235294,
+    "elapsed_time_seconds": 20,
     "finished_eps": 1,
-    "ss_size": 181,
+    "ss_size": 170,
     "steps": 68,
-    "total_ss_size_estimation": 80459988353.25691,
-    "unfinished_eps": 113
+    "total_ss_size_estimation": 15704169724.682322,
+    "unfinished_eps": 102
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

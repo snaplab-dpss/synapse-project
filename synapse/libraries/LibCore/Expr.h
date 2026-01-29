@@ -15,6 +15,7 @@ std::string pretty_print_expr(klee::ref<klee::Expr> expr, bool use_signed = true
 
 bool is_readLSB(klee::ref<klee::Expr> expr);
 bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol);
+bool is_readLSB_of_symbol(klee::ref<klee::Expr> expr, const std::string &symbol);
 bool is_packet_readLSB(klee::ref<klee::Expr> expr);
 bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, int &n_bytes);
 bool is_bool(klee::ref<klee::Expr> expr);
@@ -22,6 +23,7 @@ bool is_constant(klee::ref<klee::Expr> expr);
 bool is_constant_signed(klee::ref<klee::Expr> expr);
 bool is_conditional(klee::ref<klee::Expr> expr);
 bool match_endian_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &target);
+klee::ref<klee::Expr> swap_endianness(klee::ref<klee::Expr> expr);
 
 i64 get_constant_signed(klee::ref<klee::Expr> expr);
 bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr);

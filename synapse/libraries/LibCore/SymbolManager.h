@@ -32,6 +32,7 @@ public:
   symbol_t get_symbol(const std::string &name) const;
   Symbols get_symbols() const;
   Symbols get_symbols_with_base(const std::string &base) const;
+  Symbols get_symbols_from_expr(klee::ref<klee::Expr> expr) const;
   bool manages(klee::ref<klee::Expr> expr) const;
   void remove_symbol(const std::string &name);
   void dbg() const;

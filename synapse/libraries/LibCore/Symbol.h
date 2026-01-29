@@ -58,6 +58,7 @@ public:
   bool has(const std::string &name) const;
   bool remove(const std::string &name);
   Symbols filter_by_base(const std::string &base) const;
+  Symbols filter_by_bases(const std::unordered_set<std::string> &bases) const;
   Symbols intersect(const Symbols &symbols) const;
 
   friend std::ostream &operator<<(std::ostream &os, const Symbols &symbols);

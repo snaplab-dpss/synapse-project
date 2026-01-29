@@ -687,6 +687,14 @@ bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
   return true;
 }
 
+bool is_readLSB_of_symbol(klee::ref<klee::Expr> expr, const std::string &symbol) {
+  std::string expr_symbol;
+  if (!is_readLSB(expr, expr_symbol)) {
+    return false;
+  }
+  return expr_symbol == symbol;
+}
+
 bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, bytes_t &size) {
   assert(!expr.isNull() && "Null expr");
 
@@ -960,6 +968,11 @@ std::vector<std::optional<symbolic_read_t>> break_expr_by_reads(klee::ref<klee::
   }
 
   return groups;
+}
+
+klee::ref<klee::Expr> swap_endianness(klee::ref<klee::Expr> expr) {
+  const std::vector<klee::ref<klee::Expr>> bytes = bytes_in_expr(expr, false);
+  return concat_exprs(bytes, false);
 }
 
 std::vector<expr_byte_swap_t> get_expr_byte_swaps(klee::ref<klee::Expr> before, klee::ref<klee::Expr> after) {

@@ -130,6 +130,14 @@ Symbols SymbolManager::get_symbols() const {
 
 Symbols SymbolManager::get_symbols_with_base(const std::string &base) const { return get_symbols().filter_by_base(base); }
 
+Symbols SymbolManager::get_symbols_from_expr(klee::ref<klee::Expr> expr) const {
+  Symbols result;
+  for (const std::string &name : symbol_t::get_symbols_names(expr)) {
+    result.add(get_symbol(name));
+  }
+  return result;
+}
+
 symbol_t SymbolManager::create_symbol(const std::string &name, bits_t size) {
   assert(!name.empty() && "Empty name");
   auto symbols_it = symbols.find(name);

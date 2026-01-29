@@ -135,6 +135,16 @@ Symbols Symbols::filter_by_base(const std::string &base) const {
   return result;
 }
 
+Symbols Symbols::filter_by_bases(const std::unordered_set<std::string> &bases) const {
+  Symbols result;
+  for (const symbol_t &symbol : data) {
+    if (bases.contains(symbol.base)) {
+      result.data.insert(symbol);
+    }
+  }
+  return result;
+}
+
 Symbols Symbols::intersect(const Symbols &symbols) const {
   Symbols result;
   for (const symbol_t &symbol : data) {

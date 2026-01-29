@@ -146,9 +146,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     if (module->get_type() == ModuleType::Tofino_If) {
       const If *if_module                   = dynamic_cast<const If *>(module);
       const klee::ref<klee::Expr> condition = if_module->get_original_condition();
-      const BDDNode *if_node                = if_module->get_node();
-      assert(if_node);
-      const Symbols condition_symbols = if_node->get_used_symbols();
+      const Symbols condition_symbols       = bdd->get_symbol_manager()->get_symbols_from_expr(condition);
 
       const bool var_free_condition = condition_symbols.empty();
       const bool dev_condition      = (condition_symbols.size() == 1 && condition_symbols.has("DEVICE"));
@@ -221,10 +219,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
       const If *if_module = dynamic_cast<const If *>(prev.module);
 
       const klee::ref<klee::Expr> condition = if_module->get_original_condition();
-      const BDDNode *if_node                = if_module->get_node();
-      assert(if_node);
-
-      initial_controller_logic.extra_symbols.add(if_node->get_used_symbols());
+      initial_controller_logic.extra_symbols.add(bdd->get_symbol_manager()->get_symbols_from_expr(condition));
 
       Controller::If *ctrl_if                              = new Controller::If(active_leaf.next, condition);
       Controller::Then *ctrl_then                          = new Controller::Then(active_leaf.next);

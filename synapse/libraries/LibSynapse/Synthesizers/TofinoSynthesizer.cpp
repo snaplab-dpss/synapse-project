@@ -1198,8 +1198,6 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
 
     ingress.indent();
     ingress << "was_alive = false;\n";
-    ingress.indent();
-    ingress << "alarm = meta.time + " << extras->extra_constant.value() << ";\n";
 
     ingress.dec();
     ingress.indent();
@@ -1211,6 +1209,9 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.dec();
     ingress.indent();
     ingress << "}\n";
+
+    ingress.indent();
+    ingress << "alarm = meta.time + " << extras->extra_constant.value() << ";\n";
 
     ingress.dec();
     ingress.indent();
@@ -1648,10 +1649,6 @@ bool TofinoSynthesizer::Stack::set_var_expr(const code_t &name, klee::ref<klee::
 
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const {
   if (std::optional<var_t> var = get_exact(expr)) {
-    if (var->is_header_field && (opt & TRANSPILER_OPT_SWAP_HDR_ENDIANNESS)) {
-      var->name = Transpiler::swap_endianness(var->name, var->size);
-    }
-
     return var;
   }
 
@@ -1675,11 +1672,6 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
 
       if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
         var_t slice = var.get_slice(offset, expr_size, opt);
-
-        if (slice.is_header_field && (opt & TRANSPILER_OPT_SWAP_HDR_ENDIANNESS)) {
-          slice.name = Transpiler::swap_endianness(slice.name, slice.size);
-        }
-
         return slice;
       }
     }
@@ -1691,10 +1683,6 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_hdr(klee::ref<klee::Expr> expr, transpiler_opt_t opt) const {
   if (std::optional<var_t> var = get_exact(expr)) {
     if (var->is_header_field) {
-      if (opt & TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) {
-        var->name = Transpiler::swap_endianness(var->name, var->size);
-      }
-
       return var;
     }
   }
@@ -1718,11 +1706,6 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_hdr(klee::
 
       if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
         var_t slice = var.get_slice(offset, expr_size, opt);
-
-        if (slice.is_header_field && (opt & TRANSPILER_OPT_SWAP_HDR_ENDIANNESS)) {
-          slice.name = Transpiler::swap_endianness(slice.name, slice.size);
-        }
-
         return slice;
       }
     }
@@ -2375,7 +2358,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress                 = get(MARKER_INGRESS_CONTROL_APPLY);
 
   ingress.indent();
-  ingress << "nf_dev[15:0] = " << transpiler.transpile(dst_device, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) << ";\n";
+  ingress << "nf_dev[15:0] = " << transpiler.transpile(dst_device) << ";\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -2740,7 +2723,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const Table *table          = vector_table->get_table(node_id);
   assert(table && "Table not found");
 
-  const code_t transpiled_key = transpiler.transpile(key, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS);
+  const code_t transpiled_key = transpiler.transpile(key);
 
   std::vector<var_t> keys_vars;
   transpile_table_decl(table, {key}, {value}, true, keys_vars);
@@ -2770,7 +2753,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const Table *table    = dchain_table->get_table(node_id);
   assert(table && "Table not found");
 
-  const code_t transpiled_key = transpiler.transpile(key, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS);
+  const code_t transpiled_key = transpiler.transpile(key);
 
   std::vector<var_t> keys_vars;
   transpile_table_decl(table, {key}, {}, false, keys_vars);
@@ -2824,7 +2807,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     transpile_register_action_decl(reg, action_name, RegisterActionType::Read);
 
     const klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
-    const code_t assignment                = action_name + ".execute(" + transpiler.transpile(index, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) + ")";
+    const code_t assignment                = action_name + ".execute(" + transpiler.transpile(index) + ")";
 
     const std::string value_prefix_name = "vector_reg_value";
     const var_t value_var               = alloc_var(value_prefix_name, entry_expr);
@@ -2956,7 +2939,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
                                        .temporary_transpilations = {{value, "value"}},
                                    });
 
-    const code_t assignment = action_name + ".execute(" + transpiler.transpile(index, TRANSPILER_OPT_SWAP_HDR_ENDIANNESS) + ")";
+    const code_t assignment = action_name + ".execute(" + transpiler.transpile(index) + ")";
     const var_t value_var   = value_vars[i];
 
     ingress << "\n";

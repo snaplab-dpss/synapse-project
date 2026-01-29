@@ -31,9 +31,8 @@ public:
   using transpiler_opt_t = u32;
 
   static constexpr const transpiler_opt_t TRANSPILER_OPT_NO_OPTION             = 0b000;
-  static constexpr const transpiler_opt_t TRANSPILER_OPT_SWAP_HDR_ENDIANNESS   = 0b001;
-  static constexpr const transpiler_opt_t TRANSPILER_OPT_SWAP_CONST_ENDIANNESS = 0b010;
-  static constexpr const transpiler_opt_t TRANSPILER_OPT_REVERSE_VAR_BYTES     = 0b100;
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_SWAP_CONST_ENDIANNESS = 0b001;
+  static constexpr const transpiler_opt_t TRANSPILER_OPT_REVERSE_VAR_BYTES     = 0b010;
 
 private:
   class Transpiler : public klee::ExprVisitor::ExprVisitor {
