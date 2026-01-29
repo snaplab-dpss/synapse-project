@@ -7,7 +7,7 @@ Args:
   Profile file:       fw-f40000-c0-zipf1.json
   Seed:               0
   Targets:
-    Tofino (31 modules)
+    Tofino (41 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
@@ -29,15 +29,15 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       17 seconds
+  Elapsed time:       44 seconds
   Steps:              49
   Backtracks:         0
-  Search space size:  125
-  Unfinished EPs:     76
+  Search space size:  179
+  Unfinished EPs:     130
   Finished EPs:       1
   Avg BDD size:       49
-  Branching factor:   2
-  Total SS size est.: 603'860'984
+  Branching factor:   3
+  Total SS size est.: 1'011'059'111'402
   Avg children per node:
     Node 173: 0
     Node 172: 0
@@ -71,7 +71,7 @@ Search Metadata:
     Node 138: 5
     Node 137: 4
     Node 184: 3
-    Node 155: 8
+    Node 155: 62
     Node 136: 3
     Node 135: 3
     Node 134: 3
@@ -86,18 +86,18 @@ Search Metadata:
     Node 157: 2
     Node 174: 0
     Node 145: 3
-    Node 149: 4
+    Node 149: 3
     Node 158: 0
-    Node 175: 3
+    Node 175: 4
     Node 146: 3
     Node 150: 3
     Node 159: 0
 
 Global Stats:
-  Num phase 1 speculations: 6'384 (100%)
-  Num phase 2 speculations: 476 (7.45614%)
-  Num speculated modules:   79'432
-  Num EPs generated:        125
+  Num phase 1 speculations: 11'333 (100%)
+  Num phase 2 speculations: 731 (6.45019%)
+  Num speculated modules:   138'147
+  Num EPs generated:        179
 
 Switch placement:
 
@@ -124,7 +124,7 @@ SRAM: 437'344/1'310'720 B (33.3667%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 20/128 B (15.625%)
-Objs: [vector_table_1074093704_175,vector_table_1074093704_149,map_set_table_1074044080_142]
+Objs: [vector_table_1074093704_149,vector_table_1074093704_175,map_set_table_1074044080_142]
 -------------------------------------
 ==========================================================
 ========================================================

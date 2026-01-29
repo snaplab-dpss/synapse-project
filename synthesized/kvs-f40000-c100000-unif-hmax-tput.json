@@ -1,19 +1,19 @@
 {
   "bdd": "kvs.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 160,
-    "num_phase1_speculations": 20250,
-    "num_phase2_speculations": 1394,
-    "num_speculated_modules": 197325
+    "num_execution_plans_generated": 161,
+    "num_phase1_speculations": 24123,
+    "num_phase2_speculations": 1540,
+    "num_speculated_modules": 242139
   },
   "heuristic": {
     "meta": [
       {
-        "description": "62.38 Gbps (88.61 Mpps)",
+        "description": "63.53 Gbps (90.25 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "62.38 Gbps (88.61 Mpps)",
+        "description": "63.53 Gbps (90.25 Mpps)",
         "name": "Spec"
       },
       {
@@ -21,24 +21,24 @@
         "name": "Recirculations"
       },
       {
-        "description": "63 / 70",
+        "description": "49 / 50",
         "name": "BDD Progress"
       },
       {
-        "description": "3",
+        "description": "4",
         "name": "Stages"
       },
       {
-        "description": "1922480 bits",
+        "description": "3502640 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      88605000,
-      63,
-      -3,
-      -1922480,
+      90246500,
+      49,
+      -4,
+      -3502640,
       0
     ]
   },
@@ -49,34 +49,18 @@
     },
     {
       "addr": 1073971272,
-      "implementation": "Tofino::DchainTable"
+      "implementation": "Tofino::HHTable"
     },
     {
       "addr": 1073923096,
-      "implementation": "Tofino::GuardedMapTable"
+      "implementation": "Tofino::HHTable"
     }
   ],
   "name": "kvs-f40000-c100000-unif-hmax-tput",
   "profile_file": "kvs-f40000-c100000-unif.json",
   "search_meta": {
-    "avg_bdd_size": 59,
+    "avg_bdd_size": 50,
     "avg_children_per_node": [
-      {
-        "avg": 3.0,
-        "node_id": 130
-      },
-      {
-        "avg": 3.0,
-        "node_id": 129
-      },
-      {
-        "avg": 3.0,
-        "node_id": 128
-      },
-      {
-        "avg": 3.0,
-        "node_id": 127
-      },
       {
         "avg": 0.0,
         "node_id": 32
@@ -98,7 +82,7 @@
         "node_id": 56
       },
       {
-        "avg": 2.5,
+        "avg": 3.0,
         "node_id": 16
       },
       {
@@ -130,7 +114,7 @@
         "node_id": 53
       },
       {
-        "avg": 4.0,
+        "avg": 23.0,
         "node_id": 13
       },
       {
@@ -187,10 +171,6 @@
       },
       {
         "avg": 2.0,
-        "node_id": 131
-      },
-      {
-        "avg": 2.0,
         "node_id": 4
       },
       {
@@ -230,7 +210,7 @@
         "node_id": 57
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 18
       },
       {
@@ -250,7 +230,7 @@
         "node_id": 47
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 19
       },
       {
@@ -270,7 +250,7 @@
         "node_id": 48
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 20
       },
       {
@@ -290,7 +270,7 @@
         "node_id": 49
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 21
       },
       {
@@ -306,7 +286,7 @@
         "node_id": 50
       },
       {
-        "avg": 0.0,
+        "avg": 2.0,
         "node_id": 22
       },
       {
@@ -335,16 +315,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.360294117647059,
-    "elapsed_time_seconds": 29,
+    "branching_factor": 2.7777777777777777,
+    "elapsed_time_seconds": 44,
     "finished_eps": 1,
-    "ss_size": 160,
-    "steps": 65,
-    "total_ss_size_estimation": 1675225272.0211742,
-    "unfinished_eps": 95
+    "ss_size": 161,
+    "steps": 49,
+    "total_ss_size_estimation": 72402317104.46884,
+    "unfinished_eps": 112
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 62378051648,
-  "tput_estimation_pps": 88605187
+  "tput_estimation_bps": 63533727488,
+  "tput_estimation_pps": 90246772
 }

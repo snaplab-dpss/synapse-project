@@ -1,10 +1,10 @@
 {
   "bdd": "psd.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 171,
-    "num_phase1_speculations": 7151,
-    "num_phase2_speculations": 587,
-    "num_speculated_modules": 93139
+    "num_execution_plans_generated": 184,
+    "num_phase1_speculations": 11402,
+    "num_phase2_speculations": 677,
+    "num_speculated_modules": 148515
   },
   "heuristic": {
     "meta": [
@@ -44,16 +44,16 @@
   },
   "implementations": [
     {
-      "addr": 1074079432,
-      "implementation": "Tofino::VectorRegister"
-    },
-    {
       "addr": 1074096984,
       "implementation": "Tofino::BloomFilter"
     },
     {
       "addr": 1074096568,
       "implementation": "Tofino::DchainTable"
+    },
+    {
+      "addr": 1074079432,
+      "implementation": "Tofino::VectorRegister"
     },
     {
       "addr": 1074126776,
@@ -134,7 +134,7 @@
         "node_id": 192
       },
       {
-        "avg": 4.0,
+        "avg": 17.0,
         "node_id": 145
       },
       {
@@ -186,7 +186,7 @@
         "node_id": 138
       },
       {
-        "avg": 2.0,
+        "avg": 3.0,
         "node_id": 197
       },
       {
@@ -314,7 +314,7 @@
         "node_id": 161
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 175
       },
       {
@@ -347,13 +347,13 @@
       }
     ],
     "backtracks": 1,
-    "branching_factor": 2.3529411764705883,
-    "elapsed_time_seconds": 18,
+    "branching_factor": 2.588235294117647,
+    "elapsed_time_seconds": 64,
     "finished_eps": 1,
-    "ss_size": 171,
+    "ss_size": 184,
     "steps": 68,
-    "total_ss_size_estimation": 13468331296.171637,
-    "unfinished_eps": 103
+    "total_ss_size_estimation": 142306091477.8216,
+    "unfinished_eps": 116
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

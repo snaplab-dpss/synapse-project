@@ -1,10 +1,10 @@
 {
   "bdd": "nat.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 170,
-    "num_phase1_speculations": 12675,
-    "num_phase2_speculations": 838,
-    "num_speculated_modules": 145290
+    "num_execution_plans_generated": 198,
+    "num_phase1_speculations": 17466,
+    "num_phase2_speculations": 996,
+    "num_speculated_modules": 210749
   },
   "heuristic": {
     "meta": [
@@ -122,7 +122,7 @@
         "node_id": 136
       },
       {
-        "avg": 6.0,
+        "avg": 32.0,
         "node_id": 163
       },
       {
@@ -198,7 +198,7 @@
         "node_id": 171
       },
       {
-        "avg": 4.0,
+        "avg": 6.0,
         "node_id": 183
       },
       {
@@ -242,7 +242,7 @@
         "node_id": 185
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 149
       },
       {
@@ -315,13 +315,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.6885245901639343,
-    "elapsed_time_seconds": 30,
+    "branching_factor": 3.1311475409836067,
+    "elapsed_time_seconds": 64,
     "finished_eps": 1,
-    "ss_size": 170,
+    "ss_size": 198,
     "steps": 62,
-    "total_ss_size_estimation": 17018212151.899393,
-    "unfinished_eps": 108
+    "total_ss_size_estimation": 496333381682.36914,
+    "unfinished_eps": 136
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

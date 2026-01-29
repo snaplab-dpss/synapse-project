@@ -7,7 +7,7 @@ Args:
   Profile file:       kvs-f40000-c10000-zipf0_8.json
   Seed:               0
   Targets:
-    Tofino (31 modules)
+    Tofino (41 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
@@ -28,15 +28,15 @@ Stateful Implementations:
   1073923096: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       20 seconds
+  Elapsed time:       43 seconds
   Steps:              44
   Backtracks:         0
-  Search space size:  126
-  Unfinished EPs:     82
+  Search space size:  145
+  Unfinished EPs:     101
   Finished EPs:       1
   Avg BDD size:       47
   Branching factor:   2
-  Total SS size est.: 940'581'880
+  Total SS size est.: 16'034'656'888
   Avg children per node:
     Node 32: 0
     Node 31: 0
@@ -51,7 +51,7 @@ Search Metadata:
     Node 14: 0
     Node 60: 3
     Node 53: 3
-    Node 13: 5
+    Node 13: 24
     Node 59: 3
     Node 12: 3
     Node 64: 2
@@ -103,10 +103,10 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 13'683 (100%)
-  Num phase 2 speculations: 1'065 (7.78338%)
-  Num speculated modules:   116'756
-  Num EPs generated:        126
+  Num phase 1 speculations: 19'533 (100%)
+  Num phase 2 speculations: 1'357 (6.94722%)
+  Num speculated modules:   176'730
+  Num EPs generated:        145
 
 Switch placement:
 
