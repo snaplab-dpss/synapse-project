@@ -92,6 +92,7 @@ struct initial_controller_logic_t {
   EPNode *head;
   EPNode *tail;
   Symbols extra_symbols;
+  Symbols controller_generated_symbols;
 
   void update(EPNode *ep_node) {
     assert(ep_node);
@@ -113,7 +114,12 @@ struct initial_controller_logic_t {
 };
 
 initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const EPLeaf active_leaf) {
-  initial_controller_logic_t initial_controller_logic{.head = nullptr, .tail = nullptr, .extra_symbols = {}};
+  initial_controller_logic_t initial_controller_logic{
+      .head                         = nullptr,
+      .tail                         = nullptr,
+      .extra_symbols                = {},
+      .controller_generated_symbols = {},
+  };
 
   struct prev_module_t {
     const Module *module;
@@ -269,6 +275,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (map_table_lookup->get_node()) {
         initial_controller_logic.extra_symbols.add(map_table_lookup->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(map_table_lookup->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_MapSetTableLookup: {
@@ -282,6 +289,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (map_set_table_lookup->get_node()) {
         initial_controller_logic.extra_symbols.add(map_set_table_lookup->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(map_set_table_lookup->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_GuardedMapTableLookup: {
@@ -296,6 +304,8 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (guarded_map_table_lookup->get_node()) {
         initial_controller_logic.extra_symbols.add(guarded_map_table_lookup->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(
+            dynamic_cast<const Call *>(guarded_map_table_lookup->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_GuardedMapTableGuardCheck: {
@@ -310,6 +320,8 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (guarded_map_table_guard_check->get_node()) {
         initial_controller_logic.extra_symbols.add(guarded_map_table_guard_check->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(
+            dynamic_cast<const Call *>(guarded_map_table_guard_check->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_VectorTableLookup: {
@@ -323,6 +335,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (vector_table_lookup->get_node()) {
         initial_controller_logic.extra_symbols.add(vector_table_lookup->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(vector_table_lookup->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_DchainTableLookup: {
@@ -340,6 +353,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (dchain_table_lookup->get_node()) {
         initial_controller_logic.extra_symbols.add(dchain_table_lookup->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(dchain_table_lookup->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_FCFSCachedTableRead: {
@@ -354,6 +368,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (fcfs_ct_read->get_node()) {
         initial_controller_logic.extra_symbols.add(fcfs_ct_read->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(fcfs_ct_read->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_FCFSCachedTableReadInsert: {
@@ -368,6 +383,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (fcfs_ct_read_insert->get_node()) {
         initial_controller_logic.extra_symbols.add(fcfs_ct_read_insert->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(fcfs_ct_read_insert->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_FCFSCachedTableIsIndexAllocated: {
@@ -383,6 +399,8 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (fcfs_ct_is_index_allocated->get_node()) {
         initial_controller_logic.extra_symbols.add(fcfs_ct_is_index_allocated->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(
+            dynamic_cast<const Call *>(fcfs_ct_is_index_allocated->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_FCFSCachedSetRead: {
@@ -396,6 +414,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (fcfs_cs_read->get_node()) {
         initial_controller_logic.extra_symbols.add(fcfs_cs_read->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(fcfs_cs_read->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_FCFSCachedSetReadInsert: {
@@ -409,6 +428,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (fcfs_cs_read_insert->get_node()) {
         initial_controller_logic.extra_symbols.add(fcfs_cs_read_insert->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(fcfs_cs_read_insert->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_HHTableRead: {
@@ -422,6 +442,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
 
       if (hh_table_read->get_node()) {
         initial_controller_logic.extra_symbols.add(hh_table_read->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(hh_table_read->get_node())->get_local_symbols());
       }
     } break;
     case ModuleType::Tofino_IntegerAllocatorIsAllocated: {
@@ -620,6 +641,7 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
 
   Symbols symbols = get_relevant_dataplane_state(ep, node);
   symbols.add(initial_controller_logic.extra_symbols);
+  symbols.remove(initial_controller_logic.controller_generated_symbols);
   symbols.remove("packet_chunks");
   symbols.remove("next_time");
 

@@ -120,7 +120,6 @@ void sycon::nf_user_signal_handler() {
 }
 
 struct cpu_hdr_extra_t {
-  u32 map_has_this_key__13;
   u32 DEVICE;
 
 } __attribute__((packed));

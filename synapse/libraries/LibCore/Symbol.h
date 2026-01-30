@@ -50,6 +50,7 @@ public:
 
   void add(const symbol_t &symbol);
   void add(const Symbols &symbols);
+  void remove(const Symbols &symbols);
 
   size_t size() const;
   bool empty() const;

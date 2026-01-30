@@ -701,8 +701,6 @@ void sycon::nf_user_signal_handler() {
 
 struct cpu_hdr_extra_t {
   u32 cached_insert_success;
-  u32 vector_data__141;
-  u32 map_has_this_key__144;
   u32 min_estimate__147;
   u32 DEVICE;
 

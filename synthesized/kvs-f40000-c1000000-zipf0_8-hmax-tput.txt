@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       58 seconds
+  Elapsed time:       51 seconds
   Steps:              65
   Backtracks:         0
   Search space size:  180

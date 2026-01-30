@@ -25,7 +25,7 @@
         "name": "BDD Progress"
       },
       {
-        "description": "3",
+        "description": "4",
         "name": "Stages"
       },
       {
@@ -37,7 +37,7 @@
       0,
       846601500,
       58,
-      -3,
+      -4,
       -36278272,
       -1
     ]
@@ -348,7 +348,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1363636363636362,
-    "elapsed_time_seconds": 61,
+    "elapsed_time_seconds": 62,
     "finished_eps": 1,
     "ss_size": 178,
     "steps": 59,

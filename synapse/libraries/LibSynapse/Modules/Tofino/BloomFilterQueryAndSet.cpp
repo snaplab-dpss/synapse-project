@@ -21,7 +21,7 @@ struct bf_data_t {
 
   bf_data_t(const Context &ctx, const Call *call_node) {
     const call_t &call = call_node->get_call();
-    assert(call.function_name == "bf_bf_set");
+    assert(call.function_name == "bf_query");
 
     klee::ref<klee::Expr> bf_addr_expr = call.args.at("bf").expr;
     klee::ref<klee::Expr> key          = call.args.at("key").in;

@@ -38,9 +38,6 @@ header cpu_h {
   bit<16> code_path;                  // Written by the data plane
   bit<16> egress_dev;                 // Written by the control plane
   bit<8> trigger_dataplane_execution; // Written by the control plane
-  bit<32> vector_table_1074076488_139_get_value_param0;
-  @padding bit<31> pad_hit1;
-  bool hit1;
   bit<32> cached_insert_success0;
   bit<32> dev;
 
@@ -703,8 +700,6 @@ control Ingress(
                   // BDD node 263:tofino_force_send_to_controller
                   fwd_op = fwd_op_t.FORWARD_TO_CPU;
                   build_cpu_hdr(3463);
-                  hdr.cpu.vector_table_1074076488_139_get_value_param0 = vector_table_1074076488_139_get_value_param0;
-                  hdr.cpu.hit1 = hit1;
                   hdr.cpu.cached_insert_success0 = cached_insert_success0;
                   hdr.cpu.dev = meta.dev;
                 }

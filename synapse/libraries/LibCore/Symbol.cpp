@@ -96,6 +96,12 @@ void Symbols::add(const Symbols &symbols) {
   }
 }
 
+void Symbols::remove(const Symbols &symbols) {
+  for (const symbol_t &symbol : symbols.data) {
+    remove(symbol.name);
+  }
+}
+
 std::vector<symbol_t> Symbols::get() const {
   std::vector<symbol_t> result;
   result.insert(result.end(), data.begin(), data.end());

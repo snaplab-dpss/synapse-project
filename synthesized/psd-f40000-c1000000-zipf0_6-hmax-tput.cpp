@@ -705,12 +705,9 @@ void sycon::nf_user_signal_handler() {
 
 struct cpu_hdr_extra_t {
   u32 DEVICE;
-  u32 vector_data__142;
   u32 bf_query_estimate__169;
   u16 vector_data__174;
   u32 vector_data__168;
-  u32 map_has_this_key__145;
-  u32 allocated_index__145;
   u32 cached_insert_success;
 
 } __attribute__((packed));

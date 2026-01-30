@@ -29,7 +29,7 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       35 seconds
+  Elapsed time:       41 seconds
   Steps:              56
   Backtracks:         0
   Search space size:  173
@@ -139,7 +139,7 @@ SRAM: 486'064/1'310'720 B (37.0837%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 49'152/786'432 B (6.25%)
 Exact Match Crossbar: 38/128 B (29.6875%)
-Objs: [fcfs_cs_1074044080_hash_155,fcfs_cs_1074044080_reg_liveness,fcfs_cs_1074044080_hash_142,fcfs_cs_1074044080_table_155]
+Objs: [fcfs_cs_1074044080_reg_liveness,fcfs_cs_1074044080_hash_155,fcfs_cs_1074044080_hash_142,fcfs_cs_1074044080_table_155]
 -------------------------------------
 -------------------------------------
 Stage 3

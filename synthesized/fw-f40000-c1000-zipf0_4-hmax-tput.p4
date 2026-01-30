@@ -38,9 +38,6 @@ header cpu_h {
   bit<16> code_path;                  // Written by the data plane
   bit<16> egress_dev;                 // Written by the control plane
   bit<8> trigger_dataplane_execution; // Written by the control plane
-  bit<32> vector_table_1074076488_139_get_value_param0;
-  @padding bit<31> pad_hit0;
-  bool hit0;
   bit<32> dev;
 
 }
@@ -486,8 +483,6 @@ control Ingress(
                 // BDD node 157:dchain_allocate_new_index
                 fwd_op = fwd_op_t.FORWARD_TO_CPU;
                 build_cpu_hdr(2374);
-                hdr.cpu.vector_table_1074076488_139_get_value_param0 = vector_table_1074076488_139_get_value_param0;
-                hdr.cpu.hit0 = hit0;
                 hdr.cpu.dev = meta.dev;
               } else {
                 // EP node  1120:Else

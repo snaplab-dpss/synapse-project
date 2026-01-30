@@ -291,6 +291,7 @@ private:
   std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_values(const BloomFilter *bf);
   std::vector<code_t> bf_get_hashes_values(const BloomFilter *bf);
   std::vector<code_t> bf_get_hashes_calculators(const BloomFilter *bf, const EPNode *ep_node);
+  var_t bf_get_estimate_value(const BloomFilter *bf);
 
   void transpile_parser(const Parser &parser);
   void transpile_action_decl(const code_t &action_name, const std::vector<code_t> &body);

@@ -39,9 +39,6 @@ header cpu_h {
   bit<16> egress_dev;                 // Written by the control plane
   bit<8> trigger_dataplane_execution; // Written by the control plane
   bit<32> cached_insert_success0;
-  bit<32> vector_table_1074092960_141_get_value_param0;
-  @padding bit<31> pad_hit0;
-  bool hit0;
   bit<32> cms_1074080384_min0;
   bit<32> dev;
 
@@ -721,8 +718,6 @@ control Ingress(
           fwd_op = fwd_op_t.FORWARD_TO_CPU;
           build_cpu_hdr(3101);
           hdr.cpu.cached_insert_success0 = cached_insert_success0;
-          hdr.cpu.vector_table_1074092960_141_get_value_param0 = hdr.recirc.vector_table_1074092960_141_get_value_param0;
-          hdr.cpu.hit0 = hdr.recirc.hit0;
           hdr.cpu.cms_1074080384_min0 = hdr.recirc.cms_1074080384_min0;
           hdr.cpu.dev = meta.dev;
         }

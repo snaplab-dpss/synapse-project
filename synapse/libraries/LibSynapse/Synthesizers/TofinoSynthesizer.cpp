@@ -1511,8 +1511,12 @@ TofinoSynthesizer::var_t TofinoSynthesizer::var_t::get_slice(bits_t offset, bits
     hi = size - offset - 1;
   }
 
-  const code_t slice_name          = name + "[" + std::to_string(hi) + ":" + std::to_string(lo) + "]";
-  klee::ref<klee::Expr> slice_expr = solver_toolbox.exprBuilder->Extract(expr, offset, slice_size);
+  const code_t slice_name = name + "[" + std::to_string(hi) + ":" + std::to_string(lo) + "]";
+
+  klee::ref<klee::Expr> slice_expr = expr;
+  if (!expr.isNull()) {
+    slice_expr = solver_toolbox.exprBuilder->Extract(expr, offset, slice_size);
+  }
 
   return var_t(original_name, original_expr, original_size, slice_name, slice_expr, slice_size, force_bool, is_header_field, is_buffer);
 }
@@ -1605,7 +1609,7 @@ void TofinoSynthesizer::Stack::clear() {
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_exact(klee::ref<klee::Expr> expr) const {
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
-    if (solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
+    if (!var.expr.isNull() && solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
       return var;
     }
   }
@@ -1616,7 +1620,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_exact(klee
 std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_exact_hdr(klee::ref<klee::Expr> expr) const {
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
-    if (var.is_header_field && solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
+    if (var.is_header_field && !var.expr.isNull() && solver_toolbox.are_exprs_always_equal(var.expr, expr)) {
       return var;
     }
   }
@@ -1659,6 +1663,10 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
 
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
+
+    if (var.expr.isNull()) {
+      continue;
+    }
 
     const bits_t expr_size = expr->getWidth();
     const bits_t var_size  = var.size;
@@ -3991,6 +3999,12 @@ std::vector<code_t> TofinoSynthesizer::bf_get_hashes_calculators(const BloomFilt
   return hash_calculators;
 }
 
+TofinoSynthesizer::var_t TofinoSynthesizer::bf_get_estimate_value(const BloomFilter *bf) {
+  const var_t estimate_var = alloc_var(bf->id + "_estimate", 32, EXACT_NAME | IS_INGRESS_METADATA);
+  declare_var_in_ingress_metadata(estimate_var);
+  return estimate_var;
+}
+
 void TofinoSynthesizer::transpile_cms_hash_calculator_decl(const CountMinSketch *cms, const EPNode *ep_node, const std::vector<var_t> &keys_vars) {
   const std::vector<code_t> hashes_calculators = cms_get_hashes_calculators(cms, ep_node);
   const std::vector<code_t> hashes_values      = cms_get_hashes_values(cms);
@@ -4135,6 +4149,7 @@ void TofinoSynthesizer::transpile_bf_decl(const BloomFilter *bf, const EPNode *e
   const std::unordered_map<RegisterActionType, std::vector<code_t>> actions     = bf_get_rows_actions(bf);
   const std::unordered_map<RegisterActionType, std::vector<code_t>> values      = bf_get_rows_values(bf);
   const std::vector<code_t> hashes_values                                       = bf_get_hashes_values(bf);
+  const var_t estimate_value                                                    = bf_get_estimate_value(bf);
 
   if (!declared_ds.contains(bf->id)) {
     for (size_t i = 0; i < bf->height; i++) {
@@ -4183,6 +4198,12 @@ void TofinoSynthesizer::transpile_bf_decl(const BloomFilter *bf, const EPNode *e
           row_action_body << value << " = ";
         }
         row_action_body << reg_action << ".execute(" << hash << ");\n";
+
+        if (register_action_types_with_out_value.contains(action_type)) {
+          row_action_body.indent();
+          row_action_body << estimate_value.get_slice(i, 1).name << " = " << value << "[0:0];\n";
+        }
+
         transpile_action_decl(action, row_action_body.split_lines());
         ingress << "\n";
       }
@@ -4387,6 +4408,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = bf_get_rows_actions(bf);
   const std::unordered_map<RegisterActionType, std::vector<code_t>> values  = bf_get_rows_values(bf);
   const std::vector<code_t> hashes_calculators                              = bf_get_hashes_calculators(bf, ep_node);
+  const var_t estimate_value                                                = bf_get_estimate_value(bf);
 
   transpile_bf_decl(bf, ep_node);
 
@@ -4409,6 +4431,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << hash_calc << "();\n";
   }
 
+  ingress_apply.indent();
+  ingress_apply << estimate_value.name << " = 0;\n";
+
   assert(actions.find(RegisterActionType::SetToOneAndReturnOldValue) != actions.end());
   const std::vector<code_t> &read_actions = actions.at(RegisterActionType::SetToOneAndReturnOldValue);
 
@@ -4417,18 +4442,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << action << "();\n";
   }
 
-  assert(values.find(RegisterActionType::SetToOneAndReturnOldValue) != values.end());
-  const std::vector<code_t> &read_values = values.at(RegisterActionType::SetToOneAndReturnOldValue);
-
-  const var_t estimate_value = alloc_var(bf->id + "_estimate", estimate);
-  estimate_value.declare(ingress_apply, "0");
-
-  for (size_t i = 0; i < bf->height; i++) {
-    assert(i < read_values.size());
-    const code_t &value = read_values[i];
-    ingress_apply.indent();
-    ingress_apply << estimate_value.get_slice(i, 1).name << " = " << value << "[0:0];\n";
-  }
+  ingress_vars.set_var_expr(estimate_value.name, estimate);
 
   return EPVisitor::Action::doChildren;
 }
@@ -4505,6 +4519,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = bf_get_rows_actions(bf);
   const std::unordered_map<RegisterActionType, std::vector<code_t>> values  = bf_get_rows_values(bf);
   const std::vector<code_t> hashes_calculators                              = bf_get_hashes_calculators(bf, ep_node);
+  const var_t estimate_value                                                = bf_get_estimate_value(bf);
 
   transpile_bf_decl(bf, ep_node);
 
@@ -4527,6 +4542,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << hash_calc << "();\n";
   }
 
+  ingress_apply.indent();
+  ingress_apply << estimate_value.name << " = 0;\n";
+
   assert(actions.find(RegisterActionType::Read) != actions.end());
   const std::vector<code_t> &read_actions = actions.at(RegisterActionType::Read);
 
@@ -4535,18 +4553,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << action << "();\n";
   }
 
-  assert(values.find(RegisterActionType::Read) != values.end());
-  const std::vector<code_t> &read_values = values.at(RegisterActionType::Read);
-
-  const var_t estimate_value = alloc_var(bf->id + "_estimate", estimate);
-  estimate_value.declare(ingress_apply, "0");
-
-  for (size_t i = 0; i < bf->height; i++) {
-    assert(i < read_values.size());
-    const code_t &value = read_values[i];
-    ingress_apply.indent();
-    ingress_apply << estimate_value.get_slice(i, 1).name << " = " << value << "[0:0];\n";
-  }
+  ingress_vars.set_var_expr(estimate_value.name, estimate);
 
   return EPVisitor::Action::doChildren;
 }
