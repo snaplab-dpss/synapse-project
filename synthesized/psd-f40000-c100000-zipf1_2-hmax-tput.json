@@ -9,11 +9,11 @@
   "heuristic": {
     "meta": [
       {
-        "description": "1.58 Tbps (2.25 Gpps)",
+        "description": "492.38 Gbps (699.40 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "1.58 Tbps (2.25 Gpps)",
+        "description": "492.38 Gbps (699.40 Mpps)",
         "name": "Spec"
       },
       {
@@ -29,16 +29,16 @@
         "name": "Stages"
       },
       {
-        "description": "17261696 bits",
+        "description": "19096704 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      2250000000,
+      699398000,
       75,
       -3,
-      -17261696,
+      -19096704,
       -1
     ]
   },
@@ -429,6 +429,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 1584000000000,
-  "tput_estimation_pps": 2250000000
+  "tput_estimation_bps": 492376319424,
+  "tput_estimation_pps": 699398181
 }

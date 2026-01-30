@@ -14,13 +14,13 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,2'250'000'000,75,-3,-17'261'696,-1>
+  Score: <0,2'250'000'000,75,-3,-17'785'984,-1>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 1
   BDD Progress: 75 / 82
   Stages: 3
-  Memory Usage: 17261696 bits
+  Memory Usage: 17785984 bits
 
 Stateful Implementations:
   1074079432: Tofino::VectorRegister
@@ -31,7 +31,7 @@ Stateful Implementations:
   1074048392: Tofino::FCFSCachedTable
 
 Search Metadata:
-  Elapsed time:       82 seconds
+  Elapsed time:       97 seconds
   Steps:              78
   Backtracks:         1
   Search space size:  218
@@ -139,11 +139,11 @@ Switch placement:
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 669'256/1'310'720 B (51.0602%)
+SRAM: 702'024/1'310'720 B (53.5602%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 669'256/786'432 B (85.1003%)
+MapRAM: 702'024/786'432 B (89.267%)
 Exact Match Crossbar: 38/128 B (29.6875%)
-Objs: [vector_table_1074126776_192,vector_table_1074126776_161,fcfs_ct_1074048392_hash_147,fcfs_ct_1074048392_reg_liveness,vector_table_1074126776_174,fcfs_ct_1074048392_reg_key_0,vector_table_1074109560_142,vector_table_1074126776_186,fcfs_ct_1074048392_hash_145,fcfs_ct_1074048392_table_145]
+Objs: [vector_table_1074126776_161,vector_table_1074126776_192,vector_table_1074109560_142,vector_table_1074126776_186,vector_table_1074126776_174,fcfs_ct_1074048392_reg_key_0,fcfs_ct_1074048392_reg_liveness,fcfs_ct_1074048392_hash_147,fcfs_ct_1074048392_hash_145,fcfs_ct_1074048392_table_145]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -151,7 +151,7 @@ SRAM: 389'120/1'310'720 B (29.6875%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 389'120/786'432 B (49.4792%)
 Exact Match Crossbar: 34/128 B (26.5625%)
-Objs: [bf_1074096984_hash_0,bf_1074096984_row_2,vector_register_1074079432_0,bf_1074096984_hash_1,bf_1074096984_hash_2,bf_1074096984_row_0,bf_1074096984_row_1,bf_1074096984_hash_3]
+Objs: [bf_1074096984_hash_0,vector_register_1074079432_0,bf_1074096984_hash_2,bf_1074096984_hash_1,bf_1074096984_row_2,bf_1074096984_row_0,bf_1074096984_row_1,bf_1074096984_hash_3]
 -------------------------------------
 -------------------------------------
 Stage 2

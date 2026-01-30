@@ -2,9 +2,9 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 208,
-    "num_phase1_speculations": 21877,
-    "num_phase2_speculations": 1187,
-    "num_speculated_modules": 261711
+    "num_phase1_speculations": 21923,
+    "num_phase2_speculations": 1189,
+    "num_speculated_modules": 262117
   },
   "heuristic": {
     "meta": [
@@ -29,7 +29,7 @@
         "name": "Stages"
       },
       {
-        "description": "27707392 bits",
+        "description": "32425984 bits",
         "name": "Memory Usage"
       }
     ],
@@ -38,7 +38,7 @@
       2328927000,
       69,
       -5,
-      -27707392,
+      -32425984,
       0
     ]
   },

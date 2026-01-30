@@ -14,9 +14,9 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,832'158'000,56,-6,-32'076'480,0>
-  Tput: 585.84 Gbps (832.16 Mpps)
-  Spec: 585.84 Gbps (832.16 Mpps)
+  Score: <0,700'689'500,56,-6,-32'076'480,0>
+  Tput: 493.29 Gbps (700.69 Mpps)
+  Spec: 493.29 Gbps (700.69 Mpps)
   Recirculations: 0
   BDD Progress: 56 / 62
   Stages: 6
@@ -29,7 +29,7 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       42 seconds
+  Elapsed time:       41 seconds
   Steps:              56
   Backtracks:         0
   Search space size:  173

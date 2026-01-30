@@ -4,6 +4,7 @@
 #include <klee/Expr.h>
 
 #include <iomanip>
+#include <iostream>
 
 using u64 = __UINT64_TYPE__;
 using u32 = __UINT32_TYPE__;
@@ -108,6 +109,18 @@ struct hit_rate_t {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(precision) << value;
     return oss.str();
+  }
+
+  hit_rate_t round() {
+    const int max_precision = -log10(EPSILON);
+    for (int precision = 1; precision < max_precision; precision++) {
+      const double factor        = std::pow(10, precision);
+      const double rounded_value = std::round(value * factor) / factor;
+      if (rounded_value > value) {
+        return hit_rate_t(rounded_value);
+      }
+    }
+    return *this;
   }
 };
 

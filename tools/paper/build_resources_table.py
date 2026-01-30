@@ -62,10 +62,10 @@ def build_latex_table(avg_resources_per_nf: dict[str, tuple[Resources, Resources
         columns = [
             nf.upper(),
             f"\\evalue{{{avg_loc}}}{{{stdev_loc}}}",
-            f"\\evalue{{{100*avg_resources.stages:.2f}}}{{{100*stdev_resources.stages:.2f}}}",
-            f"\\evalue{{{100*avg_resources.sram:.2f}}}{{{100*stdev_resources.sram:.2f}}}",
-            f"\\evalue{{{100*avg_resources.vliw:.2f}}}{{{100*stdev_resources.vliw:.2f}}}",
-            f"\\evalue{{{100*avg_resources.match_xbar:.2f}}}{{{100*stdev_resources.match_xbar:.2f}}}",
+            f"\\evalue{{{100*avg_resources.stages:.1f}}}{{{100*stdev_resources.stages:.1f}}}",
+            f"\\evalue{{{100*avg_resources.sram:.1f}}}{{{100*stdev_resources.sram:.1f}}}",
+            f"\\evalue{{{100*avg_resources.vliw:.1f}}}{{{100*stdev_resources.vliw:.1f}}}",
+            f"\\evalue{{{100*avg_resources.match_xbar:.1f}}}{{{100*stdev_resources.match_xbar:.1f}}}",
         ]
 
         row = " & ".join(columns) + r" \\"
@@ -147,10 +147,10 @@ if __name__ == "__main__":
             [
                 nf,
                 f"{avg_loc} ± {stdev_loc}",
-                f"{100*avg_resources.stages:5.2f} ± {100*stdev_resources.stages:5.2f}",
-                f"{100*avg_resources.sram:5.2f} ± {100*stdev_resources.sram:5.2f}",
-                f"{100*avg_resources.vliw:5.2f} ± {100*stdev_resources.vliw:5.2f}",
-                f"{100*avg_resources.match_xbar:5.2f} ± {100*stdev_resources.match_xbar:5.2f}",
+                f"{100*avg_resources.stages:4.1f} ± {100*stdev_resources.stages:4.1f}",
+                f"{100*avg_resources.sram:4.1f} ± {100*stdev_resources.sram:4.1f}",
+                f"{100*avg_resources.vliw:4.1f} ± {100*stdev_resources.vliw:4.1f}",
+                f"{100*avg_resources.match_xbar:4.1f} ± {100*stdev_resources.match_xbar:4.1f}",
             ]
         )
     print(table)

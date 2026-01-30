@@ -2,6 +2,7 @@
 
 import os
 
+from dataclasses import dataclass
 from pathlib import Path
 from argparse import ArgumentParser
 from itertools import product
@@ -21,10 +22,61 @@ DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 
 
+@dataclass
+class Microbench:
+    compilation_times: tuple[int, int] = (0, 0)
+    backtracks: tuple[int, int] = (0, 0)
+    speculated: tuple[int, int] = (0, 0)
+    instantiated: tuple[int, int] = (0, 0)
+    phase1_speculations: tuple[int, int] = (0, 0)
+    phase2_speculations: tuple[int, int] = (0, 0)
+
+
 def build_synapse_nf_name(nf: str, total_flows: int, churn: int, zipf: float) -> str:
     dist = f"{'unif' if zipf == 0.0 else 'zipf'}{str(int(zipf) if int(zipf) == zipf else zipf).replace('.', '_') if zipf != 0.0 else ''}"
     heuristic = "max-tput"
     return f"{nf}-f{total_flows}-c{churn}-{dist}-h{heuristic}"
+
+
+def multiline_latex_cell(lines: list[str]) -> str:
+    content = r"\\ ".join(lines)
+    return r"\begin{tabular}[c]{@{}l@{}}" + content + r"\end{tabular}"
+
+
+def build_latex_table(microbench_per_nf: dict[str, Microbench]) -> str:
+    prefix = r"\begin{tabular}{lccccc}" + "\n"
+    prefix += r"\toprule" + "\n"
+    prefix += r"& " + multiline_latex_cell([r"\textbf{Time}", r"\textbf{(s)}"])
+    prefix += r"& " + multiline_latex_cell([r"\textbf{Spec.}", r"\textbf{SS}"])
+    prefix += r"& " + multiline_latex_cell([r"\textbf{Visited}", r"\textbf{SS}"])
+    prefix += r"& " + multiline_latex_cell([r"\textbf{Spec.}", r"\textbf{Phase 1}"])
+    prefix += r"& " + multiline_latex_cell([r"\textbf{Spec.}", r"\textbf{Phase 2}"])
+    prefix += r"\\" + "\n"
+    prefix += r"\midrule" + "\n"
+
+    rows = []
+
+    for nf in microbench_per_nf.keys():
+        columns = [
+            nf.upper(),
+            f"\\evalue{{{int(microbench_per_nf[nf].compilation_times[0])}}}{{{int(microbench_per_nf[nf].compilation_times[1])}}}",
+            f"\\evalue{{{microbench_per_nf[nf].speculated[0]//1000:,}K}}{{{microbench_per_nf[nf].speculated[1]//1000:,}K}}",
+            f"\\evalue{{{microbench_per_nf[nf].instantiated[0]:,}}}{{{microbench_per_nf[nf].instantiated[1]:,}}}",
+            f"\\evalue{{{microbench_per_nf[nf].phase1_speculations[0]//1000:,}K}}{{{microbench_per_nf[nf].phase1_speculations[1]//1000:,}K}}",
+            f"\\evalue{{{microbench_per_nf[nf].phase2_speculations[0]/1000:.1f}K}}{{{microbench_per_nf[nf].phase2_speculations[1]/1000:.1f}K}}",
+        ]
+
+        row = " & ".join(columns) + r" \\"
+        rows.append(row)
+
+    content = "\n".join(rows)
+
+    suffix = r"""
+\bottomrule
+\end{tabular}
+"""
+
+    return prefix + content + suffix
 
 
 if __name__ == "__main__":
@@ -66,43 +118,21 @@ if __name__ == "__main__":
             phase1_speculations_per_nf[nf].append(report.global_stats.num_phase1_speculations)
             phase2_speculations_per_nf[nf].append(report.global_stats.num_phase2_speculations)
 
-    avg_compilation_times_per_nf = {}
-    avg_backtracks_per_nf = {}
-    avg_speculated_per_nf = {}
-    avg_instantiated_per_nf = {}
-    avg_phase1_speculations_per_nf = {}
-    avg_phase2_speculations_per_nf = {}
+    data = {nf: Microbench() for nf in args.nfs}
 
     for nf in args.nfs:
-        avg_compilation_time = mean(compilation_times_per_nf[nf])
-        stdev_compilation_time = stdev(compilation_times_per_nf[nf])
-        avg_compilation_times_per_nf[nf] = (avg_compilation_time, stdev_compilation_time)
-
-        avg_backtracks = int(mean(backtracks_per_nf[nf]))
-        stdev_backtracks = int(stdev(backtracks_per_nf[nf]))
-        avg_backtracks_per_nf[nf] = (avg_backtracks, stdev_backtracks)
-
-        avg_speculated = int(mean(speculated_per_nf[nf]))
-        stdev_speculated = int(stdev(speculated_per_nf[nf]))
-        avg_speculated_per_nf[nf] = (avg_speculated, stdev_speculated)
-
-        avg_instantiated = int(mean(instantiated_per_nf[nf]))
-        stdev_instantiated = int(stdev(instantiated_per_nf[nf]))
-        avg_instantiated_per_nf[nf] = (avg_instantiated, stdev_instantiated)
-
-        avg_phase1_speculations = int(mean(phase1_speculations_per_nf[nf]))
-        stdev_phase1_speculations = int(stdev(phase1_speculations_per_nf[nf]))
-        avg_phase1_speculations_per_nf[nf] = (avg_phase1_speculations, stdev_phase1_speculations)
-
-        avg_phase2_speculations = int(mean(phase2_speculations_per_nf[nf]))
-        stdev_phase2_speculations = int(stdev(phase2_speculations_per_nf[nf]))
-        avg_phase2_speculations_per_nf[nf] = (avg_phase2_speculations, stdev_phase2_speculations)
+        data[nf].compilation_times = (mean(compilation_times_per_nf[nf]), stdev(compilation_times_per_nf[nf]))
+        data[nf].backtracks = (int(mean(backtracks_per_nf[nf])), int(stdev(backtracks_per_nf[nf])))
+        data[nf].speculated = (int(mean(speculated_per_nf[nf])), int(stdev(speculated_per_nf[nf])))
+        data[nf].instantiated = (int(mean(instantiated_per_nf[nf])), int(stdev(instantiated_per_nf[nf])))
+        data[nf].phase1_speculations = (int(mean(phase1_speculations_per_nf[nf])), int(stdev(phase1_speculations_per_nf[nf])))
+        data[nf].phase2_speculations = (int(mean(phase2_speculations_per_nf[nf])), int(stdev(phase2_speculations_per_nf[nf])))
 
     table = PrettyTable()
     table.field_names = [
         "NF",
         "Time (s)",
-        "Backtracks",
+        # "Backtracks",
         "Speculated EPs",
         "Instantiated EPs",
         "Spec Phase 1",
@@ -111,25 +141,21 @@ if __name__ == "__main__":
     table.align = "l"
 
     for nf in args.nfs:
-        avg_compilation_time, stdev_compilation_time = avg_compilation_times_per_nf[nf]
-        avg_backtracks, stdev_backtracks = avg_backtracks_per_nf[nf]
-        avg_speculated, stdev_speculated = avg_speculated_per_nf[nf]
-        avg_instantiated, stdev_instantiated = avg_instantiated_per_nf[nf]
-        avg_phase1_speculations, stdev_phase1_speculations = avg_phase1_speculations_per_nf[nf]
-        avg_phase2_speculations, stdev_phase2_speculations = avg_phase2_speculations_per_nf[nf]
-
-        avg_phase2_speculations_rel = avg_phase2_speculations / avg_phase1_speculations if avg_phase1_speculations > 0 else 0
-        stdev_phase2_speculations_rel = stdev_phase2_speculations / avg_phase1_speculations if avg_phase1_speculations > 0 else 0
+        avg_phase2_speculations_rel = data[nf].phase2_speculations[0] / data[nf].phase1_speculations[0] if data[nf].phase1_speculations[0] > 0 else 0
+        stdev_phase2_speculations_rel = data[nf].phase2_speculations[1] / data[nf].phase1_speculations[0] if data[nf].phase1_speculations[0] > 0 else 0
 
         table.add_row(
             [
                 nf.upper(),
-                f"{avg_compilation_time:.2f} ± {stdev_compilation_time:.2f}",
-                f"{avg_backtracks:,} ± {stdev_backtracks:,}",
-                f"{avg_speculated:,} ± {stdev_speculated:,}",
-                f"{avg_instantiated:,} ± {stdev_instantiated:,}",
-                f"{avg_phase1_speculations:,} ± {stdev_phase1_speculations:,}",
-                f"{avg_phase2_speculations:,} ± {stdev_phase2_speculations:,} ({avg_phase2_speculations_rel*100:.2f} ± {stdev_phase2_speculations_rel*100:.2f} %)",
+                f"{data[nf].compilation_times[0]:.2f} ± {data[nf].compilation_times[1]:.2f}",
+                # f"{avg_backtracks:,} ± {stdev_backtracks:,}",
+                f"{data[nf].speculated[0]:,} ± {data[nf].speculated[1]:,}",
+                f"{data[nf].instantiated[0]:,} ± {data[nf].instantiated[1]:,}",
+                f"{data[nf].phase1_speculations[0]:,} ± {data[nf].phase1_speculations[1]:,}",
+                f"{data[nf].phase2_speculations[0]:,} ± {data[nf].phase2_speculations[1]:,} ({100*avg_phase2_speculations_rel:.2f} ± {100*stdev_phase2_speculations_rel:.2f} %)",
             ]
         )
     print(table)
+
+    latex_table = build_latex_table(data)
+    print(latex_table)

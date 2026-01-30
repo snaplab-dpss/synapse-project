@@ -143,8 +143,7 @@ public:
                                          bool required_additional_table = true);
   static bool can_reuse_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity, bool required_additional_table = true);
   static std::vector<u32> enum_fcfs_ct_cache_capacities(u32 capacity);
-  static hit_rate_t get_fcfs_ct_cache_collision_probability(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key,
-                                                            u32 cache_capacity);
+  static hit_rate_t get_fcfs_ct_cache_hit_rate(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key, u32 cache_capacity);
 
   // ======================================================================
   //  FCFS Cached Set
@@ -158,8 +157,7 @@ public:
                                          bool required_additional_table = true);
   static bool can_reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity, bool required_additional_table = true);
   static std::vector<u32> enum_fcfs_cs_cache_capacities(u32 capacity);
-  static hit_rate_t get_fcfs_cs_cache_collision_probability(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key,
-                                                            u32 cache_capacity);
+  static hit_rate_t get_fcfs_cs_cache_hit_rate(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key, u32 cache_capacity);
 
   // ======================================================================
   //  Heavy Hitter Table

@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       43 seconds
+  Elapsed time:       44 seconds
   Steps:              65
   Backtracks:         0
   Search space size:  180
@@ -108,9 +108,9 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 23'897 (100%)
-  Num phase 2 speculations: 1'579 (6.60752%)
-  Num speculated modules:   240'308
+  Num phase 1 speculations: 23'909 (100%)
+  Num phase 2 speculations: 1'580 (6.60839%)
+  Num speculated modules:   240'380
   Num EPs generated:        180
 
 Switch placement:

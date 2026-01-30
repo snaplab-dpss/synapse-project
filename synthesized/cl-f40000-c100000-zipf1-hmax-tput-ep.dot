@@ -4,6 +4,7 @@ digraph G {
 	"1230"[label="[EPNode=1230,BDDNode=182]\nForward (vector_data__177)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"833"[label="[EPNode=833,BDDNode=177]\nVector Table Lookup\n(tid=vector_table_1074110176, obj=1074110176)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"4723"[label="[EPNode=4723,BDDNode=252] \n!not_out_of_space__251",shape=ellipse,style="filled,",fillcolor="lightcoral",border=0,];
+	"3081"[label="[EPNode=3081,BDDNode=266]\nParseHeader",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"2193"[label="[EPNode=2193,BDDNode=149]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"3086"[label="[EPNode=3086,BDDNode=266]\nThen",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"2192"[label="[EPNode=2192,BDDNode=149] \n(cached_insert_success != 0)",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
@@ -17,7 +18,7 @@ digraph G {
 	"2194"[label="[EPNode=2194,BDDNode=149]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"24"[label="[EPNode=24,BDDNode=137] ParserCondition",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"692"[label="[EPNode=692,BDDNode=143] \n!vector_data__141",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"2191"[label="[EPNode=2191,BDDNode=149]\nFCFS Cached Set Insert\nobj=1074047984, size=32768",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"2191"[label="[EPNode=2191,BDDNode=149]\nFCFS Cached Set Insert\nobj=1074047984, size=65536",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"25"[label="[EPNode=25,BDDNode=137]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"3097"[label="[EPNode=3097,BDDNode=266] \n(cached_insert_success != 0)",shape=ellipse,style="filled,",fillcolor="lightcoral",border=0,];
 	"5210"[label="[EPNode=5210,BDDNode=265]\nForward",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
@@ -30,10 +31,7 @@ digraph G {
 	"2005"[label="[EPNode=2005,BDDNode=148] \n(min_estimate__147 <= 131071)",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"103"[label="[EPNode=103,BDDNode=140]\nParse Header (4B)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"693"[label="[EPNode=693,BDDNode=143]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"3081"[label="[EPNode=3081,BDDNode=266]\nParseHeader",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
-	"433"[label="[EPNode=433,BDDNode=144]\nFCFS Cached Set Read\nobj=1074047984, size=32768",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"174"[label="[EPNode=174,BDDNode=141]\nVector Table Lookup\n(tid=vector_table_1074092960, obj=1074092960)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"1364"[label="[EPNode=1364,BDDNode=171]\nVector Table Lookup\n(tid=vector_table_1074110176, obj=1074110176)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"446"[label="[EPNode=446,BDDNode=144]\nFCFS Cached Set Read\nobj=1074047984, size=65536",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"3000"[label="[EPNode=3000,BDDNode=165]\nForward (vector_data__160)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"2006"[label="[EPNode=2006,BDDNode=148]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"3082"[label="[EPNode=3082,BDDNode=266]\nParseHeader",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
@@ -64,6 +62,8 @@ digraph G {
 	"2007"[label="[EPNode=2007,BDDNode=148]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"3088"[label="[EPNode=3088,BDDNode=266]\nAbortTransaction",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"4657"[label="[EPNode=4657,BDDNode=169]\nDrop",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"174"[label="[EPNode=174,BDDNode=141]\nVector Table Lookup\n(tid=vector_table_1074092960, obj=1074092960)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"1364"[label="[EPNode=1364,BDDNode=171]\nVector Table Lookup\n(tid=vector_table_1074110176, obj=1074110176)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"2282" -> "3000";
 	"2193" -> "2282";
 	"2192" -> "2193";
@@ -115,8 +115,8 @@ digraph G {
 	"833" -> "1230";
 	"694" -> "833";
 	"692" -> "694";
-	"433" -> "692";
-	"174" -> "433";
+	"446" -> "692";
+	"174" -> "446";
 	"103" -> "174";
 	"70" -> "103";
 	"69" -> "70";

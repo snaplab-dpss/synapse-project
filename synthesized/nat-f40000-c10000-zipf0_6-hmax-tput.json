@@ -2,9 +2,9 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 208,
-    "num_phase1_speculations": 23927,
-    "num_phase2_speculations": 1322,
-    "num_speculated_modules": 285335
+    "num_phase1_speculations": 23950,
+    "num_phase2_speculations": 1323,
+    "num_speculated_modules": 285538
   },
   "heuristic": {
     "meta": [
@@ -29,7 +29,7 @@
         "name": "Stages"
       },
       {
-        "description": "29280256 bits",
+        "description": "32425984 bits",
         "name": "Memory Usage"
       }
     ],
@@ -38,7 +38,7 @@
       2266622000,
       69,
       -5,
-      -29280256,
+      -32425984,
       0
     ]
   },
@@ -389,6 +389,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 1595702150592,
-  "tput_estimation_pps": 2266622373
+  "tput_estimation_bps": 1595702161856,
+  "tput_estimation_pps": 2266622389
 }

@@ -14,9 +14,9 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,2'250'000'000,58,-9,-26'134'528,-1>
-  Tput: 1.58 Tbps (2.25 Gpps)
-  Spec: 1.58 Tbps (2.25 Gpps)
+  Score: <0,967'936'000,58,-9,-26'134'528,-1>
+  Tput: 681.43 Gbps (967.94 Mpps)
+  Spec: 681.43 Gbps (967.94 Mpps)
   Recirculations: 1
   BDD Progress: 58 / 63
   Stages: 9
@@ -30,7 +30,7 @@ Stateful Implementations:
   1074092960: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       60 seconds
+  Elapsed time:       62 seconds
   Steps:              59
   Backtracks:         0
   Search space size:  176
@@ -111,9 +111,9 @@ Search Metadata:
     Node 251: 0
 
 Global Stats:
-  Num phase 1 speculations: 12'553 (100%)
-  Num phase 2 speculations: 698 (5.56042%)
-  Num speculated modules:   144'692
+  Num phase 1 speculations: 12'673 (100%)
+  Num phase 2 speculations: 714 (5.63403%)
+  Num speculated modules:   145'428
   Num EPs generated:        176
 
 Switch placement:
@@ -141,7 +141,7 @@ SRAM: 278'528/1'310'720 B (21.25%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 278'528/786'432 B (35.4167%)
 Exact Match Crossbar: 26/128 B (20.3125%)
-Objs: [fcfs_cs_1074047984_reg_liveness,fcfs_cs_1074047984_hash_149,fcfs_cs_1074047984_hash_144]
+Objs: [fcfs_cs_1074047984_hash_149,fcfs_cs_1074047984_reg_liveness,fcfs_cs_1074047984_hash_144]
 -------------------------------------
 -------------------------------------
 Stage 3

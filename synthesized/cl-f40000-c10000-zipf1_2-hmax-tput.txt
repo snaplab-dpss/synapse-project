@@ -14,13 +14,13 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,2'250'000'000,58,-8,-9'373'696,-1>
+  Score: <0,2'250'000'000,58,-8,-9'422'848,-1>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 1
   BDD Progress: 58 / 63
   Stages: 8
-  Memory Usage: 9373696 bits
+  Memory Usage: 9422848 bits
 
 Stateful Implementations:
   1074080384: Tofino::CMS
@@ -111,9 +111,9 @@ Search Metadata:
     Node 251: 0
 
 Global Stats:
-  Num phase 1 speculations: 17'049 (100%)
-  Num phase 2 speculations: 1'064 (6.24084%)
-  Num speculated modules:   180'913
+  Num phase 1 speculations: 17'469 (100%)
+  Num phase 2 speculations: 1'120 (6.41136%)
+  Num speculated modules:   183'489
   Num EPs generated:        176
 
 Switch placement:
@@ -137,17 +137,17 @@ Objs: [fcfs_cs_1074047984_table_144]
 -------------------------------------
 -------------------------------------
 Stage 2
-SRAM: 16'640/1'310'720 B (1.26953%)
+SRAM: 17'408/1'310'720 B (1.32812%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 16'640/786'432 B (2.11589%)
+MapRAM: 17'408/786'432 B (2.21354%)
 Exact Match Crossbar: 25/128 B (19.5312%)
 Objs: [fcfs_cs_1074047984_reg_liveness,fcfs_cs_1074047984_hash_149,fcfs_cs_1074047984_hash_144]
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 49'920/1'310'720 B (3.80859%)
+SRAM: 52'224/1'310'720 B (3.98438%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 49'920/786'432 B (6.34766%)
+MapRAM: 52'224/786'432 B (6.64062%)
 Exact Match Crossbar: 3/128 B (2.34375%)
 Objs: [fcfs_cs_1074047984_reg_key_2,fcfs_cs_1074047984_reg_key_1,fcfs_cs_1074047984_reg_key_0]
 -------------------------------------

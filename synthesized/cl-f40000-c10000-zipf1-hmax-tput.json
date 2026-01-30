@@ -2,9 +2,9 @@
   "bdd": "cl.bdd",
   "global_stats": {
     "num_execution_plans_generated": 176,
-    "num_phase1_speculations": 17229,
-    "num_phase2_speculations": 1088,
-    "num_speculated_modules": 182017
+    "num_phase1_speculations": 17469,
+    "num_phase2_speculations": 1120,
+    "num_speculated_modules": 183489
   },
   "heuristic": {
     "meta": [
@@ -29,7 +29,7 @@
         "name": "Stages"
       },
       {
-        "description": "9373696 bits",
+        "description": "9619456 bits",
         "name": "Memory Usage"
       }
     ],
@@ -38,7 +38,7 @@
       2250000000,
       58,
       -8,
-      -9373696,
+      -9619456,
       -1
     ]
   },
@@ -348,7 +348,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.109090909090909,
-    "elapsed_time_seconds": 59,
+    "elapsed_time_seconds": 54,
     "finished_eps": 1,
     "ss_size": 176,
     "steps": 59,

@@ -2,18 +2,18 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 208,
-    "num_phase1_speculations": 20841,
-    "num_phase2_speculations": 1097,
-    "num_speculated_modules": 247336
+    "num_phase1_speculations": 20864,
+    "num_phase2_speculations": 1098,
+    "num_speculated_modules": 247539
   },
   "heuristic": {
     "meta": [
       {
-        "description": "35.33 Gbps (50.19 Mpps)",
+        "description": "25.42 Gbps (36.11 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "35.33 Gbps (50.19 Mpps)",
+        "description": "25.42 Gbps (36.11 Mpps)",
         "name": "Spec"
       },
       {
@@ -35,7 +35,7 @@
     ],
     "score": [
       0,
-      50188500,
+      36112000,
       69,
       -5,
       -32425984,
@@ -380,7 +380,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1774193548387095,
-    "elapsed_time_seconds": 50,
+    "elapsed_time_seconds": 51,
     "finished_eps": 1,
     "ss_size": 208,
     "steps": 69,
@@ -389,6 +389,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 35332922240,
-  "tput_estimation_pps": 50188810
+  "tput_estimation_bps": 25423056384,
+  "tput_estimation_pps": 36112296
 }

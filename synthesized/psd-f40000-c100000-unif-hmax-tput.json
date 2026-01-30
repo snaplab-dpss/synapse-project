@@ -9,11 +9,11 @@
   "heuristic": {
     "meta": [
       {
-        "description": "284.64 Gbps (404.31 Mpps)",
+        "description": "270.45 Gbps (384.17 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "284.64 Gbps (404.31 Mpps)",
+        "description": "270.45 Gbps (384.17 Mpps)",
         "name": "Spec"
       },
       {
@@ -35,7 +35,7 @@
     ],
     "score": [
       0,
-      404313500,
+      384165000,
       75,
       -3,
       -19096704,
@@ -429,6 +429,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 284636749760,
-  "tput_estimation_pps": 404313565
+  "tput_estimation_bps": 270452491584,
+  "tput_estimation_pps": 384165471
 }

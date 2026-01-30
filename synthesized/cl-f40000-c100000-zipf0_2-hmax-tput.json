@@ -1,19 +1,19 @@
 {
   "bdd": "cl.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 178,
-    "num_phase1_speculations": 13350,
-    "num_phase2_speculations": 783,
-    "num_speculated_modules": 150329
+    "num_execution_plans_generated": 209,
+    "num_phase1_speculations": 16701,
+    "num_phase2_speculations": 1001,
+    "num_speculated_modules": 186287
   },
   "heuristic": {
     "meta": [
       {
-        "description": "596.01 Gbps (846.60 Mpps)",
+        "description": "495.66 Gbps (704.06 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "596.01 Gbps (846.60 Mpps)",
+        "description": "495.66 Gbps (704.06 Mpps)",
         "name": "Spec"
       },
       {
@@ -35,7 +35,7 @@
     ],
     "score": [
       0,
-      846601500,
+      704062500,
       58,
       -4,
       -36278272,
@@ -122,7 +122,7 @@
         "node_id": 178
       },
       {
-        "avg": 2.5,
+        "avg": 3.0,
         "node_id": 145
       },
       {
@@ -134,7 +134,7 @@
         "node_id": 177
       },
       {
-        "avg": 32.0,
+        "avg": 31.5,
         "node_id": 144
       },
       {
@@ -234,7 +234,7 @@
         "node_id": 171
       },
       {
-        "avg": 3.0,
+        "avg": 2.5,
         "node_id": 142
       },
       {
@@ -346,17 +346,17 @@
         "node_id": 251
       }
     ],
-    "backtracks": 0,
-    "branching_factor": 3.1363636363636362,
-    "elapsed_time_seconds": 62,
+    "backtracks": 1,
+    "branching_factor": 3.1272727272727274,
+    "elapsed_time_seconds": 61,
     "finished_eps": 1,
-    "ss_size": 178,
-    "steps": 59,
-    "total_ss_size_estimation": 12245087070003.44,
-    "unfinished_eps": 119
+    "ss_size": 209,
+    "steps": 60,
+    "total_ss_size_estimation": 11373677645449.367,
+    "unfinished_eps": 149
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 596007603136,
-  "tput_estimation_pps": 846601709
+  "tput_estimation_bps": 495660081664,
+  "tput_estimation_pps": 704062616
 }

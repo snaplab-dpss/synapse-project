@@ -344,10 +344,10 @@ control Ingress(
     size = 36;
   }
 
-  Hash<bit<15>>(HashAlgorithm_t.CRC32) fcfs_cs_1074047984_hash_144;
-  Hash<bit<15>>(HashAlgorithm_t.CRC32) fcfs_cs_1074047984_hash_149;
-  Register<bit<32>,_>(32768, 0) fcfs_cs_1074047984_reg_liveness;
-  RegisterAction<bit<32>, bit<15>, bool>(fcfs_cs_1074047984_reg_liveness) fcfs_cs_1074047984_reg_liveness_query_timestamp = {
+  Hash<bit<16>>(HashAlgorithm_t.CRC32) fcfs_cs_1074047984_hash_144;
+  Hash<bit<16>>(HashAlgorithm_t.CRC32) fcfs_cs_1074047984_hash_149;
+  Register<bit<32>,_>(65536, 0) fcfs_cs_1074047984_reg_liveness;
+  RegisterAction<bit<32>, bit<16>, bool>(fcfs_cs_1074047984_reg_liveness) fcfs_cs_1074047984_reg_liveness_query_timestamp = {
     void apply(inout bit<32> alarm, out bool was_alive) {
       if (meta.time > alarm) {
         was_alive = false;
@@ -357,7 +357,7 @@ control Ingress(
     }
   };
 
-  RegisterAction<bit<32>, bit<15>, bool>(fcfs_cs_1074047984_reg_liveness) fcfs_cs_1074047984_reg_liveness_query_and_refresh_timestamp = {
+  RegisterAction<bit<32>, bit<16>, bool>(fcfs_cs_1074047984_reg_liveness) fcfs_cs_1074047984_reg_liveness_query_and_refresh_timestamp = {
     void apply(inout bit<32> alarm, out bool was_alive) {
       if (meta.time > alarm) {
         was_alive = false;
@@ -368,14 +368,14 @@ control Ingress(
     }
   };
 
-  Register<bit<32>,_>(32768, 0) fcfs_cs_1074047984_reg_key_0;
-  RegisterAction<bit<32>, bit<15>, void>(fcfs_cs_1074047984_reg_key_0) fcfs_cs_1074047984_reg_key_0_write = {
+  Register<bit<32>,_>(65536, 0) fcfs_cs_1074047984_reg_key_0;
+  RegisterAction<bit<32>, bit<16>, void>(fcfs_cs_1074047984_reg_key_0) fcfs_cs_1074047984_reg_key_0_write = {
     void apply(inout bit<32> value) {
       value = meta.fcfs_cs_1074047984_key_32b_0;
     }
   };
 
-  RegisterAction<bit<32>, bit<15>, bit<8>>(fcfs_cs_1074047984_reg_key_0) fcfs_cs_1074047984_reg_key_0_check_value = {
+  RegisterAction<bit<32>, bit<16>, bit<8>>(fcfs_cs_1074047984_reg_key_0) fcfs_cs_1074047984_reg_key_0_check_value = {
     void apply(inout bit<32> curr_value, out bit<8> match) {
       if (curr_value == meta.fcfs_cs_1074047984_key_32b_0) {
         match = 1;
@@ -385,14 +385,14 @@ control Ingress(
     }
   };
 
-  Register<bit<32>,_>(32768, 0) fcfs_cs_1074047984_reg_key_1;
-  RegisterAction<bit<32>, bit<15>, void>(fcfs_cs_1074047984_reg_key_1) fcfs_cs_1074047984_reg_key_1_write = {
+  Register<bit<32>,_>(65536, 0) fcfs_cs_1074047984_reg_key_1;
+  RegisterAction<bit<32>, bit<16>, void>(fcfs_cs_1074047984_reg_key_1) fcfs_cs_1074047984_reg_key_1_write = {
     void apply(inout bit<32> value) {
       value = meta.fcfs_cs_1074047984_key_32b_1;
     }
   };
 
-  RegisterAction<bit<32>, bit<15>, bit<8>>(fcfs_cs_1074047984_reg_key_1) fcfs_cs_1074047984_reg_key_1_check_value = {
+  RegisterAction<bit<32>, bit<16>, bit<8>>(fcfs_cs_1074047984_reg_key_1) fcfs_cs_1074047984_reg_key_1_check_value = {
     void apply(inout bit<32> curr_value, out bit<8> match) {
       if (curr_value == meta.fcfs_cs_1074047984_key_32b_1) {
         match = 1;
@@ -402,14 +402,14 @@ control Ingress(
     }
   };
 
-  Register<bit<32>,_>(32768, 0) fcfs_cs_1074047984_reg_key_2;
-  RegisterAction<bit<32>, bit<15>, void>(fcfs_cs_1074047984_reg_key_2) fcfs_cs_1074047984_reg_key_2_write = {
+  Register<bit<32>,_>(65536, 0) fcfs_cs_1074047984_reg_key_2;
+  RegisterAction<bit<32>, bit<16>, void>(fcfs_cs_1074047984_reg_key_2) fcfs_cs_1074047984_reg_key_2_write = {
     void apply(inout bit<32> value) {
       value = meta.fcfs_cs_1074047984_key_32b_2;
     }
   };
 
-  RegisterAction<bit<32>, bit<15>, bit<8>>(fcfs_cs_1074047984_reg_key_2) fcfs_cs_1074047984_reg_key_2_check_value = {
+  RegisterAction<bit<32>, bit<16>, bit<8>>(fcfs_cs_1074047984_reg_key_2) fcfs_cs_1074047984_reg_key_2_check_value = {
     void apply(inout bit<32> curr_value, out bit<8> match) {
       if (curr_value == meta.fcfs_cs_1074047984_key_32b_2) {
         match = 1;
@@ -432,7 +432,7 @@ control Ingress(
     idle_timeout = true;
   }
 
-  bit<15> fcfs_cs_1074047984_hash_144_value;
+  bit<16> fcfs_cs_1074047984_hash_144_value;
   action fcfs_cs_1074047984_hash_144_calc() {
     fcfs_cs_1074047984_hash_144_value = fcfs_cs_1074047984_hash_144.get({
       meta.fcfs_cs_1074047984_key_32b_0,
@@ -621,7 +621,7 @@ control Ingress(
       32w0x1f3a2b4d
     });
   }
-  bit<15> fcfs_cs_1074047984_hash_149_value;
+  bit<16> fcfs_cs_1074047984_hash_149_value;
   action fcfs_cs_1074047984_hash_149_calc() {
     fcfs_cs_1074047984_hash_149_value = fcfs_cs_1074047984_hash_149.get({
       meta.fcfs_cs_1074047984_key_32b_0,
@@ -749,7 +749,7 @@ control Ingress(
             // BDD node 141:vector_borrow
             meta.key_32b_0 = meta.dev;
             vector_table_1074092960_141.apply();
-            // EP node  433:FCFSCachedSetRead
+            // EP node  446:FCFSCachedSetRead
             // BDD node 144:map_get
             meta.fcfs_cs_1074047984_key_32b_0 = hdr.hdr1.data3[63:32];
             meta.fcfs_cs_1074047984_key_32b_1 = hdr.hdr1.data3[31:0];

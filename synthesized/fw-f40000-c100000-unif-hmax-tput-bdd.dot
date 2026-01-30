@@ -23,15 +23,15 @@ Fwd={
 14:0.03333333,30:0.03333333,20:0.03333333,22:0.03333333,
 24:0.03333333,26:0.03333333,28:0.03333333}",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"138"[label="138:packet_borrow_next_chunk(\l  p:1074195336,\l  length:4,\l  chunk:1074207432[ -> 1073762768])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"168"[label="168:vector_borrow(\l  vector:1074093704,\l  index:DEVICE,\l  val_out:1074213544[ -> 1074107600])\l=>{vector_data__168}\lHR=0.00000294",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"168"[label="168:vector_borrow(\l  vector:1074093704,\l  index:DEVICE,\l  val_out:1074213544[ -> 1074107600])\l=>{vector_data__168}\lHR=0.00000284",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"140"[label="140:vector_return(\l  vector:1074076488,\l  index:DEVICE,\l  value:1074090384[vector_data__139])\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"171"[label="171:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762512[packet_chunks[256:276]])\lHR=0.00000294",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"171"[label="171:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762512[packet_chunks[256:276]])\lHR=0.00000284",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"149"[label="149:vector_borrow(\l  vector:1074093704,\l  index:DEVICE,\l  val_out:1074209544[ -> 1074107600])\l=>{vector_data__149}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"145"[label="145:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762512[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"174"[label="174:dchain_rejuvenate_index(\l  chain:1074076064,\l  index:allocated_index__155,\l  time:next_time) -> 1\lHR=0.49999628",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"177"[label="177:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762768[packet_chunks[512:516]])\lHR=0.49999628",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"157"[label="157:dchain_allocate_new_index(\l  chain:1074076064,\l  index_out:1074210936[2880154539 -> new_index__157],\l  time:next_time) -> not_out_of_space__157\l=>{cached_insert_success,not_out_of_space__157,new_index__157}\lHR=0.00000372",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"257"[label="257:vector_borrow(\l  vector:1074093704,\l  index:DEVICE,\l  val_out:1074213544[ -> 1074107600])\l=>{vector_data__168}\lHR=0.00000079",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"257"[label="257:vector_borrow(\l  vector:1074093704,\l  index:DEVICE,\l  val_out:1074213544[ -> 1074107600])\l=>{vector_data__168}\lHR=0.00000088",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"178"[label="178:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762512[packet_chunks[256:276]])\lHR=0.49999628",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"255"[label="255:fwd(vector_data__159)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
@@ -44,38 +44,38 @@ Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"144"[label="144:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762768[packet_chunks[512:516]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"155"[label="155:map_get(\l  map:1074044080,\l  key:1074205314[packet_chunks[512:516]++packet_chunks[268:276]],\l  value_out:1074210936[2880154539 -> allocated_index__155]) -> map_has_this_key__155\l=>{map_has_this_key__155,allocated_index__155}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"179"[label="179:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762256[packet_chunks])\lHR=0.49999628",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"265"[label="265:packet_borrow_next_chunk(\l  p:1074195336,\l  length:20,\l  chunk:1074206776[ -> 1073762512])\l=>{packet_chunks}\lHR=0.00000079",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"172"[label="172:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762256[packet_chunks])\lHR=0.00000294",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"169"[label="169:vector_return(\l  vector:1074093704,\l  index:DEVICE,\l  value:1074107600[vector_data__168])\lHR=0.00000294",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"265"[label="265:packet_borrow_next_chunk(\l  p:1074195336,\l  length:20,\l  chunk:1074206776[ -> 1073762512])\l=>{packet_chunks}\lHR=0.00000088",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"172"[label="172:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762256[packet_chunks])\lHR=0.00000284",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"169"[label="169:vector_return(\l  vector:1074093704,\l  index:DEVICE,\l  value:1074107600[vector_data__168])\lHR=0.00000284",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"254"[label="254:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762256[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"262"[label="262:fwd(vector_data__168)\lHR=0.00000079
+	"262"[label="262:fwd(vector_data__168)\lHR=0.00000088
 Fwd={
-31:0.00000079}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"173"[label="173:fwd(vector_data__168)\lHR=0.00000294
+31:0.00000088}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"173"[label="173:fwd(vector_data__168)\lHR=0.00000284
 Fwd={
-31:0.00000294}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"264"[label="264:packet_borrow_next_chunk(\l  p:1074195336,\l  length:14,\l  chunk:1074206040[ -> 1073762256])\l=>{packet_chunks}\lHR=0.00000079",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"266"[label="266:packet_borrow_next_chunk(\l  p:1074195336,\l  length:4,\l  chunk:1074207432[ -> 1073762768])\l=>{packet_chunks}\lHR=0.00000079",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"248"[label="248:dchain_allocate_new_index(\l  chain:1074076064,\l  index_out:1074210936[2880154539 -> new_index__248],\l  time:next_time) -> not_out_of_space__248\l=>{new_index__248,not_out_of_space__248}\lHR=0.00000079",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"249"[label="249:!not_out_of_space__248\nHR=0.00000079",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
+31:0.00000284}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"264"[label="264:packet_borrow_next_chunk(\l  p:1074195336,\l  length:14,\l  chunk:1074206040[ -> 1073762256])\l=>{packet_chunks}\lHR=0.00000088",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"266"[label="266:packet_borrow_next_chunk(\l  p:1074195336,\l  length:4,\l  chunk:1074207432[ -> 1073762768])\l=>{packet_chunks}\lHR=0.00000088",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"248"[label="248:dchain_allocate_new_index(\l  chain:1074076064,\l  index_out:1074210936[2880154539 -> new_index__248],\l  time:next_time) -> not_out_of_space__248\l=>{new_index__248,not_out_of_space__248}\lHR=0.00000088",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"249"[label="249:!not_out_of_space__248\nHR=0.00000088",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
 	"180"[label="180:fwd(vector_data__175)\lHR=0.49999628
 Fwd={
 5:0.03333333,11:0.03333333,15:0.03333333,31:0.03332961,
 17:0.03333333,19:0.03333333,7:0.03333333,9:0.03333333,
 13:0.03333333,29:0.03333333,21:0.03333333,23:0.03333333,
 25:0.03333333,27:0.03333333,3:0.03333333}",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"263"[label="263:tofino_force_send_to_controller()\l=>{__BDD_REORDERING_BARRIER__}\lHR=0.00000079",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"263"[label="263:tofino_force_send_to_controller()\l=>{__BDD_REORDERING_BARRIER__}\lHR=0.00000088",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"250"[label="250:vector_borrow(\l  vector:1074093704,\l  index:DEVICE,\l  val_out:1074211384[ -> 1074107600])\l=>{vector_data__159}\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"252"[label="252:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762768[packet_chunks[512:516]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"148"[label="148:dchain_rejuvenate_index(\l  chain:1074076064,\l  index:allocated_index__142,\l  time:next_time) -> 1\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"251"[label="251:vector_return(\l  vector:1074093704,\l  index:DEVICE,\l  value:1074107600[vector_data__159])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"253"[label="253:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762512[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"133"[label="133:expire_items_single_map(\l  chain:1074076064,\l  vector:1074057904,\l  time:(18446744072709551616 + next_time),\l  map:1074044080) -> number_of_freed_flows__133\l=>{number_of_freed_flows__133}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"258"[label="258:vector_return(\l  vector:1074093704,\l  index:DEVICE,\l  value:1074107600[vector_data__168])\lHR=0.00000079",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"259"[label="259:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762768[packet_chunks[512:516]])\lHR=0.00000079",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"170"[label="170:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762768[packet_chunks[512:516]])\lHR=0.00000294",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"260"[label="260:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762512[packet_chunks[256:276]])\lHR=0.00000079",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"261"[label="261:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762256[packet_chunks])\lHR=0.00000079",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"258"[label="258:vector_return(\l  vector:1074093704,\l  index:DEVICE,\l  value:1074107600[vector_data__168])\lHR=0.00000088",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"259"[label="259:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762768[packet_chunks[512:516]])\lHR=0.00000088",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"170"[label="170:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762768[packet_chunks[512:516]])\lHR=0.00000284",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"260"[label="260:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762512[packet_chunks[256:276]])\lHR=0.00000088",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"261"[label="261:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762256[packet_chunks])\lHR=0.00000088",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"176"[label="176:vector_return(\l  vector:1074093704,\l  index:DEVICE,\l  value:1074107600[vector_data__175])\lHR=0.49999628",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"134"[label="134:packet_borrow_next_chunk(\l  p:1074195336,\l  length:14,\l  chunk:1074206040[ -> 1073762256])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"181"[label="181:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762512[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];

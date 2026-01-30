@@ -2,9 +2,9 @@
   "bdd": "psd.bdd",
   "global_stats": {
     "num_execution_plans_generated": 181,
-    "num_phase1_speculations": 11200,
+    "num_phase1_speculations": 11032,
     "num_phase2_speculations": 642,
-    "num_speculated_modules": 145464
+    "num_speculated_modules": 143024
   },
   "heuristic": {
     "meta": [

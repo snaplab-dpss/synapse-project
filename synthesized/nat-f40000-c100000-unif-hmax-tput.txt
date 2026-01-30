@@ -14,9 +14,9 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,403'144'000,69,-5,-32'425'984,0>
-  Tput: 283.81 Gbps (403.14 Mpps)
-  Spec: 283.81 Gbps (403.14 Mpps)
+  Score: <0,381'897'500,69,-5,-32'425'984,0>
+  Tput: 268.86 Gbps (381.90 Mpps)
+  Spec: 268.86 Gbps (381.90 Mpps)
   Recirculations: 0
   BDD Progress: 69 / 75
   Stages: 5

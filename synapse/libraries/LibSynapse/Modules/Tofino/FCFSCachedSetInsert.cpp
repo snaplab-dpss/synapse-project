@@ -210,11 +210,11 @@ rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const pattern_t &pattern, const fcf
   const Call *map_get          = pattern.map_put->get_past_map_get_from_map_put();
   const Call *target_for_stats = map_get ? map_get : pattern.map_put;
 
-  const hit_rate_t cache_collision_probability =
-      TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(new_ep->get_ctx(), target_for_stats, fcfs_cs_data.original_key, cache_capacity);
+  const hit_rate_t cache_hit_rate =
+      TofinoModuleFactory::get_fcfs_cs_cache_hit_rate(new_ep->get_ctx(), target_for_stats, fcfs_cs_data.original_key, cache_capacity);
 
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(pattern.dchain_allocate_new_index->get_ordered_branch_constraints(),
-                                                                   cached_insert_success_condition, 1_hr - cache_collision_probability);
+                                                                   cached_insert_success_condition, cache_hit_rate);
   new_ep->get_mutable_ctx().get_mutable_profiler().translate(result.bdd->get_mutable_symbol_manager(), bddnode_translations_pair.new_node,
                                                              bddnode_translations_pair.translations);
 
@@ -323,15 +323,15 @@ std::optional<spec_impl_t> FCFSCachedSetInsertFactory::speculate(const EP *ep, c
   std::sort(allowed_cache_capacities.begin(), allowed_cache_capacities.end(), std::greater<int>());
 
   for (u32 cache_capacity : allowed_cache_capacities) {
-    const hit_rate_t success_estimation =
-        1_hr - TofinoModuleFactory::get_fcfs_cs_cache_collision_probability(ep->get_ctx(), target_for_stats, data.original_key, cache_capacity);
+    const hit_rate_t cache_hit_rate =
+        TofinoModuleFactory::get_fcfs_cs_cache_hit_rate(ep->get_ctx(), target_for_stats, data.original_key, cache_capacity);
 
     if (!can_build_or_reuse_fcfs_cs(ep, node, data.obj, data.original_key, data.capacity, cache_capacity, false)) {
       continue;
     }
 
-    if (!successfully_placed || success_estimation > chosen_success_estimation) {
-      chosen_success_estimation = success_estimation;
+    if (!successfully_placed || cache_hit_rate > chosen_success_estimation) {
+      chosen_success_estimation = cache_hit_rate;
       chosen_cache_capacity     = cache_capacity;
     }
 

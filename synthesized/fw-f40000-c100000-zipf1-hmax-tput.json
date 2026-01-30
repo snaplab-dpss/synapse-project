@@ -2,18 +2,18 @@
   "bdd": "fw.bdd",
   "global_stats": {
     "num_execution_plans_generated": 173,
-    "num_phase1_speculations": 16076,
-    "num_phase2_speculations": 869,
-    "num_speculated_modules": 185349
+    "num_phase1_speculations": 16051,
+    "num_phase2_speculations": 871,
+    "num_speculated_modules": 184747
   },
   "heuristic": {
     "meta": [
       {
-        "description": "1.58 Tbps (2.25 Gpps)",
+        "description": "759.97 Gbps (1.08 Gpps)",
         "name": "Tput"
       },
       {
-        "description": "1.58 Tbps (2.25 Gpps)",
+        "description": "759.97 Gbps (1.08 Gpps)",
         "name": "Spec"
       },
       {
@@ -25,20 +25,20 @@
         "name": "BDD Progress"
       },
       {
-        "description": "5",
+        "description": "6",
         "name": "Stages"
       },
       {
-        "description": "23687872 bits",
+        "description": "32076480 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      2250000000,
+      1079506500,
       56,
-      -5,
-      -23687872,
+      -6,
+      -32076480,
       0
     ]
   },
@@ -340,7 +340,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1666666666666665,
-    "elapsed_time_seconds": 39,
+    "elapsed_time_seconds": 41,
     "finished_eps": 1,
     "ss_size": 173,
     "steps": 56,
@@ -349,6 +349,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 1584000000000,
-  "tput_estimation_pps": 2250000000
+  "tput_estimation_bps": 759972825216,
+  "tput_estimation_pps": 1079506854
 }

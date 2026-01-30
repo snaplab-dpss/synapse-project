@@ -2,9 +2,9 @@
   "bdd": "cl.bdd",
   "global_stats": {
     "num_execution_plans_generated": 176,
-    "num_phase1_speculations": 17469,
-    "num_phase2_speculations": 1120,
-    "num_speculated_modules": 183489
+    "num_phase1_speculations": 17529,
+    "num_phase2_speculations": 1128,
+    "num_speculated_modules": 183857
   },
   "heuristic": {
     "meta": [
@@ -29,7 +29,7 @@
         "name": "Stages"
       },
       {
-        "description": "10405888 bits",
+        "description": "11454464 bits",
         "name": "Memory Usage"
       }
     ],
@@ -38,7 +38,7 @@
       2250000000,
       58,
       -8,
-      -10405888,
+      -11454464,
       -1
     ]
   },

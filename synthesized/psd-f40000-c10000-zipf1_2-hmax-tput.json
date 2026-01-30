@@ -29,7 +29,7 @@
         "name": "Stages"
       },
       {
-        "description": "16741504 bits",
+        "description": "16753792 bits",
         "name": "Memory Usage"
       }
     ],
@@ -38,7 +38,7 @@
       2250000000,
       75,
       -3,
-      -16741504,
+      -16753792,
       -1
     ]
   },
@@ -420,7 +420,7 @@
     ],
     "backtracks": 1,
     "branching_factor": 2.898550724637681,
-    "elapsed_time_seconds": 89,
+    "elapsed_time_seconds": 93,
     "finished_eps": 1,
     "ss_size": 218,
     "steps": 78,

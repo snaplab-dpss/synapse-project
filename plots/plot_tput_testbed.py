@@ -134,19 +134,25 @@ def plot_bps(data: dict[int, Data], file: Path):
     avg_tg_egress_gbps = [data[pkt_size].dut_ingress_bps[0] / 1e9 for pkt_size in data.keys()]
     stdev_tg_egress_gbps = [data[pkt_size].dut_ingress_bps[1] / 1e9 for pkt_size in data.keys()]
 
+    colors = [
+        "#FF7F00",
+        "#2400D8",
+        "#3D87FF",
+    ]
+
     data_to_show = {
         "Pktgen": (pktgen_gbps, stdev_pktgen_gbps),
-        "Pktgen (30x)": ([30 * v for v in pktgen_gbps], [30 * v for v in stdev_pktgen_gbps]),
+        "Expected TG egress": ([30 * v for v in pktgen_gbps], [30 * v for v in stdev_pktgen_gbps]),
         "TG egress": (avg_tg_egress_gbps, stdev_tg_egress_gbps),
     }
 
     bar_width = 0.25
     ind = np.arange(len(pkt_sizes))
     pos = ind
-    for attribute, (y, yerr) in data_to_show.items():
-        rects = ax.bar(pos, y, bar_width, label=attribute)
+    for (attribute, (y, yerr)), hatch, color in zip(data_to_show.items(), itertools.cycle(hatch_list), itertools.cycle(colors)):
+        rects = ax.bar(pos, y, bar_width, label=attribute, alpha=0.99, hatch=hatch, error_kw=dict(lw=1, capsize=1, capthick=0.3), color=color)
         ax.errorbar(pos, y, yerr=yerr, fmt="none", capsize=capsize, markeredgewidth=markeredgewidth, elinewidth=elinewidth, color="black")
-        ax.bar_label(rects, labels=[int(v) for v in y], padding=1, rotation=45, fontsize=6)
+        # ax.bar_label(rects, labels=[int(v) for v in y], padding=1, rotation=30, fontsize=6)
         pos = pos + bar_width
 
     ax.set_xticks(ind + (3.0 / 2) * bar_width, pkt_sizes)
@@ -156,7 +162,7 @@ def plot_bps(data: dict[int, Data], file: Path):
 
     fig_file_pdf = Path(file)
     print("-> ", fig_file_pdf)
-    plt.savefig(str(fig_file_pdf))
+    plt.savefig(str(fig_file_pdf), bbox_inches="tight", pad_inches=0)
 
 
 def plot_pps(data: dict[int, Data], file: Path):
@@ -178,29 +184,35 @@ def plot_pps(data: dict[int, Data], file: Path):
     avg_tg_egress_mpps = [data[pkt_size].dut_ingress_pps[0] / 1e6 for pkt_size in data.keys()]
     stdev_tg_egress_mpps = [data[pkt_size].dut_ingress_pps[1] / 1e6 for pkt_size in data.keys()]
 
+    colors = [
+        "#FF7F00",
+        "#2400D8",
+        "#3D87FF",
+    ]
+
     data_to_show = {
         "Pktgen": (pktgen_mpps, stdev_pktgen_mpps),
-        "Pktgen (30x)": ([30 * v for v in pktgen_mpps], [30 * v for v in stdev_pktgen_mpps]),
+        "Expected TG egress": ([30 * v for v in pktgen_mpps], [30 * v for v in stdev_pktgen_mpps]),
         "TG egress": (avg_tg_egress_mpps, stdev_tg_egress_mpps),
     }
 
     bar_width = 0.25
     ind = np.arange(len(pkt_sizes))
     pos = ind
-    for attribute, (y, yerr) in data_to_show.items():
-        rects = ax.bar(pos, y, bar_width, label=attribute)
+    for (attribute, (y, yerr)), hatch, color in zip(data_to_show.items(), itertools.cycle(hatch_list), itertools.cycle(colors)):
+        rects = ax.bar(pos, y, bar_width, label=attribute, alpha=0.99, hatch=hatch, error_kw=dict(lw=1, capsize=1, capthick=0.3), color=color)
         ax.errorbar(pos, y, yerr=yerr, fmt="none", capsize=capsize, markeredgewidth=markeredgewidth, elinewidth=elinewidth, color="black")
-        ax.bar_label(rects, labels=[int(v) for v in y], padding=1, rotation=45, fontsize=6)
+        # ax.bar_label(rects, labels=[int(v) for v in y], padding=1, rotation=30, fontsize=6)
         pos = pos + bar_width
 
-    ax.set_xticks(ind + (3.0 / 2) * bar_width, pkt_sizes)
+    ax.set_xticks(ind + bar_width, pkt_sizes)
 
     ax.legend(bbox_to_anchor=(0.45, 1.3), loc="upper center", ncols=5, columnspacing=0.5)
     fig.set_size_inches(width * 0.6, height * 0.6)
 
     fig_file_pdf = Path(file)
     print("-> ", fig_file_pdf)
-    plt.savefig(str(fig_file_pdf))
+    plt.savefig(str(fig_file_pdf), bbox_inches="tight", pad_inches=0)
 
 
 def main():

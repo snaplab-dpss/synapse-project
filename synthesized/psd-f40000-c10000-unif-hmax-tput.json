@@ -1,10 +1,10 @@
 {
   "bdd": "psd.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 229,
-    "num_phase1_speculations": 28913,
-    "num_phase2_speculations": 1789,
-    "num_speculated_modules": 339132
+    "num_execution_plans_generated": 218,
+    "num_phase1_speculations": 26268,
+    "num_phase2_speculations": 1674,
+    "num_speculated_modules": 296937
   },
   "heuristic": {
     "meta": [
@@ -17,11 +17,11 @@
         "name": "Spec"
       },
       {
-        "description": "0",
+        "description": "1",
         "name": "Recirculations"
       },
       {
-        "description": "73 / 82",
+        "description": "75 / 82",
         "name": "BDD Progress"
       },
       {
@@ -36,10 +36,10 @@
     "score": [
       0,
       2250000000,
-      73,
+      75,
       -3,
       -17785984,
-      0
+      -1
     ]
   },
   "implementations": [
@@ -49,6 +49,10 @@
     },
     {
       "addr": 1074126776,
+      "implementation": "Tofino::VectorTable"
+    },
+    {
+      "addr": 1074109560,
       "implementation": "Tofino::VectorTable"
     },
     {
@@ -62,16 +66,12 @@
     {
       "addr": 1074048392,
       "implementation": "Tofino::FCFSCachedTable"
-    },
-    {
-      "addr": 1074109560,
-      "implementation": "Tofino::VectorTable"
     }
   ],
   "name": "psd-f40000-c10000-unif-hmax-tput",
   "profile_file": "psd-f40000-c10000-unif.json",
   "search_meta": {
-    "avg_bdd_size": 67,
+    "avg_bdd_size": 65,
     "avg_children_per_node": [
       {
         "avg": 0.0,
@@ -138,11 +138,11 @@
         "node_id": 148
       },
       {
-        "avg": 0.0,
+        "avg": 2.0,
         "node_id": 147
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 146
       },
       {
@@ -150,7 +150,7 @@
         "node_id": 192
       },
       {
-        "avg": 30.0,
+        "avg": 17.0,
         "node_id": 145
       },
       {
@@ -190,7 +190,7 @@
         "node_id": 202
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 143
       },
       {
@@ -230,11 +230,11 @@
         "node_id": 296
       },
       {
-        "avg": 5.0,
+        "avg": 4.0,
         "node_id": 169
       },
       {
-        "avg": 5.0,
+        "avg": 4.0,
         "node_id": 140
       },
       {
@@ -246,11 +246,11 @@
         "node_id": 200
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 141
       },
       {
-        "avg": 8.0,
+        "avg": 4.0,
         "node_id": 142
       },
       {
@@ -346,7 +346,7 @@
         "node_id": 180
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 186
       },
       {
@@ -419,13 +419,13 @@
       }
     ],
     "backtracks": 1,
-    "branching_factor": 3.1449275362318843,
-    "elapsed_time_seconds": 83,
+    "branching_factor": 2.898550724637681,
+    "elapsed_time_seconds": 96,
     "finished_eps": 1,
-    "ss_size": 229,
-    "steps": 75,
-    "total_ss_size_estimation": 18453601671732.7,
-    "unfinished_eps": 154
+    "ss_size": 218,
+    "steps": 78,
+    "total_ss_size_estimation": 2390224748514.1846,
+    "unfinished_eps": 140
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
