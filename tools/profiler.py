@@ -27,7 +27,7 @@ SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
 DEVICES = list(range(2, 32))
 
-DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd"]
+DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd", "pol"]
 # DEFAULT_RATE = [100_000_000_000]  # 100 Gbps
 # DEFAULT_TOTAL_PACKETS = [160_000_000]
 DEFAULT_RATE = [10_000_000_000]  # 10 Gbps
@@ -71,6 +71,7 @@ NFs = {
     "kvs": NF("kvs", "kvs.bdd", "pcap-generator-kvs", warmup_devices=DEVICES, unique_devices=DEVICES[:1], fwd_rules=[]),
     "psd": NF("psd", "psd.bdd", "pcap-generator-psd", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
     "cl": NF("cl", "cl.bdd", "pcap-generator-cl", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
+    "pol": NF("pol", "pol.bdd", "pcap-generator-pol", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
 }
 
 

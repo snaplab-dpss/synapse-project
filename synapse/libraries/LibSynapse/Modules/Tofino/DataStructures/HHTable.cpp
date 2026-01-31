@@ -64,8 +64,9 @@ Register build_threshold(const tna_properties_t &properties, DS_ID id) {
   return Register(properties, reg_id, capacity, index_size, value_size, {action});
 }
 
-Digest build_digest(DS_ID id, const std::vector<bits_t> &fields, u8 digest_type) {
+Digest build_digest(DS_ID id, std::vector<bits_t> fields, u8 digest_type) {
   const DS_ID digest_id = id + "_digest";
+  fields.push_back(32); // Add the counter coming from the CMS
   return Digest(digest_id, fields, digest_type);
 }
 

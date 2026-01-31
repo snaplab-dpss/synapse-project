@@ -6,6 +6,7 @@ extern "C" {
 #include <lib/state/double-chain.h>
 #include <lib/state/cht.h>
 #include <lib/state/cms.h>
+#include <lib/state/bloom-filter.h>
 #include <lib/state/token-bucket.h>
 #include <lib/state/lpm-dir-24-8.h>
 
@@ -44,6 +45,18 @@ extern "C" {
 
 using json = nlohmann::json;
 
+constexpr const uint16_t DROP = ((uint16_t)-1);
+constexpr const uint16_t FLOOD = ((uint16_t)-2);
+
+constexpr const uint16_t CRC_SIZE_BYTES = 4;
+constexpr const uint16_t MIN_PKT_SIZE_BYTES = 64; // With CRC
+constexpr const uint16_t MAX_PKT_SIZE_BYTES = 1518; // With CRC
+
+constexpr const char* const DEFAULT_SRC_MAC = "90:e2:ba:8e:4f:6c";
+constexpr const char* const DEFAULT_DST_MAC = "90:e2:ba:8e:4f:6d";
+
+constexpr const time_ns_t PROFILING_EXPIRATION_TIME_NS = 1'000'000'000LL; // 1 second
+
 #define NF_INFO(text, ...)                                                                                             \
   printf(text "\n", ##__VA_ARGS__);                                                                                    \
   fflush(stdout);
@@ -56,16 +69,7 @@ using json = nlohmann::json;
 #define NF_DEBUG(...)
 #endif // ENABLE_LOG
 
-#define DROP ((uint16_t)-1)
-#define FLOOD ((uint16_t)-2)
 
-#define MIN_PKT_SIZE 64   // With CRC
-#define MAX_PKT_SIZE 1518 // With CRC
-
-#define DEFAULT_SRC_MAC "90:e2:ba:8e:4f:6c"
-#define DEFAULT_DST_MAC "90:e2:ba:8e:4f:6d"
-
-#define EPOCH_DURATION_NS 1'000'000'000 // 1 second
 
 #define PARSE_ERROR(argv, format, ...)                                                                                 \
   nf_config_usage(argv);                                                                                               \
@@ -97,7 +101,7 @@ bool nf_parse_etheraddr(const char *str, struct rte_ether_addr *addr) {
 }
 
 struct pkt_t {
-  uint8_t data[MAX_PKT_SIZE];
+  uint8_t data[MAX_PKT_SIZE_BYTES];
   uint32_t len;
   time_ns_t ts;
 };
@@ -118,49 +122,81 @@ struct pcap_data_t {
   const struct pcap_pkthdr *header;
 };
 
+struct next_packet_t {
+  uint16_t device;
+  pkt_t pkt;
+};
+
+struct pcap_info_t {
+  pcap_t* pcap;
+  bool assume_ip;
+  long start_offset;
+  uint64_t total_packets;
+  uint64_t total_bytes;
+  pkt_t first_packet;
+  std::unordered_set<uint16_t> devices;
+};
+
 class PcapReader {
 private:
-  std::unordered_map<uint16_t, pcap_t *> pcaps;
-  std::unordered_map<uint16_t, bool> assume_ip;
-  std::unordered_map<uint16_t, long> pcaps_start;
-  std::unordered_map<uint16_t, pkt_t> pending_pkts_per_dev;
-
+  std::unordered_map<std::string, pcap_t*> fname_to_pcap;
+  std::unordered_map<pcap_t*, pcap_info_t> pcap_infos;
+  std::map<pcap_t *, pkt_t> pending_pkts_per_pcap;
+  int64_t last_ts;
+  
   // Meta
   uint64_t total_packets;
   uint64_t total_bytes;
   uint64_t processed_packets;
+  uint64_t processed_bytes;
   int last_percentage_report;
 
 public:
   PcapReader() {}
 
-  uint64_t get_total_packets() { return total_packets; }
-  uint64_t get_total_bytes() { return total_bytes; }
+  uint64_t get_processed_packets() { return processed_packets; }
+  uint64_t get_processed_bytes() { return processed_bytes; }
 
   void setup(const std::vector<dev_pcap_t> &_pcaps) {
+    last_ts                = -1;
     total_packets          = 0;
     total_bytes            = 0;
     processed_packets      = 0;
     last_percentage_report = -1;
 
     for (const auto &dev_pcap : _pcaps) {
-      char errbuf[PCAP_ERRBUF_SIZE];
-      pcap_t *pcap = pcap_open_offline(dev_pcap.pcap.c_str(), errbuf);
+      auto fname_to_pcap_it = fname_to_pcap.find(dev_pcap.pcap.string());
+      if (fname_to_pcap_it != fname_to_pcap.end()) {
+        pcap_t* pcap = fname_to_pcap_it->second;
+        pcap_infos[pcap].devices.insert(dev_pcap.device);
+        continue;
+      }
 
-      if (pcap == NULL) {
+      char errbuf[PCAP_ERRBUF_SIZE];
+      pcap_t* pcap = pcap_open_offline(dev_pcap.pcap.c_str(), errbuf);
+
+      fname_to_pcap[dev_pcap.pcap.string()] = pcap;
+      pcap_infos[pcap] = pcap_info_t();
+
+      pcap_info_t &pcap_info = pcap_infos.at(pcap);
+
+      pcap_info.pcap = pcap;
+      pcap_info.devices.insert(dev_pcap.device);
+
+      if (pcap_info.pcap == NULL) {
         rte_exit(EXIT_FAILURE, "pcap_open_offline() failed: %s\n", errbuf);
       }
 
-      int link_hdr_type = pcap_datalink(pcap);
+      int link_hdr_type = pcap_datalink(pcap_info.pcap);
 
       switch (link_hdr_type) {
       case DLT_EN10MB:
         // Normal ethernet, as expected.
-        assume_ip[dev_pcap.device] = false;
+        pcap_info.assume_ip = false;
         break;
       case DLT_RAW:
         // Contains raw IP packets.
-        assume_ip[dev_pcap.device] = true;
+        pcap_info.assume_ip = true;
         break;
       default: {
         fprintf(stderr, "Unknown header type (%d)", link_hdr_type);
@@ -168,70 +204,102 @@ public:
       }
       }
 
-      pcaps[dev_pcap.device] = pcap;
-
-      FILE *pcap_fptr = pcap_file(pcap);
+      FILE *pcap_fptr = pcap_file(pcap_info.pcap);
       assert(pcap_fptr && "Invalid pcap file pointer");
-      pcaps_start[dev_pcap.device] = ftell(pcap_fptr);
+      pcap_info.start_offset = ftell(pcap_fptr);
 
-      accumulate_stats(dev_pcap.device);
+      pcap_info.total_packets = 0;
+      pcap_info.total_bytes   = 0;
 
       pkt_t pkt;
-      if (read(dev_pcap.device, pkt)) {
-        pending_pkts_per_dev[dev_pcap.device] = pkt;
+      while (read(pcap_info.pcap, pkt)) {
+        if (pcap_info.total_packets == 0) {
+          pcap_info.first_packet = pkt;
+        }
+
+        pcap_info.total_packets++;
+        pcap_info.total_bytes += pkt.len + CRC_SIZE_BYTES;
       }
+      
+      total_packets += pcap_info.total_packets;
+      total_bytes += pcap_info.total_bytes;
+
+      pending_pkts_per_pcap[pcap_info.pcap] = pcap_info.first_packet;
     }
   }
 
-  bool get_next_packet(uint16_t &dev, pkt_t &pkt) {
-    bool set = false;
-
-    for (const auto &dev_pkt : pending_pkts_per_dev) {
-      if (!set || dev_pkt.second.ts < pkt.ts) {
-        dev = dev_pkt.first;
-        pkt = dev_pkt.second;
-        set = true;
+  std::vector<next_packet_t> get_next_packets() {
+    int64_t ts = -1;
+    for (const auto& [pending_pcap, pending_pkt] : pending_pkts_per_pcap) {
+      if (ts == -1 || pending_pkt.ts < ts) {
+        ts = pending_pkt.ts;
       }
     }
 
-    if (set) {
-      pkt_t new_pkt;
-      if (read(dev, new_pkt)) {
-        pending_pkts_per_dev[dev] = new_pkt;
-      } else {
-        pending_pkts_per_dev.erase(dev);
-      }
+    if (ts == -1) {
+      return {};
     }
 
-    update_and_show_progress();
+    pcap_t* chosen_pcap = nullptr;
+    std::vector<next_packet_t> next_packets;
+    for (const auto& [pending_pcap, pending_pkt] : pending_pkts_per_pcap) {
+      if (pending_pkt.ts != ts) {
+        continue;
+      }
 
-    return set;
+      for (uint16_t dev : pcap_infos[pending_pcap].devices) {
+        next_packet_t next_pkt = {
+          .device = dev,
+          .pkt = pending_pkt
+        };
+        next_packets.push_back(next_pkt);
+
+        processed_packets += 1;
+        processed_bytes += pending_pkt.len + CRC_SIZE_BYTES;
+      }
+
+      chosen_pcap = pending_pcap;
+      break;
+    }
+
+    last_ts = ts;
+
+    show_progress();
+
+    pkt_t new_pkt;
+    if (read(chosen_pcap, new_pkt)) {
+      pending_pkts_per_pcap[chosen_pcap] = new_pkt;
+    } else {
+      pending_pkts_per_pcap.erase(chosen_pcap);
+    }
+
+    return next_packets;
   }
 
 private:
-  bool read(uint16_t dev, pkt_t &pkt) {
-    pcap_t *pd = pcaps[dev];
-
+  bool read(pcap_t* pcap, pkt_t &pkt) {
     const uint8_t *data;
     struct pcap_pkthdr *hdr;
 
-    if (pcap_next_ex(pd, &hdr, &data) != 1) {
-      rewind(dev);
+    if (pcap_next_ex(pcap, &hdr, &data) != 1) {
+      rewind(pcap);
       return false;
     }
 
     uint8_t *pkt_data = pkt.data;
 
-    if (assume_ip[dev]) {
+    pkt.len = hdr->len;
+
+    if (pcap_infos.at(pcap).assume_ip) {
       struct rte_ether_hdr *eth_hdr = (struct rte_ether_hdr *)pkt_data;
       nf_parse_etheraddr(DEFAULT_DST_MAC, &eth_hdr->dst_addr);
       nf_parse_etheraddr(DEFAULT_SRC_MAC, &eth_hdr->src_addr);
       eth_hdr->ether_type = rte_bswap16(RTE_ETHER_TYPE_IPV4);
       pkt_data += sizeof(struct rte_ether_hdr);
+      pkt.len += sizeof(struct rte_ether_hdr);
     }
 
-    memcpy(pkt_data, data, hdr->len);
-    pkt.len = hdr->len;
+    memcpy(pkt_data, data, hdr->caplen);
     pkt.ts  = hdr->ts.tv_sec * 1e9 + hdr->ts.tv_usec * 1e3;
 
     return true;
@@ -239,40 +307,13 @@ private:
 
   // WARNING: this does not work on windows!
   // https://winpcap-users.winpcap.narkive.com/scCKD3x2/packet-random-access-using-file-seek
-  void rewind(uint16_t dev) {
-    pcap_t *pd      = pcaps[dev];
-    long pcap_start = pcaps_start[dev];
-    FILE *pcap_fptr = pcap_file(pd);
+  void rewind(pcap_t* pcap) {
+    long pcap_start = pcap_infos.at(pcap).start_offset;
+    FILE *pcap_fptr = pcap_file(pcap);
     fseek(pcap_fptr, pcap_start, SEEK_SET);
   }
 
-  void accumulate_stats(uint16_t dev) {
-    pcap_t *pd = pcaps[dev];
-
-    pkt_t pkt;
-    while (read(dev, pkt)) {
-      total_packets++;
-      uint8_t *data = pkt.data;
-
-      if (!assume_ip[dev]) {
-        struct rte_ether_hdr *eth_hdr = (struct rte_ether_hdr *)data;
-        data += sizeof(struct rte_ether_hdr);
-        if (eth_hdr->ether_type != rte_bswap16(RTE_ETHER_TYPE_IPV4)) {
-          total_bytes += pkt.len;
-          continue;
-        }
-      }
-
-      struct rte_ipv4_hdr *ip_hdr = (struct rte_ipv4_hdr *)(data);
-
-      uint16_t len = rte_bswap16(ip_hdr->total_length) + sizeof(struct rte_ether_hdr);
-
-      total_bytes += len;
-    }
-  }
-
-  void update_and_show_progress() {
-    processed_packets++;
+  void show_progress() {
     int progress = 100.0 * processed_packets / total_packets;
 
     if (progress <= last_percentage_report) {
@@ -357,6 +398,12 @@ void nf_config_init(int argc, char **argv) {
 
 bool warmup;
 
+int profiler_expire_items_single_map(struct DoubleChain *dchain, struct Vector *vector, struct Map *map, time_ns_t time)  {
+  if (!warmup)
+    return expire_items_single_map(dchain, vector, map, time - PROFILING_EXPIRATION_TIME_NS);
+  return 0;
+}
+
 struct Stats {
   struct key_t {
     uint8_t *data;
@@ -422,7 +469,7 @@ struct MapStats {
   std::vector<epoch_t> epochs;
   time_ns_t epoch_duration;
 
-  MapStats() : epoch_duration(EPOCH_DURATION_NS) {}
+  MapStats() : epoch_duration(PROFILING_EXPIRATION_TIME_NS) {}
 
   void init(int op) { stats_per_node.insert({op, Stats()}); }
 
@@ -431,14 +478,9 @@ struct MapStats {
       epochs.emplace_back(now, warmup);
     }
 
-    if (!warmup) {
-      stats_per_node.at(op).update(key, len);
-      epochs.back().stats.update(key, len);
-    }
-
-    if (!epochs.empty()) {
-      epochs.back().end = now;
-    }
+    stats_per_node.at(op).update(key, len);
+    epochs.back().stats.update(key, len);
+    epochs.back().end = now;
   }
 };
 
@@ -479,12 +521,40 @@ struct PortStats {
   }
 };
 
+struct expiration_tracker_t {
+  struct epoch_t {
+    time_ns_t start;
+    time_ns_t end;
+    bool warmup;
+    uint64_t expirations;
+  
+    epoch_t(time_ns_t _start, bool _warmup) : start(_start), end(-1), warmup(_warmup), expirations(0) {}
+  };
+
+  std::vector<epoch_t> epochs;
+
+  void update(uint64_t expirations, time_ns_t now) {
+    if (epochs.empty() || (epochs.back().warmup && !warmup) || now - epochs.back().start > PROFILING_EXPIRATION_TIME_NS) {
+      epochs.emplace_back(now, warmup);
+    }
+
+    if (!warmup) {
+      epochs.back().expirations += expirations;
+    }
+
+    if (!epochs.empty()) {
+      epochs.back().end = now;
+    }
+  }
+};
+
 PcapReader warmup_reader;
 PcapReader reader;
 std::unordered_map<int, MapStats> stats_per_map;
 std::unordered_map<int, PortStats> forwarding_stats_per_route_op;
 std::unordered_map<uint64_t, uint64_t> node_pkt_counter;
 time_ns_t elapsed_time;
+expiration_tracker_t expiration_tracker;
 
 void inc_path_counter(int i) {
   if (warmup) {
@@ -525,8 +595,13 @@ void generate_report() {
 
   report["meta"]            = json::object();
   report["meta"]["elapsed"] = elapsed_time;
-  report["meta"]["pkts"]    = reader.get_total_packets();
-  report["meta"]["bytes"]   = reader.get_total_bytes();
+  report["meta"]["pkts"]    = reader.get_processed_packets();
+  report["meta"]["bytes"]   = reader.get_processed_bytes();
+  
+  report["expirations_per_epoch"] = json::array();
+  for (const auto &epoch : expiration_tracker.epochs) {
+    report["expirations_per_epoch"].push_back(epoch.expirations);
+  }
 
   report["stats_per_map"] = json::object();
 
@@ -632,33 +707,44 @@ static void worker_main() {
     }
   }
 
+  puts("Setting up pcap readers...");
+
   warmup_reader.setup(warmup_pcaps);
   reader.setup(pcaps);
 
-  uint16_t dev;
-  pkt_t pkt;
+  puts("Processing warmup packets...");
 
   // First process warmup packets
   warmup = true;
-  while (warmup_reader.get_next_packet(dev, pkt)) {
-    nf_process(dev, pkt.data, pkt.len, pkt.ts);
+  std::vector<next_packet_t> next_pkts;
+  while (!(next_pkts = warmup_reader.get_next_packets()).empty()) {
+    for (next_packet_t& next_pkt : next_pkts) {
+      nf_process(next_pkt.device, next_pkt.pkt.data, next_pkt.pkt.len, next_pkt.pkt.ts);
+    }
   }
   warmup = false;
 
+  puts("Processing NF packets...");
+
   // Generate the first packet manually to record the starting time
-  bool success = reader.get_next_packet(dev, pkt);
-  assert(success && "Failed to generate the first packet");
+  next_pkts = reader.get_next_packets();
+  assert(!next_pkts.empty() && "Failed to generate the first packet");
 
-  time_ns_t start_time = pkt.ts;
-  time_ns_t last_time  = 0;
+  time_ns_t first_pkt_time = next_pkts.front().pkt.ts;
+  time_ns_t start_time = first_pkt_time;
+  time_ns_t last_time  = first_pkt_time;
 
-  do {
+  while (!next_pkts.empty()) {
     // Ignore destination device, we don't forward anywhere
-    nf_process(dev, pkt.data, pkt.len, pkt.ts);
-    last_time = pkt.ts;
-  } while (reader.get_next_packet(dev, pkt));
+    for (next_packet_t& next_pkt : next_pkts) {
+      nf_process(next_pkt.device, next_pkt.pkt.data, next_pkt.pkt.len, next_pkt.pkt.ts);
+    }
+    
+    elapsed_time += next_pkts.back().pkt.ts - last_time;
+    last_time = next_pkts.back().pkt.ts;
 
-  elapsed_time = last_time - start_time;
+    next_pkts = reader.get_next_packets();
+  }
 
   NF_INFO("Elapsed virtual time: %lf s", (double)elapsed_time / 1e9);
 }
@@ -676,7 +762,7 @@ struct Vector *vector2;
 
 
 bool nf_init() {
-  tb_allocate(65536, 17179869184ULLull, 131072ull, 4, &tb);
+  int tb_allocation_succeeded = tb_allocate(65536, 17179869184ULL, 131072ULL, 4, &tb);
   if (!tb_allocation_succeeded) {
     return false;
   }
@@ -880,19 +966,22 @@ bool nf_init() {
   uint8_t* vector_value_out64 = 0;
   vector_borrow(vector2, 31, (void**)&vector_value_out64);
   *(uint16_t*)vector_value_out64 = 30;
-  ports.push_back(0);
-  ports.push_back(1);
-  ports.push_back(2);
-  ports.push_back(3);
-  ports.push_back(4);
-  ports.push_back(5);
-  ports.push_back(6);
-  ports.push_back(7);
-  ports.push_back(8);
-  ports.push_back(9);
-  ports.push_back(10);
-  ports.push_back(11);
+  ports.push_back(31);
+  ports.push_back(30);
+  ports.push_back(29);
   ports.push_back(12);
+  ports.push_back(11);
+  ports.push_back(10);
+  ports.push_back(9);
+  ports.push_back(8);
+  ports.push_back(7);
+  ports.push_back(6);
+  ports.push_back(5);
+  ports.push_back(4);
+  ports.push_back(3);
+  ports.push_back(2);
+  ports.push_back(1);
+  ports.push_back(0);
   ports.push_back(13);
   ports.push_back(14);
   ports.push_back(15);
@@ -909,28 +998,14 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  ports.push_back(29);
-  ports.push_back(30);
-  ports.push_back(31);
-  forwarding_stats_per_route_op.insert({175, PortStats{}});
   forwarding_stats_per_route_op.insert({168, PortStats{}});
-  forwarding_stats_per_route_op.insert({167, PortStats{}});
-  forwarding_stats_per_route_op.insert({174, PortStats{}});
-  forwarding_stats_per_route_op.insert({161, PortStats{}});
-  forwarding_stats_per_route_op.insert({156, PortStats{}});
-  forwarding_stats_per_route_op.insert({177, PortStats{}});
+  forwarding_stats_per_route_op.insert({166, PortStats{}});
+  forwarding_stats_per_route_op.insert({165, PortStats{}});
+  forwarding_stats_per_route_op.insert({159, PortStats{}});
+  forwarding_stats_per_route_op.insert({158, PortStats{}});
   forwarding_stats_per_route_op.insert({151, PortStats{}});
   forwarding_stats_per_route_op.insert({150, PortStats{}});
   forwarding_stats_per_route_op.insert({144, PortStats{}});
-  node_pkt_counter.insert({177, 0});
-  node_pkt_counter.insert({176, 0});
-  node_pkt_counter.insert({175, 0});
-  node_pkt_counter.insert({174, 0});
-  node_pkt_counter.insert({173, 0});
-  node_pkt_counter.insert({172, 0});
-  node_pkt_counter.insert({171, 0});
-  node_pkt_counter.insert({170, 0});
-  node_pkt_counter.insert({169, 0});
   node_pkt_counter.insert({168, 0});
   node_pkt_counter.insert({167, 0});
   node_pkt_counter.insert({166, 0});
@@ -974,181 +1049,147 @@ bool nf_init() {
 
 
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
-  // Node 131
+  // BDDNode 131
   inc_path_counter(131);
   tb_expire(tb, now);
-  // Node 132
+  // BDDNode 132
   inc_path_counter(132);
   uint8_t* hdr;
   packet_borrow_next_chunk(buffer, 14, (void**)&hdr);
-  // Node 133
+  // BDDNode 133
   inc_path_counter(133);
-  if (((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))) {
-    // Node 134
+  if (((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20ULL) <= ((uint16_t)((uint32_t)((4294967282) + ((uint16_t)(packet_length & 65535))))))) {
+    // BDDNode 134
     inc_path_counter(134);
     uint8_t* hdr2;
     packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
-    // Node 135
+    // BDDNode 135
     inc_path_counter(135);
     uint8_t* vector_value_out65 = 0;
     vector_borrow(vector, (uint16_t)(device & 65535), (void**)&vector_value_out65);
-    // Node 136
+    // BDDNode 136
     inc_path_counter(136);
-    // Node 137
+    // BDDNode 137
     inc_path_counter(137);
     if ((0) == (*(uint32_t*)vector_value_out65)) {
-      // Node 138
+      // BDDNode 138
       inc_path_counter(138);
       uint8_t key[4];
       uint32_t hdr2_slice = *(uint32_t*)(hdr2+16);
       *(uint32_t*)key = hdr2_slice;
       int index;
       int is_tracing = tb_is_tracing(tb, key, &index);
-      // Node 139
+      // BDDNode 139
       inc_path_counter(139);
       if ((0) == (is_tracing)) {
-        // Node 140
+        // BDDNode 140
         inc_path_counter(140);
         int index2;
         int successfuly_tracing = tb_trace(tb, key, packet_length & 65535, now, &index2);
-        // Node 141
+        // BDDNode 141
         inc_path_counter(141);
         if ((0) == (successfuly_tracing)) {
-          // Node 142
+          // BDDNode 142
           inc_path_counter(142);
           packet_return_chunk(buffer, hdr2);
-          // Node 143
+          // BDDNode 143
           inc_path_counter(143);
           packet_return_chunk(buffer, hdr);
-          // Node 144
+          // BDDNode 144
           inc_path_counter(144);
           forwarding_stats_per_route_op[144].inc_drop();
           return DROP;
         } else {
-          // Node 145
+          // BDDNode 145
           inc_path_counter(145);
           uint8_t* vector_value_out66 = 0;
           vector_borrow(vector2, (uint16_t)(device & 65535), (void**)&vector_value_out66);
-          // Node 146
+          // BDDNode 146
           inc_path_counter(146);
-          // Node 147
+          // BDDNode 147
           inc_path_counter(147);
           packet_return_chunk(buffer, hdr2);
-          // Node 148
+          // BDDNode 148
           inc_path_counter(148);
           packet_return_chunk(buffer, hdr);
-          // Node 149
+          // BDDNode 149
           inc_path_counter(149);
-          if ((65535) != (*(uint16_t*)vector_value_out66)) {
-            // Node 150
+          if ((device & 65535) != (*(uint16_t*)vector_value_out66)) {
+            // BDDNode 150
             inc_path_counter(150);
             forwarding_stats_per_route_op[150].inc_fwd(*(uint16_t*)vector_value_out66);
             return *(uint16_t*)vector_value_out66;
           } else {
-            // Node 151
+            // BDDNode 151
             inc_path_counter(151);
             forwarding_stats_per_route_op[151].inc_drop();
             return DROP;
-          } // (65535) != (*(uint16_t*)vector_value_out66)
+          } // (device & 65535) != (*(uint16_t*)vector_value_out66)
         } // (0) == (successfuly_tracing)
       } else {
-        // Node 152
+        // BDDNode 152
         inc_path_counter(152);
         int pass = tb_update_and_check(tb, index, packet_length & 65535, now);
-        // Node 153
+        // BDDNode 153
         inc_path_counter(153);
-        if ((0) == (pass)) {
-          // Node 154
-          inc_path_counter(154);
-          packet_return_chunk(buffer, hdr2);
-          // Node 155
-          inc_path_counter(155);
-          packet_return_chunk(buffer, hdr);
-          // Node 156
-          inc_path_counter(156);
-          forwarding_stats_per_route_op[156].inc_drop();
-          return DROP;
-        } else {
-          // Node 157
-          inc_path_counter(157);
-          int index3;
-          int successfuly_tracing2 = tb_trace(tb, key, packet_length & 65535, now, &index3);
-          // Node 158
+        uint8_t* vector_value_out67 = 0;
+        vector_borrow(vector2, (uint16_t)(device & 65535), (void**)&vector_value_out67);
+        // BDDNode 154
+        inc_path_counter(154);
+        // BDDNode 155
+        inc_path_counter(155);
+        packet_return_chunk(buffer, hdr2);
+        // BDDNode 156
+        inc_path_counter(156);
+        packet_return_chunk(buffer, hdr);
+        // BDDNode 157
+        inc_path_counter(157);
+        if ((device & 65535) != (*(uint16_t*)vector_value_out67)) {
+          // BDDNode 158
           inc_path_counter(158);
-          if ((0) == (successfuly_tracing2)) {
-            // Node 159
-            inc_path_counter(159);
-            packet_return_chunk(buffer, hdr2);
-            // Node 160
-            inc_path_counter(160);
-            packet_return_chunk(buffer, hdr);
-            // Node 161
-            inc_path_counter(161);
-            forwarding_stats_per_route_op[161].inc_drop();
-            return DROP;
-          } else {
-            // Node 162
-            inc_path_counter(162);
-            uint8_t* vector_value_out67 = 0;
-            vector_borrow(vector2, (uint16_t)(device & 65535), (void**)&vector_value_out67);
-            // Node 163
-            inc_path_counter(163);
-            // Node 164
-            inc_path_counter(164);
-            packet_return_chunk(buffer, hdr2);
-            // Node 165
-            inc_path_counter(165);
-            packet_return_chunk(buffer, hdr);
-            // Node 166
-            inc_path_counter(166);
-            if ((65535) != (*(uint16_t*)vector_value_out67)) {
-              // Node 167
-              inc_path_counter(167);
-              forwarding_stats_per_route_op[167].inc_fwd(*(uint16_t*)vector_value_out67);
-              return *(uint16_t*)vector_value_out67;
-            } else {
-              // Node 168
-              inc_path_counter(168);
-              forwarding_stats_per_route_op[168].inc_drop();
-              return DROP;
-            } // (65535) != (*(uint16_t*)vector_value_out67)
-          } // (0) == (successfuly_tracing2)
-        } // (0) == (pass)
+          forwarding_stats_per_route_op[158].inc_fwd(*(uint16_t*)vector_value_out67);
+          return *(uint16_t*)vector_value_out67;
+        } else {
+          // BDDNode 159
+          inc_path_counter(159);
+          forwarding_stats_per_route_op[159].inc_drop();
+          return DROP;
+        } // (device & 65535) != (*(uint16_t*)vector_value_out67)
       } // (0) == (is_tracing)
     } else {
-      // Node 169
-      inc_path_counter(169);
+      // BDDNode 160
+      inc_path_counter(160);
       uint8_t* vector_value_out68 = 0;
       vector_borrow(vector2, (uint16_t)(device & 65535), (void**)&vector_value_out68);
-      // Node 170
-      inc_path_counter(170);
-      // Node 171
-      inc_path_counter(171);
+      // BDDNode 161
+      inc_path_counter(161);
+      // BDDNode 162
+      inc_path_counter(162);
       packet_return_chunk(buffer, hdr2);
-      // Node 172
-      inc_path_counter(172);
+      // BDDNode 163
+      inc_path_counter(163);
       packet_return_chunk(buffer, hdr);
-      // Node 173
-      inc_path_counter(173);
-      if ((65535) != (*(uint16_t*)vector_value_out68)) {
-        // Node 174
-        inc_path_counter(174);
-        forwarding_stats_per_route_op[174].inc_fwd(*(uint16_t*)vector_value_out68);
+      // BDDNode 164
+      inc_path_counter(164);
+      if ((device & 65535) != (*(uint16_t*)vector_value_out68)) {
+        // BDDNode 165
+        inc_path_counter(165);
+        forwarding_stats_per_route_op[165].inc_fwd(*(uint16_t*)vector_value_out68);
         return *(uint16_t*)vector_value_out68;
       } else {
-        // Node 175
-        inc_path_counter(175);
-        forwarding_stats_per_route_op[175].inc_drop();
+        // BDDNode 166
+        inc_path_counter(166);
+        forwarding_stats_per_route_op[166].inc_drop();
         return DROP;
-      } // (65535) != (*(uint16_t*)vector_value_out68)
+      } // (device & 65535) != (*(uint16_t*)vector_value_out68)
     } // (0) == (*(uint32_t*)vector_value_out65)
   } else {
-    // Node 176
-    inc_path_counter(176);
+    // BDDNode 167
+    inc_path_counter(167);
     packet_return_chunk(buffer, hdr);
-    // Node 177
-    inc_path_counter(177);
-    forwarding_stats_per_route_op[177].inc_drop();
+    // BDDNode 168
+    inc_path_counter(168);
+    forwarding_stats_per_route_op[168].inc_drop();
     return DROP;
-  } // ((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))
+  } // ((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20ULL) <= ((uint16_t)((uint32_t)((4294967282) + ((uint16_t)(packet_length & 65535))))))
 }

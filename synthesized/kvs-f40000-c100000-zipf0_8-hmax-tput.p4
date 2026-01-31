@@ -793,7 +793,7 @@ control Ingress(
                 // BDD node 12:if
                 // EP node  4510:Forward
                 // BDD node 57:FORWARD
-                nf_dev[15:0] = hdr.hdr3.data4;
+                nf_dev[15:0] = bswap16(hdr.hdr3.data4);
               }
             }
             // EP node  119:Else

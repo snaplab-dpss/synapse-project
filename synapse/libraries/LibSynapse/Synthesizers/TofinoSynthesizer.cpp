@@ -1378,7 +1378,7 @@ void TofinoSynthesizer::transpile_fcfs_ct_hash_calculation(const Hash *hash, con
   transpile_action_decl(hash_calculator, hash_calculation_body.split_lines());
 }
 
-void TofinoSynthesizer::transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys) {
+void TofinoSynthesizer::transpile_digest_decl(const Digest *digest) {
   coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER);
   coder_t &custom_headers   = get(MARKER_CUSTOM_HEADERS);
 
@@ -2365,8 +2365,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
   coder_t &ingress                 = get(MARKER_INGRESS_CONTROL_APPLY);
 
+  code_t dst_device_code = transpiler.transpile(dst_device);
+
+  // Kind of a hack, and I'm not sure it will work all the time. But for now it does the trick.
+  const std::optional<var_t> dst_device_var = ingress_vars.get(dst_device);
+  if (dst_device_var.has_value() && dst_device_var->is_header_field) {
+    dst_device_code = transpiler.swap_endianness(dst_device_code, dst_device->getWidth());
+  }
+
   ingress.indent();
-  ingress << "nf_dev[15:0] = " << transpiler.transpile(dst_device) << ";\n";
+  ingress << "nf_dev[15:0] = " << dst_device_code << ";\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -3638,7 +3646,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
-void TofinoSynthesizer::transpile_digest(const Digest &digest, const std::vector<klee::ref<klee::Expr>> &keys) {
+void TofinoSynthesizer::transpile_digest(const Digest &digest, const std::vector<code_t> &fields) {
   coder_t &ingress_deparser_apply = get(MARKER_INGRESS_DEPARSER_APPLY);
 
   ingress_deparser_apply.indent();
@@ -3652,16 +3660,9 @@ void TofinoSynthesizer::transpile_digest(const Digest &digest, const std::vector
   ingress_deparser_apply << digest.id << ".pack({\n";
   ingress_deparser_apply.inc();
 
-  for (klee::ref<klee::Expr> key : keys) {
-    std::optional<var_t> key_var = ingress_vars.get_hdr(key);
-
-    if (!key_var.has_value()) {
-      dbg_vars();
-      panic("Key is not a header field variable:\n%s", expr_to_string(key).c_str());
-    }
-
+  for (const code_t &field : fields) {
     ingress_deparser_apply.indent();
-    ingress_deparser_apply << key_var->name << ",\n";
+    ingress_deparser_apply << field << ",\n";
   }
 
   ingress_deparser_apply.dec();
@@ -3731,7 +3732,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress << Transpiler::type_from_size(32) << " " << threshold_value_cmp << ";\n";
   transpile_register_action_decl(&hh_table->threshold, threshold_action_name, threshold_action_type);
 
-  transpile_digest_decl(&hh_table->digest, keys);
+  const bits_t cms_value_size   = hh_table->count_min_sketch[0].value_size;
+  const var_t cms_min_value_var = alloc_var(hh_table_id + "_cms_min", cms_value_size, EXACT_NAME | SKIP_STACK_ALLOC | IS_INGRESS_METADATA);
+  declare_var_in_ingress_metadata(cms_min_value_var);
+
+  transpile_digest_decl(&hh_table->digest);
 
   for (const var_t &key_var : keys_vars) {
     ingress_apply.indent();
@@ -3740,6 +3745,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL);
   hit_var.declare(ingress_apply, table->id + ".apply().hit");
+
+  const code_t packet_sampler_out_value = packet_sampler_action_name + "_out_value";
+  ingress_apply.indent();
+  ingress_apply << Transpiler::type_from_size(hh_table->packet_sampler.value_size) << " " << packet_sampler_out_value;
+  ingress_apply << " = ";
+  ingress_apply << packet_sampler_action_name << ".execute(0);\n";
+
+  ingress_apply.indent();
+  ingress_apply << "if (" << packet_sampler_out_value << " == 1) {\n";
+  ingress_apply.inc();
 
   ingress_apply.indent();
   ingress_apply << "if (" << hit_var.name << ") {\n";
@@ -3751,16 +3766,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.dec();
   ingress_apply.indent();
   ingress_apply << "} else {\n";
-  ingress_apply.inc();
-
-  const code_t packet_sampler_out_value = packet_sampler_action_name + "_out_value";
-  ingress_apply.indent();
-  ingress_apply << Transpiler::type_from_size(hh_table->packet_sampler.value_size) << " " << packet_sampler_out_value;
-  ingress_apply << " = ";
-  ingress_apply << packet_sampler_action_name << ".execute(0);\n";
-
-  ingress_apply.indent();
-  ingress_apply << "if (" << packet_sampler_out_value << " == 0) {\n";
   ingress_apply.inc();
 
   std::vector<code_t> hashes;
@@ -3784,7 +3789,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   assert(hashes.size() == cms_rows_actions.size());
-  const bits_t cms_value_size = hh_table->count_min_sketch[0].value_size;
 
   std::vector<code_t> cms_rows_values;
   std::vector<code_t> cms_rows_values_calculators;
@@ -3821,20 +3825,19 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << cms_row_value_calculator << "();\n";
   }
 
-  const code_t min_value = hh_table_id + "_cms_min";
   for (size_t i = 0; i < cms_rows_values.size(); i++) {
     const code_t &cms_row_value = cms_rows_values[i];
 
     ingress_apply.indent();
     if (i == 0) {
-      ingress_apply << Transpiler::type_from_size(hh_table->count_min_sketch[i].value_size) << " " << min_value << " = " << cms_row_value << ";\n";
+      ingress_apply << cms_min_value_var.name << " = " << cms_row_value << ";\n";
     } else {
-      ingress_apply << min_value << " = min(" << min_value << ", " << cms_row_value << ");\n";
+      ingress_apply << cms_min_value_var.name << " = min(" << cms_min_value_var.name << ", " << cms_row_value << ");\n";
     }
   }
 
   ingress_apply.indent();
-  ingress_apply << threshold_value_cmp << " = " << min_value << ";\n";
+  ingress_apply << threshold_value_cmp << " = " << cms_min_value_var.name << ";\n";
 
   const code_t threshold_diff = hh_table_id + "_threshold_diff";
   ingress_apply.indent();
@@ -3860,7 +3863,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.indent();
   ingress_apply << "}\n";
 
-  transpile_digest(hh_table->digest, keys);
+  std::vector<code_t> digest_fields;
+  for (const var_t &key_var : keys_vars) {
+    digest_fields.push_back(key_var.name);
+  }
+  digest_fields.push_back(cms_min_value_var.name);
+  transpile_digest(hh_table->digest, digest_fields);
 
   return EPVisitor::Action::doChildren;
 }

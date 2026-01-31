@@ -67,16 +67,20 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
       int pass = tb_update_and_check(state->tb, index, packet_length, now);
 
       if (!pass) {
+        // For KLEE verification, we ignore packet drops. This is to avoid synthesizing solutions that, well... actually police packets.
+        // If we rate limit them, we can't actually do performance measurements on them.
+#ifndef KLEE_VERIFICATION
         NF_DEBUG("Incoming packet outside of policed rate. Dropping.");
         return DROP;
+#endif
       }
-    }
+    } else {
+      int allocated = tb_trace(state->tb, &rte_ipv4_header->dst_addr, packet_length, now, &index);
 
-    int allocated = tb_trace(state->tb, &rte_ipv4_header->dst_addr, packet_length, now, &index);
-
-    if (!allocated) {
-      NF_DEBUG("No tokens. Dropping.");
-      return DROP;
+      if (!allocated) {
+        NF_DEBUG("No tokens. Dropping.");
+        return DROP;
+      }
     }
   }
 

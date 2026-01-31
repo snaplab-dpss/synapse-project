@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       41 seconds
+  Elapsed time:       43 seconds
   Steps:              49
   Backtracks:         0
   Search space size:  161
@@ -133,7 +133,7 @@ SRAM: 573'444/1'310'720 B (43.7503%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 573'444/786'432 B (72.9172%)
 Exact Match Crossbar: 37/128 B (28.9062%)
-Objs: [hh_table_1073923096_threshold,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_digest,hh_table_1073923096_hash_calc_0]
+Objs: [hh_table_1073923096_digest,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_threshold,hh_table_1073923096_cms_row_3,hh_table_1073923096_hash_calc_0]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -141,7 +141,7 @@ SRAM: 557'056/1'310'720 B (42.5%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 557'056/786'432 B (70.8333%)
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_2]
+Objs: [hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_1]
 -------------------------------------
 -------------------------------------
 Stage 4

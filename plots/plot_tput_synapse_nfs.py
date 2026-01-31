@@ -49,16 +49,16 @@ NFS = [
     #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_pps_scatter.pdf",
     #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_heatmap.pdf",
     # },
-    {
-        "title": "KVS",
-        "data_file": DATA_DIR / "tput_synapse_kvs.csv",
-        "bps_output_file": PLOTS_DIR / "tput_synapse_kvs_bps.pdf",
-        "pps_output_file": PLOTS_DIR / "tput_synapse_kvs_pps.pdf",
-        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_bps_scatter.pdf",
-        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_pps_scatter.pdf",
-        "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_heatmap.pdf",
-        "barplot_output_file": PLOTS_DIR / "tput_synapse_kvs_barplot.pdf",
-    },
+    # {
+    #     "title": "KVS",
+    #     "data_file": DATA_DIR / "tput_synapse_kvs.csv",
+    #     "bps_output_file": PLOTS_DIR / "tput_synapse_kvs_bps.pdf",
+    #     "pps_output_file": PLOTS_DIR / "tput_synapse_kvs_pps.pdf",
+    #     "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_bps_scatter.pdf",
+    #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_pps_scatter.pdf",
+    #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_heatmap.pdf",
+    #     "barplot_output_file": PLOTS_DIR / "tput_synapse_kvs_barplot.pdf",
+    # },
     {
         "title": "Firewall",
         "data_file": DATA_DIR / "tput_synapse_fw.csv",
@@ -186,8 +186,11 @@ def plot_barplot_churn_x_axis(data: HeatmapData, file: Path):
 
         filtered_data = data.filter(chosen_workloads)
 
-        ys = [x.dut_egress_pps for x in filtered_data.get_avg_values().values()]
-        yerrs = [x.dut_egress_pps for x in filtered_data.get_stdev_values().values()]
+        avg_values = filtered_data.get_avg_values()
+        stdev_values = filtered_data.get_stdev_values()
+
+        ys = [avg_values[Key(s=s, churn_fpm=c)].dut_egress_pps for c in churns]
+        yerrs = [stdev_values[Key(s=s, churn_fpm=c)].dut_egress_pps for c in churns]
 
         y_Mpps = [y / 1e6 for y in ys]
         yerr_Mpps = [yerr / 1e6 for yerr in yerrs]
@@ -218,10 +221,10 @@ def main():
         BARPLOT_OUTPUT_FILE = nf["barplot_output_file"]
 
         heatmap_data = parse_heatmap_data_file(DATA_FILE)
-        plot_bps(heatmap_data, BPS_OUTPUT_FILE)
-        plot_pps(heatmap_data, PPS_OUTPUT_FILE)
-        plot_bps_scatter(heatmap_data, BPS_SCATTER_OUTPUT_FILE)
-        plot_heatmap(heatmap_data, HEATMAP_OUTPUT_FILE)
+        # plot_bps(heatmap_data, BPS_OUTPUT_FILE)
+        # plot_pps(heatmap_data, PPS_OUTPUT_FILE)
+        # plot_bps_scatter(heatmap_data, BPS_SCATTER_OUTPUT_FILE)
+        # plot_heatmap(heatmap_data, HEATMAP_OUTPUT_FILE)
         plot_barplot_churn_x_axis(heatmap_data, PLOTS_DIR / BARPLOT_OUTPUT_FILE)
 
 

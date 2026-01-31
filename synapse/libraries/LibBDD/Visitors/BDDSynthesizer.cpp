@@ -56,7 +56,7 @@ code_t BDDSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
     assert(expr->getWidth() <= 64 && "Unsupported constant width");
     u64 value = solver_toolbox.value_from_expr(expr);
     coder << value;
-    if (value > (1ull << 31)) {
+    if (expr->getWidth() > 32) {
       if (!is_constant_signed(expr)) {
         coder << "U";
       }
@@ -1757,10 +1757,11 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::tb_allocate(coder_t &coder, 
   coder_nf_state << ";\n";
 
   coder.indent();
+  coder << "int " << success_var.name << " = ";
   coder << "tb_allocate(";
   coder << transpiler.transpile(capacity) << ", ";
-  coder << transpiler.transpile(rate) << "ull, ";
-  coder << transpiler.transpile(burst) << "ull, ";
+  coder << transpiler.transpile(rate) << ", ";
+  coder << transpiler.transpile(burst) << ", ";
   coder << transpiler.transpile(key_size) << ", ";
   coder << "&" << tb_out_var.name;
   coder << ");\n";

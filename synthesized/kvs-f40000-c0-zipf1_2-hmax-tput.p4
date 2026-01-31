@@ -83,6 +83,7 @@ header hdr3_h {
 }
 header hh_table_1073923096_digest_hdr {
   bit<32> data0;
+  bit<32> data1;
 }
 
 
@@ -103,6 +104,7 @@ struct synapse_ingress_metadata_t {
   bit<32> dev;
   bit<32> time;
   bit<32> key_32b_0;
+  bit<32> hh_table_1073923096_cms_min;
 
 }
 
@@ -534,11 +536,11 @@ control Ingress(
               // BDD node 13:map_get
               meta.key_32b_0 = hdr.hdr3.data1;
               bool hit0 = hh_table_1073923096_table_13.apply().hit;
-              if (hit0) {
-                hh_table_1073923096_cached_counters_inc_522.execute(hh_table_1073923096_table_13_get_value_param0);
-              } else {
-                bit<8> hh_table_1073923096_packet_sampler_sample_every_fourth_522_out_value = hh_table_1073923096_packet_sampler_sample_every_fourth_522.execute(0);
-                if (hh_table_1073923096_packet_sampler_sample_every_fourth_522_out_value == 0) {
+              bit<8> hh_table_1073923096_packet_sampler_sample_every_fourth_522_out_value = hh_table_1073923096_packet_sampler_sample_every_fourth_522.execute(0);
+              if (hh_table_1073923096_packet_sampler_sample_every_fourth_522_out_value == 1) {
+                if (hit0) {
+                  hh_table_1073923096_cached_counters_inc_522.execute(hh_table_1073923096_table_13_get_value_param0);
+                } else {
                   hh_table_1073923096_hash_calc_0_calc();
                   hh_table_1073923096_hash_calc_1_calc();
                   hh_table_1073923096_hash_calc_2_calc();
@@ -547,11 +549,11 @@ control Ingress(
                   hh_table_1073923096_cms_row_1_inc_and_read_522_execute();
                   hh_table_1073923096_cms_row_2_inc_and_read_522_execute();
                   hh_table_1073923096_cms_row_3_inc_and_read_522_execute();
-                  bit<32> hh_table_1073923096_cms_min = hh_table_1073923096_cms_row_0_value;
-                  hh_table_1073923096_cms_min = min(hh_table_1073923096_cms_min, hh_table_1073923096_cms_row_1_value);
-                  hh_table_1073923096_cms_min = min(hh_table_1073923096_cms_min, hh_table_1073923096_cms_row_2_value);
-                  hh_table_1073923096_cms_min = min(hh_table_1073923096_cms_min, hh_table_1073923096_cms_row_3_value);
-                  hh_table_1073923096_threshold_diff_522_cmp = hh_table_1073923096_cms_min;
+                  meta.hh_table_1073923096_cms_min = hh_table_1073923096_cms_row_0_value;
+                  meta.hh_table_1073923096_cms_min = min(meta.hh_table_1073923096_cms_min, hh_table_1073923096_cms_row_1_value);
+                  meta.hh_table_1073923096_cms_min = min(meta.hh_table_1073923096_cms_min, hh_table_1073923096_cms_row_2_value);
+                  meta.hh_table_1073923096_cms_min = min(meta.hh_table_1073923096_cms_min, hh_table_1073923096_cms_row_3_value);
+                  hh_table_1073923096_threshold_diff_522_cmp = meta.hh_table_1073923096_cms_min;
                   bit<32> hh_table_1073923096_threshold_diff = hh_table_1073923096_threshold_diff_522.execute(0);
                   if (hh_table_1073923096_threshold_diff_522_cmp[31:31] == 0) {
                     ig_dprsr_md.digest_type = 1;
@@ -668,7 +670,7 @@ control Ingress(
                 // BDD node 12:if
                 // EP node  5241:Forward
                 // BDD node 57:FORWARD
-                nf_dev[15:0] = hdr.hdr3.data4;
+                nf_dev[15:0] = bswap16(hdr.hdr3.data4);
               }
             }
             // EP node  119:Else
@@ -705,7 +707,8 @@ control IngressDeparser(
   apply {
     if (ig_dprsr_md.digest_type == 1) {
       hh_table_1073923096_digest.pack({
-        hdr.hdr3.data1,
+        meta.key_32b_0,
+        meta.hh_table_1073923096_cms_min,
       });
     }
 

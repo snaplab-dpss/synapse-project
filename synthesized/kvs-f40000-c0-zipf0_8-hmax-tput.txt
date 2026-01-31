@@ -133,7 +133,7 @@ SRAM: 344'068/1'310'720 B (26.2503%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 344'068/786'432 B (43.7505%)
 Exact Match Crossbar: 41/128 B (32.0312%)
-Objs: [hh_table_1073923096_digest,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_0,hh_table_1073923096_threshold,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_cms_row_3,hh_table_1073923096_hash_calc_0]
+Objs: [hh_table_1073923096_threshold,hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_1,hh_table_1073923096_digest,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_0]
 -------------------------------------
 -------------------------------------
 Stage 3

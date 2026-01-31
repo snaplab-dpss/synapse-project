@@ -18,7 +18,7 @@ struct State *allocated_nf_state = NULL;
 bool port_validity(void *value, int index, void *state) {
   uint16_t dev       = *(uint16_t *)value;
   uint16_t dev_count = rte_eth_dev_count_avail();
-  return (dev >= 0) AND((dev < dev_count) OR(dev == DROP));
+  return (dev >= 0) AND(dev < dev_count);
 }
 
 bool bool_invariant(void *value, int index, void *state) { return (*(int *)value == 0) | (*(int *)value == 1); }
@@ -90,8 +90,8 @@ struct State *alloc_state(uint32_t capacity, uint64_t rate, uint64_t burst, uint
 
 #ifdef KLEE_VERIFICATION
 void nf_loop_iteration_border(unsigned lcore_id, time_ns_t time) {
-  loop_iteration_border(&allocated_nf_state->tb, &allocated_nf_state->int_devices, &allocated_nf_state->fwd_rules,
-                        allocated_nf_state->dev_count, lcore_id, time);
+  loop_iteration_border(&allocated_nf_state->tb, &allocated_nf_state->int_devices, &allocated_nf_state->fwd_rules, allocated_nf_state->dev_count,
+                        lcore_id, time);
 }
 
 #endif // KLEE_VERIFICATION

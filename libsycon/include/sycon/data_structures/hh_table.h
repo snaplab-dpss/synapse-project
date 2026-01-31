@@ -18,7 +18,7 @@ class HHTable : public SynapseDS {
 private:
   constexpr const static u32 TOTAL_PROBES{50};
   constexpr const static u32 THRESHOLD{128};
-  constexpr const static time_s_t RESET_TIMER{1};
+  constexpr const static time_s_t RESET_TIMER{3};
 
   static const std::vector<u32> HASH_SALTS;
 
@@ -29,14 +29,14 @@ private:
   Digest digest;
 
   const u32 capacity;
-  const bits_t key_size;
+  const bytes_t key_size;
 
   const std::vector<buffer_t> hash_salts;
   const u32 hash_mask;
   const CRC32 crc32;
 
   std::unordered_map<buffer_t, u32, buffer_hash_t> key_to_index;
-  std::unordered_map<u32, buffer_t> index_to_key;
+  std::vector<buffer_t> index_to_key;
   std::unordered_set<u32> free_indices;
   std::unordered_set<u32> used_indices;
   std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
@@ -55,14 +55,14 @@ private:
   bool is_index_allocated(u32 index) const;
   bool insert(const buffer_t &key);
   void replace(u32 index, const buffer_t &key);
-  void probabilistic_replace(const buffer_t &key);
+  void probabilistic_replace(const buffer_t &key, u32 key_counter);
   void remove(const buffer_t &key);
   void clear_counters();
 
   static std::vector<Table> build_tables(const std::vector<std::string> &table_names);
   static std::vector<Register> build_count_min_sketch(const std::vector<std::string> &cms_reg_names);
   static u32 get_capacity(const std::vector<Table> &tables);
-  static bits_t get_key_size(const std::vector<Table> &tables);
+  static bytes_t get_key_size(const std::vector<Table> &tables);
   static u32 build_hash_mask(const std::vector<Register> &count_min_sketch);
   static std::vector<buffer_t> build_hash_salts(const std::vector<Register> &count_min_sketch);
 

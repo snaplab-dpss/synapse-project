@@ -56,7 +56,7 @@ bool HHTable::get(const buffer_t &k, u32 &v) {
 bool HHTable::is_index_allocated(u32 index) const { return used_indices.find(index) != used_indices.end(); }
 
 bool HHTable::insert(const buffer_t &key) {
-  LOG_DEBUG("Inserting key %s", key.to_string(true).c_str());
+  LOG("Inserting key %s", key.to_string(true).c_str());
 
   if (key_to_index.find(key) != key_to_index.end()) {
     return false;
@@ -85,7 +85,7 @@ bool HHTable::insert(const buffer_t &key) {
   free_indices.erase(index);
   used_indices.insert(index);
 
-  index_to_key.insert({index, key});
+  index_to_key[index] = key;
   key_to_index.insert({key, index});
 
   reg_cached_counters.set(index, 0);
@@ -97,17 +97,15 @@ void HHTable::replace(u32 index, const buffer_t &key) {
   LOG_DEBUG("Replacing index %u with key %s", index, key.to_string(true).c_str());
 
   assert(key_to_index.find(key) == key_to_index.end() && "Key already exists in cache");
+  assert(index < index_to_key.size() && "Index out of range");
 
-  auto found_it = index_to_key.find(index);
-  assert(found_it != index_to_key.end() && "Index not found in cache");
-
-  const buffer_t old_key = found_it->second;
+  const buffer_t old_key = index_to_key[index];
 
   if (old_key == key) {
     return;
   }
 
-  found_it->second = key;
+  index_to_key[index] = key;
 
   key_to_index.erase(old_key);
   key_to_index.insert({key, index});
@@ -128,7 +126,7 @@ void HHTable::replace(u32 index, const buffer_t &key) {
 }
 
 void HHTable::remove(const buffer_t &key) {
-  LOG_DEBUG("Removing key %s", key.to_string(true).c_str());
+  LOG("Removing key %s", key.to_string(true).c_str());
 
   auto found_it = key_to_index.find(key);
   if (found_it == key_to_index.end()) {
@@ -138,8 +136,6 @@ void HHTable::remove(const buffer_t &key) {
   const u32 index = found_it->second;
 
   key_to_index.erase(key);
-  index_to_key.erase(index);
-
   free_indices.insert(index);
   used_indices.erase(index);
 
@@ -148,9 +144,7 @@ void HHTable::remove(const buffer_t &key) {
   }
 }
 
-void HHTable::probabilistic_replace(const buffer_t &key) {
-  const std::vector<u32> hashes   = calculate_hashes(key);
-  const u32 key_counter           = cms_get_min(hashes);
+void HHTable::probabilistic_replace(const buffer_t &key, u32 key_counter) {
   const size_t total_used_indices = used_indices.size();
 
   LOG_DEBUG("Key counter: %u", key_counter);
@@ -158,10 +152,9 @@ void HHTable::probabilistic_replace(const buffer_t &key) {
   for (size_t i = 0; i < TOTAL_PROBES; i++) {
     const u32 probe_index = rand() % total_used_indices;
 
-    auto found_it = index_to_key.find(probe_index);
-    assert(found_it != index_to_key.end() && "Index not found in cache");
+    assert(probe_index < index_to_key.size() && "Index out of range");
 
-    const buffer_t &probe_key = found_it->second;
+    const buffer_t &probe_key = index_to_key[probe_index];
     const u32 probe_counter   = reg_cached_counters.get_max(probe_index);
 
     LOG_DEBUG("Probe index %u counter: %u", probe_index, probe_counter);
@@ -235,16 +228,16 @@ u32 HHTable::get_capacity(const std::vector<Table> &tables) {
   return capacity;
 }
 
-bits_t HHTable::get_key_size(const std::vector<Table> &tables) {
-  bits_t key_size = 0;
+bytes_t HHTable::get_key_size(const std::vector<Table> &tables) {
+  bytes_t key_size = 0;
   for (const table_field_t &field : tables.back().get_key_fields()) {
-    key_size += field.size;
+    key_size += field.size / 8;
   }
 
   for (const Table &table : tables) {
-    bits_t current_key_size = 0;
+    bytes_t current_key_size = 0;
     for (const table_field_t &field : table.get_key_fields()) {
-      current_key_size += field.size;
+      current_key_size += field.size / 8;
     }
     assert(current_key_size == key_size);
   }
@@ -336,7 +329,10 @@ bf_status_t HHTable::digest_callback(const bf_rt_target_t &bf_rt_tgt, const std:
   cfg.begin_dataplane_notification_transaction();
 
   for (const std::unique_ptr<bfrt::BfRtLearnData> &data_entry : learn_data) {
-    const buffer_t key = hh_table->digest.get_value(data_entry.get());
+    const buffer_t diggest_buffer = hh_table->digest.get_value(data_entry.get());
+
+    const buffer_t key    = diggest_buffer.get_slice(0, hh_table->key_size);
+    const u32 key_counter = diggest_buffer.get(hh_table->key_size, 4);
 
     LOG_DEBUG("[%s] Digest callback invoked (data=%s)", hh_table->digest.get_name().c_str(), key.to_string(true).c_str());
 
@@ -348,7 +344,7 @@ bf_status_t HHTable::digest_callback(const bf_rt_target_t &bf_rt_tgt, const std:
     if (!hh_table->free_indices.empty()) {
       hh_table->insert(key);
     } else {
-      hh_table->probabilistic_replace(key);
+      hh_table->probabilistic_replace(key, key_counter);
     }
   }
 

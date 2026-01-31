@@ -74,7 +74,7 @@ int tb_allocate(uint32_t capacity, uint64_t rate, uint64_t burst, uint32_t key_s
   klee_trace_param_u32(capacity, "capacity");
   klee_trace_param_u64(rate, "rate");
   klee_trace_param_u64(burst, "burst");
-  klee_trace_param_u64(key_size, "key_size");
+  klee_trace_param_u32(key_size, "key_size");
   klee_trace_param_ptr(tb_out, sizeof(struct TokenBucket *), "tb_out");
 
   int allocation_succeeded = klee_int("tb_allocation_succeeded");

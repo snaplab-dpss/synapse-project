@@ -314,7 +314,7 @@ private:
                                       std::optional<register_action_extras_t> extras = std::nullopt);
   void transpile_hash_decl(const Hash *hash);
   void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash);
-  void transpile_digest_decl(const Digest *digest, const std::vector<klee::ref<klee::Expr>> &keys);
+  void transpile_digest_decl(const Digest *digest);
   void transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, const EPNode *ep_node);
   void transpile_fcfs_ct_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, const var_t &fcfs_ct_value, code_t &hash_calculator,
                                           code_t &output_hash);
@@ -328,7 +328,7 @@ private:
   void transpile_bf_decl(const BloomFilter *bf, const EPNode *ep_node);
   void transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table);
   void transpile_if_condition(const If::condition_t &condition);
-  void transpile_digest(const Digest &digest, const std::vector<klee::ref<klee::Expr>> &fields);
+  void transpile_digest(const Digest &digest, const std::vector<code_t> &fields);
 
   void declare_var_in_ingress_metadata(const var_t &var);
   void dbg_vars() const;
