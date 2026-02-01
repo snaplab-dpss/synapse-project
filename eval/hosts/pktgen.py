@@ -193,6 +193,12 @@ class Pktgen:
         assert churn_fpm >= 0
         self._run_commands(f"churn {churn_fpm}")
 
+    def activate_warmup_mode(self) -> None:
+        self._run_commands(f"warmup 1")
+
+    def deactivate_warmup_mode(self) -> None:
+        self._run_commands(f"warmup 0")
+
     def stop(self) -> None:
         assert self.pktgen_active
         self._run_commands("stop")

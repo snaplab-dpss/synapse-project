@@ -54,7 +54,7 @@ control SwitchIngress(
 			set_key_idx;
 		}
 
-		size = NC_ENTRIES;
+		size = NC_ENTRIES * 2; // To actually get NC_ENTRIES, because of collisions.
 	}
 
 	action update_pkt_udp() {

@@ -25,7 +25,7 @@ PORT_SETUP_PRECISION = 0.1  # 10%
 PORT_SETUP_TIME_SEC = 5
 PORT_SETUP_RATE = 1  # 1 Mbps
 WARMUP_TIME_SEC = 10
-WARMUP_RATE = 10_000  # 10 Gbps
+WARMUP_RATE = 1_000  # 1 Gbps
 REST_TIME_SEC = 6
 BOGUS_RETRIES = 1
 MAX_WARMUP_RETRIES = 20
@@ -182,6 +182,7 @@ class Experiment:
 
             pktgen.set_churn(0)
             pktgen.set_rate(WARMUP_RATE)
+            pktgen.activate_warmup_mode()
             pktgen.start()
 
             self.log(f"Warming up DUT...")
@@ -208,6 +209,7 @@ class Experiment:
                 loss = 1 - nb_rx_pkts / nb_tx_pkts
                 self.log(f"[{warmup_retries:02}/{MAX_WARMUP_RETRIES:02}] Warmup TX pkts: {nb_tx_pkts:,}, RX pkts: {nb_rx_pkts:,}, loss: {loss*100:.3f}%")
 
+            pktgen.deactivate_warmup_mode()
             pktgen.set_rate(current_rate)
             pktgen.set_churn(churn)
             sleep(REST_TIME_SEC)
