@@ -100,6 +100,8 @@ struct synapse_ingress_metadata_t {
   bit<32> dev;
   bit<32> time;
   bit<32> key_32b_0;
+  bool hit0;
+  bool guarded_map_table_1073923096_guard_allow0;
 
 }
 
@@ -351,22 +353,33 @@ control Ingress(
 		hdr.cuckoo.val = val;
 	}
 
-  bit<32> map_table_1073923096_13_get_value_param0 = 32w0;
-  action map_table_1073923096_13_get_value(bit<32> _map_table_1073923096_13_get_value_param0) {
-    map_table_1073923096_13_get_value_param0 = _map_table_1073923096_13_get_value_param0;
+  bit<32> guarded_map_table_1073923096_13_get_value_param0 = 32w0;
+  action guarded_map_table_1073923096_13_get_value(bit<32> _guarded_map_table_1073923096_13_get_value_param0) {
+    guarded_map_table_1073923096_13_get_value_param0 = _guarded_map_table_1073923096_13_get_value_param0;
   }
 
-  table map_table_1073923096_13 {
+  table guarded_map_table_1073923096_13 {
     key = {
       meta.key_32b_0: exact;
     }
     actions = {
-      map_table_1073923096_13_get_value;
+      guarded_map_table_1073923096_13_get_value;
     }
     size = 9103;
     idle_timeout = true;
   }
 
+  Register<bit<8>,_>(1, 0) guarded_map_table_1073923096_guard;
+  RegisterAction<bit<8>, bit<1>, bit<8>>(guarded_map_table_1073923096_guard) guarded_map_table_1073923096_guard_read_2095 = {
+    void apply(inout bit<8> value, out bit<8> out_value) {
+      out_value = value;
+    }
+  };
+
+  bit<8> guarded_map_table_1073923096_guard_value_160 = 0;
+  action guarded_map_table_1073923096_guard_check_16() {
+    guarded_map_table_1073923096_guard_value_160 = guarded_map_table_1073923096_guard_read_2095.execute(0);
+  }
   table dchain_table_1073971272_38 {
     key = {
       meta.key_32b_0: exact;
@@ -434,13 +447,13 @@ control Ingress(
               if ((16w0x0000) != (meta.dev[15:0])){
                 // EP node  209:Then
                 // BDD node 12:if
-                // EP node  262:MapTableLookup
+                // EP node  280:GuardedMapTableLookup
                 // BDD node 13:map_get
                 meta.key_32b_0 = hdr.hdr3.data1;
-                bool hit0 = map_table_1073923096_13.apply().hit;
+                meta.hit0 = guarded_map_table_1073923096_13.apply().hit;
                 // EP node  708:If
                 // BDD node 14:if
-                if (!hit0){
+                if (!meta.hit0){
                   // EP node  709:Then
                   // BDD node 14:if
                   // EP node  774:If
@@ -448,11 +461,34 @@ control Ingress(
                   if ((8w0x01) == (hdr.hdr3.data0)){
                     // EP node  775:Then
                     // BDD node 15:if
-                    // EP node  2108:SendToController
+                    // EP node  2095:GuardedMapTableGuardCheck
                     // BDD node 16:dchain_allocate_new_index
-                    fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                    build_cpu_hdr(2108);
-                    hdr.cpu.dev = meta.dev;
+                    guarded_map_table_1073923096_guard_check_16();
+                    meta.guarded_map_table_1073923096_guard_allow0 = false;
+                    if (guarded_map_table_1073923096_guard_value_160 != 0) {
+                      meta.guarded_map_table_1073923096_guard_allow0 = true;
+                    }
+                    // EP node  2096:If
+                    // BDD node 16:dchain_allocate_new_index
+                    if (meta.guarded_map_table_1073923096_guard_allow0){
+                      // EP node  2097:Then
+                      // BDD node 16:dchain_allocate_new_index
+                      // EP node  3602:SendToController
+                      // BDD node 16:dchain_allocate_new_index
+                      fwd_op = fwd_op_t.FORWARD_TO_CPU;
+                      build_cpu_hdr(3602);
+                      hdr.cpu.dev = meta.dev;
+                    } else {
+                      // EP node  2098:Else
+                      // BDD node 16:dchain_allocate_new_index
+                      // EP node  2233:ModifyHeader
+                      // BDD node 127:packet_return_chunk
+                      hdr.hdr3.data4[15:8] = meta.dev[7:0];
+                      hdr.hdr3.data4[7:0] = meta.dev[15:8];
+                      // EP node  2797:Forward
+                      // BDD node 131:FORWARD
+                      nf_dev[15:0] = 16w0x0000;
+                    }
                   } else {
                     // EP node  776:Else
                     // BDD node 15:if
@@ -469,7 +505,7 @@ control Ingress(
                   // BDD node 14:if
                   // EP node  1292:DchainTableLookup
                   // BDD node 38:dchain_rejuvenate_index
-                  meta.key_32b_0 = map_table_1073923096_13_get_value_param0;
+                  meta.key_32b_0 = guarded_map_table_1073923096_13_get_value_param0;
                   dchain_table_1073971272_38.apply();
                   // EP node  1410:If
                   // BDD node 40:if
@@ -478,21 +514,21 @@ control Ingress(
                     // BDD node 40:if
                     // EP node  1414:VectorRegisterUpdate
                     // BDD node 39:vector_borrow
-                    vector_register_1073954136_0_write_1414.execute(map_table_1073923096_13_get_value_param0);
-                    // EP node  2212:ModifyHeader
+                    vector_register_1073954136_0_write_1414.execute(guarded_map_table_1073923096_13_get_value_param0);
+                    // EP node  2885:ModifyHeader
                     // BDD node 42:packet_return_chunk
                     hdr.hdr3.data3 = 8w0x01;
-                    // EP node  2383:ModifyHeader
+                    // EP node  3032:ModifyHeader
                     // BDD node 43:packet_return_chunk
                     swap(hdr.hdr2.data0[15:8], hdr.hdr2.data1[15:8]);
                     swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
-                    // EP node  2557:ModifyHeader
+                    // EP node  3182:ModifyHeader
                     // BDD node 44:packet_return_chunk
                     swap(hdr.hdr1.data2[31:24], hdr.hdr1.data3[31:24]);
                     swap(hdr.hdr1.data2[23:16], hdr.hdr1.data3[23:16]);
                     swap(hdr.hdr1.data2[15:8], hdr.hdr1.data3[15:8]);
                     swap(hdr.hdr1.data2[7:0], hdr.hdr1.data3[7:0]);
-                    // EP node  2734:ModifyHeader
+                    // EP node  3335:ModifyHeader
                     // BDD node 45:packet_return_chunk
                     swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
                     swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
@@ -500,7 +536,7 @@ control Ingress(
                     swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
                     swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
                     swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
-                    // EP node  2914:Forward
+                    // EP node  3491:Forward
                     // BDD node 46:FORWARD
                     nf_dev[15:0] = meta.dev[15:0];
                   } else {
@@ -508,7 +544,7 @@ control Ingress(
                     // BDD node 40:if
                     // EP node  1413:VectorRegisterLookup
                     // BDD node 39:vector_borrow
-                    bit<32> vector_reg_value0 = vector_register_1073954136_0_read_1413.execute(map_table_1073923096_13_get_value_param0);
+                    bit<32> vector_reg_value0 = vector_register_1073954136_0_read_1413.execute(guarded_map_table_1073923096_13_get_value_param0);
                     // EP node  1545:ModifyHeader
                     // BDD node 48:packet_return_chunk
                     hdr.hdr3.data2 = vector_reg_value0;
@@ -539,24 +575,24 @@ control Ingress(
               } else {
                 // EP node  210:Else
                 // BDD node 12:if
-                // EP node  5142:Forward
+                // EP node  6058:Forward
                 // BDD node 57:FORWARD
-                nf_dev[15:0] = hdr.hdr3.data4;
+                nf_dev[15:0] = bswap16(hdr.hdr3.data4);
               }
             }
             // EP node  119:Else
             // BDD node 10:if
-            // EP node  4839:ParserReject
+            // EP node  5725:ParserReject
             // BDD node 61:DROP
           }
           // EP node  54:Else
           // BDD node 8:if
-          // EP node  4362:ParserReject
+          // EP node  5200:ParserReject
           // BDD node 64:DROP
         }
         // EP node  15:Else
         // BDD node 6:if
-        // EP node  3718:ParserReject
+        // EP node  4490:ParserReject
         // BDD node 66:DROP
       }
 

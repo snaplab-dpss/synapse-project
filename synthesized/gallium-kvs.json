@@ -1,19 +1,19 @@
 {
   "bdd": "kvs.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 163,
-    "num_phase1_speculations": 19817,
-    "num_phase2_speculations": 1350,
-    "num_speculated_modules": 206066
+    "num_execution_plans_generated": 180,
+    "num_phase1_speculations": 30058,
+    "num_phase2_speculations": 1844,
+    "num_speculated_modules": 292247
   },
   "heuristic": {
     "meta": [
       {
-        "description": "122.90 Mbps (174.58 Kpps)",
+        "description": "56.71 Gbps (80.56 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "122.85 Mbps (174.50 Kpps)",
+        "description": "56.71 Gbps (80.56 Mpps)",
         "name": "Spec"
       }
     ],
@@ -22,8 +22,8 @@
       0,
       0,
       0,
-      44,
-      58
+      49,
+      63
     ]
   },
   "implementations": [
@@ -37,7 +37,7 @@
     },
     {
       "addr": 1073923096,
-      "implementation": "Tofino::MapTable"
+      "implementation": "Tofino::GuardedMapTable"
     }
   ],
   "name": "gallium-kvs",
@@ -45,6 +45,22 @@
   "search_meta": {
     "avg_bdd_size": 59,
     "avg_children_per_node": [
+      {
+        "avg": 3.0,
+        "node_id": 130
+      },
+      {
+        "avg": 3.0,
+        "node_id": 129
+      },
+      {
+        "avg": 3.0,
+        "node_id": 128
+      },
+      {
+        "avg": 3.0,
+        "node_id": 127
+      },
       {
         "avg": 0.0,
         "node_id": 32
@@ -66,7 +82,7 @@
         "node_id": 56
       },
       {
-        "avg": 2.0,
+        "avg": 2.5,
         "node_id": 16
       },
       {
@@ -152,6 +168,10 @@
       {
         "avg": 3.0,
         "node_id": 33
+      },
+      {
+        "avg": 2.0,
+        "node_id": 131
       },
       {
         "avg": 2.0,
@@ -299,16 +319,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.634920634920635,
-    "elapsed_time_seconds": 18,
+    "branching_factor": 2.6544117647058822,
+    "elapsed_time_seconds": 26,
     "finished_eps": 1,
-    "ss_size": 163,
-    "steps": 59,
-    "total_ss_size_estimation": 21235278415.48022,
-    "unfinished_eps": 104
+    "ss_size": 180,
+    "steps": 65,
+    "total_ss_size_estimation": 25193696831.01953,
+    "unfinished_eps": 115
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 122902912,
-  "tput_estimation_pps": 174578
+  "tput_estimation_bps": 56711154368,
+  "tput_estimation_pps": 80555617
 }

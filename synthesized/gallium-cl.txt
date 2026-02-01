@@ -7,7 +7,7 @@ Args:
   Profile file:       cl-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (40 modules)
+    Tofino (41 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
@@ -15,18 +15,18 @@ Args:
 
 Winner:
   Score: <0,0,0,0,30,52>
-  Tput: 349.82 Gbps (496.90 Mpps)
-  Spec: 349.82 Gbps (496.90 Mpps)
+  Tput: 1.10 Tbps (1.57 Gpps)
+  Spec: 1.10 Tbps (1.57 Gpps)
 
 Stateful Implementations:
   1074080384: Tofino::CMS
   1074079968: Tofino::DchainTable
-  1074110176: Tofino::Register
-  1074047984: Tofino::MapTable
+  1074110176: Tofino::VectorRegister
+  1074047984: Tofino::GuardedMapTable
   1074092960: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       41 seconds
+  Elapsed time:       25 seconds
   Steps:              53
   Backtracks:         0
   Search space size:  150
@@ -92,10 +92,9 @@ Search Metadata:
     Node 181: 3
 
 Global Stats:
-  Num phase 1 speculations: 13'349 (100%)
-  Num phase 2 speculations: 556 (4.16511%)
-  Num phase 3 speculations: 529 (3.96284%)
-  Num speculated modules:   174'395
+  Num phase 1 speculations: 14'526 (100%)
+  Num phase 2 speculations: 757 (5.21135%)
+  Num speculated modules:   164'415
   Num EPs generated:        150
 
 Switch placement:
@@ -111,11 +110,11 @@ Objs: [vector_table_1074092960_141]
 -------------------------------------
 -------------------------------------
 Stage 1
-SRAM: 1'181'536/1'310'720 B (90.144%)
+SRAM: 1'197'921/1'310'720 B (91.3941%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 16'448/786'432 B (2.09147%)
-Exact Match Crossbar: 16/128 B (12.5%)
-Objs: [vector_register_1074110176_0,map_table_1074047984_144]
+MapRAM: 32'833/786'432 B (4.17493%)
+Exact Match Crossbar: 17/128 B (13.2812%)
+Objs: [vector_register_1074110176_0,guarded_map_table_1074047984_guard,guarded_map_table_1074047984_144]
 -------------------------------------
 -------------------------------------
 Stage 2

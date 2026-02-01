@@ -7,35 +7,39 @@ Args:
   Profile file:       nat-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (40 modules)
+    Tofino (41 modules)
     Ctrl (90 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,0,0,0,46,61>
-  Tput: 339.65 Gbps (482.46 Mpps)
-  Spec: 339.65 Gbps (482.46 Mpps)
+  Score: <0,0,0,0,50,65>
+  Tput: 1.11 Tbps (1.58 Gpps)
+  Spec: 1.11 Tbps (1.58 Gpps)
 
 Stateful Implementations:
-  1074102760: Tofino::Register
-  1074066960: Tofino::Register
-  1074053136: Tofino::MapTable
+  1074102760: Tofino::VectorRegister
+  1074066960: Tofino::VectorRegister
+  1074053136: Tofino::GuardedMapTable
   1074085120: Tofino::DchainTable
-  1074085544: Tofino::Register
+  1074085544: Tofino::VectorRegister
 
 Search Metadata:
-  Elapsed time:       86 seconds
-  Steps:              62
+  Elapsed time:       32 seconds
+  Steps:              67
   Backtracks:         0
-  Search space size:  184
-  Unfinished EPs:     122
+  Search space size:  198
+  Unfinished EPs:     131
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   2
-  Total SS size est.: 91'718'403'977
+  Total SS size est.: 90'578'287'342
   Avg children per node:
+    Node 255: 2
+    Node 254: 3
+    Node 253: 3
+    Node 252: 3
     Node 180: 0
     Node 179: 0
     Node 146: 3
@@ -47,7 +51,7 @@ Search Metadata:
     Node 143: 3
     Node 142: 16
     Node 141: 3
-    Node 165: 2
+    Node 165: 2.5
     Node 136: 3
     Node 163: 4
     Node 134: 3
@@ -99,30 +103,29 @@ Search Metadata:
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 23'612 (100%)
-  Num phase 2 speculations: 898 (3.80315%)
-  Num phase 3 speculations: 893 (3.78198%)
-  Num speculated modules:   315'346
-  Num EPs generated:        184
+  Num phase 1 speculations: 21'687 (100%)
+  Num phase 2 speculations: 1'084 (4.99839%)
+  Num speculated modules:   252'460
+  Num EPs generated:        198
 
 Switch placement:
 
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 786'432/1'310'720 B (60%)
+SRAM: 786'425/1'310'720 B (59.9995%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 786'432/786'432 B (100%)
-Exact Match Crossbar: 28/128 B (21.875%)
-Objs: [vector_register_1074085544_0,dchain_table_1074085120_142,dchain_table_1074085120_146,dchain_table_1074085120_181,map_table_1074053136_163]
+MapRAM: 786'425/786'432 B (99.9991%)
+Exact Match Crossbar: 29/128 B (22.6562%)
+Objs: [vector_register_1074085544_0,dchain_table_1074085120_142,dchain_table_1074085120_146,dchain_table_1074085120_181,guarded_map_table_1074053136_163,guarded_map_table_1074053136_guard]
 -------------------------------------
 -------------------------------------
 Stage 1
-SRAM: 786'424/1'310'720 B (59.9994%)
+SRAM: 786'432/1'310'720 B (60%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 786'424/786'432 B (99.999%)
-Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [dchain_table_1074085120_181,vector_register_1074066960_1,vector_register_1074066960_2]
+MapRAM: 786'432/786'432 B (100%)
+Exact Match Crossbar: 24/128 B (18.75%)
+Objs: [dchain_table_1074085120_142,guarded_map_table_1074053136_163,vector_register_1074066960_2,vector_register_1074066960_3]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -130,15 +133,15 @@ SRAM: 786'432/1'310'720 B (60%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 786'432/786'432 B (100%)
 Exact Match Crossbar: 20/128 B (15.625%)
-Objs: [map_table_1074053136_163,vector_register_1074066960_0,vector_register_1074066960_3]
+Objs: [guarded_map_table_1074053136_163,vector_register_1074066960_0,vector_register_1074066960_1]
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 761'152/1'310'720 B (58.0713%)
+SRAM: 777'536/1'310'720 B (59.3213%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 761'152/786'432 B (96.7855%)
+MapRAM: 777'536/786'432 B (98.8688%)
 Exact Match Crossbar: 16/128 B (12.5%)
-Objs: [vector_register_1074102760_0,map_table_1074053136_163]
+Objs: [vector_register_1074102760_0,guarded_map_table_1074053136_163]
 -------------------------------------
 ==========================================================
 ========================================================

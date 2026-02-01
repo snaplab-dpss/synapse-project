@@ -1,20 +1,19 @@
 {
   "bdd": "fw.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 162,
-    "num_phase1_speculations": 16622,
-    "num_phase2_speculations": 700,
-    "num_phase3_speculations": 680,
-    "num_speculated_modules": 212230
+    "num_execution_plans_generated": 182,
+    "num_phase1_speculations": 20278,
+    "num_phase2_speculations": 1147,
+    "num_speculated_modules": 225458
   },
   "heuristic": {
     "meta": [
       {
-        "description": "349.82 Gbps (496.90 Mpps)",
+        "description": "1.10 Tbps (1.57 Gpps)",
         "name": "Tput"
       },
       {
-        "description": "349.82 Gbps (496.90 Mpps)",
+        "description": "1.10 Tbps (1.57 Gpps)",
         "name": "Spec"
       }
     ],
@@ -23,8 +22,8 @@
       0,
       0,
       0,
-      34,
-      51
+      40,
+      57
     ]
   },
   "implementations": [
@@ -38,11 +37,11 @@
     },
     {
       "addr": 1074044080,
-      "implementation": "Tofino::MapTable"
+      "implementation": "Tofino::GuardedMapTable"
     },
     {
       "addr": 1074076488,
-      "implementation": "Tofino::Register"
+      "implementation": "Tofino::VectorRegister"
     }
   ],
   "name": "gallium-fw",
@@ -71,6 +70,10 @@
         "node_id": 164
       },
       {
+        "avg": 3.0,
+        "node_id": 239
+      },
+      {
         "avg": 2.0,
         "node_id": 180
       },
@@ -85,6 +88,10 @@
       {
         "avg": 3.0,
         "node_id": 154
+      },
+      {
+        "avg": 3.0,
+        "node_id": 238
       },
       {
         "avg": 3.0,
@@ -104,6 +111,10 @@
       },
       {
         "avg": 3.0,
+        "node_id": 237
+      },
+      {
+        "avg": 3.0,
         "node_id": 178
       },
       {
@@ -117,6 +128,10 @@
       {
         "avg": 3.0,
         "node_id": 152
+      },
+      {
+        "avg": 3.0,
+        "node_id": 236
       },
       {
         "avg": 3.0,
@@ -155,12 +170,20 @@
         "node_id": 140
       },
       {
+        "avg": 2.0,
+        "node_id": 241
+      },
+      {
         "avg": 3.0,
         "node_id": 182
       },
       {
         "avg": 8.0,
         "node_id": 139
+      },
+      {
+        "avg": 3.0,
+        "node_id": 240
       },
       {
         "avg": 3.0,
@@ -227,7 +250,7 @@
         "node_id": 148
       },
       {
-        "avg": 2.0,
+        "avg": 2.5,
         "node_id": 157
       },
       {
@@ -264,16 +287,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.056603773584906,
-    "elapsed_time_seconds": 45,
+    "branching_factor": 3.042372881355932,
+    "elapsed_time_seconds": 25,
     "finished_eps": 1,
-    "ss_size": 162,
-    "steps": 52,
-    "total_ss_size_estimation": 74464572066.69987,
-    "unfinished_eps": 110
+    "ss_size": 182,
+    "steps": 59,
+    "total_ss_size_estimation": 67411688796.036865,
+    "unfinished_eps": 123
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 349817110016,
-  "tput_estimation_pps": 496899304
+  "tput_estimation_bps": 1102649682112,
+  "tput_estimation_pps": 1566263753
 }

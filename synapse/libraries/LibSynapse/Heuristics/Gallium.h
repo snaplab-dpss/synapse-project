@@ -60,7 +60,7 @@ private:
         // Tofino Gallium Compatible
         // ========================================
 
-      case DSImpl::Tofino_MapTable:
+      case DSImpl::Tofino_GuardedMapTable: // Let's give Gallium the benefit of the doubt here.
       case DSImpl::Tofino_VectorTable:
       case DSImpl::Tofino_DchainTable:
       case DSImpl::Tofino_VectorRegister:
@@ -72,8 +72,8 @@ private:
         // Tofino Gallium Inompatible
         // ========================================
 
+      case DSImpl::Tofino_MapTable: // GuardedMapTable is preferable for KVS, but Gallium makes static choices.
       case DSImpl::Tofino_MapSetTable:
-      case DSImpl::Tofino_GuardedMapTable:
       case DSImpl::Tofino_FCFSCachedTable:
       case DSImpl::Tofino_FCFSCachedSet:
       case DSImpl::Tofino_Meter:

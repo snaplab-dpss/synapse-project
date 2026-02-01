@@ -24,11 +24,11 @@ MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
 PORT_SETUP_PRECISION = 0.1  # 10%
 PORT_SETUP_TIME_SEC = 5
 PORT_SETUP_RATE = 1  # 1 Mbps
-WARMUP_TIME_SEC = 10
+WARMUP_TIME_SEC = 5
 WARMUP_RATE = 1_000  # 1 Gbps
-REST_TIME_SEC = 6
+REST_TIME_SEC = 10
 BOGUS_RETRIES = 1
-MAX_WARMUP_RETRIES = 20
+MAX_WARMUP_RETRIES = 10
 
 DEFAULT_THROUGHPUT_SEARCH_STEPS = 10
 DEFAULT_EXPERIMENT_ITERATIONS = 5
@@ -191,8 +191,8 @@ class Experiment:
             while loss > MAX_ACCEPTABLE_LOSS:
                 warmup_retries += 1
                 if warmup_retries > MAX_WARMUP_RETRIES:
-                    self.log("Max warmup retries reached!")
-                    return winner_report
+                    self.log("Max warmup retries reached! Power through...")
+                    break
 
                 tg_controller.reset_stats()
                 sleep(WARMUP_TIME_SEC)

@@ -5,7 +5,7 @@ using namespace sycon;
 struct state_t : public nf_state_t {
   IngressPortToNFDev ingress_port_to_nf_dev;
   ForwardingTbl forwarding_tbl;
-  MapTable map_table_1074047984;
+  GuardedMapTable guarded_map_table_1074047984;
   DchainTable dchain_table_1074079968;
   CountMinSketch cms_1074080384;
   VectorTable vector_table_1074092960;
@@ -14,7 +14,7 @@ struct state_t : public nf_state_t {
   state_t()
     : ingress_port_to_nf_dev(),
       forwarding_tbl(),
-      map_table_1074047984("map_table_1074047984",{"Ingress.map_table_1074047984_144",}, 1000LL),
+      guarded_map_table_1074047984("guarded_map_table_1074047984",{"Ingress.guarded_map_table_1074047984_144",},"Ingress.guarded_map_table_1074047984_guard", 1000LL),
       dchain_table_1074079968("dchain_table_1074079968",{"Ingress.dchain_table_1074079968_170",}, 1000LL),
       cms_1074080384("cms_1074080384",{"Ingress.cms_1074080384_row_0", "Ingress.cms_1074080384_row_1", "Ingress.cms_1074080384_row_2", "Ingress.cms_1074080384_row_3", }, 10000LL),
       vector_table_1074092960("vector_table_1074092960",{"Ingress.vector_table_1074092960_141",}),
@@ -101,7 +101,7 @@ void sycon::nf_init() {
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 31);
   state->forwarding_tbl.add_fwd_nf_dev_entry(31, asic_get_dev_port(32));
   // BDD node 0:map_allocate(capacity:(w32 65536), key_size:(w32 12), map_out:(w64 1074047712)[(w64 0) -> (w64 1074047984)])
-  // Module DataplaneMapTableAllocate
+  // Module DataplaneGuardedMapTableAllocate
   // BDD node 2:dchain_allocate(index_range:(w32 65536), chain_out:(w64 1074047728)[ -> (w64 1074079968)])
   // Module DataplaneDchainTableAllocate
   // BDD node 3:cms_allocate(height:(w32 4), width:(w32 1024), key_size:(w16 8), cms_out:(w64 1074047736)[(w64 0) -> (w64 1074080384)], cleanup_interval:(w64 10000000000))
@@ -702,8 +702,6 @@ void sycon::nf_user_signal_handler() {
 }
 
 struct cpu_hdr_extra_t {
-  u32 vector_data__141;
-  u32 map_has_this_key__144;
   u32 DEVICE;
 
 } __attribute__((packed));
@@ -722,48 +720,48 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr->egress_dev = 0;
   cpu_hdr->trigger_dataplane_execution = 0;
 
-  if (bswap16(cpu_hdr->code_path) == 2180) {
-    // EP node  2167
+  if (bswap16(cpu_hdr->code_path) == 2177) {
+    // EP node  2164
     // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
     u8* hdr_0 = packet_consume(pkt, 14);
-    // EP node  2168
+    // EP node  2165
     // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
     u8* hdr_1 = packet_consume(pkt, 20);
-    // EP node  2169
+    // EP node  2166
     // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
     u8* hdr_2 = packet_consume(pkt, 4);
-    // EP node  2170
+    // EP node  2167
     // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
     buffer_t value_0;
     state->vector_table_1074092960.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_0);
-    // EP node  2171
+    // EP node  2168
     // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
     if ((0) == ((u32)value_0.get(0, 4))) {
+      // EP node  2169
+      // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
       // EP node  2172
       // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
-      // EP node  2175
-      // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
-      buffer_t map_table_1074047984_key_0(12);
-      map_table_1074047984_key_0[0] = *(u8*)(hdr_1 + 12);
-      map_table_1074047984_key_0[1] = *(u8*)(hdr_1 + 13);
-      map_table_1074047984_key_0[2] = *(u8*)(hdr_1 + 14);
-      map_table_1074047984_key_0[3] = *(u8*)(hdr_1 + 15);
-      map_table_1074047984_key_0[4] = *(u8*)(hdr_1 + 16);
-      map_table_1074047984_key_0[5] = *(u8*)(hdr_1 + 17);
-      map_table_1074047984_key_0[6] = *(u8*)(hdr_1 + 18);
-      map_table_1074047984_key_0[7] = *(u8*)(hdr_1 + 19);
-      map_table_1074047984_key_0[8] = *(u8*)(hdr_2 + 0);
-      map_table_1074047984_key_0[9] = *(u8*)(hdr_2 + 1);
-      map_table_1074047984_key_0[10] = *(u8*)(hdr_2 + 2);
-      map_table_1074047984_key_0[11] = *(u8*)(hdr_2 + 3);
+      buffer_t guarded_map_table_1074047984_key_0(12);
+      guarded_map_table_1074047984_key_0[0] = *(u8*)(hdr_1 + 12);
+      guarded_map_table_1074047984_key_0[1] = *(u8*)(hdr_1 + 13);
+      guarded_map_table_1074047984_key_0[2] = *(u8*)(hdr_1 + 14);
+      guarded_map_table_1074047984_key_0[3] = *(u8*)(hdr_1 + 15);
+      guarded_map_table_1074047984_key_0[4] = *(u8*)(hdr_1 + 16);
+      guarded_map_table_1074047984_key_0[5] = *(u8*)(hdr_1 + 17);
+      guarded_map_table_1074047984_key_0[6] = *(u8*)(hdr_1 + 18);
+      guarded_map_table_1074047984_key_0[7] = *(u8*)(hdr_1 + 19);
+      guarded_map_table_1074047984_key_0[8] = *(u8*)(hdr_2 + 0);
+      guarded_map_table_1074047984_key_0[9] = *(u8*)(hdr_2 + 1);
+      guarded_map_table_1074047984_key_0[10] = *(u8*)(hdr_2 + 2);
+      guarded_map_table_1074047984_key_0[11] = *(u8*)(hdr_2 + 3);
       u32 value_1;
-      bool found_0 = state->map_table_1074047984.get(map_table_1074047984_key_0, value_1);
-      // EP node  2176
+      bool found_0 = state->guarded_map_table_1074047984.get(guarded_map_table_1074047984_key_0, value_1);
+      // EP node  2173
       // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
       if ((0) == (found_0)) {
-        // EP node  2177
+        // EP node  2174
         // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
-        // EP node  2747
+        // EP node  2744
         // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
         buffer_t cms_1074080384_key_0(8);
         cms_1074080384_key_0[0] = *(u8*)(hdr_1 + 12);
@@ -775,78 +773,78 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
         cms_1074080384_key_0[6] = *(u8*)(hdr_1 + 18);
         cms_1074080384_key_0[7] = *(u8*)(hdr_1 + 19);
         u32 min_estimate_0 = state->cms_1074080384.count_min(cms_1074080384_key_0);
-        // EP node  2792
+        // EP node  2789
         // BDD node 148:if ((Ule (ReadLSB w32 (w32 0) min_estimate__147) (w32 131071))
         if ((min_estimate_0) <= (131071)) {
-          // EP node  2793
+          // EP node  2790
           // BDD node 148:if ((Ule (ReadLSB w32 (w32 0) min_estimate__147) (w32 131071))
-          // EP node  2840
+          // EP node  2837
           // BDD node 149:dchain_allocate_new_index(chain:(w64 1074079968), index_out:(w64 1074225880)[(w32 4294967295) -> (ReadLSB w32 (w32 0) new_index__149)], time:(ReadLSB w64 (w32 0) next_time))
           u32 allocated_index_0;
           bool success_0 = state->dchain_table_1074079968.allocate_new_index(allocated_index_0);
-          // EP node  2889
+          // EP node  2886
           // BDD node 150:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__149))
           if ((0) == (success_0)) {
-            // EP node  2890
+            // EP node  2887
             // BDD node 150:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__149))
-            // EP node  3432
+            // EP node  3429
             // BDD node 151:vector_borrow(vector:(w64 1074110176), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074226080)[ -> (w64 1074124072)])
             buffer_t value_2;
             state->vector_register_1074110176.get((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_2);
-            // EP node  3546
+            // EP node  3543
             // BDD node 152:vector_return(vector:(w64 1074110176), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074124072)[(ReadLSB w16 (w32 0) vector_data__151)])
-            // EP node  3956
+            // EP node  3953
             // BDD node 156:FORWARD
             cpu_hdr->egress_dev = bswap16((u16)value_2.get(0, 2));
           } else {
-            // EP node  2891
+            // EP node  2888
             // BDD node 150:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__149))
-            // EP node  2993
+            // EP node  2990
             // BDD node 158:map_put(map:(w64 1074047984), key:(w64 1074075704)[(Concat w96 (Read w8 (w32 515) packet_chunks) (Concat w88 (Read w8 (w32 514) packet_chunks) (Concat w80 (Read w8 (w32 513) packet_chunks) (Concat w72 (Read w8 (w32 512) packet_chunks) (ReadLSB w64 (w32 268) packet_chunks))))) -> (Concat w96 (Read w8 (w32 515) packet_chunks) (Concat w88 (Read w8 (w32 514) packet_chunks) (Concat w80 (Read w8 (w32 513) packet_chunks) (Concat w72 (Read w8 (w32 512) packet_chunks) (ReadLSB w64 (w32 268) packet_chunks)))))], value:(ReadLSB w32 (w32 0) new_index__149))
-            buffer_t map_table_1074047984_key_1(12);
-            map_table_1074047984_key_1[0] = *(u8*)(hdr_1 + 12);
-            map_table_1074047984_key_1[1] = *(u8*)(hdr_1 + 13);
-            map_table_1074047984_key_1[2] = *(u8*)(hdr_1 + 14);
-            map_table_1074047984_key_1[3] = *(u8*)(hdr_1 + 15);
-            map_table_1074047984_key_1[4] = *(u8*)(hdr_1 + 16);
-            map_table_1074047984_key_1[5] = *(u8*)(hdr_1 + 17);
-            map_table_1074047984_key_1[6] = *(u8*)(hdr_1 + 18);
-            map_table_1074047984_key_1[7] = *(u8*)(hdr_1 + 19);
-            map_table_1074047984_key_1[8] = *(u8*)(hdr_2 + 0);
-            map_table_1074047984_key_1[9] = *(u8*)(hdr_2 + 1);
-            map_table_1074047984_key_1[10] = *(u8*)(hdr_2 + 2);
-            map_table_1074047984_key_1[11] = *(u8*)(hdr_2 + 3);
-            state->map_table_1074047984.put(map_table_1074047984_key_1, allocated_index_0);
-            // EP node  3046
+            buffer_t guarded_map_table_1074047984_key_1(12);
+            guarded_map_table_1074047984_key_1[0] = *(u8*)(hdr_1 + 12);
+            guarded_map_table_1074047984_key_1[1] = *(u8*)(hdr_1 + 13);
+            guarded_map_table_1074047984_key_1[2] = *(u8*)(hdr_1 + 14);
+            guarded_map_table_1074047984_key_1[3] = *(u8*)(hdr_1 + 15);
+            guarded_map_table_1074047984_key_1[4] = *(u8*)(hdr_1 + 16);
+            guarded_map_table_1074047984_key_1[5] = *(u8*)(hdr_1 + 17);
+            guarded_map_table_1074047984_key_1[6] = *(u8*)(hdr_1 + 18);
+            guarded_map_table_1074047984_key_1[7] = *(u8*)(hdr_1 + 19);
+            guarded_map_table_1074047984_key_1[8] = *(u8*)(hdr_2 + 0);
+            guarded_map_table_1074047984_key_1[9] = *(u8*)(hdr_2 + 1);
+            guarded_map_table_1074047984_key_1[10] = *(u8*)(hdr_2 + 2);
+            guarded_map_table_1074047984_key_1[11] = *(u8*)(hdr_2 + 3);
+            state->guarded_map_table_1074047984.put(guarded_map_table_1074047984_key_1, allocated_index_0);
+            // EP node  3043
             // BDD node 160:vector_borrow(vector:(w64 1074110176), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074228240)[ -> (w64 1074124072)])
             buffer_t value_3;
             state->vector_register_1074110176.get((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_3);
-            // EP node  3100
+            // EP node  3097
             // BDD node 161:vector_return(vector:(w64 1074110176), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074124072)[(ReadLSB w16 (w32 0) vector_data__160)])
-            // EP node  3375
+            // EP node  3372
             // BDD node 165:FORWARD
             cpu_hdr->egress_dev = bswap16((u16)value_3.get(0, 2));
           }
         } else {
-          // EP node  2794
+          // EP node  2791
           // BDD node 148:if ((Ule (ReadLSB w32 (w32 0) min_estimate__147) (w32 131071))
-          // EP node  3720
+          // EP node  3717
           // BDD node 169:DROP
           result.forward = false;
         }
       } else {
-        // EP node  2178
+        // EP node  2175
         // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
-        // EP node  2179
+        // EP node  2176
         // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
         result.abort_transaction = true;
         cpu_hdr->trigger_dataplane_execution = 1;
         return result;
       }
     } else {
-      // EP node  2173
+      // EP node  2170
       // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
-      // EP node  2174
+      // EP node  2171
       // BDD node 147:cms_count_min(cms:(w64 1074080384), key:(w64 1074225314)[(ReadLSB w64 (w32 268) packet_chunks) -> (ReadLSB w64 (w32 268) packet_chunks)])
       result.abort_transaction = true;
       cpu_hdr->trigger_dataplane_execution = 1;

@@ -1,20 +1,19 @@
 {
   "bdd": "nat.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 184,
-    "num_phase1_speculations": 23612,
-    "num_phase2_speculations": 898,
-    "num_phase3_speculations": 893,
-    "num_speculated_modules": 315346
+    "num_execution_plans_generated": 198,
+    "num_phase1_speculations": 21687,
+    "num_phase2_speculations": 1084,
+    "num_speculated_modules": 252460
   },
   "heuristic": {
     "meta": [
       {
-        "description": "339.65 Gbps (482.46 Mpps)",
+        "description": "1.11 Tbps (1.58 Gpps)",
         "name": "Tput"
       },
       {
-        "description": "339.65 Gbps (482.46 Mpps)",
+        "description": "1.11 Tbps (1.58 Gpps)",
         "name": "Spec"
       }
     ],
@@ -23,22 +22,22 @@
       0,
       0,
       0,
-      46,
-      61
+      50,
+      65
     ]
   },
   "implementations": [
     {
       "addr": 1074102760,
-      "implementation": "Tofino::Register"
+      "implementation": "Tofino::VectorRegister"
     },
     {
       "addr": 1074066960,
-      "implementation": "Tofino::Register"
+      "implementation": "Tofino::VectorRegister"
     },
     {
       "addr": 1074053136,
-      "implementation": "Tofino::MapTable"
+      "implementation": "Tofino::GuardedMapTable"
     },
     {
       "addr": 1074085120,
@@ -46,7 +45,7 @@
     },
     {
       "addr": 1074085544,
-      "implementation": "Tofino::Register"
+      "implementation": "Tofino::VectorRegister"
     }
   ],
   "name": "gallium-nat",
@@ -54,6 +53,22 @@
   "search_meta": {
     "avg_bdd_size": 61,
     "avg_children_per_node": [
+      {
+        "avg": 2.0,
+        "node_id": 255
+      },
+      {
+        "avg": 3.0,
+        "node_id": 254
+      },
+      {
+        "avg": 3.0,
+        "node_id": 253
+      },
+      {
+        "avg": 3.0,
+        "node_id": 252
+      },
       {
         "avg": 0.0,
         "node_id": 180
@@ -99,7 +114,7 @@
         "node_id": 141
       },
       {
-        "avg": 2.0,
+        "avg": 2.5,
         "node_id": 165
       },
       {
@@ -300,16 +315,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.901639344262295,
-    "elapsed_time_seconds": 86,
+    "branching_factor": 2.9,
+    "elapsed_time_seconds": 32,
     "finished_eps": 1,
-    "ss_size": 184,
-    "steps": 62,
-    "total_ss_size_estimation": 91718403977.25458,
-    "unfinished_eps": 122
+    "ss_size": 198,
+    "steps": 67,
+    "total_ss_size_estimation": 90578287342.37671,
+    "unfinished_eps": 131
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 339649044416,
-  "tput_estimation_pps": 482456029
+  "tput_estimation_bps": 1113372800320,
+  "tput_estimation_pps": 1581495455
 }
