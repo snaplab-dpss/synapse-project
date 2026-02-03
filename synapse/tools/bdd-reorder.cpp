@@ -129,13 +129,13 @@ int main(int argc, char **argv) {
   SymbolManager symbol_manager;
   BDD bdd(input_bdd_file, &symbol_manager);
 
-  // list_candidates(&bdd, {139, true});
+  list_candidates(&bdd, {146, false});
   // apply_reordering_ops(&bdd, {
   //                                {{138, true}, 142},
   //                                {{142, true}, 159},
   //                            });
   // test_reorder(&bdd, 3);
-  estimate(&bdd);
+  // estimate(&bdd);
 
   return 0;
 }

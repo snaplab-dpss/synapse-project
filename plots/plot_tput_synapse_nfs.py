@@ -49,56 +49,66 @@ NFS = [
     #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_pps_scatter.pdf",
     #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_cuckoo_heatmap.pdf",
     # },
+    {
+        "title": "KVS",
+        "data_file": DATA_DIR / "tput_synapse_kvs.csv",
+        "bps_output_file": PLOTS_DIR / "tput_synapse_kvs_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_synapse_kvs_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_heatmap.pdf",
+        "barplot_output_file": PLOTS_DIR / "tput_synapse_kvs_barplot.pdf",
+    },
     # {
-    #     "title": "KVS",
-    #     "data_file": DATA_DIR / "tput_synapse_kvs.csv",
-    #     "bps_output_file": PLOTS_DIR / "tput_synapse_kvs_bps.pdf",
-    #     "pps_output_file": PLOTS_DIR / "tput_synapse_kvs_pps.pdf",
-    #     "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_bps_scatter.pdf",
-    #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_pps_scatter.pdf",
-    #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_heatmap.pdf",
-    #     "barplot_output_file": PLOTS_DIR / "tput_synapse_kvs_barplot.pdf",
+    #     "title": "Firewall",
+    #     "data_file": DATA_DIR / "tput_synapse_fw.csv",
+    #     "bps_output_file": PLOTS_DIR / "tput_synapse_fw_bps.pdf",
+    #     "pps_output_file": PLOTS_DIR / "tput_synapse_fw_pps.pdf",
+    #     "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_fw_bps_scatter.pdf",
+    #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_fw_pps_scatter.pdf",
+    #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_fw_heatmap.pdf",
+    #     "barplot_output_file": PLOTS_DIR / "tput_synapse_fw_barplot.pdf",
     # },
-    {
-        "title": "Firewall",
-        "data_file": DATA_DIR / "tput_synapse_fw.csv",
-        "bps_output_file": PLOTS_DIR / "tput_synapse_fw_bps.pdf",
-        "pps_output_file": PLOTS_DIR / "tput_synapse_fw_pps.pdf",
-        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_fw_bps_scatter.pdf",
-        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_fw_pps_scatter.pdf",
-        "heatmap_output_file": PLOTS_DIR / "tput_synapse_fw_heatmap.pdf",
-        "barplot_output_file": PLOTS_DIR / "tput_synapse_fw_barplot.pdf",
-    },
-    {
-        "title": "NAT",
-        "data_file": DATA_DIR / "tput_synapse_nat.csv",
-        "bps_output_file": PLOTS_DIR / "tput_synapse_nat_bps.pdf",
-        "pps_output_file": PLOTS_DIR / "tput_synapse_nat_pps.pdf",
-        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_nat_bps_scatter.pdf",
-        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_nat_pps_scatter.pdf",
-        "heatmap_output_file": PLOTS_DIR / "tput_synapse_nat_heatmap.pdf",
-        "barplot_output_file": PLOTS_DIR / "tput_synapse_nat_barplot.pdf",
-    },
-    {
-        "title": "PSD",
-        "data_file": DATA_DIR / "tput_synapse_psd.csv",
-        "bps_output_file": PLOTS_DIR / "tput_synapse_psd_bps.pdf",
-        "pps_output_file": PLOTS_DIR / "tput_synapse_psd_pps.pdf",
-        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_psd_bps_scatter.pdf",
-        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_psd_pps_scatter.pdf",
-        "heatmap_output_file": PLOTS_DIR / "tput_synapse_psd_heatmap.pdf",
-        "barplot_output_file": PLOTS_DIR / "tput_synapse_psd_barplot.pdf",
-    },
-    {
-        "title": "CL",
-        "data_file": DATA_DIR / "tput_synapse_cl.csv",
-        "bps_output_file": PLOTS_DIR / "tput_synapse_cl_bps.pdf",
-        "pps_output_file": PLOTS_DIR / "tput_synapse_cl_pps.pdf",
-        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_cl_bps_scatter.pdf",
-        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_cl_pps_scatter.pdf",
-        "heatmap_output_file": PLOTS_DIR / "tput_synapse_cl_heatmap.pdf",
-        "barplot_output_file": PLOTS_DIR / "tput_synapse_cl_barplot.pdf",
-    },
+    # {
+    #     "title": "NAT",
+    #     "data_file": DATA_DIR / "tput_synapse_nat.csv",
+    #     "bps_output_file": PLOTS_DIR / "tput_synapse_nat_bps.pdf",
+    #     "pps_output_file": PLOTS_DIR / "tput_synapse_nat_pps.pdf",
+    #     "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_nat_bps_scatter.pdf",
+    #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_nat_pps_scatter.pdf",
+    #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_nat_heatmap.pdf",
+    #     "barplot_output_file": PLOTS_DIR / "tput_synapse_nat_barplot.pdf",
+    # },
+    # {
+    #     "title": "PSD",
+    #     "data_file": DATA_DIR / "tput_synapse_psd.csv",
+    #     "bps_output_file": PLOTS_DIR / "tput_synapse_psd_bps.pdf",
+    #     "pps_output_file": PLOTS_DIR / "tput_synapse_psd_pps.pdf",
+    #     "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_psd_bps_scatter.pdf",
+    #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_psd_pps_scatter.pdf",
+    #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_psd_heatmap.pdf",
+    #     "barplot_output_file": PLOTS_DIR / "tput_synapse_psd_barplot.pdf",
+    # },
+    # {
+    #     "title": "CL",
+    #     "data_file": DATA_DIR / "tput_synapse_cl.csv",
+    #     "bps_output_file": PLOTS_DIR / "tput_synapse_cl_bps.pdf",
+    #     "pps_output_file": PLOTS_DIR / "tput_synapse_cl_pps.pdf",
+    #     "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_cl_bps_scatter.pdf",
+    #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_cl_pps_scatter.pdf",
+    #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_cl_heatmap.pdf",
+    #     "barplot_output_file": PLOTS_DIR / "tput_synapse_cl_barplot.pdf",
+    # },
+    # {
+    #     "title": "Gallium KVS",
+    #     "data_file": DATA_DIR / "tput_gallium_kvs.csv",
+    #     "bps_output_file": PLOTS_DIR / "tput_gallium_kvs_bps.pdf",
+    #     "pps_output_file": PLOTS_DIR / "tput_gallium_kvs_pps.pdf",
+    #     "bps_scatter_output_file": PLOTS_DIR / "tput_gallium_kvs_bps_scatter.pdf",
+    #     "pps_scatter_output_file": PLOTS_DIR / "tput_gallium_kvs_pps_scatter.pdf",
+    #     "heatmap_output_file": PLOTS_DIR / "tput_gallium_kvs_heatmap.pdf",
+    #     "barplot_output_file": PLOTS_DIR / "tput_gallium_kvs_barplot.pdf",
+    # },
     # {
     #     "title": "Gallium FW",
     #     "data_file": DATA_DIR / "tput_gallium_fw.csv",
@@ -135,27 +145,6 @@ NFS = [
     #     "pps_scatter_output_file": PLOTS_DIR / "tput_gallium_cl_pps_scatter.pdf",
     #     "heatmap_output_file": PLOTS_DIR / "tput_gallium_cl_heatmap.pdf",
     # },
-    # {
-    #     "title": "KVS",
-    #     "data_file": DATA_DIR / "tput_synapse_kvs.csv",
-    #     "bps_output_file": PLOTS_DIR / "tput_synapse_kvs_bps.pdf",
-    #     "pps_output_file": PLOTS_DIR / "tput_synapse_kvs_pps.pdf",
-    #     "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_bps_scatter.pdf",
-    #     "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_kvs_pps_scatter.pdf",
-    #     "heatmap_output_file": PLOTS_DIR / "tput_synapse_kvs_heatmap.pdf",
-    # },
-    # *[
-    #     {
-    #         "title": "FW FCFS CT experiment",
-    #         "data_file": DATA_DIR / f"tput_synapse_fw_fcfs_ct_{cache_size}.csv",
-    #         "bps_output_file": PLOTS_DIR / f"tput_synapse_fw_fcfs_ct_{cache_size}_bps.pdf",
-    #         "pps_output_file": PLOTS_DIR / f"tput_synapse_fw_fcfs_ct_{cache_size}_pps.pdf",
-    #         "bps_scatter_output_file": PLOTS_DIR / f"tput_synapse_fw_fcfs_ct_{cache_size}_bps_scatter.pdf",
-    #         "pps_scatter_output_file": PLOTS_DIR / f"tput_synapse_fw_fcfs_ct_{cache_size}_pps_scatter.pdf",
-    #         "heatmap_output_file": PLOTS_DIR / f"tput_synapse_fw_fcfs_ct_{cache_size}_heatmap.pdf",
-    #     }
-    #     for cache_size in [1024, 32768, 65536]
-    # ],
 ]
 
 
@@ -221,10 +210,10 @@ def main():
         BARPLOT_OUTPUT_FILE = nf["barplot_output_file"]
 
         heatmap_data = parse_heatmap_data_file(DATA_FILE)
-        # plot_bps(heatmap_data, BPS_OUTPUT_FILE)
-        # plot_pps(heatmap_data, PPS_OUTPUT_FILE)
-        # plot_bps_scatter(heatmap_data, BPS_SCATTER_OUTPUT_FILE)
-        # plot_heatmap(heatmap_data, HEATMAP_OUTPUT_FILE)
+        plot_bps(heatmap_data, BPS_OUTPUT_FILE)
+        plot_pps(heatmap_data, PPS_OUTPUT_FILE)
+        plot_bps_scatter(heatmap_data, BPS_SCATTER_OUTPUT_FILE)
+        plot_heatmap(heatmap_data, HEATMAP_OUTPUT_FILE)
         plot_barplot_churn_x_axis(heatmap_data, PLOTS_DIR / BARPLOT_OUTPUT_FILE)
 
 

@@ -90,6 +90,7 @@ public:
   bps_t get_max_input_bps() const;
 
   hit_rate_t get_dropped_ingress() const { return dropped_ingress; }
+  hit_rate_t get_total_controller_ingress() const { return controller_ingress.get_total_hr(); }
 
   // We optimistically assume the controller traffic will not bottleneck any
   // of the front-panel ports. We do this by forwarding the entire controller

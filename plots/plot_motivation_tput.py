@@ -21,12 +21,12 @@ TPUT_MPPS_MIN = 0
 TPUT_MPPS_MAX = 2500
 
 # SYSTEM_NAME = "Synapse"
-SYSTEM_NAME = "AnonTool"
+SYSTEM_NAME = "Tessera"
 
 nf = "KVS"
 
 solutions = {
-    "Straw design": DATA_DIR / "tput_synapse_kvs_guardedmaptable.csv",
+    "Straw design": DATA_DIR / "tput_gallium_kvs.csv",
     "NetCache": DATA_DIR / "tput_netcache.csv",
     "Switcharoo": DATA_DIR / "tput_switcharoo.csv",
     # SYSTEM_NAME: DATA_DIR / "tput_synapse_kvs_hhtable.csv",
@@ -89,7 +89,7 @@ def plot(data: dict):
     # ax.set_yscale("log")
     # ax.set_yticks([10, 100, 1_000, 10_000])
 
-    ax.set_yticks(np.arange(0, TPUT_MPPS_MAX + 1, TPUT_MPPS_MAX / 4))
+    ax.set_yticks(np.arange(0, TPUT_MPPS_MAX + 1, TPUT_MPPS_MAX / 5))
     # ax.set_yticks(np.arange(TPUT_MPPS_MAX / 8, TPUT_MPPS_MAX + 1, TPUT_MPPS_MAX / 8), minor=True)
 
     colors = [
@@ -112,7 +112,7 @@ def plot(data: dict):
     fig.set_size_inches(width / 2, height * 0.5)
 
     print("-> ", OUTPUT_FILE)
-    plt.savefig(str(OUTPUT_FILE))
+    plt.savefig(str(OUTPUT_FILE), bbox_inches="tight", pad_inches=0)
 
 
 def main():

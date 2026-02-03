@@ -26,14 +26,14 @@ PIPELINES = 1
 TOTAL_FLOWS = 40_000
 
 CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
-# ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
+ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 
 # CHURN_FPM = [10_000]
 # ZIPF_PARAMS = [0.6, 0.8, 1.0, 1.2]
 
 # TOTAL_FLOWS = 40_000
-# CHURN_FPM = [0]
-ZIPF_PARAMS = [1.2]
+# CHURN_FPM = [10_000]
+# ZIPF_PARAMS = [1.0]
 
 ITERATIONS = 3
 
@@ -59,28 +59,12 @@ def build_synapse_nf_name(nf: str, churn: int, zipf: float) -> str:
     return f"{nf}-f{TOTAL_FLOWS}-c{churn}-{dist}-h{heuristic}"
 
 
-SYNAPSE_NFS = [
-    *[
-        SynapseNF(
-            name=build_synapse_nf_name("kvs", churn, s),
-            description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
-            data_out=Path(f"tput_synapse_kvs.csv"),
-            kvs_mode=True,
-            tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
-            controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
-            broadcast=lambda ports: ports,
-            symmetric=lambda _: [],
-            route=lambda _: [],
-            churn=[churn],
-            zipf=[s],
-        )
-        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
-    ],
+NFS = [
     SynapseNF(
         name="gallium-kvs",
         description="Gallium KVS",
         data_out=Path("tput_gallium_kvs.csv"),
-        kvs_mode=False,
+        kvs_mode=True,
         tofino=Path("synthesized/gallium-kvs.p4"),
         controller=Path("synthesized/gallium-kvs.cpp"),
         broadcast=lambda ports: ports,
@@ -142,6 +126,22 @@ SYNAPSE_NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
+    *[
+        SynapseNF(
+            name=build_synapse_nf_name("kvs", churn, s),
+            description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
+            data_out=Path(f"tput_synapse_kvs.csv"),
+            kvs_mode=True,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
+            broadcast=lambda ports: ports,
+            symmetric=lambda _: [],
+            route=lambda _: [],
+            churn=[churn],
+            zipf=[s],
+        )
+        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    ],
     # *[
     #     SynapseNF(
     #         name=build_synapse_nf_name("fw", churn, s),
@@ -443,7 +443,7 @@ def main():
 
     exp_tracker = ExperimentTracker()
 
-    for synapse_nf in SYNAPSE_NFS:
+    for synapse_nf in NFS:
         broadcast = synapse_nf.broadcast(tg_dut_ports)
         symmetric = synapse_nf.symmetric(tg_dut_ports)
         route = synapse_nf.route(tg_dut_ports)

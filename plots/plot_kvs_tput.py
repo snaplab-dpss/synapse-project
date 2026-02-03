@@ -21,7 +21,7 @@ TPUT_MPPS_MIN = 0
 TPUT_MPPS_MAX = 2500
 
 # SYSTEM_NAME = "Synapse"
-SYSTEM_NAME = "AnonTool"
+SYSTEM_NAME = "Tessera"
 
 nf = "KVS"
 

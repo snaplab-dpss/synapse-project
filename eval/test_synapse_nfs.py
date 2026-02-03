@@ -20,7 +20,7 @@ KVS_GET_RATIO = 0.99
 PIPELINES = 1
 
 TOTAL_FLOWS = 40_000
-CHURN_FPM = 0
+CHURN_FPM = 100_000
 ZIPF_PARAM = 1.2
 
 
@@ -63,16 +63,6 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
-    SynapseNF(
-        name="gallium-kvs",
-        description="Gallium KVS",
-        kvs_mode=True,
-        tofino=Path("synthesized/gallium-kvs.p4"),
-        controller=Path("synthesized/gallium-kvs.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
-    ),
     # SynapseNF(
     #     name="synapse-fw",
     #     description="Synapse FW",
@@ -81,6 +71,16 @@ NFS = [
     #     controller=Path("synthesized/synapse-fw.cpp"),
     #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    # ),
+    # SynapseNF(
+    #     name="gallium-kvs",
+    #     description="Gallium KVS",
+    #     kvs_mode=True,
+    #     tofino=Path("synthesized/gallium-kvs.p4"),
+    #     controller=Path("synthesized/gallium-kvs.cpp"),
+    #     broadcast=lambda ports: ports,
+    #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
     # SynapseNF(
@@ -133,16 +133,16 @@ NFS = [
     #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
     #     route=lambda _: [],
     # ),
-    # SynapseNF(
-    #     name=build_synapse_nf_name("psd", CHURN_FPM, ZIPF_PARAM),
-    #     description=f"Synapse {build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}",
-    #     kvs_mode=False,
-    #     tofino=Path(f"synthesized/{build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}.p4"),
-    #     controller=Path(f"synthesized/{build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
+    SynapseNF(
+        name=build_synapse_nf_name("psd", CHURN_FPM, ZIPF_PARAM),
+        description=f"Synapse {build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}",
+        kvs_mode=False,
+        tofino=Path(f"synthesized/{build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}.p4"),
+        controller=Path(f"synthesized/{build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+        route=lambda _: [],
+    ),
     # SynapseNF(
     #     name=build_synapse_nf_name("cl", CHURN_FPM, ZIPF_PARAM),
     #     description=f"Synapse {build_synapse_nf_name('cl', CHURN_FPM, ZIPF_PARAM)}",
