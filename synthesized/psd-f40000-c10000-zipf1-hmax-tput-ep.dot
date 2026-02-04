@@ -29,8 +29,6 @@ digraph G {
 	"2438"[label="[EPNode=2438,BDDNode=300] \n!vector_data__142",shape=ellipse,style="filled,",fillcolor="lightcoral",border=0,];
 	"9045"[label="[EPNode=9045,BDDNode=293]\nDataplaneBloomFilterSet",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"2435"[label="[EPNode=2435,BDDNode=300]\nParseHeader",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
-	"7864"[label="[EPNode=7864,BDDNode=283]\nElse",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
-	"1321"[label="[EPNode=1321,BDDNode=171]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"535"[label="[EPNode=535,BDDNode=192]\nVector Table Lookup\n(tid=vector_table_1074126776, obj=1074126776)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"4554"[label="[EPNode=4554,BDDNode=166]\nForward (vector_data__161)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"10721"[label="[EPNode=10721,BDDNode=289]\nForward",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
@@ -44,13 +42,15 @@ digraph G {
 	"2305"[label="[EPNode=2305,BDDNode=147] \n(cached_insert_success != 0)",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"24"[label="[EPNode=24,BDDNode=138] ParserCondition",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"2620"[label="[EPNode=2620,BDDNode=160]\nBloomFilterSet",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"253"[label="[EPNode=253,BDDNode=141]\nParse Header (4B)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"9660"[label="[EPNode=9660,BDDNode=284]\nDataplaneVectorTableLookup",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"2433"[label="[EPNode=2433,BDDNode=300]\nParseHeader",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"7767"[label="[EPNode=7767,BDDNode=184]\nDrop",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"217"[label="[EPNode=217,BDDNode=140]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"39"[label="[EPNode=39,BDDNode=139]\nParse Header (20B)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"253"[label="[EPNode=253,BDDNode=141]\nParse Header (4B)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"148"[label="[EPNode=148,BDDNode=145]\nFCFS Cached Table Read\nobj=1074048392, size=1024",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"7864"[label="[EPNode=7864,BDDNode=283]\nElse",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
+	"1321"[label="[EPNode=1321,BDDNode=171]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"132"[label="[EPNode=132,BDDNode=145]\nFCFS Cached Table Read\nobj=1074048392, size=256",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"216"[label="[EPNode=216,BDDNode=140] ParserCondition",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"395"[label="[EPNode=395,BDDNode=144]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"11"[label="[EPNode=11,BDDNode=137]\nParse Header (14B)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
@@ -68,7 +68,7 @@ digraph G {
 	"2447"[label="[EPNode=2447,BDDNode=300]\nThen",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"2448"[label="[EPNode=2448,BDDNode=300]\nElse",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"2441"[label="[EPNode=2441,BDDNode=300]\nAbortTransaction",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
-	"2304"[label="[EPNode=2304,BDDNode=147]\nFCFS Cached Table Insert\nobj=1074048392, size=1024",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"2304"[label="[EPNode=2304,BDDNode=147]\nFCFS Cached Table Insert\nobj=1074048392, size=256",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"2440"[label="[EPNode=2440,BDDNode=300]\nElse",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"2449"[label="[EPNode=2449,BDDNode=300]\nAbortTransaction",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"7862"[label="[EPNode=7862,BDDNode=283] \n!not_out_of_space__282",shape=ellipse,style="filled,",fillcolor="lightcoral",border=0,];
@@ -179,8 +179,8 @@ digraph G {
 	"216" -> "217";
 	"218" -> "6126";
 	"216" -> "218";
-	"148" -> "216";
-	"39" -> "148";
+	"132" -> "216";
+	"39" -> "132";
 	"25" -> "39";
 	"24" -> "25";
 	"26" -> "5273";

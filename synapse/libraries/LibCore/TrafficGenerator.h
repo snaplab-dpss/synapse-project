@@ -182,6 +182,12 @@ private:
     assert(flow_idx < config.total_flows);
     return flow_idx;
   }
+
+  flow_idx_t get_next_churn_flow_idx() {
+    flow_idx_t flow_idx = flows_random_engine_uniform.generate();
+    assert(flow_idx < config.total_flows);
+    return flow_idx;
+  }
 };
 
 } // namespace LibCore

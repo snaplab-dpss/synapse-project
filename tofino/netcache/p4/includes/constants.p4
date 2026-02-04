@@ -56,9 +56,6 @@ const bit<16> NC_PORT = 670;
 // Hash size (bits) for the CM registers
 #define SKETCH_IDX_WIDTH			13
 #define SKETCH_ENTRIES				(1 << SKETCH_IDX_WIDTH)
-// Hash size (bits) for the bloom filter registers
-#define BLOOM_IDX_WIDTH				13
-#define BLOOM_ENTRIES				(1 << BLOOM_IDX_WIDTH)
 // Heavy hitter threshold
 #define HH_THRES					127
 

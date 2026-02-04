@@ -14,10 +14,10 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,87'246'500,44,-14,-7'864'320,0>
-  Tput: 61.42 Gbps (87.25 Mpps)
-  Spec: 61.42 Gbps (87.25 Mpps)
-  Recirculations: 0
+  Score: <0,275'201'500,44,-14,-7'864'320,-1>
+  Tput: 193.74 Gbps (275.20 Mpps)
+  Spec: 193.74 Gbps (275.20 Mpps)
+  Recirculations: 1
   BDD Progress: 44 / 47
   Stages: 14
   Memory Usage: 7864320 bits
@@ -28,15 +28,15 @@ Stateful Implementations:
   1073923096: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       46 seconds
-  Steps:              44
+  Elapsed time:       41 seconds
+  Steps:              45
   Backtracks:         0
-  Search space size:  145
-  Unfinished EPs:     101
+  Search space size:  147
+  Unfinished EPs:     102
   Finished EPs:       1
   Avg BDD size:       47
   Branching factor:   2
-  Total SS size est.: 16'034'656'888
+  Total SS size est.: 14'939'853'821
   Avg children per node:
     Node 32: 0
     Node 31: 0
@@ -84,7 +84,7 @@ Search Metadata:
     Node 24: 0
     Node 36: 3
     Node 42: 3
-    Node 48: 3
+    Node 48: 2.5
     Node 20: 3
     Node 25: 0
     Node 37: 2
@@ -103,10 +103,10 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 19'707 (100%)
-  Num phase 2 speculations: 1'313 (6.66261%)
-  Num speculated modules:   189'872
-  Num EPs generated:        145
+  Num phase 1 speculations: 16'615 (100%)
+  Num phase 2 speculations: 1'222 (7.3548%)
+  Num speculated modules:   159'479
+  Num EPs generated:        147
 
 Switch placement:
 

@@ -110,8 +110,9 @@ void TrafficGenerator::generate() {
       tick();
       flow_idx = get_next_flow_idx();
       if (next_alarm >= 0 && current_time >= next_alarm) {
-        random_swap_flow(flow_idx);
-        counters[flow_idx] = 0;
+        const flow_idx_t churn_flow_idx = get_next_churn_flow_idx();
+        random_swap_flow(churn_flow_idx);
+        counters[churn_flow_idx] = 0;
         flows_swapped++;
         next_alarm += alarm_tick;
       }

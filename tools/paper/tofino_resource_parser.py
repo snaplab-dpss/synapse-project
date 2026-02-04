@@ -1,6 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass
-from statistics import mean, stdev
+from statistics import mean, stdev, geometric_mean
 
 RESOURCES_COLUMNS = [
     "Stage Number",
@@ -40,8 +40,28 @@ class Resources:
     def get_total_avg(self) -> float:
         return mean([self.stages, self.sram, self.vliw, self.match_xbar])
 
+    def get_total_geometric_mean(self) -> float:
+        return geometric_mean([self.stages, self.sram, self.vliw, self.match_xbar])
+
     def get_total_stddev(self) -> float:
         return stdev([self.stages, self.sram, self.vliw, self.match_xbar])
+
+    def compare_to(self, other: "Resources") -> "Resources":
+        return Resources(
+            stages=self.stages / other.stages if other.stages != 0 else float("inf"),
+            sram=self.sram / other.sram if other.sram != 0 else float("inf"),
+            vliw=self.vliw / other.vliw if other.vliw != 0 else float("inf"),
+            match_xbar=self.match_xbar / other.match_xbar if other.match_xbar != 0 else float("inf"),
+        )
+
+    @staticmethod
+    def average(resources_list: list["Resources"]) -> "Resources":
+        return Resources(
+            stages=mean([r.stages for r in resources_list]),
+            sram=mean([r.sram for r in resources_list]),
+            vliw=mean([r.vliw for r in resources_list]),
+            match_xbar=mean([r.match_xbar for r in resources_list]),
+        )
 
     def __str__(self):
         return f"Stages: {100*self.stages:5.2f}%, SRAM: {100*self.sram:5.2f}%, VLIW: {100*self.vliw:5.2f}%, Match Xbar: {100*self.match_xbar:5.2f}%"

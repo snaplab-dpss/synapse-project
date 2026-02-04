@@ -8,70 +8,73 @@ Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"56"[label="56:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"55"[label="55:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759712[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"54"[label="54:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"53"[label="53:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"37"[label="37:fwd(0)\lHR=0.06548036
+	"52"[label="52:fwd(DEVICE)\lHR=0.92685342
 Fwd={
-0:0.06548036}",shape=box,style="filled,",fillcolor="#1000ee54",border=0,];
-	"36"[label="36:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks])\lHR=0.06548036",shape=box,style="filled,",fillcolor="#1000ee54",border=0,];
-	"35"[label="35:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759712[packet_chunks[256:276]])\lHR=0.06548036",shape=box,style="filled,",fillcolor="#1000ee54",border=0,];
-	"34"[label="34:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[512:520]])\lHR=0.06548036",shape=box,style="filled,",fillcolor="#1000ee54",border=0,];
-	"125"[label="125:(cuckoo_hash_table_1073923096_13_success[0] != 0)\nHR=0.00954770",shape=ellipse,style="filled,",fillcolor="#0200fc54",border=0,];
-	"50"[label="50:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759712[packet_chunks[268:272]++packet_chunks[272:276]++packet_chunks[256:268]])\lHR=0.92497194",shape=box,style="filled,",fillcolor="#eb001354",border=0,];
-	"57"[label="57:fwd(packet_chunks[778:780])\lHR=0.00000000
-Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"11"[label="11:packet_borrow_next_chunk(\l  p:1074027920,\l  length:12,\l  chunk:1074040760[ -> 1073760224])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"18"[label="18:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[DEVICE[0:2]++packet_chunks[768:778]])\lHR=0.00063121",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+3:0.03089511,28:0.03089511,27:0.03089511,16:0.03089511,
+2:0.03089511,31:0.03089511,15:0.03089511,12:0.03089511,
+11:0.03089511,10:0.03089511,17:0.03089511,4:0.03089511,
+18:0.03089511,5:0.03089511,19:0.03089511,6:0.03089511,
+7:0.03089511,8:0.03089511,9:0.03089511,14:0.03089511,
+30:0.03089511,13:0.03089511,29:0.03089511,20:0.03089511,
+21:0.03089511,22:0.03089511,23:0.03089511,24:0.03089511,
+25:0.03089511,26:0.03089511}",shape=box,style="filled,",fillcolor="#ec001254",border=0,];
+	"51"[label="51:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks[12:14]++packet_chunks[0:6]++packet_chunks[6:12]])\lHR=0.92685342",shape=box,style="filled,",fillcolor="#ec001254",border=0,];
+	"50"[label="50:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759712[packet_chunks[268:272]++packet_chunks[272:276]++packet_chunks[256:268]])\lHR=0.92685342",shape=box,style="filled,",fillcolor="#ec001254",border=0,];
 	"61"[label="61:drop()\lHR=0.00000000
 Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"48"[label="48:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[packet_chunks[778:780]++1++vector_data__39[0:4]++packet_chunks[768:773]])\lHR=0.92497194",shape=box,style="filled,",fillcolor="#eb001354",border=0,];
-	"9"[label="9:packet_borrow_next_chunk(\l  p:1074027920,\l  length:8,\l  chunk:1074040016[ -> 1073759968])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"22"[label="22:fwd(0)\lHR=0.00063121
+	"48"[label="48:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[packet_chunks[778:780]++1++vector_data__39[0:4]++packet_chunks[768:773]])\lHR=0.92685342",shape=box,style="filled,",fillcolor="#ec001254",border=0,];
+	"46"[label="46:fwd(DEVICE)\lHR=0.00914493
 Fwd={
-0:0.00063121}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+3:0.00030483,28:0.00030483,27:0.00030483,16:0.00030483,
+2:0.00030483,31:0.00030472,15:0.00030483,12:0.00030483,
+11:0.00030483,10:0.00030483,17:0.00030483,4:0.00030483,
+18:0.00030483,5:0.00030483,19:0.00030483,6:0.00030483,
+7:0.00030483,8:0.00030483,9:0.00030483,14:0.00030483,
+30:0.00030483,13:0.00030483,29:0.00030483,20:0.00030483,
+21:0.00030483,22:0.00030483,23:0.00030483,24:0.00030483,
+25:0.00030483,26:0.00030483}",shape=box,style="filled,",fillcolor="#0200fc54",border=0,];
+	"37"[label="37:fwd(0)\lHR=0.06339937
+Fwd={
+0:0.06339937}",shape=box,style="filled,",fillcolor="#1000ee54",border=0,];
+	"18"[label="18:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[DEVICE[0:2]++packet_chunks[768:778]])\lHR=0.00060227",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"15"[label="15:(1 == packet_chunks[768])\nHR=0.06400164",shape=ellipse,style="filled,",fillcolor="#1000ee54",border=0,];
+	"13"[label="13:map_get(\l  map:1073923096,\l  key:1073760225[packet_chunks[769:773]],\l  value_out:1074037936[2880154539 -> allocated_index__13]) -> map_has_this_key__13\l=>{map_has_this_key__13,allocated_index__13}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"40"[label="40:(1 == packet_chunks[768])\nHR=0.93599836",shape=ellipse,style="filled,",fillcolor="#ee001054",border=0,];
+	"49"[label="49:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[516:520]++packet_chunks[512:514]++packet_chunks[514:516]])\lHR=0.92685342",shape=box,style="filled,",fillcolor="#ec001254",border=0,];
+	"42"[label="42:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[packet_chunks[778:780]++1++packet_chunks[768:777]])\lHR=0.00914493",shape=box,style="filled,",fillcolor="#0200fc54",border=0,];
+	"9"[label="9:packet_borrow_next_chunk(\l  p:1074027920,\l  length:8,\l  chunk:1074040016[ -> 1073759968])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"22"[label="22:fwd(0)\lHR=0.00060227
+Fwd={
+0:0.00060227}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"16"[label="16:dchain_allocate_new_index(\l  chain:1073971272,\l  index_out:1074041680[2880154539 -> new_index__16],\l  time:next_time) -> not_out_of_space__16\l=>{not_out_of_space__16,new_index__16}\lHR=0.00060227",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"8"[label="8:((17 == packet_chunks[265]) & (8 <= (-34 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
-	"13"[label="13:map_get(\l  map:1073923096,\l  key:1073760225[packet_chunks[769:773]],\l  value_out:1074037936[2880154539 -> allocated_index__13]) -> map_has_this_key__13\l=>{cuckoo_hash_table_1073923096_13_success,map_has_this_key__13,vector_data__39,allocated_index__13}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"53"[label="53:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"38"[label="38:dchain_rejuvenate_index(\l  chain:1073971272,\l  index:allocated_index__13,\l  time:next_time) -> 1\lHR=0.93599836",shape=box,style="filled,",fillcolor="#ee001054",border=0,];
 	"58"[label="58:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"10"[label="10:(((-25086 == packet_chunks[512:514]) | (-25086 == packet_chunks[514:516])) & (12 <= (-42 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"7"[label="7:packet_borrow_next_chunk(\l  p:1074027920,\l  length:20,\l  chunk:1074039360[ -> 1073759712])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"46"[label="46:fwd(DEVICE)\lHR=0.00891649
-Fwd={
-3:0.00029722,28:0.00029722,27:0.00029722,16:0.00029722,
-2:0.00029722,31:0.00029697,15:0.00029722,12:0.00029722,
-11:0.00029722,10:0.00029722,17:0.00029722,4:0.00029722,
-18:0.00029722,5:0.00029722,19:0.00029722,6:0.00029722,
-7:0.00029722,8:0.00029722,9:0.00029722,14:0.00029722,
-30:0.00029722,13:0.00029722,29:0.00029722,20:0.00029722,
-21:0.00029722,22:0.00029722,23:0.00029722,24:0.00029722,
-25:0.00029722,26:0.00029722}",shape=box,style="filled,",fillcolor="#0200fc54",border=0,];
+	"45"[label="45:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks[12:14]++packet_chunks[0:6]++packet_chunks[6:12]])\lHR=0.00914493",shape=box,style="filled,",fillcolor="#0200fc54",border=0,];
+	"6"[label="6:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"66"[label="66:drop()\lHR=0.00000000
 Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"19"[label="19:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[512:520]])\lHR=0.00063121",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"19"[label="19:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[512:520]])\lHR=0.00060227",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"5"[label="5:packet_borrow_next_chunk(\l  p:1074027920,\l  length:14,\l  chunk:1074038624[ -> 1073759456])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"4"[label="4:expire_items_single_map(\l  chain:1073971272,\l  vector:1073936920,\l  time:(18446744072709551616 + next_time),\l  map:1073923096) -> number_of_freed_flows__4\l=>{number_of_freed_flows__4}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"20"[label="20:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759712[packet_chunks[256:276]])\lHR=0.00060227",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"21"[label="21:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks])\lHR=0.00060227",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"33"[label="33:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[DEVICE[0:2]++packet_chunks[768:778]])\lHR=0.06339937",shape=box,style="filled,",fillcolor="#1000ee54",border=0,];
+	"14"[label="14:!map_has_this_key__13\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"34"[label="34:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[512:520]])\lHR=0.06339937",shape=box,style="filled,",fillcolor="#1000ee54",border=0,];
+	"35"[label="35:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759712[packet_chunks[256:276]])\lHR=0.06339937",shape=box,style="filled,",fillcolor="#1000ee54",border=0,];
+	"36"[label="36:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks])\lHR=0.06339937",shape=box,style="filled,",fillcolor="#1000ee54",border=0,];
 	"63"[label="63:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"43"[label="43:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[516:520]++packet_chunks[512:514]++packet_chunks[514:516]])\lHR=0.00891649",shape=box,style="filled,",fillcolor="#0200fc54",border=0,];
-	"6"[label="6:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
-	"45"[label="45:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks[12:14]++packet_chunks[0:6]++packet_chunks[6:12]])\lHR=0.00891649",shape=box,style="filled,",fillcolor="#0200fc54",border=0,];
-	"51"[label="51:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks[12:14]++packet_chunks[0:6]++packet_chunks[6:12]])\lHR=0.92497194",shape=box,style="filled,",fillcolor="#eb001354",border=0,];
-	"20"[label="20:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759712[packet_chunks[256:276]])\lHR=0.00063121",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"21"[label="21:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks])\lHR=0.00063121",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"43"[label="43:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[516:520]++packet_chunks[512:514]++packet_chunks[514:516]])\lHR=0.00914493",shape=box,style="filled,",fillcolor="#0200fc54",border=0,];
+	"57"[label="57:fwd(packet_chunks[778:780])\lHR=0.00000000
+Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"11"[label="11:packet_borrow_next_chunk(\l  p:1074027920,\l  length:12,\l  chunk:1074040760[ -> 1073760224])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"39"[label="39:vector_borrow(\l  vector:1073954136,\l  index:allocated_index__13,\l  val_out:1074041232[ -> 1073968032])\l=>{vector_data__39}\lHR=0.93599836",shape=box,style="filled,",fillcolor="#ee001054",border=0,];
 	"12"[label="12:DEVICE\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
-	"44"[label="44:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759712[packet_chunks[268:272]++packet_chunks[272:276]++packet_chunks[256:268]])\lHR=0.00891649",shape=box,style="filled,",fillcolor="#0200fc54",border=0,];
-	"126"[label="126:(cuckoo_hash_table_1073923096_13_success[0] != 0)\nHR=0.99045230",shape=ellipse,style="filled,",fillcolor="#fc000254",border=0,];
-	"124"[label="124:(1 == packet_chunks[768])\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
-	"42"[label="42:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[packet_chunks[778:780]++1++packet_chunks[768:777]])\lHR=0.00891649",shape=box,style="filled,",fillcolor="#0200fc54",border=0,];
-	"49"[label="49:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[516:520]++packet_chunks[512:514]++packet_chunks[514:516]])\lHR=0.92497194",shape=box,style="filled,",fillcolor="#eb001354",border=0,];
-	"52"[label="52:fwd(DEVICE)\lHR=0.92497194
-Fwd={
-3:0.03083240,28:0.03083240,27:0.03083240,16:0.03083240,
-2:0.03083240,31:0.03083240,15:0.03083240,12:0.03083240,
-11:0.03083240,10:0.03083240,17:0.03083240,4:0.03083240,
-18:0.03083240,5:0.03083240,19:0.03083240,6:0.03083240,
-7:0.03083240,8:0.03083240,9:0.03083240,14:0.03083240,
-30:0.03083240,13:0.03083240,29:0.03083240,20:0.03083240,
-21:0.03083240,22:0.03083240,23:0.03083240,24:0.03083240,
-25:0.03083240,26:0.03083240}",shape=box,style="filled,",fillcolor="#eb001354",border=0,];
-	"33"[label="33:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[DEVICE[0:2]++packet_chunks[768:778]])\lHR=0.06548036",shape=box,style="filled,",fillcolor="#1000ee54",border=0,];
+	"44"[label="44:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759712[packet_chunks[268:272]++packet_chunks[272:276]++packet_chunks[256:268]])\lHR=0.00914493",shape=box,style="filled,",fillcolor="#0200fc54",border=0,];
 	"4" -> "5";
 	"5" -> "6";
 	"6" -> "7" [label="True"];
@@ -82,32 +85,35 @@ Fwd={
 	"9" -> "10";
 	"10" -> "11" [label="True"];
 	"10" -> "58" [label="False"];
-	"11" -> "12";
-	"12" -> "13" [label="True"];
+	"11" -> "13";
+	"13" -> "12";
+	"12" -> "14" [label="True"];
 	"12" -> "53" [label="False"];
-	"13" -> "124";
-	"124" -> "125" [label="True"];
-	"124" -> "126" [label="False"];
-	"125" -> "42" [label="True"];
-	"125" -> "18" [label="False"];
-	"42" -> "43";
-	"43" -> "44";
-	"44" -> "45";
-	"45" -> "46";
+	"14" -> "15" [label="True"];
+	"14" -> "38" [label="False"];
+	"15" -> "16" [label="True"];
+	"15" -> "33" [label="False"];
+	"16" -> "18";
 	"18" -> "19";
 	"19" -> "20";
 	"20" -> "21";
 	"21" -> "22";
-	"126" -> "48" [label="True"];
-	"126" -> "33" [label="False"];
-	"48" -> "49";
-	"49" -> "50";
-	"50" -> "51";
-	"51" -> "52";
 	"33" -> "34";
 	"34" -> "35";
 	"35" -> "36";
 	"36" -> "37";
+	"38" -> "39";
+	"39" -> "40";
+	"40" -> "42" [label="True"];
+	"40" -> "48" [label="False"];
+	"42" -> "43";
+	"43" -> "44";
+	"44" -> "45";
+	"45" -> "46";
+	"48" -> "49";
+	"49" -> "50";
+	"50" -> "51";
+	"51" -> "52";
 	"53" -> "54";
 	"54" -> "55";
 	"55" -> "56";

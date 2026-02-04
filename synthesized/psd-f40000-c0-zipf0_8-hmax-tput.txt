@@ -31,7 +31,7 @@ Stateful Implementations:
   1074048392: Tofino::MapTable
 
 Search Metadata:
-  Elapsed time:       64 seconds
+  Elapsed time:       60 seconds
   Steps:              68
   Backtracks:         1
   Search space size:  184
@@ -111,9 +111,9 @@ Search Metadata:
     Node 163: 0
 
 Global Stats:
-  Num phase 1 speculations: 11'402 (100%)
-  Num phase 2 speculations: 677 (5.93755%)
-  Num speculated modules:   148'515
+  Num phase 1 speculations: 10'971 (100%)
+  Num phase 2 speculations: 592 (5.39604%)
+  Num speculated modules:   143'097
   Num EPs generated:        184
 
 Switch placement:
@@ -133,7 +133,7 @@ SRAM: 680'392/1'310'720 B (51.9098%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 680'392/786'432 B (86.5163%)
 Exact Match Crossbar: 38/128 B (29.6875%)
-Objs: [bf_1074096984_row_2,bf_1074096984_hash_1,bf_1074096984_row_1,bf_1074096984_row_0,bf_1074096984_hash_3,bf_1074096984_hash_0,vector_register_1074079432_0,dchain_table_1074096568_167,bf_1074096984_hash_2]
+Objs: [bf_1074096984_hash_0,bf_1074096984_hash_1,bf_1074096984_row_2,vector_register_1074079432_0,dchain_table_1074096568_167,bf_1074096984_hash_2,bf_1074096984_row_1,bf_1074096984_row_0,bf_1074096984_hash_3]
 -------------------------------------
 -------------------------------------
 Stage 2

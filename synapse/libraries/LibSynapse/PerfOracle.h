@@ -108,6 +108,8 @@ public:
   // logic very specific to the SendToController module.
   pps_t estimate_tput(pps_t ingress) const;
 
+  pps_t find_stable_tput(pps_t ingress) const;
+
   void debug() const;
   void assert_final_state() const;
 

@@ -1,19 +1,23 @@
 {
   "bdd": "nat.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 207,
-    "num_phase1_speculations": 20780,
-    "num_phase2_speculations": 1089,
-    "num_speculated_modules": 246712
+    "num_execution_plans_generated": 208,
+    "num_phase1_speculations": 19177,
+    "num_phase2_speculations": 985,
+    "num_speculated_modules": 228974,
+    "time_per_instantiation_us": 2977,
+    "time_per_speculation_us": 33,
+    "total_time_spent_generating_execution_plans_us": 619397,
+    "total_time_spent_speculating_us": 7648502
   },
   "heuristic": {
     "meta": [
       {
-        "description": "29.67 Gbps (42.15 Mpps)",
+        "description": "33.28 Gbps (47.27 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "29.67 Gbps (42.15 Mpps)",
+        "description": "33.28 Gbps (47.27 Mpps)",
         "name": "Spec"
       },
       {
@@ -35,7 +39,7 @@
     ],
     "score": [
       0,
-      42149000,
+      47268000,
       69,
       -5,
       -32425984,
@@ -286,7 +290,7 @@
         "node_id": 276
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 149
       },
       {
@@ -342,7 +346,7 @@
         "node_id": 176
       },
       {
-        "avg": 2.0,
+        "avg": 3.0,
         "node_id": 188
       },
       {
@@ -374,21 +378,21 @@
         "node_id": 281
       },
       {
-        "avg": 3.0,
+        "avg": 2.0,
         "node_id": 154
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.161290322580645,
-    "elapsed_time_seconds": 50,
+    "branching_factor": 3.1774193548387095,
+    "elapsed_time_seconds": 48,
     "finished_eps": 1,
-    "ss_size": 207,
+    "ss_size": 208,
     "steps": 69,
-    "total_ss_size_estimation": 614149794901.7389,
-    "unfinished_eps": 138
+    "total_ss_size_estimation": 687743478952.728,
+    "unfinished_eps": 139
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 29673102976,
-  "tput_estimation_pps": 42149294
+  "tput_estimation_bps": 33276706496,
+  "tput_estimation_pps": 47268049
 }

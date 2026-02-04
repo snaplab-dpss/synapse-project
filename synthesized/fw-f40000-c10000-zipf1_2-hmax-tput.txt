@@ -14,13 +14,13 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,2'250'000'000,56,-5,-19'493'568,0>
+  Score: <0,2'249'999'500,56,-5,-15'303'360,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
   BDD Progress: 56 / 62
   Stages: 5
-  Memory Usage: 19493568 bits
+  Memory Usage: 15303360 bits
 
 Stateful Implementations:
   1074093704: Tofino::VectorTable
@@ -29,7 +29,7 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       41 seconds
+  Elapsed time:       30 seconds
   Steps:              56
   Backtracks:         0
   Search space size:  173
@@ -109,9 +109,9 @@ Search Metadata:
     Node 249: 0
 
 Global Stats:
-  Num phase 1 speculations: 16'104 (100%)
-  Num phase 2 speculations: 887 (5.50795%)
-  Num speculated modules:   185'153
+  Num phase 1 speculations: 14'138 (100%)
+  Num phase 2 speculations: 708 (5.00778%)
+  Num speculated modules:   166'658
   Num EPs generated:        173
 
 Switch placement:
@@ -135,18 +135,18 @@ Objs: [fcfs_cs_1074044080_table_155,fcfs_cs_1074044080_table_142]
 -------------------------------------
 -------------------------------------
 Stage 2
-SRAM: 518'832/1'310'720 B (39.5837%)
+SRAM: 453'360/1'310'720 B (34.5886%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 81'920/786'432 B (10.4167%)
-Exact Match Crossbar: 38/128 B (29.6875%)
+MapRAM: 16'448/786'432 B (2.09147%)
+Exact Match Crossbar: 37/128 B (28.9062%)
 Objs: [fcfs_cs_1074044080_reg_liveness,fcfs_cs_1074044080_hash_155,fcfs_cs_1074044080_hash_142,fcfs_cs_1074044080_table_155]
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 262'144/1'310'720 B (20%)
+SRAM: 65'728/1'310'720 B (5.01465%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 262'144/786'432 B (33.3333%)
-Exact Match Crossbar: 8/128 B (6.25%)
+MapRAM: 65'728/786'432 B (8.35775%)
+Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [fcfs_cs_1074044080_reg_key_3,fcfs_cs_1074044080_reg_key_2,fcfs_cs_1074044080_reg_key_1,fcfs_cs_1074044080_reg_key_0]
 -------------------------------------
 -------------------------------------

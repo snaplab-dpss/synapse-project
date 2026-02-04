@@ -2,9 +2,13 @@
   "bdd": "fw.bdd",
   "global_stats": {
     "num_execution_plans_generated": 173,
-    "num_phase1_speculations": 16192,
-    "num_phase2_speculations": 891,
-    "num_speculated_modules": 185993
+    "num_phase1_speculations": 14490,
+    "num_phase2_speculations": 724,
+    "num_speculated_modules": 170018,
+    "time_per_instantiation_us": 821,
+    "time_per_speculation_us": 90,
+    "total_time_spent_generating_execution_plans_us": 142033,
+    "total_time_spent_speculating_us": 15416135
   },
   "heuristic": {
     "meta": [
@@ -25,20 +29,20 @@
         "name": "BDD Progress"
       },
       {
-        "description": "6",
+        "description": "5",
         "name": "Stages"
       },
       {
-        "description": "32076480 bits",
+        "description": "19493568 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      2250000000,
+      2249999500,
       56,
-      -6,
-      -32076480,
+      -5,
+      -19493568,
       0
     ]
   },
@@ -340,7 +344,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1666666666666665,
-    "elapsed_time_seconds": 42,
+    "elapsed_time_seconds": 38,
     "finished_eps": 1,
     "ss_size": 173,
     "steps": 56,
@@ -349,6 +353,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 1584000000000,
-  "tput_estimation_pps": 2250000000
+  "tput_estimation_bps": 1583999708544,
+  "tput_estimation_pps": 2249999586
 }

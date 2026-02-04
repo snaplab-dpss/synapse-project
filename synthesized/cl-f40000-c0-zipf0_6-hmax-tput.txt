@@ -30,7 +30,7 @@ Stateful Implementations:
   1074092960: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       27 seconds
+  Elapsed time:       28 seconds
   Steps:              50
   Backtracks:         0
   Search space size:  151
@@ -96,9 +96,9 @@ Search Metadata:
     Node 181: 3
 
 Global Stats:
-  Num phase 1 speculations: 10'326 (100%)
-  Num phase 2 speculations: 639 (6.18826%)
-  Num speculated modules:   124'732
+  Num phase 1 speculations: 10'079 (100%)
+  Num phase 2 speculations: 584 (5.79423%)
+  Num speculated modules:   121'392
   Num EPs generated:        151
 
 Switch placement:

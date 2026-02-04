@@ -11,6 +11,8 @@ class GlobalStats:
     num_phase2_speculations: int
     num_speculated_modules: int
     num_execution_plans_generated: int
+    time_per_speculation_us: float
+    time_per_instantiation_us: float
 
 
 @dataclass(frozen=True)

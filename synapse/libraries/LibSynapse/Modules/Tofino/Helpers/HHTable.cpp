@@ -161,17 +161,7 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, cons
   const hit_rate_t new_affected_hr       = (affected_hr + contending_hr) / 2;
   const hit_rate_t steady_state_hit_rate = std::min(new_hr, unaffected_hr + new_affected_hr);
 
-  // std::cerr << "\n";
-  // std::cerr << "w=" << w << " epsilon=" << epsilon << " spillover=" << spillover << " bottom_k_affected=" << bottom_k_affected << "\n";
-  // std::cerr << "new_hr                " << new_hr << "\n";
-  // std::cerr << "unaffected_hr         " << unaffected_hr << "\n";
-  // std::cerr << "affected_hr           " << affected_hr << "\n";
-  // std::cerr << "contending_hr         " << contending_hr << "\n";
-  // std::cerr << "new_affected_hr       " << new_affected_hr << "\n";
-  // std::cerr << "steady_state_hit_rate " << steady_state_hit_rate << "\n";
-  // dbg_pause();
-
-  const double time_to_insert_in_table_sec = 1;
+  const double time_to_insert_in_table_sec = 0.005;
   const int n                              = 1;
   u64 top_n                                = 0;
   for (size_t k = 0; k < n && k < flow_stats.pkts_per_flow.size(); k++) {
@@ -180,6 +170,21 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, cons
   const hit_rate_t missing_flow_hit_rate = hit_rate_t(top_n, flow_stats.pkts * n);
   const hit_rate_t hit_rate =
       steady_state_hit_rate - churn_top_k_flows_per_sec * ((THRESHOLD / rate) + (missing_flow_hit_rate * time_to_insert_in_table_sec));
+
+  // std::cerr << "\n";
+  // std::cerr << "w=" << cms_width << " epsilon=" << epsilon << " spillover=" << spillover << " bottom_k_affected=" << bottom_k_affected << "\n";
+  // std::cerr << "new_hr                     " << new_hr << "\n";
+  // std::cerr << "unaffected_hr              " << unaffected_hr << "\n";
+  // std::cerr << "affected_hr                " << affected_hr << "\n";
+  // std::cerr << "contending_hr              " << contending_hr << "\n";
+  // std::cerr << "new_affected_hr            " << new_affected_hr << "\n";
+  // std::cerr << "steady_state_hit_rate      " << steady_state_hit_rate << "\n";
+  // std::cerr << "churn_top_k_flows_per_sec: " << churn_top_k_flows_per_sec << "\n";
+  // std::cerr << "Multiplier:                " << (((THRESHOLD / rate) + (missing_flow_hit_rate * time_to_insert_in_table_sec))) << "\n";
+  // std::cerr << "RHS:                       "
+  //           << (churn_top_k_flows_per_sec * ((THRESHOLD / rate) + (missing_flow_hit_rate * time_to_insert_in_table_sec))) << "\n";
+  // std::cerr << "success_hit_rate           " << hit_rate << "\n";
+  // dbg_pause();
 
   return hit_rate;
 }

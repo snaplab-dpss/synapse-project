@@ -7,6 +7,8 @@
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
 
+#include <chrono>
+
 namespace LibSynapse {
 
 namespace {
@@ -21,6 +23,10 @@ using LibCore::expr_addr_to_obj_addr;
 using LibCore::pps2bps;
 using LibCore::tput2str;
 
+using std::chrono::duration_cast;
+using std::chrono::microseconds;
+using std::chrono::steady_clock;
+
 bdd_node_ids_t filter_away_nodes(const bdd_node_ids_t &nodes, const bdd_node_ids_t &filter) {
   bdd_node_ids_t result;
 
@@ -31,43 +37,6 @@ bdd_node_ids_t filter_away_nodes(const bdd_node_ids_t &nodes, const bdd_node_ids
   }
 
   return result;
-}
-
-struct tput_estimation_t {
-  pps_t ingress;
-  pps_t egress_estimation;
-  pps_t unavoidable_drop;
-};
-
-pps_t find_stable_tput(pps_t ingress, std::function<tput_estimation_t(pps_t)> estimator) {
-  pps_t egress = 0;
-
-  pps_t prev_ingress = ingress;
-  pps_t precision    = STABLE_TPUT_PRECISION + 1;
-  pps_t delta        = ingress;
-  pps_t floor        = 0;
-  pps_t ceil         = ingress;
-
-  // Algorithm for converging to a stable throughput (basically a binary search).
-  // Hopefully this won't take many iterations...
-  while (precision > STABLE_TPUT_PRECISION) {
-    const tput_estimation_t estimation = estimator(ingress);
-
-    prev_ingress = ingress;
-    egress       = std::min(ingress, estimation.egress_estimation + estimation.unavoidable_drop);
-    delta        = ingress - egress;
-
-    if (delta <= STABLE_TPUT_PRECISION) {
-      floor = ingress;
-    } else {
-      ceil = ingress;
-    }
-
-    ingress   = (floor + ceil) / 2;
-    precision = ingress > prev_ingress ? ingress - prev_ingress : prev_ingress - ingress;
-  }
-
-  return egress;
 }
 
 ep_id_t ep_id_counter = 0;
@@ -470,21 +439,9 @@ void EP::debug_speculations() const {
     assert(cached_speculations.has_value());
   }
 
-  auto egress_estimation_from_ingress = [this](pps_t tput) -> tput_estimation_t {
-    const PerfOracle &perf_oracle = cached_speculations->ctx.get_perf_oracle();
-
-    const tput_estimation_t estimation = {
-        .ingress           = tput,
-        .egress_estimation = perf_oracle.estimate_tput(tput),
-        .unavoidable_drop  = static_cast<pps_t>(tput * perf_oracle.get_dropped_ingress().value),
-    };
-
-    return estimation;
-  };
-
-  const pps_t ingress       = ctx.get_perf_oracle().get_max_input_pps();
-  const pps_t egress        = egress_estimation_from_ingress(ingress).egress_estimation;
-  const pps_t stable_egress = find_stable_tput(ingress, egress_estimation_from_ingress);
+  const pps_t ingress       = cached_speculations->ctx.get_perf_oracle().get_max_input_pps();
+  const pps_t egress        = cached_speculations->ctx.get_perf_oracle().estimate_tput(ingress);
+  const pps_t stable_egress = cached_speculations->ctx.get_perf_oracle().find_stable_tput(ingress);
 
   std::cerr << speculations2str(this, cached_speculations->speculations_per_node);
   std::cerr << "Speculative context:\n";
@@ -663,7 +620,7 @@ EP::tput_cmp_t EP::compare_speculations_by_ignored_nodes(const speculations_t &s
     }
   }
 
-  // if (id == 1 && speculation_target.node->get_id() == 142) {
+  // if (id == 1 && speculation_target.node->get_id() == 13) {
   //   std::cerr << "\n ||||||||||| Speculation comparison by ignored nodes |||||||||||\n";
   //   std::cerr << "Speculation target: " << speculation_target.node->dump(true, true) << " -> " << speculation_target.target << "\n";
   //   std::cerr << "Old speculation: " << spec2str(old_speculation, bdd.get()) << "\n";
@@ -683,8 +640,15 @@ EP::tput_cmp_t EP::compare_speculations_by_ignored_nodes(const speculations_t &s
   const speculations_t complete_speculation_peek_new =
       speculate(speculations.copy_and_append(new_speculation), new_speculation_target_nodes, ingress, SpeculationStrategy::OneShot);
 
-  const pps_t old_pps = complete_speculation_peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
-  const pps_t new_pps = complete_speculation_peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
+  const pps_t old_pps = complete_speculation_peek_old.ctx.get_perf_oracle().find_stable_tput(ingress);
+  const pps_t new_pps = complete_speculation_peek_new.ctx.get_perf_oracle().find_stable_tput(ingress);
+
+  // if (id == 1 && speculation_target.node->get_id() == 13) {
+  //   std::cerr << "old_pps estimated: " << complete_speculation_peek_old.ctx.get_perf_oracle().estimate_tput(ingress)
+  //             << " (stable=" << complete_speculation_peek_old.ctx.get_perf_oracle().find_stable_tput(ingress) << ")\n";
+  //   std::cerr << "new_pps estimated: " << complete_speculation_peek_new.ctx.get_perf_oracle().estimate_tput(ingress)
+  //             << " (stable=" << complete_speculation_peek_new.ctx.get_perf_oracle().find_stable_tput(ingress) << ")\n";
+  // }
 
   return {.old_pps = old_pps, .new_pps = new_pps};
 }
@@ -730,8 +694,8 @@ EP::tput_cmp_t EP::compare_speculations_with_unexplored_nodes_lookahead(const sp
   const speculations_t complete_speculation_peek_new =
       speculate(speculations.copy_and_append(new_speculation), new_speculation_target_nodes, ingress, SpeculationStrategy::WithoutLookahead);
 
-  const pps_t old_pps = complete_speculation_peek_old.ctx.get_perf_oracle().estimate_tput(ingress);
-  const pps_t new_pps = complete_speculation_peek_new.ctx.get_perf_oracle().estimate_tput(ingress);
+  const pps_t old_pps = complete_speculation_peek_old.ctx.get_perf_oracle().find_stable_tput(ingress);
+  const pps_t new_pps = complete_speculation_peek_new.ctx.get_perf_oracle().find_stable_tput(ingress);
 
   // if (id == 1 && speculation_target.node->get_id() == 142) {
   //   std::cerr << "\n ||||||||||| Speculation comparison with unexplored nodes lookahead |||||||||||\n";
@@ -762,7 +726,7 @@ bool EP::is_better_speculation(const speculations_t &speculations, const spec_im
   tput_cmp_t tput_cmp =
       compare_speculations_by_ignored_nodes(speculations, old_speculation, new_speculation, speculation_target, ingress, speculation_target_nodes);
 
-  // if (id == 1 && speculation_target.node->get_id() == 142) {
+  // if (id == 1 && speculation_target.node->get_id() == 13) {
   //   std::cerr << "\n\n ************************* Speculation for " << speculation_target.node->dump(true, true) << "\n";
   //   std::cerr << "Speculation target: " << speculation_target.node->dump(true, true) << " -> " << speculation_target.target << "\n";
   //   std::cerr << "phase: 1\n";
@@ -814,7 +778,7 @@ spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_tar
                                      const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy strategy) const {
   std::optional<spec_impl_t> best;
 
-  // const bool dbg_condition = strategy == SpeculationStrategy::WithLookahead && (id == 1 && (speculation_target.node->get_id() == 142));
+  // const bool dbg_condition = strategy == SpeculationStrategy::WithLookahead && (id == 1 && (speculation_target.node->get_id() == 13));
 
   // if (dbg_condition) {
   //   std::cerr << "\n~~~~~~~~~~~~~~~~~~~~ Getting best speculation for " << speculation_target.node->dump(true, true) << " ~~~~~~~~~~~~~~~~~~~~\n";
@@ -832,11 +796,15 @@ spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_tar
 
     for (const ModuleFactory *modgen : target.module_factories) {
       // if (dbg_condition) {
-      //   std::cerr << "Tring module " << modgen->get_name() << "...\n";
+      //   std::cerr << "Trying module " << modgen->get_name() << "...\n";
       // }
 
+      steady_clock::time_point begin        = steady_clock::now();
       const std::optional<spec_impl_t> spec = modgen->speculate(this, speculation_target.node, speculations);
+      steady_clock::time_point end          = steady_clock::now();
+
       if (!spec.has_value()) {
+        GlobalStats::total_time_spent_speculating += duration_cast<microseconds>(end - begin).count();
         continue;
       }
 
@@ -990,21 +958,9 @@ pps_t EP::speculate_tput_pps() const {
 
   const speculations_t complete_speculation = speculate();
 
-  auto egress_estimation_from_ingress = [&complete_speculation](pps_t tput) -> tput_estimation_t {
-    const PerfOracle &perf_oracle = complete_speculation.ctx.get_perf_oracle();
+  const pps_t ingress = complete_speculation.ctx.get_perf_oracle().get_max_input_pps();
 
-    const tput_estimation_t estimation = {
-        .ingress           = tput,
-        .egress_estimation = perf_oracle.estimate_tput(tput),
-        .unavoidable_drop  = static_cast<pps_t>(tput * perf_oracle.get_dropped_ingress().value),
-    };
-
-    return estimation;
-  };
-
-  const pps_t ingress = ctx.get_perf_oracle().get_max_input_pps();
-
-  pps_t egress = find_stable_tput(ingress, egress_estimation_from_ingress);
+  pps_t egress = complete_speculation.ctx.get_perf_oracle().find_stable_tput(ingress);
 
   // Round to the nearest precision to avoid tiny fluctuations.
   egress = (egress / TPUT_PRECISION) * TPUT_PRECISION;
@@ -1020,21 +976,8 @@ pps_t EP::estimate_tput_pps() const {
   }
 
   const pps_t max_ingress = ctx.get_perf_oracle().get_max_input_pps();
-
-  auto egress_estimation_from_ingress = [this](pps_t tput) {
-    const PerfOracle &perf_oracle = ctx.get_perf_oracle();
-
-    const tput_estimation_t estimation = {
-        .ingress           = tput,
-        .egress_estimation = perf_oracle.estimate_tput(tput),
-        .unavoidable_drop  = static_cast<pps_t>(tput * perf_oracle.get_dropped_ingress().value),
-    };
-
-    return estimation;
-  };
-
-  const pps_t egress     = find_stable_tput(max_ingress, egress_estimation_from_ingress);
-  cached_tput_estimation = egress;
+  const pps_t egress      = ctx.get_perf_oracle().find_stable_tput(max_ingress);
+  cached_tput_estimation  = egress;
 
   return egress;
 }

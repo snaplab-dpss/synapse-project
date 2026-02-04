@@ -1,23 +1,27 @@
 {
   "bdd": "kvs.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 161,
-    "num_phase1_speculations": 19213,
-    "num_phase2_speculations": 1371,
-    "num_speculated_modules": 190708
+    "num_execution_plans_generated": 163,
+    "num_phase1_speculations": 29756,
+    "num_phase2_speculations": 1748,
+    "num_speculated_modules": 286441,
+    "time_per_instantiation_us": 4196,
+    "time_per_speculation_us": 16,
+    "total_time_spent_generating_execution_plans_us": 683974,
+    "total_time_spent_speculating_us": 4817286
   },
   "heuristic": {
     "meta": [
       {
-        "description": "99.69 Gbps (141.60 Mpps)",
+        "description": "105.22 Gbps (149.45 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "99.69 Gbps (141.60 Mpps)",
+        "description": "105.22 Gbps (149.45 Mpps)",
         "name": "Spec"
       },
       {
-        "description": "0",
+        "description": "1",
         "name": "Recirculations"
       },
       {
@@ -35,11 +39,11 @@
     ],
     "score": [
       0,
-      141600500,
+      149454000,
       49,
       -4,
       -3961392,
-      0
+      -1
     ]
   },
   "implementations": [
@@ -90,7 +94,7 @@
         "node_id": 55
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 15
       },
       {
@@ -102,7 +106,7 @@
         "node_id": 54
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 14
       },
       {
@@ -130,7 +134,7 @@
         "node_id": 64
       },
       {
-        "avg": 3.0,
+        "avg": 2.5,
         "node_id": 5
       },
       {
@@ -315,16 +319,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.7777777777777777,
-    "elapsed_time_seconds": 42,
+    "branching_factor": 2.7698412698412698,
+    "elapsed_time_seconds": 65,
     "finished_eps": 1,
-    "ss_size": 161,
-    "steps": 49,
-    "total_ss_size_estimation": 72402317104.46884,
-    "unfinished_eps": 112
+    "ss_size": 163,
+    "steps": 50,
+    "total_ss_size_estimation": 67738257534.90783,
+    "unfinished_eps": 113
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 99687100480,
-  "tput_estimation_pps": 141600995
+  "tput_estimation_bps": 105215872960,
+  "tput_estimation_pps": 149454365
 }

@@ -517,4 +517,40 @@ void PerfOracle::debug() const {
   std::cerr << "==========================================================\n";
 }
 
+constexpr const pps_t STABLE_TPUT_PRECISION{500};
+
+pps_t PerfOracle::find_stable_tput(pps_t ingress) const {
+  pps_t egress = 0;
+
+  ingress = estimate_tput(ingress);
+
+  pps_t prev_ingress = ingress;
+  pps_t precision    = STABLE_TPUT_PRECISION + 1;
+  pps_t delta        = ingress;
+  pps_t floor        = 0;
+  pps_t ceil         = ingress;
+
+  // Algorithm for converging to a stable throughput (basically a binary search).
+  // Hopefully this won't take many iterations...
+  while (precision > STABLE_TPUT_PRECISION) {
+    const pps_t egress_estimation = estimate_tput(ingress);
+    const pps_t unavoidable_drop  = static_cast<pps_t>(ingress * get_dropped_ingress().value);
+
+    prev_ingress = ingress;
+    egress       = std::min(ingress, egress_estimation + unavoidable_drop);
+    delta        = ingress - egress;
+
+    if (delta <= STABLE_TPUT_PRECISION) {
+      floor = ingress;
+    } else {
+      ceil = ingress;
+    }
+
+    ingress   = (floor + ceil) / 2;
+    precision = ingress > prev_ingress ? ingress - prev_ingress : prev_ingress - ingress;
+  }
+
+  return egress;
+}
+
 } // namespace LibSynapse

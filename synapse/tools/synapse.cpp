@@ -154,6 +154,10 @@ void dump_final_report(const args_t &args, const search_report_t &search_report)
       {"num_phase2_speculations", GlobalStats::num_phase2_speculations},
       {"num_speculated_modules", GlobalStats::num_speculated_modules},
       {"num_execution_plans_generated", GlobalStats::num_execution_plans_generated},
+      {"total_time_spent_speculating_us", GlobalStats::total_time_spent_speculating},
+      {"total_time_spent_generating_execution_plans_us", GlobalStats::total_time_spent_generating_execution_plans},
+      {"time_per_speculation_us", GlobalStats::time_per_speculation()},
+      {"time_per_instantiation_us", GlobalStats::time_per_instantiation()},
   };
 
   std::ofstream out_report(out_report_fpath);
@@ -374,6 +378,10 @@ int main(int argc, char **argv) {
             << percent2str(GlobalStats::num_phase2_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
   std::cout << "  Num speculated modules:        " << int2hr(GlobalStats::num_speculated_modules) << "\n";
   std::cout << "  Num execution plans generated: " << int2hr(GlobalStats::num_execution_plans_generated) << "\n";
+  std::cout << "  Time spent speculating:     " << int2hr(GlobalStats::total_time_spent_speculating) << " us\n";
+  std::cout << "  Time spent instantiating:   " << int2hr(GlobalStats::total_time_spent_generating_execution_plans) << " us\n";
+  std::cout << "  Time per speculation: " << GlobalStats::time_per_speculation() << " us\n";
+  std::cout << "  Time per instantiation: " << GlobalStats::time_per_instantiation() << " us\n";
 
   return 0;
 }

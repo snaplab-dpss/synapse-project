@@ -410,6 +410,10 @@ control Ingress(
     size = 36;
   }
 
+  action swap_action_151() {
+  }
+  action swap_action_152() {
+  }
   table dchain_table_1074085120_181 {
     key = {
       meta.key_32b_0: exact;
@@ -436,6 +440,10 @@ control Ingress(
     size = 36;
   }
 
+  action swap_action_185() {
+  }
+  action swap_action_186() {
+  }
 
   apply {
     ingress_port_to_nf_dev.apply();
@@ -522,10 +530,12 @@ control Ingress(
                   // BDD node 150:vector_return
                   // EP node  2850:ModifyHeader
                   // BDD node 151:packet_return_chunk
+                  swap_action_151();
                   hdr.hdr2.data1[15:8] = vector_table_1074066960_144_get_value_param0[31:24];
                   hdr.hdr2.data1[7:0] = vector_table_1074066960_144_get_value_param0[23:16];
                   // EP node  2990:ModifyHeader
                   // BDD node 152:packet_return_chunk
+                  swap_action_152();
                   hdr.hdr1.data4[31:24] = vector_table_1074066960_144_get_value_param0[95:88];
                   hdr.hdr1.data4[23:16] = vector_table_1074066960_144_get_value_param0[87:80];
                   hdr.hdr1.data4[15:8] = vector_table_1074066960_144_get_value_param0[79:72];
@@ -577,10 +587,12 @@ control Ingress(
                 // BDD node 184:vector_return
                 // EP node  1981:ModifyHeader
                 // BDD node 185:packet_return_chunk
+                swap_action_185();
                 hdr.hdr2.data0[7:0] = map_table_1074053136_163_get_value_param0[7:0];
                 hdr.hdr2.data0[15:8] = map_table_1074053136_163_get_value_param0[15:8];
                 // EP node  2098:ModifyHeader
                 // BDD node 186:packet_return_chunk
+                swap_action_186();
                 hdr.hdr1.data3[31:24] = 8w0x01;
                 hdr.hdr1.data3[23:16] = 8w0x02;
                 hdr.hdr1.data3[15:8] = 8w0x03;

@@ -42,10 +42,6 @@ void reset_counters() {
       netcache::Controller::controller->reg_cm_2.set_all_false();
       netcache::Controller::controller->reg_cm_3.set_all_false();
 
-      netcache::Controller::controller->reg_bloom_0.set_all_false();
-      netcache::Controller::controller->reg_bloom_1.set_all_false();
-      netcache::Controller::controller->reg_bloom_2.set_all_false();
-
       netcache::Controller::controller->end_transaction();
       DEBUG("Reset timers done");
 

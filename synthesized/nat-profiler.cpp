@@ -1008,8 +1008,8 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  stats_per_map[1074053136].init(172);
-  stats_per_map[1074053136].init(163);
+  stats_per_map[1074053136ULL].init(172);
+  stats_per_map[1074053136ULL].init(163);
   forwarding_stats_per_route_op.insert({191, PortStats{}});
   forwarding_stats_per_route_op.insert({170, PortStats{}});
   forwarding_stats_per_route_op.insert({188, PortStats{}});
@@ -1094,14 +1094,14 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
   packet_borrow_next_chunk(buffer, 14, (void**)&hdr);
   // BDDNode 135
   inc_path_counter(135);
-  if (((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))) {
+  if (((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20ULL) <= ((uint16_t)((uint32_t)((4294967282) + ((uint16_t)(packet_length & 65535))))))) {
     // BDDNode 136
     inc_path_counter(136);
     uint8_t* hdr2;
     packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
     // BDDNode 137
     inc_path_counter(137);
-    if ((((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & ((4) <= ((uint32_t)((4294967262LL) + ((uint16_t)(packet_length & 65535)))))) {
+    if ((((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & ((4ULL) <= ((uint32_t)((4294967262) + ((uint16_t)(packet_length & 65535)))))) {
       // BDDNode 138
       inc_path_counter(138);
       uint8_t* hdr3;
@@ -1211,7 +1211,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[11] = *(hdr3+3);
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074053136].update(163, key, 12, now);
+        stats_per_map[1074053136ULL].update(163, key, 12, now);
         // BDDNode 164
         inc_path_counter(164);
         if ((0) == (map_hit)) {
@@ -1244,7 +1244,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             inc_path_counter(172);
             memcpy((void*)vector_value_out68, (void*)key, 12);
             map_put(map, vector_value_out68, index);
-            stats_per_map[1074053136].update(172, vector_value_out68, 12, now);
+            stats_per_map[1074053136ULL].update(172, vector_value_out68, 12, now);
             // BDDNode 173
             inc_path_counter(173);
             // BDDNode 174
@@ -1325,7 +1325,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
       inc_path_counter(191);
       forwarding_stats_per_route_op[191].inc_drop();
       return DROP;
-    } // (((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & ((4) <= ((uint32_t)((4294967262LL) + ((uint16_t)(packet_length & 65535)))))
+    } // (((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & ((4ULL) <= ((uint32_t)((4294967262) + ((uint16_t)(packet_length & 65535)))))
   } else {
     // BDDNode 192
     inc_path_counter(192);
@@ -1334,5 +1334,5 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
     inc_path_counter(193);
     forwarding_stats_per_route_op[193].inc_drop();
     return DROP;
-  } // ((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20) <= ((uint16_t)((uint32_t)((4294967282LL) + ((uint16_t)(packet_length & 65535))))))
+  } // ((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20ULL) <= ((uint16_t)((uint32_t)((4294967282) + ((uint16_t)(packet_length & 65535))))))
 }

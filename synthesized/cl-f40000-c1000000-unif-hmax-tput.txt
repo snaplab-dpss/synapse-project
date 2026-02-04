@@ -14,9 +14,9 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,66'720'500,58,-4,-36'278'272,-1>
-  Tput: 46.97 Gbps (66.72 Mpps)
-  Spec: 46.97 Gbps (66.72 Mpps)
+  Score: <0,67'461'000,58,-4,-36'278'272,-1>
+  Tput: 47.49 Gbps (67.46 Mpps)
+  Spec: 47.49 Gbps (67.46 Mpps)
   Recirculations: 1
   BDD Progress: 58 / 63
   Stages: 4
@@ -30,7 +30,7 @@ Stateful Implementations:
   1074092960: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       78 seconds
+  Elapsed time:       52 seconds
   Steps:              60
   Backtracks:         1
   Search space size:  209
@@ -111,9 +111,9 @@ Search Metadata:
     Node 251: 0
 
 Global Stats:
-  Num phase 1 speculations: 16'537 (100%)
-  Num phase 2 speculations: 983 (5.94425%)
-  Num speculated modules:   185'131
+  Num phase 1 speculations: 16'337 (100%)
+  Num phase 2 speculations: 950 (5.81502%)
+  Num speculated modules:   182'457
   Num EPs generated:        209
 
 Switch placement:
@@ -121,19 +121,19 @@ Switch placement:
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 786'432/1'310'720 B (60%)
+SRAM: 497'928/1'310'720 B (37.9889%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 786'432/786'432 B (100%)
+MapRAM: 497'928/786'432 B (63.3148%)
 Exact Match Crossbar: 58/128 B (45.3125%)
-Objs: [vector_table_1074110176_171,cms_1074080384_hash_2,cms_1074080384_hash_0,vector_table_1074092960_141,cms_1074080384_row_0,cms_1074080384_hash_1,fcfs_cs_1074047984_table_144,cms_1074080384_row_2,cms_1074080384_row_1,cms_1074080384_hash_3]
+Objs: [cms_1074080384_row_0,cms_1074080384_hash_0,vector_table_1074110176_171,cms_1074080384_hash_1,vector_table_1074092960_141,cms_1074080384_hash_3,cms_1074080384_row_1,cms_1074080384_hash_2,fcfs_cs_1074047984_table_144,cms_1074080384_row_2]
 -------------------------------------
 -------------------------------------
 Stage 1
-SRAM: 497'920/1'310'720 B (37.9883%)
+SRAM: 786'424/1'310'720 B (59.9994%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 497'920/786'432 B (63.3138%)
+MapRAM: 786'424/786'432 B (99.999%)
 Exact Match Crossbar: 48/128 B (37.5%)
-Objs: [fcfs_cs_1074047984_hash_149,fcfs_cs_1074047984_hash_144,fcfs_cs_1074047984_table_144,vector_table_1074110176_177,vector_table_1074110176_160,fcfs_cs_1074047984_reg_liveness,cms_1074080384_row_3]
+Objs: [fcfs_cs_1074047984_hash_149,fcfs_cs_1074047984_reg_liveness,fcfs_cs_1074047984_hash_144,cms_1074080384_row_3,vector_table_1074110176_177,vector_table_1074110176_160,fcfs_cs_1074047984_table_144]
 -------------------------------------
 -------------------------------------
 Stage 2

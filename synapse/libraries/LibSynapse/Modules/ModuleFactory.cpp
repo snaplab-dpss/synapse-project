@@ -5,6 +5,9 @@
 #include <LibBDD/Visitors/BDDVisualizer.h>
 #include <LibCore/Expr.h>
 #include <LibCore/Debug.h>
+#include <LibSynapse/GlobalStats.h>
+
+#include <chrono>
 
 namespace LibSynapse {
 
@@ -20,6 +23,10 @@ using LibBDD::RouteOp;
 using LibBDD::symbol_translation_t;
 
 using LibCore::dbg_mode_active;
+
+using std::chrono::duration_cast;
+using std::chrono::microseconds;
+using std::chrono::steady_clock;
 
 namespace {
 bool can_process_platform(const EP *ep, TargetType target) {
@@ -132,12 +139,19 @@ std::vector<impl_t> ModuleFactory::implement(const EP *ep, const BDDNode *node, 
     return ep->get_meta().processed_nodes.size() != impl.result->get_meta().processed_nodes.size();
   };
 
+  steady_clock::time_point begin = steady_clock::now();
+
   std::vector<impl_t> implementations;
   for (impl_t &internal_decision : process_node(ep, node, symbol_manager)) {
     if (assert_integrity) {
       internal_decision.result->assert_integrity();
     }
     implementations.push_back(std::move(internal_decision));
+  }
+
+  steady_clock::time_point end = steady_clock::now();
+  if (!implementations.empty()) {
+    GlobalStats::total_time_spent_generating_execution_plans += duration_cast<microseconds>(end - begin).count();
   }
 
   if (!reorder_bdd) {

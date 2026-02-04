@@ -14,10 +14,10 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,38'821'500,69,-5,-32'425'984,0>
-  Tput: 27.33 Gbps (38.82 Mpps)
-  Spec: 27.33 Gbps (38.82 Mpps)
-  Recirculations: 0
+  Score: <0,42'003'000,69,-5,-32'425'984,-3>
+  Tput: 29.57 Gbps (42.00 Mpps)
+  Spec: 29.57 Gbps (42.00 Mpps)
+  Recirculations: 3
   BDD Progress: 69 / 75
   Stages: 5
   Memory Usage: 32425984 bits
@@ -30,15 +30,15 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       48 seconds
-  Steps:              69
+  Elapsed time:       63 seconds
+  Steps:              72
   Backtracks:         0
-  Search space size:  208
-  Unfinished EPs:     139
+  Search space size:  210
+  Unfinished EPs:     138
   Finished EPs:       1
-  Avg BDD size:       62
+  Avg BDD size:       61
   Branching factor:   3
-  Total SS size est.: 687'743'478'952
+  Total SS size est.: 411'475'536'328
   Avg children per node:
     Node 180: 2
     Node 179: 3
@@ -49,7 +49,7 @@ Search Metadata:
     Node 181: 4
     Node 159: 3
     Node 271: 0
-    Node 144: 6
+    Node 144: 4
     Node 270: 0
     Node 143: 4
     Node 269: 0
@@ -59,7 +59,7 @@ Search Metadata:
     Node 165: 0
     Node 136: 3
     Node 163: 4
-    Node 134: 3
+    Node 134: 2.5
     Node 193: 2
     Node 192: 3
     Node 133: 2
@@ -70,14 +70,14 @@ Search Metadata:
     Node 160: 3
     Node 189: 3
     Node 164: 0
-    Node 135: 3
+    Node 135: 2.5
     Node 167: 0
     Node 265: 0
     Node 138: 5
     Node 161: 3
     Node 190: 3
     Node 266: 0
-    Node 139: 6
+    Node 139: 8
     Node 191: 2
     Node 171: 6
     Node 183: 4
@@ -89,24 +89,24 @@ Search Metadata:
     Node 184: 3
     Node 275: 0
     Node 148: 3
-    Node 155: 3
+    Node 155: 2.5
     Node 169: 0
     Node 173: 4
     Node 185: 3
     Node 276: 0
-    Node 149: 4
-    Node 156: 3
+    Node 149: 3
+    Node 156: 2
     Node 170: 0
     Node 174: 3
     Node 186: 3
     Node 277: 0
     Node 150: 3
-    Node 157: 3
-    Node 175: 3
+    Node 157: 2
+    Node 175: 4
     Node 187: 3
     Node 278: 0
     Node 151: 3
-    Node 158: 3
+    Node 158: 2
     Node 176: 3
     Node 188: 3
     Node 279: 0
@@ -119,10 +119,10 @@ Search Metadata:
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 20'818 (100%)
-  Num phase 2 speculations: 1'096 (5.26467%)
-  Num speculated modules:   247'133
-  Num EPs generated:        208
+  Num phase 1 speculations: 24'400 (100%)
+  Num phase 2 speculations: 1'210 (4.95902%)
+  Num speculated modules:   284'982
+  Num EPs generated:        210
 
 Switch placement:
 

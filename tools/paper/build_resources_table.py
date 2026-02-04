@@ -135,6 +135,8 @@ def build_kvs_resources_latex_table(
 \begin{tabular}{lcccc}
 \toprule
 & \textbf{Stages} & \textbf{SRAM} & \textbf{VLIW} & \begin{tabular}[c]{@{}l@{}}\textbf{Match}\\ \textbf{xbar}\end{tabular} \\
+\cmidrule(r){2-5}
+& \multicolumn{4}{c@{}}{\footnotesize \textit{(\%)}} \\
 \midrule
 """
 

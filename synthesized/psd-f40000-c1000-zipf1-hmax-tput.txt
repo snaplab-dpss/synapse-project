@@ -14,7 +14,7 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,2'250'000'000,65,-3,-20'549'632,0>
+  Score: <0,2'249'999'500,65,-3,-20'549'632,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
@@ -31,7 +31,7 @@ Stateful Implementations:
   1074048392: Tofino::MapTable
 
 Search Metadata:
-  Elapsed time:       45 seconds
+  Elapsed time:       46 seconds
   Steps:              68
   Backtracks:         1
   Search space size:  181
@@ -111,9 +111,9 @@ Search Metadata:
     Node 163: 0
 
 Global Stats:
-  Num phase 1 speculations: 11'200 (100%)
-  Num phase 2 speculations: 642 (5.73214%)
-  Num speculated modules:   145'464
+  Num phase 1 speculations: 10'897 (100%)
+  Num phase 2 speculations: 562 (5.15738%)
+  Num speculated modules:   142'209
   Num EPs generated:        181
 
 Switch placement:
@@ -133,7 +133,7 @@ SRAM: 680'392/1'310'720 B (51.9098%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 680'392/786'432 B (86.5163%)
 Exact Match Crossbar: 38/128 B (29.6875%)
-Objs: [bf_1074096984_hash_1,dchain_table_1074096568_167,vector_register_1074079432_0,bf_1074096984_hash_0,bf_1074096984_row_2,bf_1074096984_hash_2,bf_1074096984_row_0,bf_1074096984_row_1,bf_1074096984_hash_3]
+Objs: [bf_1074096984_hash_1,bf_1074096984_hash_0,bf_1074096984_hash_2,dchain_table_1074096568_167,vector_register_1074079432_0,bf_1074096984_row_2,bf_1074096984_row_0,bf_1074096984_row_1,bf_1074096984_hash_3]
 -------------------------------------
 -------------------------------------
 Stage 2

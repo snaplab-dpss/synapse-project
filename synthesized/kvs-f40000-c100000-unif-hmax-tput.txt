@@ -14,10 +14,10 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,90'246'500,49,-4,-3'502'640,0>
-  Tput: 63.53 Gbps (90.25 Mpps)
-  Spec: 63.53 Gbps (90.25 Mpps)
-  Recirculations: 0
+  Score: <0,90'281'500,49,-4,-3'502'640,-1>
+  Tput: 63.56 Gbps (90.28 Mpps)
+  Spec: 63.56 Gbps (90.28 Mpps)
+  Recirculations: 1
   BDD Progress: 49 / 50
   Stages: 4
   Memory Usage: 3502640 bits
@@ -28,15 +28,15 @@ Stateful Implementations:
   1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       44 seconds
-  Steps:              49
+  Elapsed time:       63 seconds
+  Steps:              50
   Backtracks:         0
-  Search space size:  161
-  Unfinished EPs:     112
+  Search space size:  163
+  Unfinished EPs:     113
   Finished EPs:       1
   Avg BDD size:       50
   Branching factor:   2
-  Total SS size est.: 72'402'317'104
+  Total SS size est.: 67'738'257'534
   Avg children per node:
     Node 32: 0
     Node 31: 0
@@ -55,7 +55,7 @@ Search Metadata:
     Node 59: 3
     Node 12: 3
     Node 64: 2
-    Node 5: 3
+    Node 5: 2.5
     Node 6: 3
     Node 65: 3
     Node 58: 3
@@ -103,10 +103,10 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 24'123 (100%)
-  Num phase 2 speculations: 1'540 (6.38395%)
-  Num speculated modules:   242'139
-  Num EPs generated:        161
+  Num phase 1 speculations: 30'180 (100%)
+  Num phase 2 speculations: 1'749 (5.79523%)
+  Num speculated modules:   301'413
+  Num EPs generated:        163
 
 Switch placement:
 
@@ -133,7 +133,7 @@ SRAM: 86'020/1'310'720 B (6.56281%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 86'020/786'432 B (10.938%)
 Exact Match Crossbar: 37/128 B (28.9062%)
-Objs: [hh_table_1073923096_threshold,hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_3,hh_table_1073923096_digest,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_0]
+Objs: [hh_table_1073923096_digest,hh_table_1073923096_threshold,hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_0]
 -------------------------------------
 -------------------------------------
 Stage 3

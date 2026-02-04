@@ -45,6 +45,9 @@ header recirc_h {
   bit<16> code_path;
   bit<16> ingress_port;
   bit<32> dev;
+  @padding bit<7> pad_cuckoo_hash_table_1073923096_13_success0;
+  bool cuckoo_hash_table_1073923096_13_success0;
+  bit<32> val;
 
 };
 
@@ -641,6 +644,50 @@ control Ingress(
 
   CuckooHashTable() cuckoo_hash_table;
   CuckooHashBloomFilter() cuckoo_bloom_filter;
+  action swap_action_42() {
+  }
+  action swap_action_43() {
+    swap(hdr.hdr2.data0[15:8], hdr.hdr2.data1[15:8]);
+    swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
+  }
+  action swap_action_44() {
+    swap(hdr.hdr1.data2[31:24], hdr.hdr1.data3[31:24]);
+    swap(hdr.hdr1.data2[23:16], hdr.hdr1.data3[23:16]);
+    swap(hdr.hdr1.data2[15:8], hdr.hdr1.data3[15:8]);
+    swap(hdr.hdr1.data2[7:0], hdr.hdr1.data3[7:0]);
+  }
+  action swap_action_45() {
+    swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
+    swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
+    swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
+    swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
+    swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
+    swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
+  }
+  action swap_action_18() {
+  }
+  action swap_action_48() {
+  }
+  action swap_action_49() {
+    swap(hdr.hdr2.data0[15:8], hdr.hdr2.data1[15:8]);
+    swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
+  }
+  action swap_action_50() {
+    swap(hdr.hdr1.data2[31:24], hdr.hdr1.data3[31:24]);
+    swap(hdr.hdr1.data2[23:16], hdr.hdr1.data3[23:16]);
+    swap(hdr.hdr1.data2[15:8], hdr.hdr1.data3[15:8]);
+    swap(hdr.hdr1.data2[7:0], hdr.hdr1.data3[7:0]);
+  }
+  action swap_action_51() {
+    swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
+    swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
+    swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
+    swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
+    swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
+    swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
+  }
+  action swap_action_33() {
+  }
 
   apply {
     ingress_port_to_nf_dev.apply();
@@ -648,6 +695,25 @@ control Ingress(
     if (hdr.cpu.isValid() && hdr.cpu.trigger_dataplane_execution == 0) {
       nf_dev[15:0] = hdr.cpu.egress_dev;
     } else if (hdr.recirc.isValid() && !hdr.cuckoo.isValid()) {
+      if (hdr.recirc.code_path == 0) {
+        // EP node  813:ModifyHeader
+        // BDD node 48:packet_return_chunk
+        swap_action_48();
+        hdr.hdr3.data2 = hdr.recirc.val;
+        hdr.hdr3.data3 = 8w0x01;
+        // EP node  914:ModifyHeader
+        // BDD node 49:packet_return_chunk
+        swap_action_49();
+        // EP node  1018:ModifyHeader
+        // BDD node 50:packet_return_chunk
+        swap_action_50();
+        // EP node  1125:ModifyHeader
+        // BDD node 51:packet_return_chunk
+        swap_action_51();
+        // EP node  1235:Forward
+        // BDD node 52:FORWARD
+        nf_dev[15:0] = meta.dev[15:0];
+      }
 
     } else {
       // EP node  0:Ignore
@@ -707,38 +773,31 @@ control Ingress(
                     if (cuckoo_hash_table_1073923096_13_success0){
                       // EP node  645:Then
                       // BDD node 13:map_get
-                      // EP node  2250:ModifyHeader
+                      // EP node  1839:ModifyHeader
                       // BDD node 42:packet_return_chunk
+                      swap_action_42();
                       hdr.hdr3.data3 = 8w0x01;
-                      // EP node  2375:ModifyHeader
+                      // EP node  1961:ModifyHeader
                       // BDD node 43:packet_return_chunk
-                      swap(hdr.hdr2.data0[15:8], hdr.hdr2.data1[15:8]);
-                      swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
-                      // EP node  2503:ModifyHeader
+                      swap_action_43();
+                      // EP node  2086:ModifyHeader
                       // BDD node 44:packet_return_chunk
-                      swap(hdr.hdr1.data2[31:24], hdr.hdr1.data3[31:24]);
-                      swap(hdr.hdr1.data2[23:16], hdr.hdr1.data3[23:16]);
-                      swap(hdr.hdr1.data2[15:8], hdr.hdr1.data3[15:8]);
-                      swap(hdr.hdr1.data2[7:0], hdr.hdr1.data3[7:0]);
-                      // EP node  2634:ModifyHeader
+                      swap_action_44();
+                      // EP node  2214:ModifyHeader
                       // BDD node 45:packet_return_chunk
-                      swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
-                      swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
-                      swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
-                      swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
-                      swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
-                      swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
-                      // EP node  2768:Forward
+                      swap_action_45();
+                      // EP node  2345:Forward
                       // BDD node 46:FORWARD
                       nf_dev[15:0] = meta.dev[15:0];
                     } else {
                       // EP node  646:Else
                       // BDD node 13:map_get
-                      // EP node  1700:ModifyHeader
+                      // EP node  2427:ModifyHeader
                       // BDD node 18:packet_return_chunk
+                      swap_action_18();
                       hdr.hdr3.data4[15:8] = meta.dev[7:0];
                       hdr.hdr3.data4[7:0] = meta.dev[15:8];
-                      // EP node  2176:Forward
+                      // EP node  2975:Forward
                       // BDD node 22:FORWARD
                       nf_dev[15:0] = 16w0x0000;
                     }
@@ -750,39 +809,21 @@ control Ingress(
                     if (cuckoo_hash_table_1073923096_13_success0){
                       // EP node  648:Then
                       // BDD node 13:map_get
-                      // EP node  1196:ModifyHeader
+                      // EP node  716:Recirculate
                       // BDD node 48:packet_return_chunk
-                      hdr.hdr3.data2 = hdr.cuckoo.val;
-                      hdr.hdr3.data3 = 8w0x01;
-                      // EP node  1300:ModifyHeader
-                      // BDD node 49:packet_return_chunk
-                      swap(hdr.hdr2.data0[15:8], hdr.hdr2.data1[15:8]);
-                      swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
-                      // EP node  1407:ModifyHeader
-                      // BDD node 50:packet_return_chunk
-                      swap(hdr.hdr1.data2[31:24], hdr.hdr1.data3[31:24]);
-                      swap(hdr.hdr1.data2[23:16], hdr.hdr1.data3[23:16]);
-                      swap(hdr.hdr1.data2[15:8], hdr.hdr1.data3[15:8]);
-                      swap(hdr.hdr1.data2[7:0], hdr.hdr1.data3[7:0]);
-                      // EP node  1517:ModifyHeader
-                      // BDD node 51:packet_return_chunk
-                      swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
-                      swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
-                      swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
-                      swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
-                      swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
-                      swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
-                      // EP node  1630:Forward
-                      // BDD node 52:FORWARD
-                      nf_dev[15:0] = meta.dev[15:0];
+                      fwd_op = fwd_op_t.RECIRCULATE;
+                      build_recirc_hdr(0);
+                      hdr.recirc.cuckoo_hash_table_1073923096_13_success0 = cuckoo_hash_table_1073923096_13_success0;
+                      hdr.recirc.val = hdr.cuckoo.val;
                     } else {
                       // EP node  649:Else
                       // BDD node 13:map_get
-                      // EP node  744:ModifyHeader
+                      // EP node  1303:ModifyHeader
                       // BDD node 33:packet_return_chunk
+                      swap_action_33();
                       hdr.hdr3.data4[15:8] = meta.dev[7:0];
                       hdr.hdr3.data4[7:0] = meta.dev[15:8];
-                      // EP node  1136:Forward
+                      // EP node  1767:Forward
                       // BDD node 37:FORWARD
                       nf_dev[15:0] = 16w0x0000;
                     }
@@ -791,24 +832,24 @@ control Ingress(
               } else {
                 // EP node  210:Else
                 // BDD node 12:if
-                // EP node  4426:Forward
+                // EP node  4671:Forward
                 // BDD node 57:FORWARD
                 nf_dev[15:0] = bswap16(hdr.hdr3.data4);
               }
             }
             // EP node  119:Else
             // BDD node 10:if
-            // EP node  4198:ParserReject
+            // EP node  4438:ParserReject
             // BDD node 61:DROP
           }
           // EP node  54:Else
           // BDD node 8:if
-          // EP node  3841:ParserReject
+          // EP node  4073:ParserReject
           // BDD node 64:DROP
         }
         // EP node  15:Else
         // BDD node 6:if
-        // EP node  3362:ParserReject
+        // EP node  3583:ParserReject
         // BDD node 66:DROP
       }
 

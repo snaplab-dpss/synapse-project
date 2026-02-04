@@ -20,6 +20,10 @@ using LibCore::int2hr;
 using LibCore::pps2bps;
 using LibCore::scientific;
 
+using std::chrono::duration_cast;
+using std::chrono::seconds;
+using std::chrono::steady_clock;
+
 namespace {
 struct search_step_report_t {
   const EP *chosen;
@@ -143,7 +147,7 @@ SearchEngine::SearchEngine(const BDD &_bdd, HeuristicOption _hopt, const Profile
       heuristic(build_heuristic(_hopt, search_config.not_greedy, search_config.forced_search_decisions, bdd, targets, targets_config, profiler)) {}
 
 search_report_t SearchEngine::search() {
-  const auto start_search                   = std::chrono::steady_clock::now();
+  const auto start_search                   = steady_clock::now();
   std::unique_ptr<SearchSpace> search_space = std::make_unique<SearchSpace>(heuristic->get_cfg());
 
   search_meta_t meta;
@@ -157,7 +161,7 @@ search_report_t SearchEngine::search() {
   });
 
   while (!heuristic->is_finished()) {
-    meta.elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start_search).count();
+    meta.elapsed_time = duration_cast<seconds>(steady_clock::now() - start_search).count();
 
     std::unique_ptr<EP> ep = heuristic->pop_next_unfinished();
     search_space->activate_leaf(ep.get());

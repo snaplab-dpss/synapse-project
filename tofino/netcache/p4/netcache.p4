@@ -10,7 +10,6 @@
 #include "includes/parser.p4"
 #include "includes/deparser.p4"
 #include "includes/stats/cm.p4"
-#include "includes/stats/bloom.p4"
 
 // ---------------------------------------------------------------------------
 // Pipeline - Ingress
@@ -111,14 +110,12 @@ control SwitchIngress(
 	}
 
 	c_cm()      cm;
-	c_bloom()   bloom;
 
 	Register<bit<8>, bit<1>>(1) reg_sampl;
 	Register<bit<32>, bit<NC_KEY_WIDTH>>(NC_ENTRIES) reg_key_count;
 
 	bit<8>  sampl_cur;
 	bit<16> cm_result;
-	bit<1>  bloom_result;
 
 	RegisterAction<bit<8>, bit<8>, bit<8>>(reg_sampl) ract_sampl = {
 		void apply(inout bit<8> val, out bit<8> res) {
@@ -195,15 +192,11 @@ control SwitchIngress(
 					cm.apply(hdr, cm_result);
 					// Check cm result against threshold (HH_THRES).
 					if (cm_result > HH_THRES) {
-						// Check against bloom filter.
-						bloom.apply(hdr, bloom_result);
 						// If confirmed HH, inform the controller through mirroring.
-						if (bloom_result == 0) {
-							// FIXME: we should get these values from the control plane.
-							// Otherwise, we lose the PUT value.
-							hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
-							set_mirror_pkt();
-						}
+						// FIXME: we should get these values from the control plane.
+						// Otherwise, we lose the PUT value.
+						hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
+						set_mirror_pkt();
 					}
 				}
 			}

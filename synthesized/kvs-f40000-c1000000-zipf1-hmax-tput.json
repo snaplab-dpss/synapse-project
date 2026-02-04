@@ -1,23 +1,27 @@
 {
   "bdd": "kvs.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 145,
-    "num_phase1_speculations": 19707,
-    "num_phase2_speculations": 1313,
-    "num_speculated_modules": 189872
+    "num_execution_plans_generated": 147,
+    "num_phase1_speculations": 16615,
+    "num_phase2_speculations": 1222,
+    "num_speculated_modules": 159479,
+    "time_per_instantiation_us": 6493,
+    "time_per_speculation_us": 13,
+    "total_time_spent_generating_execution_plans_us": 954571,
+    "total_time_spent_speculating_us": 2157814
   },
   "heuristic": {
     "meta": [
       {
-        "description": "61.42 Gbps (87.25 Mpps)",
+        "description": "193.74 Gbps (275.20 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "61.42 Gbps (87.25 Mpps)",
+        "description": "193.74 Gbps (275.20 Mpps)",
         "name": "Spec"
       },
       {
-        "description": "0",
+        "description": "1",
         "name": "Recirculations"
       },
       {
@@ -35,11 +39,11 @@
     ],
     "score": [
       0,
-      87246500,
+      275201500,
       44,
       -14,
       -7864320,
-      0
+      -1
     ]
   },
   "implementations": [
@@ -246,7 +250,7 @@
         "node_id": 42
       },
       {
-        "avg": 3.0,
+        "avg": 2.5,
         "node_id": 48
       },
       {
@@ -315,16 +319,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.6031746031746033,
-    "elapsed_time_seconds": 46,
+    "branching_factor": 2.5952380952380953,
+    "elapsed_time_seconds": 41,
     "finished_eps": 1,
-    "ss_size": 145,
-    "steps": 44,
-    "total_ss_size_estimation": 16034656888.997252,
-    "unfinished_eps": 101
+    "ss_size": 147,
+    "steps": 45,
+    "total_ss_size_estimation": 14939853821.48038,
+    "unfinished_eps": 102
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 61421646528,
-  "tput_estimation_pps": 87246657
+  "tput_estimation_bps": 193741984832,
+  "tput_estimation_pps": 275201683
 }

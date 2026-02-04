@@ -481,6 +481,10 @@ control Ingress(
     size = 36;
   }
 
+  action swap_action_151() {
+  }
+  action swap_action_152() {
+  }
   bit<32> fcfs_ct_1074053136_table_163_get_value_param0 = 32w0;
   action fcfs_ct_1074053136_table_163_get_value(bit<32> _fcfs_ct_1074053136_table_163_get_value_param0) {
     fcfs_ct_1074053136_table_163_get_value_param0 = _fcfs_ct_1074053136_table_163_get_value_param0;
@@ -538,6 +542,10 @@ control Ingress(
     size = 36;
   }
 
+  action swap_action_185() {
+  }
+  action swap_action_186() {
+  }
 
   RegisterAction<bit<32>, bit<32>, void>(vector_register_1074066960_0) vector_register_1074066960_0_write_4415 = {
     void apply(inout bit<32> value) {
@@ -578,6 +586,10 @@ control Ingress(
     size = 36;
   }
 
+  action swap_action_177() {
+  }
+  action swap_action_178() {
+  }
 
   apply {
     ingress_port_to_nf_dev.apply();
@@ -660,9 +672,11 @@ control Ingress(
                   // BDD node 150:vector_return
                   // EP node  3023:ModifyHeader
                   // BDD node 151:packet_return_chunk
+                  swap_action_151();
                   hdr.hdr2.data1 = vector_reg_value2;
                   // EP node  3170:ModifyHeader
                   // BDD node 152:packet_return_chunk
+                  swap_action_152();
                   hdr.hdr1.data4 = vector_reg_value0;
                   // EP node  3470:Forward
                   // BDD node 154:FORWARD
@@ -728,10 +742,12 @@ control Ingress(
                 // BDD node 184:vector_return
                 // EP node  2057:ModifyHeader
                 // BDD node 185:packet_return_chunk
+                swap_action_185();
                 hdr.hdr2.data0[7:0] = fcfs_ct_1074053136_table_163_get_value_param0[7:0];
                 hdr.hdr2.data0[15:8] = fcfs_ct_1074053136_table_163_get_value_param0[15:8];
                 // EP node  2183:ModifyHeader
                 // BDD node 186:packet_return_chunk
+                swap_action_186();
                 hdr.hdr1.data3[31:24] = 8w0x01;
                 hdr.hdr1.data3[23:16] = 8w0x02;
                 hdr.hdr1.data3[15:8] = 8w0x03;
@@ -765,10 +781,12 @@ control Ingress(
                   // BDD node 176:vector_return
                   // EP node  5180:ModifyHeader
                   // BDD node 177:packet_return_chunk
+                  swap_action_177();
                   hdr.hdr2.data0[7:0] = fcfs_ct_1074053136_table_163_get_value_param0[7:0];
                   hdr.hdr2.data0[15:8] = fcfs_ct_1074053136_table_163_get_value_param0[15:8];
                   // EP node  5355:ModifyHeader
                   // BDD node 178:packet_return_chunk
+                  swap_action_178();
                   hdr.hdr1.data3[31:24] = 8w0x01;
                   hdr.hdr1.data3[23:16] = 8w0x02;
                   hdr.hdr1.data3[15:8] = 8w0x03;

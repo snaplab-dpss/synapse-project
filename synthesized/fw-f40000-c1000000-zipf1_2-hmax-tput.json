@@ -1,23 +1,27 @@
 {
   "bdd": "fw.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 173,
-    "num_phase1_speculations": 16007,
-    "num_phase2_speculations": 869,
-    "num_speculated_modules": 184327
+    "num_execution_plans_generated": 177,
+    "num_phase1_speculations": 16398,
+    "num_phase2_speculations": 811,
+    "num_speculated_modules": 189056,
+    "time_per_instantiation_us": 647,
+    "time_per_speculation_us": 82,
+    "total_time_spent_generating_execution_plans_us": 114572,
+    "total_time_spent_speculating_us": 15620016
   },
   "heuristic": {
     "meta": [
       {
-        "description": "59.51 Gbps (84.53 Mpps)",
+        "description": "66.41 Gbps (94.34 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "59.51 Gbps (84.53 Mpps)",
+        "description": "66.41 Gbps (94.34 Mpps)",
         "name": "Spec"
       },
       {
-        "description": "0",
+        "description": "1",
         "name": "Recirculations"
       },
       {
@@ -35,11 +39,11 @@
     ],
     "score": [
       0,
-      84530000,
+      94337000,
       56,
       -6,
       -32076480,
-      0
+      -1
     ]
   },
   "implementations": [
@@ -170,7 +174,7 @@
         "node_id": 261
       },
       {
-        "avg": 3.0,
+        "avg": 2.5,
         "node_id": 134
       },
       {
@@ -210,7 +214,7 @@
         "node_id": 181
       },
       {
-        "avg": 6.0,
+        "avg": 8.0,
         "node_id": 139
       },
       {
@@ -339,16 +343,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.1666666666666665,
-    "elapsed_time_seconds": 32,
+    "branching_factor": 3.1944444444444446,
+    "elapsed_time_seconds": 39,
     "finished_eps": 1,
-    "ss_size": 173,
-    "steps": 56,
-    "total_ss_size_estimation": 158465891376.20758,
-    "unfinished_eps": 117
+    "ss_size": 177,
+    "steps": 57,
+    "total_ss_size_estimation": 190992739861.62448,
+    "unfinished_eps": 120
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 59509268544,
-  "tput_estimation_pps": 84530211
+  "tput_estimation_bps": 66413586624,
+  "tput_estimation_pps": 94337481
 }

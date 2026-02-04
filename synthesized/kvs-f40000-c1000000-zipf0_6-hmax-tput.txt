@@ -14,40 +14,36 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,82'431'000,63,-3,-1'922'480,0>
-  Tput: 58.03 Gbps (82.43 Mpps)
-  Spec: 58.03 Gbps (82.43 Mpps)
+  Score: <0,119'890'000,49,-4,-3'502'640,0>
+  Tput: 84.40 Gbps (119.89 Mpps)
+  Spec: 84.40 Gbps (119.89 Mpps)
   Recirculations: 0
-  BDD Progress: 63 / 70
-  Stages: 3
-  Memory Usage: 1922480 bits
+  BDD Progress: 49 / 50
+  Stages: 4
+  Memory Usage: 3502640 bits
 
 Stateful Implementations:
   1073954136: Tofino::VectorRegister
-  1073971272: Tofino::DchainTable
-  1073923096: Tofino::GuardedMapTable
+  1073971272: Tofino::HHTable
+  1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       56 seconds
-  Steps:              65
+  Elapsed time:       47 seconds
+  Steps:              49
   Backtracks:         0
-  Search space size:  180
-  Unfinished EPs:     115
+  Search space size:  161
+  Unfinished EPs:     112
   Finished EPs:       1
-  Avg BDD size:       59
+  Avg BDD size:       50
   Branching factor:   2
-  Total SS size est.: 22'147'762'998
+  Total SS size est.: 72'402'317'104
   Avg children per node:
-    Node 130: 3
-    Node 129: 3
-    Node 128: 3
-    Node 127: 3
     Node 32: 0
     Node 31: 0
     Node 30: 0
     Node 29: 0
     Node 56: 3
-    Node 16: 2.5
+    Node 16: 3
     Node 55: 3
     Node 15: 3
     Node 61: 2
@@ -69,7 +65,6 @@ Search Metadata:
     Node 38: 3
     Node 9: 3
     Node 33: 3
-    Node 131: 2
     Node 4: 2
     Node 63: 3
     Node 62: 3
@@ -80,26 +75,26 @@ Search Metadata:
     Node 34: 3
     Node 40: 0
     Node 57: 2
-    Node 18: 0
+    Node 18: 3
     Node 23: 0
     Node 35: 3
     Node 41: 0
     Node 47: 0
-    Node 19: 0
+    Node 19: 3
     Node 24: 0
     Node 36: 3
     Node 42: 3
     Node 48: 3
-    Node 20: 0
+    Node 20: 3
     Node 25: 0
     Node 37: 3
     Node 43: 3
     Node 49: 3
-    Node 21: 0
+    Node 21: 3
     Node 26: 0
     Node 44: 3
     Node 50: 3
-    Node 22: 0
+    Node 22: 2
     Node 27: 0
     Node 45: 3
     Node 51: 3
@@ -108,32 +103,40 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 26'354 (100%)
-  Num phase 2 speculations: 1'678 (6.36716%)
-  Num speculated modules:   265'481
-  Num EPs generated:        180
+  Num phase 1 speculations: 19'362 (100%)
+  Num phase 2 speculations: 1'375 (7.10154%)
+  Num speculated modules:   194'092
+  Num EPs generated:        161
 
 Switch placement:
 
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 89'209/1'310'720 B (6.80611%)
-TCAM: 0/67'584 B (0%)
-MapRAM: 16'385/786'432 B (2.08346%)
-Exact Match Crossbar: 5/128 B (3.90625%)
-Objs: [guarded_map_table_1073923096_guard,guarded_map_table_1073923096_13]
--------------------------------------
--------------------------------------
-Stage 1
 SRAM: 36'412/1'310'720 B (2.77802%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [dchain_table_1073971272_38]
+Objs: [hh_table_1073923096_table_13]
+-------------------------------------
+-------------------------------------
+Stage 1
+SRAM: 65'537/1'310'720 B (5.00008%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 65'537/786'432 B (8.33346%)
+Exact Match Crossbar: 5/128 B (3.90625%)
+Objs: [hh_table_1073923096_packet_sampler,hh_table_1073923096_cached_counters]
 -------------------------------------
 -------------------------------------
 Stage 2
+SRAM: 86'020/1'310'720 B (6.56281%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 86'020/786'432 B (10.938%)
+Exact Match Crossbar: 37/128 B (28.9062%)
+Objs: [hh_table_1073923096_digest,hh_table_1073923096_threshold,hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_1,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_2,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_0]
+-------------------------------------
+-------------------------------------
+Stage 3
 SRAM: 49'152/1'310'720 B (3.75%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 49'152/786'432 B (6.25%)

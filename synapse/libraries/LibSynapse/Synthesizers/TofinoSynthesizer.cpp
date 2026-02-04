@@ -2166,8 +2166,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     var_t recirc_var = var;
     recirc_var.name  = recirc_var.flatten_name();
 
-    var_t local_recirc_var = recirc_var;
-    local_recirc_var.name  = "hdr.recirc." + recirc_var.name;
+    var_t local_recirc_var         = recirc_var;
+    local_recirc_var.name          = "hdr.recirc." + recirc_var.name;
+    local_recirc_var.original_name = local_recirc_var.name;
 
     recirc_hdr_vars.push(recirc_var);
     recirc_vars.push_back(local_recirc_var);
@@ -2471,6 +2472,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::vector<expr_byte_swap_t> &swaps = node->get_swaps();
 
   std::unordered_set<bytes_t> bytes_already_dealt_with;
+  std::vector<code_t> swap_assignments;
   for (const expr_byte_swap_t &byte_swap : swaps) {
     klee::ref<klee::Expr> byte0_expr = solver_toolbox.exprBuilder->Extract(hdr, byte_swap.byte0 * 8, 8);
     klee::ref<klee::Expr> byte1_expr = solver_toolbox.exprBuilder->Extract(hdr, byte_swap.byte1 * 8, 8);
@@ -2481,16 +2483,24 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     assert(byte0_var.has_value() && "Byte0 not found");
     assert(byte1_var.has_value() && "Byte1 not found");
 
-    ingress_apply.indent();
-    ingress_apply << "swap(";
-    ingress_apply << byte0_var->name;
-    ingress_apply << ", ";
-    ingress_apply << byte1_var->name;
-    ingress_apply << ");\n";
+    coder_t swap_assignment;
+    swap_assignment << "swap(";
+    swap_assignment << byte0_var->name;
+    swap_assignment << ", ";
+    swap_assignment << byte1_var->name;
+    swap_assignment << ");";
+
+    swap_assignments.push_back(swap_assignment.dump());
 
     bytes_already_dealt_with.insert(byte_swap.byte0);
     bytes_already_dealt_with.insert(byte_swap.byte1);
   }
+
+  const code_t swap_action_name = "swap_action_" + std::to_string(node->get_node()->get_id());
+  transpile_action_decl(swap_action_name, swap_assignments);
+
+  ingress_apply.indent();
+  ingress_apply << swap_action_name << "();\n";
 
   std::vector<code_t> assignments;
 

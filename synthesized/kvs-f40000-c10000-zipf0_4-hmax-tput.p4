@@ -481,6 +481,10 @@ control Ingress(
   action hh_table_1073923096_cms_row_3_inc_and_read_402_execute() {
     hh_table_1073923096_cms_row_3_value = hh_table_1073923096_cms_row_3_inc_and_read_402.execute(hh_table_1073923096_hash_calc_3_value);
   }
+  action swap_action_18() {
+  }
+  action swap_action_33() {
+  }
   Register<bit<32>,_>(8192, 0) vector_register_1073954136_0;
 
   RegisterAction<bit<32>, bit<32>, void>(vector_register_1073954136_0) vector_register_1073954136_0_write_1321 = {
@@ -489,6 +493,26 @@ control Ingress(
     }
   };
 
+  action swap_action_42() {
+  }
+  action swap_action_43() {
+    swap(hdr.hdr2.data0[15:8], hdr.hdr2.data1[15:8]);
+    swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
+  }
+  action swap_action_44() {
+    swap(hdr.hdr1.data2[31:24], hdr.hdr1.data3[31:24]);
+    swap(hdr.hdr1.data2[23:16], hdr.hdr1.data3[23:16]);
+    swap(hdr.hdr1.data2[15:8], hdr.hdr1.data3[15:8]);
+    swap(hdr.hdr1.data2[7:0], hdr.hdr1.data3[7:0]);
+  }
+  action swap_action_45() {
+    swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
+    swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
+    swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
+    swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
+    swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
+    swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
+  }
 
   RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1073954136_0) vector_register_1073954136_0_read_1320 = {
     void apply(inout bit<32> value, out bit<32> out_value) {
@@ -497,6 +521,26 @@ control Ingress(
   };
 
 
+  action swap_action_48() {
+  }
+  action swap_action_49() {
+    swap(hdr.hdr2.data0[15:8], hdr.hdr2.data1[15:8]);
+    swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
+  }
+  action swap_action_50() {
+    swap(hdr.hdr1.data2[31:24], hdr.hdr1.data3[31:24]);
+    swap(hdr.hdr1.data2[23:16], hdr.hdr1.data3[23:16]);
+    swap(hdr.hdr1.data2[15:8], hdr.hdr1.data3[15:8]);
+    swap(hdr.hdr1.data2[7:0], hdr.hdr1.data3[7:0]);
+  }
+  action swap_action_51() {
+    swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
+    swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
+    swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
+    swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
+    swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
+    swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
+  }
 
   apply {
     ingress_port_to_nf_dev.apply();
@@ -579,6 +623,7 @@ control Ingress(
                     // BDD node 16:dchain_allocate_new_index
                     // EP node  2131:ModifyHeader
                     // BDD node 18:packet_return_chunk
+                    swap_action_18();
                     hdr.hdr3.data4[15:8] = meta.dev[7:0];
                     hdr.hdr3.data4[7:0] = meta.dev[15:8];
                     // EP node  2659:Forward
@@ -589,6 +634,7 @@ control Ingress(
                     // BDD node 15:if
                     // EP node  785:ModifyHeader
                     // BDD node 33:packet_return_chunk
+                    swap_action_33();
                     hdr.hdr3.data4[15:8] = meta.dev[7:0];
                     hdr.hdr3.data4[7:0] = meta.dev[15:8];
                     // EP node  1145:Forward
@@ -610,25 +656,17 @@ control Ingress(
                     vector_register_1073954136_0_write_1321.execute(hh_table_1073923096_table_13_get_value_param0);
                     // EP node  2741:ModifyHeader
                     // BDD node 42:packet_return_chunk
+                    swap_action_42();
                     hdr.hdr3.data3 = 8w0x01;
                     // EP node  2879:ModifyHeader
                     // BDD node 43:packet_return_chunk
-                    swap(hdr.hdr2.data0[15:8], hdr.hdr2.data1[15:8]);
-                    swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
+                    swap_action_43();
                     // EP node  3020:ModifyHeader
                     // BDD node 44:packet_return_chunk
-                    swap(hdr.hdr1.data2[31:24], hdr.hdr1.data3[31:24]);
-                    swap(hdr.hdr1.data2[23:16], hdr.hdr1.data3[23:16]);
-                    swap(hdr.hdr1.data2[15:8], hdr.hdr1.data3[15:8]);
-                    swap(hdr.hdr1.data2[7:0], hdr.hdr1.data3[7:0]);
+                    swap_action_44();
                     // EP node  3164:ModifyHeader
                     // BDD node 45:packet_return_chunk
-                    swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
-                    swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
-                    swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
-                    swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
-                    swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
-                    swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
+                    swap_action_45();
                     // EP node  3311:Forward
                     // BDD node 46:FORWARD
                     nf_dev[15:0] = meta.dev[15:0];
@@ -640,26 +678,18 @@ control Ingress(
                     bit<32> vector_reg_value0 = vector_register_1073954136_0_read_1320.execute(hh_table_1073923096_table_13_get_value_param0);
                     // EP node  1452:ModifyHeader
                     // BDD node 48:packet_return_chunk
+                    swap_action_48();
                     hdr.hdr3.data2 = vector_reg_value0;
                     hdr.hdr3.data3 = 8w0x01;
                     // EP node  1566:ModifyHeader
                     // BDD node 49:packet_return_chunk
-                    swap(hdr.hdr2.data0[15:8], hdr.hdr2.data1[15:8]);
-                    swap(hdr.hdr2.data0[7:0], hdr.hdr2.data1[7:0]);
+                    swap_action_49();
                     // EP node  1683:ModifyHeader
                     // BDD node 50:packet_return_chunk
-                    swap(hdr.hdr1.data2[31:24], hdr.hdr1.data3[31:24]);
-                    swap(hdr.hdr1.data2[23:16], hdr.hdr1.data3[23:16]);
-                    swap(hdr.hdr1.data2[15:8], hdr.hdr1.data3[15:8]);
-                    swap(hdr.hdr1.data2[7:0], hdr.hdr1.data3[7:0]);
+                    swap_action_50();
                     // EP node  1803:ModifyHeader
                     // BDD node 51:packet_return_chunk
-                    swap(hdr.hdr0.data0[47:40], hdr.hdr0.data1[47:40]);
-                    swap(hdr.hdr0.data0[39:32], hdr.hdr0.data1[39:32]);
-                    swap(hdr.hdr0.data0[31:24], hdr.hdr0.data1[31:24]);
-                    swap(hdr.hdr0.data0[23:16], hdr.hdr0.data1[23:16]);
-                    swap(hdr.hdr0.data0[15:8], hdr.hdr0.data1[15:8]);
-                    swap(hdr.hdr0.data0[7:0], hdr.hdr0.data1[7:0]);
+                    swap_action_51();
                     // EP node  1926:Forward
                     // BDD node 52:FORWARD
                     nf_dev[15:0] = meta.dev[15:0];

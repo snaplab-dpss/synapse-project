@@ -14,9 +14,9 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,762'982'500,56,-6,-32'076'480,0>
-  Tput: 537.14 Gbps (762.98 Mpps)
-  Spec: 537.14 Gbps (762.98 Mpps)
+  Score: <0,776'824'500,56,-6,-32'076'480,0>
+  Tput: 546.88 Gbps (776.82 Mpps)
+  Spec: 546.88 Gbps (776.82 Mpps)
   Recirculations: 0
   BDD Progress: 56 / 62
   Stages: 6
@@ -29,7 +29,7 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       41 seconds
+  Elapsed time:       39 seconds
   Steps:              56
   Backtracks:         0
   Search space size:  173
@@ -109,9 +109,9 @@ Search Metadata:
     Node 249: 0
 
 Global Stats:
-  Num phase 1 speculations: 16'183 (100%)
-  Num phase 2 speculations: 877 (5.41927%)
-  Num speculated modules:   186'007
+  Num phase 1 speculations: 14'515 (100%)
+  Num phase 2 speculations: 712 (4.90527%)
+  Num speculated modules:   168'983
   Num EPs generated:        173
 
 Switch placement:

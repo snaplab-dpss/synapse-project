@@ -19,9 +19,6 @@
 #include "registers/reg_cm_1.h"
 #include "registers/reg_cm_2.h"
 #include "registers/reg_cm_3.h"
-#include "registers/reg_bloom_0.h"
-#include "registers/reg_bloom_1.h"
-#include "registers/reg_bloom_2.h"
 #include "args.h"
 #include "ports.h"
 
@@ -84,9 +81,6 @@ public:
   RegCm1 reg_cm_1;
   RegCm2 reg_cm_2;
   RegCm3 reg_cm_3;
-  RegBloom0 reg_bloom_0;
-  RegBloom1 reg_bloom_1;
-  RegBloom2 reg_bloom_2;
 
   struct key_hash_t {
     std::size_t operator()(const std::array<uint8_t, KV_KEY_SIZE> &key) const {
@@ -113,8 +107,7 @@ public:
         cpu_port(args.tna_version == 1 ? CPU_PORT_TNA1 : CPU_PORT_TNA2), server_dev_port(ports.get_dev_port(args.server_port, 0)),
         fwd(_info, _session, _dev_tgt), keys(_info, _session, _dev_tgt), is_client_packet(_info, _session, _dev_tgt),
         reg_v(_info, _session, _dev_tgt), reg_key_count(_info, _session, _dev_tgt), reg_cm_0(_info, _session, _dev_tgt),
-        reg_cm_1(_info, _session, _dev_tgt), reg_cm_2(_info, _session, _dev_tgt), reg_cm_3(_info, _session, _dev_tgt),
-        reg_bloom_0(_info, _session, _dev_tgt), reg_bloom_1(_info, _session, _dev_tgt), reg_bloom_2(_info, _session, _dev_tgt) {
+        reg_cm_1(_info, _session, _dev_tgt), reg_cm_2(_info, _session, _dev_tgt), reg_cm_3(_info, _session, _dev_tgt) {
     if (!args.run_tofino_model) {
       config_ports();
     }

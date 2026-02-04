@@ -143,7 +143,7 @@ def plot_bps(data: dict[int, Data], file: Path):
     data_to_show = {
         "Pktgen": (pktgen_gbps, stdev_pktgen_gbps),
         "Expected TG egress": ([30 * v for v in pktgen_gbps], [30 * v for v in stdev_pktgen_gbps]),
-        "TG egress": (avg_tg_egress_gbps, stdev_tg_egress_gbps),
+        "Actual TG egress": (avg_tg_egress_gbps, stdev_tg_egress_gbps),
     }
 
     bar_width = 0.25
@@ -193,7 +193,7 @@ def plot_pps(data: dict[int, Data], file: Path):
     data_to_show = {
         "Pktgen": (pktgen_mpps, stdev_pktgen_mpps),
         "Expected TG egress": ([30 * v for v in pktgen_mpps], [30 * v for v in stdev_pktgen_mpps]),
-        "TG egress": (avg_tg_egress_mpps, stdev_tg_egress_mpps),
+        "Actual TG egress": (avg_tg_egress_mpps, stdev_tg_egress_mpps),
     }
 
     bar_width = 0.25
