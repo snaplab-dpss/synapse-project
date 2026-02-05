@@ -99,6 +99,7 @@ def plot(data: dict):
 
     ax.set_xticks(ind + bar_width, labels)
     ax.tick_params(axis="both", length=0)
+    ax.grid(visible=False, axis="x")
 
     ax.legend(bbox_to_anchor=(0.5, 1.3), loc="upper center", ncols=3, columnspacing=0.75)
     fig.set_size_inches(width, height * 0.8)

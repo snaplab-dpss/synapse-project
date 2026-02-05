@@ -85,6 +85,7 @@ def plot(data: dict):
     ax.set_xlabel("Churn (fpm)")
     ax.set_xticks(ind + bar_width * (3 / 2), labels)
     ax.tick_params(axis="both", length=0)
+    ax.grid(visible=False, axis="x")
 
     ax.legend(bbox_to_anchor=(0.4, 1.35), loc="upper center", ncols=4, columnspacing=0.6, handletextpad=0.2, fontsize="small")
     fig.set_size_inches(width, height * 0.8)

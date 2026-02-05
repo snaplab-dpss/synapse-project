@@ -126,6 +126,8 @@ def plot_bps(data: dict[int, Data], file: Path):
     ax.set_yticks([600, 1200, 1800, 2400, 3000])
     ax.yaxis.set_minor_locator(MultipleLocator(300))
 
+    ax.grid(visible=False, axis="x")
+
     pkt_sizes = [str(pkt_size) for pkt_size in data.keys()]
 
     pktgen_gbps = [data[pkt_size].pktgen_bps[0] / 1e9 for pkt_size in data.keys()]
@@ -175,6 +177,8 @@ def plot_pps(data: dict[int, Data], file: Path):
 
     ax.set_yticks([700, 1400, 2100, 2800, 3500])
     ax.yaxis.set_minor_locator(MultipleLocator(350))
+
+    ax.grid(visible=False, axis="x")
 
     pkt_sizes = [str(pkt_size) for pkt_size in data.keys()]
 

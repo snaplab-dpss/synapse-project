@@ -69,6 +69,7 @@ def plot(data: dict[str, dict[int, tuple[Resources, Resources]]]):
     ax.set_xlabel("Churn (fpm)")
     ax.set_xticks(ind + bar_width * 2, labels)
     ax.tick_params(axis="both", length=0)
+    ax.grid(visible=False, axis="x")
 
     ax.legend(bbox_to_anchor=(0.4, 1.35), loc="upper center", ncols=5, columnspacing=0.6, handletextpad=0.2, fontsize="small")
     fig.set_size_inches(width, height * 0.8)
