@@ -210,7 +210,7 @@ def plot_heatmap(data: HeatmapData, file: Path, cmap="Blues", show_errors: bool 
         j = all_s.index(key.s)
         matrix[i, j] = avg_data[key].dut_egress_pps / 1e6
 
-    s_labels = [f"{s:.2f}" for s in all_s]
+    s_labels = [f"{s:.1f}" for s in all_s]
     churn_labels = [f"{whole_number_to_label(c)}" for c in all_churn]
 
     # Nice colormaps:
@@ -232,7 +232,7 @@ def plot_heatmap(data: HeatmapData, file: Path, cmap="Blues", show_errors: bool 
     ax.set_ylabel("Churn (fpm)")
 
     # Rotate the tick labels and set their alignment.
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    # plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
     ax.grid(False)
 
@@ -240,6 +240,7 @@ def plot_heatmap(data: HeatmapData, file: Path, cmap="Blues", show_errors: bool 
     ax.set_xticks(np.arange(matrix.shape[1] + 1) - 0.5, minor=True)
     ax.set_yticks(np.arange(matrix.shape[0] + 1) - 0.5, minor=True)
     ax.tick_params(which="minor", bottom=False, left=False)
+    ax.tick_params(axis="both", length=0)
 
     for key in keys:
         i = all_churn.index(key.churn_fpm)
@@ -262,14 +263,14 @@ def plot_heatmap(data: HeatmapData, file: Path, cmap="Blues", show_errors: bool 
         if avg_data[key].label is not None:
             text.set_fontsize(5)
         else:
-            text.set_fontsize(6)
+            text.set_fontsize(doc.scriptsize)
         text.set_fontweight("bold")
 
-    fig.set_size_inches(width * 0.6, height * 1)
+    fig.set_size_inches(width, height * 1.4)
     # fig.tight_layout(pad=0.1)
 
     print("-> ", file)
-    plt.savefig(str(file))
+    plt.savefig(str(file), bbox_inches="tight", pad_inches=0)
 
 
 def plot_heatmap_estimation(data: HeatmapData, file: Path, show_errors: bool = True):
@@ -336,7 +337,7 @@ def plot_heatmap_data_structures(data: HeatmapData, file: Path, cmap="Blues", sh
         text.set_fontsize(6)
         text.set_fontweight("bold")
 
-    fig.set_size_inches(width * 0.6, height * 1)
+    fig.set_size_inches(width, height * 0.8)
     # fig.tight_layout(pad=0.1)
 
     print("-> ", file)
@@ -399,7 +400,7 @@ def plot_bps_scatter(data: HeatmapData, file: Path):
     for ax in axs.flat:
         ax.label_outer()
 
-    fig.set_size_inches(width * 0.9, height * 3)
+    fig.set_size_inches(width, height * 0.8)
     # fig.set_figwidth(width * 1)
     fig.tight_layout(pad=0.1)
 

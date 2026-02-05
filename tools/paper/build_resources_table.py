@@ -135,8 +135,6 @@ def build_kvs_resources_latex_table(
 \begin{tabular}{lcccc}
 \toprule
 & \textbf{Stages} & \textbf{SRAM} & \textbf{VLIW} & \begin{tabular}[c]{@{}l@{}}\textbf{Match}\\ \textbf{xbar}\end{tabular} \\
-\cmidrule(r){2-5}
-& \multicolumn{4}{c@{}}{\footnotesize \textit{(\%)}} \\
 \midrule
 """
 
@@ -146,10 +144,10 @@ def build_kvs_resources_latex_table(
         " & ".join(
             [
                 "NetCache",
-                f"{100*netcache.stages:.1f}",
-                f"{100*netcache.sram:.1f}",
-                f"{100*netcache.vliw:.1f}",
-                f"{100*netcache.match_xbar:.1f}",
+                f"{100*netcache.stages:.1f}\\%",
+                f"{100*netcache.sram:.1f}\\%",
+                f"{100*netcache.vliw:.1f}\\%",
+                f"{100*netcache.match_xbar:.1f}\\%",
             ]
         )
         + r" \\"
@@ -159,10 +157,10 @@ def build_kvs_resources_latex_table(
         " & ".join(
             [
                 "Switcharoo",
-                f"{100*switcharoo.stages:.1f}",
-                f"{100*switcharoo.sram:.1f}",
-                f"{100*switcharoo.vliw:.1f}",
-                f"{100*switcharoo.match_xbar:.1f}",
+                f"{100*switcharoo.stages:.1f}\\%",
+                f"{100*switcharoo.sram:.1f}\\%",
+                f"{100*switcharoo.vliw:.1f}\\%",
+                f"{100*switcharoo.match_xbar:.1f}\\%",
             ]
         )
         + r" \\"
@@ -172,10 +170,10 @@ def build_kvs_resources_latex_table(
         " & ".join(
             [
                 "Gallium",
-                f"{100*gallium.stages:.1f}",
-                f"{100*gallium.sram:.1f}",
-                f"{100*gallium.vliw:.1f}",
-                f"{100*gallium.match_xbar:.1f}",
+                f"{100*gallium.stages:.1f}\\%",
+                f"{100*gallium.sram:.1f}\\%",
+                f"{100*gallium.vliw:.1f}\\%",
+                f"{100*gallium.match_xbar:.1f}\\%",
             ]
         )
         + r" \\"
@@ -185,10 +183,10 @@ def build_kvs_resources_latex_table(
         " & ".join(
             [
                 "Tessera",
-                f"\\evalue{{{100*synapse[0].stages:.1f}}}{{{100*synapse[1].stages:.1f}}}",
-                f"\\evalue{{{100*synapse[0].sram:.1f}}}{{{100*synapse[1].sram:.1f}}}",
-                f"\\evalue{{{100*synapse[0].vliw:.1f}}}{{{100*synapse[1].vliw:.1f}}}",
-                f"\\evalue{{{100*synapse[0].match_xbar:.1f}}}{{{100*synapse[1].match_xbar:.1f}}}",
+                f"\\evalue{{{100*synapse[0].stages:.1f}\\%}}{{{100*synapse[1].stages:.1f}}}",
+                f"\\evalue{{{100*synapse[0].sram:.1f}\\%}}{{{100*synapse[1].sram:.1f}}}",
+                f"\\evalue{{{100*synapse[0].vliw:.1f}\\%}}{{{100*synapse[1].vliw:.1f}}}",
+                f"\\evalue{{{100*synapse[0].match_xbar:.1f}\\%}}{{{100*synapse[1].match_xbar:.1f}}}",
             ]
         )
         + r" \\"
@@ -253,12 +251,15 @@ if __name__ == "__main__":
             sram=mean([r.sram for r in resources_per_nf[nf]]),
             vliw=mean([r.vliw for r in resources_per_nf[nf]]),
             match_xbar=mean([r.match_xbar for r in resources_per_nf[nf]]),
+            logical_table_ids=mean([r.logical_table_ids for r in resources_per_nf[nf]]),
         )
+
         stdev_resources = Resources(
             stages=stdev([r.stages for r in resources_per_nf[nf]]),
             sram=stdev([r.sram for r in resources_per_nf[nf]]),
             vliw=stdev([r.vliw for r in resources_per_nf[nf]]),
             match_xbar=stdev([r.match_xbar for r in resources_per_nf[nf]]),
+            logical_table_ids=stdev([r.logical_table_ids for r in resources_per_nf[nf]]),
         )
 
         avg_loc = int(mean(loc_per_nf[nf]))
@@ -271,7 +272,7 @@ if __name__ == "__main__":
         total_stddev = avg_resources.get_total_stddev()
 
     table = PrettyTable()
-    table.field_names = ["NF", "LoC", "Stages (%)", "SRAM (%)", "VLIW (%)", "Match Xbar (%)", "Average (%)"]
+    table.field_names = ["NF", "LoC", "Stages (%)", "SRAM (%)", "VLIW (%)", "Match Xbar (%)", "Logical Table IDs (%)", "Average (%)"]
     for nf in args.nfs:
         avg_resources, stdev_resources = avg_resources_per_nf[nf]
         avg_loc, stdev_loc = avg_loc_per_nf[nf]
@@ -283,6 +284,7 @@ if __name__ == "__main__":
                 f"{100*avg_resources.sram:4.1f} ± {100*stdev_resources.sram:4.1f}",
                 f"{100*avg_resources.vliw:4.1f} ± {100*stdev_resources.vliw:4.1f}",
                 f"{100*avg_resources.match_xbar:4.1f} ± {100*stdev_resources.match_xbar:4.1f}",
+                f"{100*avg_resources.logical_table_ids:4.1f} ± {100*stdev_resources.logical_table_ids:4.1f}",
                 f"{100*avg_resources.get_total_avg():4.1f} ± {100*avg_resources.get_total_stddev():4.1f}",
             ]
         )

@@ -157,7 +157,7 @@ def plot_pps(data: dict[int, Data], file: Path):
     ax.errorbar(delay_nss, avg_tput_gbps, yerr=stdev_tput_gbps, fmt="none", capsize=capsize, markeredgewidth=markeredgewidth, elinewidth=elinewidth, color="black")
     ax.bar(delay_nss, avg_tput_gbps)
 
-    fig.set_size_inches(width * 0.6, height)
+    fig.set_size_inches(width, height)
     fig.tight_layout(pad=0.1)
 
     fig_file_pdf = Path(file)

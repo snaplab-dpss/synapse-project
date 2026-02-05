@@ -83,10 +83,11 @@ def plot(data: dict):
     labels = [whole_number_to_label(key.churn_fpm) for key in CHOSEN_WORKLOADS]
 
     ax.set_xlabel("Churn (fpm)")
-    ax.set_xticks(ind + bar_width, labels)
+    ax.set_xticks(ind + bar_width * (3 / 2), labels)
+    ax.tick_params(axis="both", length=0)
 
     ax.legend(bbox_to_anchor=(0.4, 1.35), loc="upper center", ncols=4, columnspacing=0.6, handletextpad=0.2, fontsize="small")
-    fig.set_size_inches(width / 2, height * 0.5)
+    fig.set_size_inches(width, height * 0.8)
 
     print("-> ", OUTPUT_FILE)
     plt.savefig(str(OUTPUT_FILE), bbox_inches="tight", pad_inches=0)

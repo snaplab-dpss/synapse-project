@@ -29,13 +29,11 @@ solutions = {
     "Straw design": DATA_DIR / "tput_gallium_kvs.csv",
     "NetCache": DATA_DIR / "tput_netcache.csv",
     "Switcharoo": DATA_DIR / "tput_switcharoo.csv",
-    # SYSTEM_NAME: DATA_DIR / "tput_synapse_kvs_hhtable.csv",
 }
 
 
 chosen_workloads = [
-    # Key(s=0.6, churn_fpm=0),
-    Key(s=1, churn_fpm=10_000),
+    Key(s=0.6, churn_fpm=0),
     Key(s=1.2, churn_fpm=0),
     Key(s=1.2, churn_fpm=1_000_000),
 ]
@@ -60,18 +58,11 @@ def parse_data_files():
         solution_data = parse_heatmap_data_file(data_file)
         filtered_data = solution_data.filter(chosen_workloads)
 
-        y = [x.dut_egress_pps for x in filtered_data.get_avg_values().values()]
-        yerr = [x.dut_egress_pps for x in filtered_data.get_stdev_values().values()]
+        y = [filtered_data.get_avg_values()[w].dut_egress_pps for w in chosen_workloads]
+        yerr = [filtered_data.get_stdev_values()[w].dut_egress_pps for w in chosen_workloads]
 
         data[solution]["y"] = y
         data[solution]["yerr"] = yerr
-
-        # FIXME: this should be automatic
-        if solution == SYSTEM_NAME:
-            for i in range(len(data[SYSTEM_NAME]["y"])):
-                if data[SYSTEM_NAME]["y"][i] < data["Switcharoo"]["y"][i]:
-                    data[SYSTEM_NAME]["y"][i] = data["Switcharoo"]["y"][i]
-                    data[SYSTEM_NAME]["yerr"][i] = data["Switcharoo"]["yerr"][i]
 
     return data
 
@@ -107,9 +98,10 @@ def plot(data: dict):
         pos = pos + bar_width
 
     ax.set_xticks(ind + bar_width, labels)
+    ax.tick_params(axis="both", length=0)
 
     ax.legend(bbox_to_anchor=(0.5, 1.3), loc="upper center", ncols=3, columnspacing=0.75)
-    fig.set_size_inches(width / 2, height * 0.5)
+    fig.set_size_inches(width, height * 0.8)
 
     print("-> ", OUTPUT_FILE)
     plt.savefig(str(OUTPUT_FILE), bbox_inches="tight", pad_inches=0)

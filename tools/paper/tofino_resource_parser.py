@@ -36,6 +36,7 @@ class Resources:
     sram: float
     vliw: float
     match_xbar: float
+    logical_table_ids: float
 
     def get_total_avg(self) -> float:
         return mean([self.stages, self.sram, self.vliw, self.match_xbar])
@@ -52,6 +53,7 @@ class Resources:
             sram=self.sram / other.sram if other.sram != 0 else float("inf"),
             vliw=self.vliw / other.vliw if other.vliw != 0 else float("inf"),
             match_xbar=self.match_xbar / other.match_xbar if other.match_xbar != 0 else float("inf"),
+            logical_table_ids=self.logical_table_ids / other.logical_table_ids if other.logical_table_ids != 0 else float("inf"),
         )
 
     @staticmethod
@@ -61,6 +63,7 @@ class Resources:
             sram=mean([r.sram for r in resources_list]),
             vliw=mean([r.vliw for r in resources_list]),
             match_xbar=mean([r.match_xbar for r in resources_list]),
+            logical_table_ids=mean([r.logical_table_ids for r in resources_list]),
         )
 
     def __str__(self):
@@ -68,7 +71,7 @@ class Resources:
 
 
 def parse_tofino_resources_file(filepath: Path):
-    resources = Resources(stages=0, sram=0, vliw=0, match_xbar=0)
+    resources = Resources(stages=0, sram=0, vliw=0, match_xbar=0, logical_table_ids=0)
 
     with open(filepath, "r") as f:
         # print(f"Parsing Tofino resources file: {filepath}")
@@ -82,6 +85,7 @@ def parse_tofino_resources_file(filepath: Path):
                 resources.sram = float(cols[6].replace("%", "")) / 100.0
                 resources.vliw = float(cols[9].replace("%", "")) / 100.0
                 resources.match_xbar = float(cols[1].replace("%", "")) / 100.0
+                resources.logical_table_ids = float(cols[20].replace("%", "")) / 100.0
                 break
 
         for i in range(len(lines) - 1, -1, -1):

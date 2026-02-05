@@ -158,7 +158,7 @@ def plot_bps(data: dict[int, Data], file: Path):
     ax.set_xticks(ind + (3.0 / 2) * bar_width, pkt_sizes)
 
     ax.legend(bbox_to_anchor=(0.45, 1.3), loc="upper center", ncols=5, columnspacing=0.5)
-    fig.set_size_inches(width * 0.6, height * 0.6)
+    fig.set_size_inches(width, height * 0.8)
 
     fig_file_pdf = Path(file)
     print("-> ", fig_file_pdf)
@@ -208,7 +208,7 @@ def plot_pps(data: dict[int, Data], file: Path):
     ax.set_xticks(ind + bar_width, pkt_sizes)
 
     ax.legend(bbox_to_anchor=(0.45, 1.3), loc="upper center", ncols=5, columnspacing=0.5)
-    fig.set_size_inches(width * 0.6, height * 0.6)
+    fig.set_size_inches(width, height * 0.8)
 
     fig_file_pdf = Path(file)
     print("-> ", fig_file_pdf)

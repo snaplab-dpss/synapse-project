@@ -107,7 +107,7 @@ def plot_cdf(
 
     ax.step(values, probabilities)
 
-    fig.set_size_inches(width / 2, height / 2)
+    fig.set_size_inches(width, height)
     fig.tight_layout(pad=0.1)
 
     print("-> ", pdf)

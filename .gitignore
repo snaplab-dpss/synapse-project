@@ -37,6 +37,7 @@ plots/*.fdb
 _latexmk
 plots/*.pdf
 plots/*.tex
+plots/*fdb_latexmk
 
 # In case we mess up
 core.*

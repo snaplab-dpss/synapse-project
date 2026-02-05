@@ -19,11 +19,11 @@ COLOR_GROUP_SWITCH_ASIC = 0
 COLOR_GROUP_SWITCH_CPU = 1
 COLOR_GROUP_CPU = 2
 
-acm_acmsmall = {"documentclass": "acmart", "document_options": "acmsmall"}
+doc_opts = {"documentclass": "acmart", "document_options": "sigconf"}
 
 inches_per_pt = 1.0 / 72.27
 golden_ratio = (1.0 + math.sqrt(5.0)) / 2.0
-doc = Document(acm_acmsmall)
+doc = Document(doc_opts)
 width = float(doc.columnwidth)
 height = width / golden_ratio
 width = width * inches_per_pt
@@ -35,6 +35,12 @@ height_third = width_third / golden_ratio
 width_third = width_third * inches_per_pt
 height_third = height_third * inches_per_pt
 figsize_third = (width_third, height_third)
+
+width_full = doc.textwidth
+height_full = width_full / golden_ratio / 3
+width_full = width_full * inches_per_pt
+height_full = height_full * inches_per_pt
+figsize_full = [width_full, height_full]
 
 tight_layout_pad = 0.21
 linewidth = 0.5
