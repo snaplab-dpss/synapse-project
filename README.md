@@ -19,7 +19,7 @@ We now need to build and install all dependencies. We provide a couple of useful
 - `tools/deps/install_package_deps.sh`: install system package dependencies
 - `tools/deps/build_deps.sh`: build project dependencies
 
-You should only need to run each of these scripts *once*. If you are using our container script (`tools/dev/run_dev_container.sh`), notice that it already installs all the requires system package dependencies. Therefore, you need only run the `build_deps.sh` *once* inside the container.
+You should only need to run each of these scripts *once*. If you are using our container script (`tools/dev/run_dev_container.sh`), notice that it already installs all the required system package dependencies. Therefore, you need only run the `build_deps.sh` *once* inside the container.
 
 After running `build_deps.sh`, a new file will appear on the project root directory: `paths.sh`. You should always source this file (`source paths.sh`) when working on this project, as it exports the relevant environmental variables.
 
