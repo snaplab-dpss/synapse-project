@@ -4,7 +4,7 @@
 #include <optional>
 #include <unordered_set>
 
-#include "synapse_ds.h"
+#include "tessera_ds.h"
 #include "../primitives/table.h"
 #include "../primitives/register.h"
 #include "../time.h"
@@ -13,7 +13,7 @@
 
 namespace sycon {
 
-class BloomFilter : public SynapseDS {
+class BloomFilter : public TesseraDS {
 private:
   static const std::vector<u32> HASH_SALTS;
 

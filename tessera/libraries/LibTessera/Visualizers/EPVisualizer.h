@@ -1,0 +1,201 @@
+#pragma once
+
+#include <LibTessera/Visitor.h>
+#include <LibTessera/Target.h>
+#include <LibBDD/Nodes/Node.h>
+#include <LibCore/TreeViz.h>
+
+#include <vector>
+#include <filesystem>
+
+namespace LibTessera {
+
+using LibBDD::BDDNode;
+using LibCore::TreeViz;
+
+class EP;
+class EPNode;
+
+class EPViz : public EPVisitor {
+private:
+  TreeViz treeviz;
+
+public:
+  EPViz();
+  EPViz(const std::filesystem::path &fpath);
+
+  static void visualize(const EP *ep, bool interrupt);
+  static void dump_to_file(const EP *ep, const std::filesystem::path &file_name);
+
+  void visit(const EP *ep) override;
+  void visit(const EP *ep, const EPNode *ep_node) override;
+
+  // ========================================
+  // Tofino
+  // ========================================
+
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ignore *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::If *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Then *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Else *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Forward *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Drop *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Broadcast *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserExtraction *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserCondition *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserReject *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapSetTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DchainTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalUpdateSingleAction *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableIsIndexAllocated *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetReadInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedSetInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MeterUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::IntegerAllocatorRejuvenate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::IntegerAllocatorAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::IntegerAllocatorIsAllocated *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncrement *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterSet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQueryAndSet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *node) override final;
+
+  // ========================================
+  // Controller
+  // ========================================
+
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ignore *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::ParseHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::ModifyHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::ChecksumUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::If *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::Then *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::Else *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::Forward *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::Broadcast *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::Drop *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::AbortTransaction *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapSetTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableGuardCheck *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableAllocateNewIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableFreeIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableIsIndexAllocated *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableRefreshIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocateNewIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainRejuvenateIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainIsIndexAllocated *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainFreeIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapGet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapPut *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapErase *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::ChtFindBackend *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::HashObj *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocateAndWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableIsIndexAllocated *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocateAndWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableIsIndexAllocated *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableDelete *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableOutOfBandUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketIsTracing *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketTrace *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketUpdateAndCheck *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketExpire *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneBloomFilterSet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSIncrement *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSCountMin *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterSet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterQuery *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneExpireItemsSingleMapIteratively *node) override final;
+
+  // ========================================
+  // x86
+  // ========================================
+
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::Ignore *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::If *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::Then *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::Else *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::Forward *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::Broadcast *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::Drop *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::ModifyHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::ChecksumUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::MapGet *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::MapPut *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::MapErase *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMap *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::ExpireItemsSingleMapIteratively *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorRead *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainRejuvenateIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainAllocateNewIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainIsIndexAllocated *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainFreeIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSIncrement *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSCountMin *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSPeriodicCleanup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::HashObj *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::ChtFindBackend *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketIsTracing *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketTrace *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketUpdateAndCheck *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketExpire *node) override final;
+
+protected:
+  void log(const EPNode *ep_node) const override final;
+
+private:
+  void function_call(const EPNode *ep_node, const BDDNode *node, TargetType target, const std::string &label);
+  void branch(const EPNode *ep_node, const BDDNode *node, TargetType target, const std::string &label);
+};
+
+} // namespace LibTessera

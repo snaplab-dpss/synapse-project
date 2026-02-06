@@ -38,6 +38,6 @@ constexpr const char TOFINO_NO_ACTION_NAME[]         = "NoAction";
 constexpr const char DATA_FIELD_NAME_ENTRY_HIT_STATE[] = "$ENTRY_HIT_STATE";
 constexpr const char DATA_FIELD_NAME_ENTRY_TTL[]       = "$ENTRY_TTL";
 
-constexpr const char SYNAPSE_TABLE_MAP_ACTION[] = "populate";
+constexpr const char TESSERA_TABLE_MAP_ACTION[] = "populate";
 
 } // namespace sycon

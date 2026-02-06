@@ -1,5 +1,5 @@
 #########################################################
-# SyNAPSE makefile
+# Tessera makefile
 # Used to compile libsycon controllers and P4 programs.
 # Usage: APP=prog_name make -f PATH_TO_THIS_MAKEFILE
 #########################################################
@@ -91,7 +91,7 @@ run-packet-sender: install
 	sudo $(PACKET_SENDER)
 
 run-dev: install controller-debug
-	@tmux new-session -d -s synapse-p4-dev
+	@tmux new-session -d -s tessera-p4-dev
 	@tmux split-window -v -d -p 33
 	@tmux split-window -h -d -p 33
 

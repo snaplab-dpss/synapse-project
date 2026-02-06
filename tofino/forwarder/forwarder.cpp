@@ -48,4 +48,4 @@ void sycon::nf_user_signal_handler() {}
 
 bool sycon::nf_process(time_ns_t now, u8 *pkt, uint16_t size) { return true; }
 
-int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }
+int main(int argc, char **argv) { TESSERA_CONTROLLER_MAIN(argc, argv) }

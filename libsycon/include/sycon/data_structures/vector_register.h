@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 
-#include "synapse_ds.h"
+#include "tessera_ds.h"
 #include "../constants.h"
 #include "../primitives/register.h"
 #include "../time.h"
@@ -12,7 +12,7 @@
 
 namespace sycon {
 
-class VectorRegister : public SynapseDS {
+class VectorRegister : public TesseraDS {
 private:
   std::vector<buffer_t> cache;
   std::vector<Register> registers;
@@ -20,7 +20,7 @@ private:
   bits_t value_size;
 
 public:
-  VectorRegister(const std::string &_name, const std::vector<std::string> &register_names) : SynapseDS(_name), capacity(0), value_size(0) {
+  VectorRegister(const std::string &_name, const std::vector<std::string> &register_names) : TesseraDS(_name), capacity(0), value_size(0) {
     assert(!register_names.empty() && "Register names must not be empty");
 
     for (const std::string &name : register_names) {

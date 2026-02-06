@@ -1,4 +1,4 @@
-# Sycon library (SyNAPSE controller)
+# Sycon library (Tessera controller)
 
 ## Dependencies
 

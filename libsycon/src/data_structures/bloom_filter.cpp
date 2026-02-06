@@ -12,7 +12,7 @@ const std::vector<u32> BloomFilter::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d
                                                   0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
 
 BloomFilter::BloomFilter(const std::string &_name, const std::vector<std::string> &_rows_names, time_ms_t _periodic_cleanup_interval)
-    : SynapseDS(_name), rows(build_rows(_rows_names)), height(_rows_names.size()), width(get_width(rows)),
+    : TesseraDS(_name), rows(build_rows(_rows_names)), height(_rows_names.size()), width(get_width(rows)),
       periodic_cleanup_interval(_periodic_cleanup_interval), hash_salts(build_hash_salts(rows)), hash_mask(build_hash_mask(width)) {
   assert(rows.size() == height);
   assert(hash_salts.size() == height);

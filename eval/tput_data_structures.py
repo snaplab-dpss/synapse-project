@@ -110,7 +110,7 @@ class Throughput(Experiment):
         # TG controller
         self.tg_dut_ports = tg_dut_ports
 
-        # Synapse
+        # Tessera
         self.p4_src_in_repo = p4_src_in_repo
         self.controller_src_in_repo = controller_src_in_repo
         self.dut_ports = dut_ports

@@ -4,7 +4,7 @@
 #include <optional>
 #include <unordered_set>
 
-#include "synapse_ds.h"
+#include "tessera_ds.h"
 #include "../config.h"
 #include "../constants.h"
 #include "../primitives/table.h"
@@ -13,7 +13,7 @@
 
 namespace sycon {
 
-class MapSetTable : public SynapseDS {
+class MapSetTable : public TesseraDS {
 private:
   std::unordered_set<buffer_t, buffer_hash_t> cache;
   std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
@@ -23,7 +23,7 @@ private:
 
 public:
   MapSetTable(const std::string &_name, const std::vector<std::string> &table_names, std::optional<time_ms_t> timeout = std::nullopt)
-      : SynapseDS(_name), capacity(0), key_size(0) {
+      : TesseraDS(_name), capacity(0), key_size(0) {
     assert(!table_names.empty() && "Table name must not be empty");
 
     for (const std::string &table_name : table_names) {

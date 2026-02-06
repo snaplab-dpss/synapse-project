@@ -2,7 +2,7 @@
 
 from experiments.experiment import Experiment
 
-from hosts.synapse import SynapseController
+from hosts.tessera import TesseraController
 from hosts.switch import Switch
 from hosts.tofino_tg import TofinoTG, TofinoTGController
 from hosts.tofino_ta import TofinoTA, TofinoTAController
@@ -72,7 +72,7 @@ class TGHosts:
 
 class ThroughputHosts:
     dut_switch: Switch
-    dut_controller: SynapseController
+    dut_controller: TesseraController
     tg_switch: TofinoTG
     tg_controller: TofinoTGController
     pktgen: Pktgen
@@ -90,7 +90,7 @@ class ThroughputHosts:
             log_file=config["logs"]["switch_dut"],
         )
 
-        self.dut_controller = SynapseController(
+        self.dut_controller = TesseraController(
             hostname=config["hosts"]["switch_dut"],
             repo=config["repo"]["switch_dut"],
             sde=config["devices"]["switch_dut"]["sde"],
@@ -236,7 +236,7 @@ class Throughput(Experiment):
         self.log("Launching Tofino TG")
         self.hosts.tg_switch.launch()
 
-        self.log("Launching synapse controller")
+        self.log("Launching tessera controller")
         self.hosts.dut_controller.launch(self.controller_src_in_repo, controller_ports)
 
         self.log("Launching pktgen")
@@ -258,7 +258,7 @@ class Throughput(Experiment):
         self.log("Waiting for pktgen")
         self.hosts.pktgen.wait_launch()
 
-        self.log("Waiting for synapse controller")
+        self.log("Waiting for tessera controller")
         self.hosts.dut_controller.wait_ready()
 
         self.log("Starting experiment")

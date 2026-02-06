@@ -44,13 +44,13 @@ RUN sudo chsh -s $(which zsh)
 RUN echo "skip_global_compinit=1" >> /home/ubuntu/.zshenv
 RUN echo "source ~/.profile" >> /home/ubuntu/.zshrc
 
-RUN echo "source ~/synapse-project/paths.sh 2>/dev/null || true" >> /home/ubuntu/.zshrc
+RUN echo "source ~/tessera-project/paths.sh 2>/dev/null || true" >> /home/ubuntu/.zshrc
 
 COPY --chown=ubuntu:ubuntu tools/deps/install_package_deps.sh .
 RUN chmod +x install_package_deps.sh
 RUN ./install_package_deps.sh
 RUN rm install_package_deps.sh
 
-WORKDIR synapse-project
+WORKDIR tessera-project
 
 CMD [ "/bin/zsh" ]

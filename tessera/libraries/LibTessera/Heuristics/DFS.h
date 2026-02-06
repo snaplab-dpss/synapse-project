@@ -1,0 +1,33 @@
+#pragma once
+
+#include <LibTessera/Heuristics/Heuristic.h>
+
+namespace LibTessera {
+
+class DFS : public HeuristicCfg {
+public:
+  DFS()
+      : HeuristicCfg("DFS", {
+                                BUILD_METRIC(DFS, get_depth, Objective::Max),
+                            }) {}
+
+  DFS &operator=(const DFS &other) {
+    assert(other.name == name && "Mismatched names");
+    assert(other.metrics.size() == metrics.size() && "Mismatched metrics");
+    return *this;
+  }
+
+  virtual std::vector<heuristic_metadata_t> get_metadata(const EP *ep) const override {
+    return {
+        build_meta_tput_estimate(ep),
+    };
+  }
+
+private:
+  i64 get_depth(const EP *ep) const {
+    const EPMeta &meta = ep->get_meta();
+    return meta.depth;
+  }
+};
+
+} // namespace LibTessera

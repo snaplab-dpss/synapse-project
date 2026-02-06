@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 ROOT_DIR=$SCRIPT_DIR/../..
-CONTAINER_NAME="synapse"
+CONTAINER_NAME="tessera"
 PLATFORM=linux/amd64
 
 OS_NAME=$(uname -s)
@@ -30,7 +30,7 @@ fi
 
 cd $ROOT_DIR
 
-if ! docker image inspect "synapse:latest" >/dev/null 2>&1; then
+if ! docker image inspect "tessera:latest" >/dev/null 2>&1; then
     docker build \
         --build-arg BUILDPLATFORM=$PLATFORM \
         --platform=$PLATFORM \
@@ -57,7 +57,7 @@ docker run \
    --platform=$PLATFORM \
    -v $HOME/.ssh:/home/ubuntu/.ssh:ro \
    -v $HOME/.gitconfig:/home/ubuntu/.gitconfig:ro \
-   -v $ROOT_DIR:/home/ubuntu/synapse-project \
+   -v $ROOT_DIR:/home/ubuntu/tessera-project \
    -e DISPLAY=$DISPLAY \
    -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket \
    -v ~/.Xauthority:/home/ubuntu/.Xauthority \

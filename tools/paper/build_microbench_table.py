@@ -9,7 +9,7 @@ from itertools import product
 from statistics import mean, stdev, median, quantiles
 from prettytable import PrettyTable
 
-from synapse_compilation_report import parse_synapse_compilation_report
+from tessera_compilation_report import parse_tessera_compilation_report
 
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PROJECT_DIR = (CURRENT_DIR / ".." / "..").resolve()
@@ -34,7 +34,7 @@ class Microbench:
     time_per_instantiation_us: tuple[float, tuple[float, float]] = (0.0, (0.0, 0.0))
 
 
-def build_synapse_nf_name(nf: str, total_flows: int, churn: int, zipf: float) -> str:
+def build_tessera_nf_name(nf: str, total_flows: int, churn: int, zipf: float) -> str:
     dist = f"{'unif' if zipf == 0.0 else 'zipf'}{str(int(zipf) if int(zipf) == zipf else zipf).replace('.', '_') if zipf != 0.0 else ''}"
     heuristic = "max-tput"
     return f"{nf}-f{total_flows}-c{churn}-{dist}-h{heuristic}"
@@ -102,7 +102,7 @@ def get_p5_p95(data: list[float | int]) -> tuple[float, float]:
 
 
 if __name__ == "__main__":
-    description = "Synapse batcher script. This will run synapse against a batch of NFs and profiling reports."
+    description = "Tessera batcher script. This will run tessera against a batch of NFs and profiling reports."
     description += f" Synthesized dir: {SYNTHESIZED_DIR}."
 
     parser = ArgumentParser(description=description)
@@ -127,14 +127,14 @@ if __name__ == "__main__":
 
     for nf in args.nfs:
         for total_flows, churn, zipf in product(args.total_flows, args.churns, args.zipf_params):
-            nf_name = build_synapse_nf_name(nf, total_flows, churn, zipf)
+            nf_name = build_tessera_nf_name(nf, total_flows, churn, zipf)
 
             p4_file = SYNTHESIZED_DIR / f"{nf_name}.p4"
-            synapse_compilation_report_file = SYNTHESIZED_DIR / f"{nf_name}.json"
+            tessera_compilation_report_file = SYNTHESIZED_DIR / f"{nf_name}.json"
 
-            assert synapse_compilation_report_file.exists(), f"Synthesized synapse compilation report file {synapse_compilation_report_file} does not exist!"
+            assert tessera_compilation_report_file.exists(), f"Synthesized tessera compilation report file {tessera_compilation_report_file} does not exist!"
 
-            report = parse_synapse_compilation_report(synapse_compilation_report_file)
+            report = parse_tessera_compilation_report(tessera_compilation_report_file)
             compilation_times_per_nf[nf].append(report.search_meta.elapsed_time_seconds)
             backtracks_per_nf[nf].append(report.search_meta.backtracks)
             speculated_per_nf[nf].append(report.global_stats.num_speculated_modules)

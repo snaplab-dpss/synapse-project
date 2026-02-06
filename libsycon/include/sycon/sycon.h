@@ -24,7 +24,7 @@ void nf_setup();
 void run_cli();
 void run_bench_cli();
 
-#define SYNAPSE_CONTROLLER_MAIN(argc, argv)                                                                                                          \
+#define TESSERA_CONTROLLER_MAIN(argc, argv)                                                                                                          \
   parse_args(argc, argv);                                                                                                                            \
   setup_async_signal_handling_thread();                                                                                                              \
   init_switchd();                                                                                                                                    \

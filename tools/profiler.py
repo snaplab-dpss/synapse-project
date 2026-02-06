@@ -19,11 +19,11 @@ SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
 PCAP_DIR = PROJECT_DIR / "pcaps"
 TOOLS_DIR = PROJECT_DIR / "tools"
 PROFILE_DIR = PROJECT_DIR / "profiles"
-SYNAPSE_DIR = PROJECT_DIR / "synapse"
+TESSERA_DIR = PROJECT_DIR / "tessera"
 CONFIGS_DIR = PROJECT_DIR / "configs"
 
-SYNAPSE_BUILD_DIR = SYNAPSE_DIR / "build"
-SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
+TESSERA_BUILD_DIR = TESSERA_DIR / "build"
+TESSERA_BIN_DIR = TESSERA_BUILD_DIR / "bin"
 
 DEVICES = list(range(2, 32))
 
@@ -48,7 +48,7 @@ class NF:
     fwd_rules: list[Tuple[int, int]]
 
     def get_pcap_generator(self) -> Path:
-        return SYNAPSE_BIN_DIR / self.pcap_generator
+        return TESSERA_BIN_DIR / self.pcap_generator
 
 
 def odd_warmup_devices():
@@ -100,7 +100,7 @@ def get_pcap_base_name(
     return pcap
 
 
-def build_synapse(
+def build_tessera(
     nfs: list[NF],
     debug: bool,
     skip_execution: bool = False,
@@ -112,14 +112,14 @@ def build_synapse(
 
     files_consumed = []
     files_produced = [nf.get_pcap_generator() for nf in nfs] + [
-        SYNAPSE_BIN_DIR / "bdd-synthesizer",
-        SYNAPSE_BIN_DIR / "bdd-visualizer",
+        TESSERA_BIN_DIR / "bdd-synthesizer",
+        TESSERA_BIN_DIR / "bdd-visualizer",
     ]
 
     return Task(
-        "build_synapse",
+        "build_tessera",
         cmd,
-        cwd=SYNAPSE_DIR,
+        cwd=TESSERA_DIR,
         files_consumed=files_consumed,
         files_produced=files_produced,
         skip_execution=skip_execution,
@@ -235,10 +235,10 @@ def generate_profiler(
 ) -> Task:
     profiler_name = f"{nf.name}-profiler.cpp"
 
-    files_consumed = [BDD_DIR / nf.bdd, SYNAPSE_BIN_DIR / "bdd-synthesizer"]
+    files_consumed = [BDD_DIR / nf.bdd, TESSERA_BIN_DIR / "bdd-synthesizer"]
     files_produced = [SYNTHESIZED_DIR / profiler_name]
 
-    synthesize_profiler_cmd = f"{SYNAPSE_BIN_DIR / 'bdd-synthesizer'}"
+    synthesize_profiler_cmd = f"{TESSERA_BIN_DIR / 'bdd-synthesizer'}"
     synthesize_profiler_cmd += f" --target profiler"
     synthesize_profiler_cmd += f" --in {BDD_DIR / nf.bdd}"
     synthesize_profiler_cmd += f" --out {SYNTHESIZED_DIR / profiler_name}"
@@ -353,10 +353,10 @@ def generate_profile_visualizer(
     report = f"{pcap_base_name}.json"
     dot = f"{pcap_base_name}.dot"
 
-    files_consumed = [SYNAPSE_BIN_DIR / "bdd-visualizer", BDD_DIR / nf.bdd, PROFILE_DIR / report]
+    files_consumed = [TESSERA_BIN_DIR / "bdd-visualizer", BDD_DIR / nf.bdd, PROFILE_DIR / report]
     files_produced = [PROFILE_DIR / dot]
 
-    profile_visualizer_cmd = f"{SYNAPSE_BIN_DIR / 'bdd-visualizer'}"
+    profile_visualizer_cmd = f"{TESSERA_BIN_DIR / 'bdd-visualizer'}"
     profile_visualizer_cmd += f" --in {BDD_DIR / nf.bdd}"
     profile_visualizer_cmd += f" --profile {PROFILE_DIR / report}"
     profile_visualizer_cmd += f" --out {PROFILE_DIR / dot}"
@@ -423,7 +423,7 @@ if __name__ == "__main__":
     parser.add_argument("--total-flows", type=int, nargs="+", default=DEFAULT_TOTAL_FLOWS, help="Total flows to generate")
     parser.add_argument("--zipf-params", type=float, nargs="+", default=DEFAULT_ZIPF_PARAMS, help="Zipf parameters")
     parser.add_argument("--churn", type=int, nargs="+", default=DEFAULT_CHURN_FPM, help="Churn rate (fpm)")
-    parser.add_argument("--debug", action="store_true", default=False, help="Enable debug mode (synapse runs much slower)")
+    parser.add_argument("--debug", action="store_true", default=False, help="Enable debug mode (tessera runs much slower)")
 
     parser.add_argument("--max-concurrent-tasks", type=int, default=-1, help="Maximum number of concurrent tasks to run. If <= 0, uses number of CPU cores.")
     parser.add_argument("--skip-pcap-generation", action="store_true", default=False, help="Skip pcap generation")
@@ -459,7 +459,7 @@ if __name__ == "__main__":
     orchestrator = Orchestrator()
 
     orchestrator.add_task(
-        build_synapse(
+        build_tessera(
             nfs=[NFs[nf_name] for nf_name in args.nfs],
             debug=args.debug,
             skip_execution=args.dry_run,

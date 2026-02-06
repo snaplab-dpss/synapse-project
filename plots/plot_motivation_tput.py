@@ -20,7 +20,7 @@ OUTPUT_FILE = PLOTS_DIR / "motivation_throughput.pdf"
 TPUT_MPPS_MIN = 0
 TPUT_MPPS_MAX = 2500
 
-# SYSTEM_NAME = "Synapse"
+# SYSTEM_NAME = "Tessera"
 SYSTEM_NAME = "Tessera"
 
 nf = "KVS"

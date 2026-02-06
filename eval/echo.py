@@ -26,13 +26,13 @@ def main():
     hosts.tg_switch.install()
 
     print("Installing DUT")
-    hosts.dut_switch.install("synthesized/synapse-echo.p4")
+    hosts.dut_switch.install("synthesized/tessera-echo.p4")
 
     print("Launching TG")
     hosts.tg_switch.launch()
 
     print("Launching DUT controller")
-    hosts.dut_controller.launch("synthesized/synapse-echo.cpp")
+    hosts.dut_controller.launch("synthesized/tessera-echo.cpp")
 
     print("Launching pktgen")
     hosts.pktgen.launch(pkt_size=1024)

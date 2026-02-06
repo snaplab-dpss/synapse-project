@@ -7,7 +7,7 @@ from hosts.pktgen import Pktgen
 from hosts.kvs_server import KVSServer
 from hosts.netcache import NetCache, NetCacheController
 from hosts.switch import Switch
-from hosts.synapse import SynapseController
+from hosts.tessera import TesseraController
 from utils.constants import *
 
 config: Optional[dict] = None
@@ -33,7 +33,7 @@ def kill_hosts(config: dict) -> None:
     ).kill_switchd()
 
     print("Killing controller for Tofino DUT...")
-    SynapseController(
+    TesseraController(
         hostname=config["hosts"]["switch_dut"],
         repo=config["repo"]["switch_dut"],
         sde=config["devices"]["switch_dut"]["sde"],

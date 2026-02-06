@@ -4,7 +4,7 @@
 #include <optional>
 #include <unordered_set>
 
-#include "synapse_ds.h"
+#include "tessera_ds.h"
 #include "../config.h"
 #include "../constants.h"
 #include "../primitives/table.h"
@@ -14,7 +14,7 @@
 
 namespace sycon {
 
-class GuardedMapTable : public SynapseDS {
+class GuardedMapTable : public TesseraDS {
 private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
   std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
@@ -28,7 +28,7 @@ private:
 public:
   GuardedMapTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &guard_name,
                   std::optional<time_ms_t> timeout = std::nullopt)
-      : SynapseDS(_name), tables(build_tables(table_names)), guard(conditional_build_guard(guard_name)), capacity(get_capacity(tables)) {
+      : TesseraDS(_name), tables(build_tables(table_names)), guard(conditional_build_guard(guard_name)), capacity(get_capacity(tables)) {
     if (guard.has_value()) {
       guard_allow();
     }

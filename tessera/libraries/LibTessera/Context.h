@@ -1,0 +1,185 @@
+#pragma once
+
+#include <LibTessera/PerfOracle.h>
+#include <LibTessera/Profiler.h>
+#include <LibTessera/Target.h>
+
+#include <LibBDD/BDD.h>
+#include <LibBDD/Config.h>
+#include <LibBDD/Profile.h>
+
+#include <LibCore/Symbol.h>
+#include <LibCore/Types.h>
+
+#include <unordered_map>
+
+namespace LibTessera {
+
+using LibBDD::BDD;
+using LibBDD::bf_config_t;
+using LibBDD::cht_config_t;
+using LibBDD::cms_config_t;
+using LibBDD::dchain_config_t;
+using LibBDD::map_coalescing_objs_t;
+using LibBDD::map_config_t;
+using LibBDD::symbol_translation_t;
+using LibBDD::tb_config_t;
+using LibBDD::vector_config_t;
+
+using LibCore::expr_struct_t;
+using LibCore::symbol_t;
+using LibCore::SymbolManager;
+
+enum class DSImpl {
+  // ========================================
+  // Tofino
+  // ========================================
+
+  Tofino_MapTable,
+  Tofino_MapSetTable,
+  Tofino_GuardedMapTable,
+  Tofino_VectorTable,
+  Tofino_DchainTable,
+  Tofino_VectorRegister,
+  Tofino_FCFSCachedTable,
+  Tofino_FCFSCachedSet,
+  Tofino_Meter,
+  Tofino_HeavyHitterTable,
+  Tofino_IntegerAllocator,
+  Tofino_CountMinSketch,
+  Tofino_BloomFilter,
+  Tofino_CuckooHashTable,
+  Tofino_LPM,
+
+  // ========================================
+  // Tofino CPU
+  // ========================================
+
+  Controller_Map,
+  Controller_Vector,
+  Controller_DoubleChain,
+  Controller_ConsistentHashTable,
+  Controller_CountMinSketch,
+  Controller_BloomFilter,
+  Controller_TokenBucket,
+
+  // ========================================
+  // x86
+  // ========================================
+
+  x86_Map,
+  x86_Vector,
+  x86_DoubleChain,
+  x86_ConsistentHashTable,
+  x86_CountMinSketch,
+  x86_TokenBucket,
+};
+
+std::ostream &operator<<(std::ostream &os, DSImpl impl);
+std::string ds_impl_to_string(DSImpl impl);
+
+struct expiration_data_t {
+  time_ns_t expiration_time;
+  symbol_t number_of_freed_flows;
+};
+
+class TargetContext {
+public:
+  TargetContext() {}
+
+  virtual ~TargetContext() {}
+
+  virtual TargetContext *clone() const = 0;
+  virtual void debug() const {}
+};
+
+class Context {
+private:
+  Profiler profiler;
+  PerfOracle perf_oracle;
+
+  std::unordered_map<addr_t, map_config_t> map_configs;
+  std::unordered_map<addr_t, vector_config_t> vector_configs;
+  std::unordered_map<addr_t, dchain_config_t> dchain_configs;
+  std::unordered_map<addr_t, cms_config_t> cms_configs;
+  std::unordered_map<addr_t, bf_config_t> bf_configs;
+  std::unordered_map<addr_t, cht_config_t> cht_configs;
+  std::unordered_map<addr_t, tb_config_t> tb_configs;
+
+  std::vector<map_coalescing_objs_t> coalescing_candidates;
+  std::unordered_set<addr_t> dchains_used_exclusively_for_linking_maps_with_vectors;
+  std::unordered_map<addr_t, std::vector<hit_rate_t>> dchains_failing_to_allocate_new_index_hit_rates;
+  std::optional<expiration_data_t> expiration_data;
+  std::vector<expr_struct_t> expr_structs;
+
+  std::unordered_map<addr_t, DSImpl> ds_impls;
+  std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> ds_impls_decisions_per_bdd_node_and_obj;
+  std::map<std::pair<addr_t, DSImpl>, u32> ds_usage_counts;
+  std::unordered_map<TargetType, TargetContext *> target_ctxs;
+
+public:
+  Context(const BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &profiler);
+  Context(const Context &other);
+  Context(Context &&other);
+  Context() = delete;
+
+  Context &operator=(const Context &other);
+  Context &operator=(Context &&other);
+
+  ~Context();
+
+  const Profiler &get_profiler() const;
+  Profiler &get_mutable_profiler();
+
+  const PerfOracle &get_perf_oracle() const;
+  PerfOracle &get_mutable_perf_oracle();
+
+  const map_config_t &get_map_config(addr_t addr) const;
+  const vector_config_t &get_vector_config(addr_t addr) const;
+  const dchain_config_t &get_dchain_config(addr_t addr) const;
+  const cms_config_t &get_cms_config(addr_t addr) const;
+  const bf_config_t &get_bf_config(addr_t addr) const;
+  const cht_config_t &get_cht_config(addr_t addr) const;
+  const tb_config_t &get_tb_config(addr_t addr) const;
+
+  std::optional<map_coalescing_objs_t> get_map_coalescing_objs(addr_t obj) const;
+  bool is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const;
+  const std::vector<hit_rate_t> &get_failing_to_allocate_new_index_hit_rates(addr_t dchain) const;
+  const std::optional<expiration_data_t> &get_expiration_data() const;
+  const std::vector<expr_struct_t> &get_expr_structs() const;
+
+  template <class TCtx> const TCtx *get_target_ctx() const;
+  template <class TCtx> const TCtx *get_target_ctx_if_available() const;
+  template <class TCtx> TCtx *get_mutable_target_ctx();
+
+  const std::unordered_map<addr_t, DSImpl> &get_ds_impls() const;
+  const std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> &get_ds_impls_decisions_per_bdd_node_and_obj() const;
+  const std::map<std::pair<addr_t, DSImpl>, u32> &get_ds_usage_counts() const;
+
+  void save_ds_impl(bdd_node_id_t node_id, addr_t obj, DSImpl impl);
+  bool has_ds_impl(addr_t obj) const;
+  DSImpl get_ds_impl(addr_t obj) const;
+  bool check_ds_impl(addr_t obj, DSImpl impl) const;
+  bool can_impl_ds(addr_t obj, DSImpl impl) const;
+
+  void translate(SymbolManager *symbol_manager, const std::vector<symbol_translation_t> &translated_symbols);
+
+  void debug() const;
+
+private:
+  void bdd_pre_processing_get_coalescing_candidates(const BDD *bdd);
+  void bdd_pre_processing_get_dchains_failing_to_allocate_new_index_hit_rates(const BDD *bdd);
+  void bdd_pre_processing_get_ds_configs(const BDD *bdd);
+  void bdd_pre_processing_get_structural_fields(const BDD *bdd);
+  void bdd_pre_processing_build_tofino_parser(const BDD *bdd);
+  void bdd_pre_processing_log();
+};
+
+} // namespace LibTessera
+
+#define EXPLICIT_TARGET_CONTEXT_INSTANTIATION(NAMESPACE, TARGET_CTX)                                                                                 \
+  namespace NAMESPACE {                                                                                                                              \
+  class TARGET_CTX;                                                                                                                                  \
+  }                                                                                                                                                  \
+  template <> const NAMESPACE::TARGET_CTX *Context::get_target_ctx<NAMESPACE::TARGET_CTX>() const;                                                   \
+  template <> NAMESPACE::TARGET_CTX *Context::get_mutable_target_ctx<NAMESPACE::TARGET_CTX>();

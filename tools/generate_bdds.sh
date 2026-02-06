@@ -8,13 +8,13 @@ export REPO_DIR=$(realpath "$SCRIPT_DIR/..")
 export BDDS_DIR="$REPO_DIR/bdds"
 export SYNTHESIZED_DIR="$REPO_DIR/synthesized"
 export NFS_DIR="$REPO_DIR/dpdk-nfs"
-export SYNAPSE_DIR="$REPO_DIR/synapse"
+export TESSERA_DIR="$REPO_DIR/tessera"
 
-export SYNAPSE_BINS_DIR="$SYNAPSE_DIR/build/bin"
+export TESSERA_BINS_DIR="$TESSERA_DIR/build/bin"
 
-export CALL_PATHS_TO_BDD="$SYNAPSE_BINS_DIR/call-paths-to-bdd"
-export BDD_VISUALIZER="$SYNAPSE_BINS_DIR/bdd-visualizer"
-export BDD_INSPECTOR="$SYNAPSE_BINS_DIR/bdd-inspector"
+export CALL_PATHS_TO_BDD="$TESSERA_BINS_DIR/call-paths-to-bdd"
+export BDD_VISUALIZER="$TESSERA_BINS_DIR/bdd-visualizer"
+export BDD_INSPECTOR="$TESSERA_BINS_DIR/bdd-inspector"
 
 run() {
 	nf=$1
@@ -33,12 +33,9 @@ run() {
 	$BDD_VISUALIZER --in $BDDS_DIR/$nf.bdd --out $BDDS_DIR/$nf.dot 2>/dev/null
 }
 
-# run "echo"
-# run "fwd"
-# run "fw"
-# run "nat"
-# run "kvs"
-run "pol"
-# run "cl"
-# run "psd"
-# run "lb"
+run "echo"
+run "fw"
+run "nat"
+run "kvs"
+run "cl"
+run "psd"

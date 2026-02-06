@@ -9,7 +9,7 @@ from hosts.pktgen import Pktgen
 from hosts.kvs_server import KVSServer
 from hosts.netcache import NetCache, NetCacheController
 from hosts.switch import Switch
-from hosts.synapse import SynapseController
+from hosts.tessera import TesseraController
 from utils.constants import *
 
 
@@ -42,7 +42,7 @@ def main():
     )
 
     print("Launching controller for Tofino DUT...")
-    SynapseController(
+    TesseraController(
         hostname=config["hosts"]["switch_dut"],
         repo=config["repo"]["switch_dut"],
         sde=config["devices"]["switch_dut"]["sde"],

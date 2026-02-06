@@ -4,7 +4,7 @@
 #include <optional>
 #include <unordered_set>
 
-#include "synapse_ds.h"
+#include "tessera_ds.h"
 #include "../constants.h"
 #include "../primitives/table.h"
 #include "../time.h"
@@ -12,7 +12,7 @@
 
 namespace sycon {
 
-class VectorTable : public SynapseDS {
+class VectorTable : public TesseraDS {
 private:
   std::vector<buffer_t> cache;
   std::vector<Table> tables;
@@ -20,7 +20,7 @@ private:
   bits_t value_size;
 
 public:
-  VectorTable(const std::string &_name, const std::vector<std::string> &table_names) : SynapseDS(_name), capacity(0), value_size(0) {
+  VectorTable(const std::string &_name, const std::vector<std::string> &table_names) : TesseraDS(_name), capacity(0), value_size(0) {
     assert(!table_names.empty() && "Table name must not be empty");
 
     for (const std::string &table_name : table_names) {

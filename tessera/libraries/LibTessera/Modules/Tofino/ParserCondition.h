@@ -1,0 +1,42 @@
+#pragma once
+
+#include <LibTessera/Modules/Tofino/TofinoModule.h>
+
+namespace LibTessera {
+namespace Tofino {
+
+using LibBDD::Call;
+using LibBDD::call_t;
+
+class ParserCondition : public TofinoModule {
+private:
+  klee::ref<klee::Expr> condition;
+
+public:
+  ParserCondition(const BDDNode *_node, klee::ref<klee::Expr> _condition)
+      : TofinoModule(ModuleType::Tofino_ParserCondition, "ParserCondition", _node), condition(_condition) {}
+
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
+
+  virtual Module *clone() const {
+    ParserCondition *cloned = new ParserCondition(node, condition);
+    return cloned;
+  }
+
+  klee::ref<klee::Expr> get_condition() const { return condition; }
+};
+
+class ParserConditionFactory : public TofinoModuleFactory {
+public:
+  ParserConditionFactory() : TofinoModuleFactory(ModuleType::Tofino_ParserCondition, "ParserCondition") {}
+
+  static std::vector<parser_selection_t> build_parser_select(klee::ref<klee::Expr> condition);
+
+protected:
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
+};
+
+} // namespace Tofino
+} // namespace LibTessera

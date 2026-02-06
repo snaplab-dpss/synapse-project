@@ -4,7 +4,7 @@
 #include <optional>
 #include <unordered_set>
 
-#include "synapse_ds.h"
+#include "tessera_ds.h"
 #include "../primitives/table.h"
 #include "../primitives/register.h"
 #include "../primitives/digest.h"
@@ -14,7 +14,7 @@
 
 namespace sycon {
 
-class HHTable : public SynapseDS {
+class HHTable : public TesseraDS {
 private:
   constexpr const static u32 TOTAL_PROBES{50};
   constexpr const static u32 THRESHOLD{128};

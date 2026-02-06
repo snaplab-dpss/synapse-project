@@ -4,7 +4,7 @@
 #include <optional>
 #include <unordered_set>
 
-#include "synapse_ds.h"
+#include "tessera_ds.h"
 #include "../config.h"
 #include "../constants.h"
 #include "../primitives/table.h"
@@ -13,7 +13,7 @@
 
 namespace sycon {
 
-class DchainTable : public SynapseDS {
+class DchainTable : public TesseraDS {
 private:
   std::set<u32> free_indexes;
   std::vector<Table> tables;
@@ -21,7 +21,7 @@ private:
   u32 capacity;
 
 public:
-  DchainTable(const std::string &_name, const std::vector<std::string> &table_names, time_ms_t timeout) : SynapseDS(_name), capacity(0) {
+  DchainTable(const std::string &_name, const std::vector<std::string> &table_names, time_ms_t timeout) : TesseraDS(_name), capacity(0) {
     assert(!table_names.empty() && "Table name must not be empty");
 
     for (const std::string &table_name : table_names) {

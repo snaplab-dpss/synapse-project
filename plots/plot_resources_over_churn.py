@@ -28,7 +28,7 @@ DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 OUTPUT_FILE = PLOTS_DIR / "resources_over_churn.pdf"
 
 
-def build_synapse_nf_name(nf: str, total_flows: int, churn: int, zipf: float) -> str:
+def build_tessera_nf_name(nf: str, total_flows: int, churn: int, zipf: float) -> str:
     dist = f"{'unif' if zipf == 0.0 else 'zipf'}{str(int(zipf) if int(zipf) == zipf else zipf).replace('.', '_') if zipf != 0.0 else ''}"
     heuristic = "max-tput"
     return f"{nf}-f{total_flows}-c{churn}-{dist}-h{heuristic}"
@@ -79,7 +79,7 @@ def plot(data: dict[str, dict[int, tuple[Resources, Resources]]]):
 
 
 if __name__ == "__main__":
-    description = "Synapse batcher script. This will run synapse against a batch of NFs and profiling reports."
+    description = "Tessera batcher script. This will run tessera against a batch of NFs and profiling reports."
     description += f" Synthesized dir: {SYNTHESIZED_DIR}."
 
     parser = ArgumentParser(description=description)
@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
     for nf in args.nfs:
         for total_flows, churn, zipf in product(args.total_flows, args.churns, args.zipf_params):
-            nf_name = build_synapse_nf_name(nf, total_flows, churn, zipf)
+            nf_name = build_tessera_nf_name(nf, total_flows, churn, zipf)
 
             p4_file = SYNTHESIZED_DIR / f"{nf_name}.p4"
             resources_file = SYNTHESIZED_DIR / f"{nf_name}-resources.txt"

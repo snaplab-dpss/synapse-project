@@ -114,7 +114,7 @@ class ThroughputPerPacketSize(Experiment):
         self.log("Launching Tofino TG")
         self.hosts.tg_switch.launch()
 
-        self.log("Launching synapse controller")
+        self.log("Launching tessera controller")
         self.hosts.dut_controller.launch(self.controller_src_in_repo)
 
         self.log("Launching pktgen")
@@ -136,7 +136,7 @@ class ThroughputPerPacketSize(Experiment):
         self.log("Waiting for pktgen")
         self.hosts.pktgen.wait_launch()
 
-        self.log("Waiting for synapse controller")
+        self.log("Waiting for tessera controller")
         self.hosts.dut_controller.wait_ready()
 
         self.log("Waiting for TG ports")

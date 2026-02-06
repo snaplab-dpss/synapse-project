@@ -1,0 +1,40 @@
+#pragma once
+
+#include <LibTessera/Modules/Tofino/TofinoModule.h>
+
+namespace LibTessera {
+namespace Tofino {
+
+class CMSIncrement : public TofinoModule {
+private:
+  DS_ID cms_id;
+  addr_t cms_addr;
+  std::vector<klee::ref<klee::Expr>> keys;
+
+public:
+  CMSIncrement(const BDDNode *_node, DS_ID _cms_id, addr_t _cms_addr, const std::vector<klee::ref<klee::Expr>> &_keys)
+      : TofinoModule(ModuleType::Tofino_CMSIncrement, "CMSIncrement", _node), cms_id(_cms_id), cms_addr(_cms_addr), keys(_keys) {}
+
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
+
+  virtual Module *clone() const override { return new CMSIncrement(node, cms_id, cms_addr, keys); }
+
+  DS_ID get_cms_id() const { return cms_id; }
+  addr_t get_cms_addr() const { return cms_addr; }
+  const std::vector<klee::ref<klee::Expr>> &get_keys() const { return keys; }
+
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {cms_id}; }
+};
+
+class CMSIncrementFactory : public TofinoModuleFactory {
+public:
+  CMSIncrementFactory() : TofinoModuleFactory(ModuleType::Tofino_CMSIncrement, "CMSIncrement") {}
+
+protected:
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
+};
+
+} // namespace Tofino
+} // namespace LibTessera

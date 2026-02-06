@@ -71,10 +71,10 @@ force_build_pcap_replay() {
     ssh $host "cd $pcap_replay_dir && touch CMakeLists.txt && source $paths_file && ./build.sh"
 }
 
-sync tofino1 /root/synapse-project
-sync tofino2 /home/user/synapse-project
-sync geodude ~/synapse-project
-sync graveler ~/synapse-project
-install_libsycon tofino2 /home/user/synapse-project
-force_build_pktgen geodude ~/synapse-project
-force_build_pcap_replay geodude ~/synapse-project
+sync tofino1 /root/tessera-project
+sync tofino2 /home/user/tessera-project
+sync geodude ~/tessera-project
+sync graveler ~/tessera-project
+install_libsycon tofino2 /home/user/tessera-project
+force_build_pktgen geodude ~/tessera-project
+force_build_pcap_replay geodude ~/tessera-project

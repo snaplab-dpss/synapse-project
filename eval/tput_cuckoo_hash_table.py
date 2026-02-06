@@ -72,7 +72,7 @@ class CuckooHashTableThroughput(Experiment):
         self.symmetric = symmetric
         self.route = route
 
-        # Synapse
+        # Tessera
         self.p4_src_in_repo = Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.p4")
         self.controller_src_in_repo = Path("tofino/data_structures/cuckoo_hash_table/cuckoo_hash_table.cpp")
         self.dut_ports = dut_ports
@@ -142,12 +142,12 @@ class CuckooHashTableThroughput(Experiment):
         self.log("Waiting for Tofino TG")
         self.tput_hosts.tg_switch.wait_ready()
 
-        self.log("Installing Synapse P4 program")
+        self.log("Installing Tessera P4 program")
         self.tput_hosts.dut_switch.install(
             src_in_repo=self.p4_src_in_repo,
         )
 
-        self.log("Launching Synapse controller")
+        self.log("Launching Tessera controller")
         self.tput_hosts.dut_controller.launch(
             src_in_repo=self.controller_src_in_repo,
             ports=self.dut_ports,

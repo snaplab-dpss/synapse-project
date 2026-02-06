@@ -24,7 +24,7 @@ PACKET_SIZE = 256
 
 
 @dataclass
-class SynapseNF:
+class TesseraNF:
     name: str
     description: str
     data_out: Path
@@ -37,7 +37,7 @@ class SynapseNF:
     nb_flows: int
 
 
-class SynapseThroughput(Experiment):
+class TesseraThroughput(Experiment):
     def __init__(
         self,
         # Experiment parameters
@@ -48,7 +48,7 @@ class SynapseThroughput(Experiment):
         broadcast: list[int],
         symmetric: list[int],
         route: list[tuple[int, int]],
-        # Synapse
+        # Tessera
         p4_src_in_repo: Path,
         controller_src_in_repo: Path,
         dut_ports: list[int],
@@ -68,7 +68,7 @@ class SynapseThroughput(Experiment):
         self.symmetric = symmetric
         self.route = route
 
-        # Synapse
+        # Tessera
         self.p4_src_in_repo = p4_src_in_repo
         self.controller_src_in_repo = controller_src_in_repo
         self.dut_ports = dut_ports
@@ -94,12 +94,12 @@ class SynapseThroughput(Experiment):
         self.log("Launching Tofino TG")
         self.tput_hosts.tg_switch.launch()
 
-        self.log("Installing Synapse P4 program")
+        self.log("Installing Tessera P4 program")
         self.tput_hosts.dut_switch.install(
             src_in_repo=self.p4_src_in_repo,
         )
 
-        self.log("Launching Synapse controller")
+        self.log("Launching Tessera controller")
         self.tput_hosts.dut_controller.launch(
             src_in_repo=self.controller_src_in_repo,
             ports=self.dut_ports,
@@ -123,7 +123,7 @@ class SynapseThroughput(Experiment):
 
         self.log("Starting experiment")
 
-        self.log("Waiting for the Synapse controller")
+        self.log("Waiting for the Tessera controller")
         self.tput_hosts.dut_controller.wait_ready()
 
         self.log("Launching pktgen")
@@ -181,13 +181,13 @@ def main():
 
     exp_tracker = ExperimentTracker()
 
-    echo_nf = SynapseNF(
+    echo_nf = TesseraNF(
         name="echo",
-        description="Synapse echo",
-        data_out=Path("tput_synapse_echo.csv"),
+        description="Tessera echo",
+        data_out=Path("tput_tessera_echo.csv"),
         kvs_mode=False,
-        tofino=Path("synthesized/synapse-echo.p4"),
-        controller=Path("synthesized/synapse-echo.cpp"),
+        tofino=Path("synthesized/tessera-echo.p4"),
+        controller=Path("synthesized/tessera-echo.cpp"),
         broadcast=lambda ports: ports,
         symmetric=lambda _: [],
         route=lambda _: [],
@@ -202,7 +202,7 @@ def main():
     dut_ports = list(config["devices"]["switch_dut"]["client_ports"])
 
     exp_tracker.add_experiment(
-        SynapseThroughput(
+        TesseraThroughput(
             name=echo_nf.description,
             tput_hosts=tput_hosts,
             broadcast=broadcast,

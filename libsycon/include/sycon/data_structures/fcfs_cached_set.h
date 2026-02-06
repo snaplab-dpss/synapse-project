@@ -4,7 +4,7 @@
 #include <optional>
 #include <unordered_set>
 
-#include "synapse_ds.h"
+#include "tessera_ds.h"
 #include "../primitives/table.h"
 #include "../primitives/register.h"
 #include "../primitives/digest.h"
@@ -14,7 +14,7 @@
 
 namespace sycon {
 
-class FCFSCachedSet : public SynapseDS {
+class FCFSCachedSet : public TesseraDS {
 private:
   std::unordered_set<buffer_t, buffer_hash_t> cache;
   std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
@@ -26,7 +26,7 @@ private:
 
 public:
   FCFSCachedSet(const std::string &_name, const std::vector<std::string> &table_names, std::optional<time_ms_t> timeout = std::nullopt)
-      : SynapseDS(_name), tables(build_tables(table_names)), capacity(get_capacity(tables)), key_size(get_key_size(tables)) {
+      : TesseraDS(_name), tables(build_tables(table_names)), capacity(get_capacity(tables)), key_size(get_key_size(tables)) {
     if (timeout.has_value()) {
       for (Table &table : tables) {
         table.set_notify_mode(timeout.value(), this, FCFSCachedSet::expiration_callback, true);

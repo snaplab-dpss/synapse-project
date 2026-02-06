@@ -1,0 +1,36 @@
+#pragma once
+
+#include <LibTessera/Modules/Controller/ControllerModule.h>
+
+namespace LibTessera {
+namespace Controller {
+
+class If : public ControllerModule {
+private:
+  klee::ref<klee::Expr> condition;
+
+public:
+  If(const BDDNode *_node, klee::ref<klee::Expr> _condition) : ControllerModule(ModuleType::Controller_If, "If", _node), condition(_condition) {}
+
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
+
+  virtual Module *clone() const {
+    If *cloned = new If(node, condition);
+    return cloned;
+  }
+
+  klee::ref<klee::Expr> get_condition() const { return condition; }
+};
+
+class IfFactory : public ControllerModuleFactory {
+public:
+  IfFactory() : ControllerModuleFactory(ModuleType::Controller_If, "If") {}
+
+protected:
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
+};
+
+} // namespace Controller
+} // namespace LibTessera

@@ -4,7 +4,7 @@
 #include <optional>
 #include <unordered_set>
 
-#include "synapse_ds.h"
+#include "tessera_ds.h"
 #include "../primitives/table.h"
 #include "../primitives/register.h"
 #include "../primitives/digest.h"
@@ -14,7 +14,7 @@
 
 namespace sycon {
 
-class FCFSCachedTable : public SynapseDS {
+class FCFSCachedTable : public TesseraDS {
 private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
   std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
@@ -32,7 +32,7 @@ private:
 public:
   FCFSCachedTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_liveness_name,
                   const std::vector<std::string> &reg_cached_keys_names, std::optional<time_ms_t> timeout = std::nullopt)
-      : SynapseDS(_name), tables(build_tables(table_names)), reg_liveness(reg_liveness_name),
+      : TesseraDS(_name), tables(build_tables(table_names)), reg_liveness(reg_liveness_name),
         reg_cached_keys(build_regs_cached_keys(reg_cached_keys_names)), capacity(get_capacity(reg_liveness, tables)),
         cache_capacity(get_cache_capacity(reg_cached_keys)), key_size(get_key_size(tables)) {
     assert(cache_capacity < capacity && "Cache capacity must be less than the total capacity, otherwise we can't handle hash collisions");

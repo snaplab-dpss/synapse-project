@@ -14,7 +14,7 @@ const std::vector<u32> HHTable::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f
 HHTable::HHTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_cached_counters_name,
                  const std::vector<std::string> &count_min_sketch_reg_names, const std::string &reg_threshold_name, const std::string &digest_name,
                  time_ms_t timeout)
-    : SynapseDS(_name), tables(build_tables(table_names)), reg_cached_counters(reg_cached_counters_name),
+    : TesseraDS(_name), tables(build_tables(table_names)), reg_cached_counters(reg_cached_counters_name),
       count_min_sketch(build_count_min_sketch(count_min_sketch_reg_names)), reg_threshold(reg_threshold_name), digest(digest_name),
       capacity(get_capacity(tables)), key_size(get_key_size(tables)), hash_salts(build_hash_salts(count_min_sketch)),
       hash_mask(build_hash_mask(count_min_sketch)), crc32(), key_to_index(capacity), index_to_key(capacity), free_indices(capacity),

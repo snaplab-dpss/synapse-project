@@ -77,4 +77,4 @@ bool sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   return true;
 }
 
-int main(int argc, char **argv) { SYNAPSE_CONTROLLER_MAIN(argc, argv) }
+int main(int argc, char **argv) { TESSERA_CONTROLLER_MAIN(argc, argv) }

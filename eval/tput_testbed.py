@@ -23,7 +23,7 @@ def main():
 
     with open(args.config_file, "rb") as f:
         config = tomli.load(f)
-    
+
     kill_hosts_on_sigint(config)
 
     log_file = config["logs"]["experiment"]
@@ -37,8 +37,8 @@ def main():
             save_name=DATA_DIR / "tput_testbed_tg.csv",
             pkt_sizes=PKT_SIZES,
             hosts=tg_hosts,
-            p4_src_in_repo="synthesized/synapse-echo.p4",
-            controller_src_in_repo="synthesized/synapse-echo.cpp",
+            p4_src_in_repo="synthesized/tessera-echo.p4",
+            controller_src_in_repo="synthesized/tessera-echo.cpp",
             controller_timeout_ms=1000,
             broadcast=config["devices"]["switch_dut"]["client_ports"],
             symmetric=[],
@@ -55,8 +55,8 @@ def main():
             save_name=DATA_DIR / "tput_testbed_ta.csv",
             pkt_sizes=PKT_SIZES,
             hosts=ta_hosts,
-            p4_src_in_repo="synthesized/synapse-echo.p4",
-            controller_src_in_repo="synthesized/synapse-echo.cpp",
+            p4_src_in_repo="synthesized/tessera-echo.p4",
+            controller_src_in_repo="synthesized/tessera-echo.cpp",
             controller_timeout_ms=1000,
             broadcast=config["devices"]["switch_dut"]["client_ports"],
             symmetric=[],

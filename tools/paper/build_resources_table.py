@@ -38,7 +38,7 @@ def whole_number_to_label(n: int) -> str:
         return f"{int(round(n / 1e12, 2))}T"
 
 
-def build_synapse_nf_name(nf: str, total_flows: int, churn: int, zipf: float) -> str:
+def build_tessera_nf_name(nf: str, total_flows: int, churn: int, zipf: float) -> str:
     dist = f"{'unif' if zipf == 0.0 else 'zipf'}{str(int(zipf) if int(zipf) == zipf else zipf).replace('.', '_') if zipf != 0.0 else ''}"
     heuristic = "max-tput"
     return f"{nf}-f{total_flows}-c{churn}-{dist}-h{heuristic}"
@@ -129,7 +129,7 @@ def build_kvs_resources_latex_table(
     netcache: Resources,
     switcharoo: Resources,
     gallium: Resources,
-    synapse: tuple[Resources, Resources],
+    tessera: tuple[Resources, Resources],
 ) -> str:
     prefix = r"""
 \begin{tabular}{lcccc}
@@ -183,10 +183,10 @@ def build_kvs_resources_latex_table(
         " & ".join(
             [
                 "Tessera",
-                f"\\evalue{{{100*synapse[0].stages:.1f}\\%}}{{{100*synapse[1].stages:.1f}}}",
-                f"\\evalue{{{100*synapse[0].sram:.1f}\\%}}{{{100*synapse[1].sram:.1f}}}",
-                f"\\evalue{{{100*synapse[0].vliw:.1f}\\%}}{{{100*synapse[1].vliw:.1f}}}",
-                f"\\evalue{{{100*synapse[0].match_xbar:.1f}\\%}}{{{100*synapse[1].match_xbar:.1f}}}",
+                f"\\evalue{{{100*tessera[0].stages:.1f}\\%}}{{{100*tessera[1].stages:.1f}}}",
+                f"\\evalue{{{100*tessera[0].sram:.1f}\\%}}{{{100*tessera[1].sram:.1f}}}",
+                f"\\evalue{{{100*tessera[0].vliw:.1f}\\%}}{{{100*tessera[1].vliw:.1f}}}",
+                f"\\evalue{{{100*tessera[0].match_xbar:.1f}\\%}}{{{100*tessera[1].match_xbar:.1f}}}",
             ]
         )
         + r" \\"
@@ -203,7 +203,7 @@ def build_kvs_resources_latex_table(
 
 
 if __name__ == "__main__":
-    description = "Synapse batcher script. This will run synapse against a batch of NFs and profiling reports."
+    description = "Tessera batcher script. This will run tessera against a batch of NFs and profiling reports."
     description += f" Synthesized dir: {SYNTHESIZED_DIR}."
 
     parser = ArgumentParser(description=description)
@@ -225,7 +225,7 @@ if __name__ == "__main__":
 
     for nf in args.nfs:
         for total_flows, churn, zipf in product(args.total_flows, args.churns, args.zipf_params):
-            nf_name = build_synapse_nf_name(nf, total_flows, churn, zipf)
+            nf_name = build_tessera_nf_name(nf, total_flows, churn, zipf)
 
             p4_file = SYNTHESIZED_DIR / f"{nf_name}.p4"
             resources_file = SYNTHESIZED_DIR / f"{nf_name}-resources.txt"
@@ -344,6 +344,6 @@ if __name__ == "__main__":
         netcache=netcache_resources,
         switcharoo=switcharoo_resources,
         gallium=gallium_resources,
-        synapse=avg_resources_per_nf["kvs"],
+        tessera=avg_resources_per_nf["kvs"],
     )
     print(latex_table3)

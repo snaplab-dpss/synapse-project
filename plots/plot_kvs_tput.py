@@ -20,7 +20,7 @@ OUTPUT_FILE = PLOTS_DIR / "kvs_throughput.pdf"
 TPUT_MPPS_MIN = 0
 TPUT_MPPS_MAX = 2500
 
-# SYSTEM_NAME = "Synapse"
+# SYSTEM_NAME = "Tessera"
 SYSTEM_NAME = "Tessera"
 
 nf = "KVS"
@@ -29,7 +29,7 @@ solutions = {
     "Gallium": DATA_DIR / "tput_gallium_kvs.csv",
     "NetCache": DATA_DIR / "tput_netcache.csv",
     "Switcharoo": DATA_DIR / "tput_switcharoo.csv",
-    SYSTEM_NAME: DATA_DIR / "tput_synapse_kvs.csv",
+    SYSTEM_NAME: DATA_DIR / "tput_tessera_kvs.csv",
 }
 
 CHOSEN_WORKLOADS = [Key(s=1.2, churn_fpm=c) for c in [0, 1_000, 10_000, 100_000, 1_000_000]]
