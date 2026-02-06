@@ -16,10 +16,10 @@ DATA_DIR = CURRENT_DIR / ".." / "eval" / "data"
 SYSTEM_NAME = "Tessera"
 
 WORKLOADS = [
-    ("Gallium NAT", DATA_DIR / "tput_gallium_nat.csv"),
-    (f"{SYSTEM_NAME} NAT", DATA_DIR / "tput_synapse_nat.csv"),
     ("Gallium CL", DATA_DIR / "tput_gallium_cl.csv"),
     (f"{SYSTEM_NAME} CL", DATA_DIR / "tput_synapse_cl.csv"),
+    ("Gallium PSD", DATA_DIR / "tput_gallium_psd.csv"),
+    (f"{SYSTEM_NAME} PSD", DATA_DIR / "tput_synapse_psd.csv"),
 ]
 
 OUTPUT_FILE = PLOTS_DIR / "tput_synapse_gallium_paper_eval.pdf"
