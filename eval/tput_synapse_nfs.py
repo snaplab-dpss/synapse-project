@@ -60,19 +60,19 @@ def build_synapse_nf_name(nf: str, churn: int, zipf: float) -> str:
 
 
 NFS = [
-    SynapseNF(
-        name="gallium-kvs",
-        description="Gallium KVS",
-        data_out=Path("tput_gallium_kvs.csv"),
-        kvs_mode=True,
-        tofino=Path("synthesized/gallium-kvs.p4"),
-        controller=Path("synthesized/gallium-kvs.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
-        churn=CHURN_FPM,
-        zipf=ZIPF_PARAMS,
-    ),
+    # SynapseNF(
+    #     name="gallium-kvs",
+    #     description="Gallium KVS",
+    #     data_out=Path("tput_gallium_kvs.csv"),
+    #     kvs_mode=True,
+    #     tofino=Path("synthesized/gallium-kvs.p4"),
+    #     controller=Path("synthesized/gallium-kvs.cpp"),
+    #     broadcast=lambda ports: ports,
+    #     symmetric=lambda _: [],
+    #     route=lambda _: [],
+    #     churn=CHURN_FPM,
+    #     zipf=ZIPF_PARAMS,
+    # ),
     # SynapseNF(
     #     name="gallium-fw",
     #     description="Gallium FW",
