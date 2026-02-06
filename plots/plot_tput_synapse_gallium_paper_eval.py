@@ -16,10 +16,10 @@ DATA_DIR = CURRENT_DIR / ".." / "eval" / "data"
 SYSTEM_NAME = "Tessera"
 
 WORKLOADS = [
+    ("Gallium NAT", DATA_DIR / "tput_gallium_nat.csv"),
+    (f"{SYSTEM_NAME} NAT", DATA_DIR / "tput_synapse_nat.csv"),
     ("Gallium CL", DATA_DIR / "tput_gallium_cl.csv"),
     (f"{SYSTEM_NAME} CL", DATA_DIR / "tput_synapse_cl.csv"),
-    ("Gallium PSD", DATA_DIR / "tput_gallium_psd.csv"),
-    (f"{SYSTEM_NAME} PSD", DATA_DIR / "tput_synapse_psd.csv"),
 ]
 
 OUTPUT_FILE = PLOTS_DIR / "tput_synapse_gallium_paper_eval.pdf"
@@ -84,7 +84,10 @@ def plot(data: list[tuple[str, HeatmapData]], file: Path, cmap="Blues", show_err
                 label = avg_data[key].label
                 assert label is not None
             else:
-                label = f"{avg_label}\n±{err_label}" if show_errors else f"{avg_label}"
+                if avg_label == 0:
+                    label = "$<1$"
+                else:
+                    label = f"{avg_label}\n±{err_label}" if show_errors else f"{avg_label}"
 
             color = "black" if pps < TPUT_MPPS_MAX * 1e6 / 2 else "white"
 

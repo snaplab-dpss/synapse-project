@@ -255,7 +255,10 @@ def plot_heatmap(data: HeatmapData, file: Path, cmap="Blues", show_errors: bool 
             label = avg_data[key].label
             assert label is not None
         else:
-            label = f"{avg_label}±{err_label}\nMpps" if show_errors else f"{avg_label}\nMpps"
+            if avg_label == 0:
+                label = "$<1$\nMpps"
+            else:
+                label = f"{avg_label}±{err_label}\nMpps" if show_errors else f"{avg_label}\nMpps"
 
         color = "black" if pps < TPUT_MPPS_MAX * 1e6 / 2 else "white"
 
