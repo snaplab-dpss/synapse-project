@@ -1,4 +1,4 @@
-===================== Synapse Report ====================
+===================== Tessera Report ====================
 Args:
   Input BDD file:     kvs.bdd
   Name:               gallium-kvs

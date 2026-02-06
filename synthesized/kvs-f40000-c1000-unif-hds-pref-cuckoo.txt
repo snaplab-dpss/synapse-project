@@ -1,4 +1,4 @@
-===================== Synapse Report ====================
+===================== Tessera Report ====================
 Args:
   Input BDD file:     kvs.bdd
   Name:               kvs-f40000-c1000-unif-hds-pref-cuckoo

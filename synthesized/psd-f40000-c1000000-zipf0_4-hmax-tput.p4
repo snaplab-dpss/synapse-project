@@ -79,7 +79,7 @@ header hdr2_h {
 }
 
 
-struct synapse_ingress_headers_t {
+struct tessera_ingress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
   cuckoo_h cuckoo;
@@ -89,7 +89,7 @@ struct synapse_ingress_headers_t {
 
 }
 
-struct synapse_ingress_metadata_t {
+struct tessera_ingress_metadata_t {
   bit<16> ingress_port;
   bit<32> dev;
   bit<32> time;
@@ -101,13 +101,13 @@ struct synapse_ingress_metadata_t {
 
 }
 
-struct synapse_egress_headers_t {
+struct tessera_egress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
 
 }
 
-struct synapse_egress_metadata_t {
+struct tessera_egress_metadata_t {
 
 }
 
@@ -136,8 +136,8 @@ parser TofinoIngressParser(
 
 parser IngressParser(
   packet_in pkt,
-  out synapse_ingress_headers_t hdr,
-  out synapse_ingress_metadata_t meta,
+  out tessera_ingress_headers_t hdr,
+  out tessera_ingress_metadata_t meta,
   out ingress_intrinsic_metadata_t ig_intr_md
 ) {
   TofinoIngressParser() tofino_parser;
@@ -226,8 +226,8 @@ parser IngressParser(
 
 
 control Ingress(
-  inout synapse_ingress_headers_t hdr,
-  inout synapse_ingress_metadata_t meta,
+  inout tessera_ingress_headers_t hdr,
+  inout tessera_ingress_metadata_t meta,
   in    ingress_intrinsic_metadata_t ig_intr_md,
   in    ingress_intrinsic_metadata_from_parser_t ig_prsr_md,
   inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
@@ -918,8 +918,8 @@ control Ingress(
 
 control IngressDeparser(
   packet_out pkt,
-  inout synapse_ingress_headers_t hdr,
-  in    synapse_ingress_metadata_t meta,
+  inout tessera_ingress_headers_t hdr,
+  in    tessera_ingress_metadata_t meta,
   in    ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md
 ) {
 
@@ -940,8 +940,8 @@ parser TofinoEgressParser(
 
 parser EgressParser(
   packet_in pkt,
-  out synapse_egress_headers_t hdr,
-  out synapse_egress_metadata_t eg_md,
+  out tessera_egress_headers_t hdr,
+  out tessera_egress_metadata_t eg_md,
   out egress_intrinsic_metadata_t eg_intr_md
 ) {
   TofinoEgressParser() tofino_parser;
@@ -954,8 +954,8 @@ parser EgressParser(
 }
 
 control Egress(
-  inout synapse_egress_headers_t hdr,
-  inout synapse_egress_metadata_t eg_md,
+  inout tessera_egress_headers_t hdr,
+  inout tessera_egress_metadata_t eg_md,
   in    egress_intrinsic_metadata_t eg_intr_md,
   in    egress_intrinsic_metadata_from_parser_t eg_intr_md_from_prsr,
   inout egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md,
@@ -966,8 +966,8 @@ control Egress(
 
 control EgressDeparser(
   packet_out pkt,
-  inout synapse_egress_headers_t hdr,
-  in    synapse_egress_metadata_t eg_md,
+  inout tessera_egress_headers_t hdr,
+  in    tessera_egress_metadata_t eg_md,
   in    egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md
 ) {
   apply {

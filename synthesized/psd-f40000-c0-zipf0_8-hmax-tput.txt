@@ -1,4 +1,4 @@
-===================== Synapse Report ====================
+===================== Tessera Report ====================
 Args:
   Input BDD file:     psd.bdd
   Name:               psd-f40000-c0-zipf0_8-hmax-tput

@@ -1,4 +1,4 @@
-===================== Synapse Report ====================
+===================== Tessera Report ====================
 Args:
   Input BDD file:     cl.bdd
   Name:               cl-f40000-c10000-zipf1-hmax-tput

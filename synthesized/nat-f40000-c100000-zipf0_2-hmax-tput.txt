@@ -1,4 +1,4 @@
-===================== Synapse Report ====================
+===================== Tessera Report ====================
 Args:
   Input BDD file:     nat.bdd
   Name:               nat-f40000-c100000-zipf0_2-hmax-tput

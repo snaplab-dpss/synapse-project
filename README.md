@@ -113,7 +113,7 @@ Here is the example output of ESE run on the NOP NF:
 <pre>
 $ cd dpdk-nfs/fwd
 $ make symbex
-KLEE: output directory is "~/maestro/dpdk-nfs/fwd/klee-out-0"
+KLEE: output directory is "~/tessera-project/dpdk-nfs/fwd/klee-out-0"
 KLEE: Using Z3 solver backend
 KLEE: Deterministic memory allocation starting from 0x40000000
 KLEE: WARNING: undefined reference to function: kill (UNSAFE)!
@@ -172,7 +172,7 @@ usage: profiler.py [-h] --nfs {echo,fwd,fw,nat,kvs,psd,cl,pol} [{echo,fwd,fw,nat
                    [--total-flows TOTAL_FLOWS [TOTAL_FLOWS ...]] [--zipf-params ZIPF_PARAMS [ZIPF_PARAMS ...]] [--churn CHURN [CHURN ...]] [--debug] [--max-concurrent-tasks MAX_CONCURRENT_TASKS] [--skip-pcap-generation] [--skip-profiler-generation]
                    [--show-cmds-output] [--show-cmds] [--show-execution-plan] [--dry-run] [--force] [--force-profile-stats] [--silence]
 
-Profiler helper script. This will generate the pcaps and profiles for all the possible combinations of the provided parameters. Profiler dir: /home/fcp/synapse-project/profiles. Pcap dir: /home/fcp/synapse-project/pcaps.
+Profiler helper script. This will generate the pcaps and profiles for all the possible combinations of the provided parameters. Profiler dir: tessera-project/profiles. Pcap dir: tessera-project/pcaps.
 
 options:
   -h, --help            show this help message and exit

@@ -1,4 +1,4 @@
-===================== Synapse Report ====================
+===================== Tessera Report ====================
 Args:
   Input BDD file:     kvs.bdd
   Name:               kvs-f40000-c100000-zipf0_6-hmax-tput
