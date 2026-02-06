@@ -113,7 +113,7 @@ Here is the example output of ESE run on the NOP NF:
 <pre>
 $ cd dpdk-nfs/fwd
 $ make symbex
-KLEE: output directory is "~/maestro/dpdk-nfs/fwd/klee-out-0"
+KLEE: output directory is "~/synapse-project/dpdk-nfs/fwd/klee-out-0"
 KLEE: Using Z3 solver backend
 KLEE: Deterministic memory allocation starting from 0x40000000
 KLEE: WARNING: undefined reference to function: kill (UNSAFE)!
