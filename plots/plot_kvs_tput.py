@@ -26,10 +26,10 @@ SYSTEM_NAME = "Tessera"
 nf = "KVS"
 
 solutions = {
-    "Gallium": DATA_DIR / "tput_gallium_kvs.csv",
-    "NetCache": DATA_DIR / "tput_netcache.csv",
-    "Switcharoo": DATA_DIR / "tput_switcharoo.csv",
-    SYSTEM_NAME: DATA_DIR / "tput_synapse_kvs.csv",
+    "NetCache\n{\\tiny (Manual)}": DATA_DIR / "tput_netcache.csv",
+    "Switcharoo\n{\\tiny (Manual)}": DATA_DIR / "tput_switcharoo.csv",
+    "Gallium\n{\\tiny (Automatic)}": DATA_DIR / "tput_gallium_kvs.csv",
+    f"{SYSTEM_NAME}\n{{\\tiny (Automatic)}}": DATA_DIR / "tput_synapse_kvs.csv",
 }
 
 CHOSEN_WORKLOADS = [Key(s=1.2, churn_fpm=c) for c in [0, 1_000, 10_000, 100_000, 1_000_000]]
@@ -87,7 +87,7 @@ def plot(data: dict):
     ax.tick_params(axis="both", length=0)
     ax.grid(visible=False, axis="x")
 
-    ax.legend(bbox_to_anchor=(0.4, 1.35), loc="upper center", ncols=4, columnspacing=0.6, handletextpad=0.2, fontsize="small")
+    ax.legend(bbox_to_anchor=(0.5, 1.35), loc="upper center", ncols=4, columnspacing=0.6, handletextpad=0.2, fontsize="small")
     fig.set_size_inches(width, height * 0.8)
 
     print("-> ", OUTPUT_FILE)
