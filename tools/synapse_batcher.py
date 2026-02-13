@@ -224,7 +224,6 @@ def plot_data_structures_synapse_nfs(
     show_cmds: bool = False,
     silence: bool = False,
 ) -> Task:
-
     reports = [f"{get_pcap_base_name(nf, total_flows, s, c)}-h{heuristic}.json" for s, c in product(zipf_params, churns_fpm)]
 
     files_consumed = [OUT_DIR / report for report in reports]
