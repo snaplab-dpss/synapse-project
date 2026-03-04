@@ -330,6 +330,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleCategory::Tofino_SendToDevice:
     case ModuleCategory::Tofino_ParseHeaderCPU:
     case ModuleCategory::Tofino_ParseHeaderVars:
+    case ModuleCategory::Tofino_SetDeviceInfo:
     case ModuleCategory::Controller_Ignore:
     case ModuleCategory::Controller_ParseHeader:
     case ModuleCategory::Controller_ModifyHeader:
@@ -441,6 +442,7 @@ initial_controller_logic_t build_initial_controller_logic(const EPLeaf active_le
     case ModuleCategory::x86_LPMAllocate:
     case ModuleCategory::x86_ParseHeaderCPU:
     case ModuleCategory::x86_ParseHeaderVars:
+    case ModuleCategory::x86_SetDeviceInfo:
       break;
     }
   }

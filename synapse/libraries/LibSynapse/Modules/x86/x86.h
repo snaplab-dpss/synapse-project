@@ -42,6 +42,7 @@
 #include <LibSynapse/Modules/x86/LPMAllocate.h>
 #include <LibSynapse/Modules/x86/ParseHeaderCPU.h>
 #include <LibSynapse/Modules/x86/ParseHeaderVars.h>
+#include <LibSynapse/Modules/x86/SetDeviceInfo.h>
 
 namespace LibSynapse {
 namespace x86 {
@@ -91,6 +92,7 @@ struct x86Target : public Target {
               f.push_back(std::make_unique<LPMAllocateFactory>(_instance_id));
               f.push_back(std::make_unique<ParseHeaderCPUFactory>(_instance_id));
               f.push_back(std::make_unique<ParseHeaderVarsFactory>(_instance_id));
+              f.push_back(std::make_unique<SetDeviceInfoFactory>(_instance_id));
               return f;
             }(),
             std::make_unique<x86Context>()) {}

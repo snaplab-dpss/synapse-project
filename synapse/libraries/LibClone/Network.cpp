@@ -147,6 +147,78 @@ struct bdd_vector_t {
   }
 };
 
+BDDNode *create_set_device_node(BDD &bdd, const symbol_t &device_symbol, u64 port) {
+
+  klee::ref<klee::Expr> device_expr = solver_toolbox.exprBuilder->Constant(port, device_symbol.expr->getWidth());
+
+  const arg_t device_arg{
+      .expr        = device_expr,
+      .fn_ptr_name = {},
+      .in          = {},
+      .out         = {},
+      .meta        = {},
+  };
+
+  const call_t call{
+      .function_name = "set_device_info",
+      .extra_vars    = {},
+      .args          = {{"value", device_arg}},
+      .ret           = {},
+  };
+
+  Call *set_device = bdd.create_new_call(bdd.get_mutable_node_by_id(bdd.get_id()), call, {});
+
+  return set_device;
+}
+
+/*BDDNode *create_set_device_node(BDD &bdd, const symbol_t &device_symbol, u64 port, BDDNode *next_node) {
+
+  klee::ref<klee::Expr> device_const = solver_toolbox.exprBuilder->Constant(port, device_symbol.expr->getWidth());
+  klee::ref<klee::Expr> condition    = solver_toolbox.exprBuilder->Eq(device_symbol.expr, device_const);
+
+  Branch *device_branch = new Branch(bdd.get_mutable_id(), bdd.get_mutable_symbol_manager(), condition);
+  bdd.get_mutable_manager().add_node(device_branch);
+  bdd.get_mutable_id()++;
+
+  device_branch->set_on_true(next_node);
+  next_node->set_prev(device_branch);
+
+  Route *drop_node = new Route(bdd.get_mutable_id(), bdd.get_mutable_symbol_manager(), RouteOp::Drop);
+  bdd.get_mutable_manager().add_node(drop_node);
+  bdd.get_mutable_id()++;
+  device_branch->set_on_false(drop_node);
+  drop_node->set_prev(device_branch);
+
+  klee::ref<klee::Expr> device_expr = solver_toolbox.exprBuilder->Constant(port, device_symbol.expr->getWidth());
+
+  const arg_t device_arg{
+      .expr        = device_expr,
+      .fn_ptr_name = {},
+      .in          = {},
+      .out         = {},
+      .meta        = {},
+  };
+
+  const call_t call{
+      .function_name = "set_device_info",
+      .extra_vars    = {},
+      .args          = {{"value", device_arg}},
+      .ret           = {},
+  };
+
+  const SymbolManager *manager      = bdd.get_symbol_manager();
+  const symbol_t &bdd_device_symbol = manager->get_symbol(device_symbol.name);
+
+  Symbols symbols;
+  symbols.add(bdd_device_symbol);
+  Call *set_device = bdd.create_new_call(bdd.get_mutable_node_by_id(bdd.get_id()), call, symbols);
+
+  set_device->set_next(device_branch);
+  device_branch->set_prev(set_device);
+
+  return set_device;
+}*/
+
 std::vector<bdd_vector_t> get_bdd_sections_handling_port(const BDD &bdd, Port port) {
   klee::ref<klee::Expr> handles_port =
       solver_toolbox.exprBuilder->Eq(bdd.get_device().expr, solver_toolbox.exprBuilder->Constant(port, bdd.get_device().expr->getWidth()));
@@ -288,13 +360,26 @@ symbol_t create_translation_symbol(SymbolManager *symbol_manager, const symbol_t
 
   const std::string new_name =
       symbol.base + "_c" + std::to_string(node_creating_symbol->get_id()) + std::to_string(nf->get_counter()) + std::to_string(init);
-  std::cerr << "Node created symbol: " << node_creating_symbol->dump(true) << "\n";
-  std::cerr << "Creating new symbol translation: " << symbol.name << " -> " << new_name << "\n";
   assert(!symbol_manager->has_symbol(new_name) && "Symbol should not exist in the symbol manager");
   const symbol_t new_symbol = symbol_manager->create_symbol(new_name, symbol.expr->getWidth());
   nf->add_symbol_translation({symbol, new_symbol});
   return new_symbol;
 }
+
+/* symbol_t translate_device_symbol(SymbolManager *symbol_manager, const symbol_t &device, NF *nf, bool init_not_processed) {
+  if (init_not_processed) {
+    assert(!nf->has_symbol_translation(device.name) && "NF should not have a translation for this symbol yet");
+    const std::string new_device_name = device.base + "_c" + std::to_string(nf->get_counter());
+    const symbol_t new_device         = symbol_manager->create_symbol(new_device_name, device.expr->getWidth());
+    nf->add_symbol_translation({device, new_device});
+    return new_device;
+  } else {
+    assert(nf->has_symbol_translation(device.name) && "NF should have a translation for this symbol");
+    const symbol_t &translated_symbol = nf->get_symbol_translation(device.name);
+    assert(symbol_manager->has_symbol(translated_symbol.name) && "Symbol should exist in the symbol manager");
+    return symbol_manager->get_symbol(translated_symbol.name);
+  }
+} */
 
 void translate_symbols(SymbolManager *symbol_manager, BDDNode *root, NF *nf) {
 
@@ -454,6 +539,12 @@ std::vector<symbol_translation_t> store_cloned_and_translated_init_symbols(BDD &
   std::vector<Call *> init = original_bdd.get_init();
   std::vector<Call *> new_init;
   std::vector<symbol_translation_t> translations;
+
+  // symbol_t device           = original_bdd.get_device();
+  // const symbol_t new_device = translate_device_symbol(bdd.get_mutable_symbol_manager(), device, nf, init_not_processed);
+  //
+  // translations.emplace_back(device, new_device);
+
   for (const Call *call : init) {
     Call *new_call = dynamic_cast<Call *>(call->clone(bdd.get_mutable_manager(), false));
     new_call->set_local_symbols(call->get_local_symbols());
@@ -547,17 +638,22 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, NetworkNode *network_n
     return root;
   } break;
   case NetworkNodeType::NF: {
-    NF *nf                                   = network_node->get_mutable_nf();
-    const bool init_already_processed        = processed_nfs.find(nf->get_id()) == processed_nfs.end();
-    const std::vector<bdd_vector_t> sections = get_bdd_sections_handling_port(nf->get_bdd(), port);
+    NF *nf                            = network_node->get_mutable_nf();
+    const bool init_already_processed = processed_nfs.find(nf->get_id()) == processed_nfs.end();
+    BDDNode *device_node              = create_set_device_node(bdd, nf->get_bdd().get_device(), port);
 
-    std::cerr << "NFID: " << nf->get_id() << "\n";
+    const std::vector<bdd_vector_t> sections = get_bdd_sections_handling_port(nf->get_bdd(), port);
 
     root                                           = stitch_bdd_sections(bdd, nf, sections);
     std::vector<symbol_translation_t> translations = store_cloned_and_translated_init_symbols(bdd, root, nf, init_already_processed);
     store_cloned_and_translated_constraint_symbols(bdd, nf->get_bdd().get_constraints(), translations);
-
     translate_symbols(bdd.get_mutable_symbol_manager(), root, nf);
+
+    // const symbol_t &original_device = nf->get_bdd().get_device();
+    // const symbol_t nf_device        = nf->get_symbol_translation(original_device.name);
+    device_node->set_next(root);
+    root->set_prev(device_node);
+    root = device_node;
 
     processed_nfs.insert(nf->get_id());
   } break;

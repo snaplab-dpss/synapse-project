@@ -55,6 +55,22 @@ static const uint16_t TX_QUEUE_SIZE = 1024;
 
 static const unsigned MEMPOOL_BUFFER_COUNT = 2048;
 
+void debug_packet_info(uint16_t device, uint8_t *buffer, uint16_t length, 
+                       time_ns_t now) {
+    printf("[NF_PACKET] {dev=%u len=%u now=%lu}\n",
+           device, length, now);
+}
+
+void debug_dst_device(uint16_t dst_device) {
+  if (dst_device == DROP) {
+    printf("DROPPED\n");
+  } else if (dst_device == FLOOD) {
+    printf("FLOOD\n");
+  } else {
+    printf("FORWARDING PACKET TO: %u\n", dst_device);
+  }
+}
+
 bool nf_init();
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now);
 
@@ -140,6 +156,8 @@ static void worker_main(void) {
         packet_state_total_length(data, &(mbufs[n]->pkt_len));
         time_ns_t now       = current_time();
         uint16_t dst_device = nf_process(mbufs[n]->port, data, mbufs[n]->pkt_len, now);
+
+        debug_dst_device(dst_device);
 
         if (dst_device == DROP) {
           rte_pktmbuf_free(mbufs[n]);

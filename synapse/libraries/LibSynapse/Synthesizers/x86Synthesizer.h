@@ -206,6 +206,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const x86::LPMAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeaderCPU *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeaderVars *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::SetDeviceInfo *node) override final;
 
   var_t build_var_ptr(const std::string &base_name, klee::ref<klee::Expr> addr_expr, klee::ref<klee::Expr> value, coder_t &coder,
                       bool &found_in_stack);

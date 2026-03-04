@@ -37,11 +37,6 @@ int main(int argc, char **argv) {
 
   NetworkPartitioner partitioner = NetworkPartitioner(bdd, phys_net);
 
-  if (show_bdd) {
-    std::cerr << "Original BDD\n";
-    BDDViz::visualize(&bdd, false);
-  }
-
   std::unordered_map<LibSynapse::TargetType, std::unique_ptr<const BDD>> target_bdds = partitioner.process();
 
   for (const auto &[target, target_bdd] : target_bdds) {

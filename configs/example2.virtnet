@@ -9,3 +9,6 @@ link firewall 0 global_port 0
 
 link firewall 1 global_port 1
 link global_port 1 firewall 1
+
+link firewall 2 global_port 2
+link global_port 2 firewall 2

@@ -742,6 +742,18 @@ void BDDSynthesizer::process() {
   coder << ") {\n";
 
   coder.inc();
+
+  coder.indent();
+  coder << "debug_packet_info(";
+  coder << device_var.name;
+  coder << ", ";
+  coder << "buffer";
+  coder << ", ";
+  coder << len_var.name;
+  coder << ", ";
+  coder << now_var.name;
+  coder << ");\n";
+
   stack_push();
 
   stack_add(device_var);

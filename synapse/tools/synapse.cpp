@@ -213,8 +213,10 @@ bdd_profile_t build_bdd_profile(const BDD &bdd, const args_t &args, const std::u
   bdd_profile_t bdd_profile;
   if (args.profile_file.empty()) {
     if (args.random_uniform_profile) {
+      std::cerr << "Building uniform BDD profile\n";
       bdd_profile = build_uniform_bdd_profile(&bdd, available_devs);
     } else {
+      std::cerr << "Building random BDD profile\n";
       bdd_profile = build_random_bdd_profile(&bdd, available_devs);
     }
   } else {

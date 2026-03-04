@@ -61,6 +61,7 @@ enum class ModuleCategory {
   Tofino_SendToDevice,
   Tofino_ParseHeaderCPU,
   Tofino_ParseHeaderVars,
+  Tofino_SetDeviceInfo,
 
   // ========================================
   // Controller
@@ -184,6 +185,7 @@ enum class ModuleCategory {
   x86_SendToDevice,
   x86_ParseHeaderVars,
   x86_ParseHeaderCPU,
+  x86_SetDeviceInfo,
 };
 
 struct ModuleType {
@@ -311,6 +313,9 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
     break;
   case ModuleCategory::Tofino_ParseHeaderVars:
     os << "Tofino_ParseHeaderVars";
+    break;
+  case ModuleCategory::Tofino_SetDeviceInfo:
+    os << "Tofino_SetDeviceInfo";
     break;
   case ModuleCategory::Controller_Ignore:
     os << "Controller_Ignore";
@@ -644,6 +649,9 @@ inline std::ostream &operator<<(std::ostream &os, const ModuleType &type) {
     break;
   case ModuleCategory::x86_ParseHeaderCPU:
     os << "x86_ParseHeaderCPU";
+    break;
+  case ModuleCategory::x86_SetDeviceInfo:
+    os << "x86_SetDeviceInfo";
     break;
   }
 

@@ -41,6 +41,7 @@
 #include <LibSynapse/Modules/Tofino/ParseHeaderCPU.h>
 #include <LibSynapse/Modules/Tofino/ParseHeaderVars.h>
 #include <LibSynapse/Modules/Tofino/SendToDevice.h>
+#include <LibSynapse/Modules/Tofino/SetDeviceInfo.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -88,6 +89,7 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<ParseHeaderCPUFactory>(_instance_id));
               f.push_back(std::make_unique<ParseHeaderVarsFactory>(_instance_id));
               f.push_back(std::make_unique<SendToDeviceFactory>(_instance_id));
+              f.push_back(std::make_unique<SetDeviceInfoFactory>(_instance_id));
               return f;
             }(),
             std::make_unique<TofinoContext>(tna_config)) {}

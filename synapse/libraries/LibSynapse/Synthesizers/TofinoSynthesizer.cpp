@@ -1,4 +1,5 @@
 #include "LibSynapse/Modules/Tofino/ParseHeaderVars.h"
+#include "LibSynapse/Modules/Tofino/SetDeviceInfo.h"
 #include <LibSynapse/Synthesizers/TofinoSynthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Strings.h>
@@ -3171,8 +3172,14 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   panic("TODO: ParseHeaderVars not implemented");
   return EPVisitor::Action::doChildren;
 }
+
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToDevice *node) {
   panic("TODO: SendToDevice not implemented");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SetDeviceInfo *node) {
+  panic("TODO: SetDeviceInfo not implemented");
   return EPVisitor::Action::doChildren;
 }
 

@@ -45,6 +45,7 @@ class CuckooHashTableReadWrite;
 class ParseHeaderCPU;
 class ParseHeaderVars;
 class SendToDevice;
+class SetDeviceInfo;
 } // namespace Tofino
 
 namespace Controller {
@@ -165,6 +166,7 @@ class TokenBucketExpire;
 class LPMAllocate;
 class ParseHeaderCPU;
 class ParseHeaderVars;
+class SetDeviceInfo;
 } // namespace x86
 
 class EPVisitor {
@@ -221,6 +223,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderCPU *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderVars *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToDevice *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SetDeviceInfo *m) { return Action::doChildren; }
 
   // ========================================
   // Controller
@@ -342,6 +345,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::LPMAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeaderCPU *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeaderVars *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::SetDeviceInfo *m) { return Action::doChildren; }
 
 protected:
   virtual void log(const EPNode *) const;

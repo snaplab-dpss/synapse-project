@@ -104,6 +104,7 @@ int key_vec_map_allocate(unsigned capacity, unsigned key_size, struct KeyVecMap 
 int key_vec_map_get(struct KeyVecMap *kvm, void *key, int *value_out) {
 
   int map_hit = map_get(kvm->map, key, value_out);
+  std::cerr << "Map get for key: " << (uint64_t)key << " returned " << map_hit;
   return map_hit;
 }
 

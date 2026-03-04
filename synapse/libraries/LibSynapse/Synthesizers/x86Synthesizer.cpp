@@ -1695,7 +1695,7 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     coder << new_v.name << ", ";
     coder << value->getWidth() / 8;
     coder << ");\n";
-    return {};
+    return EPVisitor::Action::doChildren;
   }
 
   // For each modification, emit code to update the vector cell
@@ -2196,14 +2196,20 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
       panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
     }
 
-    coder.indent();
-    coder << "uint8_t ";
-
-    coder << var.value().name;
-    coder << "[";
-    coder << var.value().expr->getWidth() / 8;
-    coder << "]";
-    coder << ";\n";
+    if (var.value().expr->getWidth() > 64) {
+      coder.indent();
+      coder << "uint8_t ";
+      coder << var.value().name;
+      coder << "[";
+      coder << var.value().expr->getWidth() / 8;
+      coder << "]";
+      coder << ";\n";
+    } else {
+      coder.indent();
+      coder << Transpiler::type_from_size(var.value().expr->getWidth()) << " ";
+      coder << var.value().name;
+      coder << ";\n";
+    }
   }
 
   coder.dec();
@@ -2239,18 +2245,33 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
       panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
     }
 
-    coder.indent();
-    coder << "memcpy(";
-    coder << "(void*) ";
-    coder << ctx_hdr << "->" << var.value().name;
-    coder << ", ";
-    coder << "&";
-    coder << var.value().name;
-    coder << ", ";
-    coder << var.value().expr->getWidth() / 8;
-    coder << ")";
-
-    coder << ";\n";
+    if (var.value().expr->getWidth() > 64) {
+      coder.indent();
+      coder << "memcpy(";
+      coder << ctx_hdr << "->" << var.value().name;
+      coder << ", ";
+      coder << var.value().name;
+      coder << ", ";
+      coder << "sizeof(";
+      coder << var.value().name;
+      coder << "))";
+      coder << ";\n";
+    } else {
+      coder.indent();
+      coder << "memcpy(";
+      coder << "&";
+      coder << ctx_hdr << "->" << var.value().name;
+      coder << ", ";
+      if (var.value().addr.isNull()) {
+        coder << "&";
+      }
+      coder << var.value().name;
+      coder << ", ";
+      coder << "sizeof(";
+      coder << var.value().name;
+      coder << "))";
+      coder << ";\n";
+    }
   }
 
   coder.indent();
@@ -2566,6 +2587,17 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
   vars.insert_back(code_path);
 
+  // NOTE: Unnecessary code to check if the device is being correctly set
+  symbol_t device = ep->get_bdd()->get_device();
+
+  std::optional<var_t> device_var = vars.get(device.expr);
+  assert(device_var.has_value() && "DEVICE HAS NO VALUE");
+
+  coder.indent();
+  coder << "std::cerr << \"DEVICE: \" << ";
+  coder << device_var.value().name;
+  coder << " << \";\\n\";\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -2587,22 +2619,33 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
   for (const symbol_t &symbol : symbols.get()) {
     std::optional<var_t> var = vars.get(symbol.expr);
 
-    coder.indent();
-    coder << "uint8_t ";
-
+    code_t var_name;
     if (!var.has_value()) {
-      var_t symbol_var = build_var(symbol.name, symbol.expr);
+      var_t symbol_var;
+      if (symbol.expr->getWidth() > 64) {
+        symbol_var = build_var(symbol.name, symbol.expr, symbol.expr);
+      } else {
+        symbol_var = build_var(symbol.name, symbol.expr);
+      }
       vars.insert_back(symbol_var);
-
-      coder << symbol_var.name;
-    } else {
-      coder << var.value().name;
+      var = vars.get(symbol.expr);
+      assert(var.has_value() && "Variable should have been found after insertion");
     }
 
-    coder << "[";
-    coder << symbol.expr->getWidth() / 8;
-    coder << "]";
-    coder << ";\n";
+    if (var.value().expr->getWidth() > 64) {
+      coder.indent();
+      coder << "uint8_t ";
+      coder << var.value().name;
+      coder << "[";
+      coder << var.value().expr->getWidth() / 8;
+      coder << "]";
+      coder << ";\n";
+    } else {
+      coder.indent();
+      coder << Transpiler::type_from_size(var.value().expr->getWidth()) << " ";
+      coder << var.value().name;
+      coder << ";\n";
+    }
   }
 
   coder.dec();
@@ -2641,22 +2684,44 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
       panic("Variable %s not found in stack", expr_to_string(symbol.expr, true).c_str());
     }
 
-    coder.indent();
-    coder << transpiler.type_from_expr(var.value().expr);
-    coder << " ";
-    coder << var.value().name;
-    coder << ";\n";
+    if (var.value().expr->getWidth() > 64) {
+      coder.indent();
+      coder << "uint8_t ";
+      coder << var.value().name;
+      coder << "[";
+      coder << var.value().expr->getWidth() / 8;
+      coder << "]";
+      coder << ";\n";
 
-    coder.indent();
-    coder << "memcpy(";
-    coder << "&";
-    coder << var.value().name;
-    coder << ", ";
-    coder << ctx << "->" << var.value().name;
-    coder << ", ";
-    coder << var.value().expr->getWidth() / 8;
-    coder << ")";
-    coder << ";\n";
+      coder.indent();
+      coder << "memcpy(";
+      coder << var.value().name;
+      coder << ", ";
+      coder << ctx << "->" << var.value().name;
+      coder << ", ";
+      coder << "sizeof(";
+      coder << var.value().name;
+      coder << "))";
+      coder << ";\n";
+    } else {
+      coder.indent();
+      coder << Transpiler::type_from_size(var.value().expr->getWidth()) << " ";
+      coder << var.value().name;
+      coder << ";\n";
+
+      coder.indent();
+      coder << "memcpy(";
+      coder << "&";
+      coder << var.value().name;
+      coder << ", ";
+      coder << "&";
+      coder << ctx << "->" << var.value().name;
+      coder << ", ";
+      coder << "sizeof(";
+      coder << var.value().name;
+      coder << "))";
+      coder << ";\n";
+    }
   }
 
   coder.indent();
@@ -2671,6 +2736,40 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
 
   coder.indent();
   coder << "packet_return_all_chunks(buffer);\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, const x86::SetDeviceInfo *node) {
+  coder_t &coder = get_current_coder();
+
+  if (!in_nf_init) {
+    process_nodes.insert(node->get_node()->get_id());
+  }
+
+  const klee::ref<klee::Expr> global_port = node->get_device();
+
+  // NOTE: Unnecessary code to check if the device is being correctly set
+  symbol_t device = ep->get_bdd()->get_device();
+
+  std::optional<var_t> device_var = vars.get(device.expr);
+  assert(device_var.has_value() && "DEVICE HAS NO VALUE");
+
+  coder.indent();
+  coder << "// Setting device to global port: ";
+  coder << transpiler.transpile(global_port) << "\n";
+
+  // Assign the global port to the device variable
+  coder.indent();
+  coder << device_var.value().name;
+  coder << " = ";
+  coder << transpiler.transpile(global_port);
+  coder << ";\n";
+
+  coder.indent();
+  coder << "std::cerr << \"DEVICE: \" << ";
+  coder << device_var.value().name;
+  coder << " << \";\\n\";\n";
 
   return EPVisitor::Action::doChildren;
 }

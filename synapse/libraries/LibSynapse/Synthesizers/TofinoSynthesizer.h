@@ -237,6 +237,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderCPU *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderVars *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToDevice *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SetDeviceInfo *node) override final;
 
   coder_t &get(const std::string &marker);
 
