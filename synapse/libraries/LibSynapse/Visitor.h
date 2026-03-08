@@ -52,6 +52,10 @@ class BloomFilterSet;
 class BloomFilterQueryAndSet;
 class LPMLookup;
 class CuckooHashTableReadWrite;
+class ParseHeaderCPU;
+class ParseHeaderVars;
+class SetDeviceInfo;
+class SendToDevice;
 } // namespace Tofino
 
 namespace Controller {
@@ -181,6 +185,16 @@ class TokenBucketIsTracing;
 class TokenBucketTrace;
 class TokenBucketUpdateAndCheck;
 class TokenBucketExpire;
+class ParseHeaderCPU;
+class ParseHeaderVars;
+class SetDeviceInfo;
+class SendToDevice;
+class LPMAllocate;
+class MapAllocate;
+class VectorAllocate;
+class TokenBucketAllocate;
+class DchainAllocate;
+class CMSAllocate;
 } // namespace x86
 
 class EPVisitor {
@@ -246,6 +260,10 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQueryAndSet *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderCPU *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderVars *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SetDeviceInfo *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToDevice *m) { return Action::doChildren; }
 
   // ========================================
   // Controller
@@ -384,6 +402,16 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketTrace *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketUpdateAndCheck *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketExpire *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeaderCPU *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ParseHeaderVars *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::SetDeviceInfo *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::SendToDevice *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::LPMAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::MapAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSAllocate *m) { return Action::doChildren; }
 
 protected:
   virtual void log(const EPNode *) const;

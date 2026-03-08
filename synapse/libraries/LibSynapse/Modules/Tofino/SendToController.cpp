@@ -486,6 +486,10 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Tofino_BloomFilterSet:
     case ModuleType::Tofino_BloomFilterQueryAndSet:
     case ModuleType::Tofino_CuckooHashTableReadWrite:
+    case ModuleType::Tofino_ParseHeaderCPU:
+    case ModuleType::Tofino_ParseHeaderVars:
+    case ModuleType::Tofino_SetDeviceInfo:
+    case ModuleType::Tofino_SendToDevice:
     case ModuleType::Controller_Ignore:
     case ModuleType::Controller_ParseHeader:
     case ModuleType::Controller_ModifyHeader:
@@ -606,6 +610,16 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::x86_TokenBucketTrace:
     case ModuleType::x86_TokenBucketUpdateAndCheck:
     case ModuleType::x86_TokenBucketExpire:
+    case ModuleType::x86_ParseHeaderCPU:
+    case ModuleType::x86_ParseHeaderVars:
+    case ModuleType::x86_SetDeviceInfo:
+    case ModuleType::x86_SendToDevice:
+    case ModuleType::x86_LPMAllocate:
+    case ModuleType::x86_MapAllocate:
+    case ModuleType::x86_VectorAllocate:
+    case ModuleType::x86_TokenBucketAllocate:
+    case ModuleType::x86_DchainAllocate:
+    case ModuleType::x86_CMSAllocate:
       break;
     }
   }

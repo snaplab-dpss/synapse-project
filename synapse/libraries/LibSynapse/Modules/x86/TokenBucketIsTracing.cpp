@@ -44,10 +44,11 @@ std::vector<impl_t> TokenBucketIsTracingFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
-  klee::ref<klee::Expr> key          = call.args.at("key").in;
-  klee::ref<klee::Expr> index_out    = call.args.at("index_out").out;
-  klee::ref<klee::Expr> is_tracing   = call.ret;
+  klee::ref<klee::Expr> tb_addr_expr  = call.args.at("tb").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
+  klee::ref<klee::Expr> key           = call.args.at("key").in;
+  klee::ref<klee::Expr> index_out     = call.args.at("index_out").out;
+  klee::ref<klee::Expr> is_tracing    = call.ret;
 
   const addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
 
@@ -55,7 +56,7 @@ std::vector<impl_t> TokenBucketIsTracingFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  Module *module  = new TokenBucketIsTracing(node, tb_addr, key, index_out, is_tracing);
+  Module *module  = new TokenBucketIsTracing(node, tb_addr_expr, key_addr_expr, key, index_out, is_tracing);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -78,8 +79,14 @@ std::unique_ptr<Module> TokenBucketIsTracingFactory::create(const BDD *bdd, cons
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call    = call_node->get_call();
 
-  klee::ref<klee::Expr> tb_addr_expr = call.args.at("tb").expr;
-  const addr_t tb_addr               = expr_addr_to_obj_addr(tb_addr_expr);
+  if (call.function_name != "tb_is_tracing") {
+    return {};
+  }
+
+  klee::ref<klee::Expr> tb_addr_expr  = call.args.at("tb").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
+
+  const addr_t tb_addr = expr_addr_to_obj_addr(tb_addr_expr);
 
   if (!ctx.check_ds_impl(tb_addr, DSImpl::x86_TokenBucket)) {
     return {};
@@ -89,7 +96,7 @@ std::unique_ptr<Module> TokenBucketIsTracingFactory::create(const BDD *bdd, cons
   klee::ref<klee::Expr> index_out  = call.args.at("index_out").out;
   klee::ref<klee::Expr> is_tracing = call.ret;
 
-  return std::make_unique<TokenBucketIsTracing>(node, tb_addr, key, index_out, is_tracing);
+  return std::make_unique<TokenBucketIsTracing>(node, tb_addr_expr, key_addr_expr, key, index_out, is_tracing);
 }
 
 } // namespace x86

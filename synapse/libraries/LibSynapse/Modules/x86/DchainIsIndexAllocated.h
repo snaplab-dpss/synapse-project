@@ -7,12 +7,12 @@ namespace x86 {
 
 class DchainIsIndexAllocated : public x86Module {
 private:
-  addr_t dchain_addr;
+  klee::ref<klee::Expr> dchain_addr;
   klee::ref<klee::Expr> index;
   symbol_t is_allocated;
 
 public:
-  DchainIsIndexAllocated(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
+  DchainIsIndexAllocated(const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _index, const symbol_t &_is_allocated)
       : x86Module(ModuleType::x86_DchainIsIndexAllocated, "DchainIsIndexAllocated", _node), dchain_addr(_dchain_addr), index(_index),
         is_allocated(_is_allocated) {}
 
@@ -23,7 +23,7 @@ public:
     return cloned;
   }
 
-  addr_t get_dchain_addr() const { return dchain_addr; }
+  klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_index() const { return index; }
   const symbol_t &get_is_allocated() const { return is_allocated; }
 };

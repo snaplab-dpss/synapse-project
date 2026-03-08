@@ -7,14 +7,14 @@ namespace x86 {
 
 class TokenBucketUpdateAndCheck : public x86Module {
 private:
-  addr_t tb_addr;
+  klee::ref<klee::Expr> tb_addr;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> pkt_len;
   klee::ref<klee::Expr> time;
   klee::ref<klee::Expr> pass;
 
 public:
-  TokenBucketUpdateAndCheck(const BDDNode *_node, addr_t _tb_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _pkt_len,
+  TokenBucketUpdateAndCheck(const BDDNode *_node, klee::ref<klee::Expr> _tb_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _pkt_len,
                             klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _pass)
       : x86Module(ModuleType::x86_TokenBucketUpdateAndCheck, "TokenBucketUpdateAndCheck", _node), tb_addr(_tb_addr), index(_index), pkt_len(_pkt_len),
         time(_time), pass(_pass) {}
@@ -26,7 +26,7 @@ public:
     return cloned;
   }
 
-  addr_t get_tb_addr() const { return tb_addr; }
+  klee::ref<klee::Expr> get_tb_addr() const { return tb_addr; }
   klee::ref<klee::Expr> get_index() const { return index; }
   klee::ref<klee::Expr> get_pkt_len() const { return pkt_len; }
   klee::ref<klee::Expr> get_time() const { return time; }
@@ -38,7 +38,7 @@ public:
   TokenBucketUpdateAndCheckFactory() : x86ModuleFactory(ModuleType::x86_TokenBucketUpdateAndCheck, "TokenBucketUpdateAndCheck") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &ctx) const override;
   virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
   virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };

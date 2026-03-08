@@ -7,13 +7,14 @@ namespace x86 {
 
 class MapPut : public x86Module {
 private:
-  addr_t map_addr;
-  addr_t key_addr;
+  klee::ref<klee::Expr> map_addr;
+  klee::ref<klee::Expr> key_addr;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
 
 public:
-  MapPut(const BDDNode *_node, addr_t _map_addr, addr_t _key_addr, klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
+  MapPut(const BDDNode *_node, klee::ref<klee::Expr> _map_addr, klee::ref<klee::Expr> _key_addr, klee::ref<klee::Expr> _key,
+         klee::ref<klee::Expr> _value)
       : x86Module(ModuleType::x86_MapPut, "MapPut", _node), map_addr(_map_addr), key_addr(_key_addr), key(_key), value(_value) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -23,8 +24,8 @@ public:
     return cloned;
   }
 
-  addr_t get_map_addr() const { return map_addr; }
-  addr_t get_key_addr() const { return key_addr; }
+  klee::ref<klee::Expr> get_map_addr() const { return map_addr; }
+  klee::ref<klee::Expr> get_key_addr() const { return key_addr; }
   klee::ref<klee::Expr> get_key() const { return key; }
   klee::ref<klee::Expr> get_value() const { return value; }
 };

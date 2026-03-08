@@ -68,6 +68,10 @@ enum class ModuleType {
   Tofino_BloomFilterQueryAndSet,
   Tofino_LPMLookup,
   Tofino_CuckooHashTableReadWrite,
+  Tofino_ParseHeaderCPU,
+  Tofino_ParseHeaderVars,
+  Tofino_SetDeviceInfo,
+  Tofino_SendToDevice,
 
   // ========================================
   // Controller
@@ -200,6 +204,16 @@ enum class ModuleType {
   x86_TokenBucketTrace,
   x86_TokenBucketUpdateAndCheck,
   x86_TokenBucketExpire,
+  x86_ParseHeaderCPU,
+  x86_ParseHeaderVars,
+  x86_SetDeviceInfo,
+  x86_SendToDevice,
+  x86_LPMAllocate,
+  x86_MapAllocate,
+  x86_VectorAllocate,
+  x86_TokenBucketAllocate,
+  x86_DchainAllocate,
+  x86_CMSAllocate,
 };
 
 inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
@@ -338,6 +352,18 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_CuckooHashTableReadWrite:
     os << "Tofino_CuckooHashTableReadWrite";
+    break;
+  case ModuleType::Tofino_ParseHeaderCPU:
+    os << "Tofino_ParseHeaderCPU";
+    break;
+  case ModuleType::Tofino_ParseHeaderVars:
+    os << "Tofino_ParseHeaderVars";
+    break;
+  case ModuleType::Tofino_SetDeviceInfo:
+    os << "Tofino_SetDeviceInfo";
+    break;
+  case ModuleType::Tofino_SendToDevice:
+    os << "Tofino_SendToDevice";
     break;
   case ModuleType::Controller_Ignore:
     os << "Controller_Ignore";
@@ -698,6 +724,36 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::x86_TokenBucketExpire:
     os << "x86_TokenBucketExpire";
+    break;
+  case ModuleType::x86_ParseHeaderCPU:
+    os << "x86_ParseHeaderCPU";
+    break;
+  case ModuleType::x86_ParseHeaderVars:
+    os << "x86_ParseHeaderVars";
+    break;
+  case ModuleType::x86_SetDeviceInfo:
+    os << "x86_SetDeviceInfo";
+    break;
+  case ModuleType::x86_SendToDevice:
+    os << "x86_SendToDevice";
+    break;
+  case ModuleType::x86_LPMAllocate:
+    os << "x86_LPMAllocate";
+    break;
+  case ModuleType::x86_MapAllocate:
+    os << "x86_MapAllocate";
+    break;
+  case ModuleType::x86_VectorAllocate:
+    os << "x86_VectorAllocate";
+    break;
+  case ModuleType::x86_TokenBucketAllocate:
+    os << "x86_TokenBucketAllocate";
+    break;
+  case ModuleType::x86_DchainAllocate:
+    os << "x86_DchainAllocate";
+    break;
+  case ModuleType::x86_CMSAllocate:
+    os << "x86_CMSAllocate";
     break;
   }
 

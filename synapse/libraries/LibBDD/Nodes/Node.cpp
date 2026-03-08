@@ -929,4 +929,23 @@ std::vector<const BDDNode *> BDDNode::get_ancestors() const {
   return ancestors;
 }
 
+bdd_node_ids_t BDDNode::get_prev_s2d_node_id() const {
+  bdd_node_ids_t s2d_ids;
+  const BDDNode *node = this;
+
+  while ((node = node->get_prev())) {
+    if (node->get_type() == BDDNodeType::Call) {
+      const Call *call_node = dynamic_cast<const Call *>(node);
+      const call_t &call    = call_node->get_call();
+
+      if (call.function_name == "send_to_device") {
+        s2d_ids.insert(call_node->get_id());
+        break;
+      }
+    }
+  }
+
+  return s2d_ids;
+}
+
 } // namespace LibBDD

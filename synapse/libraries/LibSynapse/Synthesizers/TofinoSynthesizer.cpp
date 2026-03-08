@@ -4654,6 +4654,26 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::skipChildren;
 }
 
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderCPU *node) {
+  panic("TODO: ParseHeaderCPU not implemented");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ParseHeaderVars *node) {
+  panic("TODO: ParseHeaderVars not implemented");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToDevice *node) {
+  panic("TODO: SendToDevice not implemented");
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SetDeviceInfo *node) {
+  panic("TODO: SetDeviceInfo not implemented");
+  return EPVisitor::Action::doChildren;
+}
+
 code_t TofinoSynthesizer::create_unique_name(const code_t &prefix) {
   if (var_prefix_usage.find(prefix) == var_prefix_usage.end()) {
     var_prefix_usage[prefix] = 0;

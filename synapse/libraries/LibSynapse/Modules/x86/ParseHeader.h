@@ -7,12 +7,12 @@ namespace x86 {
 
 class ParseHeader : public x86Module {
 private:
-  addr_t chunk_addr;
+  klee::ref<klee::Expr> chunk_addr;
   klee::ref<klee::Expr> chunk;
   klee::ref<klee::Expr> length;
 
 public:
-  ParseHeader(const BDDNode *_node, addr_t _chunk_addr, klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
+  ParseHeader(const BDDNode *_node, klee::ref<klee::Expr> _chunk_addr, klee::ref<klee::Expr> _chunk, klee::ref<klee::Expr> _length)
       : x86Module(ModuleType::x86_ParseHeader, "ParseHeader", _node), chunk_addr(_chunk_addr), chunk(_chunk), length(_length) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -22,7 +22,7 @@ public:
     return cloned;
   }
 
-  addr_t get_chunk_addr() const { return chunk_addr; }
+  klee::ref<klee::Expr> get_chunk_addr() const { return chunk_addr; }
   klee::ref<klee::Expr> get_chunk() const { return chunk; }
   klee::ref<klee::Expr> get_length() const { return length; }
 };
@@ -32,7 +32,7 @@ public:
   ParseHeaderFactory() : x86ModuleFactory(ModuleType::x86_ParseHeader, "ParseHeader") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &ctx) const override;
   virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
   virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };

@@ -1612,6 +1612,11 @@ BDDNode *BDD::delete_branch(BDDNode *target, BranchDeletionAction branch_deletio
   return new_current;
 }
 
+klee::ConstraintManager BDD::get_constraints() const {
+  klee::ConstraintManager constraints = base_constraints;
+  return constraints;
+}
+
 klee::ConstraintManager BDD::get_constraints(const BDDNode *node) const {
   assert(node && "BDDNode cannot be null");
   klee::ConstraintManager constraints = base_constraints;

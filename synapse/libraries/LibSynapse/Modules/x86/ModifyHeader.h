@@ -10,11 +10,11 @@ using LibCore::expr_mod_t;
 
 class ModifyHeader : public x86Module {
 private:
-  addr_t chunk_addr;
+  klee::ref<klee::Expr> chunk_addr;
   std::vector<expr_mod_t> changes;
 
 public:
-  ModifyHeader(const BDDNode *_node, addr_t _chunk_addr, const std::vector<expr_mod_t> &_changes)
+  ModifyHeader(const BDDNode *_node, klee::ref<klee::Expr> _chunk_addr, const std::vector<expr_mod_t> &_changes)
       : x86Module(ModuleType::x86_ModifyHeader, "ModifyHeader", _node), chunk_addr(_chunk_addr), changes(_changes) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -24,7 +24,7 @@ public:
     return cloned;
   }
 
-  addr_t get_chunk_addr() const { return chunk_addr; }
+  klee::ref<klee::Expr> get_chunk_addr() const { return chunk_addr; }
   const std::vector<expr_mod_t> &get_changes() const { return changes; }
 };
 

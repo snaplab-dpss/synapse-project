@@ -7,20 +7,25 @@ namespace x86 {
 
 class CMSPeriodicCleanup : public x86Module {
 private:
-  addr_t cms_addr;
+  klee::ref<klee::Expr> cms_addr;
+  klee::ref<klee::Expr> time;
+  klee::ref<klee::Expr> cleanup_success;
 
 public:
-  CMSPeriodicCleanup(const BDDNode *_node, addr_t _cms_addr)
-      : x86Module(ModuleType::x86_CMSPeriodicCleanup, "CMSPeriodicCleanup", _node), cms_addr(_cms_addr) {}
+  CMSPeriodicCleanup(const BDDNode *_node, klee::ref<klee::Expr> _cms_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _cleanup_success)
+      : x86Module(ModuleType::x86_CMSPeriodicCleanup, "CMSPeriodicCleanup", _node), cms_addr(_cms_addr), time(_time),
+        cleanup_success(_cleanup_success) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    Module *cloned = new CMSPeriodicCleanup(node, cms_addr);
+    Module *cloned = new CMSPeriodicCleanup(node, cms_addr, time, cleanup_success);
     return cloned;
   }
 
-  addr_t get_cms_addr() const { return cms_addr; }
+  klee::ref<klee::Expr> get_cms_addr() const { return cms_addr; }
+  klee::ref<klee::Expr> get_time() const { return time; }
+  klee::ref<klee::Expr> get_cleanup_success() const { return cleanup_success; }
 };
 
 class CMSPeriodicCleanupFactory : public x86ModuleFactory {

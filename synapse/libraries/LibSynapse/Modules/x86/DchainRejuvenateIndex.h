@@ -7,12 +7,12 @@ namespace x86 {
 
 class DchainRejuvenateIndex : public x86Module {
 private:
-  addr_t dchain_addr;
+  klee::ref<klee::Expr> dchain_addr;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> time;
 
 public:
-  DchainRejuvenateIndex(const BDDNode *_node, addr_t _dchain_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
+  DchainRejuvenateIndex(const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _time)
       : x86Module(ModuleType::x86_DchainRejuvenateIndex, "DchainRejuvenate", _node), dchain_addr(_dchain_addr), index(_index), time(_time) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
@@ -22,7 +22,7 @@ public:
     return cloned;
   }
 
-  addr_t get_dchain_addr() const { return dchain_addr; }
+  klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
   klee::ref<klee::Expr> get_index() const { return index; }
   klee::ref<klee::Expr> get_time() const { return time; }
 };

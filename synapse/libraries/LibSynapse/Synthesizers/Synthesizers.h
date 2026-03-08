@@ -3,6 +3,7 @@
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Synthesizers/TofinoSynthesizer.h>
 #include <LibSynapse/Synthesizers/ControllerSynthesizer.h>
+#include <LibSynapse/Synthesizers/x86Synthesizer.h>
 
 #include <filesystem>
 
@@ -30,7 +31,10 @@ void synthesize(const EP *ep, std::string name, const std::filesystem::path &out
       synthesizer.synthesize();
     } break;
     case TargetType::x86: {
-      // panic("TODO");
+      std::cerr << "\n************ Synthesizing x86 ************\n";
+      std::filesystem::path out_file(out_dir / (name + ".cpp"));
+      x86::x86Synthesizer synthesizer(ep, x86::x86SynthesizerTarget::NF, out_file);
+      synthesizer.synthesize();
     } break;
     }
   }

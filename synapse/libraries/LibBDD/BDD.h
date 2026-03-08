@@ -110,6 +110,7 @@ public:
   // Asserts that the BDD passes the inspection check, and crashes otherwise.
   void assert_inspection() const;
 
+  klee::ConstraintManager get_constraints() const;
   klee::ConstraintManager get_constraints(const BDDNode *node) const;
   bool get_map_coalescing_objs(addr_t obj, map_coalescing_objs_t &data) const;
   bool get_map_coalescing_objs_from_map_op(const Call *map_op, map_coalescing_objs_t &map_objs) const;
@@ -163,6 +164,7 @@ public:
   BDDNode *delete_branch(bdd_node_id_t target_id, BranchDeletionAction branch_deletion_action);
   std::vector<BDDNode *> delete_until(bdd_node_id_t target_id, const bdd_node_ids_t &stopping_points);
   BDDNode *delete_constraints(const klee::ConstraintManager &target);
+  void add_base_constraint(klee::ref<klee::Expr> constraint) { base_constraints.addConstraint(constraint); }
 
   Branch *create_new_branch(klee::ref<klee::Expr> condition);
   Call *create_new_call(const call_t &call, const Symbols &generated_symbols);

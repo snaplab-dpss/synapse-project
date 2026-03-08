@@ -48,6 +48,10 @@
 #include <LibSynapse/Modules/Tofino/BloomFilterQueryAndSet.h>
 #include <LibSynapse/Modules/Tofino/LPMLookup.h>
 #include <LibSynapse/Modules/Tofino/CuckooHashTableReadWrite.h>
+#include <LibSynapse/Modules/Tofino/ParseHeaderCPU.h>
+#include <LibSynapse/Modules/Tofino/ParseHeaderVars.h>
+#include <LibSynapse/Modules/Tofino/SetDeviceInfo.h>
+#include <LibSynapse/Modules/Tofino/SendToDevice.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -99,6 +103,10 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<LPMLookupFactory>());
               f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
               f.push_back(std::make_unique<SendToControllerFactory>());
+              f.push_back(std::make_unique<ParseHeaderCPUFactory>());
+              f.push_back(std::make_unique<ParseHeaderVarsFactory>());
+              f.push_back(std::make_unique<SetDeviceInfoFactory>());
+              f.push_back(std::make_unique<SendToDeviceFactory>());
               return f;
             }(),
             std::make_unique<TofinoContext>(tna_config)) {}

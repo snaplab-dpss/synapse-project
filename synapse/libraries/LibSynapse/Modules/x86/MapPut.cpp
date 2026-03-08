@@ -38,7 +38,7 @@ std::optional<spec_impl_t> MapPutFactory::speculate(const EP *ep, const BDDNode 
   klee::ref<klee::Expr> map_addr_expr = call.args.at("map").expr;
   const addr_t map_addr               = expr_addr_to_obj_addr(map_addr_expr);
 
-  if (!speculations.ctx.can_impl_ds(map_addr, DSImpl::x86_Map)) {
+  if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
     return {};
   }
 
@@ -59,13 +59,12 @@ std::vector<impl_t> MapPutFactory::process_node(const EP *ep, const BDDNode *nod
   klee::ref<klee::Expr> value         = call.args.at("value").expr;
 
   const addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
-  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(map_addr, DSImpl::x86_Map)) {
     return {};
   }
 
-  Module *module  = new MapPut(node, map_addr, key_addr, key, value);
+  Module *module  = new MapPut(node, map_addr_expr, key_addr_expr, key, value);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -94,13 +93,12 @@ std::unique_ptr<Module> MapPutFactory::create(const BDD *bdd, const Context &ctx
   klee::ref<klee::Expr> value         = call.args.at("value").expr;
 
   const addr_t map_addr = expr_addr_to_obj_addr(map_addr_expr);
-  const addr_t key_addr = expr_addr_to_obj_addr(key_addr_expr);
 
   if (!ctx.check_ds_impl(map_addr, DSImpl::x86_Map)) {
     return {};
   }
 
-  return std::make_unique<MapPut>(node, map_addr, key_addr, key, value);
+  return std::make_unique<MapPut>(node, map_addr_expr, key_addr_expr, key, value);
 }
 
 } // namespace x86

@@ -1,0 +1,21 @@
+// NF definitions
+
+nf nat ../bdds/nat.bdd
+nf policer ../bdds/pol.bdd
+
+// NF connections and global port mapping
+
+link global_port 23 nat 0
+link nat 0 global_port 23
+
+link global_port 22 nat 1
+link nat 1 global_port 22
+
+link global_port 12 policer 1
+link policer 1 global_port 12
+
+link global_port 11 policer 2
+link policer 2 global_port 11
+
+link nat 2 policer 0
+link policer 0 nat 2

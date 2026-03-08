@@ -33,6 +33,16 @@
 #include <LibSynapse/Modules/x86/TokenBucketIsTracing.h>
 #include <LibSynapse/Modules/x86/TokenBucketTrace.h>
 #include <LibSynapse/Modules/x86/TokenBucketUpdateAndCheck.h>
+#include <LibSynapse/Modules/x86/ParseHeaderCPU.h>
+#include <LibSynapse/Modules/x86/ParseHeaderVars.h>
+#include <LibSynapse/Modules/x86/SetDeviceInfo.h>
+#include <LibSynapse/Modules/x86/SendToDevice.h>
+#include <LibSynapse/Modules/x86/LPMAllocate.h>
+#include <LibSynapse/Modules/x86/MapAllocate.h>
+#include <LibSynapse/Modules/x86/VectorAllocate.h>
+#include <LibSynapse/Modules/x86/TokenBucketAllocate.h>
+#include <LibSynapse/Modules/x86/DchainAllocate.h>
+#include <LibSynapse/Modules/x86/CMSAllocate.h>
 
 namespace LibSynapse {
 namespace x86 {
@@ -73,6 +83,16 @@ struct x86Target : public Target {
               f.push_back(std::make_unique<TokenBucketIsTracingFactory>());
               f.push_back(std::make_unique<TokenBucketTraceFactory>());
               f.push_back(std::make_unique<TokenBucketUpdateAndCheckFactory>());
+              f.push_back(std::make_unique<ParseHeaderCPUFactory>());
+              f.push_back(std::make_unique<ParseHeaderVarsFactory>());
+              f.push_back(std::make_unique<SetDeviceInfoFactory>());
+              f.push_back(std::make_unique<SendToDeviceFactory>());
+              f.push_back(std::make_unique<LPMAllocateFactory>());
+              f.push_back(std::make_unique<MapAllocateFactory>());
+              f.push_back(std::make_unique<VectorAllocateFactory>());
+              f.push_back(std::make_unique<TokenBucketAllocateFactory>());
+              f.push_back(std::make_unique<DchainAllocateFactory>());
+              f.push_back(std::make_unique<CMSAllocateFactory>());
               return f;
             }(),
             std::make_unique<x86Context>()) {}

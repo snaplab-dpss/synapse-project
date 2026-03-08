@@ -117,6 +117,8 @@ public:
   virtual BDDNode *clone(BDDNodeManager &manager, bool recursive = false) const     = 0;
   virtual std::string dump(bool one_liner = false, bool id_name_only = false) const = 0;
 
+  bdd_node_ids_t get_prev_s2d_node_id() const;
+
   virtual ~BDDNode() = default;
 };
 

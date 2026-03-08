@@ -21,11 +21,11 @@ class NetworkNode {
 private:
   NetworkNodeId id;
   NetworkNodeType type;
-  const NF *nf;
-  std::unordered_map<Port, std::pair<Port, const NetworkNode *>> links;
+  NF *nf;
+  std::unordered_map<Port, std::pair<Port, NetworkNode *>> links;
 
 public:
-  NetworkNode(const NetworkNodeId &_id, const NF *_nf) : id(_id), type(NetworkNodeType::NF), nf(_nf) { assert(nf != nullptr); }
+  NetworkNode(const NetworkNodeId &_id, NF *_nf) : id(_id), type(NetworkNodeType::NF), nf(_nf) { assert(nf != nullptr); }
   NetworkNode(const NetworkNodeId &_id) : id(_id), type(NetworkNodeType::GLOBAL_PORT), nf(nullptr) {}
 
   NetworkNodeId get_id() const { return id; }
@@ -37,9 +37,16 @@ public:
     return nf;
   }
 
-  const std::unordered_map<Port, std::pair<Port, const NetworkNode *>> &get_links() const { return links; }
+  NF *get_mutable_nf() {
+    assert(type == NetworkNodeType::NF);
+    assert(nf != nullptr);
+    return nf;
+  }
+
+  const std::unordered_map<Port, std::pair<Port, NetworkNode *>> &get_links() const { return links; }
   bool has_link(const Port source_port) const { return links.find(source_port) != links.end(); }
-  const std::pair<Port, const NetworkNode *> &get_link(const Port source_port) const { return links.at(source_port); }
+  const std::pair<Port, NetworkNode *> &get_link(const Port source_port) const { return links.at(source_port); }
+  std::pair<Port, NetworkNode *> &get_mutable_link(const Port source_port) { return links.at(source_port); }
 
   bool connects_to_global_port(const Port destination_port) const {
     return std::any_of(links.begin(), links.end(), [destination_port](const std::pair<Port, std::pair<Port, const NetworkNode *>> &link) {
@@ -47,12 +54,12 @@ public:
     });
   }
 
-  const std::pair<Port, const NetworkNode *> &get_connected_node(const Port port) const {
+  const std::pair<Port, NetworkNode *> &get_connected_node(const Port port) const {
     assert(links.find(port) != links.end());
     return links.at(port);
   }
 
-  void add_link(Port port_from, Port port_to, const NetworkNode *node) { links[port_from] = {port_to, node}; }
+  void add_link(Port port_from, Port port_to, NetworkNode *node) { links[port_from] = {port_to, node}; }
 
   friend std::ostream &operator<<(std::ostream &os, const NetworkNode &node) {
     os << node.id << "{";

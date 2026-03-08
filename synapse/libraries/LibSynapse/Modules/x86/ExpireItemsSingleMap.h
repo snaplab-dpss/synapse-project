@@ -7,30 +7,32 @@ namespace x86 {
 
 class ExpireItemsSingleMap : public x86Module {
 private:
-  addr_t dchain_addr;
-  addr_t vector_addr;
-  addr_t map_addr;
+  klee::ref<klee::Expr> dchain_addr;
+  klee::ref<klee::Expr> vector_addr;
+  klee::ref<klee::Expr> map_addr;
   klee::ref<klee::Expr> time;
   klee::ref<klee::Expr> total_freed;
+  klee::ref<klee::Expr> n_freed_flows;
 
 public:
-  ExpireItemsSingleMap(const BDDNode *_node, addr_t _dchain_addr, addr_t _vector_addr, addr_t _map_addr, klee::ref<klee::Expr> _time,
-                       klee::ref<klee::Expr> _total_freed)
+  ExpireItemsSingleMap(const BDDNode *_node, klee::ref<klee::Expr> _dchain_addr, klee::ref<klee::Expr> _vector_addr, klee::ref<klee::Expr> _map_addr,
+                       klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _total_freed, klee::ref<klee::Expr> _n_freed_flows)
       : x86Module(ModuleType::x86_ExpireItemsSingleMap, "ExpireItemsSingleMap", _node), dchain_addr(_dchain_addr), vector_addr(_vector_addr),
-        map_addr(_map_addr), time(_time), total_freed(_total_freed) {}
+        map_addr(_map_addr), time(_time), total_freed(_total_freed), n_freed_flows(_n_freed_flows) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    ExpireItemsSingleMap *cloned = new ExpireItemsSingleMap(node, dchain_addr, map_addr, vector_addr, time, total_freed);
+    ExpireItemsSingleMap *cloned = new ExpireItemsSingleMap(node, dchain_addr, vector_addr, map_addr, time, total_freed, n_freed_flows);
     return cloned;
   }
 
-  addr_t get_dchain_addr() const { return dchain_addr; }
-  addr_t get_vector_addr() const { return vector_addr; }
-  addr_t get_map_addr() const { return map_addr; }
+  klee::ref<klee::Expr> get_dchain_addr() const { return dchain_addr; }
+  klee::ref<klee::Expr> get_map_addr() const { return map_addr; }
+  klee::ref<klee::Expr> get_vector_addr() const { return vector_addr; }
   klee::ref<klee::Expr> get_time() const { return time; }
   klee::ref<klee::Expr> get_total_freed() const { return total_freed; }
+  klee::ref<klee::Expr> get_n_freed_flows() const { return n_freed_flows; }
 };
 
 class ExpireItemsSingleMapFactory : public x86ModuleFactory {
@@ -38,7 +40,7 @@ public:
   ExpireItemsSingleMapFactory() : x86ModuleFactory(ModuleType::x86_ExpireItemsSingleMap, "ExpireItemsSingleMap") {}
 
 protected:
-  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &ctx) const override;
   virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
   virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
 };

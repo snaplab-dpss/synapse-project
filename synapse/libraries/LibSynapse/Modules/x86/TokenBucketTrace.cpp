@@ -1,6 +1,7 @@
 #include <LibSynapse/Modules/x86/TokenBucketTrace.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Expr.h>
+#include <klee/util/Ref.h>
 
 namespace LibSynapse {
 namespace x86 {
@@ -45,6 +46,7 @@ std::vector<impl_t> TokenBucketTraceFactory::process_node(const EP *ep, const BD
   }
 
   klee::ref<klee::Expr> tb_addr_expr        = call.args.at("tb").expr;
+  klee::ref<klee::Expr> key_addr_expr       = call.args.at("key").expr;
   klee::ref<klee::Expr> key                 = call.args.at("key").in;
   klee::ref<klee::Expr> pkt_len             = call.args.at("pkt_len").expr;
   klee::ref<klee::Expr> time                = call.args.at("time").expr;
@@ -57,7 +59,7 @@ std::vector<impl_t> TokenBucketTraceFactory::process_node(const EP *ep, const BD
     return {};
   }
 
-  Module *module  = new TokenBucketTrace(node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
+  Module *module  = new TokenBucketTrace(node, tb_addr_expr, key_addr_expr, key, pkt_len, time, index_out, successfuly_tracing);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -85,6 +87,7 @@ std::unique_ptr<Module> TokenBucketTraceFactory::create(const BDD *bdd, const Co
   }
 
   klee::ref<klee::Expr> tb_addr_expr        = call.args.at("tb").expr;
+  klee::ref<klee::Expr> key_addr_expr       = call.args.at("key").expr;
   klee::ref<klee::Expr> key                 = call.args.at("key").in;
   klee::ref<klee::Expr> pkt_len             = call.args.at("pkt_len").expr;
   klee::ref<klee::Expr> time                = call.args.at("time").expr;
@@ -97,7 +100,7 @@ std::unique_ptr<Module> TokenBucketTraceFactory::create(const BDD *bdd, const Co
     return {};
   }
 
-  return std::make_unique<TokenBucketTrace>(node, tb_addr, key, pkt_len, time, index_out, successfuly_tracing);
+  return std::make_unique<TokenBucketTrace>(node, tb_addr_expr, key_addr_expr, key, pkt_len, time, index_out, successfuly_tracing);
 }
 
 } // namespace x86

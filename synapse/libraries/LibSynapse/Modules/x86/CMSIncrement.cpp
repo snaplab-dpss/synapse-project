@@ -54,6 +54,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNod
   const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
@@ -62,7 +63,7 @@ std::vector<impl_t> CMSIncrementFactory::process_node(const EP *ep, const BDDNod
     return {};
   }
 
-  Module *module  = new CMSIncrement(node, cms_addr, key);
+  Module *module  = new CMSIncrement(node, cms_addr_expr, key_addr_expr, key);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -86,6 +87,7 @@ std::unique_ptr<Module> CMSIncrementFactory::create(const BDD *bdd, const Contex
   const call_t &call    = call_node->get_call();
 
   klee::ref<klee::Expr> cms_addr_expr = call.args.at("cms").expr;
+  klee::ref<klee::Expr> key_addr_expr = call.args.at("key").expr;
   klee::ref<klee::Expr> key           = call.args.at("key").in;
 
   const addr_t cms_addr = expr_addr_to_obj_addr(cms_addr_expr);
@@ -94,7 +96,7 @@ std::unique_ptr<Module> CMSIncrementFactory::create(const BDD *bdd, const Contex
     return {};
   }
 
-  return std::make_unique<CMSIncrement>(node, cms_addr, key);
+  return std::make_unique<CMSIncrement>(node, cms_addr_expr, key_addr_expr, key);
 }
 
 } // namespace x86
