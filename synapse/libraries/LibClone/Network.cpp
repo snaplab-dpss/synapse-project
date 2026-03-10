@@ -166,28 +166,20 @@ BDDNode *create_set_device_node(BDD &bdd, const symbol_t &device_symbol, u64 por
       .ret           = {},
   };
 
+  // const SymbolManager *manager      = bdd.get_symbol_manager();
+  // const symbol_t &bdd_device_symbol = manager->get_symbol(device_symbol.name);
+
+  // Symbols symbols;
+  // symbols.add(bdd_device_symbol);
+
   Call *set_device = bdd.create_new_call(call, {});
 
   return set_device;
 }
 
-/*BDDNode *create_set_device_node(BDD &bdd, const symbol_t &device_symbol, u64 port, BDDNode *next_node) {
-
-  klee::ref<klee::Expr> device_const = solver_toolbox.exprBuilder->Constant(port, device_symbol.expr->getWidth());
-  klee::ref<klee::Expr> condition    = solver_toolbox.exprBuilder->Eq(device_symbol.expr, device_const);
-
-  Branch *device_branch = new Branch(bdd.get_mutable_id(), bdd.get_mutable_symbol_manager(), condition);
-  bdd.get_mutable_manager().add_node(device_branch);
-  bdd.get_mutable_id()++;
-
-  device_branch->set_on_true(next_node);
-  next_node->set_prev(device_branch);
-
-  Route *drop_node = new Route(bdd.get_mutable_id(), bdd.get_mutable_symbol_manager(), RouteOp::Drop);
-  bdd.get_mutable_manager().add_node(drop_node);
-  bdd.get_mutable_id()++;
-  device_branch->set_on_false(drop_node);
-  drop_node->set_prev(device_branch);
+/*void set_call(const BDD &bdd, BDDNode *node, const symbol_t &device_symbol, u64 port) {
+  assert_or_panic(node->get_type() == BDDNodeType::Call, "Node should be a call");
+  Call *call_node = dynamic_cast<Call *>(node);
 
   klee::ref<klee::Expr> device_expr = solver_toolbox.exprBuilder->Constant(port, device_symbol.expr->getWidth());
 
@@ -211,12 +203,9 @@ BDDNode *create_set_device_node(BDD &bdd, const symbol_t &device_symbol, u64 por
 
   Symbols symbols;
   symbols.add(bdd_device_symbol);
-  Call *set_device = bdd.create_new_call(bdd.get_mutable_node_by_id(bdd.get_id()), call, symbols);
 
-  set_device->set_next(device_branch);
-  device_branch->set_prev(set_device);
-
-  return set_device;
+  call_node->set_local_symbols(symbols);
+  call_node->set_call(call);
 }*/
 
 std::vector<bdd_vector_t> get_bdd_sections_handling_port(const BDD &bdd, Port port) {
@@ -379,7 +368,7 @@ symbol_t create_translation_symbol(SymbolManager *symbol_manager, const symbol_t
     assert(symbol_manager->has_symbol(translated_symbol.name) && "Symbol should exist in the symbol manager");
     return symbol_manager->get_symbol(translated_symbol.name);
   }
-} */
+}*/
 
 void translate_symbols(SymbolManager *symbol_manager, BDDNode *root, NF *nf) {
 
@@ -544,7 +533,6 @@ std::vector<symbol_translation_t> store_cloned_and_translated_init_symbols(BDD &
 
   // symbol_t device           = original_bdd.get_device();
   // const symbol_t new_device = translate_device_symbol(bdd.get_mutable_symbol_manager(), device, nf, init_not_processed);
-  //
   // translations.emplace_back(device, new_device);
 
   for (const Call *call : init) {
@@ -653,6 +641,7 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, NetworkNode *network_n
 
     // const symbol_t &original_device = nf->get_bdd().get_device();
     // const symbol_t nf_device        = nf->get_symbol_translation(original_device.name);
+    // set_call(bdd, device_node, nf_device, port);
     device_node->set_next(root);
     root->set_prev(device_node);
     root = device_node;
@@ -716,6 +705,68 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, NetworkNode *network_n
   }
 
   return root;
+}
+
+void trim_impossible_paths(BDD &bdd) {
+  std::cerr << "==========================================\n";
+  std::cerr << "========= Trimming Impossible Paths ======\n";
+  std::cerr << "==========================================\n";
+
+  const BDDNode *const_root = bdd.get_root();
+  if (!const_root) {
+    std::cerr << "No root node, nothing to trim.\n";
+    return;
+  }
+
+  bdd_node_id_t root_id = const_root->get_id();
+
+  // Step 1: Collect feasibility info for all branches
+  struct BranchInfo {
+    bdd_node_id_t id;    // This branch's ID
+    bool true_feasible;  // Is true side feasible?
+    bool false_feasible; // Is false side feasible?
+  };
+
+  std::vector<BranchInfo> branch_infos;
+  std::unordered_set<bdd_node_id_t> visited;
+
+  BDDNode *root = bdd.get_mutable_node_by_id(root_id);
+
+  root->visit_mutable_nodes([&bdd, &branch_infos, &visited](BDDNode *node) -> BDDNodeVisitAction {
+    if (node->get_type() != BDDNodeType::Branch) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    if (visited.count(node->get_id())) {
+      return BDDNodeVisitAction::Continue;
+    }
+    visited.insert(node->get_id());
+
+    Branch *branch                           = dynamic_cast<Branch *>(node);
+    klee::ref<klee::Expr> condition          = branch->get_condition();
+    klee::ConstraintManager path_constraints = bdd.get_constraints(node);
+
+    bool true_feasible            = solver_toolbox.is_expr_maybe_true(path_constraints, condition);
+    klee::ref<klee::Expr> negated = solver_toolbox.exprBuilder->Not(condition);
+    bool false_feasible           = solver_toolbox.is_expr_maybe_true(path_constraints, negated);
+
+    branch_infos.push_back({node->get_id(), true_feasible, false_feasible});
+
+    std::cerr << "  Branch " << node->get_id() << ": T=" << true_feasible << " F=" << false_feasible;
+
+    if (!true_feasible && !false_feasible)
+      std::cerr << " [BOTH BAD]";
+    else if (!true_feasible)
+      std::cerr << " [TRUE BAD]";
+    else if (!false_feasible)
+      std::cerr << " [FALSE BAD]";
+    std::cerr << "\n";
+
+    return BDDNodeVisitAction::Continue;
+  });
+
+  std::cerr << "Found " << branch_infos.size() << " branches.\n";
+  std::cerr << "==========================================\n";
 }
 
 } // namespace
@@ -800,6 +851,10 @@ BDD Network::consolidate() const {
 
   BDDNode *root = build_chain_of_device_checking_branches(bdd, bdd.get_device().expr, per_device_logic);
   bdd.set_root(root);
+
+  BDDViz::visualize(&bdd, false);
+
+  trim_impossible_paths(bdd);
 
   return bdd;
 }

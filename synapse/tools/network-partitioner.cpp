@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
   const BDD bdd(input_bdd_file, &symbol_manager);
 
   const PhysicalNetwork phys_net = PhysicalNetwork::parse(input_physical_network_file);
+  phys_net.debug();
 
   NetworkPartitioner partitioner = NetworkPartitioner(bdd, phys_net);
 

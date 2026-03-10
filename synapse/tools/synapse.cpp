@@ -12,9 +12,12 @@
 #include <CLI/CLI.hpp>
 #include <nlohmann/json.hpp>
 
+#include <LibClone/Placer.h>
+
 using namespace LibCore;
 using namespace LibBDD;
 using namespace LibSynapse;
+using namespace LibClone;
 
 std::string nf_name_from_bdd(const std::string &bdd_fname) {
   std::string nf_name = bdd_fname;
@@ -39,6 +42,8 @@ struct args_t {
   bool show_bdd{false};
   bool skip_synthesis{false};
   bool dry_run{false};
+
+  std::filesystem::path physical_infrastructure_file;
 
   void print() const {
     const targets_config_t targets_config(targets_config_file);
@@ -169,7 +174,7 @@ void dump_final_report(const args_t &args, const search_report_t &search_report)
   out_report.close();
 }
 
-void dump_final_hr_report(const args_t &args, const search_report_t &search_report) {
+void dump_final_hr_report(const args_t &args, const search_report_t &search_report, const LibSynapse::TargetType &target_type) {
   const std::filesystem::path out_hr_report_fpath = args.out_dir / (args.name + ".txt");
 
   std::ofstream out_hr_report(out_hr_report_fpath);
@@ -187,7 +192,7 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   out_hr_report << "  Seed:               " << args.seed << "\n";
   out_hr_report << "  Targets:\n";
   const targets_config_t targets_config(args.targets_config_file);
-  const Targets targets(targets_config);
+  const Targets targets(target_type, targets_config);
   for (const TargetView &target : targets.get_view().elements) {
     out_hr_report << "    " << target.type << " (" << target.module_factories.size() << " modules)\n";
   }
@@ -235,8 +240,13 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   out_hr_report << "  Num EPs generated:        " << int2hr(GlobalStats::num_execution_plans_generated) << "\n";
 
   out_hr_report << "\n";
-  out_hr_report << "Switch placement:\n";
-  search_report.ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_tna().pipeline.dump(out_hr_report);
+  for (const TargetView &target : targets.get_view().elements) {
+    std::cerr << "Target: " << target.type << "\n";
+    if (target.type == TargetType::Tofino) {
+      out_hr_report << "Switch placement:\n";
+      search_report.ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_tna().pipeline.dump(out_hr_report);
+    }
+  }
 
   out_hr_report << "========================================================\n";
   out_hr_report.close();
@@ -284,6 +294,7 @@ int main(int argc, char **argv) {
   app.add_flag("--random-uniform-profile", args.random_uniform_profile, "Use a random uniform profile for the BDD.");
   app.add_flag("--skip-synthesis", args.skip_synthesis, "Skip synthesis step (only search).");
   app.add_flag("--dry-run", args.dry_run, "Don't run search.");
+  app.add_option("--physical_infrastructure", args.physical_infrastructure_file, "Physical infrastructure file.")->required();
 
   CLI11_PARSE(app, argc, argv);
 
@@ -306,82 +317,98 @@ int main(int argc, char **argv) {
   SymbolManager symbol_manager;
   const BDD bdd(args.input_bdd_file, &symbol_manager);
   const targets_config_t targets_config(args.targets_config_file);
-  const bdd_profile_t bdd_profile = build_bdd_profile(bdd, args, targets_config.tofino_config.get_available_devs());
-  const Profiler profiler         = Profiler(&bdd, bdd_profile, targets_config.tofino_config.get_available_devs());
 
-  if (args.show_prof) {
-    profiler.debug();
-    ProfilerViz::visualize(&bdd, profiler, true);
-  }
+  const LibClone::PhysicalNetwork phys_net = LibClone::PhysicalNetwork::parse(args.physical_infrastructure_file);
+  LibClone::NetworkPartitioner partitioner = LibClone::NetworkPartitioner(bdd, phys_net);
 
-  SearchEngine engine(bdd, args.heuristic_opt, profiler, targets_config, args.search_config);
-  const search_report_t report = engine.search();
+  std::unordered_map<DeviceId, std::unique_ptr<const BDD>> target_bdds = partitioner.process();
 
-  if (args.show_ep) {
-    EPViz::visualize(report.ep.get(), false);
-  }
+  for (const auto &[target_device_id, target_bdd] : target_bdds) {
 
-  if (args.show_ss) {
-    SSViz::visualize(report.search_space.get(), report.ep.get(), false);
-  }
+    std::cerr << "DEVICE: " << target_device_id << "\n";
 
-  if (args.show_bdd) {
-    ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
-  }
+    const LibClone::Device *target_device    = phys_net.get_device(target_device_id);
+    const LibSynapse::TargetType target_type = target_device->get_target();
 
-  if (!args.out_dir.empty()) {
-    const std::filesystem::path bdd_fpath = args.out_dir / (args.name + "-bdd.dot");
-    const std::filesystem::path ep_fpath  = args.out_dir / (args.name + "-ep.dot");
-    const std::filesystem::path ss_fpath  = args.out_dir / (args.name + "-ss.dot");
+    const bdd_profile_t bdd_profile = build_bdd_profile(*target_bdd, args, targets_config.tofino_config.get_available_devs());
+    const Profiler profiler         = Profiler(target_bdd.get(), bdd_profile, targets_config.tofino_config.get_available_devs());
 
-    ProfilerViz::dump_to_file(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), bdd_fpath);
-    EPViz::dump_to_file(report.ep.get(), ep_fpath);
-    SSViz::dump_to_file(report.search_space.get(), report.ep.get(), ss_fpath);
-
-    if (!args.skip_synthesis) {
-      synthesize(report.ep.get(), args.name, args.out_dir);
+    if (args.show_prof) {
+      profiler.debug();
+      ProfilerViz::visualize(target_bdd.get(), profiler, true);
     }
-  }
 
-  if (!args.out_dir.empty()) {
-    dump_final_hr_report(args, report);
-    dump_final_report(args, report);
-  }
+    SearchEngine engine(*target_bdd, args.heuristic_opt, profiler, targets_config, args.search_config, target_type);
+    const search_report_t report = engine.search();
 
-  report.ep->get_ctx().debug();
+    if (args.show_ep) {
+      EPViz::visualize(report.ep.get(), false);
+    }
 
-  std::cout << "Params:\n";
-  std::cout << "  BDD file:         " << args.input_bdd_file.filename().string() << "\n";
-  std::cout << "  Profile file:     " << args.profile_file.filename().string() << "\n";
-  std::cout << "  Config file:      " << args.targets_config_file.filename().string() << "\n";
-  std::cout << "  Heuristic:        " << report.heuristic << "\n";
-  std::cout << "  Random seed:      " << args.seed << "\n";
-  std::cout << "Search:\n";
-  std::cout << "  Search time:      " << report.meta.elapsed_time << " s\n";
-  std::cout << "  SS size:          " << int2hr(report.meta.ss_size) << "\n";
-  std::cout << "  Steps:            " << int2hr(report.meta.steps) << "\n";
-  std::cout << "  Backtracks:       " << int2hr(report.meta.backtracks) << "\n";
-  std::cout << "  Branching factor: " << report.meta.branching_factor << "\n";
-  std::cout << "  Avg BDD size:     " << int2hr(report.meta.avg_bdd_size) << "\n";
-  std::cout << "  Unfinished EPs:   " << int2hr(report.meta.unfinished_eps) << "\n";
-  std::cout << "  Solutions:        " << int2hr(report.meta.finished_eps) << "\n";
-  std::cout << "Winner EP:\n";
-  std::cout << "  Score: " << report.score << "\n";
-  for (const heuristic_metadata_t &meta : report.heuristic_meta) {
-    std::cout << "  " << meta.name << ": " << meta.description << "\n";
+    if (args.show_ss) {
+      SSViz::visualize(report.search_space.get(), report.ep.get(), false);
+    }
+
+    if (args.show_bdd) {
+      ProfilerViz::visualize(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), false);
+    }
+
+    if (!args.out_dir.empty()) {
+      const std::filesystem::path bdd_fpath = args.out_dir / (args.name + "-bdd.dot");
+      const std::filesystem::path ep_fpath  = args.out_dir / (args.name + "-ep.dot");
+      const std::filesystem::path ss_fpath  = args.out_dir / (args.name + "-ss.dot");
+
+      ProfilerViz::dump_to_file(report.ep->get_bdd(), report.ep->get_ctx().get_profiler(), bdd_fpath);
+      EPViz::dump_to_file(report.ep.get(), ep_fpath);
+      SSViz::dump_to_file(report.search_space.get(), report.ep.get(), ss_fpath);
+
+      if (!args.skip_synthesis) {
+
+        std::string out_file = args.name + "_device_" + std::to_string(target_device_id);
+        synthesize(report.ep.get(), out_file, args.out_dir);
+      }
+    }
+
+    if (!args.out_dir.empty()) {
+      dump_final_hr_report(args, report, target_type);
+      dump_final_report(args, report);
+    }
+
+    report.ep->get_ctx().debug();
+
+    std::cout << "Params:\n";
+    std::cout << "  BDD file:         " << args.input_bdd_file.filename().string() << "\n";
+    std::cout << "  Profile file:     " << args.profile_file.filename().string() << "\n";
+    std::cout << "  Config file:      " << args.targets_config_file.filename().string() << "\n";
+    std::cout << "  Heuristic:        " << report.heuristic << "\n";
+    std::cout << "  Random seed:      " << args.seed << "\n";
+    std::cout << "Search:\n";
+    std::cout << "  Search time:      " << report.meta.elapsed_time << " s\n";
+    std::cout << "  SS size:          " << int2hr(report.meta.ss_size) << "\n";
+    std::cout << "  Steps:            " << int2hr(report.meta.steps) << "\n";
+    std::cout << "  Backtracks:       " << int2hr(report.meta.backtracks) << "\n";
+    std::cout << "  Branching factor: " << report.meta.branching_factor << "\n";
+    std::cout << "  Avg BDD size:     " << int2hr(report.meta.avg_bdd_size) << "\n";
+    std::cout << "  Unfinished EPs:   " << int2hr(report.meta.unfinished_eps) << "\n";
+    std::cout << "  Solutions:        " << int2hr(report.meta.finished_eps) << "\n";
+    std::cout << "Winner EP:\n";
+    std::cout << "  Score: " << report.score << "\n";
+    for (const heuristic_metadata_t &meta : report.heuristic_meta) {
+      std::cout << "  " << meta.name << ": " << meta.description << "\n";
+    }
+    std::cout << "Global Stats:\n";
+    std::cout << "  Speculative phases:\n";
+    std::cout << "    Phase 1: " << int2hr(GlobalStats::num_phase1_speculations) << " ("
+              << percent2str(GlobalStats::num_phase1_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
+    std::cout << "    Phase 2: " << int2hr(GlobalStats::num_phase2_speculations) << " ("
+              << percent2str(GlobalStats::num_phase2_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
+    std::cout << "  Num speculated modules:        " << int2hr(GlobalStats::num_speculated_modules) << "\n";
+    std::cout << "  Num execution plans generated: " << int2hr(GlobalStats::num_execution_plans_generated) << "\n";
+    std::cout << "  Time spent speculating:     " << int2hr(GlobalStats::total_time_spent_speculating) << " us\n";
+    std::cout << "  Time spent instantiating:   " << int2hr(GlobalStats::total_time_spent_generating_execution_plans) << " us\n";
+    std::cout << "  Time per speculation: " << GlobalStats::time_per_speculation() << " us\n";
+    std::cout << "  Time per instantiation: " << GlobalStats::time_per_instantiation() << " us\n";
   }
-  std::cout << "Global Stats:\n";
-  std::cout << "  Speculative phases:\n";
-  std::cout << "    Phase 1: " << int2hr(GlobalStats::num_phase1_speculations) << " ("
-            << percent2str(GlobalStats::num_phase1_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
-  std::cout << "    Phase 2: " << int2hr(GlobalStats::num_phase2_speculations) << " ("
-            << percent2str(GlobalStats::num_phase2_speculations, GlobalStats::num_phase1_speculations, 2) << ")\n";
-  std::cout << "  Num speculated modules:        " << int2hr(GlobalStats::num_speculated_modules) << "\n";
-  std::cout << "  Num execution plans generated: " << int2hr(GlobalStats::num_execution_plans_generated) << "\n";
-  std::cout << "  Time spent speculating:     " << int2hr(GlobalStats::total_time_spent_speculating) << " us\n";
-  std::cout << "  Time spent instantiating:   " << int2hr(GlobalStats::total_time_spent_generating_execution_plans) << " us\n";
-  std::cout << "  Time per speculation: " << GlobalStats::time_per_speculation() << " us\n";
-  std::cout << "  Time per instantiation: " << GlobalStats::time_per_instantiation() << " us\n";
 
   return 0;
 }

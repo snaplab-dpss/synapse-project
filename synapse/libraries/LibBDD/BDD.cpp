@@ -1623,6 +1623,10 @@ klee::ConstraintManager BDD::get_constraints(const BDDNode *node) const {
   for (klee::ref<klee::Expr> constraint : node->get_ordered_branch_constraints()) {
     constraints.addConstraint(constraint);
   }
+
+  /*for (klee::ref<klee::Expr> constraint : node->get_device_constraints()) {
+    constraints.addConstraint(constraint);
+  }*/
   return constraints;
 }
 

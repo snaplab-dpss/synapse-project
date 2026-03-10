@@ -71,7 +71,7 @@ private:
 
 public:
   SearchEngine(const BDD &bdd, HeuristicOption hopt, const Profiler &profiler, const targets_config_t &targets_config,
-               const search_config_t &search_config);
+               const search_config_t &search_config, const TargetType &target_type);
 
   SearchEngine(const SearchEngine &)            = delete;
   SearchEngine(SearchEngine &&)                 = delete;

@@ -118,6 +118,7 @@ public:
   virtual std::string dump(bool one_liner = false, bool id_name_only = false) const = 0;
 
   bdd_node_ids_t get_prev_s2d_node_id() const;
+  // std::vector<klee::ref<klee::Expr>> get_device_constraints() const;
 
   virtual ~BDDNode() = default;
 };

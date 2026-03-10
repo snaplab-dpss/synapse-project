@@ -100,15 +100,15 @@ std::vector<impl_t> ModifyHeaderFactory::process_node(const EP *ep, const BDDNod
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  if (changes.empty()) {
-    new_ep->process_leaf(node->get_next());
-  } else {
-    Module *module  = new ModifyHeader(node, hdr_addr, changes, swaps);
-    EPNode *ep_node = new EPNode(module);
+  // if (changes.empty()) {
+  //   new_ep->process_leaf(node->get_next());
+  // } else {
+  Module *module  = new ModifyHeader(node, hdr_addr, changes, swaps);
+  EPNode *ep_node = new EPNode(module);
 
-    const EPLeaf leaf(ep_node, node->get_next());
-    new_ep->process_leaf(ep_node, {leaf});
-  }
+  const EPLeaf leaf(ep_node, node->get_next());
+  new_ep->process_leaf(ep_node, {leaf});
+  // }
 
   std::vector<impl_t> impls;
   impls.emplace_back(implement(ep, node, std::move(new_ep)));

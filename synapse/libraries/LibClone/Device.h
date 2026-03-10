@@ -30,7 +30,7 @@ public:
   const LibSynapse::TargetType &get_target() const { return target; }
 
   friend std::ostream &operator<<(std::ostream &os, const Device &device) {
-    os << "Device{" << device.target << "}";
+    os << "Device{ Id: " << device.id << " Target: " << device.target << " }";
     return os;
   }
 };

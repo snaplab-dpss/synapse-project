@@ -12,6 +12,7 @@ target_link_libraries(Clone PUBLIC BDD)
 
 target_link_options(Core PRIVATE "-Wl,--whole-archive")
 target_include_directories(Clone PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../)
+target_include_directories(Clone PRIVATE ${GUROBI_INCLUDE_DIRS})
 target_link_options(Core PRIVATE "-Wl,--no-whole-archive")
 
 target_compile_options(Clone PRIVATE ${GLOBAL_COMPILATION_FLAGS})

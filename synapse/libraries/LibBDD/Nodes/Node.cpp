@@ -948,4 +948,29 @@ bdd_node_ids_t BDDNode::get_prev_s2d_node_id() const {
   return s2d_ids;
 }
 
+/*std::vector<klee::ref<klee::Expr>> BDDNode::get_device_constraints() const {
+  std::vector<klee::ref<klee::Expr>> device_constraints;
+  const BDDNode *node = this;
+
+  while (node->get_prev()) {
+    const BDDNode *prev_node = node->get_prev();
+
+    if (prev_node->get_type() == BDDNodeType::Call) {
+      const Call *call_node = dynamic_cast<const Call *>(prev_node);
+      const call_t call     = call_node->get_call();
+
+      if (call.function_name == "set_device_info") {
+        klee::ref<klee::Expr> port_value  = call.args.at("value").expr;
+        symbol_t device_symbol            = call_node->get_local_symbol("DEVICE");
+        klee::ref<klee::Expr> device_expr = device_symbol.expr;
+
+        klee::ref<klee::Expr> constraint = solver_toolbox.exprBuilder->Eq(device_expr, port_value);
+        device_constraints.insert(device_constraints.begin(), constraint);
+      }
+    }
+    node = prev_node;
+  }
+  return device_constraints;
+}*/
+
 } // namespace LibBDD

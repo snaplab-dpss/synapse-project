@@ -59,6 +59,7 @@ struct Targets {
   std::vector<std::unique_ptr<Target>> elements;
 
   Targets(const targets_config_t &config);
+  Targets(const TargetType &target, const targets_config_t &config);
   Targets(const Targets &other) = delete;
   Targets(Targets &&other)      = delete;
 

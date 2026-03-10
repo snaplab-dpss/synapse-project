@@ -9,6 +9,9 @@
 size_t global_total_length;
 size_t global_read_length = 0;
 
+void *chunks_borrowed[MAX_N_CHUNKS];
+size_t num_chunks_borrowed = 0;
+
 void packet_state_total_length(void *p, uint32_t *len) { global_total_length = *len; }
 
 // The main IO primitive.
@@ -16,9 +19,21 @@ void packet_borrow_next_chunk(void *p, size_t length, void **chunk) {
   // TODO: support mbuf chains.
   *chunk = (char *)p + global_read_length;
   global_read_length += length;
+
+  chunks_borrowed[num_chunks_borrowed] = *chunk;
+  num_chunks_borrowed++;
 }
 
-void packet_return_chunk(void *p, void *chunk) { global_read_length = (uint32_t)((int8_t *)chunk - (int8_t *)p); }
+void packet_return_chunk(void *p, void *chunk) {
+  global_read_length = (uint32_t)((int8_t *)chunk - (int8_t *)p);
+  --num_chunks_borrowed;
+}
+
+void packet_return_all_chunks(void *p) {
+  while (num_chunks_borrowed != 0) {
+    packet_return_chunk(p, chunks_borrowed[num_chunks_borrowed - 1]);
+  }
+}
 
 void packet_shrink_chunk(void **p, size_t length, void **chunks, size_t num_chunks, struct rte_mbuf *mbuf) {
   uint8_t *data = (uint8_t *)(*p);
@@ -72,7 +87,10 @@ void packet_insert_new_chunk(void **p, size_t length, void **chunks, size_t *num
     ((uint8_t **)chunks)[i] -= length;
   }
 
-  assert(chunks[0] == data);
+  // NOTE: no need to verify when no chunks were borrowed before.
+  if (*num_chunks > 0) {
+    assert(chunks[0] == data);
+  }
 
   (*num_chunks)++;
   (*p) = data;

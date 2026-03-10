@@ -1,6 +1,6 @@
 #include <LibClone/EmbeddingSolver.h>
 
-//#include <gurobi_c++.h>
+#include <gurobi_c++.h>
 
 namespace LibClone {
 

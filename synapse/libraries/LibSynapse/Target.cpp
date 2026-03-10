@@ -164,6 +164,20 @@ Targets::Targets(const targets_config_t &targets_config) {
   elements.push_back(std::move(std::make_unique<x86::x86Target>()));
 }
 
+Targets::Targets(const TargetType &target, const targets_config_t &targets_config) {
+  switch (target) {
+  case TargetType::Tofino: {
+    elements.push_back(std::move(std::make_unique<Tofino::TofinoTarget>(targets_config.tofino_config)));
+    elements.push_back(std::move(std::make_unique<Controller::ControllerTarget>()));
+  } break;
+  case TargetType::x86:
+    elements.push_back(std::move(std::make_unique<x86::x86Target>()));
+    break;
+  default:
+    break;
+  }
+}
+
 TargetsView Targets::get_view() const {
   std::vector<TargetView> views;
   for (const std::unique_ptr<Target> &element : elements) {
