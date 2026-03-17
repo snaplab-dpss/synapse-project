@@ -1,3 +1,4 @@
+#include "LibClone/EmbeddingSolver.h"
 #include <LibSynapse/Search.h>
 #include <LibSynapse/Synthesizers/Synthesizers.h>
 #include <LibSynapse/Visualizers/EPVisualizer.h>
@@ -12,7 +13,7 @@
 #include <CLI/CLI.hpp>
 #include <nlohmann/json.hpp>
 
-#include <LibClone/Placer.h>
+#include <LibClone/Partitioner.h>
 
 using namespace LibCore;
 using namespace LibBDD;
@@ -44,6 +45,7 @@ struct args_t {
   bool dry_run{false};
 
   std::filesystem::path physical_infrastructure_file;
+  std::filesystem::path placement_strategy_file;
 
   void print() const {
     const targets_config_t targets_config(targets_config_file);
@@ -295,6 +297,7 @@ int main(int argc, char **argv) {
   app.add_flag("--skip-synthesis", args.skip_synthesis, "Skip synthesis step (only search).");
   app.add_flag("--dry-run", args.dry_run, "Don't run search.");
   app.add_option("--physical_infrastructure", args.physical_infrastructure_file, "Physical infrastructure file.")->required();
+  app.add_option("--placement_strategy", args.placement_strategy_file, "Input Placement Strategy File")->required();
 
   CLI11_PARSE(app, argc, argv);
 
@@ -318,8 +321,9 @@ int main(int argc, char **argv) {
   const BDD bdd(args.input_bdd_file, &symbol_manager);
   const targets_config_t targets_config(args.targets_config_file);
 
-  const LibClone::PhysicalNetwork phys_net = LibClone::PhysicalNetwork::parse(args.physical_infrastructure_file);
-  LibClone::NetworkPartitioner partitioner = LibClone::NetworkPartitioner(bdd, phys_net);
+  const LibClone::PhysicalNetwork phys_net   = LibClone::PhysicalNetwork::parse(args.physical_infrastructure_file);
+  const LibClone::EmbeddingSolution solution = LibClone::EmbeddingSolution::from_json(args.placement_strategy_file);
+  LibClone::NetworkPartitioner partitioner   = LibClone::NetworkPartitioner(bdd, phys_net, solution);
 
   std::unordered_map<DeviceId, std::unique_ptr<const BDD>> target_bdds = partitioner.process();
 

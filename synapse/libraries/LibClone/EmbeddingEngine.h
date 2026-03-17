@@ -1,24 +1,27 @@
 #pragma once
 
+#include <LibCore/Types.h>
+
 #include <LibClone/MetaNode.h>
 #include <LibClone/EmbeddingSolver.h>
-
 #include <unordered_map>
 
 namespace LibClone {
 
 using LibBDD::BDD;
 using LibBDD::bdd_node_id_t;
+using LibBDD::bdd_node_ids_t;
 
-using LibClone::ComponentId;
+using LibClone::BDDInfo;
+using LibClone::CostMatrix;
+using LibClone::Device;
 using LibClone::DeviceId;
+using LibClone::InfrastructureInfo;
 
 class EmbeddingEngine {
 private:
   BDD bdd;
   const PhysicalNetwork &phys_net;
-
-  std::unordered_map<MetaNodeId, std::shared_ptr<MetaNode>> meta_nodes;
 
   EmbeddingSolver solver;
 
@@ -30,11 +33,13 @@ public:
 
   const BDD *get_bdd() const { return &bdd; }
   const PhysicalNetwork &get_physical_network() const { return phys_net; }
-  const std::unordered_map<MetaNodeId, std::shared_ptr<MetaNode>> &get_meta_nodes() const { return meta_nodes; }
 
-  void pre_process();
-  EmbeddingSolution solve();
+  BDDInfo get_bdd_info() const;
+  InfrastructureInfo get_infrastructure_info() const;
 
-  void debug() const;
+  EmbeddingSolution solve(const BDDInfo &bdd_info, const InfrastructureInfo &infra_info);
+
+  void debug(const BDDInfo &bdd_info, const InfrastructureInfo &infra_info) const;
 };
+
 } // namespace LibClone

@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <CLI/CLI.hpp>
+#include <fstream>
 
 using namespace LibCore;
 using namespace LibBDD;
@@ -18,12 +19,13 @@ int main(int argc, char **argv) {
 
   std::filesystem::path input_bdd_file;
   std::filesystem::path input_physical_network_file;
-  std::filesystem::path output_file;
+  std::filesystem::path output_path;
   bool show_bdd{false};
+  bool serealize{false};
 
   app.add_option("--in", input_bdd_file, "Input BDD file.")->required();
   app.add_option("--network", input_physical_network_file, "Input Physical Network file.")->required();
-  app.add_option("--out", output_file, "Output file for the generated embedding.")->default_val(".");
+  app.add_option("--out", output_path, "Output file for the generated embedding.");
   app.add_flag("--show-bdd", show_bdd, "Show the input BDD");
 
   CLI11_PARSE(app, argc, argv);
@@ -35,8 +37,17 @@ int main(int argc, char **argv) {
 
   EmbeddingEngine engine = EmbeddingEngine(bdd, phys_net);
 
-  engine.pre_process();
-  engine.debug();
+  const LibClone::BDDInfo bdd_info              = engine.get_bdd_info();
+  const LibClone::InfrastructureInfo infra_info = engine.get_infrastructure_info();
+
+  const LibClone::EmbeddingSolution solution = engine.solve(bdd_info, infra_info);
+  solution.assert_inspection(bdd_info, infra_info);
+  solution.debug();
+
+  if (!output_path.empty()) {
+    std::filesystem::path out_file(output_path.string() + "_placement.json");
+    solution.serealize(out_file);
+  }
 
   return 0;
 }

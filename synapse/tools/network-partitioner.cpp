@@ -1,4 +1,4 @@
-#include <LibClone/Placer.h>
+#include <LibClone/Partitioner.h>
 
 #include <LibBDD/BDD.h>
 #include <LibBDD/Visitors/BDDVisualizer.h>
@@ -20,10 +20,12 @@ int main(int argc, char **argv) {
 
   std::filesystem::path input_bdd_file;
   std::filesystem::path input_physical_network_file;
+  std::filesystem::path input_solution_file;
   std::filesystem::path output_bdd_file;
   bool show_bdd{false};
 
   app.add_option("--in", input_bdd_file, "Input BDD file.")->required();
+  app.add_option("--sol", input_solution_file, "Input Placement Strategy File")->required();
   app.add_option("--network", input_physical_network_file, "Input Physical Network file.")->required();
   app.add_option("--out", output_bdd_file, "Output file for the generated BDD.")->default_val(".");
 
@@ -32,11 +34,10 @@ int main(int argc, char **argv) {
 
   SymbolManager symbol_manager;
   const BDD bdd(input_bdd_file, &symbol_manager);
-
   const PhysicalNetwork phys_net = PhysicalNetwork::parse(input_physical_network_file);
-  phys_net.debug();
+  const EmbeddingSolution sol    = EmbeddingSolution::from_json(input_solution_file);
 
-  NetworkPartitioner partitioner = NetworkPartitioner(bdd, phys_net);
+  NetworkPartitioner partitioner = NetworkPartitioner(bdd, phys_net, sol);
 
   std::unordered_map<DeviceId, std::unique_ptr<const BDD>> target_bdds = partitioner.process();
 

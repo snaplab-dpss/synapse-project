@@ -2,26 +2,22 @@
 
 #include <LibCore/Debug.h>
 
-#include <LibSynapse/Target.h>
-
 #include <queue>
 #include <fstream>
 #include <sstream>
+#include <unordered_map>
 
 namespace LibClone {
 
 namespace {
-constexpr char TOKEN_CMD_LINK[]  = "link";
-constexpr char TOKEN_CMD_PLACE[] = "place";
-constexpr char TOKEN_PORT[]      = "global_port";
-constexpr char TOKEN_COMMENT[]   = "//";
-constexpr char TOKEN_DEVICE[]    = "device";
-constexpr char TOKEN_COMPONENT[] = "component";
+constexpr char TOKEN_CMD_LINK[] = "link";
+constexpr char TOKEN_PORT[]     = "global_port";
+constexpr char TOKEN_COMMENT[]  = "//";
+constexpr char TOKEN_DEVICE[]   = "device";
 
-constexpr size_t LENGTH_DEVICE_INPUT    = 3;
-constexpr size_t LENGTH_PORT_INPUT      = 2;
-constexpr size_t LENGTH_LINK_INPUT      = 5;
-constexpr size_t LENGTH_PLACEMENT_INPUT = 5;
+constexpr size_t LENGTH_DEVICE_INPUT = 3;
+constexpr size_t LENGTH_PORT_INPUT   = 2;
+constexpr size_t LENGTH_LINK_INPUT   = 5;
 
 std::ifstream open_file(const std::string &path) {
   std::ifstream fstream;
@@ -35,9 +31,7 @@ std::ifstream open_file(const std::string &path) {
 }
 
 std::unique_ptr<Device> parse_device(const std::vector<std::string> &words) {
-  if (words.size() != LENGTH_DEVICE_INPUT) {
-    panic("Invalid device");
-  }
+  assert_or_panic(words.size() == LENGTH_DEVICE_INPUT, "Invalid device");
 
   const DeviceId id = std::stoi(words[1]);
   assert(id >= 0 && "ERROR: Unallowed DeviceId");
@@ -46,34 +40,9 @@ std::unique_ptr<Device> parse_device(const std::vector<std::string> &words) {
   return std::make_unique<Device>(id, arch);
 }
 
-void parse_placement(const std::vector<std::string> &words, const std::unordered_map<DeviceId, std::unique_ptr<Device>> &devices,
-                     std::unordered_map<ComponentId, DeviceId> &placement) {
-  if (words.size() != LENGTH_PLACEMENT_INPUT) {
-    panic("Invalid placement");
-  }
-
-  const ComponentId component_id = std::stoul(words[2]);
-  const DeviceId instance        = std::stoi(words[4]);
-
-  if (devices.find(instance) == devices.end()) {
-    panic("Could not find device");
-  }
-
-  if (placement.find(component_id) != placement.end()) {
-    panic("Component %lu is already placed", component_id);
-  }
-
-  const DeviceId device_id = devices.at(instance)->get_id();
-  assert(instance == device_id && "Instance ID should match device ID");
-
-  placement[component_id] = device_id;
-}
-
 void parse_link(const std::vector<std::string> &words, const std::unordered_map<DeviceId, std::unique_ptr<Device>> &devices,
                 std::unordered_map<InfrastructureNodeId, std::unique_ptr<InfrastructureNode>> &nodes) {
-  if (words.size() != LENGTH_LINK_INPUT) {
-    panic("Invalid link");
-  }
+  assert_or_panic(words.size() == LENGTH_LINK_INPUT, "Invalid link");
 
   const InfrastructureNodeId node1_id = words[1] == TOKEN_PORT ? InfrastructureNodeId(-1) : std::stoi(words[1]);
   const Port sport                    = std::stoul(words[2]);
@@ -110,13 +79,13 @@ void parse_link(const std::vector<std::string> &words, const std::unordered_map<
   nodes.at(node1_id)->add_link(sport, dport, nodes.at(node2_id).get());
 }
 
-std::unordered_map<InfrastructureNodeId, Port>
+std::unordered_map<InfrastructureNodeId, LinkInfo>
 dijkstra(const std::unordered_map<InfrastructureNodeId, std::vector<std::pair<Port, InfrastructureNodeId>>> &links, const InfrastructureNodeId &src) {
-  std::unordered_map<InfrastructureNodeId, int> dist;
+  std::unordered_map<InfrastructureNodeId, u64> dist;
   std::unordered_map<InfrastructureNodeId, Port> first_hop_port;
   std::unordered_set<InfrastructureNodeId> visited;
 
-  using HeapElem = std::pair<int, InfrastructureNodeId>;
+  using HeapElem = std::pair<u64, InfrastructureNodeId>;
   std::priority_queue<HeapElem, std::vector<HeapElem>, std::greater<HeapElem>> heap;
 
   dist[src] = 0;
@@ -131,10 +100,11 @@ dijkstra(const std::unordered_map<InfrastructureNodeId, std::vector<std::pair<Po
 
     auto it = links.find(u);
     if (it == links.end())
-      continue; // no outgoing edges
+      continue;
 
     for (const auto &[out_port, v] : it->second) {
-      int new_dist = cur_dist + 1;
+      u64 edge_cost = 1; // Default cost, could be from link metadata
+      u64 new_dist  = cur_dist + edge_cost;
       if (!dist.count(v) || new_dist < dist[v]) {
         dist[v] = new_dist;
         if (u == src) {
@@ -142,68 +112,57 @@ dijkstra(const std::unordered_map<InfrastructureNodeId, std::vector<std::pair<Po
         } else {
           first_hop_port[v] = first_hop_port[u];
         }
-        // Do not expand paths that go through the global port
         if (v != -1)
           heap.push({new_dist, v});
       }
     }
   }
 
-  return first_hop_port;
+  std::unordered_map<InfrastructureNodeId, LinkInfo> result;
+  for (const auto &[dst, cost] : dist) {
+    if (dst != src && first_hop_port.count(dst)) {
+      result[dst] = {first_hop_port[dst], static_cast<u16>(cost)};
+    }
+  }
+  return result;
 }
 
-std::unordered_map<InfrastructureNodeId, std::unordered_map<InfrastructureNodeId, Port>>
-build_forwarding_table(std::unordered_map<InfrastructureNodeId, std::unique_ptr<InfrastructureNode>> &nodes) {
-  std::unordered_map<InfrastructureNodeId, std::unordered_map<InfrastructureNodeId, Port>> routing;
+RoutingTable build_routing_table(const std::unordered_map<InfrastructureNodeId, std::unique_ptr<InfrastructureNode>> &nodes) {
+  RoutingTable routing_table;
 
-  // Build adjacency list
-  std::unordered_map<InfrastructureNodeId, std::vector<std::pair<Port, InfrastructureNodeId>>> links;
+  std::unordered_map<InfrastructureNodeId, std::vector<std::pair<Port, InfrastructureNodeId>>> adjacency;
   for (const auto &[node_id, node] : nodes) {
     for (const auto &[port, link] : node->get_links()) {
-      links[node_id].emplace_back(port, link.second->get_id());
+      adjacency[node_id].emplace_back(port, link.second->get_id());
     }
   }
 
   for (const auto &[node_id, _] : nodes) {
-    routing[node_id] = dijkstra(links, node_id);
+    routing_table[node_id] = dijkstra(adjacency, node_id);
   }
 
-  return routing;
+  return routing_table;
 }
 
 } // namespace
 
-DeviceId PhysicalNetwork::get_placement(const ComponentId component_id) const {
-  if (placement_strategy.find(component_id) == placement_strategy.end()) {
-    panic("Component ID %lu not found in placement strategy!", component_id);
-  }
-  return placement_strategy.at(component_id);
-}
-
 bool PhysicalNetwork::has_device(const DeviceId device_id) const { return devices.find(device_id) != devices.end(); }
 
 const Device *PhysicalNetwork::get_device(const DeviceId device_id) const {
-  if (devices.find(device_id) == devices.end()) {
-    panic("DEvice ID %ld not found in devices!", device_id);
-  }
+  assert_or_panic(devices.find(device_id) != devices.end(), "Device ID %ld not found in devices!", device_id);
   return devices.at(device_id).get();
 }
 
 const InfrastructureNode *PhysicalNetwork::get_node(const InfrastructureNodeId node_id) const {
-  if (nodes.find(node_id) == nodes.end()) {
-    panic("Node ID %ld not found in nodes!", node_id);
-  }
+  assert_or_panic(nodes.find(node_id) != nodes.end(), "Node ID %ld not found in nodes!", node_id);
   return nodes.at(node_id).get();
 }
 
 Port PhysicalNetwork::get_forwarding_port(const InfrastructureNodeId src, const InfrastructureNodeId dst) const {
-  if (forwarding_table.find(src) == forwarding_table.end()) {
-    panic("Source Node ID %ld not found in forwarding table!", src);
-  }
-  if (forwarding_table.at(src).find(dst) == forwarding_table.at(src).end()) {
-    panic("Destination Node ID %ld not reachable from Source Node ID %ld!", dst, src);
-  }
-  return forwarding_table.at(src).at(dst);
+  assert_or_panic(routing_table.find(src) != routing_table.end(), "Source Node ID %ld not found in forwarding table!", src);
+  assert_or_panic(routing_table.at(src).find(dst) != routing_table.at(src).end(), "Destination Node ID %ld not reachable from Source Node ID %ld!",
+                  dst, src);
+  return routing_table.at(src).at(dst).port;
 }
 
 const std::vector<std::pair<Port, DeviceId>> PhysicalNetwork::find_path(const InfrastructureNodeId src_id, const InfrastructureNodeId dst_id) const {
@@ -218,9 +177,7 @@ const std::vector<std::pair<Port, DeviceId>> PhysicalNetwork::find_path(const In
     // const Port next_port                = current_node->get_connected_node(out_port).first;
     const InfrastructureNode *next_node = current_node->get_connected_node(out_port).second;
 
-    if (next_node->get_node_type() == InfrastructureNodeType::GLOBAL_PORT) {
-      panic("Path goes through global port, which is not allowed!");
-    }
+    assert_or_panic(next_node->get_node_type() != InfrastructureNodeType::GLOBAL_PORT, "Path goes through global port, which is not allowed!");
 
     const Device *next_device = next_node->get_device();
     path.emplace_back(out_port, next_device->get_id());
@@ -231,30 +188,22 @@ const std::vector<std::pair<Port, DeviceId>> PhysicalNetwork::find_path(const In
   return path;
 }
 
-const std::unordered_map<DeviceId, bool> PhysicalNetwork::get_target_list(const ComponentId root_node) const {
-  std::unordered_map<DeviceId, bool> targets;
-
-  if (placement_strategy.find(root_node) == placement_strategy.end()) {
-    panic("Component ID %lu not found in placement strategy!", root_node);
-  }
-
-  const DeviceId root_id = placement_strategy.at(root_node);
-  targets.emplace(root_id, true);
-
-  for (const auto &[_, device] : devices) {
-    const DeviceId &device_id = device->get_id();
-    if (device_id == root_id) {
-      continue;
-    }
-    targets.emplace(device_id, false);
-  }
-
-  return targets;
-}
-
 const std::set<Port> PhysicalNetwork::get_target_ports(const InfrastructureNodeId node_id) const {
   const InfrastructureNode *node = get_node(node_id);
   return node->get_ports();
+}
+
+CostMatrix PhysicalNetwork::get_cost_matrix() const {
+  CostMatrix cost_matrix;
+
+  for (const auto &[src_id, links] : routing_table) {
+    cost_matrix[src_id][src_id] = 0;
+    for (const auto &[dst_id, link_info] : links) {
+      cost_matrix[src_id][dst_id] = link_info.cost;
+    }
+  }
+
+  return cost_matrix;
 }
 
 const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &network_file) {
@@ -262,7 +211,6 @@ const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &networ
 
   std::unordered_map<DeviceId, std::unique_ptr<Device>> devices;
   std::unordered_map<InfrastructureNodeId, std::unique_ptr<InfrastructureNode>> nodes;
-  std::unordered_map<ComponentId, DeviceId> placement;
 
   std::string line;
   while (getline(fstream, line)) {
@@ -286,8 +234,6 @@ const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &networ
       devices[device->get_id()] = std::move(device);
     } else if (type == TOKEN_CMD_LINK) {
       parse_link(words, devices, nodes);
-    } else if (type == TOKEN_CMD_PLACE) {
-      parse_placement(words, devices, placement);
     } else if (type == TOKEN_COMMENT) {
       // Ignore comments
       continue;
@@ -296,16 +242,30 @@ const PhysicalNetwork PhysicalNetwork::parse(const std::filesystem::path &networ
     }
   }
 
-  std::unordered_map<InfrastructureNodeId, std::unordered_map<InfrastructureNodeId, Port>> forwarding_table = build_forwarding_table(nodes);
+  RoutingTable forwarding_table = build_routing_table(nodes);
 
-  return PhysicalNetwork(std::move(devices), std::move(nodes), std::move(placement), std::move(forwarding_table));
+  return PhysicalNetwork(std::move(devices), std::move(nodes), std::move(forwarding_table));
 }
 
-void PhysicalNetwork::add_placement(ComponentId component_id, DeviceId device) {
-  if (placement_strategy.find(component_id) != placement_strategy.end()) {
-    panic("Component %lu is already placed", component_id);
+void PhysicalNetwork::debug() const {
+  std::cerr << "========== Physical Network ==========\n";
+  std::cerr << "Devices:\n";
+  for (const auto &[_, device] : devices) {
+    std::cerr << "  " << *device << "\n";
   }
-  placement_strategy[component_id] = device;
+  std::cerr << "Nodes:\n";
+  for (const auto &[_, node] : nodes) {
+    std::cerr << "  " << *node << "\n";
+  }
+
+  std::cerr << "Forwarding Table:\n";
+  for (const auto &[src_node_id, table] : routing_table) {
+    for (const auto &[dst_node_id, link_info] : table) {
+      std::cerr << "{ Src Node ID: " << src_node_id << ", Dst Node ID: " << dst_node_id << ", Port: " << link_info.port
+                << ", Cost: " << link_info.cost << " }\n";
+    }
+  }
+  std::cerr << "=======================================\n";
 }
 
 } // namespace LibClone

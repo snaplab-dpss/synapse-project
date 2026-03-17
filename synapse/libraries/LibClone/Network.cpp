@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <queue>
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -707,6 +708,26 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, NetworkNode *network_n
   return root;
 }
 
+std::pair<BDDNode *, BDD::BranchDeletionAction> find_last_branch_in_path(BDDNode *target) {
+
+  BDDNode *current = target;
+  while (current) {
+
+    BDDNode *prev = current->get_mutable_prev();
+    if (prev->get_type() == BDDNodeType::Branch) {
+      Branch *branch = dynamic_cast<Branch *>(prev);
+      if (branch->get_on_true() == current) {
+        return {prev, BDD::BranchDeletionAction::KeepOnFalse};
+      } else if (branch->get_on_false() == current) {
+        return {prev, BDD::BranchDeletionAction::KeepOnTrue};
+      }
+    }
+
+    current = prev;
+  }
+  panic("No previous Branch found");
+}
+
 void trim_impossible_paths(BDD &bdd) {
   std::cerr << "==========================================\n";
   std::cerr << "========= Trimming Impossible Paths ======\n";
@@ -718,52 +739,62 @@ void trim_impossible_paths(BDD &bdd) {
     return;
   }
 
-  bdd_node_id_t root_id = const_root->get_id();
-
-  // Step 1: Collect feasibility info for all branches
   struct BranchInfo {
-    bdd_node_id_t id;    // This branch's ID
-    bool true_feasible;  // Is true side feasible?
-    bool false_feasible; // Is false side feasible?
+    bdd_node_id_t id;
+    bool true_feasible;
+    bool false_feasible;
   };
 
   std::vector<BranchInfo> branch_infos;
-  std::unordered_set<bdd_node_id_t> visited;
 
-  BDDNode *root = bdd.get_mutable_node_by_id(root_id);
+  bdd_node_id_t root_id = const_root->get_id();
+  BDDNode *root         = bdd.get_mutable_node_by_id(root_id);
 
-  root->visit_mutable_nodes([&bdd, &branch_infos, &visited](BDDNode *node) -> BDDNodeVisitAction {
-    if (node->get_type() != BDDNodeType::Branch) {
-      return BDDNodeVisitAction::Continue;
+  std::queue<BDDNode *> queue;
+  queue.push(root);
+
+  while (!queue.empty()) {
+    BDDNode *current = queue.front();
+    queue.pop();
+
+    switch (current->get_type()) {
+    case BDDNodeType::Branch: {
+      Branch *branch                           = dynamic_cast<Branch *>(current);
+      klee::ref<klee::Expr> condition          = branch->get_condition();
+      klee::ConstraintManager path_constraints = bdd.get_constraints(current);
+
+      bool true_feasible            = solver_toolbox.is_expr_maybe_true(path_constraints, condition);
+      klee::ref<klee::Expr> negated = solver_toolbox.exprBuilder->Not(condition);
+      bool false_feasible           = solver_toolbox.is_expr_maybe_true(path_constraints, negated);
+
+      branch_infos.push_back({current->get_id(), true_feasible, false_feasible});
+
+      if (!true_feasible && !false_feasible) {
+        std::pair<BDDNode *, BDD::BranchDeletionAction> last_path_branch = find_last_branch_in_path(current);
+        BDDNode *last_branch                                             = last_path_branch.first;
+        BDD::BranchDeletionAction action                                 = last_path_branch.second;
+        bdd.delete_branch(last_branch->get_id(), action);
+
+      } else if (!true_feasible && false_feasible) {
+        BDDNode *next = bdd.delete_branch(current->get_id(), BDD::BranchDeletionAction::KeepOnFalse);
+        queue.push(next);
+      } else if (true_feasible && !false_feasible) {
+        BDDNode *next = bdd.delete_branch(current->get_id(), BDD::BranchDeletionAction::KeepOnTrue);
+        queue.push(next);
+      } else {
+        queue.push(branch->get_mutable_on_true());
+        queue.push(branch->get_mutable_on_false());
+      }
+
+    } break;
+    case BDDNodeType::Call: {
+      assert_or_panic(current->get_next(), "Call node should have a next node");
+      queue.push(current->get_mutable_next());
+    } break;
+    case BDDNodeType::Route:
+      break;
     }
-
-    if (visited.count(node->get_id())) {
-      return BDDNodeVisitAction::Continue;
-    }
-    visited.insert(node->get_id());
-
-    Branch *branch                           = dynamic_cast<Branch *>(node);
-    klee::ref<klee::Expr> condition          = branch->get_condition();
-    klee::ConstraintManager path_constraints = bdd.get_constraints(node);
-
-    bool true_feasible            = solver_toolbox.is_expr_maybe_true(path_constraints, condition);
-    klee::ref<klee::Expr> negated = solver_toolbox.exprBuilder->Not(condition);
-    bool false_feasible           = solver_toolbox.is_expr_maybe_true(path_constraints, negated);
-
-    branch_infos.push_back({node->get_id(), true_feasible, false_feasible});
-
-    std::cerr << "  Branch " << node->get_id() << ": T=" << true_feasible << " F=" << false_feasible;
-
-    if (!true_feasible && !false_feasible)
-      std::cerr << " [BOTH BAD]";
-    else if (!true_feasible)
-      std::cerr << " [TRUE BAD]";
-    else if (!false_feasible)
-      std::cerr << " [FALSE BAD]";
-    std::cerr << "\n";
-
-    return BDDNodeVisitAction::Continue;
-  });
+  }
 
   std::cerr << "Found " << branch_infos.size() << " branches.\n";
   std::cerr << "==========================================\n";
