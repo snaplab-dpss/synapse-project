@@ -1,5 +1,3 @@
-#include "LibClone/Device.h"
-#include "LibCore/Debug.h"
 #include <LibClone/EmbeddingSolver.h>
 
 #include <gurobi_c++.h>
@@ -119,6 +117,60 @@ void add_meta_node_co_location_constraints(GRBModel &model, const VariableSet &x
         model.addConstr(x.at(node_id).at(dev_id) == x.at(rep).at(dev_id), "MetaNode_colocate_" + std::to_string(node_id) + "_" + std::to_string(rep));
       }
     }
+  }
+}
+
+void add_cpu_capacity_constraints(GRBModel &model, const VariableSet &x, const bdd_node_ids_t &nodes, const std::vector<DeviceId> &device_ids,
+                                  const std::unordered_map<TargetType, EmbeddingCosts> &costs, const InfrastructureInfo &infra_info) {
+  for (const DeviceId &dev_id : device_ids) {
+    assert_or_panic(infra_info.devices.find(dev_id) != infra_info.devices.end(), "Device %ld not found", dev_id);
+    const Device *device = infra_info.devices.at(dev_id);
+
+    assert_or_panic(device->get_target() == TargetType::x86, "Unsupported Target");
+    assert_or_panic(costs.find(device->get_target()) != costs.end(), "No precomputed costs for target");
+    const EmbeddingCosts target_costs = costs.at(device->get_target());
+
+    const x86Resources *resources = device->get_x86_resources();
+    u32 cpu_capacity              = resources->capacity_pps;
+
+    GRBLinExpr cpu_usage = 0;
+    for (const bdd_node_id_t &node_id : nodes) {
+      assert_or_panic(target_costs.find(node_id) != target_costs.end(), "No precomputed costs for node");
+
+      const EmbeddingCost node_cost = target_costs.at(node_id);
+
+      u32 node_cpu = node_cost.processing;
+      cpu_usage += node_cpu * x.at(node_id).at(dev_id);
+    }
+
+    model.addConstr(cpu_usage <= cpu_capacity, "cpu_capacity_device_" + std::to_string(dev_id));
+  }
+}
+
+void add_memory_capacity_constraints(GRBModel &model, const VariableSet &x, const bdd_node_ids_t &nodes, const std::vector<DeviceId> &device_ids,
+                                     const std::unordered_map<TargetType, EmbeddingCosts> &costs, const InfrastructureInfo &infra_info) {
+  for (const DeviceId &dev_id : device_ids) {
+    assert_or_panic(infra_info.devices.find(dev_id) != infra_info.devices.end(), "Device %ld not found", dev_id);
+    const Device *device = infra_info.devices.at(dev_id);
+
+    assert_or_panic(device->get_target() == TargetType::x86, "Unsupported Target");
+    assert_or_panic(costs.find(device->get_target()) != costs.end(), "No precomputed costs for target");
+    const EmbeddingCosts target_costs = costs.at(device->get_target());
+
+    const x86Resources *resources = device->get_x86_resources();
+    u64 mem_capacity              = resources->memory_bytes;
+
+    GRBLinExpr mem_usage = 0;
+    for (const bdd_node_id_t &node_id : nodes) {
+      assert_or_panic(target_costs.find(node_id) != target_costs.end(), "No precomputed costs for node");
+
+      const EmbeddingCost node_cost = target_costs.at(node_id);
+
+      u64 node_mem = node_cost.memory;
+      mem_usage += node_mem * x.at(node_id).at(dev_id);
+    }
+
+    model.addConstr(mem_usage <= mem_capacity, "mem_capacity_device_" + std::to_string(dev_id));
   }
 }
 
@@ -274,7 +326,8 @@ void EmbeddingSolver::set_beta(double b) { beta = b; }
 
 void EmbeddingSolver::set_h_max(u16 h) { h_max = h; }
 
-EmbeddingSolution EmbeddingSolver::solve(const BDDInfo &bdd_info, const InfrastructureInfo &infra_info) const {
+EmbeddingSolution EmbeddingSolver::solve(const BDDInfo &bdd_info, const InfrastructureInfo &infra_info,
+                                         const std::unordered_map<TargetType, EmbeddingCosts> &f) const {
   auto start_time = std::chrono::steady_clock::now();
 
   EmbeddingSolution solution;
@@ -316,6 +369,9 @@ EmbeddingSolution EmbeddingSolver::solve(const BDDInfo &bdd_info, const Infrastr
     add_meta_node_co_location_constraints(model, x, bdd_info.meta_nodes, device_ids);
 
     // TODO: Capacity Constraints (C4, C5)
+    add_cpu_capacity_constraints(model, x, bdd_info.nodes, device_ids, f, infra_info);
+
+    add_memory_capacity_constraints(model, x, bdd_info.nodes, device_ids, f, infra_info);
 
     // Hop Count Constraints (C6 - c9)
     add_hop_count_constraints(model, x, h, bdd_info.meta_nodes, bdd_info.links, device_ids, infra_info.cost_matrix);
@@ -488,14 +544,14 @@ EmbeddingSolution::inspection_report_t EmbeddingSolution::inspect(const BDDInfo 
     bdd_node_id_t first_node = *meta_nodes_set.begin();
     auto first_it            = placement.find(first_node);
     if (first_it == placement.end())
-      continue; // Already caught above
+      continue;
 
     DeviceId expected_device = first_it->second;
 
     for (const bdd_node_id_t &node_id : meta_nodes_set) {
       auto node_it = placement.find(node_id);
       if (node_it == placement.end())
-        continue; // Already caught above
+        continue;
 
       if (node_it->second != expected_device) {
         return {InspectionStatus::InvalidDeviceId, "Meta-node co-location violated: node " + std::to_string(node_id) + " placed on device " +

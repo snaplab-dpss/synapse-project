@@ -1,3 +1,4 @@
+#include "LibBDD/CallPath.h"
 #include <LibBDD/Nodes/Call.h>
 #include <LibBDD/Nodes/Branch.h>
 #include <LibBDD/Nodes/NodeManager.h>
@@ -6,6 +7,8 @@
 #include <LibCore/Debug.h>
 
 #include <cassert>
+
+#include <queue>
 
 namespace LibBDD {
 
@@ -186,19 +189,35 @@ const Call *Call::get_vector_borrow_from_return() const {
   addr_t vector               = expr_addr_to_obj_addr(call.args.at("vector").expr);
   klee::ref<klee::Expr> index = call.args.at("index").expr;
 
+  std::queue<const Call *> prev_vector_operations;
+
   const Call *target_vector_borrow = nullptr;
 
-  for (const Call *vector_borrow : get_prev_functions({"vector_borrow"})) {
-    const call_t &vb               = vector_borrow->get_call();
-    addr_t vb_vector               = expr_addr_to_obj_addr(vb.args.at("vector").expr);
-    klee::ref<klee::Expr> vb_index = vb.args.at("index").expr;
+  for (const Call *prev_vector_operation : get_prev_functions({"vector_borrow", "vector_return"})) {
+    const call_t &pvo = prev_vector_operation->get_call();
 
-    if (vb_vector == vector && solver_toolbox.are_exprs_always_equal(vb_index, index)) {
-      assert(!target_vector_borrow && "Multiple vector_borrows for the same vector_return");
-      target_vector_borrow = vector_borrow;
+    if (pvo.function_name == "vector_borrow") {
+      addr_t vb_vector               = expr_addr_to_obj_addr(pvo.args.at("vector").expr);
+      klee::ref<klee::Expr> vb_index = pvo.args.at("index").expr;
+
+      if (vb_vector == vector && solver_toolbox.are_exprs_always_equal(vb_index, index)) {
+        // assert(!target_vector_borrow && "Multiple vector_borrows for the same vector_return");
+        // target_vector_borrow = vector_borrow;
+        assert(prev_vector_operations.empty() && "Multiple vector_borrows for the same vector_return");
+        prev_vector_operations.push(prev_vector_operation);
+      }
+    } else if (pvo.function_name == "vector_return") {
+      addr_t vr_vector               = expr_addr_to_obj_addr(pvo.args.at("vector").expr);
+      klee::ref<klee::Expr> vr_index = pvo.args.at("index").expr;
+      if (vr_vector == vector && solver_toolbox.are_exprs_always_equal(vr_index, index)) {
+        assert(!prev_vector_operations.empty() && "No vector_borrow for vector_return");
+        prev_vector_operations.pop();
+      }
     }
   }
 
+  target_vector_borrow = prev_vector_operations.front();
+  assert(target_vector_borrow->get_call().function_name == "vector_borrow");
   return target_vector_borrow;
 }
 

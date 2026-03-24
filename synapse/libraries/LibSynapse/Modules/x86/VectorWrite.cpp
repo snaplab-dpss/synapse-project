@@ -59,6 +59,9 @@ std::vector<impl_t> VectorWriteFactory::process_node(const EP *ep, const BDDNode
   klee::ref<klee::Expr> value_addr_expr  = call.args.at("value").expr;
   klee::ref<klee::Expr> value            = call.args.at("value").in;
 
+  std::cerr << LibCore::expr_to_string(value_addr_expr) << "\n";
+  std::cerr << LibCore::expr_to_string(value) << "\n";
+
   const addr_t vector_addr = expr_addr_to_obj_addr(vector_addr_expr);
 
   if (!ep->get_ctx().can_impl_ds(vector_addr, DSImpl::x86_Vector)) {

@@ -2709,29 +2709,29 @@ EPVisitor::Action x86Synthesizer::visit(const EP *ep, const EPNode *ep_node, con
     process_nodes.insert(node->get_node()->get_id());
   }
 
-  const klee::ref<klee::Expr> global_port = node->get_device();
+  const klee::ref<klee::Expr> virtual_port = node->get_device();
+  const symbol_t &device                   = node->get_device_symbol();
 
-  // NOTE: Unnecessary code to check if the device is being correctly set
-  symbol_t device = ep->get_bdd()->get_device();
-
-  std::optional<var_t> device_var = vars.get(device.expr);
-  assert(device_var.has_value() && "DEVICE HAS NO VALUE");
+  var_t device_var = build_var(device.name, device.expr);
 
   coder.indent();
   coder << "// Setting device to global port: ";
-  coder << transpiler.transpile(global_port) << "\n";
+  coder << transpiler.transpile(virtual_port) << "\n";
 
-  // Assign the global port to the device variable
   coder.indent();
-  coder << device_var.value().name;
+  coder << transpiler.type_from_expr(device.expr);
+  coder << " ";
+  coder << device_var.name;
   coder << " = ";
-  coder << transpiler.transpile(global_port);
+  coder << transpiler.transpile(virtual_port);
   coder << ";\n";
 
   coder.indent();
   coder << "std::cerr << \"DEVICE: \" << ";
-  coder << device_var.value().name;
+  coder << device_var.name;
   coder << " << \";\\n\";\n";
+
+  vars.insert_back(device_var);
 
   return EPVisitor::Action::doChildren;
 }

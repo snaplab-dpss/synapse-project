@@ -1,6 +1,9 @@
 #pragma once
 
+#include "LibCore/Symbol.h"
 #include <LibBDD/BDD.h>
+
+#include <LibCore/Debug.h>
 #include <LibCore/Types.h>
 
 #include <string>
@@ -41,7 +44,23 @@ public:
 
   const symbol_t &get_symbol_translation(const std::string &original_symbol) const { return symbol_translations.at(original_symbol).new_symbol; }
 
-  void add_symbol_translation(const symbol_translation_t &translation) { symbol_translations[translation.old_symbol.name] = translation; }
+  void add_symbol_translation(const symbol_translation_t &translation) {
+    assert_or_panic(symbol_translations.find(translation.old_symbol.name) == symbol_translations.end(), "Symbol already translated");
+    symbol_translations.emplace(translation.old_symbol.name, translation);
+  }
+
+  void replace_symbol_translation(const symbol_translation_t &translation) {
+    assert_or_panic(symbol_translations.find(translation.old_symbol.name) != symbol_translations.end(), "Symbol Translation not stored");
+    symbol_translations.at(translation.old_symbol.name) = translation;
+  }
+
+  void add_or_replace_symbol_translation(const symbol_translation_t &translation) {
+    if (has_symbol_translation(translation.old_symbol.name)) {
+      replace_symbol_translation(translation);
+    } else {
+      add_symbol_translation(translation);
+    }
+  }
 
   friend std::ostream &operator<<(std::ostream &os, const NF &nf) {
     os << "NF{" << nf.id << "}";

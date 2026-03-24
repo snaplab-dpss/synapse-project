@@ -20,7 +20,7 @@ public:
     return cloned;
   }
 
-  symbol_t get_code_path() const { return code_path; }
+  const symbol_t &get_code_path() const { return code_path; }
 };
 
 class ParseHeaderCPUFactory : public TofinoModuleFactory {

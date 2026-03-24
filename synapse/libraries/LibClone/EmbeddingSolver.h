@@ -1,7 +1,5 @@
 #pragma once
 
-#include "LibBDD/Nodes/Node.h"
-#include "LibClone/Device.h"
 #include <nlohmann/json.hpp>
 
 #include <LibCore/Types.h>
@@ -9,6 +7,7 @@
 #include <LibBDD/BDD.h>
 
 #include <LibClone/MetaNode.h>
+#include <LibClone/EmbeddingProfiler.h>
 #include <LibClone/PhysicalNetwork.h>
 
 namespace LibClone {
@@ -17,6 +16,8 @@ using LibBDD::bdd_node_id_t;
 using LibBDD::bdd_node_ids_t;
 
 using LibClone::CostMatrix;
+using LibClone::EmbeddingCost;
+using LibClone::EmbeddingCosts;
 
 struct BDDInfo {
   MetaNodes meta_nodes;
@@ -129,7 +130,8 @@ public:
   void set_beta(double b);
   void set_h_max(u16 h);
 
-  EmbeddingSolution solve(const BDDInfo &bdd_info, const InfrastructureInfo &infrastructure_info) const;
+  EmbeddingSolution solve(const BDDInfo &bdd_info, const InfrastructureInfo &infrastructure_info,
+                          const std::unordered_map<TargetType, EmbeddingCosts> &f) const;
 
   void debug() const;
 };

@@ -45,18 +45,7 @@ std::optional<spec_impl_t> SendToDeviceFactory::speculate(const EP *ep, const BD
 }
 
 std::vector<impl_t> SendToDeviceFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
-  const EPLeaf active_leaf = ep->get_active_leaf();
   if (!bdd_node_match_pattern(node)) {
-    return {};
-  }
-
-  // We can't send to the device if a forwarding decision was already made.
-  if (active_leaf.node && active_leaf.node->forwarding_decision_already_made()) {
-    return {};
-  }
-
-  // Don't send to the device if the node is already a route.
-  if (node->get_type() == BDDNodeType::Route) {
     return {};
   }
 

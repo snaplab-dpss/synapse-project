@@ -1,0 +1,22 @@
+// Device definitions
+device 0 x86
+device 1 x86
+device 2 x86
+
+// Global port mapping
+link global_port 0 0 0
+link 0 0 global_port 0
+
+link global_port 1 1 1
+link 1 1 global_port 1 
+
+link global_port 2 2 1
+link 2 1 global_port 2 
+
+// Node connections
+
+link 0 1 1 0
+link 1 0 0 1
+
+link 0 2 2 0
+link 2 0 0 2

@@ -8,19 +8,21 @@ namespace x86 {
 class SetDeviceInfo : public x86Module {
 private:
   klee::ref<klee::Expr> device;
+  symbol_t device_symbol;
 
 public:
-  SetDeviceInfo(const BDDNode *_node, klee::ref<klee::Expr> _device)
-      : x86Module(ModuleType::x86_SetDeviceInfo, "SetDeviceInfo", _node), device(_device) {}
+  SetDeviceInfo(const BDDNode *_node, klee::ref<klee::Expr> _device, symbol_t _device_symbol)
+      : x86Module(ModuleType::x86_SetDeviceInfo, "SetDeviceInfo", _node), device(_device), device_symbol(_device_symbol) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const override {
-    SetDeviceInfo *cloned = new SetDeviceInfo(node, device);
+    SetDeviceInfo *cloned = new SetDeviceInfo(node, device, device_symbol);
     return cloned;
   }
 
   klee::ref<klee::Expr> get_device() const { return device; }
+  const symbol_t &get_device_symbol() const { return device_symbol; }
 };
 
 class SetDeviceInfoFactory : public x86ModuleFactory {

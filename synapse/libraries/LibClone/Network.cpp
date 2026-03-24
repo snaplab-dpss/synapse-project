@@ -167,18 +167,18 @@ BDDNode *create_set_device_node(BDD &bdd, const symbol_t &device_symbol, u64 por
       .ret           = {},
   };
 
-  // const SymbolManager *manager      = bdd.get_symbol_manager();
-  // const symbol_t &bdd_device_symbol = manager->get_symbol(device_symbol.name);
+  const SymbolManager *manager      = bdd.get_symbol_manager();
+  const symbol_t &bdd_device_symbol = manager->get_symbol(device_symbol.name);
 
-  // Symbols symbols;
-  // symbols.add(bdd_device_symbol);
+  Symbols symbols;
+  symbols.add(bdd_device_symbol);
 
-  Call *set_device = bdd.create_new_call(call, {});
+  Call *set_device = bdd.create_new_call(call, symbols);
 
   return set_device;
 }
 
-/*void set_call(const BDD &bdd, BDDNode *node, const symbol_t &device_symbol, u64 port) {
+void set_call(const BDD &bdd, BDDNode *node, const symbol_t &device_symbol, u64 port) {
   assert_or_panic(node->get_type() == BDDNodeType::Call, "Node should be a call");
   Call *call_node = dynamic_cast<Call *>(node);
 
@@ -207,7 +207,7 @@ BDDNode *create_set_device_node(BDD &bdd, const symbol_t &device_symbol, u64 por
 
   call_node->set_local_symbols(symbols);
   call_node->set_call(call);
-}*/
+}
 
 std::vector<bdd_vector_t> get_bdd_sections_handling_port(const BDD &bdd, Port port) {
   klee::ref<klee::Expr> handles_port =
@@ -341,7 +341,7 @@ symbol_t retreive_translation_symbol(SymbolManager *symbol_manager, const symbol
 }
 
 symbol_t create_translation_symbol(SymbolManager *symbol_manager, const symbol_t &symbol, const BDDNode *node_creating_symbol, NF *nf,
-                                   const int init) {
+                                   const bool init) {
   // We have to make sure this new symbol name does not collide with any existing symbol.
   // In the BDD reordering logic, we append "_r" to the symbol name to ensure this, where "r" comes from "reordering".
   // Here, we append "_c", where "c" comes from "consolidate".
@@ -352,11 +352,13 @@ symbol_t create_translation_symbol(SymbolManager *symbol_manager, const symbol_t
       symbol.base + "_c" + std::to_string(node_creating_symbol->get_id()) + std::to_string(nf->get_counter()) + std::to_string(init);
   assert(!symbol_manager->has_symbol(new_name) && "Symbol should not exist in the symbol manager");
   const symbol_t new_symbol = symbol_manager->create_symbol(new_name, symbol.expr->getWidth());
-  nf->add_symbol_translation({symbol, new_symbol});
+  if (init == 1) {
+    nf->add_symbol_translation({symbol, new_symbol});
+  }
   return new_symbol;
 }
 
-/* symbol_t translate_device_symbol(SymbolManager *symbol_manager, const symbol_t &device, NF *nf, bool init_not_processed) {
+symbol_t translate_device_symbol(SymbolManager *symbol_manager, const symbol_t &device, NF *nf, bool init_not_processed) {
   if (init_not_processed) {
     assert(!nf->has_symbol_translation(device.name) && "NF should not have a translation for this symbol yet");
     const std::string new_device_name = device.base + "_c" + std::to_string(nf->get_counter());
@@ -369,11 +371,19 @@ symbol_t create_translation_symbol(SymbolManager *symbol_manager, const symbol_t
     assert(symbol_manager->has_symbol(translated_symbol.name) && "Symbol should exist in the symbol manager");
     return symbol_manager->get_symbol(translated_symbol.name);
   }
-}*/
+}
+
+symbol_t create_fresh_packet_chunks_symbol(SymbolManager *symbol_manager, const symbol_t &packet_chunks_symbol, const BDDNode *node_creating_symbol,
+                                           NF *nf) {
+  const std::string new_name = packet_chunks_symbol.name + "_c" + std::to_string(node_creating_symbol->get_id()) + std::to_string(nf->get_counter());
+  symbol_t new_packet_chunks = symbol_manager->create_symbol(new_name, packet_chunks_symbol.expr->getWidth());
+  nf->add_or_replace_symbol_translation({packet_chunks_symbol, new_packet_chunks});
+  return new_packet_chunks;
+}
 
 void translate_symbols(SymbolManager *symbol_manager, BDDNode *root, NF *nf) {
 
-  const std::unordered_set<std::string> symbols_never_translated{"device", "port", "packet_chunks"};
+  const std::unordered_set<std::string> symbols_never_translated{/*"device",*/ "port", "packet_chunks"};
   root->visit_mutable_nodes([symbol_manager, &symbols_never_translated, nf](BDDNode *node) {
     if (node->get_type() != BDDNodeType::Call) {
       return BDDNodeVisitAction::Continue;
@@ -532,9 +542,9 @@ std::vector<symbol_translation_t> store_cloned_and_translated_init_symbols(BDD &
   std::vector<Call *> new_init;
   std::vector<symbol_translation_t> translations;
 
-  // symbol_t device           = original_bdd.get_device();
-  // const symbol_t new_device = translate_device_symbol(bdd.get_mutable_symbol_manager(), device, nf, init_not_processed);
-  // translations.emplace_back(device, new_device);
+  symbol_t device           = original_bdd.get_device();
+  const symbol_t new_device = translate_device_symbol(bdd.get_mutable_symbol_manager(), device, nf, init_not_processed);
+  translations.emplace_back(device, new_device);
 
   for (const Call *call : init) {
     Call *new_call = dynamic_cast<Call *>(call->clone(bdd.get_mutable_manager(), false));
@@ -603,7 +613,9 @@ void store_cloned_and_translated_constraint_symbols(BDD &bdd, klee::ConstraintMa
   }
 
   for (const auto &t : translations) {
-    translation_map[t.old_symbol.name] = t.new_symbol.name;
+    if (t.old_symbol.name != "DEVICE") {
+      translation_map[t.old_symbol.name] = t.new_symbol.name;
+    }
   }
 
   SymbolManager *symbol_manager = bdd.get_mutable_symbol_manager();
@@ -637,12 +649,18 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, NetworkNode *network_n
 
     root                                           = stitch_bdd_sections(bdd, nf, sections);
     std::vector<symbol_translation_t> translations = store_cloned_and_translated_init_symbols(bdd, root, nf, init_already_processed);
-    store_cloned_and_translated_constraint_symbols(bdd, nf->get_bdd().get_constraints(), translations);
-    translate_symbols(bdd.get_mutable_symbol_manager(), root, nf);
 
-    // const symbol_t &original_device = nf->get_bdd().get_device();
-    // const symbol_t nf_device        = nf->get_symbol_translation(original_device.name);
-    // set_call(bdd, device_node, nf_device, port);
+    store_cloned_and_translated_constraint_symbols(bdd, nf->get_bdd().get_constraints(), translations);
+
+    symbol_t packet_chunks     = bdd.get_symbol_manager()->get_symbol("packet_chunks");
+    symbol_t new_packet_chunks = create_fresh_packet_chunks_symbol(bdd.get_mutable_symbol_manager(), packet_chunks, root, nf);
+
+    translate_symbols(bdd.get_mutable_symbol_manager(), root, nf);
+    // root->recursive_translate_symbol(packet_chunks, new_packet_chunks);
+
+    const symbol_t &original_device = nf->get_bdd().get_device();
+    const symbol_t nf_device        = nf->get_symbol_translation(original_device.name);
+    set_call(bdd, device_node, nf_device, port);
     device_node->set_next(root);
     root->set_prev(device_node);
     root = device_node;
@@ -677,7 +695,8 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, NetworkNode *network_n
         for (const auto &[local_port, destination] : network_node->get_links()) {
           klee::ConstraintManager leaf_constraints = bdd.get_constraints(leaf_node);
           leaf_constraints.addConstraint(
-              solver_toolbox.exprBuilder->Eq(bdd.get_device().expr, solver_toolbox.exprBuilder->Constant(port, bdd.get_device().expr->getWidth())));
+              solver_toolbox.exprBuilder->Eq(network_node->get_nf()->get_symbol_translation(bdd.get_device().name).expr,
+                                             solver_toolbox.exprBuilder->Constant(port, bdd.get_device().expr->getWidth())));
 
           const Port dst_network_node_port      = destination.first;
           NetworkNode *dst_network_node         = destination.second;
@@ -882,8 +901,6 @@ BDD Network::consolidate() const {
 
   BDDNode *root = build_chain_of_device_checking_branches(bdd, bdd.get_device().expr, per_device_logic);
   bdd.set_root(root);
-
-  BDDViz::visualize(&bdd, false);
 
   trim_impossible_paths(bdd);
 

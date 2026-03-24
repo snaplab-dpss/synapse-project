@@ -1,6 +1,7 @@
 #pragma once
 
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
+#include <klee/util/Ref.h>
 
 namespace LibSynapse {
 namespace Tofino {

@@ -6,6 +6,7 @@ namespace x86 {
 
 using LibBDD::Call;
 using LibBDD::call_t;
+using LibBDD::symbol_t;
 
 namespace {
 bool bdd_node_match_pattern(const BDDNode *node) {
@@ -38,9 +39,10 @@ std::vector<impl_t> SetDeviceInfoFactory::process_node(const EP *ep, const BDDNo
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call    = call_node->get_call();
 
-  klee::ref<klee::Expr> device_id_expr = call.args.at("value").expr;
+  klee::ref<klee::Expr> device_expr = call.args.at("value").expr;
+  symbol_t device_symbol            = call_node->get_local_symbol("DEVICE");
 
-  Module *module  = new SetDeviceInfo(node, device_id_expr);
+  Module *module  = new SetDeviceInfo(node, device_expr, device_symbol);
   EPNode *ep_node = new EPNode(module);
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -61,9 +63,10 @@ std::unique_ptr<Module> SetDeviceInfoFactory::create(const BDD *bdd, const Conte
   const Call *call_node = dynamic_cast<const Call *>(node);
   const call_t &call    = call_node->get_call();
 
-  klee::ref<klee::Expr> device_id_expr = call.args.at("value").expr;
+  klee::ref<klee::Expr> device_expr = call.args.at("value").expr;
+  symbol_t device_symbol            = call_node->get_local_symbol("DEVICE");
 
-  std::unique_ptr<Module> module = std::make_unique<SetDeviceInfo>(node, device_id_expr);
+  std::unique_ptr<Module> module = std::make_unique<SetDeviceInfo>(node, device_expr, device_symbol);
   return module;
 }
 

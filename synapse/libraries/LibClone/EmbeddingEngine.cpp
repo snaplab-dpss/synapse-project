@@ -1,5 +1,6 @@
-#include "LibClone/EmbeddingSolver.h"
 #include <LibClone/EmbeddingEngine.h>
+
+#include <LibClone/Profilers/x86EmbeddingProfiler.h>
 
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
@@ -73,38 +74,9 @@ const std::unordered_map<func_name_t, std::vector<arg_name_t>> func_data_structu
     {"tb_expire", {"tb"}},
 };
 
-const std::unordered_map<func_name_t, std::vector<arg_name_t>> alloc_size_params{
-    {"map_allocate", {"capacity", "key_size"}}, {"vector_allocate", {"capacity", "elem_size"}}, {"dchain_allocate", {"index_range"}},
-    {"cms_allocate", {"height", "width"}},      {"tb_allocate", {"capacity", "key_size"}},      {"lpm_allocate", {}},
-};
-
 namespace {
 
-u64 extract_mem_requirements(const Call *call_node) {
-  const call_t &call           = call_node->get_call();
-  const std::string &func_name = call.function_name;
-
-  u64 size = 1;
-
-  auto it = alloc_size_params.find(func_name);
-  assert_or_panic(it != alloc_size_params.end(), "Allocator function should have its size parameters defined");
-
-  const std::vector<arg_name_t> &param_names = it->second;
-
-  for (const arg_name_t &param : param_names) {
-    auto arg_it = call.args.find(param);
-    assert_or_panic(arg_it != call.args.end(), "Target function should have the parameter argument");
-
-    klee::ref<klee::Expr> size_expr = arg_it->second.expr;
-    assert_or_panic(LibCore::is_constant(size_expr), "Target function parameter argument should be a constant");
-
-    const u64 param_size = solver_toolbox.value_from_expr(size_expr);
-    size *= param_size;
-  }
-  return size;
-}
-
-std::vector<std::pair<arg_name_t, addr_t>> extract_accessed_structures(const Call *call_node, u64 &is_allocator) {
+std::vector<std::pair<arg_name_t, addr_t>> extract_accessed_structures(const Call *call_node) {
   std::vector<std::pair<arg_name_t, addr_t>> accessed_structures;
 
   const call_t &call           = call_node->get_call();
@@ -139,8 +111,6 @@ std::vector<std::pair<arg_name_t, addr_t>> extract_accessed_structures(const Cal
 
     const addr_t addr = expr_addr_to_obj_addr(addr_expr);
     accessed_structures.push_back({arg_translation_name, addr});
-
-    is_allocator = extract_mem_requirements(call_node);
   }
 
   return accessed_structures;
@@ -212,9 +182,8 @@ void process_call(const BDDNode *node, MetaNodes &meta_nodes) {
   assert_or_panic(node->get_type() == BDDNodeType::Call, "pre_process_call expects a call node");
 
   const Call *call_node = dynamic_cast<const Call *>(node);
-  u64 is_allocator      = 0;
 
-  std::vector<std::pair<arg_name_t, addr_t>> accessed_structures = extract_accessed_structures(call_node, is_allocator);
+  std::vector<std::pair<arg_name_t, addr_t>> accessed_structures = extract_accessed_structures(call_node);
 
   if (accessed_structures.empty()) {
     meta_nodes.create_process(node->get_id());
@@ -275,7 +244,8 @@ void process_route(const BDDNode *node, const InfrastructureNode *global_ports, 
 
 } // namespace
 
-EmbeddingEngine::EmbeddingEngine(const BDD &_bdd, const PhysicalNetwork &_phys_net) : bdd(_bdd), phys_net(_phys_net), solver(EmbeddingSolver()) {}
+EmbeddingEngine::EmbeddingEngine(const BDD &_bdd, const PhysicalNetwork &_phys_net)
+    : bdd(_bdd), phys_net(_phys_net), profilers(EmbeddingProfilers()), solver(EmbeddingSolver()) {}
 
 BDDInfo EmbeddingEngine::get_bdd_info() const {
   std::cerr << "Processing BDD for embedding...\n";
@@ -355,7 +325,30 @@ InfrastructureInfo EmbeddingEngine::get_infrastructure_info() const {
   return info;
 }
 
-EmbeddingSolution EmbeddingEngine::solve(const BDDInfo &bdd_info, const InfrastructureInfo &infra_info) { return solver.solve(bdd_info, infra_info); }
+std::unordered_map<TargetType, EmbeddingCosts> EmbeddingEngine::compute_costs() const {
+  std::unordered_map<TargetType, EmbeddingCosts> embedding_costs;
+  for (EmbeddingProfiler *profiler : profilers.get_profilers()) {
+    embedding_costs.emplace(profiler->get_target_type(), profiler->compute_all_costs(bdd));
+  }
+  return embedding_costs;
+}
+
+EmbeddingSolution EmbeddingEngine::solve(const BDDInfo &bdd_info, const InfrastructureInfo &infra_info,
+                                         const std::unordered_map<TargetType, EmbeddingCosts> &costs) {
+  return solver.solve(bdd_info, infra_info, costs);
+}
+
+const EmbeddingSolution EmbeddingEngine::solve() {
+  const BDDInfo bdd_info                                     = get_bdd_info();
+  const InfrastructureInfo infra_info                        = get_infrastructure_info();
+  const std::unordered_map<TargetType, EmbeddingCosts> costs = compute_costs();
+
+  const EmbeddingSolution solution = solve(bdd_info, infra_info, costs);
+  solution.assert_inspection(bdd_info, infra_info);
+  solution.debug();
+
+  return solution;
+}
 
 void EmbeddingEngine::debug(const BDDInfo &bdd_info, const InfrastructureInfo &infra_info) const {
   std::cerr << "========== Embedding Engine ==========\n";

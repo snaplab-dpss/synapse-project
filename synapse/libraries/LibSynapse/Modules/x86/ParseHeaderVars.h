@@ -1,7 +1,6 @@
 #pragma once
 
 #include <LibSynapse/Modules/x86/x86Module.h>
-#include <klee/util/Ref.h>
 
 namespace LibSynapse {
 namespace x86 {

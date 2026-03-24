@@ -1352,7 +1352,8 @@ BDD::inspection_report_t BDD::inspect() const {
     const Symbols available_symbols = node->get_prev_symbols();
 
     for (const symbol_t &used_symbol : used_symbols.get()) {
-      if (symbols_always_known.find(used_symbol.name) != symbols_always_known.end()) {
+      if (symbols_always_known.find(used_symbol.name) != symbols_always_known.end() ||
+          symbols_always_known.find(used_symbol.base) != symbols_always_known.end()) {
         continue;
       }
 

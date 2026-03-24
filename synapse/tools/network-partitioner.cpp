@@ -37,9 +37,8 @@ int main(int argc, char **argv) {
   const PhysicalNetwork phys_net = PhysicalNetwork::parse(input_physical_network_file);
   const EmbeddingSolution sol    = EmbeddingSolution::from_json(input_solution_file);
 
-  NetworkPartitioner partitioner = NetworkPartitioner(bdd, phys_net, sol);
-
-  std::unordered_map<DeviceId, std::unique_ptr<const BDD>> target_bdds = partitioner.process();
+  NetworkPartitioner partitioner                                       = NetworkPartitioner(bdd, phys_net, sol);
+  std::unordered_map<DeviceId, std::unique_ptr<const BDD>> target_bdds = partitioner.partition();
 
   for (const auto &[device_id, target_bdd] : target_bdds) {
 

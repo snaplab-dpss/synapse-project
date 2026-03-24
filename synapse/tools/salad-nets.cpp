@@ -37,12 +37,7 @@ int main(int argc, char **argv) {
 
   EmbeddingEngine engine = EmbeddingEngine(bdd, phys_net);
 
-  const LibClone::BDDInfo bdd_info              = engine.get_bdd_info();
-  const LibClone::InfrastructureInfo infra_info = engine.get_infrastructure_info();
-
-  const LibClone::EmbeddingSolution solution = engine.solve(bdd_info, infra_info);
-  solution.assert_inspection(bdd_info, infra_info);
-  solution.debug();
+  const LibClone::EmbeddingSolution solution = engine.solve();
 
   if (!output_path.empty()) {
     std::filesystem::path out_file(output_path.string() + "_placement.json");

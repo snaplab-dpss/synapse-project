@@ -29,7 +29,7 @@ struct target_roots_t {
 
 class NetworkPartitioner {
 private:
-  std::shared_ptr<const BDD> bdd;
+  const BDD &bdd;
   const PhysicalNetwork &phys_net;
   const EmbeddingSolution &solution;
 
@@ -39,10 +39,10 @@ public:
   NetworkPartitioner(const NetworkPartitioner &)            = delete;
   NetworkPartitioner &operator=(const NetworkPartitioner &) = delete;
 
-  const BDD *get_bdd() const { return bdd.get(); }
+  const BDD &get_bdd() const { return bdd; }
   const PhysicalNetwork &get_physical_network() const { return phys_net; }
 
-  std::unordered_map<DeviceId, std::unique_ptr<const BDD>> process();
+  std::unordered_map<DeviceId, std::unique_ptr<const BDD>> partition();
 
   void debug() const;
 };

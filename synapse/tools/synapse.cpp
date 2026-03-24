@@ -325,7 +325,7 @@ int main(int argc, char **argv) {
   const LibClone::EmbeddingSolution solution = LibClone::EmbeddingSolution::from_json(args.placement_strategy_file);
   LibClone::NetworkPartitioner partitioner   = LibClone::NetworkPartitioner(bdd, phys_net, solution);
 
-  std::unordered_map<DeviceId, std::unique_ptr<const BDD>> target_bdds = partitioner.process();
+  std::unordered_map<DeviceId, std::unique_ptr<const BDD>> target_bdds = partitioner.partition();
 
   for (const auto &[target_device_id, target_bdd] : target_bdds) {
 

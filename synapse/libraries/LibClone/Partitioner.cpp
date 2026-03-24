@@ -1,4 +1,3 @@
-#include "LibClone/EmbeddingSolver.h"
 #include <LibClone/Partitioner.h>
 
 #include <LibCore/Solver.h>
@@ -99,6 +98,7 @@ const std::unordered_map<func_name_t, std::vector<arg_name_t>> consumer_args{
 struct AccessedStructure {
   std::string struct_type;
   addr_t addr;
+
   bool operator<(const AccessedStructure &other) const {
     if (struct_type != other.struct_type)
       return struct_type < other.struct_type;
@@ -109,10 +109,6 @@ struct AccessedStructure {
 using AccessedStructuresSet = std::set<AccessedStructure>;
 
 namespace {
-BDD *setup_bdd(const BDD &bdd) {
-  BDD *new_bdd = new BDD(bdd);
-  return new_bdd;
-}
 
 bool bdd_node_match_pattern(const BDDNode *node) {
   if (node->get_type() != BDDNodeType::Call) {
@@ -925,10 +921,7 @@ std::unique_ptr<BDD> extract_target_bdd(std::unique_ptr<BDD> &global_bdd, bdd_no
   extracted_bdd->set_packet_len(global_bdd->get_packet_len());
   extracted_bdd->set_time(global_bdd->get_time());
 
-  if (port_roots.empty() && roots.empty()) {
-    std::cerr << "NO ROOTS DETECTED\n";
-    return extracted_bdd;
-  }
+  assert_or_panic(!port_roots.empty() || !roots.empty(), "Empty Target Roots");
 
   BDDNode *new_root    = nullptr;
   Branch *current_node = nullptr;
@@ -978,24 +971,25 @@ std::unique_ptr<BDD> extract_target_bdd(std::unique_ptr<BDD> &global_bdd, bdd_no
 } // namespace
 
 NetworkPartitioner::NetworkPartitioner(const BDD &_bdd, const PhysicalNetwork &_phys_net, const EmbeddingSolution &_solution)
-    : bdd(setup_bdd(_bdd)), phys_net(_phys_net), solution(_solution) {}
+    : bdd(_bdd), phys_net(_phys_net), solution(_solution) {}
 
-std::unordered_map<DeviceId, std::unique_ptr<const BDD>> NetworkPartitioner::process() {
+std::unordered_map<DeviceId, std::unique_ptr<const BDD>> NetworkPartitioner::partition() {
   std::cerr << "==========================================\n";
   std::cerr << "=============Processing BDD===============\n";
   std::cerr << "==========================================\n";
 
   std::unordered_map<DeviceId, std::unique_ptr<const BDD>> target_bdds;
-
-  const BDD *old_bdd           = get_bdd();
-  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(*old_bdd);
+  std::unique_ptr<BDD> new_bdd = std::make_unique<BDD>(bdd);
 
   add_send_to_device_nodes(new_bdd, phys_net, solution);
-  // BDDViz::visualize(new_bdd.get(), true);
 
   std::unordered_map<DeviceId, target_roots_t> target_roots = get_target_roots(new_bdd, phys_net);
 
   for (const auto &[device_id, roots] : target_roots) {
+
+    if (roots.port_roots.empty() && roots.target_roots.empty()) {
+      continue;
+    }
 
     std::unique_ptr<BDD> target_bdd = extract_target_bdd(new_bdd, roots.port_roots, roots.target_roots);
 
