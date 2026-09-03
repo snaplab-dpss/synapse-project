@@ -33,13 +33,13 @@ class NF:
 
 
 NFS = [
-    # NF(
-    #     name="map_table",
-    #     description="MapTable",
-    #     tofino=Path("tofino/data_structures/map_table/map_table.p4"),
-    #     controller=Path("tofino/data_structures/map_table/map_table.cpp"),
-    #     kvs_mode=False,
-    # ),
+    NF(
+        name="map_table",
+        description="MapTable",
+        tofino=Path("tofino/data_structures/map_table/map_table.p4"),
+        controller=Path("tofino/data_structures/map_table/map_table.cpp"),
+        kvs_mode=False,
+    ),
     # NF(
     #     name="cuckoo_hash_table",
     #     description="CuckooHashTable",

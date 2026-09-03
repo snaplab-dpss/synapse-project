@@ -144,6 +144,25 @@ class Experiment:
 
         tg_controller.reset_to_default_acceleration()
 
+    @staticmethod
+    def _mac_pkt_deltas(mac_old, mac_new, ports) -> tuple[int, int]:
+        """Sum (rx, tx) frame deltas over `ports` from two MAC ($PORT_STAT) snapshots.
+
+        We use the MAC FramesReceivedOK/FramesTransmittedOK counters (read
+        atomically per port) rather than the traffic-generator's P4 in/out
+        counters: the P4 counters are two separate tables read in two separate,
+        non-atomic entry_get calls whose from_hw read under-counts, so their ratio
+        is dominated by measurement noise (it can even go negative). The MAC
+        counters give the true, balanced rx/tx.
+        """
+        nb_rx = 0
+        nb_tx = 0
+        for port, stats in mac_new.items():
+            if (port in ports) and (port in mac_old):
+                nb_rx += stats.FramesReceivedOK - mac_old[port].FramesReceivedOK
+                nb_tx += stats.FramesTransmittedOK - mac_old[port].FramesTransmittedOK
+        return nb_rx, nb_tx
+
     def __find_stable_throughput(
         self,
         tg_controller: TofinoTGController,
@@ -194,44 +213,29 @@ class Experiment:
                     self.log("Max warmup retries reached! Power through...")
                     break
 
-                tg_controller.reset_stats()
+                measured_ports = set(tg_controller.broadcast_ports) | set(tg_controller.symmetric_ports)
+                mac_old = tg_controller.get_port_stats_from_meta_table()
                 sleep(WARMUP_TIME_SEC)
+                mac_new = tg_controller.get_port_stats_from_meta_table()
 
-                port_stats = tg_controller.get_port_stats()
+                nb_rx_pkts, nb_tx_pkts = self._mac_pkt_deltas(mac_old, mac_new, measured_ports)
 
-                nb_rx_pkts = 0
-                nb_tx_pkts = 0
-                for port, stats in port_stats.items():
-                    if port in tg_controller.broadcast_ports or port in tg_controller.symmetric_ports:
-                        nb_rx_pkts += stats.rx_pkts
-                        nb_tx_pkts += stats.tx_pkts
-
-                loss = 1 - nb_rx_pkts / nb_tx_pkts
+                loss = (1 - nb_rx_pkts / nb_tx_pkts) if nb_tx_pkts else 1
                 self.log(f"[{warmup_retries:02}/{MAX_WARMUP_RETRIES:02}] Warmup TX pkts: {nb_tx_pkts:,}, RX pkts: {nb_rx_pkts:,}, loss: {loss*100:.3f}%")
 
             pktgen.deactivate_warmup_mode()
             pktgen.set_rate(current_rate)
             pktgen.set_churn(churn)
             sleep(REST_TIME_SEC)
-            tg_controller.reset_stats()
+            measured_ports = set(tg_controller.broadcast_ports) | set(tg_controller.symmetric_ports)
+            mac_old = tg_controller.get_port_stats_from_meta_table()
             pktgen.reset_stats()
             sleep(ITERATION_DURATION_SEC)
             pktgen.stop()
             sleep(REST_TIME_SEC)
+            mac_new = tg_controller.get_port_stats_from_meta_table()
 
-            port_stats = tg_controller.get_port_stats()
-
-            nb_rx_pkts = 0
-            nb_rx_bits = 0
-            nb_tx_pkts = 0
-            nb_tx_bits = 0
-
-            for port, stats in port_stats.items():
-                if port in tg_controller.broadcast_ports or port in tg_controller.symmetric_ports:
-                    nb_rx_pkts += stats.rx_pkts
-                    nb_rx_bits += stats.rx_bytes * 8
-                    nb_tx_pkts += stats.tx_pkts
-                    nb_tx_bits += stats.tx_bytes * 8
+            nb_rx_pkts, nb_tx_pkts = self._mac_pkt_deltas(mac_old, mac_new, measured_ports)
 
             pktgen_stats = pktgen.get_stats()
             pktgen_nb_tx_pkts = pktgen_stats[0]
@@ -241,6 +245,11 @@ class Experiment:
             pkt_size_with_crc = pkt_size_without_crc + 4  # 4 bytes CRC
             pktgen_nb_tx_bits = pktgen_nb_tx_pkts * pkt_size_with_crc * 8
 
+            # Derive DUT bit rates from the reliable MAC frame counts and the wire
+            # packet size measured by pktgen (echo/forwarding preserves packet size).
+            nb_tx_bits = nb_tx_pkts * pkt_size_with_crc * 8
+            nb_rx_bits = nb_rx_pkts * pkt_size_with_crc * 8
+
             report = ThroughputReport(
                 requested_bps=current_rate * 1_000_000,
                 pktgen_bps=int(pktgen_nb_tx_bits / ITERATION_DURATION_SEC),
@@ -249,7 +258,7 @@ class Experiment:
                 dut_ingress_pps=int(nb_tx_pkts / ITERATION_DURATION_SEC),
                 dut_egress_bps=int(nb_rx_bits / ITERATION_DURATION_SEC),
                 dut_egress_pps=int(nb_rx_pkts / ITERATION_DURATION_SEC),
-                loss=1 - nb_rx_pkts / nb_tx_pkts,
+                loss=(1 - nb_rx_pkts / nb_tx_pkts) if nb_tx_pkts else 1,
             )
 
             tx_Gbps = report.dut_ingress_bps / 1e9
