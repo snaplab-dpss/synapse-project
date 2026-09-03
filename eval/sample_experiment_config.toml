@@ -30,6 +30,8 @@ sde            = ""   # Path to SDE dir
 tofino_version = 2    # TNA versions 1 or 2
 client_ports   = [  ]
 server_port    = -1
+mgmt_iface     = ""   # Optional: BMC/management interface name (e.g. "enx020000000002").
+                      # Used by preflight.py to check the interface is up. Leave empty to skip.
 
 [devices.switch_tg]
 sde            = ""   # Path to SDE dir.
@@ -37,6 +39,10 @@ tofino_version = 1    # TNA versions 1 or 2.
 ports          = [  ] # Active ports on the switch.
 dut_ports      = [  ] # Ports connected to the DUT.
 pktgen_port    = 0    # Pktgen sends traffic to this port.
+mgmt_iface     = ""   # Optional: BMC/management interface name (e.g. "enp0s29u1u1u2").
+                      # Used by preflight.py to check the interface is up. Leave empty to skip.
+port_speed     = 0    # Optional: expected port speed in Gbps (e.g. 100). Used by
+                      # preflight.py to check ports; leave 0 to just report the speed.
 
 [devices.pktgen]
 tx_dev       = ""

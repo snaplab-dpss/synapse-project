@@ -6,13 +6,35 @@ SCRIPT_DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 
 CFG_FILE="$SCRIPT_DIR/../eval/experiment_config.toml"
 
+# Root of the local checkout (this script lives in tools/remote_machines/).
+REPO_ROOT=$(cd -- "$SCRIPT_DIR/../.." &> /dev/null && pwd)
+
+# Push the local checkout to a host with rsync over SSH. This mirrors the local
+# tree (the source of truth) instead of pulling from GitHub, so it only needs
+# SSH access to the host and never hits GitHub's unauthenticated rate limits.
+#
+# --filter=':- .gitignore' makes rsync honor every .gitignore in the tree (the
+# top-level one and each submodule's), and --exclude='.git' skips all git
+# metadata. Together they transfer exactly the git-tracked source, including
+# submodule contents, while leaving each host's ignored, machine-specific files
+# untouched: paths.sh (absolute paths differ per host), build/ outputs, the
+# Gurobi license, the Barefoot SDE, pcaps, logs, etc. Excluded files are also
+# protected from --delete, so mirroring never removes them.
 sync() {
     host=$1
     path_to_repo=$2
     echo "*********************************************"
     echo "Synchronizing host $host"
     echo "*********************************************"
-    ssh $host "cd $path_to_repo && git reset HEAD --hard && git pull origin main && git submodule update --init --recursive && cd $path_to_repo/deps/pktgen && git pull origin main && cd $path_to_repo/deps/pcap-replay && git pull origin main"
+    # rsync must exist on the remote too; install it if it is missing.
+    if ! ssh "$host" 'command -v rsync' > /dev/null 2>&1; then
+        echo "rsync not found on $host, installing it..."
+        ssh "$host" 'if [ "$(id -u)" -eq 0 ]; then SUDO=; else SUDO=sudo; fi; $SUDO apt-get update -qq && $SUDO apt-get install -y rsync'
+    fi
+    rsync -az --delete --partial -h --info=progress2 \
+        --exclude='.git' \
+        --filter=':- .gitignore' \
+        "$REPO_ROOT/" "$host:$path_to_repo/"
 }
 
 sync_cfg() {
@@ -73,8 +95,8 @@ force_build_pcap_replay() {
 
 sync tofino1 /root/synapse-project
 sync tofino2 /home/user/synapse-project
-sync geodude ~/synapse-project
-sync graveler ~/synapse-project
+sync geodude '~/synapse-project'
+sync graveler '~/synapse-project'
 install_libsycon tofino2 /home/user/synapse-project
-force_build_pktgen geodude ~/synapse-project
-force_build_pcap_replay geodude ~/synapse-project
+force_build_pktgen geodude '~/synapse-project'
+force_build_pcap_replay geodude '~/synapse-project'

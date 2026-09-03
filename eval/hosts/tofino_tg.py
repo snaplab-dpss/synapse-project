@@ -33,6 +33,8 @@ class PortStats:
 class PortState:
     enable: bool
     up: bool
+    speed: str = ""
+    media_type: str = ""
 
 
 class TofinoTG(Switch):
@@ -147,7 +149,7 @@ class TofinoTGController:
                     start_parsing = True
                 continue
 
-            result = re.search(r"(\d+): speed=(.+), fec=(.+), loopback_mode=(.+), port_enable=(\d), port_up=(\d).*", line)
+            result = re.search(r"(\d+): speed=(.+), fec=(.+), loopback_mode=(.+), port_enable=(\d), port_up=(\d)(?:, media_type=(.+))?", line)
 
             if not result:
                 continue
@@ -156,6 +158,8 @@ class TofinoTGController:
             port_state = PortState(
                 enable=bool(int(result.group(5))),
                 up=bool(int(result.group(6))),
+                speed=result.group(2),
+                media_type=result.group(7) or "",
             )
 
             self.host.log(f"Port {port} state: {port_state}")

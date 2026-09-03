@@ -1,0 +1,50 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     echo.bdd
+  Name:               synapse-echo
+  Targets config:     tofino2.toml
+  Heuristic:          max-tput
+  Profile file:       
+  Seed:               0
+  Targets:
+    Tofino (41 modules)
+    Ctrl (90 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+
+Winner:
+  Score: <0,1'368'340'500,1,0,0,0>
+  Tput: 3.00 Tbps (1.37 Gpps)
+  Spec: 3.00 Tbps (1.37 Gpps)
+  Recirculations: 0
+  BDD Progress: 1 / 1
+  Stages: 0
+  Memory Usage: 0 bits
+
+Stateful Implementations:
+
+Search Metadata:
+  Elapsed time:       0 seconds
+  Steps:              1
+  Backtracks:         0
+  Search space size:  1
+  Unfinished EPs:     0
+  Finished EPs:       1
+  Avg BDD size:       1
+  Branching factor:   0
+  Total SS size est.: 0
+  Avg children per node:
+    Node 0: 0
+
+Global Stats:
+  Num phase 1 speculations: 0 (0%)
+  Num phase 2 speculations: 0 (0%)
+  Num speculated modules:   1
+  Num EPs generated:        1
+
+Switch placement:
+
+====================== TNA Pipeline ======================
+==========================================================
+========================================================

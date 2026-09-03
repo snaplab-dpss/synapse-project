@@ -138,7 +138,7 @@ control Ingress(
 		ig_tm_md.ucast_egress_port = port;
 	}
 
-    Hash<bit<32>>(HashAlgorithm_t.CRC32) hash_calculator;
+	Hash<bit<32>>(HashAlgorithm_t.CRC32) hash_calculator;
 	Hash<bit<32>>(HashAlgorithm_t.CRC32) hash0_calculator;
 	Hash<bit<32>>(HashAlgorithm_t.CRC32) hash1_calculator;
 	Hash<bit<32>>(HashAlgorithm_t.CRC32) hash2_calculator;

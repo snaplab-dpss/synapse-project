@@ -223,6 +223,9 @@ class Ports:
             port_enable = data["$PORT_ENABLE"]
             loopback_mode = data["$LOOPBACK_MODE"]
             port_up = data["$PORT_UP"]
+            # BF_MEDIA_TYPE_UNKNOWN means no cable/transceiver is detected in the
+            # port; COPPER/OPTICAL means a cable is present (even if link is down).
+            media_type = data["$MEDIA_TYPE"]
 
             state[dev_port] = {
                 "speed": speed,
@@ -230,6 +233,7 @@ class Ports:
                 "loopback_mode": loopback_mode,
                 "port_enable": port_enable,
                 "port_up": port_up,
+                "media_type": media_type,
             }
 
         return state
@@ -627,14 +631,16 @@ def run_setup_get(ports: Ports):
         port_enable = port_state["port_enable"]
         loopback_mode = port_state["loopback_mode"]
         port_up = port_state["port_up"]
+        media_type = port_state["media_type"]
         print(
-            "{}: speed={}, fec={}, loopback_mode={}, port_enable={}, port_up={}".format(
+            "{}: speed={}, fec={}, loopback_mode={}, port_enable={}, port_up={}, media_type={}".format(
                 front_panel_port,
                 speed,
                 fec,
                 loopback_mode,
                 1 if port_enable else 0,
                 1 if port_up else 0,
+                media_type,
             )
         )
 

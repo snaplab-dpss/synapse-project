@@ -1,0 +1,73 @@
+{
+  "bdd": "echo.bdd",
+  "global_stats": {
+    "num_execution_plans_generated": 1,
+    "num_phase1_speculations": 0,
+    "num_phase2_speculations": 0,
+    "num_speculated_modules": 1,
+    "time_per_instantiation_us": 22,
+    "time_per_speculation_us": 32,
+    "total_time_spent_generating_execution_plans_us": 22,
+    "total_time_spent_speculating_us": 32
+  },
+  "heuristic": {
+    "meta": [
+      {
+        "description": "3.00 Tbps (1.37 Gpps)",
+        "name": "Tput"
+      },
+      {
+        "description": "3.00 Tbps (1.37 Gpps)",
+        "name": "Spec"
+      },
+      {
+        "description": "0",
+        "name": "Recirculations"
+      },
+      {
+        "description": "1 / 1",
+        "name": "BDD Progress"
+      },
+      {
+        "description": "0",
+        "name": "Stages"
+      },
+      {
+        "description": "0 bits",
+        "name": "Memory Usage"
+      }
+    ],
+    "score": [
+      0,
+      1368340500,
+      1,
+      0,
+      0,
+      0
+    ]
+  },
+  "implementations": [],
+  "name": "synapse-echo",
+  "profile_file": "",
+  "search_meta": {
+    "avg_bdd_size": 1,
+    "avg_children_per_node": [
+      {
+        "avg": 0.0,
+        "node_id": 0
+      }
+    ],
+    "backtracks": 0,
+    "branching_factor": 0.0,
+    "elapsed_time_seconds": 0,
+    "finished_eps": 1,
+    "ss_size": 1,
+    "steps": 1,
+    "total_ss_size_estimation": 0.0,
+    "unfinished_eps": 0
+  },
+  "seed": 0,
+  "targets_config_file": "tofino2.toml",
+  "tput_estimation_bps": 2999402485600,
+  "tput_estimation_pps": 1368340550
+}
