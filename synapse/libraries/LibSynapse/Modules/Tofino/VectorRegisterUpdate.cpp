@@ -17,16 +17,33 @@ vector_register_data_t get_vector_register_data(const Context &ctx, const Call *
   const addr_t obj           = expr_addr_to_obj_addr(vb.args.at("vector").expr);
   const vector_config_t &cfg = ctx.get_vector_config(obj);
 
+  klee::ref<klee::Expr> read_value  = vb.extra_vars.at("borrowed_cell").second;
+  klee::ref<klee::Expr> write_value = vr.args.at("value").in;
+
+  // `*reg += delta` is lowered to a stateful-ALU increment (AddValue); a plain
+  // overwrite `*reg = value` is a Write.
+  const bool is_increment = TofinoModuleFactory::get_register_increment_delta(write_value, read_value).has_value();
+
   const vector_register_data_t vector_register_data = {
       .obj         = obj,
       .capacity    = static_cast<u32>(cfg.capacity),
       .index       = vb.args.at("index").expr,
-      .value       = vb.extra_vars.at("borrowed_cell").second,
-      .write_value = vr.args.at("value").in,
-      .actions     = {RegisterActionType::Read, RegisterActionType::Write},
+      .value       = read_value,
+      .write_value = write_value,
+      .actions     = {RegisterActionType::Read, is_increment ? RegisterActionType::AddValue : RegisterActionType::Write},
   };
 
   return vector_register_data;
+}
+
+// The write value fits either directly (overwrite by a single external value) or
+// as an increment whose delta is computable in a regular action (<=2 symbols).
+bool write_value_is_compatible(const vector_register_data_t &d) {
+  if (TofinoModuleFactory::expr_fits_in_action(d.write_value)) {
+    return true;
+  }
+  std::optional<klee::ref<klee::Expr>> delta = TofinoModuleFactory::get_register_increment_delta(d.write_value, d.value);
+  return delta.has_value() && TofinoModuleFactory::expr_fits_in_action(*delta, 2);
 }
 
 } // namespace
@@ -55,7 +72,7 @@ std::optional<spec_impl_t> VectorRegisterUpdateFactory::speculate(const EP *ep, 
     return {};
   }
 
-  if (!expr_fits_in_action(vector_register_data.write_value)) {
+  if (!write_value_is_compatible(vector_register_data)) {
     return {};
   }
 
@@ -98,7 +115,7 @@ std::vector<impl_t> VectorRegisterUpdateFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  if (!expr_fits_in_action(vector_register_data.write_value)) {
+  if (!write_value_is_compatible(vector_register_data)) {
     return {};
   }
 
@@ -156,7 +173,7 @@ std::unique_ptr<Module> VectorRegisterUpdateFactory::create(const BDD *bdd, cons
     return {};
   }
 
-  if (!expr_fits_in_action(vector_register_data.write_value)) {
+  if (!write_value_is_compatible(vector_register_data)) {
     return {};
   }
 

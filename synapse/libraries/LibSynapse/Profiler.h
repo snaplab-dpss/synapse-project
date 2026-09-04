@@ -208,6 +208,12 @@ public:
 
   void translate(SymbolManager *symbol_manager, const BDDNode *reordered_node, const std::vector<symbol_translation_t> &translated_symbols);
   void replace_constraint(const std::vector<klee::ref<klee::Expr>> &cnstrs, klee::ref<klee::Expr> cnstr);
+  // Collapse a branch whose two sides are equivalent continuations (e.g. a max/min
+  // swap whose displaced value the register action returns): the branch disappears
+  // from the EP, so merge its two structurally-identical child subtrees (summing
+  // packet mass) into a single subtree that inherits all of the branch's traffic.
+  // Must be called while `branch` is still present in the BDD it was profiled from.
+  void collapse_branch(const BDDNode *branch);
   void remove(const std::vector<klee::ref<klee::Expr>> &constraints);
   void remove_until(const std::vector<klee::ref<klee::Expr>> &target, const std::vector<klee::ref<klee::Expr>> &stopping_constraints);
   void scale(const std::vector<klee::ref<klee::Expr>> &constraints, double factor);

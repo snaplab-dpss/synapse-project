@@ -58,6 +58,7 @@ void nf_config_init(int argc, char **argv) {
 
   config.log_num_estimators = log_num_estimators;
   config.hash_mask          = (1u << (HASH_BITS - log_num_estimators)) - 1;
+  config.rank_mask          = (1u << config.scaling) - 1; // low `scaling` bits: clamps the rank domain
   config.offset             = config.num_estimators << config.scaling; // m * 2^scaling
 
   // Numerator of the HLL estimate alpha * m^2 / sum(2^-rank), kept in fixed point.

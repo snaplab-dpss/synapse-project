@@ -17,9 +17,12 @@ private:
   std::unordered_set<std::string> symbols;
   int operations;
   bool compatible;
+  size_t max_symbols;
+  int max_operations;
 
 public:
-  ActionExprCompatibilityChecker() : operations(0), compatible(true) {}
+  ActionExprCompatibilityChecker(size_t _max_symbols = 1, int _max_operations = 1)
+      : operations(0), compatible(true), max_symbols(_max_symbols), max_operations(_max_operations) {}
 
   bool is_compatible() const { return compatible; }
 
@@ -30,7 +33,7 @@ public:
 
   Action visit_compatible_op() {
     operations++;
-    if (operations > 1) {
+    if (operations > max_operations) {
       compatible = false;
       return Action::skipChildren();
     }
@@ -40,7 +43,7 @@ public:
   Action visitRead(const klee::ReadExpr &e) override final {
     const std::string name = e.updates.root->name;
     symbols.insert(name);
-    if (symbols.size() > 1) {
+    if (symbols.size() > max_symbols) {
       compatible = false;
       return Action::skipChildren();
     }
@@ -155,6 +158,67 @@ bool TofinoModuleFactory::expr_fits_in_action(klee::ref<klee::Expr> expr) {
   ActionExprCompatibilityChecker checker;
   checker.visit(expr);
   return checker.is_compatible();
+}
+
+bool TofinoModuleFactory::expr_fits_in_action(klee::ref<klee::Expr> expr, size_t max_symbols) {
+  ActionExprCompatibilityChecker checker(max_symbols);
+  checker.visit(expr);
+  return checker.is_compatible();
+}
+
+bool TofinoModuleFactory::expr_is_materializable(klee::ref<klee::Expr> expr) {
+  // Can this be computed into a metadata field by an ordinary MAU action? Allows
+  // a couple of inputs and a short chain of casts/slices/arithmetic (no mul/div).
+  ActionExprCompatibilityChecker checker(/*max_symbols=*/2, /*max_operations=*/8);
+  checker.visit(expr);
+  return checker.is_compatible();
+}
+
+namespace {
+class ReadSymbolCollector : public klee::ExprVisitor::ExprVisitor {
+public:
+  std::unordered_set<std::string> names;
+  Action visitRead(const klee::ReadExpr &e) override final {
+    names.insert(e.updates.root->name);
+    return Action::doChildren();
+  }
+};
+
+std::unordered_set<std::string> collect_read_symbols(klee::ref<klee::Expr> expr) {
+  ReadSymbolCollector collector;
+  collector.visit(expr);
+  return collector.names;
+}
+} // namespace
+
+std::optional<klee::ref<klee::Expr>> TofinoModuleFactory::get_register_increment_delta(klee::ref<klee::Expr> write_value,
+                                                                                       klee::ref<klee::Expr> read_value) {
+  if (write_value->getKind() != klee::Expr::Kind::Add) {
+    return {};
+  }
+
+  klee::ref<klee::Expr> lhs = write_value->getKid(0);
+  klee::ref<klee::Expr> rhs = write_value->getKid(1);
+
+  klee::ref<klee::Expr> delta;
+  if (lhs->compare(*read_value) == 0) {
+    delta = rhs;
+  } else if (rhs->compare(*read_value) == 0) {
+    delta = lhs;
+  } else {
+    return {};
+  }
+
+  // The delta must not reference the register's own value.
+  const std::unordered_set<std::string> reg_symbols   = collect_read_symbols(read_value);
+  const std::unordered_set<std::string> delta_symbols = collect_read_symbols(delta);
+  for (const std::string &name : delta_symbols) {
+    if (reg_symbols.count(name)) {
+      return {};
+    }
+  }
+
+  return delta;
 }
 
 Symbols TofinoModuleFactory::get_relevant_dataplane_state(const EP *ep, const BDDNode *node) {

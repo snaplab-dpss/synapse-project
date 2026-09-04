@@ -52,6 +52,12 @@ class BloomFilterSet;
 class BloomFilterQueryAndSet;
 class LPMLookup;
 class CuckooHashTableReadWrite;
+class HashObj;
+class CountTrailingZeros;
+class FindFirstSetBit;
+class PowerOfTwo;
+class Ln;
+class Divide;
 } // namespace Tofino
 
 namespace Controller {
@@ -246,6 +252,12 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQueryAndSet *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HashObj *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CountTrailingZeros *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FindFirstSetBit *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::PowerOfTwo *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ln *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *m) { return Action::doChildren; }
 
   // ========================================
   // Controller

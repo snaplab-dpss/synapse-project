@@ -11,13 +11,16 @@ namespace Tofino {
 
 using LibCore::break_expr_into_structs_aware_chunks;
 
-Table::Table(DS_ID _id, u32 _capacity, const std::vector<bits_t> &_keys, const std::vector<bits_t> &_params, TimeAware _time_aware)
-    : DS(DSType::Table, true, _id), capacity(adjust_capacity_for_collisions(_capacity)), keys(_keys), params(_params), time_aware(_time_aware) {
+Table::Table(DS_ID _id, u32 _capacity, const std::vector<bits_t> &_keys, const std::vector<bits_t> &_params, TimeAware _time_aware, TableMatch _match,
+             const std::vector<table_entry_t> &_const_entries)
+    : DS(DSType::Table, true, _id), capacity(adjust_capacity_for_collisions(_capacity)), keys(_keys), params(_params), time_aware(_time_aware),
+      match(_match), const_entries(_const_entries) {
   assert(_capacity > 0 && "Table entries must be greater than 0");
 }
 
 Table::Table(const Table &other)
-    : DS(other.type, other.primitive, other.id), capacity(other.capacity), keys(other.keys), params(other.params), time_aware(other.time_aware) {}
+    : DS(other.type, other.primitive, other.id), capacity(other.capacity), keys(other.keys), params(other.params), time_aware(other.time_aware),
+      match(other.match), const_entries(other.const_entries) {}
 
 DS *Table::clone() const { return new Table(*this); }
 

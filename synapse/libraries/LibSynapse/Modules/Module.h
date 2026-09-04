@@ -68,6 +68,12 @@ enum class ModuleType {
   Tofino_BloomFilterQueryAndSet,
   Tofino_LPMLookup,
   Tofino_CuckooHashTableReadWrite,
+  Tofino_HashObj,
+  Tofino_CountTrailingZeros,
+  Tofino_FindFirstSetBit,
+  Tofino_PowerOfTwo,
+  Tofino_Ln,
+  Tofino_Divide,
 
   // ========================================
   // Controller
@@ -338,6 +344,24 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_CuckooHashTableReadWrite:
     os << "Tofino_CuckooHashTableReadWrite";
+    break;
+  case ModuleType::Tofino_HashObj:
+    os << "Tofino_HashObj";
+    break;
+  case ModuleType::Tofino_CountTrailingZeros:
+    os << "Tofino_CountTrailingZeros";
+    break;
+  case ModuleType::Tofino_FindFirstSetBit:
+    os << "Tofino_FindFirstSetBit";
+    break;
+  case ModuleType::Tofino_PowerOfTwo:
+    os << "Tofino_PowerOfTwo";
+    break;
+  case ModuleType::Tofino_Ln:
+    os << "Tofino_Ln";
+    break;
+  case ModuleType::Tofino_Divide:
+    os << "Tofino_Divide";
     break;
   case ModuleType::Controller_Ignore:
     os << "Controller_Ignore";

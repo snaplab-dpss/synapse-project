@@ -80,6 +80,13 @@ public:
 
   static Symbols get_relevant_dataplane_state(const EP *ep, const BDDNode *node);
   static bool expr_fits_in_action(klee::ref<klee::Expr> expr);
+  static bool expr_fits_in_action(klee::ref<klee::Expr> expr, size_t max_symbols);
+  static bool expr_is_materializable(klee::ref<klee::Expr> expr);
+
+  // If `write_value` is `read_value + delta` (a register increment by an
+  // expression that doesn't reference the register's own value), returns the
+  // delta; otherwise nullopt. Used to lower `*reg += delta` onto the stateful ALU.
+  static std::optional<klee::ref<klee::Expr>> get_register_increment_delta(klee::ref<klee::Expr> write_value, klee::ref<klee::Expr> read_value);
 
   static std::vector<klee::ref<klee::Expr>> partition_expr_for_registers(const Context &ctx, klee::ref<klee::Expr> expr) {
     return Register::partition_value(ctx.get_target_ctx<TofinoContext>()->get_tna().tna_config.properties, expr, ctx.get_expr_structs());

@@ -681,6 +681,8 @@ BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, st
                             POPULATE_SYNTHESIZER(lpm_from_file),
                             POPULATE_SYNTHESIZER(hash_obj),
                             POPULATE_SYNTHESIZER(count_trailing_zeros),
+                            POPULATE_SYNTHESIZER(find_first_set_bit),
+                            POPULATE_SYNTHESIZER(min),
                             POPULATE_SYNTHESIZER(power_of_two),
                             POPULATE_SYNTHESIZER(divide),
                             POPULATE_SYNTHESIZER(ln),
@@ -2098,6 +2100,39 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::count_trailing_zeros(coder_t
 
   coder.indent();
   coder << "uint32_t " << v.name << " = count_trailing_zeros(" << transpiler.transpile(x) << ");\n";
+
+  stack_add(v);
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::find_first_set_bit(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> x = call.args.at("x").expr;
+
+  var_t v = build_var("first_set_bit", call.ret);
+
+  coder.indent();
+  coder << "uint32_t " << v.name << " = find_first_set_bit(" << transpiler.transpile(x) << ");\n";
+
+  stack_add(v);
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::min(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> a = call.args.at("a").expr;
+  klee::ref<klee::Expr> b = call.args.at("b").expr;
+
+  // Base name must differ from the function name "min" to avoid a C++ collision
+  // (`uint32_t min = min(...)` shadows the function and fails to compile).
+  var_t v = build_var("minimum", call.ret);
+
+  coder.indent();
+  coder << "uint32_t " << v.name << " = min(" << transpiler.transpile(a) << ", " << transpiler.transpile(b) << ");\n";
 
   stack_add(v);
 
