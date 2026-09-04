@@ -52,6 +52,29 @@ generate_pcaps_echo() {
         ::: "${TRAFFIC[@]}"
 }
 
+##########################
+#       HyperLogLog      #
+##########################
+
+generate_pcaps_hyperloglog() {
+    flows=40000
+    devs="2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31"
+    parallel \
+        -j $(nproc) --verbose \
+        eval \
+        $SYNAPSE_DIR/build/bin/pcap-generator-hyperloglog \
+        --out $PCAPS_DIR \
+        --packets $TOTAL_PACKETS \
+        --flows $flows \
+        --packet-size $PACKET_SIZE \
+        --churn {1} \
+        --traffic {2} \
+        --devs $devs \
+        --seed 0 \
+        ::: $CHURN \
+        ::: "${TRAFFIC[@]}"
+}
+
 #########################
 #       Forwarder       #
 #########################
@@ -167,6 +190,7 @@ generate_pcaps_cl() {
 }
 
 generate_pcaps_echo
+generate_pcaps_hyperloglog
 generate_pcaps_fwd
 generate_pcaps_fw
 generate_pcaps_nat

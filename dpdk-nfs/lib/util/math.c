@@ -1,4 +1,4 @@
-#include "hash.h"
+#include "math.h"
 
 #include <stdint.h>
 
@@ -18,3 +18,11 @@ unsigned hash_obj(void *obj, unsigned size_bytes) {
   }
   return hash;
 }
+
+unsigned count_trailing_zeros(unsigned x) { return x == 0 ? 32 : __builtin_ctz(x); }
+
+unsigned power_of_two(unsigned exponent) { return 1u << exponent; }
+
+unsigned divide(unsigned numerator, unsigned denominator) { return denominator == 0 ? 0 : numerator / denominator; }
+
+unsigned ln(unsigned x, unsigned scale) { return x == 0 ? 0 : (unsigned)(__builtin_log((double)x) * scale); }

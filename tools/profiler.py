@@ -27,7 +27,7 @@ SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
 DEVICES = list(range(2, 32))
 
-DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd", "pol"]
+DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd", "pol", "hyperloglog"]
 # DEFAULT_RATE = [100_000_000_000]  # 100 Gbps
 # DEFAULT_TOTAL_PACKETS = [160_000_000]
 DEFAULT_RATE = [10_000_000_000]  # 10 Gbps
@@ -72,6 +72,7 @@ NFs = {
     "psd": NF("psd", "psd.bdd", "pcap-generator-psd", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
     "cl": NF("cl", "cl.bdd", "pcap-generator-cl", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
     "pol": NF("pol", "pol.bdd", "pcap-generator-pol", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
+    "hyperloglog": NF("hyperloglog", "hyperloglog.bdd", "pcap-generator-hyperloglog", warmup_devices=[], unique_devices=DEVICES[:2], fwd_rules=[]),
 }
 
 
@@ -319,12 +320,10 @@ def profile_nf_against_pcaps(
     for i, dev in enumerate(DEVICES):
         pcaps.append(unique_pcaps[i % len(unique_pcaps)])
 
-    profile_cmd = f"{SYNTHESIZED_DIR / 'build' / profiler_name}"
-    profile_cmd += f" {PROFILE_DIR / report}"
-    profile_cmd += " "
-    profile_cmd += " ".join([f"--warmup {warmup_dev}:{warmup_pcap}" for warmup_dev, warmup_pcap in zip(nf.warmup_devices, warmup_pcaps)])
-    profile_cmd += " "
-    profile_cmd += " ".join([f"{dev}:{pcap}" for dev, pcap in zip(DEVICES, pcaps)])
+    cmd_parts = [str(SYNTHESIZED_DIR / "build" / profiler_name), str(PROFILE_DIR / report)]
+    cmd_parts += [f"--warmup {warmup_dev}:{warmup_pcap}" for warmup_dev, warmup_pcap in zip(nf.warmup_devices, warmup_pcaps)]
+    cmd_parts += [f"{dev}:{pcap}" for dev, pcap in zip(DEVICES, pcaps)]
+    profile_cmd = " ".join(cmd_parts)
 
     return Task(
         f"profile_nf_against_pcap_{nf.name}_f{total_flows}_c{churn_fpm}_zipf{zipf_param}",

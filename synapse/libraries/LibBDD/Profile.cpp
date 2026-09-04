@@ -110,6 +110,17 @@ void from_json(const json &j, std::unordered_map<bdd_node_id_t, bdd_profile_t::f
   }
 }
 
+void from_json(const json &j, std::unordered_map<bdd_node_id_t, bdd_profile_t::ln_stats_t> &ln_stats) {
+  for (const auto &kv : j.items()) {
+    bdd_node_id_t node_id = std::stoull(kv.key());
+    for (const auto &entry : kv.value()) {
+      u32 x     = entry.at("x");
+      u32 scale = entry.at("scale");
+      ln_stats[node_id].inputs.insert({x, scale});
+    }
+  }
+}
+
 void from_json(const json &j, bdd_profile_t &report) {
   j.at("config").get_to(report.config);
   j.at("meta").get_to(report.meta);
@@ -119,6 +130,11 @@ void from_json(const json &j, bdd_profile_t &report) {
   // is not working for some reason.
   from_json(j["counters"], report.counters);
   from_json(j["forwarding_stats"], report.forwarding_stats);
+
+  // Optional: only present for NFs that call ln().
+  if (j.contains("ln_inputs")) {
+    from_json(j["ln_inputs"], report.ln_stats);
+  }
 }
 
 bdd_profile_t parse_bdd_profile(const std::filesystem::path &filename) {

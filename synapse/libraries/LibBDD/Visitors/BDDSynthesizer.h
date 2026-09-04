@@ -151,6 +151,11 @@ private:
   success_condition_t lpm_lookup(coder_t &, const Call *);
   success_condition_t lpm_update(coder_t &, const Call *);
   success_condition_t lpm_from_file(coder_t &, const Call *);
+  success_condition_t hash_obj(coder_t &, const Call *);
+  success_condition_t count_trailing_zeros(coder_t &, const Call *);
+  success_condition_t power_of_two(coder_t &, const Call *);
+  success_condition_t divide(coder_t &, const Call *);
+  success_condition_t ln(coder_t &, const Call *);
 
   void stack_dbg() const;
   void stack_push();

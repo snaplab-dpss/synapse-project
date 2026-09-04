@@ -223,6 +223,9 @@ public:
   flow_stats_t get_flow_stats(const BDDNode *node, klee::ref<klee::Expr> flow) const;
   fwd_stats_t get_fwd_stats(const BDDNode *node) const;
   std::unordered_set<u16> get_candidate_fwd_ports(const BDDNode *node) const;
+
+  // Distinct inputs (x, scale) observed at an ln() call node during profiling.
+  std::set<std::pair<u32, u32>> get_ln_inputs(const BDDNode *node) const;
   rw_fractions_t get_cond_map_put_rw_profile_fractions(const Call *map_get) const;
 
   void clear_cache() const;

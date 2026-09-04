@@ -259,6 +259,14 @@ std::unordered_set<u16> Profiler::get_candidate_fwd_ports(const BDDNode *node) c
   return profiler_node->candidate_fwd_ports;
 }
 
+std::set<std::pair<u32, u32>> Profiler::get_ln_inputs(const BDDNode *node) const {
+  auto found_it = bdd_profile->ln_stats.find(node->get_id());
+  if (found_it == bdd_profile->ln_stats.end()) {
+    return {};
+  }
+  return found_it->second.inputs;
+}
+
 Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, const std::unordered_set<u16> &available_devs)
     : bdd_profile(new bdd_profile_t(_bdd_profile)),
       flows_stats_per_bdd_node(std::make_shared<std::unordered_map<bdd_node_id_t, std::vector<flow_stats_t>>>()),

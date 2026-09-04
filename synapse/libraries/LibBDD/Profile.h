@@ -9,6 +9,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <set>
+#include <utility>
 
 namespace LibBDD {
 
@@ -64,11 +66,17 @@ struct bdd_profile_t {
     std::vector<epoch_t> epochs;
   };
 
+  // Distinct inputs (x, scale) observed at each ln() call node.
+  struct ln_stats_t {
+    std::set<std::pair<u32, u32>> inputs;
+  };
+
   config_t config;
   meta_t meta;
   std::unordered_map<u64, map_stats_t> stats_per_map;
   std::unordered_map<bdd_node_id_t, u64> counters;
   std::unordered_map<bdd_node_id_t, fwd_stats_t> forwarding_stats;
+  std::unordered_map<bdd_node_id_t, ln_stats_t> ln_stats;
 
   fpm_t churn_top_k_flows(u64 map, u32 k) const;
   hit_rate_t churn_hit_rate_top_k_flows(u64 map, u32 k) const;

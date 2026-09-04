@@ -7,7 +7,7 @@
 #include "lib/util/boilerplate.h"
 #include "lib/state/vector.h"
 #include "lib/util/time.h"
-#include "lib/util/hash.h"
+#include "lib/util/math.h"
 #include "lib/util/compute.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))

@@ -130,8 +130,18 @@ klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitNotOptimized(const kl
 }
 
 klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitSelect(const klee::SelectExpr &e) {
-  klee::ref<klee::Expr> expr = const_cast<klee::SelectExpr *>(&e);
-  TODO(expr);
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> cond      = e.getKid(0);
+  klee::ref<klee::Expr> true_val  = e.getKid(1);
+  klee::ref<klee::Expr> false_val = e.getKid(2);
+
+  coder << "(" << transpile(cond) << ")";
+  coder << " ? ";
+  coder << "(" << transpile(true_val) << ")";
+  coder << " : ";
+  coder << "(" << transpile(false_val) << ")";
+
   return Action::skipChildren();
 }
 
@@ -390,20 +400,41 @@ klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitXor(const klee::XorEx
 }
 
 klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitShl(const klee::ShlExpr &e) {
-  klee::ref<klee::Expr> expr = const_cast<klee::ShlExpr *>(&e);
-  TODO(expr);
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << "(" << transpile(lhs) << ")";
+  coder << " << ";
+  coder << "(" << transpile(rhs) << ")";
+
   return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitLShr(const klee::LShrExpr &e) {
-  klee::ref<klee::Expr> expr = const_cast<klee::LShrExpr *>(&e);
-  TODO(expr);
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << "(" << transpile(lhs) << ")";
+  coder << " >> ";
+  coder << "(" << transpile(rhs) << ")";
+
   return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitAShr(const klee::AShrExpr &e) {
-  klee::ref<klee::Expr> expr = const_cast<klee::AShrExpr *>(&e);
-  TODO(expr);
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << "((int" << lhs->getWidth() << "_t)(" << transpile(lhs) << "))";
+  coder << " >> ";
+  coder << "(" << transpile(rhs) << ")";
+
   return Action::skipChildren();
 }
 
@@ -648,6 +679,11 @@ BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, st
                             POPULATE_SYNTHESIZER(lpm_lookup),
                             POPULATE_SYNTHESIZER(lpm_update),
                             POPULATE_SYNTHESIZER(lpm_from_file),
+                            POPULATE_SYNTHESIZER(hash_obj),
+                            POPULATE_SYNTHESIZER(count_trailing_zeros),
+                            POPULATE_SYNTHESIZER(power_of_two),
+                            POPULATE_SYNTHESIZER(divide),
+                            POPULATE_SYNTHESIZER(ln),
                         }) {}
 
 void BDDSynthesizer::synthesize() {
@@ -1256,20 +1292,52 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::vector_borrow(coder_t &coder
   klee::ref<klee::Expr> value_addr  = call.args.at("val_out").out;
   klee::ref<klee::Expr> value       = call.extra_vars.at("borrowed_cell").second;
 
-  var_t v = build_var("vector_value_out", value, value_addr);
+  const bits_t width = value->getWidth();
+
+  if (!Transpiler::is_primitive_type(width)) {
+    var_t v = build_var("vector_value_out", value, value_addr);
+
+    coder.indent();
+    coder << "uint8_t* " << v.name << " = 0;\n";
+
+    coder.indent();
+    coder << "vector_borrow(";
+    coder << stack_get(vector_addr).name << ", ";
+    coder << transpiler.transpile(index) << ", ";
+    coder << "(void**)&" << v.name;
+    coder << ")";
+    coder << ";\n";
+
+    stack_add(v);
+
+    return {};
+  }
+
+  // Primitive cell: keep a pointer for the write-back, but bind reads to a stable
+  // copy of the borrowed value so a later write-back does not clobber the value
+  // seen by earlier reads (e.g. the pre-update value in a read-modify-write).
+  const code_t type = Transpiler::type_from_size(width);
+
+  var_t ptr = build_var("vector_cell", value, value_addr);
 
   coder.indent();
-  coder << "uint8_t* " << v.name << " = 0;\n";
+  coder << "uint8_t* " << ptr.name << " = 0;\n";
 
   coder.indent();
   coder << "vector_borrow(";
   coder << stack_get(vector_addr).name << ", ";
   coder << transpiler.transpile(index) << ", ";
-  coder << "(void**)&" << v.name;
+  coder << "(void**)&" << ptr.name;
   coder << ")";
   coder << ";\n";
 
-  stack_add(v);
+  var_t val = build_var("vector_value_out", value);
+
+  coder.indent();
+  coder << type << " " << val.name << " = *(" << type << "*)" << ptr.name << ";\n";
+
+  stack_add(val);
+  stack_add(ptr);
 
   return {};
 }
@@ -1991,6 +2059,99 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_from_file(coder_t &coder
   coder << stack_get(lpm_addr).name << ", ";
   coder << "\"" << cfg_fname_str << "\"";
   coder << ");\n";
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::hash_obj(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> obj_addr = call.args.at("obj").expr;
+  klee::ref<klee::Expr> obj      = call.args.at("obj").in;
+  klee::ref<klee::Expr> size     = call.args.at("size").expr;
+
+  bool obj_in_stack;
+  var_t o = build_var_ptr("obj", obj_addr, obj, coder, obj_in_stack);
+
+  var_t h = build_var("hash", call.ret);
+
+  coder.indent();
+  coder << "uint32_t " << h.name << " = hash_obj(" << o.name << ", " << transpiler.transpile(size) << ");\n";
+
+  stack_add(h);
+
+  if (!obj_in_stack) {
+    stack_add(o);
+  } else {
+    stack_replace(o, obj);
+  }
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::count_trailing_zeros(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> x = call.args.at("x").expr;
+
+  var_t v = build_var("trailing_zeros", call.ret);
+
+  coder.indent();
+  coder << "uint32_t " << v.name << " = count_trailing_zeros(" << transpiler.transpile(x) << ");\n";
+
+  stack_add(v);
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::power_of_two(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> exponent = call.args.at("exponent").expr;
+
+  var_t v = build_var("power", call.ret);
+
+  coder.indent();
+  coder << "uint32_t " << v.name << " = power_of_two(" << transpiler.transpile(exponent) << ");\n";
+
+  stack_add(v);
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::divide(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> numerator   = call.args.at("numerator").expr;
+  klee::ref<klee::Expr> denominator = call.args.at("denominator").expr;
+
+  var_t v = build_var("quotient", call.ret);
+
+  coder.indent();
+  coder << "uint32_t " << v.name << " = divide(" << transpiler.transpile(numerator) << ", " << transpiler.transpile(denominator) << ");\n";
+
+  stack_add(v);
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::ln(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> x     = call.args.at("x").expr;
+  klee::ref<klee::Expr> scale = call.args.at("scale").expr;
+
+  var_t v = build_var("logarithm", call.ret);
+
+  coder.indent();
+  coder << "uint32_t " << v.name << " = ln(" << transpiler.transpile(x) << ", " << transpiler.transpile(scale) << ");\n";
+
+  if (target == BDDSynthesizerTarget::Profiler) {
+    coder.indent();
+    coder << "ln_stats_per_node[" << call_node->get_id() << "].update(" << transpiler.transpile(x) << ", " << transpiler.transpile(scale) << ");\n";
+  }
+
+  stack_add(v);
 
   return {};
 }

@@ -10,7 +10,7 @@ extern "C" {
 #include <lib/state/token-bucket.h>
 #include <lib/state/lpm-dir-24-8.h>
 
-#include <lib/util/hash.h>
+#include <lib/util/math.h>
 #include <lib/util/expirator.h>
 #include <lib/util/packet-io.h>
 #include <lib/util/tcpudp_hdr.h>

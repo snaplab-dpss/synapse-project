@@ -109,6 +109,11 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
 
     {"hash_obj", {"hash"}},
 
+    {"count_trailing_zeros", {"trailing_zeros"}},
+    {"power_of_two", {"power_of_two"}},
+    {"divide", {"quotient"}},
+    {"ln", {"ln"}},
+
 };
 
 typedef Symbols (*SymbolsExtractor)(const call_t &call, const Symbols &symbols);
