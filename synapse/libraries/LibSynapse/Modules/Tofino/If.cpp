@@ -152,10 +152,36 @@ std::optional<klee::ref<klee::Expr>> rewrite_constant_comparison(klee::ref<klee:
     return {};
   }
 
-  const u64 c = constant->getZExtValue();
+  u64 c = constant->getZExtValue();
   auto rebuild = [&](klee::ref<klee::Expr> l, klee::ref<klee::Expr> r) {
     return kind == klee::Expr::Kind::Ult ? solver_toolbox.exprBuilder->Ult(l, r) : solver_toolbox.exprBuilder->Ule(l, r);
   };
+
+  // Algebraic step: `(x + a) <op> C`  =>  `x <op> (C - a)` (constant `a` moved to the
+  // RHS), so the gateway compares the bare value `x` -- a gateway can't evaluate the
+  // add, and bf-p4c folds a materialized `meta.t = x + a; if (meta.t <op> C)` back into
+  // the arithmetic. The high-zero guard added by the slicing below bounds `x` so the
+  // move is sound (x + a doesn't wrap in that regime). Only when C >= a (no underflow).
+  if (lhs->getKind() == klee::Expr::Kind::Add) {
+    klee::ref<klee::Expr> a0 = lhs->getKid(0);
+    klee::ref<klee::Expr> a1 = lhs->getKid(1);
+    klee::ref<klee::Expr> add_var;
+    const klee::ConstantExpr *add_const = dynamic_cast<klee::ConstantExpr *>(a0.get());
+    if (add_const) {
+      add_var = a1;
+    } else if ((add_const = dynamic_cast<klee::ConstantExpr *>(a1.get()))) {
+      add_var = a0;
+    }
+    if (!add_const) {
+      return {};
+    }
+    const u64 a = add_const->getZExtValue();
+    if (c < a) {
+      return {}; // `x + a <op> C` with C < a: can't move without wraparound reasoning.
+    }
+    lhs = add_var;
+    c   = c - a;
+  }
 
   // The operand is already a zero-extension of a narrow value: compare the narrow
   // value directly against a same-width constant, no guard needed.
@@ -214,6 +240,48 @@ void collect_materializable_operands(klee::ref<klee::Expr> expr, std::vector<kle
   }
 }
 
+// True if a comparison in `expr` has a DIRECT arithmetic operand (e.g. `(a + b) < C`).
+// A gateway can't evaluate that even though the PHV-byte estimate may say it fits, and
+// bf-p4c folds a materialized `meta.t = a + b; if (meta.t < C)` back into the arithmetic
+// compare -- so such comparisons must be sliced (Lever B): the arithmetic then only
+// appears inside byte-Extracts, which after materialization become field-byte compares.
+// (Arithmetic already nested inside an Extract is fine and is not flagged.)
+bool has_direct_arithmetic_comparison_operand(klee::ref<klee::Expr> expr) {
+  if (expr.isNull()) {
+    return false;
+  }
+  auto is_arith = [](klee::Expr::Kind k) {
+    return k == klee::Expr::Add || k == klee::Expr::Sub || k == klee::Expr::Mul || k == klee::Expr::UDiv || k == klee::Expr::SDiv ||
+           k == klee::Expr::URem || k == klee::Expr::SRem;
+  };
+  switch (expr->getKind()) {
+  case klee::Expr::Eq:
+  case klee::Expr::Ne:
+  case klee::Expr::Ult:
+  case klee::Expr::Ule:
+  case klee::Expr::Ugt:
+  case klee::Expr::Uge:
+  case klee::Expr::Slt:
+  case klee::Expr::Sle:
+  case klee::Expr::Sgt:
+  case klee::Expr::Sge:
+    for (unsigned i = 0; i < expr->getNumKids(); i++) {
+      if (is_arith(expr->getKid(i)->getKind())) {
+        return true;
+      }
+    }
+    break;
+  default:
+    break;
+  }
+  for (unsigned i = 0; i < expr->getNumKids(); i++) {
+    if (has_direct_arithmetic_comparison_operand(expr->getKid(i))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna, klee::ref<klee::Expr> condition) {
   std::vector<If::condition_t> conditions;
 
@@ -224,7 +292,24 @@ std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna
       return {};
     }
 
-    if (tna.condition_meets_phv_limit(simplified)) {
+    // A wide unsigned inequality against a constant must be sliced into a high-zero
+    // guard + narrow byte compare: even a bare 32-bit `value <= C` exceeds a gateway's
+    // range-match budget, and the PHV-byte model wrongly treats a 2^k-1 constant as
+    // free (that optimization only applies to ternary/mask matches, not inequalities).
+    auto is_wide_const_inequality = [](klee::ref<klee::Expr> e) {
+      const klee::Expr::Kind k = e->getKind();
+      if (k != klee::Expr::Kind::Ult && k != klee::Expr::Kind::Ule) {
+        return false;
+      }
+      const bool rhs_const = dynamic_cast<klee::ConstantExpr *>(e->getKid(1).get()) != nullptr;
+      const bool lhs_const = dynamic_cast<klee::ConstantExpr *>(e->getKid(0).get()) != nullptr;
+      return rhs_const && !lhs_const && e->getKid(0)->getWidth() > 8;
+    };
+
+    // A direct arithmetic comparison operand or a wide inequality must be sliced (see
+    // above), even if the PHV-byte estimate says it fits; else take the raw-gateway path.
+    if (!has_direct_arithmetic_comparison_operand(simplified) && !is_wide_const_inequality(simplified) &&
+        tna.condition_meets_phv_limit(simplified)) {
       If::condition_t cond(simplified);
       collect_materializable_operands(simplified, cond.operands_to_materialize);
       conditions.push_back(cond);

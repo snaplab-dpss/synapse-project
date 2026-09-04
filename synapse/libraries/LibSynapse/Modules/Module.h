@@ -47,6 +47,7 @@ enum class ModuleType {
   Tofino_VectorRegisterUpdate,
   Tofino_VectorRegisterReadConditionalUpdate,
   Tofino_VectorRegisterReadConditionalUpdateSingleAction,
+  Tofino_VectorRegisterReadConditionalIncrement,
   Tofino_FCFSCachedTableRead,
   Tofino_FCFSCachedTableReadInsert,
   Tofino_FCFSCachedTableInsert,
@@ -275,6 +276,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_VectorRegisterReadConditionalUpdate:
     os << "Tofino_VectorRegisterReadConditionalUpdate";
+    break;
+  case ModuleType::Tofino_VectorRegisterReadConditionalIncrement:
+    os << "Tofino_VectorRegisterReadConditionalIncrement";
     break;
   case ModuleType::Tofino_VectorRegisterReadConditionalUpdateSingleAction:
     os << "Tofino_VectorRegisterReadConditionalUpdateSingleAction";

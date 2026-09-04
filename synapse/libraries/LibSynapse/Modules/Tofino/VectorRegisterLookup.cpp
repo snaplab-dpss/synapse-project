@@ -48,6 +48,13 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
     return {};
   }
 
+  // A conditional-write borrow (read + conditional register write) is handled as a
+  // unit by VectorRegisterReadConditionalUpdate{,SingleAction} / ...Increment; claiming
+  // it as a plain read here would orphan the write, so decline.
+  if (dynamic_cast<const Call *>(node)->get_vector_conditional_write_data().has_value()) {
+    return {};
+  }
+
   const vector_register_data_t vector_register_data = get_vector_register_data(ep->get_ctx(), vector_borrow);
 
   if (!speculations.ctx.can_impl_ds(vector_register_data.obj, DSImpl::Tofino_VectorRegister)) {
@@ -79,6 +86,13 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
   const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
+    return {};
+  }
+
+  // A conditional-write borrow (read + conditional register write) is handled as a
+  // unit by VectorRegisterReadConditionalUpdate{,SingleAction} / ...Increment; claiming
+  // it as a plain read here would orphan the write, so decline.
+  if (dynamic_cast<const Call *>(node)->get_vector_conditional_write_data().has_value()) {
     return {};
   }
 
@@ -127,6 +141,13 @@ std::unique_ptr<Module> VectorRegisterLookupFactory::create(const BDD *bdd, cons
   const call_t &call    = call_node->get_call();
 
   if (call.function_name != "vector_borrow") {
+    return {};
+  }
+
+  // A conditional-write borrow (read + conditional register write) is handled as a
+  // unit by VectorRegisterReadConditionalUpdate{,SingleAction} / ...Increment; claiming
+  // it as a plain read here would orphan the write, so decline.
+  if (dynamic_cast<const Call *>(node)->get_vector_conditional_write_data().has_value()) {
     return {};
   }
 

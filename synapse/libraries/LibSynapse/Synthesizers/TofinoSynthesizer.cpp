@@ -3250,6 +3250,51 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalIncrement *node) {
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const DS_ID id                    = node->get_id();
+  klee::ref<klee::Expr> index       = node->get_index();
+  klee::ref<klee::Expr> value       = node->get_read_value();
+  klee::ref<klee::Expr> write_value = node->get_write_value();
+  klee::ref<klee::Expr> condition   = node->get_condition();
+
+  const VectorRegister *vector_register = get_tofino_ds<VectorRegister>(ep, id);
+
+  std::vector<const Register *> regs;
+  for (const Register &reg : vector_register->regs) {
+    regs.push_back(&reg);
+  }
+  assert(regs.size() == 1 && "conditional-increment counter must be a single-field register");
+  const Register *reg = regs.front();
+
+  transpile_register_decl(reg);
+  ingress << "\n";
+
+  // Single register action: return the OLD value, then conditionally increment it.
+  //   apply(inout value, out out_value) { out_value = value; if (cond) value = value + delta; }
+  const code_t action_name = build_register_action_name(reg, RegisterActionType::ReadConditionalWrite, ep_node);
+  transpile_register_action_decl(reg, action_name, RegisterActionType::ReadConditionalWrite,
+                                 register_action_extras_t{
+                                     .external_var             = {},
+                                     .extra_constant           = {},
+                                     .extra_condition          = condition,
+                                     .write_value              = write_value,
+                                     .temporary_transpilations = {{value, "value"}},
+                                 });
+
+  // Bind the returned OLD value to ingress metadata so both branch continuations can
+  // use it (post-op count is `old` on the no-increment side, `old + delta` on the other).
+  const var_t value_var = alloc_var("vector_reg_value", value, IS_INGRESS_METADATA);
+  declare_var_in_ingress_metadata(value_var);
+
+  ingress_apply.indent();
+  ingress_apply << value_var.name << " = " << action_name << ".execute(" << transpiler.transpile(index) << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
