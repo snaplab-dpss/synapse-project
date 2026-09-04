@@ -281,6 +281,9 @@ int main(int argc, char **argv) {
   app.add_flag("--assert-integrity", args.search_config.assert_integrity, "Assert integrity of EPs during search.");
   app.add_flag("--backtrack", args.search_config.pause_and_show_on_backtrack, "Pause on backtrack.");
   app.add_flag("--not-greedy", args.search_config.not_greedy, "Don't stop on first solution.");
+  app.add_flag("--allow-deadends{false}", args.search_config.no_deadends,
+               "Backtrack past dead-ended EPs (pop the next-best) instead of failing on the first one. Needed for heuristics like "
+               "gallium that speculatively pick paths (e.g. controller offload) which can dead-end when a target lacks a module.");
   app.add_flag("--random-uniform-profile", args.random_uniform_profile, "Use a random uniform profile for the BDD.");
   app.add_flag("--skip-synthesis", args.skip_synthesis, "Skip synthesis step (only search).");
   app.add_flag("--dry-run", args.dry_run, "Don't run search.");
