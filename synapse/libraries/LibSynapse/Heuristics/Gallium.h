@@ -119,6 +119,7 @@ private:
         ModuleType::Tofino_Recirculate,
         ModuleType::Tofino_VectorRegisterReadConditionalUpdate,
         ModuleType::Tofino_VectorRegisterReadConditionalUpdateSingleAction,
+        ModuleType::Tofino_VectorRegisterReadConditionalIncrement,
         ModuleType::Tofino_BloomFilterQueryAndSet,
         ModuleType::Tofino_CMSIncAndQuery,
     };
