@@ -31,6 +31,7 @@ class VectorRegisterLookup;
 class VectorRegisterUpdate;
 class VectorRegisterReadConditionalUpdate;
 class VectorRegisterReadConditionalUpdateSingleAction;
+class VectorRegisterReadConditionalIncrement;
 class FCFSCachedTableRead;
 class FCFSCachedTableReadInsert;
 class FCFSCachedTableInsert;
@@ -231,6 +232,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalUpdateSingleAction *m) {
     return Action::doChildren;
   }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalIncrement *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *m) { return Action::doChildren; }

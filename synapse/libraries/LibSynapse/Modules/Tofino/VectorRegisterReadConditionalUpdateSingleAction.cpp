@@ -67,6 +67,22 @@ bool exprs_structurally_equal(klee::ref<klee::Expr> a, klee::ref<klee::Expr> b) 
   return a->compare(*b) == 0;
 }
 
+// Does `expr` contain a read of the symbol named `symbol`?
+bool expr_reads_symbol(klee::ref<klee::Expr> expr, const std::string &symbol) {
+  if (expr.isNull()) {
+    return false;
+  }
+  if (expr->getKind() == klee::Expr::Read) {
+    return dynamic_cast<klee::ReadExpr *>(expr.get())->updates.root->name == symbol;
+  }
+  for (unsigned i = 0; i < expr->getNumKids(); i++) {
+    if (expr_reads_symbol(expr->getKid(i), symbol)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void collect_read_names(klee::ref<klee::Expr> e, std::unordered_set<std::string> &out) {
   if (e.isNull()) {
     return;
@@ -247,7 +263,12 @@ std::optional<spec_impl_t> VectorRegisterReadConditionalUpdateSingleActionFactor
 
   klee::ref<klee::Expr> condition = simplify_conditional(vector_conditional_write_result->conditions[0]);
 
-  if (!is_condition_from_symbol(condition, vector_borrow->get_local_symbol("vector_data").name)) {
+  // Only claim conditional writes whose branch condition actually reads the register's
+  // OWN value (the max-swap compare, e.g. rank > prev). Conditions on external values
+  // (e.g. `shadow == 0`) are the conditional-increment case handled by
+  // VectorRegisterReadConditionalIncrement.
+  if (!expr_reads_symbol(condition, vector_borrow->get_local_symbol("vector_data").name) ||
+      !is_condition_from_symbol(condition, vector_borrow->get_local_symbol("vector_data").name)) {
     return {};
   }
 
@@ -313,7 +334,12 @@ std::vector<impl_t> VectorRegisterReadConditionalUpdateSingleActionFactory::proc
 
   klee::ref<klee::Expr> condition = simplify_conditional(vector_conditional_write_result->conditions[0]);
 
-  if (!is_condition_from_symbol(condition, vector_borrow->get_local_symbol("vector_data").name)) {
+  // Only claim conditional writes whose branch condition actually reads the register's
+  // OWN value (the max-swap compare, e.g. rank > prev). Conditions on external values
+  // (e.g. `shadow == 0`) are the conditional-increment case handled by
+  // VectorRegisterReadConditionalIncrement.
+  if (!expr_reads_symbol(condition, vector_borrow->get_local_symbol("vector_data").name) ||
+      !is_condition_from_symbol(condition, vector_borrow->get_local_symbol("vector_data").name)) {
     return {};
   }
 
@@ -431,7 +457,12 @@ std::unique_ptr<Module> VectorRegisterReadConditionalUpdateSingleActionFactory::
 
   klee::ref<klee::Expr> condition = simplify_conditional(vector_conditional_write_result->conditions[0]);
 
-  if (!is_condition_from_symbol(condition, vector_borrow->get_local_symbol("vector_data").name)) {
+  // Only claim conditional writes whose branch condition actually reads the register's
+  // OWN value (the max-swap compare, e.g. rank > prev). Conditions on external values
+  // (e.g. `shadow == 0`) are the conditional-increment case handled by
+  // VectorRegisterReadConditionalIncrement.
+  if (!expr_reads_symbol(condition, vector_borrow->get_local_symbol("vector_data").name) ||
+      !is_condition_from_symbol(condition, vector_borrow->get_local_symbol("vector_data").name)) {
     return {};
   }
 

@@ -29,6 +29,54 @@ struct pattern_t {
   bool read_on_true;
 };
 
+// Does `symbol` appear (in any call arg/ret or branch condition) anywhere in the
+// subtree rooted at `root`?
+bool symbol_used_in_subtree(const BDDNode *root, const std::string &symbol) {
+  if (root == nullptr) {
+    return false;
+  }
+  bool found = false;
+  root->visit_nodes([&](const BDDNode *n) {
+    std::unordered_set<std::string> names;
+    auto collect = [&names](klee::ref<klee::Expr> e) {
+      if (e.isNull()) {
+        return;
+      }
+      std::vector<klee::ref<klee::Expr>> stack{e};
+      while (!stack.empty()) {
+        klee::ref<klee::Expr> cur = stack.back();
+        stack.pop_back();
+        if (cur.isNull()) {
+          continue;
+        }
+        if (cur->getKind() == klee::Expr::Read) {
+          names.insert(dynamic_cast<klee::ReadExpr *>(cur.get())->updates.root->name);
+        }
+        for (unsigned i = 0; i < cur->getNumKids(); i++) {
+          stack.push_back(cur->getKid(i));
+        }
+      }
+    };
+    if (n->get_type() == BDDNodeType::Call) {
+      const call_t &c = dynamic_cast<const Call *>(n)->get_call();
+      for (const auto &[name, arg] : c.args) {
+        collect(arg.expr);
+        collect(arg.in);
+        collect(arg.out);
+      }
+      collect(c.ret);
+    } else if (n->get_type() == BDDNodeType::Branch) {
+      collect(dynamic_cast<const Branch *>(n)->get_condition());
+    }
+    if (names.count(symbol)) {
+      found = true;
+      return BDDNodeVisitAction::Stop;
+    }
+    return BDDNodeVisitAction::Continue;
+  });
+  return found;
+}
+
 bool is_pattern(const Context &ctx, const BDD *bdd, const BDDNode *node, pattern_t &pattern) {
   if (node->get_type() != BDDNodeType::Call) {
     return false;
@@ -80,6 +128,16 @@ bool is_pattern(const Context &ctx, const BDD *bdd, const BDDNode *node, pattern
     pattern.read_on_true = true;
   } else {
     pattern.read_on_true = false;
+  }
+
+  // This module splits the read onto one branch and the write onto the other, so it's
+  // only valid when the read value isn't needed on the write branch's continuation. If
+  // it is (e.g. a counter read once, incremented on one side, then compared on both),
+  // the read value would be unbound there -- a single read-conditional-increment
+  // register action must handle it instead. Decline so that module claims the node.
+  const std::string read_symbol = vector_borrow->get_local_symbol("vector_data").name;
+  if (symbol_used_in_subtree(pattern.write_vector_return->get_next(), read_symbol)) {
+    return false;
   }
 
   return true;
