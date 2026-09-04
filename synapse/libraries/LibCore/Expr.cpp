@@ -1603,6 +1603,8 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
 }
 
 // Simplify expressions like (Ne (0) (And X Y)) which could be (And X Y)
+// (Ne 0 (Eq A B)) => (Eq A B): comparing a boolean against 0 with `!=` is the
+// identity (0 != b == b), unlike `==` which negates it (see simplify_cmp_eq_0).
 bool simplify_cmp_ne_0(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
   klee::ref<klee::Expr> other;
 
@@ -1618,7 +1620,7 @@ bool simplify_cmp_ne_0(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
     return false;
   }
 
-  out = negate(other);
+  out = other;
   return true;
 }
 

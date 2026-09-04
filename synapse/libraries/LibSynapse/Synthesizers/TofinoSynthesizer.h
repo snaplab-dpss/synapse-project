@@ -251,6 +251,14 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterSet *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HashObj *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CountTrailingZeros *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FindFirstSetBit *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::PowerOfTwo *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ln *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *node) override final;
+
+  void emit_compute_table(const EP *ep, DS_ID table_id, klee::ref<klee::Expr> in, klee::ref<klee::Expr> out);
 
   coder_t &get(const std::string &marker);
 

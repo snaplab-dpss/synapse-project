@@ -121,7 +121,7 @@ std::optional<spec_impl_t> VectorRegisterReadConditionalUpdateFactory::speculate
     return {};
   }
 
-  if (!expr_fits_in_action(pattern.data.write_value)) {
+  if (!expr_is_materializable(pattern.data.write_value)) {
     return {};
   }
 
@@ -162,7 +162,9 @@ std::vector<impl_t> VectorRegisterReadConditionalUpdateFactory::process_node(con
     return {};
   }
 
-  if (!expr_fits_in_action(pattern.data.write_value)) {
+  // The write value (e.g. rank = tz + 1) is materialized into a metadata field
+  // before the register action, so it only needs to be MAU-computable.
+  if (!expr_is_materializable(pattern.data.write_value)) {
     return {};
   }
 

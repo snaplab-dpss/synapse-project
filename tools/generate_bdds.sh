@@ -38,7 +38,7 @@ run() {
 # run "fw"
 # run "nat"
 # run "kvs"
-run "pol"
+# run "pol"
 # run "cl"
 # run "psd"
 # run "lb"

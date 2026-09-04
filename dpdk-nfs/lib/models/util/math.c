@@ -17,6 +17,19 @@ unsigned count_trailing_zeros(unsigned x) {
   return klee_int("trailing_zeros");
 }
 
+unsigned find_first_set_bit(unsigned x) {
+  klee_trace_ret();
+  klee_trace_param_u32(x, "x");
+  return klee_int("first_set_bit");
+}
+
+unsigned min(unsigned a, unsigned b) {
+  klee_trace_ret();
+  klee_trace_param_u32(a, "a");
+  klee_trace_param_u32(b, "b");
+  return klee_int("min");
+}
+
 unsigned power_of_two(unsigned exponent) {
   klee_trace_ret();
   klee_trace_param_u32(exponent, "exponent");

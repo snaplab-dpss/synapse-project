@@ -282,6 +282,14 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitExtract(const klee
     return Action::skipChildren();
   }
 
+  // Render a bit-slice of an already-transpilable value: base[hi:lo].
+  klee::ref<klee::Expr> base = e.getKid(0);
+  if (synthesizer->ingress_vars.get(base, loaded_opt)) {
+    coder << transpile(base, loaded_opt, temporary_transpilations);
+    coder << "[" << (e.offset + e.width - 1) << ":" << e.offset << "]";
+    return Action::skipChildren();
+  }
+
   synthesizer->dbg_vars();
   panic("TODO: visitExtract: %s", expr_to_string(expr).c_str());
   return Action::skipChildren();
@@ -408,7 +416,15 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitShl(const klee::Sh
 }
 
 klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitLShr(const klee::LShrExpr &e) {
-  panic("TODO: visitLShr");
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
+  coder << " >> ";
+  coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
+
   return Action::skipChildren();
 }
 
@@ -643,6 +659,9 @@ code_t TofinoSynthesizer::build_register_action_name(const Register *reg, Regist
   case RegisterActionType::Decrement:
     coder << "dec";
     break;
+  case RegisterActionType::AddValue:
+    coder << "add_value";
+    break;
   case RegisterActionType::SetToOne:
     coder << "set_to_one";
     break;
@@ -660,6 +679,9 @@ code_t TofinoSynthesizer::build_register_action_name(const Register *reg, Regist
     break;
   case RegisterActionType::ReadConditionalWrite:
     coder << "read_conditional_write";
+    break;
+  case RegisterActionType::ReadConditionalWriteReturnOther:
+    coder << "read_conditional_write_return_other";
     break;
   case RegisterActionType::CalculateDiff:
     coder << "diff";
@@ -885,6 +907,34 @@ void TofinoSynthesizer::transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr>
   ingress << "}\n";
 }
 
+// A max/min swap that returns the displaced value can't be a single-value register
+// action (the return would source from the register value in one branch and from an
+// external input in the other -- illegal on one stateful ALU). Following the expert
+// P4, such a register is a PAIR {lo = kept max, hi = returned shadow}, and the action
+// always returns `hi` (a single register source). See the ReadConditionalWriteReturnOther
+// case in transpile_register_action_decl.
+static bool register_is_shadow_pair(const Register *reg) {
+  return reg->actions.count(RegisterActionType::ReadConditionalWriteReturnOther) > 0;
+}
+
+static code_t register_pair_type(const Register *reg) { return reg->id + "_pair_t"; }
+
+// Bits needed to address a register of the given capacity (ceil(log2(capacity))). A
+// register .execute() needs an index field of exactly this width; a wider one (e.g. a
+// 32-bit hash-derived index into a 64-entry register) is rejected as "too complex".
+static bits_t register_index_bits(u32 capacity) {
+  if (capacity <= 1) {
+    return 1;
+  }
+  bits_t bits = 0;
+  u32 n       = capacity - 1;
+  while (n) {
+    bits++;
+    n >>= 1;
+  }
+  return bits;
+}
+
 void TofinoSynthesizer::transpile_register_decl(const Register *reg) {
   // * Template:
   // Register<{VALUE_WIDTH}, _>({CAPACITY}, {INIT_VALUE}) {NAME};
@@ -898,6 +948,20 @@ void TofinoSynthesizer::transpile_register_decl(const Register *reg) {
   declared_ds.insert(reg->id);
 
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
+
+  if (register_is_shadow_pair(reg)) {
+    // Emit the pair struct at top level, then a paired register (no scalar init).
+    const code_t value_type = TofinoSynthesizer::Transpiler::type_from_size(reg->value_size);
+    coder_t &headers        = get(MARKER_CUSTOM_HEADERS);
+    headers << "struct " << register_pair_type(reg) << " {\n";
+    headers << "  " << value_type << " lo;\n";
+    headers << "  " << value_type << " hi;\n";
+    headers << "}\n\n";
+
+    ingress.indent();
+    ingress << "Register<" << register_pair_type(reg) << ",_>(" << reg->capacity << ") " << reg->id << ";\n";
+    return;
+  }
 
   const u64 init_value = 0;
 
@@ -929,11 +993,18 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
           ? TofinoSynthesizer::Transpiler::type_from_register_out_value(register_action_types_with_out_value.at(action_type), reg->value_size)
           : "void";
 
+  // Paired shadow-swap registers store a {lo, hi} pair; the action's value operand is
+  // that pair, while the returned value stays a single field (out_value_type). Their
+  // index is also narrowed to the register's addressing width (see register_index_bits).
+  const code_t stored_type = register_is_shadow_pair(reg) ? register_pair_type(reg) : value_type;
+  const code_t index_type_final =
+      register_is_shadow_pair(reg) ? TofinoSynthesizer::Transpiler::type_from_size(register_index_bits(reg->capacity)) : index_type;
+
   ingress.indent();
   ingress << "RegisterAction<";
-  ingress << value_type;
+  ingress << stored_type;
   ingress << ", ";
-  ingress << index_type;
+  ingress << index_type_final;
   ingress << ", ";
   ingress << out_value_type;
   ingress << ">";
@@ -984,6 +1055,22 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.inc();
     ingress.indent();
     ingress << "value = value + 1;\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+  } break;
+  case RegisterActionType::AddValue: {
+    assert_or_panic(extras.has_value() && extras->external_var.has_value(), "Expected an increment value");
+
+    ingress.indent();
+    ingress << "void apply(inout " << value_type << " value, out " << value_type << " out_value) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "value = value + " << extras->external_var.value() << ";\n";
+    ingress.indent();
+    ingress << "out_value = value;\n";
 
     ingress.dec();
     ingress.indent();
@@ -1106,6 +1193,57 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.dec();
     ingress.indent();
     ingress << "}\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+  } break;
+  case RegisterActionType::ReadConditionalWriteReturnOther: {
+    assert_or_panic(extras.has_value() && extras->extra_condition.has_value(), "Expected a condition for ReadConditionalWriteReturnOther");
+    assert_or_panic(extras.has_value() && extras->write_value.has_value(), "Expected a write value for ReadConditionalWriteReturnOther");
+
+    // Keep the winner in the register and return the displaced "shadow" = the smaller
+    // of the stored value and the candidate. A single-value register can't do this (the
+    // return would come from the register value in one branch and the candidate in the
+    // other -- incompatible outputs on one ALU), so use a {lo = kept max, hi = shadow}
+    // pair and always return `hi`, exactly like the expert's swap_if_larger. The stored
+    // value is read as `in_value.lo` (captured before the conditional writes).
+    const code_t pair_type = register_pair_type(reg);
+    std::map<klee::ref<klee::Expr>, code_t> paired_transpilations = extras->temporary_transpilations;
+    for (auto &[expr, name] : paired_transpilations) {
+      if (name == "value") {
+        name = "in_value.lo";
+      }
+    }
+    const code_t cond_code  = transpiler.transpile(extras->extra_condition.value(), TRANSPILER_OPT_NO_OPTION, paired_transpilations);
+    const code_t write_code = transpiler.transpile(extras->write_value.value(), TRANSPILER_OPT_NO_OPTION, paired_transpilations);
+
+    ingress.indent();
+    ingress << "void apply(inout " << pair_type << " value, out " << value_type << " out_value) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << pair_type << " in_value = value;\n";
+    ingress.indent();
+    ingress << "if (" << cond_code << ") {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << "value.lo = " << write_code << ";\n";
+    ingress.indent();
+    ingress << "value.hi = in_value.lo;\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "} else {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << "value.lo = in_value.lo;\n";
+    ingress.indent();
+    ingress << "value.hi = " << write_code << ";\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+    ingress.indent();
+    ingress << "out_value = value.hi;\n";
 
     ingress.dec();
     ingress.indent();
@@ -1294,7 +1432,7 @@ void TofinoSynthesizer::transpile_hash_decl(const Hash *hash) {
 
   declared_ds.insert(hash->id);
 
-  if (hash->size >= 32) {
+  if (hash->size > 32) {
     panic("Hash size too large: %u", hash->size);
   }
 
@@ -2216,6 +2354,19 @@ void TofinoSynthesizer::transpile_if_condition(const If::condition_t &condition)
 
   switch (condition.phv_limitation_workaround.action_helper) {
   case If::ConditionActionHelper::None:
+    // Materialize arithmetic operands the gateway can't evaluate (e.g. `count + 1`)
+    // into metadata first; the transpiler then resolves them to those fields, so the
+    // gateway compares simple fields/constants.
+    for (const klee::ref<klee::Expr> &operand : condition.operands_to_materialize) {
+      if (ingress_vars.get(operand)) {
+        continue;
+      }
+      const code_t operand_code = transpiler.transpile(operand);
+      const var_t operand_var   = alloc_var("cond_operand", operand, IS_INGRESS_METADATA);
+      declare_var_in_ingress_metadata(operand_var);
+      ingress.indent();
+      ingress << operand_var.name << " = " << operand_code << ";\n";
+    }
     ingress.indent();
     ingress << "if (";
     ingress << transpiler.transpile(condition.expr);
@@ -2501,6 +2652,44 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   ingress_apply.indent();
   ingress_apply << swap_action_name << "();\n";
+
+  // Materialize computed values written to the header (e.g. the LC-corrected estimate
+  // `lc_offset - ln`) into metadata vars first, so the byte-level field assignments
+  // below reference a bound variable instead of trying to bit-slice an un-materialized
+  // arithmetic expression. Values that are already bound vars (e.g. a divide quotient)
+  // are skipped and coalesced directly by the loop.
+  std::unordered_set<std::string> materialized_bases;
+  for (const expr_mod_t &mod : changes) {
+    if (mod.expr->getKind() != klee::Expr::Extract || ingress_vars.get(mod.expr)) {
+      continue;
+    }
+    klee::ref<klee::Expr> base = mod.expr->getKid(0);
+    if (ingress_vars.get(base)) {
+      continue;
+    }
+    switch (base->getKind()) {
+    case klee::Expr::Add:
+    case klee::Expr::Sub:
+    case klee::Expr::Mul:
+    case klee::Expr::UDiv:
+    case klee::Expr::Shl:
+    case klee::Expr::LShr:
+    case klee::Expr::And:
+    case klee::Expr::Or:
+    case klee::Expr::Xor:
+      break;
+    default:
+      continue;
+    }
+    if (!materialized_bases.insert(expr_to_string(base)).second) {
+      continue;
+    }
+    const code_t base_code = transpiler.transpile(base);
+    const var_t base_var   = alloc_var("hdr_val", base, IS_INGRESS_METADATA);
+    declare_var_in_ingress_metadata(base_var);
+    ingress_apply.indent();
+    ingress_apply << base_var.name << " = " << base_code << ";\n";
+  }
 
   std::vector<code_t> assignments;
 
@@ -2835,11 +3024,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     const klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
     const code_t assignment                = action_name + ".execute(" + transpiler.transpile(index) + ")";
 
+    // Bind the read value to ingress metadata rather than an apply-local: the value
+    // may be consumed on a different branch than the read (e.g. a count read once and
+    // tested in gateways on multiple paths), and a local would be out of scope there.
     const std::string value_prefix_name = "vector_reg_value";
-    const var_t value_var               = alloc_var(value_prefix_name, entry_expr);
+    const var_t value_var               = alloc_var(value_prefix_name, entry_expr, IS_INGRESS_METADATA);
+    declare_var_in_ingress_metadata(value_var);
 
     ingress << "\n";
-    value_var.declare(ingress_apply, assignment);
+    ingress_apply.indent();
+    ingress_apply << value_var.name << " = " << assignment << ";\n";
 
     offset += reg->value_size;
     i++;
@@ -2872,6 +3066,36 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   if (!regs.empty()) {
     ingress << "\n";
+  }
+
+  // `*reg += delta` (increment by an expression that doesn't read the register's
+  // own value): materialize the delta in a regular action, then let the stateful
+  // ALU add it. Bind the register's new value so downstream nodes can use it.
+  std::optional<klee::ref<klee::Expr>> increment_delta = TofinoModuleFactory::get_register_increment_delta(write_value, value);
+  if (increment_delta.has_value() && regs.size() == 1) {
+    const Register *reg = regs[0];
+
+    const code_t delta_code = transpiler.transpile(*increment_delta);
+    const var_t delta_var   = alloc_var("reg_incr", *increment_delta, IS_INGRESS_METADATA);
+    declare_var_in_ingress_metadata(delta_var);
+
+    ingress_apply.indent();
+    ingress_apply << delta_var.name << " = " << delta_code << ";\n";
+
+    const code_t action_name = build_register_action_name(reg, RegisterActionType::AddValue, ep_node);
+    transpile_register_action_decl(reg, action_name, RegisterActionType::AddValue,
+                                   register_action_extras_t{
+                                       .external_var             = delta_var.name,
+                                       .extra_constant           = {},
+                                       .extra_condition          = {},
+                                       .write_value              = {},
+                                       .temporary_transpilations = {},
+                                   });
+
+    const var_t new_value_var = alloc_var("reg_new", write_value);
+    new_value_var.declare(ingress_apply, action_name + ".execute(" + transpiler.transpile(index) + ")");
+
+    return EPVisitor::Action::doChildren;
   }
 
   bits_t offset = 0;
@@ -2934,6 +3158,55 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   std::sort(regs.begin(), regs.end(), [](const Register *r0, const Register *r1) { return natural_compare(r0->id, r1->id); });
+
+  // Max-swap that returns the displaced value (the shadow): keep the larger in the
+  // register, return min(value, write). The register action does the compare and
+  // conditional write internally, so there's no separate branch (already collapsed).
+  if (node->get_returns_shadow()) {
+    const Register *reg = regs.front();
+    transpile_register_decl(reg);
+    ingress << "\n";
+
+    const klee::ref<klee::Expr> keep_larger = solver_toolbox.exprBuilder->Ult(value, write_value);
+    const code_t action_name                = build_register_action_name(reg, RegisterActionType::ReadConditionalWriteReturnOther, ep_node);
+    transpile_register_action_decl(reg, action_name, RegisterActionType::ReadConditionalWriteReturnOther,
+                                   register_action_extras_t{
+                                       .external_var             = {},
+                                       .extra_constant           = {},
+                                       .extra_condition          = keep_larger,
+                                       .write_value              = write_value,
+                                       .temporary_transpilations = {{value, "value"}},
+                                   });
+
+    // The register returns min(value, write) = the shadow. The NF exposes that shadow
+    // as the return symbol of a min() call (which process_node consumed), so bind the
+    // register output to that symbol; downstream uses then resolve to this register.
+    klee::ref<klee::Expr> shadow_expr = node->get_shadow_symbol();
+    if (shadow_expr.isNull()) {
+      shadow_expr = solver_toolbox.exprBuilder->Select(solver_toolbox.exprBuilder->Ult(value, write_value), value, write_value);
+    }
+    // Bind the shadow to an ingress-metadata field (not an apply-local): downstream
+    // consumers can be later register actions whose apply() bodies may reference
+    // `meta.*` but not a control-apply local, and metadata sidesteps use-before-decl.
+    const var_t shadow_var = alloc_var("vector_reg_shadow", shadow_expr, IS_INGRESS_METADATA);
+    declare_var_in_ingress_metadata(shadow_var);
+
+    // A register .execute() needs a simple index field of exactly the register's
+    // addressing width, not an inline expression (e.g. `hash >> 26`) nor a wider field.
+    // Materialize the index into a narrow ingress-metadata field, truncating to width.
+    const bits_t index_bits     = register_index_bits(reg->capacity);
+    const code_t index_type_str = TofinoSynthesizer::Transpiler::type_from_size(index_bits);
+    const code_t index_code     = transpiler.transpile(index);
+    const var_t index_var       = alloc_var("vector_reg_index", index_bits, IS_INGRESS_METADATA);
+    declare_var_in_ingress_metadata(index_var);
+    ingress_apply.indent();
+    ingress_apply << index_var.name << " = (" << index_type_str << ")(" << index_code << ");\n";
+
+    ingress_apply.indent();
+    ingress_apply << shadow_var.name << " = " << action_name << ".execute(" << index_var.name << ");\n";
+
+    return EPVisitor::Action::doChildren;
+  }
 
   bits_t offset = 0;
   std::vector<var_t> value_vars;
@@ -4667,6 +4940,179 @@ code_t TofinoSynthesizer::create_unique_name(const code_t &prefix) {
   counter++;
 
   return coder.dump();
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::HashObj *node) {
+  const DS_ID hash_id          = node->get_hash_id();
+  klee::ref<klee::Expr> in     = node->get_in();
+  klee::ref<klee::Expr> hash_r = node->get_hash();
+
+  const Hash *hash = get_tofino_ds<Hash>(ep, hash_id);
+  transpile_hash_decl(hash);
+
+  const std::vector<code_t> hash_inputs = {transpiler.transpile(in)};
+
+  code_t hash_calculator;
+  code_t hash_value;
+  transpile_hash_calculation(hash, hash_inputs, hash_calculator, hash_value);
+
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  ingress_apply.indent();
+  ingress_apply << hash_calculator << "();\n";
+
+  const var_t hash_var = alloc_var("hll_hash", hash_r);
+  hash_var.declare(ingress_apply, hash_value);
+
+  return EPVisitor::Action::doChildren;
+}
+
+void TofinoSynthesizer::emit_compute_table(const EP *ep, DS_ID table_id, klee::ref<klee::Expr> in, klee::ref<klee::Expr> out) {
+  const Table *table = get_tofino_ds<Table>(ep, table_id);
+
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const var_t key_var = alloc_var(table_id + "_key", in, SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
+  declare_var_in_ingress_metadata(key_var);
+
+  const var_t out_var = alloc_var(table_id + "_out", out, EXACT_NAME | IS_INGRESS_METADATA);
+  declare_var_in_ingress_metadata(out_var);
+
+  if (declared_ds.find(table_id) == declared_ds.end()) {
+    declared_ds.insert(table_id);
+
+    const code_t action_name = table_id + "_get_value";
+    const bits_t key_w       = in->getWidth();
+    const bool ternary       = (table->match == TableMatch::Ternary);
+
+    ingress.indent();
+    ingress << "action " << action_name << "(" << Transpiler::type_from_size(out->getWidth()) << " v) {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << out_var.name << " = v;\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+
+    ingress.indent();
+    ingress << "table " << table_id << " {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "key = { " << key_var.name << ": " << (ternary ? "ternary" : "exact") << "; }\n";
+
+    ingress.indent();
+    ingress << "actions = { " << action_name << "; }\n";
+
+    ingress.indent();
+    ingress << "size = " << table->capacity << ";\n";
+
+    ingress.indent();
+    ingress << "default_action = " << action_name << "(0);\n";
+
+    // Const entries computed from the math function (ctz/ffs/power_of_two) or from
+    // the profiler-observed values (ln).
+    if (!table->const_entries.empty()) {
+      ingress.indent();
+      ingress << "const entries = {\n";
+      ingress.inc();
+      for (const table_entry_t &e : table->const_entries) {
+        ingress.indent();
+        if (ternary) {
+          ingress << key_w << "w" << e.key << " &&& " << key_w << "w" << e.mask << " : " << action_name << "(" << e.value << ");\n";
+        } else {
+          ingress << key_w << "w" << e.key << " : " << action_name << "(" << e.value << ");\n";
+        }
+      }
+      ingress.dec();
+      ingress.indent();
+      ingress << "}\n";
+    }
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+    ingress << "\n";
+  }
+
+  ingress_apply.indent();
+  ingress_apply << key_var.name << " = " << transpiler.transpile(in) << ";\n";
+
+  ingress_apply.indent();
+  ingress_apply << table_id << ".apply();\n";
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::CountTrailingZeros *node) {
+  emit_compute_table(ep, node->get_table_id(), node->get_in(), node->get_out());
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::FindFirstSetBit *node) {
+  emit_compute_table(ep, node->get_table_id(), node->get_in(), node->get_out());
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::PowerOfTwo *node) {
+  emit_compute_table(ep, node->get_table_id(), node->get_in(), node->get_out());
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Ln *node) {
+  emit_compute_table(ep, node->get_table_id(), node->get_in(), node->get_out());
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *node) {
+  const DS_ID reg_id         = node->get_reg_id();
+  klee::ref<klee::Expr> denom = node->get_denominator();
+  const u64 numer            = node->get_numerator();
+  klee::ref<klee::Expr> quot = node->get_quotient();
+
+  const Register *reg = get_tofino_ds<Register>(ep, reg_id);
+
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const code_t value_type = Transpiler::type_from_size(reg->value_size);
+  const code_t index_type = Transpiler::type_from_size(reg->index_size);
+
+  const var_t denom_var = alloc_var(reg_id + "_denom", denom, SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
+  declare_var_in_ingress_metadata(denom_var);
+
+  const code_t math_unit = reg_id + "_mu";
+  const code_t action    = reg_id + "_calc";
+
+  ingress.indent();
+  ingress << "MathUnit<" << value_type << ">(MathOp_t.DIV, " << numer << ") " << math_unit << ";\n";
+
+  transpile_register_decl(reg);
+
+  ingress.indent();
+  ingress << "RegisterAction<" << value_type << ", " << index_type << ", " << value_type << ">(" << reg_id << ") " << action << " = {\n";
+  ingress.inc();
+  ingress.indent();
+  ingress << "void apply(inout " << value_type << " value, out " << value_type << " out_value) {\n";
+  ingress.inc();
+  ingress.indent();
+  ingress << "value = " << math_unit << ".execute(" << denom_var.name << ");\n";
+  ingress.indent();
+  ingress << "out_value = value;\n";
+  ingress.dec();
+  ingress.indent();
+  ingress << "}\n";
+  ingress.dec();
+  ingress.indent();
+  ingress << "};\n";
+  ingress << "\n";
+
+  ingress_apply.indent();
+  ingress_apply << denom_var.name << " = " << transpiler.transpile(denom) << ";\n";
+
+  const var_t quot_var = alloc_var("quotient", quot);
+  quot_var.declare(ingress_apply, action + ".execute(0)");
+
+  return EPVisitor::Action::doChildren;
 }
 
 void TofinoSynthesizer::dbg_vars() const {

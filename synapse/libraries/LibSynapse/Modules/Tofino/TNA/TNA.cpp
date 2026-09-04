@@ -115,8 +115,16 @@ bool TNA::is_simple_conditional_expr(klee::ref<klee::Expr> condition) const {
     klee::ref<klee::Expr> rhs = condition->getKid(1);
     is_simple                 = is_simple_conditional_expr(lhs) && is_simple_conditional_expr(rhs);
   } break;
-  case klee::Expr::Kind::Not: {
+  case klee::Expr::Kind::Not:
+  case klee::Expr::Kind::ZExt:
+  case klee::Expr::Kind::Extract: {
     is_simple = is_simple_conditional_expr(condition->getKid(0));
+  } break;
+  // A computed operand (e.g. rank = tz + 1) is materialized into a metadata
+  // field before the gateway, so it's a valid condition input.
+  case klee::Expr::Kind::Add:
+  case klee::Expr::Kind::Sub: {
+    is_simple = is_simple_conditional_expr(condition->getKid(0)) && is_simple_conditional_expr(condition->getKid(1));
   } break;
   case klee::Expr::Kind::Concat: {
     is_simple = is_readLSB(condition);

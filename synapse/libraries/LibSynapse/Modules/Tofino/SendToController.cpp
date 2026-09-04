@@ -486,6 +486,12 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Tofino_BloomFilterSet:
     case ModuleType::Tofino_BloomFilterQueryAndSet:
     case ModuleType::Tofino_CuckooHashTableReadWrite:
+    case ModuleType::Tofino_HashObj:
+    case ModuleType::Tofino_CountTrailingZeros:
+    case ModuleType::Tofino_FindFirstSetBit:
+    case ModuleType::Tofino_PowerOfTwo:
+    case ModuleType::Tofino_Ln:
+    case ModuleType::Tofino_Divide:
     case ModuleType::Controller_Ignore:
     case ModuleType::Controller_ParseHeader:
     case ModuleType::Controller_ModifyHeader:

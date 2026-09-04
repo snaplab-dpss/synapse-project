@@ -39,9 +39,13 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
   struct flow_id flow = {.src = ipv4_header->src_addr, .dst = ipv4_header->dst_addr};
   uint32_t hash       = hash_obj(&flow, sizeof(flow));
 
-  uint32_t trailing_zeros = count_trailing_zeros(hash & config.hash_mask);
-  uint32_t rank           = trailing_zeros < config.scaling ? trailing_zeros + 1 : 0;
-  uint32_t estimator_id   = hash >> (32 - config.log_num_estimators);
+  // rank = 1-indexed position of the lowest set bit within the low `scaling` bits
+  // (0 if none): find_first_set_bit already folds the "+1" and the "else 0", and
+  // masking to `rank_mask` = (2^scaling - 1) applies the scaling clamp. Producing
+  // rank in one op keeps it an opaque value (no branch), so the estimator swap
+  // below is a single-condition register action.
+  uint32_t rank         = find_first_set_bit(hash & config.rank_mask);
+  uint32_t estimator_id = hash >> (32 - config.log_num_estimators);
 
   uint32_t *estimator;
   vector_borrow(state->estimators, estimator_id, (void **)&estimator);
@@ -53,7 +57,10 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
     vector_return(state->estimators, estimator_id, estimator);
   }
 
-  uint32_t shadow     = rank > previous ? previous : rank;
+  // shadow = the smaller of rank and the stored max. Using the min() function
+  // (rather than a ?: that KLEE would simplify per branch) keeps shadow a single
+  // opaque value, so the estimator's conditional-write branch stays collapsible.
+  uint32_t shadow     = min(rank, previous);
   uint32_t difference = power_of_two(config.scaling - shadow) - power_of_two(config.scaling - rank);
 
   uint32_t *sum;

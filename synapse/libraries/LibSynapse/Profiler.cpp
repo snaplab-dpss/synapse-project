@@ -123,6 +123,56 @@ ProfilerNode *build_profiler_tree(const BDD *bdd, const BDDNode *node, const bdd
   return prof_node;
 }
 
+// Sum two forwarding-stat records that describe the same route reached via the two
+// sides of a collapsed branch. Their packet masses are disjoint, so the merged route
+// carries the sum on every port / drop / flood.
+fwd_stats_t merge_fwd_stats(const fwd_stats_t &a, const fwd_stats_t &b) {
+  fwd_stats_t merged;
+  merged.operation = a.operation;
+  merged.drop      = a.drop + b.drop;
+  merged.flood     = a.flood + b.flood;
+  merged.ports     = a.ports;
+  for (const auto &[port, hr] : b.ports) {
+    merged.ports[port] = merged.ports.count(port) ? merged.ports[port] + hr : hr;
+  }
+  return merged;
+}
+
+// Merge two structurally-identical profiler subtrees (the two sides of a collapsed
+// branch) into a fresh subtree. Corresponding nodes hold disjoint packet fractions,
+// so the merged fraction is their sum; BDD ids / constraints come from side `a` (the
+// side the collapse retained), which is the one the collapsed BDD keeps.
+ProfilerNode *merge_profiler_subtrees(const ProfilerNode *a, const ProfilerNode *b) {
+  assert(a && b && "collapse_branch: subtrees are not structurally identical");
+
+  ProfilerNode *merged = new ProfilerNode(a->constraint, a->fraction + b->fraction);
+  merged->bdd_node_id  = a->bdd_node_id;
+
+  if (a->forwarding_stats && b->forwarding_stats) {
+    merged->forwarding_stats = merge_fwd_stats(*a->forwarding_stats, *b->forwarding_stats);
+  }
+  if (a->original_forwarding_stats && b->original_forwarding_stats) {
+    merged->original_forwarding_stats = merge_fwd_stats(*a->original_forwarding_stats, *b->original_forwarding_stats);
+  }
+
+  merged->candidate_fwd_ports = a->candidate_fwd_ports;
+  merged->candidate_fwd_ports.insert(b->candidate_fwd_ports.begin(), b->candidate_fwd_ports.end());
+
+  assert((a->on_true != nullptr) == (b->on_true != nullptr) && "collapse_branch: subtrees are not structurally identical");
+  assert((a->on_false != nullptr) == (b->on_false != nullptr) && "collapse_branch: subtrees are not structurally identical");
+
+  if (a->on_true) {
+    merged->on_true       = merge_profiler_subtrees(a->on_true, b->on_true);
+    merged->on_true->prev = merged;
+  }
+  if (a->on_false) {
+    merged->on_false       = merge_profiler_subtrees(a->on_false, b->on_false);
+    merged->on_false->prev = merged;
+  }
+
+  return merged;
+}
+
 } // namespace
 
 ProfilerNode::ProfilerNode(klee::ref<klee::Expr> _constraint, hit_rate_t _fraction)
@@ -678,6 +728,33 @@ void Profiler::translate(SymbolManager *symbol_manager, const BDDNode *reordered
       nodes.push_back(node->on_false);
     }
   }
+}
+
+void Profiler::collapse_branch(const BDDNode *branch) {
+  clone_tree_if_shared();
+
+  ProfilerNode *pnode = get_node(branch);
+  assert(pnode && "collapse_branch: branch not found in profiler tree");
+  assert(!pnode->constraint.isNull() && pnode->on_true && pnode->on_false && "collapse_branch: node is not a branch");
+
+  ProfilerNode *merged = merge_profiler_subtrees(pnode->on_true, pnode->on_false);
+  ProfilerNode *parent = pnode->prev;
+  merged->prev         = parent;
+
+  if (!parent) {
+    // The branch is the profiler root; reset() deletes the old root subtree.
+    root.reset(merged);
+  } else {
+    if (parent->on_true == pnode) {
+      parent->on_true = merged;
+    } else {
+      assert(parent->on_false == pnode && "collapse_branch: broken parent linkage");
+      parent->on_false = merged;
+    }
+    delete pnode; // frees the old branch node and both original child subtrees
+  }
+
+  clear_cache();
 }
 
 void Profiler::replace_constraint(ProfilerNode *node, klee::ref<klee::Expr> constraint) {

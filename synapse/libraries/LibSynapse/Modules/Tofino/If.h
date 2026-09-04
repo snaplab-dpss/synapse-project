@@ -28,6 +28,10 @@ public:
   struct condition_t {
     klee::ref<klee::Expr> expr;
     phv_limitation_workaround_t phv_limitation_workaround;
+    // Arithmetic operands of the condition that a gateway can't evaluate inline (e.g.
+    // `count + 1` in `(count + 1) <= 63`). The synthesizer materializes each into a
+    // metadata field in a preceding action; the gateway then compares that field.
+    std::vector<klee::ref<klee::Expr>> operands_to_materialize;
 
     condition_t(klee::ref<klee::Expr> _expr) : expr(_expr), phv_limitation_workaround() {}
     condition_t(klee::ref<klee::Expr> _expr, phv_limitation_workaround_t _phv_limitation_workaround)

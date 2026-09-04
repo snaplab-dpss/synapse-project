@@ -58,6 +58,9 @@ void Register::debug() const {
     case RegisterActionType::Decrement:
       ss << "DEC";
       break;
+    case RegisterActionType::AddValue:
+      ss << "ADD_VALUE";
+      break;
     case RegisterActionType::SetToOne:
       ss << "SET_TO_ONE";
       break;
@@ -75,6 +78,9 @@ void Register::debug() const {
       break;
     case RegisterActionType::ReadConditionalWrite:
       ss << "READ_CONDITIONAL_WRITE";
+      break;
+    case RegisterActionType::ReadConditionalWriteReturnOther:
+      ss << "READ_CONDITIONAL_WRITE_RETURN_OTHER";
       break;
     case RegisterActionType::CalculateDiff:
       ss << "CALCULATE_DIFF";

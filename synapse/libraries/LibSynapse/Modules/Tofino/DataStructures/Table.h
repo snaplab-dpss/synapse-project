@@ -15,14 +15,26 @@ namespace Tofino {
 using LibCore::expr_struct_t;
 
 enum class TimeAware { Yes, No };
+enum class TableMatch { Exact, Ternary };
+
+// A compile-time table entry (populated by the controller at startup). For exact
+// matches, mask is all-ones. For ternary matches, mask marks the bits that matter.
+struct table_entry_t {
+  u64 key;
+  u64 mask;
+  u64 value;
+};
 
 struct Table : public DS {
   u32 capacity;
   std::vector<bits_t> keys;
   std::vector<bits_t> params;
   TimeAware time_aware;
+  TableMatch match;
+  std::vector<table_entry_t> const_entries;
 
-  Table(DS_ID id, u32 capacity, const std::vector<bits_t> &keys, const std::vector<bits_t> &params, TimeAware time_aware = TimeAware::No);
+  Table(DS_ID id, u32 capacity, const std::vector<bits_t> &keys, const std::vector<bits_t> &params, TimeAware time_aware = TimeAware::No,
+        TableMatch match = TableMatch::Exact, const std::vector<table_entry_t> &const_entries = {});
   Table(const Table &other);
 
   DS *clone() const override;
