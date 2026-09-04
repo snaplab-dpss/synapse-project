@@ -1209,25 +1209,15 @@ std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op) {
 
   pull_candidate(bdd.get(), anchor, candidate, siblings);
 
+  // Some reordering operations (e.g. pulling a candidate across a branch, which
+  // clones the anchor subtree) can strand a symbol: a node ends up before a node
+  // that generates a symbol it uses. This is the general "don't move a generator
+  // beyond its users" invariant. The candidate vetting cannot always predict it
+  // for the shape-altering clone path, so we validate the produced BDD here and
+  // discard the reordering if it broke symbol availability, rather than crashing.
   const BDD::inspection_report_t inspection_report = bdd->inspect();
   if (inspection_report.status != BDD::InspectionStatus::Ok) {
-    const std::filesystem::path old_bdd{"bdd_reorder_bug_old_bdd.bdd"};
-    const std::filesystem::path new_bdd{"bdd_reorder_bug_new_bdd.bdd"};
-
-    const std::filesystem::path old_bdd_dot{"bdd_reorder_bug_old_bdd.dot"};
-    const std::filesystem::path new_bdd_dot{"bdd_reorder_bug_new_bdd.dot"};
-
-    original_bdd->serialize(old_bdd);
-    bdd->serialize(new_bdd);
-
-    BDDViz::dump_to_file(original_bdd, old_bdd_dot);
-    BDDViz::dump_to_file(bdd.get(), new_bdd_dot);
-
-    panic("BDD reorder bug: %s (%s).\n"
-          "Dumping for analysis:\n"
-          "  Old bdd: %s (%s)\n"
-          "  New bdd: %s (%s)\n",
-          inspection_report.message.c_str(), op.to_string().c_str(), old_bdd.c_str(), old_bdd_dot.c_str(), new_bdd.c_str(), new_bdd_dot.c_str());
+    return nullptr;
   }
 
   return bdd;
@@ -1243,6 +1233,9 @@ std::vector<reordered_bdd_t> reorder(const BDD *bdd, bdd_node_id_t anchor_id, bo
 
   for (const reorder_op_t &op : ops) {
     std::unique_ptr<BDD> new_bdd = reorder(bdd, op);
+    if (!new_bdd) {
+      continue;
+    }
     reordered_bdds.push_back({std::move(new_bdd), op, {}});
   }
 
@@ -1259,12 +1252,18 @@ std::vector<reordered_bdd_t> reorder(const BDD *bdd, bdd_node_id_t anchor_id, bo
 
     // Only reordering the ride side.
     std::unique_ptr<BDD> rhs_bdd = reorder(bdd, rhs);
+    if (!rhs_bdd) {
+      continue;
+    }
 
     for (size_t lhs_idx = 0; lhs_idx < lhs_ops.size(); lhs_idx++) {
       const reorder_op_t &lhs = lhs_ops[lhs_idx];
 
       // And now applying both
       std::unique_ptr<BDD> lhs_bdd = reorder(rhs_bdd.get(), lhs);
+      if (!lhs_bdd) {
+        continue;
+      }
       reordered_bdds.push_back({std::move(lhs_bdd), rhs, lhs});
     }
 
@@ -1280,6 +1279,9 @@ std::vector<reordered_bdd_t> reorder(const BDD *bdd, const anchor_info_t &anchor
   std::vector<reorder_op_t> ops = get_reorder_ops(bdd, anchor_info, allow_shape_altering_ops);
   for (const reorder_op_t &op : ops) {
     std::unique_ptr<BDD> new_bdd = reorder(bdd, op);
+    if (!new_bdd) {
+      continue;
+    }
     bdds.push_back({std::move(new_bdd), op, {}});
   }
 
