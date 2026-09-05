@@ -122,6 +122,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainRejuvenateIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainIsIndexAllocated *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainFreeIndex *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapGet *node) override final;

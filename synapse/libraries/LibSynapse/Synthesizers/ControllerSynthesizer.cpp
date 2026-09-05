@@ -364,17 +364,45 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitXor(const klee
 }
 
 klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitShl(const klee::ShlExpr &e) {
-  panic("TODO: visitShl");
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << " << ";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
+
   return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitLShr(const klee::LShrExpr &e) {
-  panic("TODO: visitLShr");
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << " >> ";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
+
   return Action::skipChildren();
 }
 
 klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitAShr(const klee::AShrExpr &e) {
-  panic("TODO: visitAShr");
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  // Arithmetic shift: cast the left operand to signed so the sign bit propagates.
+  const bits_t w           = lhs->getWidth();
+  const bits_t std_w       = w <= 8 ? 8 : w <= 16 ? 16 : w <= 32 ? 32 : 64;
+  const code_t signed_type = "int" + std::to_string(std_w) + "_t";
+  coder << "((" << signed_type << ")(" << transpile(lhs, loaded_opt) << "))";
+  coder << " >> ";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
+
   return Action::skipChildren();
 }
 
@@ -1488,24 +1516,86 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+// A Controller_Vector is a libnf CPU vector (embedded in libsycon), held in the
+// controller state. Allocate: add a `libnf::Vector *` state field + libnf::vector_allocate
+// in nf_init. Read: borrow the cell (a raw byte pointer) keyed by its addr so the write
+// can find it, plus a scalar copy so value reads resolve. Write: apply the byte-level
+// modifications through that pointer, then libnf::vector_return.
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorAllocate *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::VectorAllocate");
+  const addr_t obj  = node->get_obj();
+  const code_t name = "cpu_vector_" + std::to_string(obj);
+
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+  state_fields.indent();
+  state_fields << "libnf::Vector *" << name << " = nullptr;\n";
+
+  coder_t &nf_init = get(MARKER_NF_INIT);
+  nf_init.indent();
+  nf_init << "libnf::vector_allocate(" << transpiler.transpile(node->get_elem_size()) << ", " << transpiler.transpile(node->get_capacity())
+          << ", &state->" << name << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorRead *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t vecname              = "cpu_vector_" + std::to_string(node->get_vector_addr());
+  const klee::ref<klee::Expr> index = node->get_index();
+  const klee::ref<klee::Expr> value = node->get_value();
+  const addr_t value_addr           = node->get_value_addr();
+  const bits_t width                = value->getWidth();
+
+  // The borrowed cell as a raw byte pointer, keyed by its address so VectorWrite can
+  // reach it. Bit-slice reads of the value resolve through this (is_ptr get_slice derefs).
+  const var_t cell = alloc_var("vector_cell", value, value_addr, IS_PTR);
   coder.indent();
-  panic("TODO: Controller::VectorRead");
+  coder << "u8 *" << cell.name << ";\n";
+  coder.indent();
+  coder << "libnf::vector_borrow(state->" << vecname << ", " << transpiler.transpile(index) << ", (void **)&" << cell.name << ");\n";
+
+  // A scalar copy so full-value reads (arithmetic on the cell) resolve to a scalar
+  // rather than the pointer. Inserted after `cell`, so exact matches prefer it.
+  if (width == 8 || width == 16 || width == 32 || width == 64) {
+    const code_t type    = Transpiler::type_from_size(width);
+    const var_t val_copy = alloc_var("vector_value", value, {}, NO_OPTION);
+    coder.indent();
+    coder << type << " " << val_copy.name << " = *(" << type << " *)" << cell.name << ";\n";
+  }
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorWrite *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t vecname                   = "cpu_vector_" + std::to_string(node->get_vector_addr());
+  const klee::ref<klee::Expr> index      = node->get_index();
+  const addr_t value_addr                = node->get_value_addr();
+  const std::vector<expr_mod_t> &changes = node->get_modifications();
+
+  const std::optional<var_t> cell = vars.get_by_addr(value_addr);
+  assert(cell.has_value() && "Vector cell (borrow) not found for write");
+
+  // Apply the modified bytes through the borrowed pointer (like ModifyHeader), then
+  // return the cell to the vector.
+  for (const expr_mod_t &mod : changes) {
+    const bytes_t size = mod.width / 8;
+    for (bytes_t i = 0; i < size; i++) {
+      coder.indent();
+      coder << cell->name << "[" << ((mod.offset / 8) + i) << "] = ";
+      if (size == 1) {
+        coder << transpiler.transpile(mod.expr);
+      } else {
+        coder << transpiler.transpile(solver_toolbox.exprBuilder->Extract(mod.expr, i * 8, 8));
+      }
+      coder << ";\n";
+    }
+  }
+
   coder.indent();
-  panic("TODO: Controller::VectorWrite");
+  coder << "libnf::vector_return(state->" << vecname << ", " << transpiler.transpile(index) << ", " << cell->name << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
