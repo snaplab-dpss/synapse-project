@@ -4,18 +4,44 @@
 
 namespace sycon {
 
-Register::Register(const std::string &_name) : MetaTable(_name) {
-  init_key({{"$REGISTER_INDEX", &index_id}});
-  init_data({{_name + ".f1", &value_id}});
+Register::Register(const std::string &_name) : MetaTable(_name), hi_id(0), paired(false) {
+  init_fields();
 
   bf_status_t bf_status = table->dataFieldSizeGet(value_id, &value_size);
   ASSERT_BF_STATUS(bf_status);
 }
 
 Register::Register(const Register &other)
-    : MetaTable(other), index_id(other.index_id), value_id(other.value_id), value_size(other.value_size), pipes(other.pipes) {
+    : MetaTable(other), index_id(other.index_id), value_id(other.value_id), hi_id(other.hi_id), paired(other.paired),
+      value_size(other.value_size), pipes(other.pipes) {
+  init_fields();
+}
+
+void Register::init_fields() {
   init_key({{"$REGISTER_INDEX", &index_id}});
-  init_data({{name + ".f1", &value_id}});
+
+  // Plain register: a single data field "<name>.f1". Struct register (pair): "<name>.lo"/"<name>.hi".
+  bf_status_t bf_status = table->dataFieldIdGet(name + ".f1", &value_id);
+  if (bf_status == BF_SUCCESS) {
+    paired = false;
+    return;
+  }
+
+  bf_status = table->dataFieldIdGet(name + ".lo", &value_id);
+  if (bf_status != BF_SUCCESS) {
+    std::vector<bf_rt_id_t> field_ids;
+    table->dataFieldIdListGet(&field_ids);
+    std::string fields;
+    for (bf_rt_id_t field_id : field_ids) {
+      std::string field_name;
+      table->dataFieldNameGet(field_id, &field_name);
+      fields += " " + field_name;
+    }
+    ERROR("Register %s: neither %s.f1 nor %s.lo found (data fields:%s)", name.c_str(), name.c_str(), name.c_str(), fields.c_str());
+  }
+
+  init_data({{name + ".hi", &hi_id}});
+  paired = true;
 }
 
 std::vector<u32> Register::get_per_pipe(u32 i) {
@@ -136,6 +162,17 @@ void Register::dump(std::ostream &os) const {
     ASSERT_BF_STATUS(bf_status);
     for (size_t i = 0; i < values_per_pipe.size(); i++) {
       os << values_per_pipe[i] << " ";
+    }
+
+    if (paired) {
+      std::vector<u64> hi_per_pipe;
+      bf_status = data->getValue(hi_id, &hi_per_pipe);
+      ASSERT_BF_STATUS(bf_status);
+      os << "(hi: ";
+      for (size_t i = 0; i < hi_per_pipe.size(); i++) {
+        os << hi_per_pipe[i] << " ";
+      }
+      os << ")";
     }
 
     os << "\n";
