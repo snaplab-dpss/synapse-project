@@ -321,6 +321,16 @@ private:
 
   void transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType type,
                                       std::optional<register_action_extras_t> extras = std::nullopt);
+  // Emit a register `.execute()`. When the index is a computed (non-constant) value the
+  // register is placed by bf-p4c as a keyless `hash_action` table (hash distribution for
+  // addressing), which is legal only if its action carries NO action data -- and bf-p4c
+  // fuses the following data-independent, constant-bearing statement into it (which BDD
+  // reorder can place right after the execute), breaking that. So for a computed index we
+  // wrap the execute in its own named action (nothing can fuse in; mirrors the expert's
+  // regexec_* actions). For a constant index we emit it inline, unchanged. `lhs` is the
+  // (metadata) destination of the returned value, or empty for a value-less execute.
+  void emit_register_execute(const code_t &lhs, const code_t &action_name, const klee::ref<klee::Expr> &index, const code_t &index_code,
+                             const EPNode *ep_node);
   void transpile_hash_decl(const Hash *hash);
   void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash);
   void transpile_digest_decl(const Digest *digest);
