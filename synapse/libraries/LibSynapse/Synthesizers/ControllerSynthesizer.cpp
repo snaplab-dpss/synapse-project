@@ -2733,19 +2733,52 @@ void ControllerSynthesizer::transpile_bf_decl(const Tofino::BloomFilter *bf, tim
   state_member_init_list.push_back(member_init_list.dump());
 }
 
+// A buffer_t holds either a byte string in memory order (keys and values made of packet/symbol
+// bytes: byte i of the buffer is byte i of the expression) or a number, which libsycon and the
+// data plane read big-endian (buffer_t::get). Constants were already written big-endian; a
+// computed value (e.g. `counter + 1` written back to a register) is numeric as well, and writing
+// it byte-wise from its LSB would store it byte-swapped. An expression is numeric unless every
+// one of its bytes is a plain byte read.
+static bool is_numeric_buffer_value(klee::ref<klee::Expr> expr) {
+  if (is_constant(expr)) {
+    return true;
+  }
+
+  if (expr->getWidth() > 64 || expr->getKind() == klee::Expr::Concat) {
+    return false;
+  }
+
+  const bytes_t size = expr->getWidth() / 8;
+  for (bytes_t i = 0; i < size; i++) {
+    klee::ref<klee::Expr> byte = solver_toolbox.exprBuilder->Extract(expr, i * 8, 8);
+    if (byte->getKind() != klee::Expr::Read) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name,
                                                                                   klee::ref<klee::Expr> expr, bool skip_alloc) {
+  const var_t var    = alloc_var(proposed_name, expr, {}, IS_BUFFER | (skip_alloc ? SKIP_ALLOC : NO_OPTION));
+  const bytes_t size = expr->getWidth() / 8;
+
+  coder.indent();
+  coder << "buffer_t " << var.name << "(" << size << ");\n";
+
+  if (is_numeric_buffer_value(expr)) {
+    coder.indent();
+    coder << var.name << ".set(0, " << size << ", " << transpiler.transpile(expr) << ");\n";
+    return var;
+  }
+
   std::vector<code_t> bytes;
   for (klee::ref<klee::Expr> byte : bytes_in_expr(expr, true)) {
     bytes.push_back(transpiler.transpile(byte));
   }
-
-  const var_t var    = alloc_var(proposed_name, expr, {}, IS_BUFFER | (skip_alloc ? SKIP_ALLOC : NO_OPTION));
-  const bytes_t size = expr->getWidth() / 8;
   assert(size == bytes.size() && "Size mismatch");
 
-  coder.indent();
-  coder << "buffer_t " << var.name << "(" << size << ");\n";
   for (bytes_t i = 0; i < size; i++) {
     coder.indent();
     coder << var.name << "[" << i << "] = " << bytes[i] << ";\n";
