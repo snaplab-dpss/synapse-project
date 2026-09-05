@@ -50,10 +50,15 @@ inline std::vector<table_entry_t> power_of_two_entries(bits_t out_width) {
 }
 
 // ln: exact entry x -> round(ln(x) * scale), for each (x, scale) the profiler saw.
-inline std::vector<table_entry_t> ln_entries(const std::set<std::pair<u32, u32>> &inputs) {
+// ln: dense exact-match keys 1..n, each mapping x -> (unsigned)(ln(x)*scale), matching
+// libnf's ln. x=0 and x>n fall through to the table's default action (0), consistent
+// with libnf's ln(0)=0. `n` is chosen by the caller as max(highest profiled x, a floor)
+// so the table is never empty and always covers a sane range, even with no profile.
+// `scale` is the ln call's compile-time-constant scale argument.
+inline std::vector<table_entry_t> ln_entries(u32 n, u32 scale) {
   std::vector<table_entry_t> entries;
-  for (const auto &[x, scale] : inputs) {
-    const u64 value = (x == 0) ? 0 : static_cast<u64>(std::log(static_cast<double>(x)) * scale);
+  for (u32 x = 1; x <= n; x++) {
+    const u64 value = static_cast<u64>(std::log(static_cast<double>(x)) * scale);
     entries.push_back({static_cast<u64>(x), ~0ull, value});
   }
   return entries;
