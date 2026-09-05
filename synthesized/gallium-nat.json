@@ -2,18 +2,22 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 198,
-    "num_phase1_speculations": 21687,
-    "num_phase2_speculations": 1084,
-    "num_speculated_modules": 252460
+    "num_phase1_speculations": 19118,
+    "num_phase2_speculations": 923,
+    "num_speculated_modules": 229253,
+    "time_per_instantiation_us": 3176,
+    "time_per_speculation_us": 38,
+    "total_time_spent_generating_execution_plans_us": 628991,
+    "total_time_spent_speculating_us": 8772574
   },
   "heuristic": {
     "meta": [
       {
-        "description": "1.11 Tbps (1.58 Gpps)",
+        "description": "1.16 Tbps (1.65 Gpps)",
         "name": "Tput"
       },
       {
-        "description": "1.11 Tbps (1.58 Gpps)",
+        "description": "1.16 Tbps (1.65 Gpps)",
         "name": "Spec"
       }
     ],
@@ -33,7 +37,7 @@
     },
     {
       "addr": 1074066960,
-      "implementation": "Tofino::VectorRegister"
+      "implementation": "Tofino::VectorTable"
     },
     {
       "addr": 1074053136,
@@ -45,7 +49,7 @@
     },
     {
       "addr": 1074085544,
-      "implementation": "Tofino::VectorRegister"
+      "implementation": "Tofino::VectorTable"
     }
   ],
   "name": "gallium-nat",
@@ -282,7 +286,7 @@
         "node_id": 151
       },
       {
-        "avg": 3.0,
+        "avg": 2.0,
         "node_id": 158
       },
       {
@@ -290,7 +294,7 @@
         "node_id": 176
       },
       {
-        "avg": 2.0,
+        "avg": 3.0,
         "node_id": 188
       },
       {
@@ -316,15 +320,15 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.9,
-    "elapsed_time_seconds": 32,
+    "elapsed_time_seconds": 41,
     "finished_eps": 1,
     "ss_size": 198,
     "steps": 67,
     "total_ss_size_estimation": 90578287342.37671,
     "unfinished_eps": 131
   },
-  "seed": 0,
+  "seed": 2033635428,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 1113372800320,
-  "tput_estimation_pps": 1581495455
+  "tput_estimation_bps": 1159931945216,
+  "tput_estimation_pps": 1647630604
 }

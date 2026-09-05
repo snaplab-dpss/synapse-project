@@ -1,14 +1,14 @@
 {
   "bdd": "nat.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 210,
-    "num_phase1_speculations": 24400,
-    "num_phase2_speculations": 1210,
-    "num_speculated_modules": 284982,
-    "time_per_instantiation_us": 2937,
-    "time_per_speculation_us": 37,
-    "total_time_spent_generating_execution_plans_us": 616919,
-    "total_time_spent_speculating_us": 10595511
+    "num_execution_plans_generated": 212,
+    "num_phase1_speculations": 24541,
+    "num_phase2_speculations": 1224,
+    "num_speculated_modules": 286303,
+    "time_per_instantiation_us": 1675,
+    "time_per_speculation_us": 25,
+    "total_time_spent_generating_execution_plans_us": 355284,
+    "total_time_spent_speculating_us": 7284034
   },
   "heuristic": {
     "meta": [
@@ -110,7 +110,7 @@
         "node_id": 271
       },
       {
-        "avg": 4.0,
+        "avg": 6.0,
         "node_id": 144
       },
       {
@@ -278,7 +278,7 @@
         "node_id": 169
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 173
       },
       {
@@ -290,7 +290,7 @@
         "node_id": 276
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 149
       },
       {
@@ -383,13 +383,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.1048387096774195,
-    "elapsed_time_seconds": 63,
+    "branching_factor": 3.1370967741935485,
+    "elapsed_time_seconds": 42,
     "finished_eps": 1,
-    "ss_size": 210,
+    "ss_size": 212,
     "steps": 72,
-    "total_ss_size_estimation": 411475536328.61194,
-    "unfinished_eps": 138
+    "total_ss_size_estimation": 517722536470.30646,
+    "unfinished_eps": 140
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

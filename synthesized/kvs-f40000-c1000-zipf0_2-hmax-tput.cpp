@@ -1,4 +1,5 @@
 #include <sycon/sycon.h>
+#include <sycon/libnf.h>
 
 using namespace sycon;
 

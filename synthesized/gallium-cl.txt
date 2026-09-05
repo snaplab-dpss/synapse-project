@@ -5,18 +5,18 @@ Args:
   Targets config:     tofino2.toml
   Heuristic:          gallium
   Profile file:       cl-f40000-c10000-zipf1_2.json
-  Seed:               0
+  Seed:               1240863453
   Targets:
-    Tofino (41 modules)
-    Ctrl (90 modules)
+    Tofino (48 modules)
+    Ctrl (96 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
   Score: <0,0,0,0,30,52>
-  Tput: 1.10 Tbps (1.57 Gpps)
-  Spec: 1.10 Tbps (1.57 Gpps)
+  Tput: 1.17 Tbps (1.66 Gpps)
+  Spec: 1.17 Tbps (1.66 Gpps)
 
 Stateful Implementations:
   1074080384: Tofino::CMS
@@ -26,7 +26,7 @@ Stateful Implementations:
   1074092960: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       25 seconds
+  Elapsed time:       9 seconds
   Steps:              53
   Backtracks:         0
   Search space size:  150
@@ -92,9 +92,9 @@ Search Metadata:
     Node 181: 3
 
 Global Stats:
-  Num phase 1 speculations: 14'526 (100%)
-  Num phase 2 speculations: 757 (5.21135%)
-  Num speculated modules:   164'415
+  Num phase 1 speculations: 8'651 (100%)
+  Num phase 2 speculations: 456 (5.27107%)
+  Num speculated modules:   106'329
   Num EPs generated:        150
 
 Switch placement:

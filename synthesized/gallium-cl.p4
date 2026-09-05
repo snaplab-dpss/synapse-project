@@ -24,14 +24,14 @@ enum bit<8> cuckoo_ops_t {
   UPDATE  = 0x01,
   INSERT  = 0x02,
   SWAP    = 0x03,
-  DONE    = 0x04,
+  DONE    = 0x04
 }
 
 enum bit<2> fwd_op_t {
   FORWARD_NF_DEV  = 0,
   FORWARD_TO_CPU  = 1,
   RECIRCULATE     = 2,
-  DROP            = 3,
+  DROP            = 3
 }
 
 header cpu_h {
@@ -92,6 +92,8 @@ struct synapse_ingress_metadata_t {
   bit<64> key_64b_0;
   bit<32> key_32b_1;
   bool hit0;
+  bit<16> vector_reg_value0;
+  bit<16> vector_reg_value1;
 
 }
 
@@ -546,6 +548,9 @@ control Ingress(
   };
 
 
+  action regexec_vector_register_1074110176_0_read_1495() {
+    meta.vector_reg_value0 = vector_register_1074110176_0_read_1495.execute(meta.dev);
+  }
 
   RegisterAction<bit<16>, bit<32>, bit<16>>(vector_register_1074110176_0) vector_register_1074110176_0_read_885 = {
     void apply(inout bit<16> value, out bit<16> out_value) {
@@ -554,6 +559,9 @@ control Ingress(
   };
 
 
+  action regexec_vector_register_1074110176_0_read_885() {
+    meta.vector_reg_value1 = vector_register_1074110176_0_read_885.execute(meta.dev);
+  }
 
   apply {
     ingress_port_to_nf_dev.apply();
@@ -630,24 +638,24 @@ control Ingress(
                 dchain_table_1074079968_170.apply();
                 // EP node  1495:VectorRegisterLookup
                 // BDD node 171:vector_borrow
-                bit<16> vector_reg_value0 = vector_register_1074110176_0_read_1495.execute(meta.dev);
+                regexec_vector_register_1074110176_0_read_1495();
                 // EP node  1584:Ignore
                 // BDD node 172:vector_return
                 // EP node  1981:Forward
                 // BDD node 176:FORWARD
-                nf_dev[15:0] = vector_reg_value0;
+                nf_dev[15:0] = meta.vector_reg_value0;
               }
             } else {
               // EP node  284:Else
               // BDD node 143:if
               // EP node  885:VectorRegisterLookup
               // BDD node 177:vector_borrow
-              bit<16> vector_reg_value1 = vector_register_1074110176_0_read_885.execute(meta.dev);
+              regexec_vector_register_1074110176_0_read_885();
               // EP node  1036:Ignore
               // BDD node 178:vector_return
               // EP node  1361:Forward
               // BDD node 182:FORWARD
-              nf_dev[15:0] = vector_reg_value1;
+              nf_dev[15:0] = meta.vector_reg_value1;
             }
           }
           // EP node  71:Else

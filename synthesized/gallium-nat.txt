@@ -5,28 +5,28 @@ Args:
   Targets config:     tofino2.toml
   Heuristic:          gallium
   Profile file:       nat-f40000-c10000-zipf1_2.json
-  Seed:               0
+  Seed:               2033635428
   Targets:
-    Tofino (41 modules)
-    Ctrl (90 modules)
+    Tofino (48 modules)
+    Ctrl (96 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
   Score: <0,0,0,0,50,65>
-  Tput: 1.11 Tbps (1.58 Gpps)
-  Spec: 1.11 Tbps (1.58 Gpps)
+  Tput: 1.16 Tbps (1.65 Gpps)
+  Spec: 1.16 Tbps (1.65 Gpps)
 
 Stateful Implementations:
   1074102760: Tofino::VectorRegister
-  1074066960: Tofino::VectorRegister
+  1074066960: Tofino::VectorTable
   1074053136: Tofino::GuardedMapTable
   1074085120: Tofino::DchainTable
-  1074085544: Tofino::VectorRegister
+  1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       32 seconds
+  Elapsed time:       41 seconds
   Steps:              67
   Backtracks:         0
   Search space size:  198
@@ -93,9 +93,9 @@ Search Metadata:
     Node 175: 0
     Node 187: 3
     Node 151: 3
-    Node 158: 3
+    Node 158: 2
     Node 176: 0
-    Node 188: 2
+    Node 188: 3
     Node 152: 3
     Node 177: 0
     Node 153: 3
@@ -103,9 +103,9 @@ Search Metadata:
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 21'687 (100%)
-  Num phase 2 speculations: 1'084 (4.99839%)
-  Num speculated modules:   252'460
+  Num phase 1 speculations: 19'118 (100%)
+  Num phase 2 speculations: 923 (4.82791%)
+  Num speculated modules:   229'253
   Num EPs generated:        198
 
 Switch placement:
@@ -117,31 +117,39 @@ SRAM: 786'425/1'310'720 B (59.9995%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 786'425/786'432 B (99.9991%)
 Exact Match Crossbar: 29/128 B (22.6562%)
-Objs: [vector_register_1074085544_0,dchain_table_1074085120_142,dchain_table_1074085120_146,dchain_table_1074085120_181,guarded_map_table_1074053136_163,guarded_map_table_1074053136_guard]
+Objs: [dchain_table_1074085120_142,vector_table_1074085544_139,dchain_table_1074085120_146,dchain_table_1074085120_181,guarded_map_table_1074053136_163,guarded_map_table_1074053136_guard]
 -------------------------------------
 -------------------------------------
 Stage 1
 SRAM: 786'432/1'310'720 B (60%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 786'432/786'432 B (100%)
-Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [dchain_table_1074085120_142,guarded_map_table_1074053136_163,vector_register_1074066960_2,vector_register_1074066960_3]
+Exact Match Crossbar: 20/128 B (15.625%)
+Objs: [dchain_table_1074085120_181,guarded_map_table_1074053136_163,vector_table_1074066960_144]
 -------------------------------------
 -------------------------------------
 Stage 2
 SRAM: 786'432/1'310'720 B (60%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 786'432/786'432 B (100%)
-Exact Match Crossbar: 20/128 B (15.625%)
-Objs: [guarded_map_table_1074053136_163,vector_register_1074066960_0,vector_register_1074066960_1]
+Exact Match Crossbar: 16/128 B (12.5%)
+Objs: [guarded_map_table_1074053136_163,vector_table_1074066960_144]
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 777'536/1'310'720 B (59.3213%)
+SRAM: 786'432/1'310'720 B (60%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 777'536/786'432 B (98.8688%)
-Exact Match Crossbar: 16/128 B (12.5%)
-Objs: [vector_register_1074102760_0,guarded_map_table_1074053136_163]
+MapRAM: 786'432/786'432 B (100%)
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_table_1074066960_144]
+-------------------------------------
+-------------------------------------
+Stage 4
+SRAM: 91'392/1'310'720 B (6.97266%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 91'392/786'432 B (11.6211%)
+Exact Match Crossbar: 8/128 B (6.25%)
+Objs: [vector_register_1074102760_0,vector_table_1074066960_144]
 -------------------------------------
 ==========================================================
 ========================================================

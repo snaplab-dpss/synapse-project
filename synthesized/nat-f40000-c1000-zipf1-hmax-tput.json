@@ -2,13 +2,13 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 198,
-    "num_phase1_speculations": 16926,
-    "num_phase2_speculations": 906,
-    "num_speculated_modules": 205255,
-    "time_per_instantiation_us": 3645,
-    "time_per_speculation_us": 104,
-    "total_time_spent_generating_execution_plans_us": 721740,
-    "total_time_spent_speculating_us": 21355821
+    "num_phase1_speculations": 18567,
+    "num_phase2_speculations": 928,
+    "num_speculated_modules": 228676,
+    "time_per_instantiation_us": 2259,
+    "time_per_speculation_us": 65,
+    "total_time_spent_generating_execution_plans_us": 447383,
+    "total_time_spent_speculating_us": 15075130
   },
   "heuristic": {
     "meta": [
@@ -56,12 +56,12 @@
       "implementation": "Tofino::VectorTable"
     },
     {
-      "addr": 1074085120,
-      "implementation": "Tofino::DchainTable"
-    },
-    {
       "addr": 1074053136,
       "implementation": "Tofino::MapTable"
+    },
+    {
+      "addr": 1074085120,
+      "implementation": "Tofino::DchainTable"
     },
     {
       "addr": 1074085544,
@@ -106,11 +106,11 @@
         "node_id": 144
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 143
       },
       {
-        "avg": 3.0,
+        "avg": 30.0,
         "node_id": 142
       },
       {
@@ -126,7 +126,7 @@
         "node_id": 136
       },
       {
-        "avg": 32.0,
+        "avg": 4.0,
         "node_id": 163
       },
       {
@@ -146,7 +146,7 @@
         "node_id": 133
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 140
       },
       {
@@ -166,7 +166,7 @@
         "node_id": 189
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 164
       },
       {
@@ -190,7 +190,7 @@
         "node_id": 190
       },
       {
-        "avg": 6.0,
+        "avg": 8.0,
         "node_id": 139
       },
       {
@@ -202,7 +202,7 @@
         "node_id": 171
       },
       {
-        "avg": 6.0,
+        "avg": 4.0,
         "node_id": 183
       },
       {
@@ -246,7 +246,7 @@
         "node_id": 185
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 149
       },
       {
@@ -319,12 +319,12 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.1311475409836067,
-    "elapsed_time_seconds": 62,
+    "branching_factor": 3.1147540983606556,
+    "elapsed_time_seconds": 46,
     "finished_eps": 1,
     "ss_size": 198,
     "steps": 62,
-    "total_ss_size_estimation": 496333381682.36914,
+    "total_ss_size_estimation": 441682484724.2987,
     "unfinished_eps": 136
   },
   "seed": 0,

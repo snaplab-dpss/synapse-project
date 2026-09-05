@@ -24,14 +24,14 @@ enum bit<8> cuckoo_ops_t {
   UPDATE  = 0x01,
   INSERT  = 0x02,
   SWAP    = 0x03,
-  DONE    = 0x04,
+  DONE    = 0x04
 }
 
 enum bit<2> fwd_op_t {
   FORWARD_NF_DEV  = 0,
   FORWARD_TO_CPU  = 1,
   RECIRCULATE     = 2,
-  DROP            = 3,
+  DROP            = 3
 }
 
 header cpu_h {
@@ -339,7 +339,7 @@ control Ingress(
     size = 36;
   }
 
-  table map_set_table_1074044080_155 {
+  table map_set_table_1074044080_142 {
     key = {
       meta.key_32b_0: exact;
       meta.key_32b_1: exact;
@@ -353,7 +353,7 @@ control Ingress(
     idle_timeout = true;
   }
 
-  table map_set_table_1074044080_142 {
+  table map_set_table_1074044080_155 {
     key = {
       meta.key_32b_0: exact;
       meta.key_32b_1: exact;
@@ -422,44 +422,44 @@ control Ingress(
           // BDD node 137:if
           // EP node  53:Then
           // BDD node 137:if
-          // EP node  103:VectorTableLookup
-          // BDD node 139:vector_borrow
-          meta.key_32b_0 = meta.dev;
-          vector_table_1074076488_139.apply();
-          // EP node  146:ParserExtraction
+          // EP node  83:ParserExtraction
           // BDD node 138:packet_borrow_next_chunk
           if(hdr.hdr2.isValid()) {
-            // EP node  228:MapSetTableLookup
+            // EP node  169:VectorTableLookup
+            // BDD node 139:vector_borrow
+            meta.key_32b_0 = meta.dev;
+            vector_table_1074076488_139.apply();
+            // EP node  252:MapSetTableLookup
+            // BDD node 142:map_get
+            meta.key_32b_0 = hdr.hdr1.data4;
+            meta.key_32b_1 = hdr.hdr1.data3;
+            meta.key_16b_2 = hdr.hdr2.data1;
+            meta.key_16b_3 = hdr.hdr2.data0;
+            bool hit0 = map_set_table_1074044080_142.apply().hit;
+            // EP node  976:MapSetTableLookup
             // BDD node 155:map_get
             meta.key_32b_0 = hdr.hdr1.data3;
             meta.key_32b_1 = hdr.hdr1.data4;
             meta.key_16b_2 = hdr.hdr2.data0;
             meta.key_16b_3 = hdr.hdr2.data1;
-            bool hit0 = map_set_table_1074044080_155.apply().hit;
-            // EP node  952:Ignore
+            bool hit1 = map_set_table_1074044080_155.apply().hit;
+            // EP node  1019:Ignore
             // BDD node 140:vector_return
-            // EP node  1008:If
+            // EP node  1065:If
             // BDD node 141:if
             if ((32w0x00000000) == (vector_table_1074076488_139_get_value_param0)){
-              // EP node  1009:Then
+              // EP node  1066:Then
               // BDD node 141:if
-              // EP node  1058:MapSetTableLookup
-              // BDD node 142:map_get
-              meta.key_32b_0 = hdr.hdr1.data4;
-              meta.key_32b_1 = hdr.hdr1.data3;
-              meta.key_16b_2 = hdr.hdr2.data1;
-              meta.key_16b_3 = hdr.hdr2.data0;
-              bool hit1 = map_set_table_1074044080_142.apply().hit;
-              // EP node  1185:If
+              // EP node  1118:If
               // BDD node 143:if
-              if (!hit1){
-                // EP node  1186:Then
+              if (!hit0){
+                // EP node  1119:Then
                 // BDD node 143:if
                 // EP node  3486:Drop
                 // BDD node 147:DROP
                 fwd_op = fwd_op_t.DROP;
               } else {
-                // EP node  1187:Else
+                // EP node  1120:Else
                 // BDD node 143:if
                 // EP node  1285:VectorTableLookup
                 // BDD node 149:vector_borrow
@@ -472,12 +472,12 @@ control Ingress(
                 nf_dev[15:0] = vector_table_1074093704_149_get_value_param0;
               }
             } else {
-              // EP node  1010:Else
+              // EP node  1067:Else
               // BDD node 141:if
-              // EP node  1118:If
+              // EP node  1185:If
               // BDD node 156:if
-              if (!hit0){
-                // EP node  1119:Then
+              if (!hit1){
+                // EP node  1186:Then
                 // BDD node 156:if
                 // EP node  2374:SendToController
                 // BDD node 157:dchain_allocate_new_index
@@ -485,7 +485,7 @@ control Ingress(
                 build_cpu_hdr(2374);
                 hdr.cpu.dev = meta.dev;
               } else {
-                // EP node  1120:Else
+                // EP node  1187:Else
                 // BDD node 156:if
                 // EP node  1783:VectorTableLookup
                 // BDD node 175:vector_borrow

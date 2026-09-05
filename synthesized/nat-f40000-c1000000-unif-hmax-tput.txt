@@ -7,8 +7,8 @@ Args:
   Profile file:       nat-f40000-c1000000-unif.json
   Seed:               0
   Targets:
-    Tofino (41 modules)
-    Ctrl (90 modules)
+    Tofino (48 modules)
+    Ctrl (96 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
@@ -30,15 +30,15 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       44 seconds
+  Elapsed time:       35 seconds
   Steps:              69
   Backtracks:         0
-  Search space size:  208
-  Unfinished EPs:     139
+  Search space size:  209
+  Unfinished EPs:     140
   Finished EPs:       1
   Avg BDD size:       62
   Branching factor:   3
-  Total SS size est.: 687'743'478'952
+  Total SS size est.: 861'038'305'078
   Avg children per node:
     Node 180: 2
     Node 179: 3
@@ -77,7 +77,7 @@ Search Metadata:
     Node 161: 3
     Node 190: 3
     Node 266: 0
-    Node 139: 6
+    Node 139: 8
     Node 191: 2
     Node 171: 6
     Node 183: 4
@@ -119,10 +119,10 @@ Search Metadata:
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 19'269 (100%)
-  Num phase 2 speculations: 989 (5.1326%)
-  Num speculated modules:   229'786
-  Num EPs generated:        208
+  Num phase 1 speculations: 20'126 (100%)
+  Num phase 2 speculations: 1'007 (5.00348%)
+  Num speculated modules:   242'888
+  Num EPs generated:        209
 
 Switch placement:
 

@@ -24,14 +24,14 @@ enum bit<8> cuckoo_ops_t {
   UPDATE  = 0x01,
   INSERT  = 0x02,
   SWAP    = 0x03,
-  DONE    = 0x04,
+  DONE    = 0x04
 }
 
 enum bit<2> fwd_op_t {
   FORWARD_NF_DEV  = 0,
   FORWARD_TO_CPU  = 1,
   RECIRCULATE     = 2,
-  DROP            = 3,
+  DROP            = 3
 }
 
 header cpu_h {
@@ -96,6 +96,12 @@ struct synapse_ingress_metadata_t {
   bit<32> fcfs_ct_1074053136_key_32b_1;
   bit<16> fcfs_ct_1074053136_key_16b_2;
   bit<16> fcfs_ct_1074053136_key_16b_3;
+  bit<32> vector_reg_value0;
+  bit<32> regexec_vector_register_1074066960_0_read_996_index0;
+  bit<32> vector_reg_value1;
+  bit<16> vector_reg_value2;
+  bit<16> vector_reg_value3;
+  bit<32> regexec_vector_register_1074066960_0_write_4694_index0;
 
 }
 
@@ -438,34 +444,46 @@ control Ingress(
   Register<bit<16>,_>(65536, 0) vector_register_1074066960_2;
   Register<bit<16>,_>(65536, 0) vector_register_1074066960_3;
 
-  RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1074066960_0) vector_register_1074066960_0_read_972 = {
+  RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1074066960_0) vector_register_1074066960_0_read_996 = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       out_value = value;
     }
   };
 
 
-  RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1074066960_1) vector_register_1074066960_1_read_972 = {
+  action regexec_vector_register_1074066960_0_read_996() {
+    meta.vector_reg_value0 = vector_register_1074066960_0_read_996.execute(meta.regexec_vector_register_1074066960_0_read_996_index0);
+  }
+  RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1074066960_1) vector_register_1074066960_1_read_996 = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       out_value = value;
     }
   };
 
 
-  RegisterAction<bit<16>, bit<32>, bit<16>>(vector_register_1074066960_2) vector_register_1074066960_2_read_972 = {
+  action regexec_vector_register_1074066960_1_read_996() {
+    meta.vector_reg_value1 = vector_register_1074066960_1_read_996.execute(meta.regexec_vector_register_1074066960_0_read_996_index0);
+  }
+  RegisterAction<bit<16>, bit<32>, bit<16>>(vector_register_1074066960_2) vector_register_1074066960_2_read_996 = {
     void apply(inout bit<16> value, out bit<16> out_value) {
       out_value = value;
     }
   };
 
 
-  RegisterAction<bit<16>, bit<32>, bit<16>>(vector_register_1074066960_3) vector_register_1074066960_3_read_972 = {
+  action regexec_vector_register_1074066960_2_read_996() {
+    meta.vector_reg_value2 = vector_register_1074066960_2_read_996.execute(meta.regexec_vector_register_1074066960_0_read_996_index0);
+  }
+  RegisterAction<bit<16>, bit<32>, bit<16>>(vector_register_1074066960_3) vector_register_1074066960_3_read_996 = {
     void apply(inout bit<16> value, out bit<16> out_value) {
       out_value = value;
     }
   };
 
 
+  action regexec_vector_register_1074066960_3_read_996() {
+    meta.vector_reg_value3 = vector_register_1074066960_3_read_996.execute(meta.regexec_vector_register_1074066960_0_read_996_index0);
+  }
   bit<16> vector_table_1074102760_149_get_value_param0 = 16w0;
   action vector_table_1074102760_149_get_value(bit<16> _vector_table_1074102760_149_get_value_param0) {
     vector_table_1074102760_149_get_value_param0 = _vector_table_1074102760_149_get_value_param0;
@@ -546,6 +564,43 @@ control Ingress(
   }
   action swap_action_186() {
   }
+
+  RegisterAction<bit<32>, bit<32>, void>(vector_register_1074066960_0) vector_register_1074066960_0_write_4694 = {
+    void apply(inout bit<32> value) {
+      value = hdr.hdr1.data3;
+    }
+  };
+
+  action regexec_vector_register_1074066960_0_write_4694() {
+    vector_register_1074066960_0_write_4694.execute(meta.regexec_vector_register_1074066960_0_write_4694_index0);
+  }
+  RegisterAction<bit<32>, bit<32>, void>(vector_register_1074066960_1) vector_register_1074066960_1_write_4694 = {
+    void apply(inout bit<32> value) {
+      value = hdr.hdr1.data4;
+    }
+  };
+
+  action regexec_vector_register_1074066960_1_write_4694() {
+    vector_register_1074066960_1_write_4694.execute(meta.regexec_vector_register_1074066960_0_write_4694_index0);
+  }
+  RegisterAction<bit<16>, bit<32>, void>(vector_register_1074066960_2) vector_register_1074066960_2_write_4694 = {
+    void apply(inout bit<16> value) {
+      value = hdr.hdr2.data0;
+    }
+  };
+
+  action regexec_vector_register_1074066960_2_write_4694() {
+    vector_register_1074066960_2_write_4694.execute(meta.regexec_vector_register_1074066960_0_write_4694_index0);
+  }
+  RegisterAction<bit<16>, bit<32>, void>(vector_register_1074066960_3) vector_register_1074066960_3_write_4694 = {
+    void apply(inout bit<16> value) {
+      value = hdr.hdr2.data1;
+    }
+  };
+
+  action regexec_vector_register_1074066960_3_write_4694() {
+    vector_register_1074066960_3_write_4694.execute(meta.regexec_vector_register_1074066960_0_write_4694_index0);
+  }
   bit<16> vector_table_1074102760_175_get_value_param0 = 16w0;
   action vector_table_1074102760_175_get_value(bit<16> _vector_table_1074102760_175_get_value_param0) {
     vector_table_1074102760_175_get_value_param0 = _vector_table_1074102760_175_get_value_param0;
@@ -560,31 +615,6 @@ control Ingress(
     }
     size = 36;
   }
-
-
-  RegisterAction<bit<32>, bit<32>, void>(vector_register_1074066960_0) vector_register_1074066960_0_write_4954 = {
-    void apply(inout bit<32> value) {
-      value = hdr.hdr1.data3;
-    }
-  };
-
-  RegisterAction<bit<32>, bit<32>, void>(vector_register_1074066960_1) vector_register_1074066960_1_write_4954 = {
-    void apply(inout bit<32> value) {
-      value = hdr.hdr1.data4;
-    }
-  };
-
-  RegisterAction<bit<16>, bit<32>, void>(vector_register_1074066960_2) vector_register_1074066960_2_write_4954 = {
-    void apply(inout bit<16> value) {
-      value = hdr.hdr2.data0;
-    }
-  };
-
-  RegisterAction<bit<16>, bit<32>, void>(vector_register_1074066960_3) vector_register_1074066960_3_write_4954 = {
-    void apply(inout bit<16> value) {
-      value = hdr.hdr2.data1;
-    }
-  };
 
   action swap_action_177() {
   }
@@ -615,90 +645,91 @@ control Ingress(
           // BDD node 137:if
           // EP node  53:Then
           // BDD node 137:if
-          // EP node  103:VectorTableLookup
-          // BDD node 139:vector_borrow
-          meta.key_32b_0 = meta.dev;
-          vector_table_1074085544_139.apply();
-          // EP node  146:ParserExtraction
+          // EP node  83:ParserExtraction
           // BDD node 138:packet_borrow_next_chunk
           if(hdr.hdr2.isValid()) {
-            // EP node  204:Ignore
+            // EP node  169:VectorTableLookup
+            // BDD node 139:vector_borrow
+            meta.key_32b_0 = meta.dev;
+            vector_table_1074085544_139.apply();
+            // EP node  228:Ignore
             // BDD node 140:vector_return
-            // EP node  268:If
+            // EP node  292:If
             // BDD node 141:if
             if ((32w0x00000000) == (vector_table_1074085544_139_get_value_param0)){
-              // EP node  269:Then
+              // EP node  293:Then
               // BDD node 141:if
-              // EP node  490:FCFSCachedTableIsIndexAllocated
+              // EP node  514:FCFSCachedTableIsIndexAllocated
               // BDD node 142:dchain_is_index_allocated
               bit<32> index0 = (bit<32>)(hdr.hdr2.data1);
               bit<32> is_allocated0 = 0;
               if(fcfs_ct_1074053136_reg_liveness_query_timestamp.execute(index0)) {
                 is_allocated0 = 1;
               }
-              // EP node  861:If
+              // EP node  885:If
               // BDD node 143:if
               if ((32w0x00000000) != (is_allocated0)){
-                // EP node  862:Then
+                // EP node  886:Then
                 // BDD node 143:if
-                // EP node  972:VectorRegisterLookup
+                // EP node  996:VectorRegisterLookup
                 // BDD node 144:vector_borrow
-                bit<32> vector_reg_value0 = vector_register_1074066960_0_read_972.execute(index0);
-                bit<32> vector_reg_value1 = vector_register_1074066960_1_read_972.execute(index0);
-                bit<16> vector_reg_value2 = vector_register_1074066960_2_read_972.execute(index0);
-                bit<16> vector_reg_value3 = vector_register_1074066960_3_read_972.execute(index0);
-                // EP node  1147:Ignore
-                // BDD node 146:dchain_rejuvenate_index
-                // EP node  1244:Ignore
+                meta.regexec_vector_register_1074066960_0_read_996_index0 = index0;
+                regexec_vector_register_1074066960_0_read_996();
+                regexec_vector_register_1074066960_1_read_996();
+                regexec_vector_register_1074066960_2_read_996();
+                regexec_vector_register_1074066960_3_read_996();
+                // EP node  1171:Ignore
                 // BDD node 145:vector_return
-                // EP node  1344:If
+                // EP node  1268:Ignore
+                // BDD node 146:dchain_rejuvenate_index
+                // EP node  1368:If
                 // BDD node 147:if
                 bool cond0 = false;
-                if ((vector_reg_value1) == (hdr.hdr1.data3)){
-                  if ((vector_reg_value3) == (hdr.hdr2.data0)){
+                if ((meta.vector_reg_value1) == (hdr.hdr1.data3)){
+                  if ((meta.vector_reg_value3) == (hdr.hdr2.data0)){
                     cond0 = true;
                   }
                 }
                 if (cond0) {
-                  // EP node  1345:Then
+                  // EP node  1369:Then
                   // BDD node 147:if
-                  // EP node  2521:VectorTableLookup
+                  // EP node  2545:VectorTableLookup
                   // BDD node 149:vector_borrow
                   meta.key_32b_0 = meta.dev;
                   vector_table_1074102760_149.apply();
-                  // EP node  2698:Ignore
+                  // EP node  2722:Ignore
                   // BDD node 148:nf_set_rte_ipv4_udptcp_checksum
-                  // EP node  2838:Ignore
+                  // EP node  2862:Ignore
                   // BDD node 150:vector_return
-                  // EP node  3023:ModifyHeader
+                  // EP node  3047:ModifyHeader
                   // BDD node 151:packet_return_chunk
                   swap_action_151();
-                  hdr.hdr2.data1 = vector_reg_value2;
-                  // EP node  3170:ModifyHeader
+                  hdr.hdr2.data1 = meta.vector_reg_value2;
+                  // EP node  3194:ModifyHeader
                   // BDD node 152:packet_return_chunk
                   swap_action_152();
-                  hdr.hdr1.data4 = vector_reg_value0;
-                  // EP node  3470:Forward
+                  hdr.hdr1.data4 = meta.vector_reg_value0;
+                  // EP node  3494:Forward
                   // BDD node 154:FORWARD
                   nf_dev[15:0] = vector_table_1074102760_149_get_value_param0;
                 } else {
-                  // EP node  1346:Else
+                  // EP node  1370:Else
                   // BDD node 147:if
-                  // EP node  4021:Drop
+                  // EP node  4045:Drop
                   // BDD node 158:DROP
                   fwd_op = fwd_op_t.DROP;
                 }
               } else {
-                // EP node  863:Else
+                // EP node  887:Else
                 // BDD node 143:if
-                // EP node  8254:Drop
+                // EP node  8209:Drop
                 // BDD node 162:DROP
                 fwd_op = fwd_op_t.DROP;
               }
             } else {
-              // EP node  270:Else
+              // EP node  294:Else
               // BDD node 141:if
-              // EP node  757:FCFSCachedTableReadInsert
+              // EP node  781:FCFSCachedTableReadInsert
               // BDD node 163:map_get
               meta.fcfs_ct_1074053136_key_32b_0 = hdr.hdr1.data3;
               meta.fcfs_ct_1074053136_key_32b_1 = hdr.hdr1.data4;
@@ -725,82 +756,83 @@ control Ingress(
                   cached_insert_success0 = 1;
                 }
               }
-              // EP node  758:If
+              // EP node  782:If
               // BDD node 163:map_get
               if (hit0){
-                // EP node  759:Then
+                // EP node  783:Then
                 // BDD node 163:map_get
-                // EP node  1483:Ignore
+                // EP node  1507:Ignore
                 // BDD node 181:dchain_rejuvenate_index
-                // EP node  1629:Ignore
+                // EP node  1653:Ignore
                 // BDD node 182:nf_set_rte_ipv4_udptcp_checksum
-                // EP node  1780:VectorTableLookup
+                // EP node  1804:VectorTableLookup
                 // BDD node 183:vector_borrow
                 meta.key_32b_0 = meta.dev;
                 vector_table_1074102760_183.apply();
-                // EP node  1899:Ignore
+                // EP node  1923:Ignore
                 // BDD node 184:vector_return
-                // EP node  2057:ModifyHeader
+                // EP node  2081:ModifyHeader
                 // BDD node 185:packet_return_chunk
                 swap_action_185();
                 hdr.hdr2.data0[7:0] = fcfs_ct_1074053136_table_163_get_value_param0[7:0];
                 hdr.hdr2.data0[15:8] = fcfs_ct_1074053136_table_163_get_value_param0[15:8];
-                // EP node  2183:ModifyHeader
+                // EP node  2207:ModifyHeader
                 // BDD node 186:packet_return_chunk
                 swap_action_186();
                 hdr.hdr1.data3[31:24] = 8w0x01;
                 hdr.hdr1.data3[23:16] = 8w0x02;
                 hdr.hdr1.data3[15:8] = 8w0x03;
                 hdr.hdr1.data3[7:0] = 8w0x04;
-                // EP node  2441:Forward
+                // EP node  2465:Forward
                 // BDD node 188:FORWARD
                 nf_dev[15:0] = vector_table_1074102760_183_get_value_param0;
               } else {
-                // EP node  760:Else
+                // EP node  784:Else
                 // BDD node 163:map_get
-                // EP node  761:If
+                // EP node  785:If
                 // BDD node 163:map_get
                 if ((cached_insert_success0) != (32w0x00000000)){
-                  // EP node  762:Then
+                  // EP node  786:Then
                   // BDD node 163:map_get
-                  // EP node  4262:VectorTableLookup
+                  // EP node  4286:Ignore
+                  // BDD node 171:vector_borrow
+                  // EP node  4694:VectorRegisterUpdate
+                  // BDD node 173:vector_return
+                  meta.regexec_vector_register_1074066960_0_write_4694_index0 = fcfs_ct_1074053136_table_163_get_value_param0;
+                  regexec_vector_register_1074066960_0_write_4694();
+                  regexec_vector_register_1074066960_1_write_4694();
+                  regexec_vector_register_1074066960_2_write_4694();
+                  regexec_vector_register_1074066960_3_write_4694();
+                  // EP node  4976:Ignore
+                  // BDD node 174:nf_set_rte_ipv4_udptcp_checksum
+                  // EP node  5195:VectorTableLookup
                   // BDD node 175:vector_borrow
                   meta.key_32b_0 = meta.dev;
                   vector_table_1074102760_175.apply();
-                  // EP node  4540:Ignore
-                  // BDD node 171:vector_borrow
-                  // EP node  4954:VectorRegisterUpdate
-                  // BDD node 173:vector_return
-                  vector_register_1074066960_0_write_4954.execute(fcfs_ct_1074053136_table_163_get_value_param0);
-                  vector_register_1074066960_1_write_4954.execute(fcfs_ct_1074053136_table_163_get_value_param0);
-                  vector_register_1074066960_2_write_4954.execute(fcfs_ct_1074053136_table_163_get_value_param0);
-                  vector_register_1074066960_3_write_4954.execute(fcfs_ct_1074053136_table_163_get_value_param0);
-                  // EP node  5240:Ignore
-                  // BDD node 174:nf_set_rte_ipv4_udptcp_checksum
-                  // EP node  5462:Ignore
+                  // EP node  5417:Ignore
                   // BDD node 176:vector_return
-                  // EP node  5756:ModifyHeader
+                  // EP node  5711:ModifyHeader
                   // BDD node 177:packet_return_chunk
                   swap_action_177();
-                  hdr.hdr2.data0[7:0] = fcfs_ct_1074053136_table_163_get_value_param0[7:0];
-                  hdr.hdr2.data0[15:8] = fcfs_ct_1074053136_table_163_get_value_param0[15:8];
-                  // EP node  5985:ModifyHeader
+                  hdr.hdr2.data0[7:0] = meta.regexec_vector_register_1074066960_0_write_4694_index0[7:0];
+                  hdr.hdr2.data0[15:8] = meta.regexec_vector_register_1074066960_0_write_4694_index0[15:8];
+                  // EP node  5940:ModifyHeader
                   // BDD node 178:packet_return_chunk
                   swap_action_178();
                   hdr.hdr1.data3[31:24] = 8w0x01;
                   hdr.hdr1.data3[23:16] = 8w0x02;
                   hdr.hdr1.data3[15:8] = 8w0x03;
                   hdr.hdr1.data3[7:0] = 8w0x04;
-                  // EP node  6449:Forward
+                  // EP node  6404:Forward
                   // BDD node 180:FORWARD
                   nf_dev[15:0] = vector_table_1074102760_175_get_value_param0;
                 } else {
-                  // EP node  763:Else
+                  // EP node  787:Else
                   // BDD node 163:map_get
-                  // EP node  4132:SendToController
+                  // EP node  4156:SendToController
                   // BDD node 281:tofino_force_send_to_controller
                   fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                  build_cpu_hdr(4132);
+                  build_cpu_hdr(4156);
                   hdr.cpu.cached_insert_success0 = cached_insert_success0;
                   hdr.cpu.dev = meta.dev;
                 }
@@ -809,12 +841,12 @@ control Ingress(
           }
           // EP node  54:Else
           // BDD node 137:if
-          // EP node  7868:ParserReject
+          // EP node  7823:ParserReject
           // BDD node 191:DROP
         }
         // EP node  15:Else
         // BDD node 135:if
-        // EP node  7264:ParserReject
+        // EP node  7219:ParserReject
         // BDD node 193:DROP
       }
 

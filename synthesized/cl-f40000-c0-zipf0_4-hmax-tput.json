@@ -1,14 +1,14 @@
 {
   "bdd": "cl.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 151,
-    "num_phase1_speculations": 10079,
-    "num_phase2_speculations": 584,
-    "num_speculated_modules": 121392,
-    "time_per_instantiation_us": 898,
-    "time_per_speculation_us": 51,
-    "total_time_spent_generating_execution_plans_us": 135733,
-    "total_time_spent_speculating_us": 6205591
+    "num_execution_plans_generated": 141,
+    "num_phase1_speculations": 9713,
+    "num_phase2_speculations": 530,
+    "num_speculated_modules": 119521,
+    "time_per_instantiation_us": 553,
+    "time_per_speculation_us": 5,
+    "total_time_spent_generating_execution_plans_us": 78021,
+    "total_time_spent_speculating_us": 685785
   },
   "heuristic": {
     "meta": [
@@ -25,7 +25,7 @@
         "name": "Recirculations"
       },
       {
-        "description": "49 / 53",
+        "description": "50 / 53",
         "name": "BDD Progress"
       },
       {
@@ -40,13 +40,17 @@
     "score": [
       0,
       2250000000,
-      49,
+      50,
       -6,
       -8307008,
       0
     ]
   },
   "implementations": [
+    {
+      "addr": 1074092960,
+      "implementation": "Tofino::VectorTable"
+    },
     {
       "addr": 1074080384,
       "implementation": "Tofino::CMS"
@@ -62,10 +66,6 @@
     {
       "addr": 1074047984,
       "implementation": "Tofino::MapSetTable"
-    },
-    {
-      "addr": 1074092960,
-      "implementation": "Tofino::VectorTable"
     }
   ],
   "name": "cl-f40000-c0-zipf0_4-hmax-tput",
@@ -122,7 +122,7 @@
         "node_id": 176
       },
       {
-        "avg": 2.0,
+        "avg": 0.0,
         "node_id": 169
       },
       {
@@ -138,7 +138,7 @@
         "node_id": 175
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 168
       },
       {
@@ -154,7 +154,7 @@
         "node_id": 174
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 167
       },
       {
@@ -170,7 +170,7 @@
         "node_id": 173
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 166
       },
       {
@@ -186,7 +186,7 @@
         "node_id": 184
       },
       {
-        "avg": 6.0,
+        "avg": 4.0,
         "node_id": 141
       },
       {
@@ -254,7 +254,7 @@
         "node_id": 177
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 148
       },
       {
@@ -266,7 +266,7 @@
         "node_id": 178
       },
       {
-        "avg": 2.0,
+        "avg": 0.0,
         "node_id": 149
       },
       {
@@ -278,7 +278,7 @@
         "node_id": 179
       },
       {
-        "avg": 0.0,
+        "avg": 2.0,
         "node_id": 147
       },
       {
@@ -291,13 +291,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.8703703703703702,
-    "elapsed_time_seconds": 28,
+    "branching_factor": 2.6666666666666665,
+    "elapsed_time_seconds": 10,
     "finished_eps": 1,
-    "ss_size": 151,
-    "steps": 50,
-    "total_ss_size_estimation": 1290855141423.6738,
-    "unfinished_eps": 101
+    "ss_size": 141,
+    "steps": 51,
+    "total_ss_size_estimation": 200649778565.14038,
+    "unfinished_eps": 90
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
