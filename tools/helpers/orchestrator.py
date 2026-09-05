@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations  # allow 3.9+ annotation syntax (dict[...], list[...]) on Python 3.8 (tofino2)
+
 import os
 import time
 import humanize

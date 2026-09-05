@@ -1,0 +1,103 @@
+digraph G {
+	"43"[label="43:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++quotient__16[0:4]++packet_chunks[0:6]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"80"[label="80:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"42"[label="42:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"39"[label="39:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"81"[label="81:drop()\lHR=0.00000000
+Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"38"[label="38:fwd(DEVICE)\lHR=0.00000010
+Fwd={
+30:0.00000010}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"37"[label="37:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++(Extract 24 (266 - ln__35) )++(Extract 16 (266 - ln__35) )++(Extract 8 (266 - ln__35) )++(266 - ln__35)++packet_chunks[0:6]])\lHR=0.00000010",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"40"[label="40:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++quotient__16[0:4]++packet_chunks[0:6]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"17"[label="17:vector_borrow(\l  vector:1073952248,\l  index:0,\l  val_out:1074037608[ -> 1073966144])\l=>{vector_data__17}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"7"[label="7:find_first_set_bit(x:(hash__6 & 1048575)) -> first_set_bit__7\l=>{first_set_bit__7}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"41"[label="41:fwd(DEVICE)\lHR=0.00000000
+Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"28"[label="28:fwd(DEVICE)\lHR=0.00000000
+Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"15"[label="15:vector_return(\l  vector:1073935032,\l  index:0,\l  value:1073948928[(vector_data__14 + (power_of_two__12 - power_of_two__13))])\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"13"[label="13:power_of_two(exponent:(20 - first_set_bit__7)) -> power_of_two__13\l=>{power_of_two__13}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"29"[label="29:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.99999090",shape=box,style="filled,",fillcolor="#fe000054",border=0,];
+	"26"[label="26:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"44"[label="44:fwd(DEVICE)\lHR=0.00000000
+Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"12"[label="12:power_of_two(exponent:(20 - min__11)) -> power_of_two__12\l=>{power_of_two__12}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"16"[label="16:divide(\l  numerator:3046596202,\l  denominator:(67108864 - (vector_data__14 + (power_of_two__12 - power_of_two__13)))) -> quotient__16\l=>{quotient__16}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"8"[label="8:vector_borrow(\l  vector:1073917816,\l  index:(hash__6 >> 26),\l  val_out:1074037448[ -> 1073931712])\l=>{min__11,vector_data__8}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"4"[label="4:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"5"[label="5:packet_borrow_next_chunk(\l  p:1074027408,\l  length:20,\l  chunk:1074038736[ -> 1073756352])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"18"[label="18:min__11\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"22"[label="22:ln(\l  x:(64 - vector_data__17),\l  scale:64) -> ln__22\l=>{ln__22}\lHR=0.99999989",shape=box,style="filled,",fillcolor="#fe000054",border=0,];
+	"20"[label="20:(quotient__16 < 160)\nHR=0.99999989",shape=ellipse,style="filled,",fillcolor="#fe000054",border=0,];
+	"21"[label="21:(vector_data__17 < 64)\nHR=0.00000900",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
+	"23"[label="23:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.00000900",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"24"[label="24:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++(Extract 24 (266 - ln__22) )++(Extract 16 (266 - ln__22) )++(Extract 8 (266 - ln__22) )++(266 - ln__22)++packet_chunks[0:6]])\lHR=0.00000900",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"25"[label="25:fwd(DEVICE)\lHR=0.00000900
+Fwd={
+6:0.00000031,5:0.00000030,4:0.00000031,10:0.00000031,
+11:0.00000030,12:0.00000031,15:0.00000030,2:0.00000031,
+31:0.00000030,16:0.00000031,17:0.00000030,18:0.00000031,
+19:0.00000030,7:0.00000030,8:0.00000031,9:0.00000030,
+14:0.00000031,30:0.00000020,13:0.00000030,29:0.00000030,
+20:0.00000031,21:0.00000030,22:0.00000031,23:0.00000030,
+24:0.00000031,25:0.00000030,26:0.00000031,27:0.00000030,
+28:0.00000031,3:0.00000030}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"3"[label="3:packet_borrow_next_chunk(\l  p:1074027408,\l  length:14,\l  chunk:1074038000[ -> 1073756096])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"6"[label="6:hash_obj(\l  obj:1074037360[packet_chunks[268:276]],\l  size:8) -> hash__6\l=>{hash__6}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"30"[label="30:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++quotient__16[0:4]++packet_chunks[0:6]])\lHR=0.99999090",shape=box,style="filled,",fillcolor="#fe000054",border=0,];
+	"35"[label="35:ln(\l  x:(63 - vector_data__17),\l  scale:64) -> ln__35\l=>{ln__35}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"27"[label="27:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++quotient__16[0:4]++packet_chunks[0:6]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"31"[label="31:fwd(DEVICE)\lHR=0.99999090
+Fwd={
+6:0.03333303,5:0.03333303,4:0.03333303,10:0.03333303,
+11:0.03333303,12:0.03333303,15:0.03333303,2:0.03333303,
+31:0.03333303,16:0.03333303,17:0.03333303,18:0.03333303,
+19:0.03333303,7:0.03333303,8:0.03333303,9:0.03333303,
+14:0.03333303,30:0.03333302,13:0.03333303,29:0.03333303,
+20:0.03333303,21:0.03333303,22:0.03333303,23:0.03333303,
+24:0.03333303,25:0.03333303,26:0.03333303,27:0.03333303,
+28:0.03333303,3:0.03333303}",shape=box,style="filled,",fillcolor="#fe000054",border=0,];
+	"33"[label="33:(quotient__16 < 160)\nHR=0.00000011",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
+	"14"[label="14:vector_borrow(\l  vector:1073935032,\l  index:0,\l  val_out:1074037536[ -> 1073948928])\l=>{vector_data__14}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"34"[label="34:((1 + vector_data__17) < 64)\nHR=0.00000010",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
+	"36"[label="36:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.00000010",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"3" -> "4";
+	"4" -> "5" [label="True"];
+	"4" -> "80" [label="False"];
+	"5" -> "6";
+	"6" -> "7";
+	"7" -> "8";
+	"8" -> "13";
+	"13" -> "12";
+	"12" -> "14";
+	"14" -> "15";
+	"15" -> "16";
+	"16" -> "17";
+	"17" -> "35";
+	"35" -> "18";
+	"18" -> "22" [label="True"];
+	"18" -> "33" [label="False"];
+	"22" -> "20";
+	"20" -> "21" [label="True"];
+	"20" -> "29" [label="False"];
+	"21" -> "23" [label="True"];
+	"21" -> "26" [label="False"];
+	"23" -> "24";
+	"24" -> "25";
+	"26" -> "27";
+	"27" -> "28";
+	"29" -> "30";
+	"30" -> "31";
+	"33" -> "34" [label="True"];
+	"33" -> "42" [label="False"];
+	"34" -> "36" [label="True"];
+	"34" -> "39" [label="False"];
+	"36" -> "37";
+	"37" -> "38";
+	"39" -> "40";
+	"40" -> "41";
+	"42" -> "43";
+	"43" -> "44";
+	"80" -> "81";
+}

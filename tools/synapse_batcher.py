@@ -47,6 +47,7 @@ NFs = {
     "kvs": NF("kvs", "kvs.bdd"),
     "psd": NF("psd", "psd.bdd"),
     "cl": NF("cl", "cl.bdd"),
+    "hyperloglog": NF("hyperloglog", "hyperloglog.bdd"),
 }
 
 
