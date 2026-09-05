@@ -26,8 +26,18 @@ std::vector<impl_t> LnFactory::process_node(const EP *ep, const BDDNode *node, S
   klee::ref<klee::Expr> in  = call.args.at("x").expr;
   klee::ref<klee::Expr> out = call.ret;
 
-  // ln entries come from the values the profiler observed for this node.
-  const std::vector<table_entry_t> entries = ln_entries(ep->get_ctx().get_profiler().get_ln_inputs(node));
+  // The ln table holds dense keys 1..N. `scale` is a compile-time constant call arg, so
+  // the table is correct even without a profile. N is the max of the highest value the
+  // profiler observed for this node and a floor, so the table is never empty and covers a
+  // reasonable range regardless of the profile. (x=0 and x>N fall through to 0.)
+  static constexpr u32 LN_TABLE_MIN_KEY = 64;
+  const u32 scale = solver_toolbox.value_from_expr(call.args.at("scale").expr);
+  u32 profile_max = 0;
+  for (const auto &[x, s] : ep->get_ctx().get_profiler().get_ln_inputs(node)) {
+    profile_max = std::max(profile_max, x);
+  }
+  const u32 n                              = std::max(profile_max, LN_TABLE_MIN_KEY);
+  const std::vector<table_entry_t> entries = ln_entries(n, scale);
 
   auto *module               = new Ln(node, std::string(FN) + "_" + std::to_string(node->get_id()), in, out);
   std::unique_ptr<EP> new_ep = build_compute_table_ep(ep, node, module, in, TableMatch::Exact, entries);
