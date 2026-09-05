@@ -764,16 +764,35 @@ void TofinoSynthesizer::emit_register_execute(const code_t &lhs, const code_t &a
 
   // Computed index -> hash_action table. Isolate the execute in its own named action so no
   // following statement can be fused into it (see header comment).
-  coder_t &ingress            = get(MARKER_INGRESS_CONTROL);
-  const code_t exec_action    = "regexec_" + action_name;
+  const code_t exec_action = "regexec_" + action_name;
+
+  // The action lives at control scope, so its index operand must be visible there. Metadata
+  // (meta.*) and header (hdr.*) references are visible inside actions and keep their exact P4 type,
+  // so use them directly. An apply-block local (e.g. a vector-borrow index `bit<32> index0 = ...`)
+  // is not visible in the action, so materialize it into ingress metadata first and reference that.
+  code_t action_index = index_code;
+  const bool index_visible_in_action = index_code.rfind("meta.", 0) == 0 || index_code.rfind("hdr.", 0) == 0;
+  if (!index_visible_in_action) {
+    // expr-based alloc_var (not the size-only one, whose null expr crashes the later is_bool pass);
+    // it allocates a fresh uniquely-named metadata field and never collapses back onto the local.
+    const var_t idx_var = alloc_var(exec_action + "_index", index, IS_INGRESS_METADATA);
+    declare_var_in_ingress_metadata(idx_var);
+    ingress_apply.indent();
+    ingress_apply << idx_var.name << " = " << index_code << ";\n";
+    action_index = idx_var.name;
+  }
+
+  const code_t action_call = action_name + ".execute(" + action_index + ")";
+
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
   ingress.indent();
   ingress << "action " << exec_action << "() {\n";
   ingress.inc();
   ingress.indent();
   if (lhs.empty()) {
-    ingress << call << ";\n";
+    ingress << action_call << ";\n";
   } else {
-    ingress << lhs << " = " << call << ";\n";
+    ingress << lhs << " = " << action_call << ";\n";
   }
   ingress.dec();
   ingress.indent();
