@@ -24,14 +24,14 @@ enum bit<8> cuckoo_ops_t {
   UPDATE  = 0x01,
   INSERT  = 0x02,
   SWAP    = 0x03,
-  DONE    = 0x04,
+  DONE    = 0x04
 }
 
 enum bit<2> fwd_op_t {
   FORWARD_NF_DEV  = 0,
   FORWARD_TO_CPU  = 1,
   RECIRCULATE     = 2,
-  DROP            = 3,
+  DROP            = 3
 }
 
 header cpu_h {
@@ -108,6 +108,7 @@ struct synapse_ingress_metadata_t {
   bit<32> time;
   bit<32> key_32b_0;
   bit<32> hh_table_1073923096_cms_min;
+  bit<32> vector_reg_value0;
 
 }
 
@@ -496,6 +497,9 @@ control Ingress(
     }
   };
 
+  action regexec_vector_register_1073954136_0_write_861() {
+    vector_register_1073954136_0_write_861.execute(hdr.recirc.hh_table_1073923096_table_13_get_value_param0);
+  }
   action swap_action_42() {
   }
   action swap_action_43() {
@@ -524,6 +528,9 @@ control Ingress(
   };
 
 
+  action regexec_vector_register_1073954136_0_read_860() {
+    meta.vector_reg_value0 = vector_register_1073954136_0_read_860.execute(hdr.recirc.hh_table_1073923096_table_13_get_value_param0);
+  }
   action swap_action_48() {
   }
   action swap_action_49() {
@@ -561,21 +568,21 @@ control Ingress(
           // BDD node 40:if
           // EP node  861:VectorRegisterUpdate
           // BDD node 39:vector_borrow
-          vector_register_1073954136_0_write_861.execute(hdr.recirc.hh_table_1073923096_table_13_get_value_param0);
-          // EP node  2171:ModifyHeader
+          regexec_vector_register_1073954136_0_write_861();
+          // EP node  2147:ModifyHeader
           // BDD node 42:packet_return_chunk
           swap_action_42();
           hdr.hdr3.data3 = 8w0x01;
-          // EP node  2303:ModifyHeader
+          // EP node  2279:ModifyHeader
           // BDD node 43:packet_return_chunk
           swap_action_43();
-          // EP node  2438:ModifyHeader
+          // EP node  2414:ModifyHeader
           // BDD node 44:packet_return_chunk
           swap_action_44();
-          // EP node  2576:ModifyHeader
+          // EP node  2552:ModifyHeader
           // BDD node 45:packet_return_chunk
           swap_action_45();
-          // EP node  2717:Forward
+          // EP node  2693:Forward
           // BDD node 46:FORWARD
           nf_dev[15:0] = meta.dev[15:0];
         } else {
@@ -583,22 +590,22 @@ control Ingress(
           // BDD node 40:if
           // EP node  860:VectorRegisterLookup
           // BDD node 39:vector_borrow
-          bit<32> vector_reg_value0 = vector_register_1073954136_0_read_860.execute(hdr.recirc.hh_table_1073923096_table_13_get_value_param0);
-          // EP node  976:ModifyHeader
+          regexec_vector_register_1073954136_0_read_860();
+          // EP node  952:ModifyHeader
           // BDD node 48:packet_return_chunk
           swap_action_48();
-          hdr.hdr3.data2 = vector_reg_value0;
+          hdr.hdr3.data2 = meta.vector_reg_value0;
           hdr.hdr3.data3 = 8w0x01;
-          // EP node  1078:ModifyHeader
+          // EP node  1054:ModifyHeader
           // BDD node 49:packet_return_chunk
           swap_action_49();
-          // EP node  1183:ModifyHeader
+          // EP node  1159:ModifyHeader
           // BDD node 50:packet_return_chunk
           swap_action_50();
-          // EP node  1291:ModifyHeader
+          // EP node  1267:ModifyHeader
           // BDD node 51:packet_return_chunk
           swap_action_51();
-          // EP node  1402:Forward
+          // EP node  1378:Forward
           // BDD node 52:FORWARD
           nf_dev[15:0] = meta.dev[15:0];
         }
@@ -669,30 +676,30 @@ control Ingress(
                 if (!hit0){
                   // EP node  616:Then
                   // BDD node 14:if
-                  // EP node  1437:If
+                  // EP node  1413:If
                   // BDD node 15:if
                   if ((8w0x01) == (hdr.hdr3.data0)){
-                    // EP node  1438:Then
+                    // EP node  1414:Then
                     // BDD node 15:if
-                    // EP node  2762:HHTableOutOfBandUpdate
+                    // EP node  2738:HHTableOutOfBandUpdate
                     // BDD node 16:dchain_allocate_new_index
-                    // EP node  2952:ModifyHeader
+                    // EP node  2928:ModifyHeader
                     // BDD node 18:packet_return_chunk
                     swap_action_18();
                     hdr.hdr3.data4[15:8] = meta.dev[7:0];
                     hdr.hdr3.data4[7:0] = meta.dev[15:8];
-                    // EP node  3552:Forward
+                    // EP node  3528:Forward
                     // BDD node 22:FORWARD
                     nf_dev[15:0] = 16w0x0000;
                   } else {
-                    // EP node  1439:Else
+                    // EP node  1415:Else
                     // BDD node 15:if
-                    // EP node  1589:ModifyHeader
+                    // EP node  1565:ModifyHeader
                     // BDD node 33:packet_return_chunk
                     swap_action_33();
                     hdr.hdr3.data4[15:8] = meta.dev[7:0];
                     hdr.hdr3.data4[7:0] = meta.dev[15:8];
-                    // EP node  2093:Forward
+                    // EP node  2069:Forward
                     // BDD node 37:FORWARD
                     nf_dev[15:0] = 16w0x0000;
                   }
@@ -709,24 +716,24 @@ control Ingress(
               } else {
                 // EP node  560:Else
                 // BDD node 12:if
-                // EP node  5400:Forward
+                // EP node  5376:Forward
                 // BDD node 57:FORWARD
                 nf_dev[15:0] = bswap16(hdr.hdr3.data4);
               }
             }
             // EP node  119:Else
             // BDD node 10:if
-            // EP node  5147:ParserReject
+            // EP node  5123:ParserReject
             // BDD node 61:DROP
           }
           // EP node  54:Else
           // BDD node 8:if
-          // EP node  4750:ParserReject
+          // EP node  4726:ParserReject
           // BDD node 64:DROP
         }
         // EP node  15:Else
         // BDD node 6:if
-        // EP node  4216:ParserReject
+        // EP node  4192:ParserReject
         // BDD node 66:DROP
       }
 

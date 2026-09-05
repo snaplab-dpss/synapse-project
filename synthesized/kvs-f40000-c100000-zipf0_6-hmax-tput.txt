@@ -7,8 +7,8 @@ Args:
   Profile file:       kvs-f40000-c100000-zipf0_6.json
   Seed:               0
   Targets:
-    Tofino (41 modules)
-    Ctrl (90 modules)
+    Tofino (48 modules)
+    Ctrl (96 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
@@ -28,15 +28,15 @@ Stateful Implementations:
   1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       46 seconds
+  Elapsed time:       36 seconds
   Steps:              50
   Backtracks:         0
-  Search space size:  163
-  Unfinished EPs:     113
+  Search space size:  162
+  Unfinished EPs:     112
   Finished EPs:       1
   Avg BDD size:       50
   Branching factor:   2
-  Total SS size est.: 67'738'257'534
+  Total SS size est.: 59'260'392'258
   Avg children per node:
     Node 32: 0
     Node 31: 0
@@ -68,7 +68,7 @@ Search Metadata:
     Node 4: 2
     Node 63: 3
     Node 62: 3
-    Node 39: 4
+    Node 39: 3
     Node 10: 3
     Node 11: 4
     Node 17: 0
@@ -103,10 +103,10 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 20'886 (100%)
-  Num phase 2 speculations: 1'452 (6.95203%)
-  Num speculated modules:   206'430
-  Num EPs generated:        163
+  Num phase 1 speculations: 20'620 (100%)
+  Num phase 2 speculations: 1'445 (7.00776%)
+  Num speculated modules:   201'756
+  Num EPs generated:        162
 
 Switch placement:
 
@@ -133,7 +133,7 @@ SRAM: 114'692/1'310'720 B (8.75031%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 114'692/786'432 B (14.5838%)
 Exact Match Crossbar: 41/128 B (32.0312%)
-Objs: [hh_table_1073923096_digest,hh_table_1073923096_cms_row_3,hh_table_1073923096_threshold,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_0]
+Objs: [hh_table_1073923096_digest,hh_table_1073923096_threshold,hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_0]
 -------------------------------------
 -------------------------------------
 Stage 3

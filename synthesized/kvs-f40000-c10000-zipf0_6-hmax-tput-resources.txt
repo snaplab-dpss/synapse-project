@@ -1,8 +1,8 @@
 +---------------------------------------------------------------------+
 |  Log file: mau.resources.log                                        |
 |  Compiler version: 9.13.4                                           |
-|  Created on: Wed Feb  4 20:54:14 2026                               |
-|  Run ID: f49ea67ec7764912                                           |
+|  Created on: Sat Sep  5 22:39:18 2026                               |
+|  Run ID: 93e8e3a6631b46e7                                           |
 +---------------------------------------------------------------------+
 
 
@@ -83,12 +83,12 @@ Allocated Resource Usage
 |                              cond-21                               |   0    |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |                              cond-22                               |   0    |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |                              tbl_act                               |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput552                |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput564                |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
-|           tbl_kvsf40000c10000zipf0_6hmaxtput564-gateway            |   0    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput586                |   0    |    4     |  23  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput636                |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput638                |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput559                |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput643                |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput645                |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   1    |   1   |   0    |   0    |   1    |
+|           tbl_regexec_vector_register_1073954136_0_read            |   0    |    4     |  23  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
+|           tbl_regexec_vector_register_1073954136_0_write           |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
+|       tbl_regexec_vector_register_1073954136_0_write-gateway       |   0    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |                         tbl_swap_action_2                          |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                         tbl_swap_action_4                          |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                         tbl_swap_action_5                          |   0    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
@@ -101,11 +101,11 @@ Allocated Resource Usage
 |              tbl_hh_table_1073923096_hash_calc_1_calc              |   1    |    4     |  11  |    0     |  0   |   0   |  0   |   3    |   1   |   0    |   1    |   0    |
 |              tbl_hh_table_1073923096_hash_calc_2_calc              |   1    |    4     |  11  |    0     |  0   |   0   |  0   |   2    |   1   |   0    |   1    |   0    |
 |          tbl_hh_table_1073923096_hash_calc_2_calc-gateway          |   1    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput568                |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput590                |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput641                |   1    |    4     |  23  |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
-|           tbl_kvsf40000c10000zipf0_6hmaxtput641-gateway            |   1    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput736                |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput575                |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput597                |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput648                |   1    |    4     |  23  |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   1    |   0    |
+|           tbl_kvsf40000c10000zipf0_6hmaxtput648-gateway            |   1    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput743                |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                         tbl_swap_action_0                          |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                         tbl_swap_action_1                          |   1    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |               Ingress.hh_table_1073923096_cms_row_1                |   2    |    0     |  0   |    0     |  2   |   0   |  2   |   0    |   0   |   0    |   0    |   0    |
@@ -122,31 +122,31 @@ Allocated Resource Usage
 |          tbl_hh_table_1073923096_hash_calc_0_calc-gateway          |   2    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |              tbl_hh_table_1073923096_hash_calc_3_calc              |   2    |    4     |  11  |    0     |  0   |   0   |  0   |   3    |   1   |   0    |   1    |   0    |
 |          tbl_hh_table_1073923096_hash_calc_3_calc-gateway          |   2    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput580                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput603                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput682                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput683                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput693                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput694                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput714                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|              tbl_kvsf40000c10000zipf0_6hmaxtput714_0               |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput587                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput610                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput689                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput690                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput700                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput701                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput721                |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|              tbl_kvsf40000c10000zipf0_6hmaxtput721_0               |   2    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |               Ingress.hh_table_1073923096_cms_row_0                |   3    |    0     |  0   |    0     |  2   |   0   |  2   |   0    |   0   |   0    |   0    |   0    |
 |               Ingress.hh_table_1073923096_cms_row_3                |   3    |    0     |  0   |    0     |  2   |   0   |  2   |   0    |   0   |   0    |   0    |   0    |
 |     tbl_hh_table_1073923096_cms_row_0_inc_and_read_447_execute     |   3    |    2     |  11  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
 | tbl_hh_table_1073923096_cms_row_0_inc_and_read_447_execute-gateway |   3    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
 |     tbl_hh_table_1073923096_cms_row_3_inc_and_read_447_execute     |   3    |    2     |  11  |    0     |  0   |   0   |  0   |   4    |   1   |   0    |   1    |   0    |
 | tbl_hh_table_1073923096_cms_row_3_inc_and_read_447_execute-gateway |   3    |    0     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput704                |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput706                |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput711                |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput713                |   3    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                       Ingress.forwarding_tbl                       |   4    |    7     |  0   |    0     |  1   |   2   |  0   |   6    |   4   |   0    |   0    |   1    |
 |                   Ingress.forwarding_tbl$action                    |   4    |    0     |  0   |    0     |  1   |   0   |  0   |   0    |   0   |   0    |   0    |   0    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput652                |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput653                |   5    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput654                |   6    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput659                |   4    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput660                |   5    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput661                |   6    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |                              cond-25                               |   7    |    1     |  0   |    1     |  0   |   0   |  0   |   0    |   0   |   1    |   0    |   0    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput655                |   7    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput658                |   7    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput662                |   7    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput665                |   7    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 |               Ingress.hh_table_1073923096_threshold                |   8    |    5     |  32  |    0     |  2   |   0   |  2   |   0    |   0   |   0    |   0    |   0    |
-|               tbl_kvsf40000c10000zipf0_6hmaxtput656                |   8    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
+|               tbl_kvsf40000c10000zipf0_6hmaxtput663                |   8    |    0     |  0   |    0     |  0   |   0   |  0   |   0    |   1   |   0    |   0    |   1    |
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

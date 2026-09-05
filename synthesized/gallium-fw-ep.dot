@@ -2,15 +2,14 @@ digraph G {
 	"15"[label="[EPNode=15,BDDNode=135]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"3865"[label="[EPNode=3865,BDDNode=183]\nParserReject",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"54"[label="[EPNode=54,BDDNode=137]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"1826"[label="[EPNode=1826,BDDNode=175]\nVector Table Lookup\n(tid=vector_table_1074093704, obj=1074093704)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"1826"[label="[EPNode=1826,BDDNode=175]\nVector Register Lookup\n(id=vector_register_1074093704, obj=1074093704)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"2438"[label="[EPNode=2438,BDDNode=157]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"2565"[label="[EPNode=2565,BDDNode=157]\nAbortTransaction",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"5361"[label="[EPNode=5361,BDDNode=173]\nForward",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
-	"4996"[label="[EPNode=4996,BDDNode=168]\nDataplaneVectorTableLookup",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"4823"[label="[EPNode=4823,BDDNode=158]\nElse",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"5745"[label="[EPNode=5745,BDDNode=164]\nForward",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"4765"[label="[EPNode=4765,BDDNode=241]\nForward (vector_data__159)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"3069"[label="[EPNode=3069,BDDNode=236]\nVector Table Lookup\n(tid=vector_table_1074093704, obj=1074093704)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"3069"[label="[EPNode=3069,BDDNode=236]\nVector Register Lookup\n(id=vector_register_1074093704, obj=1074093704)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"4821"[label="[EPNode=4821,BDDNode=158] \n!not_out_of_space__157",shape=ellipse,style="filled,",fillcolor="lightcoral",border=0,];
 	"2559"[label="[EPNode=2559,BDDNode=157]\nElse",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"2560"[label="[EPNode=2560,BDDNode=157]\nAbortTransaction",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
@@ -30,7 +29,7 @@ digraph G {
 	"292"[label="[EPNode=292,BDDNode=141] \n!vector_data__139",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"4766"[label="[EPNode=4766,BDDNode=157]\nDataplaneDchainTableAllocateNewIndex",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"13"[label="[EPNode=13,BDDNode=135] ParserCondition",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"5362"[label="[EPNode=5362,BDDNode=159]\nDataplaneVectorTableLookup",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
+	"5362"[label="[EPNode=5362,BDDNode=159]\nDataplaneVectorRegisterLookup",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"2562"[label="[EPNode=2562,BDDNode=157] \n!map_has_this_key__155",shape=ellipse,style="filled,",fillcolor="lightcoral",border=0,];
 	"26"[label="[EPNode=26,BDDNode=136]\nParse Header (20B)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"2371"[label="[EPNode=2371,BDDNode=180]\nForward (vector_data__175)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
@@ -38,6 +37,8 @@ digraph G {
 	"14"[label="[EPNode=14,BDDNode=135]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"53"[label="[EPNode=53,BDDNode=137]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"4"[label="[EPNode=4,BDDNode=134]\nParse Header (14B)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"4996"[label="[EPNode=4996,BDDNode=168]\nDataplaneVectorRegisterLookup",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
+	"1167"[label="[EPNode=1167,BDDNode=149]\nVector Register Lookup\n(id=vector_register_1074093704, obj=1074093704)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"1729"[label="[EPNode=1729,BDDNode=174]\nDchain Table Lookup\n(tid=dchain_table_1074076064, obj=1074076064)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"1082"[label="[EPNode=1082,BDDNode=148]\nDchain Table Lookup\n(tid=dchain_table_1074076064, obj=1074076064)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"4311"[label="[EPNode=4311,BDDNode=147]\nDrop",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
@@ -45,7 +46,6 @@ digraph G {
 	"920"[label="[EPNode=920,BDDNode=143]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"2436"[label="[EPNode=2436,BDDNode=157] \n(guarded_map_table_1074044080_157[0] != 0)",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"985"[label="[EPNode=985,BDDNode=156]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"1192"[label="[EPNode=1192,BDDNode=149]\nVector Table Lookup\n(tid=vector_table_1074093704, obj=1074093704)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"1673"[label="[EPNode=1673,BDDNode=154]\nForward (vector_data__149)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"986"[label="[EPNode=986,BDDNode=156]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"984"[label="[EPNode=984,BDDNode=156] \n!map_has_this_key__155",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
@@ -59,8 +59,8 @@ digraph G {
 	"2555"[label="[EPNode=2555,BDDNode=157]\nParseHeader",shape=box,style="filled,",fillcolor="lightcoral",border=0,];
 	"919" -> "4311";
 	"918" -> "919";
-	"1192" -> "1673";
-	"1082" -> "1192";
+	"1167" -> "1673";
+	"1082" -> "1167";
 	"920" -> "1082";
 	"918" -> "920";
 	"371" -> "918";

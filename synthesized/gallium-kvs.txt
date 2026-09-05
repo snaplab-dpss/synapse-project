@@ -5,18 +5,18 @@ Args:
   Targets config:     tofino2-kvs.toml
   Heuristic:          gallium
   Profile file:       kvs-f40000-c10000-zipf1_2.json
-  Seed:               0
+  Seed:               1190188904
   Targets:
-    Tofino (41 modules)
-    Ctrl (90 modules)
+    Tofino (48 modules)
+    Ctrl (96 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
   Score: <0,0,0,0,49,63>
-  Tput: 56.71 Gbps (80.56 Mpps)
-  Spec: 56.71 Gbps (80.56 Mpps)
+  Tput: 82.25 Gbps (116.83 Mpps)
+  Spec: 82.25 Gbps (116.83 Mpps)
 
 Stateful Implementations:
   1073954136: Tofino::VectorRegister
@@ -27,12 +27,12 @@ Search Metadata:
   Elapsed time:       26 seconds
   Steps:              65
   Backtracks:         0
-  Search space size:  180
-  Unfinished EPs:     115
+  Search space size:  179
+  Unfinished EPs:     114
   Finished EPs:       1
   Avg BDD size:       59
   Branching factor:   2
-  Total SS size est.: 25'193'696'831
+  Total SS size est.: 22'147'762'998
   Avg children per node:
     Node 130: 3
     Node 129: 3
@@ -69,7 +69,7 @@ Search Metadata:
     Node 4: 2
     Node 63: 3
     Node 62: 3
-    Node 39: 4
+    Node 39: 3
     Node 10: 3
     Node 11: 4
     Node 17: 0
@@ -104,10 +104,10 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 30'058 (100%)
-  Num phase 2 speculations: 1'844 (6.13481%)
-  Num speculated modules:   292'247
-  Num EPs generated:        180
+  Num phase 1 speculations: 23'906 (100%)
+  Num phase 2 speculations: 1'652 (6.9104%)
+  Num speculated modules:   224'135
+  Num EPs generated:        179
 
 Switch placement:
 
