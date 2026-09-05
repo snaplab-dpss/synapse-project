@@ -41,8 +41,12 @@ NF_PORTS = list(range(3, 33))  # front panel ports wired to NF devices (configs/
 # Data plane latency on the model is a few ms, but under load a frame can occasionally take up to a
 # second, so the default wait is generous to avoid false "got nothing" failures; CPU-path packets
 # take longer still and pass their own timeout.
-DEFAULT_RX_TIMEOUT = 2.0  # seconds to wait for the first frame
+DEFAULT_RX_TIMEOUT = 2.0  # seconds to wait for the first frame (positive checks: tolerate a slow model)
 DEFAULT_SETTLE_TIME = 0.2  # seconds of silence after the last frame before we stop collecting
+# Negative checks ("no packet") must stay short: several NFs expire flows after ~1s, so a long wait
+# here would let a flow expire mid-scenario and change later behavior. A drop is decided in the data
+# plane in milliseconds, so a fraction of a second is plenty.
+NO_PACKET_TIMEOUT = 0.7
 
 SRC_MAC = "02:00:00:DD:EE:FF"
 DST_MAC = "02:00:00:AA:BB:CC"
@@ -218,7 +222,7 @@ def assert_equal_packets(expected: Packet, received: Packet, ignore_fields: list
         raise TestFailure(_describe_mismatch(expected, received, ignore_fields))
 
 
-def expect_no_packet(ports: Ports, timeout: float = DEFAULT_RX_TIMEOUT) -> None:
+def expect_no_packet(ports: Ports, timeout: float = NO_PACKET_TIMEOUT) -> None:
     received = ports.collect(timeout)
     if received:
         summary = ", ".join(f"port {r.port}: {pkt_to_string(r.pkt)}" for r in received)
