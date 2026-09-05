@@ -19,6 +19,9 @@ using LibCore::simplify;
 using LibCore::solver_toolbox;
 using LibCore::symbolic_reads_t;
 
+using LibBDD::Call;
+using LibBDD::call_t;
+
 using LibSynapse::Tofino::DS;
 using LibSynapse::Tofino::DS_ID;
 using LibSynapse::Tofino::TNA;
@@ -1481,38 +1484,79 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+// A Controller_DoubleChain is a libnf CPU index allocator (embedded in libsycon), held
+// in the controller state. The index range is not on the module, so read it from the
+// dchain_allocate BDD call.
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocate *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::DchainAllocate");
+  const code_t name = "cpu_dchain_" + std::to_string(node->get_dchain_addr());
+
+  const Call *call_node               = dynamic_cast<const Call *>(node->get_node());
+  const call_t &call                  = call_node->get_call();
+  const klee::ref<klee::Expr> range   = call.args.at("index_range").expr;
+
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+  state_fields.indent();
+  state_fields << "libnf::DoubleChain *" << name << " = nullptr;\n";
+
+  coder_t &nf_init = get(MARKER_NF_INIT);
+  nf_init.indent();
+  nf_init << "libnf::dchain_allocate(" << transpiler.transpile(range) << ", &state->" << name << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocateNewIndex *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name     = "cpu_dchain_" + std::to_string(node->get_dchain_addr());
+  const var_t index_var = alloc_var("dchain_index", node->get_index_out(), {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::DchainAllocateNewIndex");
+  coder << "int " << index_var.name << ";\n";
+  coder.indent();
+  if (node->get_not_out_of_space().has_value()) {
+    const var_t ok_var = alloc_var("dchain_allocated", node->get_not_out_of_space()->expr, {}, NO_OPTION);
+    coder << "int " << ok_var.name << " = ";
+  }
+  coder << "libnf::dchain_allocate_new_index(state->" << name << ", &" << index_var.name << ", " << transpiler.transpile(node->get_time())
+        << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainRejuvenateIndex *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name = "cpu_dchain_" + std::to_string(node->get_dchain_addr());
+
   coder.indent();
-  panic("TODO: Controller::DchainRejuvenateIndex");
+  coder << "libnf::dchain_rejuvenate_index(state->" << name << ", " << transpiler.transpile(node->get_index()) << ", "
+        << transpiler.transpile(node->get_time()) << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainIsIndexAllocated *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name            = "cpu_dchain_" + std::to_string(node->get_dchain_addr());
+  const var_t is_allocated_var = alloc_var("is_allocated", node->get_is_allocated().expr, {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::DchainIsIndexAllocated");
+  coder << "int " << is_allocated_var.name << " = libnf::dchain_is_index_allocated(state->" << name << ", "
+        << transpiler.transpile(node->get_index()) << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainFreeIndex *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name = "cpu_dchain_" + std::to_string(node->get_dchain_addr());
+
   coder.indent();
-  panic("TODO: Controller::DchainFreeIndex");
+  coder << "libnf::dchain_free_index(state->" << name << ", " << transpiler.transpile(node->get_index()) << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -1599,31 +1643,64 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+// A Controller_Map is a libnf CPU map (embedded in libsycon), held in the controller
+// state. The key is materialized into a buffer_t (like the Dataplane map modules) and
+// passed to libnf by its raw `.data` pointer.
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapAllocate *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::MapAllocate");
+  const code_t name = "cpu_map_" + std::to_string(node->get_map_addr());
+
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+  state_fields.indent();
+  state_fields << "libnf::Map *" << name << " = nullptr;\n";
+
+  coder_t &nf_init = get(MARKER_NF_INIT);
+  nf_init.indent();
+  nf_init << "libnf::map_allocate(" << transpiler.transpile(node->get_capacity()) << ", " << transpiler.transpile(node->get_key_size())
+          << ", &state->" << name << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapGet *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name       = "cpu_map_" + std::to_string(node->get_map_addr());
+  const var_t key_var     = transpile_buffer_decl_and_set(coder, "map_key", node->get_key(), true);
+  const var_t value_var   = alloc_var("map_value", node->get_value_out(), {}, NO_OPTION);
+  const var_t success_var = alloc_var("map_has_key", node->get_success(), {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::MapGet");
+  coder << "int " << value_var.name << ";\n";
+  coder.indent();
+  coder << "int " << success_var.name << " = libnf::map_get(state->" << name << ", " << key_var.name << ".data, &" << value_var.name << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapPut *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name   = "cpu_map_" + std::to_string(node->get_map_addr());
+  const var_t key_var = transpile_buffer_decl_and_set(coder, "map_key", node->get_key(), true);
+
   coder.indent();
-  panic("TODO: Controller::MapPut");
+  coder << "libnf::map_put(state->" << name << ", " << key_var.name << ".data, " << transpiler.transpile(node->get_value()) << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::MapErase *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name     = "cpu_map_" + std::to_string(node->get_map_addr());
+  const var_t key_var   = transpile_buffer_decl_and_set(coder, "map_key", node->get_key(), true);
+  const var_t trash_var = alloc_var("map_trash", node->get_trash(), {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::MapErase");
+  coder << "void *" << trash_var.name << ";\n";
+  coder.indent();
+  coder << "libnf::map_erase(state->" << name << ", " << key_var.name << ".data, &" << trash_var.name << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
