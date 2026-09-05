@@ -375,7 +375,40 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitSRem(const klee::S
 }
 
 klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitNot(const klee::NotExpr &e) {
-  panic("TODO: visitNot");
+  coder_t &coder            = coders.top();
+  klee::ref<klee::Expr> arg = e.getKid(0);
+
+  // Negating a comparison: emit the flipped relational operator (e.g. !(a <= b) => a > b)
+  // rather than a logical `!`. This keeps the result a single plain comparison, which is
+  // required inside stateful-ALU register actions (where the swap condition lives) and is
+  // cleaner in gateways too. Only the unsigned comparisons and Eq transpile their operands
+  // verbatim; signed comparisons (which cast their operands) and anything else fall back to
+  // a logical/bitwise complement below.
+  const char *flipped_op = nullptr;
+  switch (arg->getKind()) {
+  case klee::Expr::Eq:  flipped_op = " != "; break;
+  case klee::Expr::Ne:  flipped_op = " == "; break;
+  case klee::Expr::Ult: flipped_op = " >= "; break;
+  case klee::Expr::Ule: flipped_op = " > ";  break;
+  case klee::Expr::Ugt: flipped_op = " <= "; break;
+  case klee::Expr::Uge: flipped_op = " < ";  break;
+  default: break;
+  }
+
+  if (flipped_op) {
+    klee::ref<klee::Expr> lhs = arg->getKid(0);
+    klee::ref<klee::Expr> rhs = arg->getKid(1);
+    coder << "(" << transpile(lhs, loaded_opt, temporary_transpilations) << ")";
+    coder << flipped_op;
+    coder << "(" << transpile(rhs, loaded_opt, temporary_transpilations) << ")";
+    return Action::skipChildren();
+  }
+
+  // Boolean negation (width 1) vs bitwise complement (wider).
+  coder << (e.getWidth() == 1 ? "!(" : "~(");
+  coder << transpile(arg, loaded_opt, temporary_transpilations);
+  coder << ")";
+
   return Action::skipChildren();
 }
 
@@ -709,6 +742,45 @@ code_t TofinoSynthesizer::build_register_action_name(const Register *reg, Regist
   }
 
   return coder.dump();
+}
+
+void TofinoSynthesizer::emit_register_execute(const code_t &lhs, const code_t &action_name, const klee::ref<klee::Expr> &index,
+                                              const code_t &index_code, const EPNode *ep_node) {
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const code_t call = action_name + ".execute(" + index_code + ")";
+
+  // Constant index: a plain keyless table, which tolerates fused action data -> emit inline
+  // exactly as before (no change for the common case / other NFs).
+  if (is_constant(index)) {
+    ingress_apply.indent();
+    if (lhs.empty()) {
+      ingress_apply << call << ";\n";
+    } else {
+      ingress_apply << lhs << " = " << call << ";\n";
+    }
+    return;
+  }
+
+  // Computed index -> hash_action table. Isolate the execute in its own named action so no
+  // following statement can be fused into it (see header comment).
+  coder_t &ingress            = get(MARKER_INGRESS_CONTROL);
+  const code_t exec_action    = "regexec_" + action_name;
+  ingress.indent();
+  ingress << "action " << exec_action << "() {\n";
+  ingress.inc();
+  ingress.indent();
+  if (lhs.empty()) {
+    ingress << call << ";\n";
+  } else {
+    ingress << lhs << " = " << call << ";\n";
+  }
+  ingress.dec();
+  ingress.indent();
+  ingress << "}\n";
+
+  ingress_apply.indent();
+  ingress_apply << exec_action << "();\n";
 }
 
 void TofinoSynthesizer::transpile_action_decl(const code_t &action_name, const std::vector<code_t> &body) {
@@ -2991,8 +3063,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterLookup *node) {
-  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
-  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
 
   const DS_ID id              = node->get_id();
   klee::ref<klee::Expr> index = node->get_index();
@@ -3022,7 +3093,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     transpile_register_action_decl(reg, action_name, RegisterActionType::Read);
 
     const klee::ref<klee::Expr> entry_expr = solver_toolbox.exprBuilder->Extract(value, offset, reg->value_size);
-    const code_t assignment                = action_name + ".execute(" + transpiler.transpile(index) + ")";
 
     // Bind the read value to ingress metadata rather than an apply-local: the value
     // may be consumed on a different branch than the read (e.g. a count read once and
@@ -3032,8 +3102,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     declare_var_in_ingress_metadata(value_var);
 
     ingress << "\n";
-    ingress_apply.indent();
-    ingress_apply << value_var.name << " = " << assignment << ";\n";
+    emit_register_execute(value_var.name, action_name, index, transpiler.transpile(index), ep_node);
 
     offset += reg->value_size;
     i++;
@@ -3124,9 +3193,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
                                        .temporary_transpilations = {},
                                    });
 
-    ingress_apply.indent();
-    ingress_apply << action_name;
-    ingress_apply << ".execute(" << transpiler.transpile(index) << ");\n";
+    emit_register_execute("", action_name, index, transpiler.transpile(index), ep_node);
 
     offset += reg->value_size;
   }
@@ -3202,8 +3269,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply.indent();
     ingress_apply << index_var.name << " = (" << index_type_str << ")(" << index_code << ");\n";
 
-    ingress_apply.indent();
-    ingress_apply << shadow_var.name << " = " << action_name << ".execute(" << index_var.name << ");\n";
+    emit_register_execute(shadow_var.name, action_name, index, index_var.name, ep_node);
 
     return EPVisitor::Action::doChildren;
   }
@@ -3251,8 +3317,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalIncrement *node) {
-  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
-  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  coder_t &ingress = get(MARKER_INGRESS_CONTROL);
 
   const DS_ID id                    = node->get_id();
   klee::ref<klee::Expr> index       = node->get_index();
@@ -3289,8 +3354,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const var_t value_var = alloc_var("vector_reg_value", value, IS_INGRESS_METADATA);
   declare_var_in_ingress_metadata(value_var);
 
-  ingress_apply.indent();
-  ingress_apply << value_var.name << " = " << action_name << ".execute(" << transpiler.transpile(index) << ");\n";
+  emit_register_execute(value_var.name, action_name, index, transpiler.transpile(index), ep_node);
 
   return EPVisitor::Action::doChildren;
 }
