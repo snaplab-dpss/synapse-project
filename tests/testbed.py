@@ -149,11 +149,15 @@ def build(nf: str) -> None:
         if not f.is_file():
             raise TestbedError(f"missing {f}")
 
+    # The P4 install is left incremental (bf-p4c takes minutes and the .p4 does not depend on
+    # libsycon). The controller is always rebuilt (-B): it is a single g++ of one .cpp (seconds) and
+    # it is the only half that depends on libsycon, whose headers make does not track. Always
+    # recompiling it avoids stale binaries linking against an out-of-date libsycon (ABI mismatch).
     with open(logfile, "w") as out:
-        for target in ("install-tofino2", "controller-debug"):
+        for target, extra in (("install-tofino2", []), ("controller-debug", ["-B"])):
             log(f"make {target} ({nf})")
             proc = subprocess.run(
-                ["make", "-f", str(MAKEFILE), target],
+                ["make", *extra, "-f", str(MAKEFILE), target],
                 cwd=SYNTHESIZED_DIR,
                 env=env,
                 stdout=out,
