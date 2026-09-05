@@ -1618,8 +1618,20 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const addr_t value_addr                = node->get_value_addr();
   const std::vector<expr_mod_t> &changes = node->get_modifications();
 
+  // Normally a preceding VectorRead borrowed the cell and registered its pointer by addr. But a
+  // write-only borrow (a fresh cell borrowed only to initialize it, never read) maps to Ignore, so
+  // no VectorRead ran. In that case borrow the cell here ourselves.
   const std::optional<var_t> cell = vars.get_by_addr(value_addr);
-  assert(cell.has_value() && "Vector cell (borrow) not found for write");
+  code_t cell_name;
+  if (cell.has_value()) {
+    cell_name = cell->name;
+  } else {
+    cell_name = create_unique_name("vector_cell");
+    coder.indent();
+    coder << "u8 *" << cell_name << ";\n";
+    coder.indent();
+    coder << "libnf::vector_borrow(state->" << vecname << ", " << transpiler.transpile(index) << ", (void **)&" << cell_name << ");\n";
+  }
 
   // Apply the modified bytes through the borrowed pointer (like ModifyHeader), then
   // return the cell to the vector.
@@ -1627,7 +1639,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
     const bytes_t size = mod.width / 8;
     for (bytes_t i = 0; i < size; i++) {
       coder.indent();
-      coder << cell->name << "[" << ((mod.offset / 8) + i) << "] = ";
+      coder << cell_name << "[" << ((mod.offset / 8) + i) << "] = ";
       if (size == 1) {
         coder << transpiler.transpile(mod.expr);
       } else {
@@ -1638,7 +1650,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   }
 
   coder.indent();
-  coder << "libnf::vector_return(state->" << vecname << ", " << transpiler.transpile(index) << ", " << cell->name << ");\n";
+  coder << "libnf::vector_return(state->" << vecname << ", " << transpiler.transpile(index) << ", " << cell_name << ");\n";
 
   return EPVisitor::Action::doChildren;
 }
