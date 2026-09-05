@@ -1554,7 +1554,78 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::HashObj *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
+  // TODO: Controller::HashObj needs the hashed object's bytes as a contiguous buffer on
+  // the controller (libnf::hash_obj(void*, size)); wiring that from the CPU header is
+  // separate work. In HLL the hash is computed on the switch before any offload, so this
+  // path isn't exercised there.
   panic("TODO: Controller::HashObj");
+  return EPVisitor::Action::doChildren;
+}
+
+// The math ops below are stateless: evaluate libnf's implementation (embedded in
+// libsycon, namespaced under libnf::) on the transpiled inputs and bind the result so
+// downstream nodes resolve to it. Semantics match the NF/switch exactly (same libnf).
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FindFirstSetBit *node) {
+  coder_t &coder            = get_current_coder();
+  const code_t x_code       = transpiler.transpile(node->get_x());
+  const klee::ref<klee::Expr> out = node->get_out();
+  const var_t out_var       = alloc_var("first_set_bit", out, {}, NO_OPTION);
+  coder.indent();
+  coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::find_first_set_bit(" << x_code << ");\n";
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::CountTrailingZeros *node) {
+  coder_t &coder            = get_current_coder();
+  const code_t x_code       = transpiler.transpile(node->get_x());
+  const klee::ref<klee::Expr> out = node->get_out();
+  const var_t out_var       = alloc_var("trailing_zeros", out, {}, NO_OPTION);
+  coder.indent();
+  coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::count_trailing_zeros(" << x_code << ");\n";
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Min *node) {
+  coder_t &coder            = get_current_coder();
+  const code_t a_code       = transpiler.transpile(node->get_a());
+  const code_t b_code       = transpiler.transpile(node->get_b());
+  const klee::ref<klee::Expr> out = node->get_out();
+  const var_t out_var       = alloc_var("minimum", out, {}, NO_OPTION);
+  coder.indent();
+  coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::min(" << a_code << ", " << b_code << ");\n";
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::PowerOfTwo *node) {
+  coder_t &coder            = get_current_coder();
+  const code_t exp_code     = transpiler.transpile(node->get_exponent());
+  const klee::ref<klee::Expr> out = node->get_out();
+  const var_t out_var       = alloc_var("power", out, {}, NO_OPTION);
+  coder.indent();
+  coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::power_of_two(" << exp_code << ");\n";
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Divide *node) {
+  coder_t &coder            = get_current_coder();
+  const code_t num_code     = transpiler.transpile(node->get_numerator());
+  const code_t den_code     = transpiler.transpile(node->get_denominator());
+  const klee::ref<klee::Expr> out = node->get_out();
+  const var_t out_var       = alloc_var("quotient", out, {}, NO_OPTION);
+  coder.indent();
+  coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::divide(" << num_code << ", " << den_code << ");\n";
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Ln *node) {
+  coder_t &coder            = get_current_coder();
+  const code_t x_code       = transpiler.transpile(node->get_x());
+  const code_t scale_code   = transpiler.transpile(node->get_scale());
+  const klee::ref<klee::Expr> out = node->get_out();
+  const var_t out_var       = alloc_var("logarithm", out, {}, NO_OPTION);
+  coder.indent();
+  coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::ln(" << x_code << ", " << scale_code << ");\n";
   return EPVisitor::Action::doChildren;
 }
 

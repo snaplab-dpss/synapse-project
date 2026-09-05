@@ -52,6 +52,12 @@
 #include <LibSynapse/Modules/Controller/ChtAllocate.h>
 #include <LibSynapse/Modules/Controller/ChtFindBackend.h>
 #include <LibSynapse/Modules/Controller/HashObj.h>
+#include <LibSynapse/Modules/Controller/FindFirstSetBit.h>
+#include <LibSynapse/Modules/Controller/CountTrailingZeros.h>
+#include <LibSynapse/Modules/Controller/Min.h>
+#include <LibSynapse/Modules/Controller/PowerOfTwo.h>
+#include <LibSynapse/Modules/Controller/Divide.h>
+#include <LibSynapse/Modules/Controller/Ln.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorRegisterAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorRegisterLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorRegisterUpdate.h>
@@ -152,6 +158,12 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<ChtAllocateFactory>());
               f.push_back(std::make_unique<ChtFindBackendFactory>());
               f.push_back(std::make_unique<HashObjFactory>());
+              f.push_back(std::make_unique<FindFirstSetBitFactory>());
+              f.push_back(std::make_unique<CountTrailingZerosFactory>());
+              f.push_back(std::make_unique<MinFactory>());
+              f.push_back(std::make_unique<PowerOfTwoFactory>());
+              f.push_back(std::make_unique<DivideFactory>());
+              f.push_back(std::make_unique<LnFactory>());
               f.push_back(std::make_unique<DataplaneVectorRegisterAllocateFactory>());
               f.push_back(std::make_unique<DataplaneVectorRegisterLookupFactory>());
               f.push_back(std::make_unique<DataplaneVectorRegisterUpdateFactory>());
