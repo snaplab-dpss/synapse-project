@@ -142,6 +142,12 @@ class MapErase;
 class ChtAllocate;
 class ChtFindBackend;
 class HashObj;
+class FindFirstSetBit;
+class CountTrailingZeros;
+class Min;
+class PowerOfTwo;
+class Divide;
+class Ln;
 class TokenBucketAllocate;
 class TokenBucketIsTracing;
 class TokenBucketTrace;
@@ -313,6 +319,12 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::ChtAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::ChtFindBackend *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::HashObj *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::FindFirstSetBit *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::CountTrailingZeros *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Min *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::PowerOfTwo *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Divide *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ln *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterUpdate *m) { return Action::doChildren; }

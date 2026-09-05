@@ -159,6 +159,12 @@ enum class ModuleType {
   Controller_ChtAllocate,
   Controller_ChtFindBackend,
   Controller_HashObj,
+  Controller_FindFirstSetBit,
+  Controller_CountTrailingZeros,
+  Controller_Min,
+  Controller_PowerOfTwo,
+  Controller_Divide,
+  Controller_Ln,
   Controller_TokenBucketAllocate,
   Controller_TokenBucketIsTracing,
   Controller_TokenBucketTrace,
@@ -579,6 +585,24 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_HashObj:
     os << "Controller_HashObj";
+    break;
+  case ModuleType::Controller_FindFirstSetBit:
+    os << "Controller_FindFirstSetBit";
+    break;
+  case ModuleType::Controller_CountTrailingZeros:
+    os << "Controller_CountTrailingZeros";
+    break;
+  case ModuleType::Controller_Min:
+    os << "Controller_Min";
+    break;
+  case ModuleType::Controller_PowerOfTwo:
+    os << "Controller_PowerOfTwo";
+    break;
+  case ModuleType::Controller_Divide:
+    os << "Controller_Divide";
+    break;
+  case ModuleType::Controller_Ln:
+    os << "Controller_Ln";
     break;
   case ModuleType::Controller_DataplaneVectorRegisterAllocate:
     os << "Controller_DataplaneVectorRegisterAllocate";

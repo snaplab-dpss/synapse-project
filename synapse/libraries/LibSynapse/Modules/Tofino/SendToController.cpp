@@ -570,6 +570,12 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Controller_ChtAllocate:
     case ModuleType::Controller_ChtFindBackend:
     case ModuleType::Controller_HashObj:
+    case ModuleType::Controller_FindFirstSetBit:
+    case ModuleType::Controller_CountTrailingZeros:
+    case ModuleType::Controller_Min:
+    case ModuleType::Controller_PowerOfTwo:
+    case ModuleType::Controller_Divide:
+    case ModuleType::Controller_Ln:
     case ModuleType::Controller_TokenBucketAllocate:
     case ModuleType::Controller_TokenBucketIsTracing:
     case ModuleType::Controller_TokenBucketTrace:
