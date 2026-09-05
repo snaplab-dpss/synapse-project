@@ -131,7 +131,11 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
   std::vector<prev_module_t> prev_modules;
 
   Symbols relevant_symbols;
-  relevant_symbols.add(bdd->get_symbol_manager()->get_symbol("packet_chunks"));
+  // Seed with packet_chunks so prior packet_borrow_next_chunk calls count as relevant. NFs that
+  // never touch the packet (e.g. fwd) have no packet_chunks symbol, so only add it if it exists.
+  if (bdd->get_symbol_manager()->has_symbol("packet_chunks")) {
+    relevant_symbols.add(bdd->get_symbol_manager()->get_symbol("packet_chunks"));
+  }
 
   const EPNode *prev_node = active_leaf.node;
   const EPNode *curr_node = nullptr;
