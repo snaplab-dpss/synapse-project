@@ -37,7 +37,8 @@ constexpr const char *const MARKER_NF_INIT                = "NF_INIT";
 constexpr const char *const MARKER_NF_EXIT                = "NF_EXIT";
 constexpr const char *const MARKER_NF_ARGS                = "NF_ARGS";
 constexpr const char *const MARKER_NF_USER_SIGNAL_HANDLER = "NF_USER_SIGNAL_HANDLER";
-constexpr const char *const MARKER_NF_PROCESS             = "NF_PROCESS";
+constexpr const char *const MARKER_NF_PROCESS            = "NF_PROCESS";
+constexpr const char *const MARKER_NF_PROCESS_PROLOGUE   = "NF_PROCESS_PROLOGUE";
 constexpr const char *const MARKER_CPU_HDR_EXTRA          = "CPU_HDR_EXTRA";
 
 template <class T> std::unordered_set<const T *> get_tofino_ds_from_obj(const EP *ep, addr_t obj) {
@@ -749,6 +750,7 @@ ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::pat
                                              {MARKER_NF_ARGS, 1},
                                              {MARKER_NF_USER_SIGNAL_HANDLER, 1},
                                              {MARKER_NF_PROCESS, 1},
+                                             {MARKER_NF_PROCESS_PROLOGUE, 1},
                                              {MARKER_CPU_HDR_EXTRA, 1},
                                          }),
       target_ep(_ep), transpiler(this) {}
@@ -2203,24 +2205,57 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+// A Controller_BloomFilter is a libnf CPU bloom filter (embedded in libsycon), held in the
+// controller state. Allocate: add a `libnf::BloomFilter *` state field + libnf::bf_allocate in
+// nf_init. Set/Query: materialize the key into a buffer_t (like the map modules) and pass it to
+// libnf by its raw `.data` pointer.
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterAllocate *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::BloomFilterAllocate");
+  const code_t name = "cpu_bf_" + std::to_string(node->get_bf_addr());
+
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+  state_fields.indent();
+  state_fields << "libnf::BloomFilter *" << name << " = nullptr;\n";
+
+  coder_t &nf_init = get(MARKER_NF_INIT);
+  nf_init.indent();
+  nf_init << "libnf::bf_allocate(" << transpiler.transpile(node->get_height()) << ", " << transpiler.transpile(node->get_width()) << ", "
+          << transpiler.transpile(node->get_key_size()) << ", " << transpiler.transpile(node->get_cleanup_interval()) << ", &state->" << name
+          << ");\n";
+
+  // libnf's CPU bloom filter is not self-cleaning (unlike the dataplane bloom's own timer thread),
+  // so the controller must call bf_periodic_cleanup itself. The C does this at the top of every
+  // nf_process; the offloaded bloom's cleanup node sits in the main pipeline (before offload) and
+  // is ignored there, so we instead call it at the top of the controller's nf_process for every
+  // offloaded packet. bf_periodic_cleanup is interval-gated internally, so this is cheap.
+  coder_t &prologue = get(MARKER_NF_PROCESS_PROLOGUE);
+  prologue.indent();
+  prologue << "libnf::bf_periodic_cleanup(state->" << name << ", now);\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterSet *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name   = "cpu_bf_" + std::to_string(node->get_bf_addr());
+  const var_t key_var = transpile_buffer_decl_and_set(coder, "bf_key", node->get_key(), true);
+
   coder.indent();
-  panic("TODO: Controller::BloomFilterSet");
+  coder << "libnf::bf_set(state->" << name << ", " << key_var.name << ".data);\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterQuery *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name        = "cpu_bf_" + std::to_string(node->get_bf_addr());
+  const var_t key_var      = transpile_buffer_decl_and_set(coder, "bf_key", node->get_key(), true);
+  const var_t present_var  = alloc_var("bf_query", node->get_min_estimate(), {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::BloomFilterQuery");
+  coder << "int " << present_var.name << " = libnf::bf_query(state->" << name << ", " << key_var.name << ".data);\n";
+
   return EPVisitor::Action::doChildren;
 }
 

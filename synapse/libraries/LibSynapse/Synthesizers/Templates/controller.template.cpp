@@ -52,6 +52,8 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr->egress_dev = 0;
   cpu_hdr->trigger_dataplane_execution = 0;
 
+/*@{NF_PROCESS_PROLOGUE}@*/
+
 /*@{NF_PROCESS}@*/
 
   if (trigger_update_ipv4_tcpudp_checksums) {
