@@ -3,9 +3,14 @@
 
 unsigned hash_obj(void *obj, unsigned size_bytes);
 
-// verifast doesn't know about these
+// verifast doesn't know about these.
+// Skipped when libnf is embedded in libsycon (compiled inside `namespace libnf`):
+// there these redeclarations would become libnf::__builtin_* and shadow the real
+// compiler intrinsics at the call sites, leaving them undefined at link time.
+#ifndef LIBNF_SKIP_BUILTIN_DECLS
 unsigned __builtin_ia32_crc32si(unsigned acc, unsigned int x);
 unsigned long long __builtin_ia32_crc32di(unsigned long long acc, unsigned long long x);
+#endif
 
 unsigned count_trailing_zeros(unsigned x);
 

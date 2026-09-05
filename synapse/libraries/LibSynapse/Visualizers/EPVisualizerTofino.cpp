@@ -52,6 +52,15 @@ SHOW_MODULE_NAME(Tofino::ModifyHeader)
 SHOW_MODULE_NAME(Tofino::Then)
 SHOW_MODULE_NAME(Tofino::Else)
 
+// HLL math + compute-table modules and the conditional-increment register.
+SHOW_MODULE_NAME(Tofino::HashObj)
+SHOW_MODULE_NAME(Tofino::Divide)
+SHOW_MODULE_NAME(Tofino::CountTrailingZeros)
+SHOW_MODULE_NAME(Tofino::FindFirstSetBit)
+SHOW_MODULE_NAME(Tofino::PowerOfTwo)
+SHOW_MODULE_NAME(Tofino::Ln)
+SHOW_MODULE_NAME(Tofino::VectorRegisterReadConditionalIncrement)
+
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *node) {
   std::stringstream label_builder;
 
