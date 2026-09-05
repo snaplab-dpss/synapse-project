@@ -7,8 +7,11 @@ TrafficGenerator::TrafficGenerator(const std::string &_nf, const config_t &_conf
       seeds_random_engine(config.random_seed), flows_random_engine_uniform(seeds_random_engine.generate(), 0, config.total_flows - 1),
       flows_random_engine_zipf(seeds_random_engine.generate(), config.zipf_param, 0, config.total_flows - 1), pd(NULL), pdumper(NULL),
       client_dev_it(0), counters(config.total_flows, 0), flows_swapped(0), current_time(0), alarm_tick(0), next_alarm(-1) {
+  // warmup_devices doubles as the list of client devices that drive the round-robin
+  // client rotation in generate(), so it is always seeded here. The warmup pcap
+  // *writers* (which create the files) are instead created lazily in generate_warmup(),
+  // so NFs that never call it (echo, fwd, hyperloglog) don't leave empty warmup files.
   for (device_t warmup_dev : config.warmup_devices) {
-    warmup_writers.emplace(warmup_dev, PcapWriter(get_warmup_pcap_fname(nf, config, warmup_dev), assume_ip));
     client_to_active_device.emplace(warmup_dev, warmup_dev);
   }
 
@@ -179,6 +182,12 @@ void TrafficGenerator::report() const {
 void TrafficGenerator::generate_warmup() {
   const bytes_t hdrs_len = assume_ip ? get_hdrs_len() - sizeof(ether_hdr_t) : get_hdrs_len();
   const bytes_t pkt_len  = assume_ip ? config.packet_size_without_crc - sizeof(ether_hdr_t) : config.packet_size_without_crc;
+
+  // Create the warmup pcap writers (and thus the files) only now, so NFs that never
+  // call generate_warmup() don't produce empty warmup pcaps.
+  for (device_t warmup_dev : config.warmup_devices) {
+    warmup_writers.emplace(warmup_dev, PcapWriter(get_warmup_pcap_fname(nf, config, warmup_dev), assume_ip));
+  }
 
   const u64 goal = config.total_flows * warmup_writers.size();
   u64 counter    = 0;
