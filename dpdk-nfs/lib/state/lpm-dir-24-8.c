@@ -1,10 +1,12 @@
 #include "lpm-dir-24-8.h"
-#include "nf-parse.h"
 
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <rte_byteorder.h>
+
+// Portable byte swap (was rte_bswap32) so this file has no DPDK dependency and can be
+// compiled into libsycon for controller-side use as well as the DPDK NF build.
+#define lpm_bswap32(x) __builtin_bswap32(x)
 
 #define LPM_INVALID 0xFFFF
 #define LPM_PLEN_MAX 32
@@ -61,9 +63,8 @@ uint32_t lpm_24_extract_first_index(uint32_t data) {
 // Computes how many entries the rule will take
 uint32_t compute_rule_size(uint8_t prefixlen) {
   if (prefixlen < 25) {
-    uint32_t res[25] = {0x1000000, 0x800000, 0x400000, 0x200000, 0x100000, 0x80000, 0x40000, 0x20000, 0x10000,
-                        0x8000,    0x4000,   0x2000,   0x1000,   0x800,    0x400,   0x200,   0x100,   0x80,
-                        0x40,      0x20,     0x10,     0x8,      0x4,      0x2,     0x1};
+    uint32_t res[25] = {0x1000000, 0x800000, 0x400000, 0x200000, 0x100000, 0x80000, 0x40000, 0x20000, 0x10000, 0x8000, 0x4000, 0x2000, 0x1000,
+                        0x800,     0x400,    0x200,    0x100,    0x80,     0x40,    0x20,    0x10,    0x8,     0x4,    0x2,    0x1};
     uint32_t v       = res[prefixlen];
     return v;
   } else {
@@ -128,7 +129,7 @@ void lpm_free(struct LPM *lpm) {
 }
 
 int lpm_lookup(struct LPM *lpm, uint32_t addr, uint16_t *value_out) {
-  addr = rte_bswap32(addr);
+  addr = lpm_bswap32(addr);
 
   uint16_t *lpm_24   = lpm->lpm_24;
   uint16_t *lpm_long = lpm->lpm_long;
@@ -167,7 +168,7 @@ int lpm_lookup(struct LPM *lpm, uint32_t addr, uint16_t *value_out) {
 }
 
 int lpm_update(struct LPM *lpm, uint32_t prefix, uint8_t prefixlen, uint16_t value) {
-  prefix = rte_bswap32(prefix);
+  prefix = lpm_bswap32(prefix);
 
   uint16_t *lpm_24   = lpm->lpm_24;
   uint16_t *lpm_long = lpm->lpm_long;
@@ -261,7 +262,13 @@ static bool parse_ipv4addr(const char *str, uint32_t *addr) {
 void lpm_from_file(struct LPM *lpm, const char *cfg_fname) {
   FILE *cfg_file = fopen(cfg_fname, "r");
   if (cfg_file == NULL) {
-    rte_exit(EXIT_FAILURE, "Error opening the static config file: %s", cfg_fname);
+    {
+      fprintf(stderr,
+              "Error opening the static config file: %s"
+              "\n",
+              cfg_fname);
+      exit(EXIT_FAILURE);
+    }
   }
 
   char ipv4_addr_str[16];
@@ -271,7 +278,13 @@ void lpm_from_file(struct LPM *lpm, const char *cfg_fname) {
   while (fscanf(cfg_file, "%15[^/]/%d %hu\n", ipv4_addr_str, &subnet_size, &device) == 3) {
     uint32_t ipv4_addr;
     if (!parse_ipv4addr(ipv4_addr_str, &ipv4_addr)) {
-      rte_exit(EXIT_FAILURE, "Error parsing ipv4 address \"%s\" from cfg file", ipv4_addr_str);
+      {
+        fprintf(stderr,
+                "Error parsing ipv4 address \"%s\" from cfg file"
+                "\n",
+                ipv4_addr_str);
+        exit(EXIT_FAILURE);
+      }
     }
 
     lpm_update(lpm, ipv4_addr, subnet_size, device);

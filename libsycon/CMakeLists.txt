@@ -76,12 +76,63 @@ file(GLOB SOURCES
     ${PROJECT_SOURCE_DIR}/src/tables/*.c ${PROJECT_SOURCE_DIR}/src/data_structures/*.cpp
 )
 
-add_library(${PROJECT_NAME} SHARED ${SOURCES})
+# Embed libnf's portable (DPDK-free) CPU data-structure + math implementations, so
+# controllers that link libsycon can reuse the exact same CPU implementations libnf
+# already provides (for Controller_* / non-dataplane modules and the math helpers)
+# instead of reimplementing them.
+#
+# libnf is C. To ENCAPSULATE it (avoid leaking generic globals like `min`, `divide`,
+# `map_get` into libsycon and its controllers) each source is compiled as its OWN C++
+# translation unit wrapped in `namespace libnf` (the standard headers are pulled in
+# outside the namespace so std C functions keep global linkage). A per-file wrapper
+# (rather than one combined TU) preserves each file's `static` scope. Warnings are
+# disabled for these (libnf C predates libsycon's -Werror).
+set(LIBNF_DIR ${PROJECT_SOURCE_DIR}/../dpdk-nfs)
+set(LIBNF_C_SOURCES
+    lib/util/math.c
+    lib/util/time.c
+    lib/util/expirator.c
+    lib/state/vector.c
+    lib/state/map.c
+    lib/state/map-impl-pow2.c
+    lib/state/double-chain.c
+    lib/state/double-chain-impl.c
+    lib/state/cht.c
+    lib/state/cms.c
+    lib/state/cms-util.c
+    lib/state/bloom-filter.c
+    lib/state/bloom-filter-util.c
+    lib/state/token-bucket.c
+    lib/state/lpm-dir-24-8.c
+)
+set(LIBNF_WRAP_DIR ${CMAKE_BINARY_DIR}/libnf_wrappers)
+file(MAKE_DIRECTORY ${LIBNF_WRAP_DIR})
+set(LIBNF_WRAPPERS "")
+foreach(src ${LIBNF_C_SOURCES})
+    string(REPLACE "/" "_" flat ${src})
+    set(wrap ${LIBNF_WRAP_DIR}/wrap_${flat}.cpp)
+    # configure_file is idempotent (rewrites only when the result changes), which
+    # avoids the reconfigure/"manifest still dirty" loop a plain file(WRITE) causes.
+    set(LIBNF_WRAP_SRC ${src})
+    configure_file(${PROJECT_SOURCE_DIR}/cmake/libnf_wrapper.cpp.in ${wrap} @ONLY)
+    list(APPEND LIBNF_WRAPPERS ${wrap})
+endforeach()
+
+add_library(sycon_libnf OBJECT ${LIBNF_WRAPPERS})
+target_include_directories(sycon_libnf PRIVATE ${LIBNF_DIR})
+target_compile_definitions(sycon_libnf PRIVATE CAPACITY_POW2 LIBNF_SKIP_BUILTIN_DECLS)
+target_compile_options(sycon_libnf PRIVATE -mcrc32 -w)
+set_target_properties(sycon_libnf PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_library(${PROJECT_NAME} SHARED ${SOURCES} $<TARGET_OBJECTS:sycon_libnf>)
 
 target_include_directories(${PROJECT_NAME}
-    PUBLIC 
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>    
+    PUBLIC
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        # libnf headers (for <sycon/libnf.h>) resolve from the dpdk-nfs tree in-build
+        # and from the install include dir once installed.
+        $<BUILD_INTERFACE:${LIBNF_DIR}>
     PRIVATE
         ${PROJECT_SOURCE_DIR}/src
 )
@@ -142,6 +193,15 @@ install(
     DIRECTORY       ${cli11_SOURCE_DIR}/include/
     DESTINATION     include
     FILES_MATCHING  PATTERN "*.h*"
+)
+
+# Install libnf's portable headers (the ones whose implementations are embedded above)
+# preserving the `lib/...` prefix libnf uses internally, so generated controllers can
+# `#include <lib/util/math.h>` / `<lib/state/vector.h>` etc. and link them via -lsycon.
+install(
+    DIRECTORY       ${LIBNF_DIR}/lib/util ${LIBNF_DIR}/lib/state
+    DESTINATION     include/lib
+    FILES_MATCHING  PATTERN "*.h"
 )
 
 ###############################################################################

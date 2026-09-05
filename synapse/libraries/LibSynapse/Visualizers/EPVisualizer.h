@@ -57,6 +57,13 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalUpdateSingleAction *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalIncrement *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HashObj *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CountTrailingZeros *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FindFirstSetBit *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::PowerOfTwo *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ln *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *node) override final;
