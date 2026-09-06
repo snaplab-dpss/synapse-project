@@ -85,12 +85,13 @@ class Pktgen:
         traffic_dist: TrafficDist = TrafficDist.UNIFORM,
         zipf_param: float = 1.26,
         pkt_size: int = 64,
-        mark_warmup_packets: bool = False,
         kvs_mode: bool = False,
         kvs_get_ratio: float = 0.99,
+        tcp_syn: bool = False,
         seed: Optional[int] = None,
     ) -> None:
         assert not self.pktgen_active
+        assert not (tcp_syn and kvs_mode)
 
         if nb_flows % 2 != 0:
             nb_flows -= 1
@@ -120,12 +121,13 @@ class Pktgen:
         if seed is not None:
             pktgen_options_list.append(f"--seed {seed}")
 
-        if mark_warmup_packets:
-            pktgen_options_list.append(f"--mark-warmup-packets")
-
         if kvs_mode:
             pktgen_options_list.append(f"--kvs-mode")
             pktgen_options_list.append(f"--kvs-get-ratio {kvs_get_ratio}")
+
+        # SYN flood: every packet is a TCP SYN (see deps/pktgen/README.md).
+        if tcp_syn:
+            pktgen_options_list.append(f"--tcp-syn")
 
         pktgen_options = " ".join(pktgen_options_list)
 
@@ -169,14 +171,6 @@ class Pktgen:
 
         self._run_commands("start")
 
-    def set_warmup_duration(self, duration_sec: int) -> None:
-        assert self.pktgen_active
-
-        if not self.ready:
-            self.wait_launch()
-
-        self._run_commands(f"warmup {duration_sec}")
-
     def run(self, duration_sec: int) -> None:
         assert self.pktgen_active
 
@@ -193,6 +187,8 @@ class Pktgen:
         assert churn_fpm >= 0
         self._run_commands(f"churn {churn_fpm}")
 
+    # Warmup mode: pktgen cycles through every flow once (its warmup flow sequence)
+    # instead of the configured distribution, so the DUT sees all flows before a measurement.
     def activate_warmup_mode(self) -> None:
         self._run_commands(f"warmup 1")
 
