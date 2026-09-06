@@ -14,11 +14,11 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,2'249'999'500,58,-8,-9'422'848,-1>
+  Score: <0,2'249'999'500,57,-8,-9'422'848,-1>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 1
-  BDD Progress: 58 / 63
+  BDD Progress: 57 / 62
   Stages: 8
   Memory Usage: 9422848 bits
 
@@ -30,15 +30,15 @@ Stateful Implementations:
   1074047984: Tofino::FCFSCachedSet
 
 Search Metadata:
-  Elapsed time:       65 seconds
-  Steps:              59
+  Elapsed time:       64 seconds
+  Steps:              58
   Backtracks:         0
-  Search space size:  175
-  Unfinished EPs:     116
+  Search space size:  170
+  Unfinished EPs:     112
   Finished EPs:       1
-  Avg BDD size:       52
+  Avg BDD size:       51
   Branching factor:   3
-  Total SS size est.: 8'448'029'516'852
+  Total SS size est.: 4'613'520'449'008
   Avg children per node:
     Node 258: 0
     Node 257: 0
@@ -77,15 +77,15 @@ Search Metadata:
     Node 139: 4
     Node 140: 4
     Node 183: 3
-    Node 170: 3
+    Node 170: 0
     Node 141: 4
     Node 184: 3
-    Node 171: 4
+    Node 171: 3
     Node 142: 3
     Node 260: 0
     Node 166: 3
     Node 173: 3
-    Node 182: 3
+    Node 182: 2
     Node 150: 0
     Node 167: 3
     Node 174: 3
@@ -111,10 +111,10 @@ Search Metadata:
     Node 251: 0
 
 Global Stats:
-  Num phase 1 speculations: 12'962 (100%)
-  Num phase 2 speculations: 630 (4.86036%)
-  Num speculated modules:   154'312
-  Num EPs generated:        175
+  Num phase 1 speculations: 12'667 (100%)
+  Num phase 2 speculations: 618 (4.87882%)
+  Num speculated modules:   150'673
+  Num EPs generated:        170
 
 Switch placement:
 

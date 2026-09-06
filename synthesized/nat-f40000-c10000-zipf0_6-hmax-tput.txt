@@ -119,9 +119,9 @@ Search Metadata:
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 19'983 (100%)
-  Num phase 2 speculations: 1'008 (5.04429%)
-  Num speculated modules:   239'608
+  Num phase 1 speculations: 19'978 (100%)
+  Num phase 2 speculations: 1'008 (5.04555%)
+  Num speculated modules:   239'558
   Num EPs generated:        210
 
 Switch placement:
