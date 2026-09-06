@@ -5,7 +5,7 @@ Args:
   Targets config:     tofino2.toml
   Heuristic:          gallium
   Profile file:       nat-f40000-c10000-zipf1_2.json
-  Seed:               2033635428
+  Seed:               0
   Targets:
     Tofino (48 modules)
     Ctrl (96 modules)
@@ -26,7 +26,7 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       41 seconds
+  Elapsed time:       29 seconds
   Steps:              67
   Backtracks:         0
   Search space size:  198

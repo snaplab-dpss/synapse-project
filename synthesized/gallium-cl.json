@@ -2,13 +2,13 @@
   "bdd": "cl.bdd",
   "global_stats": {
     "num_execution_plans_generated": 150,
-    "num_phase1_speculations": 8651,
-    "num_phase2_speculations": 456,
-    "num_speculated_modules": 106329,
-    "time_per_instantiation_us": 482,
-    "time_per_speculation_us": 5,
-    "total_time_spent_generating_execution_plans_us": 72313,
-    "total_time_spent_speculating_us": 552670
+    "num_phase1_speculations": 13512,
+    "num_phase2_speculations": 607,
+    "num_speculated_modules": 156379,
+    "time_per_instantiation_us": 820,
+    "time_per_speculation_us": 49,
+    "total_time_spent_generating_execution_plans_us": 123079,
+    "total_time_spent_speculating_us": 7687120
   },
   "heuristic": {
     "meta": [
@@ -41,7 +41,7 @@
     },
     {
       "addr": 1074110176,
-      "implementation": "Tofino::VectorRegister"
+      "implementation": "Tofino::VectorTable"
     },
     {
       "addr": 1074047984,
@@ -49,7 +49,7 @@
     },
     {
       "addr": 1074092960,
-      "implementation": "Tofino::VectorTable"
+      "implementation": "Tofino::VectorRegister"
     }
   ],
   "name": "gallium-cl",
@@ -276,14 +276,14 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.7777777777777777,
-    "elapsed_time_seconds": 9,
+    "elapsed_time_seconds": 24,
     "finished_eps": 1,
     "ss_size": 150,
     "steps": 53,
     "total_ss_size_estimation": 562828587494.0044,
     "unfinished_eps": 97
   },
-  "seed": 1240863453,
+  "seed": 0,
   "targets_config_file": "tofino2.toml",
   "tput_estimation_bps": 1165634525440,
   "tput_estimation_pps": 1655730860

@@ -5,7 +5,7 @@ Args:
   Targets config:     tofino2.toml
   Heuristic:          gallium
   Profile file:       fw-f40000-c10000-zipf1_2.json
-  Seed:               3513372890
+  Seed:               0
   Targets:
     Tofino (48 modules)
     Ctrl (96 modules)
@@ -22,10 +22,10 @@ Stateful Implementations:
   1074093704: Tofino::VectorRegister
   1074076064: Tofino::DchainTable
   1074044080: Tofino::GuardedMapTable
-  1074076488: Tofino::VectorRegister
+  1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       25 seconds
+  Elapsed time:       23 seconds
   Steps:              59
   Backtracks:         0
   Search space size:  182
@@ -106,11 +106,11 @@ Switch placement:
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 16'512/1'310'720 B (1.25977%)
+SRAM: 288/1'310'720 B (0.0219727%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 16'512/786'432 B (2.09961%)
+MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074076488_0]
+Objs: [vector_table_1074076488_139]
 -------------------------------------
 -------------------------------------
 Stage 1

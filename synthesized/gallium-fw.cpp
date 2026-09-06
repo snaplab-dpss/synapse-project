@@ -8,7 +8,7 @@ struct state_t : public nf_state_t {
   ForwardingTbl forwarding_tbl;
   GuardedMapTable guarded_map_table_1074044080;
   DchainTable dchain_table_1074076064;
-  VectorRegister vector_register_1074076488;
+  VectorTable vector_table_1074076488;
   VectorRegister vector_register_1074093704;
 
   state_t()
@@ -16,7 +16,7 @@ struct state_t : public nf_state_t {
       forwarding_tbl(),
       guarded_map_table_1074044080("guarded_map_table_1074044080",{"Ingress.guarded_map_table_1074044080_142","Ingress.guarded_map_table_1074044080_155",},"Ingress.guarded_map_table_1074044080_guard", 1000LL),
       dchain_table_1074076064("dchain_table_1074076064",{"Ingress.dchain_table_1074076064_148","Ingress.dchain_table_1074076064_174",}, 1000LL),
-      vector_register_1074076488("vector_register_1074076488",{"Ingress.vector_register_1074076488_0",}),
+      vector_table_1074076488("vector_table_1074076488",{"Ingress.vector_table_1074076488_139",}),
       vector_register_1074093704("vector_register_1074093704",{"Ingress.vector_register_1074093704_0",})
     {}
 };
@@ -104,16 +104,16 @@ void sycon::nf_init() {
   // BDD node 2:dchain_allocate(index_range:(w32 65536), chain_out:(w64 1074043832)[ -> (w64 1074076064)])
   // Module DataplaneDchainTableAllocate
   // BDD node 3:vector_allocate(elem_size:(w32 4), capacity:(w32 32), vector_out:(w64 1074043840)[(w64 0) -> (w64 1074076488)])
-  // Module DataplaneVectorRegisterAllocate
+  // Module DataplaneVectorTableAllocate
   // BDD node 4:vector_allocate(elem_size:(w32 2), capacity:(w32 32), vector_out:(w64 1074043848)[(w64 0) -> (w64 1074093704)])
   // Module DataplaneVectorRegisterAllocate
   // BDD node 5:vector_borrow(vector:(w64 1074076488), index:(w32 0), val_out:(w64 1074043688)[ -> (w64 1074090384)])
   // Module Ignore
   // BDD node 6:vector_return(vector:(w64 1074076488), index:(w32 0), value:(w64 1074090384)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_0(4);
-  vector_register_1074076488_value_0.set(0, 4, 1);
-  state->vector_register_1074076488.put(0, vector_register_1074076488_value_0);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_0(4);
+  vector_table_1074076488_value_0.set(0, 4, 1);
+  state->vector_table_1074076488.write(0, vector_table_1074076488_value_0);
   // BDD node 7:vector_borrow(vector:(w64 1074093704), index:(w32 0), val_out:(w64 1074043752)[ -> (w64 1074107600)])
   // Module Ignore
   // BDD node 8:vector_return(vector:(w64 1074093704), index:(w32 0), value:(w64 1074107600)[(w16 1)])
@@ -124,10 +124,10 @@ void sycon::nf_init() {
   // BDD node 9:vector_borrow(vector:(w64 1074076488), index:(w32 1), val_out:(w64 1074043688)[ -> (w64 1074090408)])
   // Module Ignore
   // BDD node 10:vector_return(vector:(w64 1074076488), index:(w32 1), value:(w64 1074090408)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_1(4);
-  vector_register_1074076488_value_1.set(0, 4, 0);
-  state->vector_register_1074076488.put(1, vector_register_1074076488_value_1);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_1(4);
+  vector_table_1074076488_value_1.set(0, 4, 0);
+  state->vector_table_1074076488.write(1, vector_table_1074076488_value_1);
   // BDD node 11:vector_borrow(vector:(w64 1074093704), index:(w32 1), val_out:(w64 1074043752)[ -> (w64 1074107624)])
   // Module Ignore
   // BDD node 12:vector_return(vector:(w64 1074093704), index:(w32 1), value:(w64 1074107624)[(w16 0)])
@@ -138,10 +138,10 @@ void sycon::nf_init() {
   // BDD node 13:vector_borrow(vector:(w64 1074076488), index:(w32 2), val_out:(w64 1074043688)[ -> (w64 1074090432)])
   // Module Ignore
   // BDD node 14:vector_return(vector:(w64 1074076488), index:(w32 2), value:(w64 1074090432)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_2(4);
-  vector_register_1074076488_value_2.set(0, 4, 1);
-  state->vector_register_1074076488.put(2, vector_register_1074076488_value_2);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_2(4);
+  vector_table_1074076488_value_2.set(0, 4, 1);
+  state->vector_table_1074076488.write(2, vector_table_1074076488_value_2);
   // BDD node 15:vector_borrow(vector:(w64 1074093704), index:(w32 2), val_out:(w64 1074043752)[ -> (w64 1074107648)])
   // Module Ignore
   // BDD node 16:vector_return(vector:(w64 1074093704), index:(w32 2), value:(w64 1074107648)[(w16 3)])
@@ -152,10 +152,10 @@ void sycon::nf_init() {
   // BDD node 17:vector_borrow(vector:(w64 1074076488), index:(w32 3), val_out:(w64 1074043688)[ -> (w64 1074090456)])
   // Module Ignore
   // BDD node 18:vector_return(vector:(w64 1074076488), index:(w32 3), value:(w64 1074090456)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_3(4);
-  vector_register_1074076488_value_3.set(0, 4, 0);
-  state->vector_register_1074076488.put(3, vector_register_1074076488_value_3);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_3(4);
+  vector_table_1074076488_value_3.set(0, 4, 0);
+  state->vector_table_1074076488.write(3, vector_table_1074076488_value_3);
   // BDD node 19:vector_borrow(vector:(w64 1074093704), index:(w32 3), val_out:(w64 1074043752)[ -> (w64 1074107672)])
   // Module Ignore
   // BDD node 20:vector_return(vector:(w64 1074093704), index:(w32 3), value:(w64 1074107672)[(w16 2)])
@@ -166,10 +166,10 @@ void sycon::nf_init() {
   // BDD node 21:vector_borrow(vector:(w64 1074076488), index:(w32 4), val_out:(w64 1074043688)[ -> (w64 1074090480)])
   // Module Ignore
   // BDD node 22:vector_return(vector:(w64 1074076488), index:(w32 4), value:(w64 1074090480)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_4(4);
-  vector_register_1074076488_value_4.set(0, 4, 1);
-  state->vector_register_1074076488.put(4, vector_register_1074076488_value_4);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_4(4);
+  vector_table_1074076488_value_4.set(0, 4, 1);
+  state->vector_table_1074076488.write(4, vector_table_1074076488_value_4);
   // BDD node 23:vector_borrow(vector:(w64 1074093704), index:(w32 4), val_out:(w64 1074043752)[ -> (w64 1074107696)])
   // Module Ignore
   // BDD node 24:vector_return(vector:(w64 1074093704), index:(w32 4), value:(w64 1074107696)[(w16 5)])
@@ -180,10 +180,10 @@ void sycon::nf_init() {
   // BDD node 25:vector_borrow(vector:(w64 1074076488), index:(w32 5), val_out:(w64 1074043688)[ -> (w64 1074090504)])
   // Module Ignore
   // BDD node 26:vector_return(vector:(w64 1074076488), index:(w32 5), value:(w64 1074090504)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_5(4);
-  vector_register_1074076488_value_5.set(0, 4, 0);
-  state->vector_register_1074076488.put(5, vector_register_1074076488_value_5);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_5(4);
+  vector_table_1074076488_value_5.set(0, 4, 0);
+  state->vector_table_1074076488.write(5, vector_table_1074076488_value_5);
   // BDD node 27:vector_borrow(vector:(w64 1074093704), index:(w32 5), val_out:(w64 1074043752)[ -> (w64 1074107720)])
   // Module Ignore
   // BDD node 28:vector_return(vector:(w64 1074093704), index:(w32 5), value:(w64 1074107720)[(w16 4)])
@@ -194,10 +194,10 @@ void sycon::nf_init() {
   // BDD node 29:vector_borrow(vector:(w64 1074076488), index:(w32 6), val_out:(w64 1074043688)[ -> (w64 1074090528)])
   // Module Ignore
   // BDD node 30:vector_return(vector:(w64 1074076488), index:(w32 6), value:(w64 1074090528)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_6(4);
-  vector_register_1074076488_value_6.set(0, 4, 1);
-  state->vector_register_1074076488.put(6, vector_register_1074076488_value_6);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_6(4);
+  vector_table_1074076488_value_6.set(0, 4, 1);
+  state->vector_table_1074076488.write(6, vector_table_1074076488_value_6);
   // BDD node 31:vector_borrow(vector:(w64 1074093704), index:(w32 6), val_out:(w64 1074043752)[ -> (w64 1074107744)])
   // Module Ignore
   // BDD node 32:vector_return(vector:(w64 1074093704), index:(w32 6), value:(w64 1074107744)[(w16 7)])
@@ -208,10 +208,10 @@ void sycon::nf_init() {
   // BDD node 33:vector_borrow(vector:(w64 1074076488), index:(w32 7), val_out:(w64 1074043688)[ -> (w64 1074090552)])
   // Module Ignore
   // BDD node 34:vector_return(vector:(w64 1074076488), index:(w32 7), value:(w64 1074090552)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_7(4);
-  vector_register_1074076488_value_7.set(0, 4, 0);
-  state->vector_register_1074076488.put(7, vector_register_1074076488_value_7);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_7(4);
+  vector_table_1074076488_value_7.set(0, 4, 0);
+  state->vector_table_1074076488.write(7, vector_table_1074076488_value_7);
   // BDD node 35:vector_borrow(vector:(w64 1074093704), index:(w32 7), val_out:(w64 1074043752)[ -> (w64 1074107768)])
   // Module Ignore
   // BDD node 36:vector_return(vector:(w64 1074093704), index:(w32 7), value:(w64 1074107768)[(w16 6)])
@@ -222,10 +222,10 @@ void sycon::nf_init() {
   // BDD node 37:vector_borrow(vector:(w64 1074076488), index:(w32 8), val_out:(w64 1074043688)[ -> (w64 1074090576)])
   // Module Ignore
   // BDD node 38:vector_return(vector:(w64 1074076488), index:(w32 8), value:(w64 1074090576)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_8(4);
-  vector_register_1074076488_value_8.set(0, 4, 1);
-  state->vector_register_1074076488.put(8, vector_register_1074076488_value_8);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_8(4);
+  vector_table_1074076488_value_8.set(0, 4, 1);
+  state->vector_table_1074076488.write(8, vector_table_1074076488_value_8);
   // BDD node 39:vector_borrow(vector:(w64 1074093704), index:(w32 8), val_out:(w64 1074043752)[ -> (w64 1074107792)])
   // Module Ignore
   // BDD node 40:vector_return(vector:(w64 1074093704), index:(w32 8), value:(w64 1074107792)[(w16 9)])
@@ -236,10 +236,10 @@ void sycon::nf_init() {
   // BDD node 41:vector_borrow(vector:(w64 1074076488), index:(w32 9), val_out:(w64 1074043688)[ -> (w64 1074090600)])
   // Module Ignore
   // BDD node 42:vector_return(vector:(w64 1074076488), index:(w32 9), value:(w64 1074090600)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_9(4);
-  vector_register_1074076488_value_9.set(0, 4, 0);
-  state->vector_register_1074076488.put(9, vector_register_1074076488_value_9);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_9(4);
+  vector_table_1074076488_value_9.set(0, 4, 0);
+  state->vector_table_1074076488.write(9, vector_table_1074076488_value_9);
   // BDD node 43:vector_borrow(vector:(w64 1074093704), index:(w32 9), val_out:(w64 1074043752)[ -> (w64 1074107816)])
   // Module Ignore
   // BDD node 44:vector_return(vector:(w64 1074093704), index:(w32 9), value:(w64 1074107816)[(w16 8)])
@@ -250,10 +250,10 @@ void sycon::nf_init() {
   // BDD node 45:vector_borrow(vector:(w64 1074076488), index:(w32 10), val_out:(w64 1074043688)[ -> (w64 1074090624)])
   // Module Ignore
   // BDD node 46:vector_return(vector:(w64 1074076488), index:(w32 10), value:(w64 1074090624)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_10(4);
-  vector_register_1074076488_value_10.set(0, 4, 1);
-  state->vector_register_1074076488.put(10, vector_register_1074076488_value_10);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_10(4);
+  vector_table_1074076488_value_10.set(0, 4, 1);
+  state->vector_table_1074076488.write(10, vector_table_1074076488_value_10);
   // BDD node 47:vector_borrow(vector:(w64 1074093704), index:(w32 10), val_out:(w64 1074043752)[ -> (w64 1074107840)])
   // Module Ignore
   // BDD node 48:vector_return(vector:(w64 1074093704), index:(w32 10), value:(w64 1074107840)[(w16 11)])
@@ -264,10 +264,10 @@ void sycon::nf_init() {
   // BDD node 49:vector_borrow(vector:(w64 1074076488), index:(w32 11), val_out:(w64 1074043688)[ -> (w64 1074090648)])
   // Module Ignore
   // BDD node 50:vector_return(vector:(w64 1074076488), index:(w32 11), value:(w64 1074090648)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_11(4);
-  vector_register_1074076488_value_11.set(0, 4, 0);
-  state->vector_register_1074076488.put(11, vector_register_1074076488_value_11);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_11(4);
+  vector_table_1074076488_value_11.set(0, 4, 0);
+  state->vector_table_1074076488.write(11, vector_table_1074076488_value_11);
   // BDD node 51:vector_borrow(vector:(w64 1074093704), index:(w32 11), val_out:(w64 1074043752)[ -> (w64 1074107864)])
   // Module Ignore
   // BDD node 52:vector_return(vector:(w64 1074093704), index:(w32 11), value:(w64 1074107864)[(w16 10)])
@@ -278,10 +278,10 @@ void sycon::nf_init() {
   // BDD node 53:vector_borrow(vector:(w64 1074076488), index:(w32 12), val_out:(w64 1074043688)[ -> (w64 1074090672)])
   // Module Ignore
   // BDD node 54:vector_return(vector:(w64 1074076488), index:(w32 12), value:(w64 1074090672)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_12(4);
-  vector_register_1074076488_value_12.set(0, 4, 1);
-  state->vector_register_1074076488.put(12, vector_register_1074076488_value_12);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_12(4);
+  vector_table_1074076488_value_12.set(0, 4, 1);
+  state->vector_table_1074076488.write(12, vector_table_1074076488_value_12);
   // BDD node 55:vector_borrow(vector:(w64 1074093704), index:(w32 12), val_out:(w64 1074043752)[ -> (w64 1074107888)])
   // Module Ignore
   // BDD node 56:vector_return(vector:(w64 1074093704), index:(w32 12), value:(w64 1074107888)[(w16 13)])
@@ -292,10 +292,10 @@ void sycon::nf_init() {
   // BDD node 57:vector_borrow(vector:(w64 1074076488), index:(w32 13), val_out:(w64 1074043688)[ -> (w64 1074090696)])
   // Module Ignore
   // BDD node 58:vector_return(vector:(w64 1074076488), index:(w32 13), value:(w64 1074090696)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_13(4);
-  vector_register_1074076488_value_13.set(0, 4, 0);
-  state->vector_register_1074076488.put(13, vector_register_1074076488_value_13);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_13(4);
+  vector_table_1074076488_value_13.set(0, 4, 0);
+  state->vector_table_1074076488.write(13, vector_table_1074076488_value_13);
   // BDD node 59:vector_borrow(vector:(w64 1074093704), index:(w32 13), val_out:(w64 1074043752)[ -> (w64 1074107912)])
   // Module Ignore
   // BDD node 60:vector_return(vector:(w64 1074093704), index:(w32 13), value:(w64 1074107912)[(w16 12)])
@@ -306,10 +306,10 @@ void sycon::nf_init() {
   // BDD node 61:vector_borrow(vector:(w64 1074076488), index:(w32 14), val_out:(w64 1074043688)[ -> (w64 1074090720)])
   // Module Ignore
   // BDD node 62:vector_return(vector:(w64 1074076488), index:(w32 14), value:(w64 1074090720)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_14(4);
-  vector_register_1074076488_value_14.set(0, 4, 1);
-  state->vector_register_1074076488.put(14, vector_register_1074076488_value_14);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_14(4);
+  vector_table_1074076488_value_14.set(0, 4, 1);
+  state->vector_table_1074076488.write(14, vector_table_1074076488_value_14);
   // BDD node 63:vector_borrow(vector:(w64 1074093704), index:(w32 14), val_out:(w64 1074043752)[ -> (w64 1074107936)])
   // Module Ignore
   // BDD node 64:vector_return(vector:(w64 1074093704), index:(w32 14), value:(w64 1074107936)[(w16 15)])
@@ -320,10 +320,10 @@ void sycon::nf_init() {
   // BDD node 65:vector_borrow(vector:(w64 1074076488), index:(w32 15), val_out:(w64 1074043688)[ -> (w64 1074090744)])
   // Module Ignore
   // BDD node 66:vector_return(vector:(w64 1074076488), index:(w32 15), value:(w64 1074090744)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_15(4);
-  vector_register_1074076488_value_15.set(0, 4, 0);
-  state->vector_register_1074076488.put(15, vector_register_1074076488_value_15);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_15(4);
+  vector_table_1074076488_value_15.set(0, 4, 0);
+  state->vector_table_1074076488.write(15, vector_table_1074076488_value_15);
   // BDD node 67:vector_borrow(vector:(w64 1074093704), index:(w32 15), val_out:(w64 1074043752)[ -> (w64 1074107960)])
   // Module Ignore
   // BDD node 68:vector_return(vector:(w64 1074093704), index:(w32 15), value:(w64 1074107960)[(w16 14)])
@@ -334,10 +334,10 @@ void sycon::nf_init() {
   // BDD node 69:vector_borrow(vector:(w64 1074076488), index:(w32 16), val_out:(w64 1074043688)[ -> (w64 1074090768)])
   // Module Ignore
   // BDD node 70:vector_return(vector:(w64 1074076488), index:(w32 16), value:(w64 1074090768)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_16(4);
-  vector_register_1074076488_value_16.set(0, 4, 1);
-  state->vector_register_1074076488.put(16, vector_register_1074076488_value_16);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_16(4);
+  vector_table_1074076488_value_16.set(0, 4, 1);
+  state->vector_table_1074076488.write(16, vector_table_1074076488_value_16);
   // BDD node 71:vector_borrow(vector:(w64 1074093704), index:(w32 16), val_out:(w64 1074043752)[ -> (w64 1074107984)])
   // Module Ignore
   // BDD node 72:vector_return(vector:(w64 1074093704), index:(w32 16), value:(w64 1074107984)[(w16 17)])
@@ -348,10 +348,10 @@ void sycon::nf_init() {
   // BDD node 73:vector_borrow(vector:(w64 1074076488), index:(w32 17), val_out:(w64 1074043688)[ -> (w64 1074090792)])
   // Module Ignore
   // BDD node 74:vector_return(vector:(w64 1074076488), index:(w32 17), value:(w64 1074090792)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_17(4);
-  vector_register_1074076488_value_17.set(0, 4, 0);
-  state->vector_register_1074076488.put(17, vector_register_1074076488_value_17);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_17(4);
+  vector_table_1074076488_value_17.set(0, 4, 0);
+  state->vector_table_1074076488.write(17, vector_table_1074076488_value_17);
   // BDD node 75:vector_borrow(vector:(w64 1074093704), index:(w32 17), val_out:(w64 1074043752)[ -> (w64 1074108008)])
   // Module Ignore
   // BDD node 76:vector_return(vector:(w64 1074093704), index:(w32 17), value:(w64 1074108008)[(w16 16)])
@@ -362,10 +362,10 @@ void sycon::nf_init() {
   // BDD node 77:vector_borrow(vector:(w64 1074076488), index:(w32 18), val_out:(w64 1074043688)[ -> (w64 1074090816)])
   // Module Ignore
   // BDD node 78:vector_return(vector:(w64 1074076488), index:(w32 18), value:(w64 1074090816)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_18(4);
-  vector_register_1074076488_value_18.set(0, 4, 1);
-  state->vector_register_1074076488.put(18, vector_register_1074076488_value_18);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_18(4);
+  vector_table_1074076488_value_18.set(0, 4, 1);
+  state->vector_table_1074076488.write(18, vector_table_1074076488_value_18);
   // BDD node 79:vector_borrow(vector:(w64 1074093704), index:(w32 18), val_out:(w64 1074043752)[ -> (w64 1074108032)])
   // Module Ignore
   // BDD node 80:vector_return(vector:(w64 1074093704), index:(w32 18), value:(w64 1074108032)[(w16 19)])
@@ -376,10 +376,10 @@ void sycon::nf_init() {
   // BDD node 81:vector_borrow(vector:(w64 1074076488), index:(w32 19), val_out:(w64 1074043688)[ -> (w64 1074090840)])
   // Module Ignore
   // BDD node 82:vector_return(vector:(w64 1074076488), index:(w32 19), value:(w64 1074090840)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_19(4);
-  vector_register_1074076488_value_19.set(0, 4, 0);
-  state->vector_register_1074076488.put(19, vector_register_1074076488_value_19);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_19(4);
+  vector_table_1074076488_value_19.set(0, 4, 0);
+  state->vector_table_1074076488.write(19, vector_table_1074076488_value_19);
   // BDD node 83:vector_borrow(vector:(w64 1074093704), index:(w32 19), val_out:(w64 1074043752)[ -> (w64 1074108056)])
   // Module Ignore
   // BDD node 84:vector_return(vector:(w64 1074093704), index:(w32 19), value:(w64 1074108056)[(w16 18)])
@@ -390,10 +390,10 @@ void sycon::nf_init() {
   // BDD node 85:vector_borrow(vector:(w64 1074076488), index:(w32 20), val_out:(w64 1074043688)[ -> (w64 1074090864)])
   // Module Ignore
   // BDD node 86:vector_return(vector:(w64 1074076488), index:(w32 20), value:(w64 1074090864)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_20(4);
-  vector_register_1074076488_value_20.set(0, 4, 1);
-  state->vector_register_1074076488.put(20, vector_register_1074076488_value_20);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_20(4);
+  vector_table_1074076488_value_20.set(0, 4, 1);
+  state->vector_table_1074076488.write(20, vector_table_1074076488_value_20);
   // BDD node 87:vector_borrow(vector:(w64 1074093704), index:(w32 20), val_out:(w64 1074043752)[ -> (w64 1074108080)])
   // Module Ignore
   // BDD node 88:vector_return(vector:(w64 1074093704), index:(w32 20), value:(w64 1074108080)[(w16 21)])
@@ -404,10 +404,10 @@ void sycon::nf_init() {
   // BDD node 89:vector_borrow(vector:(w64 1074076488), index:(w32 21), val_out:(w64 1074043688)[ -> (w64 1074090888)])
   // Module Ignore
   // BDD node 90:vector_return(vector:(w64 1074076488), index:(w32 21), value:(w64 1074090888)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_21(4);
-  vector_register_1074076488_value_21.set(0, 4, 0);
-  state->vector_register_1074076488.put(21, vector_register_1074076488_value_21);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_21(4);
+  vector_table_1074076488_value_21.set(0, 4, 0);
+  state->vector_table_1074076488.write(21, vector_table_1074076488_value_21);
   // BDD node 91:vector_borrow(vector:(w64 1074093704), index:(w32 21), val_out:(w64 1074043752)[ -> (w64 1074108104)])
   // Module Ignore
   // BDD node 92:vector_return(vector:(w64 1074093704), index:(w32 21), value:(w64 1074108104)[(w16 20)])
@@ -418,10 +418,10 @@ void sycon::nf_init() {
   // BDD node 93:vector_borrow(vector:(w64 1074076488), index:(w32 22), val_out:(w64 1074043688)[ -> (w64 1074090912)])
   // Module Ignore
   // BDD node 94:vector_return(vector:(w64 1074076488), index:(w32 22), value:(w64 1074090912)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_22(4);
-  vector_register_1074076488_value_22.set(0, 4, 1);
-  state->vector_register_1074076488.put(22, vector_register_1074076488_value_22);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_22(4);
+  vector_table_1074076488_value_22.set(0, 4, 1);
+  state->vector_table_1074076488.write(22, vector_table_1074076488_value_22);
   // BDD node 95:vector_borrow(vector:(w64 1074093704), index:(w32 22), val_out:(w64 1074043752)[ -> (w64 1074108128)])
   // Module Ignore
   // BDD node 96:vector_return(vector:(w64 1074093704), index:(w32 22), value:(w64 1074108128)[(w16 23)])
@@ -432,10 +432,10 @@ void sycon::nf_init() {
   // BDD node 97:vector_borrow(vector:(w64 1074076488), index:(w32 23), val_out:(w64 1074043688)[ -> (w64 1074090936)])
   // Module Ignore
   // BDD node 98:vector_return(vector:(w64 1074076488), index:(w32 23), value:(w64 1074090936)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_23(4);
-  vector_register_1074076488_value_23.set(0, 4, 0);
-  state->vector_register_1074076488.put(23, vector_register_1074076488_value_23);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_23(4);
+  vector_table_1074076488_value_23.set(0, 4, 0);
+  state->vector_table_1074076488.write(23, vector_table_1074076488_value_23);
   // BDD node 99:vector_borrow(vector:(w64 1074093704), index:(w32 23), val_out:(w64 1074043752)[ -> (w64 1074108152)])
   // Module Ignore
   // BDD node 100:vector_return(vector:(w64 1074093704), index:(w32 23), value:(w64 1074108152)[(w16 22)])
@@ -446,10 +446,10 @@ void sycon::nf_init() {
   // BDD node 101:vector_borrow(vector:(w64 1074076488), index:(w32 24), val_out:(w64 1074043688)[ -> (w64 1074090960)])
   // Module Ignore
   // BDD node 102:vector_return(vector:(w64 1074076488), index:(w32 24), value:(w64 1074090960)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_24(4);
-  vector_register_1074076488_value_24.set(0, 4, 1);
-  state->vector_register_1074076488.put(24, vector_register_1074076488_value_24);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_24(4);
+  vector_table_1074076488_value_24.set(0, 4, 1);
+  state->vector_table_1074076488.write(24, vector_table_1074076488_value_24);
   // BDD node 103:vector_borrow(vector:(w64 1074093704), index:(w32 24), val_out:(w64 1074043752)[ -> (w64 1074108176)])
   // Module Ignore
   // BDD node 104:vector_return(vector:(w64 1074093704), index:(w32 24), value:(w64 1074108176)[(w16 25)])
@@ -460,10 +460,10 @@ void sycon::nf_init() {
   // BDD node 105:vector_borrow(vector:(w64 1074076488), index:(w32 25), val_out:(w64 1074043688)[ -> (w64 1074090984)])
   // Module Ignore
   // BDD node 106:vector_return(vector:(w64 1074076488), index:(w32 25), value:(w64 1074090984)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_25(4);
-  vector_register_1074076488_value_25.set(0, 4, 0);
-  state->vector_register_1074076488.put(25, vector_register_1074076488_value_25);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_25(4);
+  vector_table_1074076488_value_25.set(0, 4, 0);
+  state->vector_table_1074076488.write(25, vector_table_1074076488_value_25);
   // BDD node 107:vector_borrow(vector:(w64 1074093704), index:(w32 25), val_out:(w64 1074043752)[ -> (w64 1074108200)])
   // Module Ignore
   // BDD node 108:vector_return(vector:(w64 1074093704), index:(w32 25), value:(w64 1074108200)[(w16 24)])
@@ -474,10 +474,10 @@ void sycon::nf_init() {
   // BDD node 109:vector_borrow(vector:(w64 1074076488), index:(w32 26), val_out:(w64 1074043688)[ -> (w64 1074091008)])
   // Module Ignore
   // BDD node 110:vector_return(vector:(w64 1074076488), index:(w32 26), value:(w64 1074091008)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_26(4);
-  vector_register_1074076488_value_26.set(0, 4, 1);
-  state->vector_register_1074076488.put(26, vector_register_1074076488_value_26);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_26(4);
+  vector_table_1074076488_value_26.set(0, 4, 1);
+  state->vector_table_1074076488.write(26, vector_table_1074076488_value_26);
   // BDD node 111:vector_borrow(vector:(w64 1074093704), index:(w32 26), val_out:(w64 1074043752)[ -> (w64 1074108224)])
   // Module Ignore
   // BDD node 112:vector_return(vector:(w64 1074093704), index:(w32 26), value:(w64 1074108224)[(w16 27)])
@@ -488,10 +488,10 @@ void sycon::nf_init() {
   // BDD node 113:vector_borrow(vector:(w64 1074076488), index:(w32 27), val_out:(w64 1074043688)[ -> (w64 1074091032)])
   // Module Ignore
   // BDD node 114:vector_return(vector:(w64 1074076488), index:(w32 27), value:(w64 1074091032)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_27(4);
-  vector_register_1074076488_value_27.set(0, 4, 0);
-  state->vector_register_1074076488.put(27, vector_register_1074076488_value_27);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_27(4);
+  vector_table_1074076488_value_27.set(0, 4, 0);
+  state->vector_table_1074076488.write(27, vector_table_1074076488_value_27);
   // BDD node 115:vector_borrow(vector:(w64 1074093704), index:(w32 27), val_out:(w64 1074043752)[ -> (w64 1074108248)])
   // Module Ignore
   // BDD node 116:vector_return(vector:(w64 1074093704), index:(w32 27), value:(w64 1074108248)[(w16 26)])
@@ -502,10 +502,10 @@ void sycon::nf_init() {
   // BDD node 117:vector_borrow(vector:(w64 1074076488), index:(w32 28), val_out:(w64 1074043688)[ -> (w64 1074091056)])
   // Module Ignore
   // BDD node 118:vector_return(vector:(w64 1074076488), index:(w32 28), value:(w64 1074091056)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_28(4);
-  vector_register_1074076488_value_28.set(0, 4, 1);
-  state->vector_register_1074076488.put(28, vector_register_1074076488_value_28);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_28(4);
+  vector_table_1074076488_value_28.set(0, 4, 1);
+  state->vector_table_1074076488.write(28, vector_table_1074076488_value_28);
   // BDD node 119:vector_borrow(vector:(w64 1074093704), index:(w32 28), val_out:(w64 1074043752)[ -> (w64 1074108272)])
   // Module Ignore
   // BDD node 120:vector_return(vector:(w64 1074093704), index:(w32 28), value:(w64 1074108272)[(w16 29)])
@@ -516,10 +516,10 @@ void sycon::nf_init() {
   // BDD node 121:vector_borrow(vector:(w64 1074076488), index:(w32 29), val_out:(w64 1074043688)[ -> (w64 1074091080)])
   // Module Ignore
   // BDD node 122:vector_return(vector:(w64 1074076488), index:(w32 29), value:(w64 1074091080)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_29(4);
-  vector_register_1074076488_value_29.set(0, 4, 0);
-  state->vector_register_1074076488.put(29, vector_register_1074076488_value_29);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_29(4);
+  vector_table_1074076488_value_29.set(0, 4, 0);
+  state->vector_table_1074076488.write(29, vector_table_1074076488_value_29);
   // BDD node 123:vector_borrow(vector:(w64 1074093704), index:(w32 29), val_out:(w64 1074043752)[ -> (w64 1074108296)])
   // Module Ignore
   // BDD node 124:vector_return(vector:(w64 1074093704), index:(w32 29), value:(w64 1074108296)[(w16 28)])
@@ -530,10 +530,10 @@ void sycon::nf_init() {
   // BDD node 125:vector_borrow(vector:(w64 1074076488), index:(w32 30), val_out:(w64 1074043688)[ -> (w64 1074091104)])
   // Module Ignore
   // BDD node 126:vector_return(vector:(w64 1074076488), index:(w32 30), value:(w64 1074091104)[(w32 1)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_30(4);
-  vector_register_1074076488_value_30.set(0, 4, 1);
-  state->vector_register_1074076488.put(30, vector_register_1074076488_value_30);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_30(4);
+  vector_table_1074076488_value_30.set(0, 4, 1);
+  state->vector_table_1074076488.write(30, vector_table_1074076488_value_30);
   // BDD node 127:vector_borrow(vector:(w64 1074093704), index:(w32 30), val_out:(w64 1074043752)[ -> (w64 1074108320)])
   // Module Ignore
   // BDD node 128:vector_return(vector:(w64 1074093704), index:(w32 30), value:(w64 1074108320)[(w16 31)])
@@ -544,10 +544,10 @@ void sycon::nf_init() {
   // BDD node 129:vector_borrow(vector:(w64 1074076488), index:(w32 31), val_out:(w64 1074043688)[ -> (w64 1074091128)])
   // Module Ignore
   // BDD node 130:vector_return(vector:(w64 1074076488), index:(w32 31), value:(w64 1074091128)[(w32 0)])
-  // Module DataplaneVectorRegisterUpdate
-  buffer_t vector_register_1074076488_value_31(4);
-  vector_register_1074076488_value_31.set(0, 4, 0);
-  state->vector_register_1074076488.put(31, vector_register_1074076488_value_31);
+  // Module DataplaneVectorTableUpdate
+  buffer_t vector_table_1074076488_value_31(4);
+  vector_table_1074076488_value_31.set(0, 4, 0);
+  state->vector_table_1074076488.write(31, vector_table_1074076488_value_31);
   // BDD node 131:vector_borrow(vector:(w64 1074093704), index:(w32 31), val_out:(w64 1074043752)[ -> (w64 1074108344)])
   // Module Ignore
   // BDD node 132:vector_return(vector:(w64 1074093704), index:(w32 31), value:(w64 1074108344)[(w16 30)])
@@ -571,7 +571,6 @@ void sycon::nf_user_signal_handler() {
 }
 
 struct cpu_hdr_extra_t {
-  u32 vector_data__139;
   u32 DEVICE;
 
 } __attribute__((packed));
@@ -590,30 +589,36 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr->egress_dev = 0;
   cpu_hdr->trigger_dataplane_execution = 0;
 
-  if (bswap16(cpu_hdr->code_path) == 2566) {
-    // EP node  2554
+
+
+  if (bswap16(cpu_hdr->code_path) == 2584) {
+    // EP node  2571
     // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
     u8* hdr_0 = packet_consume(pkt, 14);
-    // EP node  2555
+    // EP node  2572
     // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
     u8* hdr_1 = packet_consume(pkt, 20);
-    // EP node  2556
+    // EP node  2573
     // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
     u8* hdr_2 = packet_consume(pkt, 4);
-    // EP node  2557
+    // EP node  2574
     // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
-    if ((0) == (bswap32(cpu_hdr_extra->vector_data__139))) {
-      // EP node  2558
+    buffer_t value_0;
+    state->vector_table_1074076488.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_0);
+    // EP node  2575
+    // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
+    if ((0) == ((u32)value_0.get(0, 4))) {
+      // EP node  2576
       // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
-      // EP node  2560
+      // EP node  2578
       // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
       result.abort_transaction = true;
       cpu_hdr->trigger_dataplane_execution = 1;
       return result;
     } else {
-      // EP node  2559
+      // EP node  2577
       // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
-      // EP node  2561
+      // EP node  2579
       // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
       buffer_t guarded_map_table_1074044080_key_0(12);
       guarded_map_table_1074044080_key_0[0] = *(u8*)(hdr_1 + 12);
@@ -628,35 +633,35 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
       guarded_map_table_1074044080_key_0[9] = *(u8*)(hdr_2 + 1);
       guarded_map_table_1074044080_key_0[10] = *(u8*)(hdr_2 + 2);
       guarded_map_table_1074044080_key_0[11] = *(u8*)(hdr_2 + 3);
-      u32 value_0;
-      bool found_0 = state->guarded_map_table_1074044080.get(guarded_map_table_1074044080_key_0, value_0);
-      // EP node  2562
+      u32 value_1;
+      bool found_0 = state->guarded_map_table_1074044080.get(guarded_map_table_1074044080_key_0, value_1);
+      // EP node  2580
       // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
       if ((0) == (found_0)) {
-        // EP node  2563
+        // EP node  2581
         // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
-        // EP node  4766
+        // EP node  4833
         // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
         u32 allocated_index_0;
         bool success_0 = state->dchain_table_1074076064.allocate_new_index(allocated_index_0);
-        // EP node  4821
+        // EP node  4889
         // BDD node 158:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__157))
         if ((0) == (success_0)) {
-          // EP node  4822
+          // EP node  4890
           // BDD node 158:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__157))
-          // EP node  5362
+          // EP node  5439
           // BDD node 159:vector_borrow(vector:(w64 1074093704), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074211384)[ -> (w64 1074107600)])
-          buffer_t value_1;
-          state->vector_register_1074093704.get((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_1);
-          // EP node  5425
+          buffer_t value_2;
+          state->vector_register_1074093704.get((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_2);
+          // EP node  5503
           // BDD node 160:vector_return(vector:(w64 1074093704), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074107600)[(ReadLSB w16 (w32 0) vector_data__159)])
-          // EP node  5745
+          // EP node  5828
           // BDD node 164:FORWARD
-          cpu_hdr->egress_dev = bswap16((u16)value_1.get(0, 2));
+          cpu_hdr->egress_dev = bswap16((u16)value_2.get(0, 2));
         } else {
-          // EP node  4823
+          // EP node  4891
           // BDD node 158:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__157))
-          // EP node  4937
+          // EP node  5007
           // BDD node 166:map_put(map:(w64 1074044080), key:(w64 1074071800)[(Concat w96 (Read w8 (w32 515) packet_chunks) (Concat w88 (Read w8 (w32 514) packet_chunks) (Concat w80 (Read w8 (w32 513) packet_chunks) (Concat w72 (Read w8 (w32 512) packet_chunks) (ReadLSB w64 (w32 268) packet_chunks))))) -> (Concat w96 (Read w8 (w32 515) packet_chunks) (Concat w88 (Read w8 (w32 514) packet_chunks) (Concat w80 (Read w8 (w32 513) packet_chunks) (Concat w72 (Read w8 (w32 512) packet_chunks) (ReadLSB w64 (w32 268) packet_chunks)))))], value:(ReadLSB w32 (w32 0) new_index__157))
           buffer_t guarded_map_table_1074044080_key_1(12);
           guarded_map_table_1074044080_key_1[0] = *(u8*)(hdr_1 + 12);
@@ -672,20 +677,20 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
           guarded_map_table_1074044080_key_1[10] = *(u8*)(hdr_2 + 2);
           guarded_map_table_1074044080_key_1[11] = *(u8*)(hdr_2 + 3);
           state->guarded_map_table_1074044080.put(guarded_map_table_1074044080_key_1, allocated_index_0);
-          // EP node  4996
+          // EP node  5067
           // BDD node 168:vector_borrow(vector:(w64 1074093704), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074213544)[ -> (w64 1074107600)])
-          buffer_t value_2;
-          state->vector_register_1074093704.get((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_2);
-          // EP node  5056
+          buffer_t value_3;
+          state->vector_register_1074093704.get((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_3);
+          // EP node  5128
           // BDD node 169:vector_return(vector:(w64 1074093704), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074107600)[(ReadLSB w16 (w32 0) vector_data__168)])
-          // EP node  5361
+          // EP node  5438
           // BDD node 173:FORWARD
-          cpu_hdr->egress_dev = bswap16((u16)value_2.get(0, 2));
+          cpu_hdr->egress_dev = bswap16((u16)value_3.get(0, 2));
         }
       } else {
-        // EP node  2564
+        // EP node  2582
         // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
-        // EP node  2565
+        // EP node  2583
         // BDD node 157:dchain_allocate_new_index(chain:(w64 1074076064), index_out:(w64 1074210936)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__157)], time:(ReadLSB w64 (w32 0) next_time))
         result.abort_transaction = true;
         cpu_hdr->trigger_dataplane_execution = 1;

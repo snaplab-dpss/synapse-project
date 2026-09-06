@@ -5,7 +5,7 @@ Args:
   Targets config:     tofino2-kvs.toml
   Heuristic:          gallium
   Profile file:       kvs-f40000-c10000-zipf1_2.json
-  Seed:               1190188904
+  Seed:               0
   Targets:
     Tofino (48 modules)
     Ctrl (96 modules)
@@ -24,7 +24,7 @@ Stateful Implementations:
   1073923096: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       26 seconds
+  Elapsed time:       20 seconds
   Steps:              65
   Backtracks:         0
   Search space size:  179
@@ -104,9 +104,9 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 23'906 (100%)
-  Num phase 2 speculations: 1'652 (6.9104%)
-  Num speculated modules:   224'135
+  Num phase 1 speculations: 23'779 (100%)
+  Num phase 2 speculations: 1'646 (6.92207%)
+  Num speculated modules:   223'273
   Num EPs generated:        179
 
 Switch placement:
