@@ -34,6 +34,8 @@ DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 DEFAULT_HEURISTICS = ["max-tput", "ds-pref-simple", "ds-pref-guardedmaptable", "ds-pref-hhtable", "ds-pref-cuckoo", "greedy"]
+# Gallium is synthesized once per NF (no churn/zipf sweep) and named "gallium-<nf>", not "<nf>-f..-h<heuristic>".
+GALLIUM_HEURISTIC = "gallium"
 
 REQUIRED_ENV_VARS = ["SDE", "SDE_INSTALL"]
 
@@ -81,20 +83,19 @@ def get_pcap_base_name(
     return pcap
 
 
-def build_synthesized_synapse_nf(
-    nf: NF,
-    total_flows: int,
-    zipf_param: float,
-    churn_fpm: int,
-    heuristic: str,
+def get_solution_name(nf: NF, total_flows: int, zipf_param: float, churn_fpm: int, heuristic: str) -> str:
+    if heuristic == GALLIUM_HEURISTIC:
+        return f"{GALLIUM_HEURISTIC}-{nf.name}"
+    return f"{get_pcap_base_name(nf, total_flows, zipf_param, churn_fpm)}-h{heuristic}"
+
+
+def build_synthesized_synapse_nf_by_name(
+    name: str,
     skip_execution: bool = False,
     show_cmds_output: bool = False,
     show_cmds: bool = False,
     silence: bool = False,
 ) -> Task:
-    pcap_base_name = get_pcap_base_name(nf, total_flows, zipf_param, churn_fpm)
-    name = f"{pcap_base_name}-h{heuristic}"
-
     cpp_file = f"{name}.cpp"
     p4_file = f"{name}.p4"
 
@@ -124,20 +125,13 @@ def build_synthesized_synapse_nf(
     )
 
 
-def extract_synapse_nf_tofino2_resources(
-    nf: NF,
-    total_flows: int,
-    zipf_param: float,
-    churn_fpm: int,
-    heuristic: str,
+def extract_synapse_nf_tofino2_resources_by_name(
+    name: str,
     skip_execution: bool = False,
     show_cmds_output: bool = False,
     show_cmds: bool = False,
     silence: bool = False,
 ) -> Task:
-    pcap_base_name = get_pcap_base_name(nf, total_flows, zipf_param, churn_fpm)
-    name = f"{pcap_base_name}-h{heuristic}"
-
     p4_file = f"{name}.p4"
     tof2_resources_file = f"{name}-resources.txt"
 
@@ -196,38 +190,33 @@ if __name__ == "__main__":
     Path.mkdir(SYNTHESIZED_DIR, exist_ok=True)
 
     nfs = [NFs[nf_name] for nf_name in args.nfs]
-    combinations = list(product(args.total_flows, args.zipf_params, args.churns, args.heuristics))
-    total_combinations = len(args.nfs) * len(combinations)
+    sweep_heuristics = [h for h in args.heuristics if h != GALLIUM_HEURISTIC]
+    combinations = list(product(args.total_flows, args.zipf_params, args.churns, sweep_heuristics))
+    solution_names = [get_solution_name(nf, total_flows, zipf_param, churn, heuristic) for nf in nfs for total_flows, zipf_param, churn, heuristic in combinations]
+    if GALLIUM_HEURISTIC in args.heuristics:
+        solution_names += [get_solution_name(nf, 0, 0.0, 0, GALLIUM_HEURISTIC) for nf in nfs]
+    total_combinations = len(solution_names)
 
     orchestrator = Orchestrator()
 
-    for nf in nfs:
-        for total_flows, zipf_param, churn, heuristic in combinations:
-            orchestrator.add_task(
-                build_synthesized_synapse_nf(
-                    nf,
-                    total_flows,
-                    zipf_param,
-                    churn,
-                    heuristic,
-                    show_cmds_output=args.show_cmds_output,
-                    show_cmds=args.show_cmds,
-                    silence=args.silence,
-                )
+    for name in solution_names:
+        orchestrator.add_task(
+            build_synthesized_synapse_nf_by_name(
+                name,
+                show_cmds_output=args.show_cmds_output,
+                show_cmds=args.show_cmds,
+                silence=args.silence,
             )
+        )
 
-            orchestrator.add_task(
-                extract_synapse_nf_tofino2_resources(
-                    nf,
-                    total_flows,
-                    zipf_param,
-                    churn,
-                    heuristic,
-                    show_cmds_output=args.show_cmds_output,
-                    show_cmds=args.show_cmds,
-                    silence=args.silence,
-                )
+        orchestrator.add_task(
+            extract_synapse_nf_tofino2_resources_by_name(
+                name,
+                show_cmds_output=args.show_cmds_output,
+                show_cmds=args.show_cmds,
+                silence=args.silence,
             )
+        )
 
     rich.print("============ Requested Configuration ============")
     rich.print(f"Target NFs:    {args.nfs}")
