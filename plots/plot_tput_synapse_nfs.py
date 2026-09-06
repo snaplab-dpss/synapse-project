@@ -122,6 +122,16 @@ NFS = [
         "heatmap_output_file": PLOTS_DIR / "tput_gallium_cl_heatmap.pdf",
         "barplot_output_file": PLOTS_DIR / "tput_gallium_cl_barplot.pdf",
     },
+    {
+        "title": "Gallium HLL",
+        "data_file": DATA_DIR / "tput_gallium_hyperloglog.csv",
+        "bps_output_file": PLOTS_DIR / "tput_gallium_hyperloglog_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_gallium_hyperloglog_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_gallium_hyperloglog_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_gallium_hyperloglog_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_gallium_hyperloglog_heatmap.pdf",
+        "barplot_output_file": PLOTS_DIR / "tput_gallium_hyperloglog_barplot.pdf",
+    },
 ]
 
 
