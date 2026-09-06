@@ -3455,7 +3455,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const code_t is_alive_var_name = create_unique_name("fcfs_ct_is_alive");
   ingress_apply.indent();
   ingress_apply << "bool " << is_alive_var_name << " = ";
-  ingress_apply << fcfs_ct_internals.liveness_query << ".execute(" << value_var->name << ");\n";
+  ingress_apply << (node->get_refresh() ? fcfs_ct_internals.liveness_query_and_refresh : fcfs_ct_internals.liveness_query) << ".execute(" << value_var->name << ");\n";
 
   ingress_apply.indent();
   ingress_apply << "if (";
@@ -3832,7 +3832,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const code_t is_alive_var_name = create_unique_name("fcfs_cs_is_alive");
   ingress_apply.indent();
   ingress_apply << "bool " << is_alive_var_name << " = ";
-  ingress_apply << fcfs_cs_internals.liveness_query << ".execute(" << hash_value << ");\n";
+  ingress_apply << (node->get_refresh() ? fcfs_cs_internals.liveness_query_and_refresh : fcfs_cs_internals.liveness_query) << ".execute(" << hash_value << ");\n";
 
   ingress_apply.indent();
   ingress_apply << "if (";
