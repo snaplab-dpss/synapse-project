@@ -11,6 +11,7 @@
 #include "../time.h"
 #include "../field.h"
 #include "../hash.h"
+#include <algorithm>
 
 namespace sycon {
 
@@ -28,6 +29,7 @@ private:
   const u32 capacity;
   const u32 cache_capacity;
   const bytes_t key_size;
+  const CRC32 crc32;
 
 public:
   FCFSCachedTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_liveness_name,
@@ -54,11 +56,43 @@ public:
 
   bool get(const buffer_t &k, u32 &index) {
     auto found_it = cache.find(k);
-    if (found_it == cache.end()) {
-      return false;
+    if (found_it != cache.end()) {
+      index = found_it->second;
+      return true;
     }
-    index = found_it->second;
-    return true;
+    return get_from_dataplane_cache(k, index);
+  }
+
+  // The dataplane inserts into its own cache (key registers at a CRC32 slot) without telling
+  // the controller, so `cache` only knows the keys the controller put itself. A controller
+  // replay of map_get for a key the dataplane admitted must therefore mirror the P4 lookup:
+  // read the key registers at crc32(key) truncated to the cache index width and accept the
+  // slot if some pipe holds the key there (registers are per pipe). Liveness is not checked:
+  // the dataplane only hands the packet up after finding the entry alive.
+  bool get_from_dataplane_cache(const buffer_t &k, u32 &index) {
+    const u32 slot = crc32.hash(k) & (cache_capacity - 1);
+    std::vector<bool> match_per_pipe;
+    for (size_t i = 0; i < reg_cached_keys.size(); i++) {
+      const bytes_t offset = 4 * i;
+      const bytes_t width  = std::min<bytes_t>(4, key_size - offset);
+      const u64 expected   = k.get(offset, width);
+      const std::vector<u32> values_per_pipe = reg_cached_keys[i].get_per_pipe(slot);
+      if (match_per_pipe.empty()) {
+        match_per_pipe.assign(values_per_pipe.size(), true);
+      }
+      for (size_t pipe = 0; pipe < values_per_pipe.size(); pipe++) {
+        if (values_per_pipe[pipe] != expected) {
+          match_per_pipe[pipe] = false;
+        }
+      }
+    }
+    for (bool match : match_per_pipe) {
+      if (match) {
+        index = slot;
+        return true;
+      }
+    }
+    return false;
   }
 
   bool is_index_allocated(u32 index) const { return control_plane_allocated_indices.find(index) != control_plane_allocated_indices.end(); }
