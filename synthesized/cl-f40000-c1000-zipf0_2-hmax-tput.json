@@ -1,14 +1,14 @@
 {
   "bdd": "cl.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 140,
-    "num_phase1_speculations": 9724,
-    "num_phase2_speculations": 529,
-    "num_speculated_modules": 116793,
-    "time_per_instantiation_us": 758,
-    "time_per_speculation_us": 6,
-    "total_time_spent_generating_execution_plans_us": 106125,
-    "total_time_spent_speculating_us": 735288
+    "num_execution_plans_generated": 149,
+    "num_phase1_speculations": 12900,
+    "num_phase2_speculations": 601,
+    "num_speculated_modules": 153599,
+    "time_per_instantiation_us": 988,
+    "time_per_speculation_us": 107,
+    "total_time_spent_generating_execution_plans_us": 147277,
+    "total_time_spent_speculating_us": 16549737
   },
   "heuristic": {
     "meta": [
@@ -122,7 +122,7 @@
         "node_id": 176
       },
       {
-        "avg": 0.0,
+        "avg": 2.0,
         "node_id": 169
       },
       {
@@ -138,7 +138,7 @@
         "node_id": 175
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 168
       },
       {
@@ -154,7 +154,7 @@
         "node_id": 174
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 167
       },
       {
@@ -170,7 +170,7 @@
         "node_id": 173
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 166
       },
       {
@@ -254,7 +254,7 @@
         "node_id": 177
       },
       {
-        "avg": 2.0,
+        "avg": 3.0,
         "node_id": 148
       },
       {
@@ -266,7 +266,7 @@
         "node_id": 178
       },
       {
-        "avg": 0.0,
+        "avg": 2.0,
         "node_id": 149
       },
       {
@@ -291,13 +291,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.6666666666666665,
-    "elapsed_time_seconds": 12,
+    "branching_factor": 2.8333333333333335,
+    "elapsed_time_seconds": 56,
     "finished_eps": 1,
-    "ss_size": 140,
+    "ss_size": 149,
     "steps": 50,
-    "total_ss_size_estimation": 200649778565.14038,
-    "unfinished_eps": 90
+    "total_ss_size_estimation": 929012155082.7933,
+    "unfinished_eps": 99
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
