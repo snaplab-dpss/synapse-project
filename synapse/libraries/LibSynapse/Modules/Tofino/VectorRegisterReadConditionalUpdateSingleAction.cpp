@@ -266,6 +266,35 @@ bool absorbed_symbols_available(const BDDNode *borrow, klee::ref<klee::Expr> con
 
 } // namespace
 
+bool VectorRegisterReadConditionalUpdateSingleActionFactory::matches_pattern(const EP *ep, const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Call) {
+    return false;
+  }
+  const Call *vector_borrow = dynamic_cast<const Call *>(node);
+  if (vector_borrow->get_call().function_name != "vector_borrow") {
+    return false;
+  }
+  std::optional<Call::vector_conditional_write_result_t> vcw = vector_borrow->get_vector_conditional_write_data();
+  if (!vcw.has_value() || vcw->conditions.size() != 1) {
+    return false;
+  }
+  klee::ref<klee::Expr> condition = simplify_conditional(vcw->conditions[0]);
+  const symbol_t &read_symbol     = vector_borrow->get_local_symbol("vector_data");
+  if (!expr_reads_symbol(condition, read_symbol.name) || !is_condition_from_symbol(condition, read_symbol.name)) {
+    return false;
+  }
+  const vector_register_data_t data = get_vector_register_data(ep->get_ctx(), vector_borrow, vcw->vector_return_write);
+  // Deliberately NO absorbed_symbols_available() check here: that one depends on the
+  // current BDD ordering (reorder can move the borrow above a generator the swap needs),
+  // and this predicate must answer "is this the kind of borrow this module handles"
+  // independently of ordering, so VectorRegisterLookup never claims it in an ordering
+  // where this module happens to decline (that ordering is simply not viable).
+  if (!get_tna(ep).is_simple_register_conditional_expr(vcw->conditions, read_symbol)) {
+    return false;
+  }
+  return expr_is_materializable(data.write_value);
+}
+
 std::optional<spec_impl_t> VectorRegisterReadConditionalUpdateSingleActionFactory::speculate(const EP *ep, const BDDNode *node,
                                                                                              const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {

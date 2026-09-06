@@ -161,6 +161,18 @@ rebuilt_bdd_result_t rebuild_bdd(const EP *ep, const BDDNode *node, const patter
 
 } // namespace
 
+bool VectorRegisterReadConditionalUpdateFactory::matches_pattern(const EP *ep, const BDDNode *node) {
+  pattern_t pattern;
+  if (!is_pattern(ep->get_ctx(), ep->get_bdd(), node, pattern)) {
+    return false;
+  }
+  klee::ref<klee::Expr> condition = simplify_conditional(pattern.branch->get_condition());
+  if (IfFactory::get_compatible_conditions(get_tna(ep), condition).empty()) {
+    return false;
+  }
+  return expr_is_materializable(pattern.data.write_value);
+}
+
 std::optional<spec_impl_t> VectorRegisterReadConditionalUpdateFactory::speculate(const EP *ep, const BDDNode *node,
                                                                                  const speculations_t &speculations) const {
   pattern_t pattern;

@@ -292,6 +292,18 @@ std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna
       return {};
     }
 
+    // `x < 2^k` is the same as `x <= 2^k-1`; normalize so the mask-match check below
+    // (and the PHV-byte model, which treats 2^k-1 constants as free) see it.
+    if (simplified->getKind() == klee::Expr::Kind::Ult) {
+      const klee::ConstantExpr *rhs_const = dynamic_cast<klee::ConstantExpr *>(simplified->getKid(1).get());
+      if (rhs_const && !dynamic_cast<klee::ConstantExpr *>(simplified->getKid(0).get())) {
+        const u64 c = rhs_const->getZExtValue();
+        if (c > 0 && is_power_of_two(c)) {
+          simplified = solver_toolbox.exprBuilder->Ule(simplified->getKid(0), solver_toolbox.exprBuilder->Constant(c - 1, simplified->getKid(0)->getWidth()));
+        }
+      }
+    }
+
     // A wide unsigned inequality against a constant must be sliced into a high-zero
     // guard + narrow byte compare: even a bare 32-bit `value <= C` exceeds a gateway's
     // range-match budget, and the PHV-byte model wrongly treats a 2^k-1 constant as
@@ -301,9 +313,17 @@ std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna
       if (k != klee::Expr::Kind::Ult && k != klee::Expr::Kind::Ule) {
         return false;
       }
-      const bool rhs_const = dynamic_cast<klee::ConstantExpr *>(e->getKid(1).get()) != nullptr;
-      const bool lhs_const = dynamic_cast<klee::ConstantExpr *>(e->getKid(0).get()) != nullptr;
-      return rhs_const && !lhs_const && e->getKid(0)->getWidth() > 8;
+      const klee::ConstantExpr *rhs_const = dynamic_cast<klee::ConstantExpr *>(e->getKid(1).get());
+      const bool lhs_const                = dynamic_cast<klee::ConstantExpr *>(e->getKid(0).get()) != nullptr;
+      if (!rhs_const || lhs_const || e->getKid(0)->getWidth() <= 8) {
+        return false;
+      }
+      // `x <= 2^k-1` is `x & ~(2^k-1) == 0`: a plain mask match on the high bits, which
+      // bf-p4c lowers without a range match (e.g. CL's `min_estimate <= 131071`). Not wide.
+      if (k == klee::Expr::Kind::Ule && is_power_of_two(rhs_const->getZExtValue() + 1)) {
+        return false;
+      }
+      return true;
     };
 
     // A direct arithmetic comparison operand or a wide inequality must be sliced (see
