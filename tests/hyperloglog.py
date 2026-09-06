@@ -53,7 +53,9 @@ MAGNIFY = 3046596202
 LC_THRESHOLD = 160
 LC_OFFSET = 266
 
-ESTIMATE_BYTE_ORDER = environ.get("HLL_ESTIMATE_BYTE_ORDER", "big")
+# "big" (max-tput dataplane path), "little" (the C's order, kept by controller-side solutions such
+# as gallium) or "auto" (default): decided on the first packet, whose estimate is known to be 1.
+ESTIMATE_BYTE_ORDER = environ.get("HLL_ESTIMATE_BYTE_ORDER", "auto")
 MATH_UNIT_TOLERANCE = 0.15  # relative, outside the deep linear-counting regime
 # The linear counter kicks in below estimate 160. Near that boundary the switch's approximate
 # MathUnit divide and the model's exact integer divide can land on opposite sides, so one applies
@@ -100,6 +102,11 @@ def decode_estimate(pkt: Packet) -> int:
     mac = bytes.fromhex(pkt[Ether].src.replace(":", ""))
     if mac[4:] != b"\0\0":
         raise TestFailure(f"src mac {pkt[Ether].src}: last two bytes are not zero")
+    global ESTIMATE_BYTE_ORDER
+    if ESTIMATE_BYTE_ORDER == "auto":
+        as_big, as_little = int.from_bytes(mac[:4], "big"), int.from_bytes(mac[:4], "little")
+        ESTIMATE_BYTE_ORDER = "big" if as_big <= as_little else "little"
+        print(f"    estimate byte order auto-detected as {ESTIMATE_BYTE_ORDER}-endian (first estimate {min(as_big, as_little)})")
     return int.from_bytes(mac[:4], ESTIMATE_BYTE_ORDER)
 
 
