@@ -36,6 +36,9 @@ header ipv4_t {
 	bit<32> dst_addr;
 }
 
+// The TG only ever uses the two ports (flow hashes, swap16), so this 8-byte
+// extract also serves TCP packets (pktgen --tcp-syn): for those, len/checksum
+// hold the first half of the TCP sequence number, which nothing reads.
 header udp_t {
 	bit<16> src_port;
 	bit<16> dst_port;
@@ -111,6 +114,7 @@ parser IngressParser(
 		pkt.extract(hdr.ipv4);
 		transition select (hdr.ipv4.protocol) {
 			IP_PROTO_UDP: parse_udp;
+			IP_PROTO_TCP: parse_udp;
 			default: reject;
 		}
 	}
@@ -247,6 +251,7 @@ parser EgressParser(
 		pkt.extract(hdr.ipv4);
 		transition select (hdr.ipv4.protocol) {
 			IP_PROTO_UDP: parse_udp;
+			IP_PROTO_TCP: parse_udp;
 			default: reject;
 		}
 	}
