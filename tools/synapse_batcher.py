@@ -31,6 +31,11 @@ DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 DEFAULT_HEURISTICS = ["max-tput"]
+# Gallium is synthesized once per NF (no churn/zipf sweep), from this one profile, as "gallium-<nf>";
+# its search dead-ends on controller offloads without --allow-deadends.
+GALLIUM_HEURISTIC = "gallium"
+GALLIUM_PROFILE = (40_000, 1.2, 10_000)  # total flows, zipf parameter, churn (fpm)
+HEURISTIC_CHOICES = DEFAULT_HEURISTICS + [GALLIUM_HEURISTIC]
 
 
 @dataclass
@@ -118,7 +123,8 @@ def run_synapse(
 
     profile_report = f"{pcap_base_name}.json"
 
-    name = f"{pcap_base_name}-h{heuristic}"
+    gallium = heuristic == GALLIUM_HEURISTIC
+    name = f"{GALLIUM_HEURISTIC}-{nf.name}" if gallium else f"{pcap_base_name}-h{heuristic}"
     synapse_bdd_dot = f"{name}-bdd.dot"
     synapse_ep_dot = f"{name}-ep.dot"
     synapse_ss_dot = f"{name}-ss.dot"
@@ -156,6 +162,7 @@ def run_synapse(
     profile_visualizer_cmd += f" --name {name}"
     profile_visualizer_cmd += f" --out {OUT_DIR}"
     profile_visualizer_cmd += " --skip-synthesis" if skip_synthesis else ""
+    profile_visualizer_cmd += " --allow-deadends" if gallium else ""
 
     return Task(
         f"run_synapse_{name}",
@@ -269,7 +276,7 @@ if __name__ == "__main__":
     parser.add_argument("--total-flows", type=int, nargs="+", default=DEFAULT_TOTAL_FLOWS, help="Total flows to generate")
     parser.add_argument("--zipf-params", type=float, nargs="+", default=DEFAULT_ZIPF_PARAMS, help="Zipf parameters")
     parser.add_argument("--churns", type=int, nargs="+", default=DEFAULT_CHURN_FPM, help="Churn rate (fpm)")
-    parser.add_argument("--heuristics", choices=DEFAULT_HEURISTICS, type=str, nargs="+", default=DEFAULT_HEURISTICS, help="Heuristic to use for searching")
+    parser.add_argument("--heuristics", choices=HEURISTIC_CHOICES, type=str, nargs="+", default=DEFAULT_HEURISTICS, help="Heuristic to use for searching")
     parser.add_argument("--seed", type=int, default=0, help="Seed for random number generation")
     parser.add_argument("--debug", action="store_true", default=False, help="Enable debug mode (synapse runs much slower)")
 
@@ -289,7 +296,11 @@ if __name__ == "__main__":
     Path.mkdir(SYNTHESIZED_DIR, exist_ok=True)
 
     nfs = [NFs[nf_name] for nf_name in args.nfs]
-    combinations = list(product(args.total_flows, args.zipf_params, args.churns, args.heuristics))
+    sweep_heuristics = [h for h in args.heuristics if h != GALLIUM_HEURISTIC]
+    combinations = list(product(args.total_flows, args.zipf_params, args.churns, sweep_heuristics))
+    if GALLIUM_HEURISTIC in args.heuristics:
+        gallium_flows, gallium_zipf, gallium_churn = GALLIUM_PROFILE
+        combinations.append((gallium_flows, gallium_zipf, gallium_churn, GALLIUM_HEURISTIC))
     total_combinations = len(args.nfs) * len(combinations)
 
     orchestrator = Orchestrator()
@@ -325,7 +336,7 @@ if __name__ == "__main__":
                 )
             )
 
-        for total_flows, heuristic in product(args.total_flows, args.heuristics):
+        for total_flows, heuristic in product(args.total_flows, sweep_heuristics):
             orchestrator.add_task(
                 plot_estimated_tput_synapse_nfs(
                     nf,
