@@ -14,11 +14,11 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,85'793'000,58,-9,-26'134'528,-1>
+  Score: <0,85'793'000,57,-9,-26'134'528,-1>
   Tput: 60.40 Gbps (85.79 Mpps)
   Spec: 60.40 Gbps (85.79 Mpps)
   Recirculations: 1
-  BDD Progress: 58 / 63
+  BDD Progress: 57 / 62
   Stages: 9
   Memory Usage: 26134528 bits
 
@@ -31,14 +31,14 @@ Stateful Implementations:
 
 Search Metadata:
   Elapsed time:       65 seconds
-  Steps:              59
+  Steps:              58
   Backtracks:         0
-  Search space size:  175
-  Unfinished EPs:     116
+  Search space size:  170
+  Unfinished EPs:     112
   Finished EPs:       1
-  Avg BDD size:       52
+  Avg BDD size:       51
   Branching factor:   3
-  Total SS size est.: 8'448'029'516'852
+  Total SS size est.: 4'613'520'449'008
   Avg children per node:
     Node 258: 0
     Node 257: 0
@@ -77,15 +77,15 @@ Search Metadata:
     Node 139: 4
     Node 140: 4
     Node 183: 3
-    Node 170: 3
+    Node 170: 0
     Node 141: 4
     Node 184: 3
-    Node 171: 4
+    Node 171: 3
     Node 142: 3
     Node 260: 0
     Node 166: 3
     Node 173: 3
-    Node 182: 3
+    Node 182: 2
     Node 150: 0
     Node 167: 3
     Node 174: 3
@@ -111,10 +111,10 @@ Search Metadata:
     Node 251: 0
 
 Global Stats:
-  Num phase 1 speculations: 12'766 (100%)
-  Num phase 2 speculations: 620 (4.85665%)
-  Num speculated modules:   149'969
-  Num EPs generated:        175
+  Num phase 1 speculations: 12'477 (100%)
+  Num phase 2 speculations: 608 (4.87297%)
+  Num speculated modules:   146'378
+  Num EPs generated:        170
 
 Switch placement:
 

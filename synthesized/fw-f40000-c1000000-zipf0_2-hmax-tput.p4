@@ -599,7 +599,7 @@ control Ingress(
                   meta.fcfs_cs_1074044080_key_16b_3 = hdr.hdr2.data0;
                   bool hit0 = fcfs_cs_1074044080_table_142.apply().hit;
                   fcfs_cs_1074044080_hash_142_calc();
-                  bool fcfs_cs_is_alive0 = fcfs_cs_1074044080_reg_liveness_query_timestamp.execute(fcfs_cs_1074044080_hash_142_value);
+                  bool fcfs_cs_is_alive0 = fcfs_cs_1074044080_reg_liveness_query_and_refresh_timestamp.execute(fcfs_cs_1074044080_hash_142_value);
                   if (!hit0 && fcfs_cs_is_alive0) {
                     fcfs_cs_1074044080_check_key_0_142();
                     fcfs_cs_1074044080_check_key_1_142();
@@ -614,21 +614,19 @@ control Ingress(
                   if (!hit0){
                     // EP node  1336:Then
                     // BDD node 143:if
-                    // EP node  5241:Drop
+                    // EP node  5063:Drop
                     // BDD node 147:DROP
                     fwd_op = fwd_op_t.DROP;
                   } else {
                     // EP node  1337:Else
                     // BDD node 143:if
-                    // EP node  1454:Ignore
-                    // BDD node 148:dchain_rejuvenate_index
-                    // EP node  1585:VectorTableLookup
+                    // EP node  1455:VectorTableLookup
                     // BDD node 149:vector_borrow
                     meta.key_32b_0 = meta.dev;
                     vector_table_1074093704_149.apply();
-                    // EP node  1689:Ignore
+                    // EP node  1556:Ignore
                     // BDD node 150:vector_return
-                    // EP node  2151:Forward
+                    // EP node  2005:Forward
                     // BDD node 154:FORWARD
                     nf_dev[15:0] = vector_table_1074093704_149_get_value_param0;
                   }
@@ -667,15 +665,15 @@ control Ingress(
                   if (hit1){
                     // EP node  1277:Then
                     // BDD node 155:map_get
-                    // EP node  2217:Ignore
-                    // BDD node 174:dchain_rejuvenate_index
-                    // EP node  2330:VectorTableLookup
+                    // EP node  2069:VectorTableLookup
                     // BDD node 175:vector_borrow
                     meta.key_32b_0 = meta.dev;
                     vector_table_1074093704_175.apply();
-                    // EP node  2446:Ignore
+                    // EP node  2211:Ignore
                     // BDD node 176:vector_return
-                    // EP node  2960:Forward
+                    // EP node  2324:Ignore
+                    // BDD node 174:dchain_rejuvenate_index
+                    // EP node  2825:Forward
                     // BDD node 180:FORWARD
                     nf_dev[15:0] = vector_table_1074093704_175_get_value_param0;
                   } else {
@@ -686,22 +684,22 @@ control Ingress(
                     if ((cached_insert_success0) != (32w0x00000000)){
                       // EP node  1280:Then
                       // BDD node 155:map_get
-                      // EP node  2998:VectorTableLookup
+                      // EP node  2862:VectorTableLookup
                       // BDD node 168:vector_borrow
                       meta.key_32b_0 = meta.dev;
                       vector_table_1074093704_168.apply();
-                      // EP node  3127:Ignore
+                      // EP node  2988:Ignore
                       // BDD node 169:vector_return
-                      // EP node  3696:Forward
+                      // EP node  3544:Forward
                       // BDD node 173:FORWARD
                       nf_dev[15:0] = vector_table_1074093704_168_get_value_param0;
                     } else {
                       // EP node  1281:Else
                       // BDD node 155:map_get
-                      // EP node  3793:SendToController
+                      // EP node  3639:SendToController
                       // BDD node 263:tofino_force_send_to_controller
                       fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                      build_cpu_hdr(3793);
+                      build_cpu_hdr(3639);
                       hdr.cpu.cached_insert_success0 = cached_insert_success0;
                       hdr.cpu.dev = meta.dev;
                     }
@@ -710,12 +708,12 @@ control Ingress(
               }
               // EP node  86:Else
               // BDD node 137:if
-              // EP node  4929:ParserReject
+              // EP node  4756:ParserReject
               // BDD node 183:DROP
             }
             // EP node  35:Else
             // BDD node 135:if
-            // EP node  4444:ParserReject
+            // EP node  4279:ParserReject
             // BDD node 185:DROP
           }
         }

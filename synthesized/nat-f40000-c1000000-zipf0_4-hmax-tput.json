@@ -2,13 +2,13 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 211,
-    "num_phase1_speculations": 24065,
+    "num_phase1_speculations": 24060,
     "num_phase2_speculations": 1217,
-    "num_speculated_modules": 279879,
-    "time_per_instantiation_us": 2876,
+    "num_speculated_modules": 279829,
+    "time_per_instantiation_us": 3595,
     "time_per_speculation_us": 36,
-    "total_time_spent_generating_execution_plans_us": 606995,
-    "total_time_spent_speculating_us": 10085281
+    "total_time_spent_generating_execution_plans_us": 758557,
+    "total_time_spent_speculating_us": 10151435
   },
   "heuristic": {
     "meta": [

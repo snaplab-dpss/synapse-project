@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       48 seconds
+  Elapsed time:       44 seconds
   Steps:              50
   Backtracks:         0
   Search space size:  162
@@ -103,9 +103,9 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 22'469 (100%)
-  Num phase 2 speculations: 1'502 (6.68477%)
-  Num speculated modules:   223'368
+  Num phase 1 speculations: 22'549 (100%)
+  Num phase 2 speculations: 1'512 (6.7054%)
+  Num speculated modules:   223'568
   Num EPs generated:        162
 
 Switch placement:
