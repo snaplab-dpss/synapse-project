@@ -138,6 +138,8 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
 
 
+
+
   if (trigger_update_ipv4_tcpudp_checksums) {
     update_ipv4_tcpudp_checksums(l3_hdr, l4_hdr);
   }

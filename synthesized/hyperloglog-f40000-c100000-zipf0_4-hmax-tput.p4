@@ -746,13 +746,7 @@ control Ingress(
               // BDD node 20:if
               // EP node  977:If
               // BDD node 21:if
-              bool cond1 = false;
-              if ((24w0x000000) == (meta.vector_reg_value0[31:8])){
-                if ((meta.vector_reg_value0[7:0]) <= (8w0x3f)){
-                  cond1 = true;
-                }
-              }
-              if (cond1) {
+              if ((meta.vector_reg_value0) <= (32w0x0000003f)){
                 // EP node  978:Then
                 // BDD node 21:if
                 // EP node  1191:ModifyHeader
@@ -796,24 +790,24 @@ control Ingress(
             // BDD node 18:if
             // EP node  1322:If
             // BDD node 33:if
-            bool cond2 = false;
+            bool cond1 = false;
             if ((24w0x000000) == (quotient0[31:8])){
               if ((quotient0[7:0]) < (8w0xa0)){
-                cond2 = true;
+                cond1 = true;
               }
             }
-            if (cond2) {
+            if (cond1) {
               // EP node  1323:Then
               // BDD node 33:if
               // EP node  1423:If
               // BDD node 34:if
-              bool cond3 = false;
+              bool cond2 = false;
               if ((24w0x000000) == (meta.vector_reg_value0[31:8])){
                 if ((meta.vector_reg_value0[7:0]) <= (8w0x3e)){
-                  cond3 = true;
+                  cond2 = true;
                 }
               }
-              if (cond3) {
+              if (cond2) {
                 // EP node  1424:Then
                 // BDD node 34:if
                 // EP node  1693:ModifyHeader

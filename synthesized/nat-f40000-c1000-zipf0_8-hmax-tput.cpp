@@ -593,6 +593,8 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr->egress_dev = 0;
   cpu_hdr->trigger_dataplane_execution = 0;
 
+
+
   if (bswap16(cpu_hdr->code_path) == 3866) {
     // EP node  3853
     // BDD node 165:dchain_allocate_new_index(chain:(w64 1074085120), index_out:(w64 1074223336)[(w32 2880154539) -> (ReadLSB w32 (w32 0) new_index__165)], time:(ReadLSB w64 (w32 0) next_time))

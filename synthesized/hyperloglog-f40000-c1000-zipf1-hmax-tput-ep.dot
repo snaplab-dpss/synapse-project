@@ -30,7 +30,7 @@ digraph G {
 	"0"[label="[EPNode=0,BDDNode=3]\nParse Header (14B)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"979"[label="[EPNode=979,BDDNode=21]\nElse",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"563"[label="[EPNode=563,BDDNode=18]\nThen",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
-	"977"[label="[EPNode=977,BDDNode=21] \n((w24 0) == vector_data__17[1:4])\n(vector_data__17[0] <= 63)",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
+	"977"[label="[EPNode=977,BDDNode=21] \n(vector_data__17 <= 63)",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"1817"[label="[EPNode=1817,BDDNode=38]\nForward (DEVICE)",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"635"[label="[EPNode=635,BDDNode=22]\nLn",shape=box,style="filled,",fillcolor="cornflowerblue",border=0,];
 	"699"[label="[EPNode=699,BDDNode=20] \n((w24 0) == quotient__16[1:4])\n(quotient__16[0] < -96)",shape=ellipse,style="filled,",fillcolor="cornflowerblue",border=0,];

@@ -592,6 +592,8 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr->egress_dev = 0;
   cpu_hdr->trigger_dataplane_execution = 0;
 
+
+
   if (bswap16(cpu_hdr->code_path) == 6042) {
     // EP node  6025
     // BDD node 281:tofino_force_send_to_controller()
