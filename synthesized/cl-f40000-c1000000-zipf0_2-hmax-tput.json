@@ -1,23 +1,23 @@
 {
   "bdd": "cl.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 142,
-    "num_phase1_speculations": 8476,
-    "num_phase2_speculations": 453,
-    "num_speculated_modules": 106646,
-    "time_per_instantiation_us": 764,
-    "time_per_speculation_us": 6,
-    "total_time_spent_generating_execution_plans_us": 108567,
-    "total_time_spent_speculating_us": 705842
+    "num_execution_plans_generated": 207,
+    "num_phase1_speculations": 18816,
+    "num_phase2_speculations": 968,
+    "num_speculated_modules": 216768,
+    "time_per_instantiation_us": 5881,
+    "time_per_speculation_us": 94,
+    "total_time_spent_generating_execution_plans_us": 1217571,
+    "total_time_spent_speculating_us": 20441353
   },
   "heuristic": {
     "meta": [
       {
-        "description": "11.24 Gbps (15.96 Mpps)",
+        "description": "48.83 Gbps (69.36 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "11.24 Gbps (15.96 Mpps)",
+        "description": "48.83 Gbps (69.36 Mpps)",
         "name": "Spec"
       },
       {
@@ -25,24 +25,24 @@
         "name": "Recirculations"
       },
       {
-        "description": "49 / 53",
+        "description": "58 / 63",
         "name": "BDD Progress"
       },
       {
-        "description": "6",
+        "description": "4",
         "name": "Stages"
       },
       {
-        "description": "8307008 bits",
+        "description": "36278272 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      15962500,
-      49,
-      -6,
-      -8307008,
+      69357500,
+      58,
+      -4,
+      -36278272,
       -1
     ]
   },
@@ -57,7 +57,7 @@
     },
     {
       "addr": 1074079968,
-      "implementation": "Tofino::MapSetTable"
+      "implementation": "Tofino::FCFSCachedSet"
     },
     {
       "addr": 1074110176,
@@ -65,217 +65,45 @@
     },
     {
       "addr": 1074047984,
-      "implementation": "Tofino::MapSetTable"
+      "implementation": "Tofino::FCFSCachedSet"
     }
   ],
   "name": "cl-f40000-c1000000-zipf0_2-hmax-tput",
   "profile_file": "cl-f40000-c1000000-zipf0_2.json",
   "search_meta": {
-    "avg_bdd_size": 51,
+    "avg_bdd_size": 52,
     "avg_children_per_node": [
       {
         "avg": 0.0,
-        "node_id": 165
+        "node_id": 258
       },
       {
         "avg": 0.0,
-        "node_id": 164
+        "node_id": 257
       },
       {
         "avg": 0.0,
-        "node_id": 163
+        "node_id": 256
       },
       {
         "avg": 0.0,
-        "node_id": 162
+        "node_id": 255
       },
       {
         "avg": 0.0,
-        "node_id": 156
+        "node_id": 254
       },
       {
         "avg": 0.0,
-        "node_id": 161
-      },
-      {
-        "avg": 0.0,
-        "node_id": 155
-      },
-      {
-        "avg": 0.0,
-        "node_id": 160
-      },
-      {
-        "avg": 0.0,
-        "node_id": 154
-      },
-      {
-        "avg": 0.0,
-        "node_id": 159
-      },
-      {
-        "avg": 0.0,
-        "node_id": 153
-      },
-      {
-        "avg": 2.0,
-        "node_id": 176
-      },
-      {
-        "avg": 0.0,
-        "node_id": 169
-      },
-      {
-        "avg": 0.0,
-        "node_id": 158
-      },
-      {
-        "avg": 0.0,
-        "node_id": 152
+        "node_id": 253
       },
       {
         "avg": 3.0,
-        "node_id": 175
-      },
-      {
-        "avg": 0.0,
-        "node_id": 168
-      },
-      {
-        "avg": 0.0,
-        "node_id": 157
-      },
-      {
-        "avg": 0.0,
-        "node_id": 151
+        "node_id": 181
       },
       {
         "avg": 3.0,
-        "node_id": 174
-      },
-      {
-        "avg": 0.0,
-        "node_id": 167
-      },
-      {
-        "avg": 0.0,
-        "node_id": 150
-      },
-      {
-        "avg": 2.0,
-        "node_id": 182
-      },
-      {
-        "avg": 3.0,
-        "node_id": 173
-      },
-      {
-        "avg": 0.0,
-        "node_id": 166
-      },
-      {
-        "avg": 3.0,
-        "node_id": 142
-      },
-      {
-        "avg": 3.0,
-        "node_id": 171
-      },
-      {
-        "avg": 3.0,
-        "node_id": 184
-      },
-      {
-        "avg": 4.0,
-        "node_id": 141
-      },
-      {
-        "avg": 0.0,
-        "node_id": 170
-      },
-      {
-        "avg": 3.0,
-        "node_id": 183
-      },
-      {
-        "avg": 4.0,
-        "node_id": 140
-      },
-      {
-        "avg": 4.0,
-        "node_id": 139
-      },
-      {
-        "avg": 3.0,
-        "node_id": 138
-      },
-      {
-        "avg": 3.0,
-        "node_id": 137
-      },
-      {
-        "avg": 3.0,
-        "node_id": 136
-      },
-      {
-        "avg": 2.0,
-        "node_id": 187
-      },
-      {
-        "avg": 2.5,
-        "node_id": 135
-      },
-      {
-        "avg": 3.0,
-        "node_id": 186
-      },
-      {
-        "avg": 2.0,
-        "node_id": 134
-      },
-      {
-        "avg": 2.0,
-        "node_id": 185
-      },
-      {
-        "avg": 3.0,
-        "node_id": 143
-      },
-      {
-        "avg": 3.0,
-        "node_id": 172
-      },
-      {
-        "avg": 32.0,
-        "node_id": 144
-      },
-      {
-        "avg": 4.0,
-        "node_id": 177
-      },
-      {
-        "avg": 2.0,
-        "node_id": 148
-      },
-      {
-        "avg": 3.0,
-        "node_id": 145
-      },
-      {
-        "avg": 3.0,
-        "node_id": 178
-      },
-      {
-        "avg": 0.0,
-        "node_id": 149
-      },
-      {
-        "avg": 4.0,
-        "node_id": 146
-      },
-      {
-        "avg": 3.0,
-        "node_id": 179
+        "node_id": 180
       },
       {
         "avg": 0.0,
@@ -283,24 +111,256 @@
       },
       {
         "avg": 3.0,
-        "node_id": 180
+        "node_id": 179
+      },
+      {
+        "avg": 4.0,
+        "node_id": 146
       },
       {
         "avg": 3.0,
-        "node_id": 181
+        "node_id": 149
+      },
+      {
+        "avg": 3.0,
+        "node_id": 178
+      },
+      {
+        "avg": 3.0,
+        "node_id": 145
+      },
+      {
+        "avg": 3.0,
+        "node_id": 148
+      },
+      {
+        "avg": 4.0,
+        "node_id": 177
+      },
+      {
+        "avg": 31.5,
+        "node_id": 144
+      },
+      {
+        "avg": 3.0,
+        "node_id": 172
+      },
+      {
+        "avg": 3.0,
+        "node_id": 143
+      },
+      {
+        "avg": 2.0,
+        "node_id": 185
+      },
+      {
+        "avg": 0.0,
+        "node_id": 261
+      },
+      {
+        "avg": 2.0,
+        "node_id": 134
+      },
+      {
+        "avg": 0.0,
+        "node_id": 252
+      },
+      {
+        "avg": 3.0,
+        "node_id": 186
+      },
+      {
+        "avg": 0.0,
+        "node_id": 262
+      },
+      {
+        "avg": 3.0,
+        "node_id": 135
+      },
+      {
+        "avg": 2.0,
+        "node_id": 187
+      },
+      {
+        "avg": 0.0,
+        "node_id": 263
+      },
+      {
+        "avg": 3.0,
+        "node_id": 136
+      },
+      {
+        "avg": 0.0,
+        "node_id": 264
+      },
+      {
+        "avg": 3.0,
+        "node_id": 137
+      },
+      {
+        "avg": 0.0,
+        "node_id": 265
+      },
+      {
+        "avg": 3.0,
+        "node_id": 138
+      },
+      {
+        "avg": 2.0,
+        "node_id": 266
+      },
+      {
+        "avg": 4.0,
+        "node_id": 139
+      },
+      {
+        "avg": 4.0,
+        "node_id": 140
+      },
+      {
+        "avg": 3.0,
+        "node_id": 183
+      },
+      {
+        "avg": 3.0,
+        "node_id": 170
+      },
+      {
+        "avg": 3.5,
+        "node_id": 141
+      },
+      {
+        "avg": 3.0,
+        "node_id": 184
+      },
+      {
+        "avg": 3.0,
+        "node_id": 171
+      },
+      {
+        "avg": 3.0,
+        "node_id": 142
+      },
+      {
+        "avg": 0.0,
+        "node_id": 260
+      },
+      {
+        "avg": 3.0,
+        "node_id": 166
+      },
+      {
+        "avg": 3.0,
+        "node_id": 173
+      },
+      {
+        "avg": 3.0,
+        "node_id": 182
+      },
+      {
+        "avg": 0.0,
+        "node_id": 150
+      },
+      {
+        "avg": 3.0,
+        "node_id": 167
+      },
+      {
+        "avg": 3.0,
+        "node_id": 174
+      },
+      {
+        "avg": 0.0,
+        "node_id": 151
+      },
+      {
+        "avg": 0.0,
+        "node_id": 157
+      },
+      {
+        "avg": 3.0,
+        "node_id": 168
+      },
+      {
+        "avg": 3.0,
+        "node_id": 175
+      },
+      {
+        "avg": 0.0,
+        "node_id": 152
+      },
+      {
+        "avg": 0.0,
+        "node_id": 158
+      },
+      {
+        "avg": 2.0,
+        "node_id": 169
+      },
+      {
+        "avg": 2.0,
+        "node_id": 176
+      },
+      {
+        "avg": 0.0,
+        "node_id": 153
+      },
+      {
+        "avg": 0.0,
+        "node_id": 159
+      },
+      {
+        "avg": 0.0,
+        "node_id": 154
+      },
+      {
+        "avg": 3.0,
+        "node_id": 160
+      },
+      {
+        "avg": 0.0,
+        "node_id": 155
+      },
+      {
+        "avg": 3.0,
+        "node_id": 161
+      },
+      {
+        "avg": 0.0,
+        "node_id": 156
+      },
+      {
+        "avg": 3.0,
+        "node_id": 162
+      },
+      {
+        "avg": 3.0,
+        "node_id": 163
+      },
+      {
+        "avg": 3.0,
+        "node_id": 164
+      },
+      {
+        "avg": 2.0,
+        "node_id": 165
+      },
+      {
+        "avg": 0.0,
+        "node_id": 251
       }
     ],
-    "backtracks": 0,
-    "branching_factor": 2.6574074074074074,
-    "elapsed_time_seconds": 12,
+    "backtracks": 1,
+    "branching_factor": 3.0727272727272728,
+    "elapsed_time_seconds": 97,
     "finished_eps": 1,
-    "ss_size": 142,
-    "steps": 51,
-    "total_ss_size_estimation": 183789033607.8394,
-    "unfinished_eps": 91
+    "ss_size": 207,
+    "steps": 60,
+    "total_ss_size_estimation": 7271680109098.331,
+    "unfinished_eps": 147
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 11237796416,
-  "tput_estimation_pps": 15962779
+  "tput_estimation_bps": 48827820800,
+  "tput_estimation_pps": 69357700
 }

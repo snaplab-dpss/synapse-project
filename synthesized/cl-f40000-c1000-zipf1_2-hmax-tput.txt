@@ -30,15 +30,15 @@ Stateful Implementations:
   1074047984: Tofino::MapSetTable
 
 Search Metadata:
-  Elapsed time:       9 seconds
+  Elapsed time:       50 seconds
   Steps:              50
   Backtracks:         0
-  Search space size:  140
-  Unfinished EPs:     90
+  Search space size:  149
+  Unfinished EPs:     99
   Finished EPs:       1
   Avg BDD size:       51
   Branching factor:   2
-  Total SS size est.: 200'649'778'565
+  Total SS size est.: 929'012'155'082
   Avg children per node:
     Node 165: 0
     Node 164: 0
@@ -52,19 +52,19 @@ Search Metadata:
     Node 159: 0
     Node 153: 0
     Node 176: 2
-    Node 169: 0
+    Node 169: 2
     Node 158: 0
     Node 152: 0
     Node 175: 3
-    Node 168: 0
+    Node 168: 3
     Node 157: 0
     Node 151: 0
     Node 174: 3
-    Node 167: 0
+    Node 167: 3
     Node 150: 0
     Node 182: 2
     Node 173: 3
-    Node 166: 0
+    Node 166: 3
     Node 142: 3
     Node 171: 3
     Node 184: 3
@@ -85,10 +85,10 @@ Search Metadata:
     Node 172: 3
     Node 144: 32
     Node 177: 4
-    Node 148: 2
+    Node 148: 3
     Node 145: 3
     Node 178: 3
-    Node 149: 0
+    Node 149: 2
     Node 146: 4
     Node 179: 3
     Node 147: 0
@@ -96,10 +96,10 @@ Search Metadata:
     Node 181: 3
 
 Global Stats:
-  Num phase 1 speculations: 9'724 (100%)
-  Num phase 2 speculations: 529 (5.44015%)
-  Num speculated modules:   116'793
-  Num EPs generated:        140
+  Num phase 1 speculations: 12'711 (100%)
+  Num phase 2 speculations: 601 (4.72819%)
+  Num speculated modules:   152'087
+  Num EPs generated:        149
 
 Switch placement:
 

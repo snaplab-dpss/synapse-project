@@ -1,55 +1,59 @@
 {
   "bdd": "psd.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 159,
-    "num_phase1_speculations": 7675,
-    "num_phase2_speculations": 497,
-    "num_speculated_modules": 98644,
-    "time_per_instantiation_us": 164,
-    "time_per_speculation_us": 72,
-    "total_time_spent_generating_execution_plans_us": 26172,
-    "total_time_spent_speculating_us": 7155362
+    "num_execution_plans_generated": 220,
+    "num_phase1_speculations": 18098,
+    "num_phase2_speculations": 1012,
+    "num_speculated_modules": 229098,
+    "time_per_instantiation_us": 4708,
+    "time_per_speculation_us": 59,
+    "total_time_spent_generating_execution_plans_us": 1035778,
+    "total_time_spent_speculating_us": 13546523
   },
   "heuristic": {
     "meta": [
       {
-        "description": "591.36 Kbps (840.00 pps)",
+        "description": "1.58 Tbps (2.25 Gpps)",
         "name": "Tput"
       },
       {
-        "description": "352.00 Kbps (500.00 pps)",
+        "description": "1.58 Tbps (2.25 Gpps)",
         "name": "Spec"
       },
       {
-        "description": "0",
+        "description": "1",
         "name": "Recirculations"
       },
       {
-        "description": "65 / 71",
+        "description": "75 / 82",
         "name": "BDD Progress"
       },
       {
-        "description": "7",
+        "description": "2",
         "name": "Stages"
       },
       {
-        "description": "8305280 bits",
+        "description": "17261696 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      500,
-      65,
-      -7,
-      -8305280,
-      0
+      2249999500,
+      75,
+      -2,
+      -17261696,
+      -1
     ]
   },
   "implementations": [
     {
       "addr": 1074079432,
-      "implementation": "Controller::Vector"
+      "implementation": "Tofino::VectorRegister"
+    },
+    {
+      "addr": 1074126776,
+      "implementation": "Tofino::VectorTable"
     },
     {
       "addr": 1074096984,
@@ -57,15 +61,11 @@
     },
     {
       "addr": 1074096568,
-      "implementation": "Tofino::DchainTable"
-    },
-    {
-      "addr": 1074126776,
-      "implementation": "Tofino::VectorTable"
+      "implementation": "Tofino::FCFSCachedTable"
     },
     {
       "addr": 1074048392,
-      "implementation": "Tofino::MapTable"
+      "implementation": "Tofino::FCFSCachedTable"
     },
     {
       "addr": 1074109560,
@@ -79,6 +79,10 @@
     "avg_children_per_node": [
       {
         "avg": 0.0,
+        "node_id": 293
+      },
+      {
+        "avg": 2.0,
         "node_id": 166
       },
       {
@@ -87,10 +91,14 @@
       },
       {
         "avg": 0.0,
+        "node_id": 292
+      },
+      {
+        "avg": 3.0,
         "node_id": 165
       },
       {
-        "avg": 0.0,
+        "avg": 2.0,
         "node_id": 191
       },
       {
@@ -99,19 +107,27 @@
       },
       {
         "avg": 0.0,
+        "node_id": 291
+      },
+      {
+        "avg": 3.0,
         "node_id": 164
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 190
       },
       {
-        "avg": 0.0,
+        "avg": 2.0,
         "node_id": 184
       },
       {
         "avg": 0.0,
         "node_id": 177
+      },
+      {
+        "avg": 0.0,
+        "node_id": 282
       },
       {
         "avg": 0.0,
@@ -182,6 +198,10 @@
         "node_id": 143
       },
       {
+        "avg": 0.0,
+        "node_id": 294
+      },
+      {
         "avg": 4.0,
         "node_id": 167
       },
@@ -194,7 +214,11 @@
         "node_id": 197
       },
       {
-        "avg": 2.0,
+        "avg": 0.0,
+        "node_id": 295
+      },
+      {
+        "avg": 3.0,
         "node_id": 168
       },
       {
@@ -206,6 +230,10 @@
         "node_id": 198
       },
       {
+        "avg": 0.0,
+        "node_id": 296
+      },
+      {
         "avg": 5.0,
         "node_id": 169
       },
@@ -214,11 +242,11 @@
         "node_id": 140
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 199
       },
       {
-        "avg": 2.0,
+        "avg": 3.0,
         "node_id": 200
       },
       {
@@ -239,10 +267,18 @@
       },
       {
         "avg": 0.0,
+        "node_id": 283
+      },
+      {
+        "avg": 0.0,
         "node_id": 156
       },
       {
-        "avg": 2.0,
+        "avg": 0.0,
+        "node_id": 297
+      },
+      {
+        "avg": 0.0,
         "node_id": 170
       },
       {
@@ -251,10 +287,18 @@
       },
       {
         "avg": 0.0,
+        "node_id": 284
+      },
+      {
+        "avg": 0.0,
         "node_id": 157
       },
       {
         "avg": 0.0,
+        "node_id": 298
+      },
+      {
+        "avg": 4.0,
         "node_id": 171
       },
       {
@@ -263,14 +307,22 @@
       },
       {
         "avg": 0.0,
+        "node_id": 285
+      },
+      {
+        "avg": 8.0,
         "node_id": 158
       },
       {
         "avg": 0.0,
+        "node_id": 299
+      },
+      {
+        "avg": 3.0,
         "node_id": 172
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 185
       },
       {
@@ -279,18 +331,26 @@
       },
       {
         "avg": 0.0,
+        "node_id": 286
+      },
+      {
+        "avg": 4.0,
         "node_id": 159
       },
       {
-        "avg": 0.0,
+        "avg": 4.0,
+        "node_id": 300
+      },
+      {
+        "avg": 2.0,
         "node_id": 173
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 180
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 186
       },
       {
@@ -299,38 +359,50 @@
       },
       {
         "avg": 0.0,
+        "node_id": 287
+      },
+      {
+        "avg": 3.0,
         "node_id": 160
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 174
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 181
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 187
       },
       {
         "avg": 0.0,
+        "node_id": 288
+      },
+      {
+        "avg": 3.0,
         "node_id": 161
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 175
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 182
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 188
       },
       {
         "avg": 0.0,
+        "node_id": 289
+      },
+      {
+        "avg": 3.0,
         "node_id": 162
       },
       {
@@ -338,29 +410,29 @@
         "node_id": 176
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 183
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 189
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 163
       }
     ],
-    "backtracks": 3,
-    "branching_factor": 2.1176470588235294,
-    "elapsed_time_seconds": 20,
+    "backtracks": 0,
+    "branching_factor": 2.971014492753623,
+    "elapsed_time_seconds": 69,
     "finished_eps": 1,
-    "ss_size": 159,
-    "steps": 69,
-    "total_ss_size_estimation": 1016314176.1812978,
-    "unfinished_eps": 90
+    "ss_size": 220,
+    "steps": 77,
+    "total_ss_size_estimation": 4433110888646.346,
+    "unfinished_eps": 143
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 591360,
-  "tput_estimation_pps": 840
+  "tput_estimation_bps": 1583999657152,
+  "tput_estimation_pps": 2249999513
 }

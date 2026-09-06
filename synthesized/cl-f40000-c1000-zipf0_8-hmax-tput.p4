@@ -619,12 +619,24 @@ control Ingress(
                 cms_1074080384_min0 = min(cms_1074080384_min0, cms_1074080384_row_1_inc_and_read_value);
                 cms_1074080384_min0 = min(cms_1074080384_min0, cms_1074080384_row_2_inc_and_read_value);
                 cms_1074080384_min0 = min(cms_1074080384_min0, cms_1074080384_row_3_inc_and_read_value);
-                // EP node  1863:SendToController
+                // EP node  1823:If
                 // BDD node 148:if
-                fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                build_cpu_hdr(1863);
-                hdr.cpu.cms_1074080384_min0 = cms_1074080384_min0;
-                hdr.cpu.dev = meta.dev;
+                if ((cms_1074080384_min0) <= (32w0x0001ffff)){
+                  // EP node  1824:Then
+                  // BDD node 148:if
+                  // EP node  1972:SendToController
+                  // BDD node 149:dchain_allocate_new_index
+                  fwd_op = fwd_op_t.FORWARD_TO_CPU;
+                  build_cpu_hdr(1972);
+                  hdr.cpu.cms_1074080384_min0 = cms_1074080384_min0;
+                  hdr.cpu.dev = meta.dev;
+                } else {
+                  // EP node  1825:Else
+                  // BDD node 148:if
+                  // EP node  3216:Drop
+                  // BDD node 169:DROP
+                  fwd_op = fwd_op_t.DROP;
+                }
               } else {
                 // EP node  695:Else
                 // BDD node 145:if
@@ -654,12 +666,12 @@ control Ingress(
           }
           // EP node  71:Else
           // BDD node 139:if
-          // EP node  2416:ParserReject
+          // EP node  2945:ParserReject
           // BDD node 185:DROP
         }
         // EP node  26:Else
         // BDD node 137:if
-        // EP node  2200:ParserReject
+        // EP node  2528:ParserReject
         // BDD node 187:DROP
       }
 
