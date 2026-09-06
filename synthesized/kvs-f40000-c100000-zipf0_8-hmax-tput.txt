@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       26 seconds
+  Elapsed time:       45 seconds
   Steps:              49
   Backtracks:         0
   Search space size:  160
@@ -103,9 +103,9 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 19'956 (100%)
-  Num phase 2 speculations: 1'411 (7.07056%)
-  Num speculated modules:   194'895
+  Num phase 1 speculations: 19'750 (100%)
+  Num phase 2 speculations: 1'404 (7.10886%)
+  Num speculated modules:   193'144
   Num EPs generated:        160
 
 Switch placement:
@@ -133,7 +133,7 @@ SRAM: 344'068/1'310'720 B (26.2503%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 344'068/786'432 B (43.7505%)
 Exact Match Crossbar: 41/128 B (32.0312%)
-Objs: [hh_table_1073923096_threshold,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_3,hh_table_1073923096_digest,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_cms_row_3,hh_table_1073923096_hash_calc_0]
+Objs: [hh_table_1073923096_threshold,hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_2,hh_table_1073923096_digest,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_0]
 -------------------------------------
 -------------------------------------
 Stage 3

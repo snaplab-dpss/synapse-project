@@ -28,7 +28,7 @@ Stateful Implementations:
   1073917816: Tofino::VectorRegister
 
 Search Metadata:
-  Elapsed time:       5 seconds
+  Elapsed time:       9 seconds
   Steps:              40
   Backtracks:         1
   Search space size:  128
