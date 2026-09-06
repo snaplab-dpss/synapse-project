@@ -18,7 +18,10 @@ SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
 NETCACHE_DIR = PROJECT_DIR / "tofino" / "netcache" / "p4"
 SWITCHAROO_DIR = PROJECT_DIR / "tofino" / "switcharoo" / "p4"
 
-TARGET_NFS = ["kvs", "fw", "nat", "psd", "cl"]
+TARGET_NFS = ["kvs", "fw", "nat", "psd", "cl", "hyperloglog"]
+
+# Table labels; NFs missing from this map are shown as their upper-cased name.
+NF_LABELS = {"hyperloglog": "HLL"}
 
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
@@ -62,7 +65,7 @@ def build_resources_latex_table(avg_resources_per_nf: dict[str, tuple[Resources,
         avg_loc, stdev_loc = avg_loc_per_nf[nf]
 
         columns = [
-            nf.upper(),
+            NF_LABELS.get(nf, nf.upper()),
             f"\\evalue{{{avg_loc}}}{{{stdev_loc}}}",
             f"\\evalue{{{100*avg_resources.stages:.1f}}}{{{100*stdev_resources.stages:.1f}}}",
             f"\\evalue{{{100*avg_resources.sram:.1f}}}{{{100*stdev_resources.sram:.1f}}}",
@@ -102,7 +105,7 @@ def build_stages_over_churn_latex_table(resources_per_nf_per_key: dict[str, dict
     rows = []
 
     for nf in resources_per_nf_per_key.keys():
-        row_elems = [nf.upper()]
+        row_elems = [NF_LABELS.get(nf, nf.upper())]
         for c in churns:
             vals = []
             for key in resources_per_nf_per_key[nf].keys():
@@ -278,7 +281,7 @@ if __name__ == "__main__":
         avg_loc, stdev_loc = avg_loc_per_nf[nf]
         table.add_row(
             [
-                nf,
+                NF_LABELS.get(nf, nf),
                 f"{avg_loc} ± {stdev_loc}",
                 f"{100*avg_resources.stages:4.1f} ± {100*stdev_resources.stages:4.1f}",
                 f"{100*avg_resources.sram:4.1f} ± {100*stdev_resources.sram:4.1f}",
@@ -303,7 +306,7 @@ if __name__ == "__main__":
             avg_val = mean(vals)
             stdev_val = stdev(vals) if len(vals) > 1 else 0
             row.append(f"{100*avg_val:4.1f} ± {100*stdev_val:4.1f}")
-        table2.add_row([nf] + row)
+        table2.add_row([NF_LABELS.get(nf, nf)] + row)
     print(table2)
 
     table3 = PrettyTable()
@@ -319,7 +322,7 @@ if __name__ == "__main__":
             avg_val = mean(vals)
             stdev_val = stdev(vals) if len(vals) > 1 else 0
             row.append(f"{100*avg_val:4.1f} ± {100*stdev_val:4.1f}")
-        table3.add_row([nf] + row)
+        table3.add_row([NF_LABELS.get(nf, nf)] + row)
     print(table3)
 
     latex_table = build_resources_latex_table(avg_resources_per_nf, avg_loc_per_nf)

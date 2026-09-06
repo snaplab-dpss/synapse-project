@@ -15,7 +15,10 @@ CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PROJECT_DIR = (CURRENT_DIR / ".." / "..").resolve()
 
 SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
-TARGET_NFS = ["kvs", "fw", "nat", "psd", "cl"]
+TARGET_NFS = ["kvs", "fw", "nat", "psd", "cl", "hyperloglog"]
+
+# Table labels; NFs missing from this map are shown as their upper-cased name.
+NF_LABELS = {"hyperloglog": "HLL"}
 
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
@@ -45,40 +48,40 @@ def multiline_latex_cell(lines: list[str]) -> str:
     return r"\begin{tabular}[c]{@{}l@{}}" + content + r"\end{tabular}"
 
 
+def thousands_label(n: float) -> str:
+    if n < 1000:
+        return f"{n:.0f}"
+    return f"{round(n / 1000):,}k"
+
+
 def build_latex_table(microbench_per_nf: dict[str, Microbench]) -> str:
-    prefix = r"\begin{tabular}{lcccccccc}" + "\n"
+    prefix = r"\begin{tabular}{lccccccc}" + "\n"
     prefix += r"\toprule" + "\n"
     prefix += r"& " + multiline_latex_cell([r"\textbf{Total}", r"\textbf{Time}"])
-    prefix += r"& " + multiline_latex_cell([r"\textbf{Backtracks}"])
-    prefix += r"& " + multiline_latex_cell([r"\textbf{Speculated}", r"\textbf{SS}"])
-    prefix += r"& " + multiline_latex_cell([r"\textbf{Committed}", r"\textbf{SS}"])
-    prefix += r"& " + multiline_latex_cell([r"\textbf{Phase 1}", r"\textbf{Spec.}"])
-    prefix += r"& " + multiline_latex_cell([r"\textbf{Phase 2}", r"\textbf{Spec.}"])
+    prefix += r"& " + multiline_latex_cell([r"\textbf{Spec.}", r"\textbf{S.S.}"])
+    prefix += r"& " + multiline_latex_cell([r"\textbf{Comm.}", r"\textbf{S.S.}"])
+    prefix += r"& " + multiline_latex_cell([r"\textbf{Local}", r"\textbf{Spec.}"])
+    prefix += r"& " + multiline_latex_cell([r"\textbf{Recur.}", r"\textbf{Spec.}"])
     prefix += r"& " + multiline_latex_cell([r"\textbf{Time per}", r"\textbf{Spec.}"])
     prefix += r"& " + multiline_latex_cell([r"\textbf{Time per}", r"\textbf{Commit}"])
     prefix += r"\\" + "\n"
-    prefix += r"\cmidrule(r){2-2} \cmidrule(r){3-7} \cmidrule(r){8-9}" + "\n"
-    prefix += r"& {\scriptsize \textit{(s)}} & \multicolumn{5}{c@{}}{\scriptsize \textit{(\#)}} & \multicolumn{2}{c@{}}{\footnotesize \textit{($\mu$s)}} \\" + "\n"
     prefix += r"\midrule" + "\n"
 
     rows = []
 
-    for nf in microbench_per_nf.keys():
-        avg_relative_spec_phase2 = microbench_per_nf[nf].phase2_speculations[0] / microbench_per_nf[nf].phase1_speculations[0] if microbench_per_nf[nf].phase1_speculations[0] > 0 else 0
-        stdev_relative_spec_phase2 = microbench_per_nf[nf].phase2_speculations[1] / microbench_per_nf[nf].phase1_speculations[0] if microbench_per_nf[nf].phase1_speculations[0] > 0 else 0
+    for nf, mb in microbench_per_nf.items():
+        time_per_spec_us = mb.time_per_speculation_us
+        time_per_commit_ms = (mb.time_per_instantiation_us[0] / 1000, (mb.time_per_instantiation_us[1][0] / 1000, mb.time_per_instantiation_us[1][1] / 1000))
 
         columns = [
-            nf.upper(),
-            f"\\evalue{{{microbench_per_nf[nf].compilation_times[0]:.0f}}}{{{microbench_per_nf[nf].compilation_times[1]:.0f}}}",
-            # f"\\evalue{{{microbench_per_nf[nf].speculated[0]//1000:,.0f}K}}{{{microbench_per_nf[nf].speculated[1]//1000:,.0f}K}}",
-            f"\\evalue{{{microbench_per_nf[nf].backtracks[0]:,.0f}}}{{{microbench_per_nf[nf].backtracks[1]:,.0f}}}",
-            f"\\evalue{{{microbench_per_nf[nf].speculated[0]:,.0f}}}{{{microbench_per_nf[nf].speculated[1]:,.0f}}}",
-            f"\\evalue{{{microbench_per_nf[nf].instantiated[0]:,.0f}}}{{{microbench_per_nf[nf].instantiated[1]:,.0f}}}",
-            # f"\\evalue{{{avg_relative_spec_phase2*100:.1f}}}{{{stdev_relative_spec_phase2*100:.1f}}}",
-            f"\\evalue{{{microbench_per_nf[nf].phase1_speculations[0]:,.0f}}}{{{microbench_per_nf[nf].phase1_speculations[1]:,.0f}}}",
-            f"\\evalue{{{microbench_per_nf[nf].phase2_speculations[0]:,.0f}}}{{{microbench_per_nf[nf].phase2_speculations[1]:,.0f}}}",
-            f"\\evalued{{{microbench_per_nf[nf].time_per_speculation_us[0]:.0f}}}{{{microbench_per_nf[nf].time_per_speculation_us[1][0]:.0f}}}{{{microbench_per_nf[nf].time_per_speculation_us[1][1]:.0f}}}",
-            f"\\evalued{{{microbench_per_nf[nf].time_per_instantiation_us[0]:,.0f}}}{{{microbench_per_nf[nf].time_per_instantiation_us[1][0]:,.0f}}}{{{microbench_per_nf[nf].time_per_instantiation_us[1][1]:,.0f}}}",
+            NF_LABELS.get(nf, nf.upper()),
+            f"\\evalue{{{mb.compilation_times[0]:.0f}s}}{{{mb.compilation_times[1]:.0f}}}",
+            f"\\evalue{{{thousands_label(mb.speculated[0])}}}{{{thousands_label(mb.speculated[1])}}}",
+            f"\\evalue{{{mb.instantiated[0]:,.0f}}}{{{mb.instantiated[1]:,.0f}}}",
+            f"\\evalue{{{thousands_label(mb.phase1_speculations[0])}}}{{{thousands_label(mb.phase1_speculations[1])}}}",
+            f"\\evalue{{{mb.phase2_speculations[0]:,.0f}}}{{{mb.phase2_speculations[1]:,.0f}}}",
+            f"\\evalued{{{time_per_spec_us[0]:,.0f}\\textmu{{}}s}}{{{time_per_spec_us[1][0]:,.0f}}}{{{time_per_spec_us[1][1]:,.0f}}}",
+            f"\\evalued{{{time_per_commit_ms[0]:,.1f}ms}}{{{time_per_commit_ms[1][0]:,.1f}}}{{{time_per_commit_ms[1][1]:,.1f}}}",
         ]
 
         row = " & ".join(columns) + r" \\"
@@ -176,7 +179,7 @@ if __name__ == "__main__":
 
         table.add_row(
             [
-                nf.upper(),
+                NF_LABELS.get(nf, nf.upper()),
                 f"{data[nf].compilation_times[0]:,.0f} ± {data[nf].compilation_times[1]:,.0f}",
                 # f"{avg_backtracks:,.0f} ± {stdev_backtracks:,.0f}",
                 f"{data[nf].speculated[0]:,.0f} ± {data[nf].speculated[1]:,.0f}",
