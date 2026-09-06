@@ -7,7 +7,6 @@ from pathlib import Path
 from utils.heatmap import *
 from utils.parser import parse_heatmap_data_file
 
-
 CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PLOTS_DIR = CURRENT_DIR / "plots"
 DATA_DIR = CURRENT_DIR / ".." / "eval" / "data"
@@ -62,6 +61,16 @@ NFS = [
         "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_cl_pps_scatter.pdf",
         "heatmap_output_file": PLOTS_DIR / "tput_synapse_cl_heatmap.pdf",
         "barplot_output_file": PLOTS_DIR / "tput_synapse_cl_barplot.pdf",
+    },
+    {
+        "title": "HLL",
+        "data_file": DATA_DIR / "tput_synapse_hyperloglog.csv",
+        "bps_output_file": PLOTS_DIR / "tput_synapse_hyperloglog_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_synapse_hyperloglog_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_hyperloglog_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_hyperloglog_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_synapse_hyperloglog_heatmap.pdf",
+        "barplot_output_file": PLOTS_DIR / "tput_synapse_hyperloglog_barplot.pdf",
     },
     {
         "title": "Gallium KVS",
