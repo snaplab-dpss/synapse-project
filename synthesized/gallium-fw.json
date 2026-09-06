@@ -5,10 +5,10 @@
     "num_phase1_speculations": 17868,
     "num_phase2_speculations": 942,
     "num_speculated_modules": 201576,
-    "time_per_instantiation_us": 518,
-    "time_per_speculation_us": 44,
-    "total_time_spent_generating_execution_plans_us": 94415,
-    "total_time_spent_speculating_us": 8968570
+    "time_per_instantiation_us": 463,
+    "time_per_speculation_us": 40,
+    "total_time_spent_generating_execution_plans_us": 84291,
+    "total_time_spent_speculating_us": 8110860
   },
   "heuristic": {
     "meta": [
@@ -45,7 +45,7 @@
     },
     {
       "addr": 1074076488,
-      "implementation": "Tofino::VectorRegister"
+      "implementation": "Tofino::VectorTable"
     }
   ],
   "name": "gallium-fw",
@@ -292,14 +292,14 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.042372881355932,
-    "elapsed_time_seconds": 25,
+    "elapsed_time_seconds": 23,
     "finished_eps": 1,
     "ss_size": 182,
     "steps": 59,
     "total_ss_size_estimation": 67411688796.036865,
     "unfinished_eps": 123
   },
-  "seed": 3513372890,
+  "seed": 0,
   "targets_config_file": "tofino2.toml",
   "tput_estimation_bps": 1165634525440,
   "tput_estimation_pps": 1655730860

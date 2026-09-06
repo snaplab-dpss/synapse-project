@@ -5,10 +5,10 @@
     "num_phase1_speculations": 252,
     "num_phase2_speculations": 8,
     "num_speculated_modules": 5711,
-    "time_per_instantiation_us": 1237,
+    "time_per_instantiation_us": 1252,
     "time_per_speculation_us": 2,
-    "total_time_spent_generating_execution_plans_us": 180616,
-    "total_time_spent_speculating_us": 15270
+    "total_time_spent_generating_execution_plans_us": 182878,
+    "total_time_spent_speculating_us": 15813
   },
   "heuristic": {
     "meta": [
@@ -375,7 +375,7 @@
     "total_ss_size_estimation": 3753.3341897615355,
     "unfinished_eps": 66
   },
-  "seed": 2339839287,
+  "seed": 0,
   "targets_config_file": "tofino2.toml",
   "tput_estimation_bps": 62656,
   "tput_estimation_pps": 89
