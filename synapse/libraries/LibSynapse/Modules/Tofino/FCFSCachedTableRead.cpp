@@ -41,8 +41,44 @@ std::optional<fcfs_ct_data_t> build_fcfs_ct_data(const BDD *bdd, const Context &
   return data;
 }
 
+// dchain_rejuvenate_index calls on this map's dchain that follow the map_get. When present, the
+// C refreshes the entry on every hit, so the cached read must use the query-and-refresh
+// liveness action; the rejuvenate nodes are then absorbed (deleted from the BDD).
+std::vector<const Call *> future_rejuvenations(const Call *map_get, addr_t dchain) {
+  std::vector<const Call *> rejuvenations;
+  for (const Call *call : map_get->get_future_functions({"dchain_rejuvenate_index"})) {
+    if (expr_addr_to_obj_addr(call->get_call().args.at("chain").expr) == dchain) {
+      rejuvenations.push_back(call);
+    }
+  }
+  return rejuvenations;
+}
+
+std::unique_ptr<BDD> absorb_rejuvenations(const EP *ep, const BDDNode *node, const std::vector<const Call *> &rejuvenations, const BDDNode *&new_next) {
+  std::unique_ptr<BDD> bdd = std::make_unique<BDD>(*ep->get_bdd());
+  new_next                 = bdd->get_mutable_node_by_id(node->get_next()->get_id());
+  for (const Call *rejuvenation : rejuvenations) {
+    const bool is_next   = rejuvenation->get_id() == new_next->get_id();
+    BDDNode *new_anchor = bdd->delete_non_branch(rejuvenation->get_id());
+    if (is_next) {
+      new_next = new_anchor;
+    }
+  }
+  bdd->assert_inspection();
+  return bdd;
+}
+
+
 std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_ct_data_t &fcfs_ct_data, u32 cache_capacity) {
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
+
+  const std::vector<const Call *> rejuvenations = future_rejuvenations(dynamic_cast<const Call *>(node), fcfs_ct_data.map_objs.dchain);
+  const bool refresh                            = !rejuvenations.empty();
+  const BDDNode *new_next                       = node->get_next();
+  std::unique_ptr<BDD> new_bdd;
+  if (refresh) {
+    new_bdd = absorb_rejuvenations(new_ep.get(), node, rejuvenations, new_next);
+  }
 
   FCFSCachedTable *cached_table = TofinoModuleFactory::build_or_reuse_fcfs_ct(new_ep.get(), node, fcfs_ct_data.map_objs.map,
                                                                               fcfs_ct_data.original_key, fcfs_ct_data.capacity, cache_capacity);
@@ -51,7 +87,7 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_ct_
   }
 
   Module *module = new FCFSCachedTableRead(node, cached_table->id, fcfs_ct_data.obj, fcfs_ct_data.original_key, fcfs_ct_data.keys, fcfs_ct_data.value,
-                                           fcfs_ct_data.map_has_this_key);
+                                           fcfs_ct_data.map_has_this_key, refresh);
   EPNode *ep_node = new EPNode(module);
 
   Context &ctx = new_ep->get_mutable_ctx();
@@ -61,8 +97,11 @@ std::unique_ptr<EP> concretize(const EP *ep, const BDDNode *node, const fcfs_ct_
   TofinoContext *tofino_ctx = TofinoModuleFactory::get_mutable_tofino_ctx(new_ep.get());
   tofino_ctx->place(new_ep.get(), node, fcfs_ct_data.map_objs.map, cached_table);
 
-  EPLeaf leaf(ep_node, node->get_next());
+  EPLeaf leaf(ep_node, new_next);
   new_ep->process_leaf(ep_node, {leaf});
+  if (new_bdd) {
+    new_ep->replace_bdd(std::move(new_bdd));
+  }
 
   return new_ep;
 }
@@ -208,8 +247,9 @@ std::unique_ptr<Module> FCFSCachedTableReadFactory::create(const BDD *bdd, const
   assert(ds.size() == 1 && "Expected exactly one DS");
   const FCFSCachedTable *fcfs_ct = dynamic_cast<const FCFSCachedTable *>(*ds.begin());
 
+  const bool refresh = !future_rejuvenations(dynamic_cast<const Call *>(node), fcfs_ct_data->map_objs.dchain).empty();
   return std::make_unique<FCFSCachedTableRead>(node, fcfs_ct->id, fcfs_ct_data->obj, fcfs_ct_data->original_key, fcfs_ct_data->keys,
-                                               fcfs_ct_data->value, fcfs_ct_data->map_has_this_key);
+                                               fcfs_ct_data->value, fcfs_ct_data->map_has_this_key, refresh);
 }
 
 } // namespace Tofino
