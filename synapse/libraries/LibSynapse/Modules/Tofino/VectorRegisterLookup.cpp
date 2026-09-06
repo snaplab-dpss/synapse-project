@@ -1,4 +1,7 @@
 #include <LibSynapse/Modules/Tofino/VectorRegisterLookup.h>
+#include <LibSynapse/Modules/Tofino/VectorRegisterReadConditionalUpdate.h>
+#include <LibSynapse/Modules/Tofino/VectorRegisterReadConditionalUpdateSingleAction.h>
+#include <LibSynapse/Modules/Tofino/VectorRegisterReadConditionalIncrement.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 namespace LibSynapse {
@@ -34,6 +37,23 @@ vector_register_data_t get_vector_register_data(const Context &ctx, const Call *
   return vector_register_data;
 }
 
+// A conditional-write borrow (read + conditional register write) is handled as a unit
+// by VectorRegisterReadConditionalUpdate{,SingleAction} / ...Increment when one of them
+// matches the pattern; claiming such a borrow as a plain read would then orphan the
+// write (dead-ended tied winners in HLL). When NONE of them matches (e.g. PSD's port
+// counter: increment gated by the register's own value AND a symbol generated after
+// the borrow), the plain read + a separate VectorRegisterUpdate (with a recirculation)
+// is the only Tofino lowering, so the read must stay claimable here.
+bool fused_module_claims_conditional_write(const EP *ep, const BDDNode *node) {
+  const Call *vector_borrow = dynamic_cast<const Call *>(node);
+  if (!vector_borrow->get_vector_conditional_write_data().has_value()) {
+    return false;
+  }
+  return VectorRegisterReadConditionalUpdateFactory::matches_pattern(ep, node) ||
+         VectorRegisterReadConditionalUpdateSingleActionFactory::matches_pattern(ep, node) ||
+         VectorRegisterReadConditionalIncrementFactory::matches_pattern(ep, node);
+}
+
 } // namespace
 
 std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
@@ -48,10 +68,7 @@ std::optional<spec_impl_t> VectorRegisterLookupFactory::speculate(const EP *ep, 
     return {};
   }
 
-  // A conditional-write borrow (read + conditional register write) is handled as a
-  // unit by VectorRegisterReadConditionalUpdate{,SingleAction} / ...Increment; claiming
-  // it as a plain read here would orphan the write, so decline.
-  if (dynamic_cast<const Call *>(node)->get_vector_conditional_write_data().has_value()) {
+  if (fused_module_claims_conditional_write(ep, node)) {
     return {};
   }
 
@@ -89,10 +106,7 @@ std::vector<impl_t> VectorRegisterLookupFactory::process_node(const EP *ep, cons
     return {};
   }
 
-  // A conditional-write borrow (read + conditional register write) is handled as a
-  // unit by VectorRegisterReadConditionalUpdate{,SingleAction} / ...Increment; claiming
-  // it as a plain read here would orphan the write, so decline.
-  if (dynamic_cast<const Call *>(node)->get_vector_conditional_write_data().has_value()) {
+  if (fused_module_claims_conditional_write(ep, node)) {
     return {};
   }
 
@@ -144,12 +158,6 @@ std::unique_ptr<Module> VectorRegisterLookupFactory::create(const BDD *bdd, cons
     return {};
   }
 
-  // A conditional-write borrow (read + conditional register write) is handled as a
-  // unit by VectorRegisterReadConditionalUpdate{,SingleAction} / ...Increment; claiming
-  // it as a plain read here would orphan the write, so decline.
-  if (dynamic_cast<const Call *>(node)->get_vector_conditional_write_data().has_value()) {
-    return {};
-  }
 
   const vector_register_data_t vector_register_data = get_vector_register_data(ctx, call_node);
 

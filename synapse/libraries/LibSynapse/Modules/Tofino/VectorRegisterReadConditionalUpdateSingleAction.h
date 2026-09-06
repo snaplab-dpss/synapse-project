@@ -54,6 +54,12 @@ public:
   VectorRegisterReadConditionalUpdateSingleActionFactory()
       : TofinoModuleFactory(ModuleType::Tofino_VectorRegisterReadConditionalUpdateSingleAction, "VectorRegisterReadConditionalUpdateSingleAction") {}
 
+  // Shape-level check only (no placement/usage checks, and no symbol-availability check,
+  // which depends on the BDD ordering): is `node` (a vector_borrow with a conditional
+  // write) the kind of borrow this module handles? Used by VectorRegisterLookup to decide
+  // whether to leave such a borrow to this module.
+  static bool matches_pattern(const EP *ep, const BDDNode *node);
+
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
   virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;

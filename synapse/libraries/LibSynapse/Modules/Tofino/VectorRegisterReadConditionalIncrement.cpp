@@ -126,6 +126,13 @@ bool matches(const EP *ep, const BDDNode *node, vector_register_data_t &data, kl
 
 } // namespace
 
+bool VectorRegisterReadConditionalIncrementFactory::matches_pattern(const EP *ep, const BDDNode *node) {
+  vector_register_data_t data;
+  klee::ref<klee::Expr> condition;
+  std::optional<Call::vector_conditional_write_result_t> vcw;
+  return matches(ep, node, data, condition, vcw);
+}
+
 std::optional<spec_impl_t> VectorRegisterReadConditionalIncrementFactory::speculate(const EP *ep, const BDDNode *node,
                                                                                     const speculations_t &speculations) const {
   vector_register_data_t data;

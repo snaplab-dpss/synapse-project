@@ -58,6 +58,11 @@ public:
   VectorRegisterReadConditionalIncrementFactory()
       : TofinoModuleFactory(ModuleType::Tofino_VectorRegisterReadConditionalIncrement, "VectorRegisterReadConditionalIncrement") {}
 
+  // Pattern-level check only (no data-structure placement / usage checks): would this
+  // module claim `node` (a vector_borrow with a conditional write)? Used by
+  // VectorRegisterLookup to decide whether to leave such a borrow to this module.
+  static bool matches_pattern(const EP *ep, const BDDNode *node);
+
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
   virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
