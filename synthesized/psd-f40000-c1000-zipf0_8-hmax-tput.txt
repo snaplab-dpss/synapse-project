@@ -31,7 +31,7 @@ Stateful Implementations:
   1074109560: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       49 seconds
+  Elapsed time:       48 seconds
   Steps:              67
   Backtracks:         0
   Search space size:  185
@@ -111,9 +111,9 @@ Search Metadata:
     Node 163: 0
 
 Global Stats:
-  Num phase 1 speculations: 12'475 (100%)
-  Num phase 2 speculations: 609 (4.88176%)
-  Num speculated modules:   167'290
+  Num phase 1 speculations: 12'514 (100%)
+  Num phase 2 speculations: 609 (4.86655%)
+  Num speculated modules:   167'784
   Num EPs generated:        185
 
 Switch placement:
@@ -125,7 +125,7 @@ SRAM: 786'432/1'310'720 B (60%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 786'432/786'432 B (100%)
 Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [dchain_table_1074096568_167,vector_table_1074126776_192,map_table_1074048392_145,vector_table_1074126776_174,vector_table_1074126776_186,vector_table_1074109560_142]
+Objs: [vector_table_1074126776_192,map_table_1074048392_145,dchain_table_1074096568_167,vector_table_1074126776_174,vector_table_1074126776_186,vector_table_1074109560_142]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -133,7 +133,7 @@ SRAM: 149'760/1'310'720 B (11.4258%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 149'760/786'432 B (19.043%)
 Exact Match Crossbar: 34/128 B (26.5625%)
-Objs: [bf_1074096984_hash_2,bf_1074096984_hash_3,bf_1074096984_row_1,bf_1074096984_row_0,bf_1074096984_hash_1,dchain_table_1074096568_167,bf_1074096984_row_2,bf_1074096984_hash_0]
+Objs: [bf_1074096984_row_2,bf_1074096984_hash_2,bf_1074096984_hash_1,dchain_table_1074096568_167,bf_1074096984_hash_0,bf_1074096984_row_1,bf_1074096984_hash_3,bf_1074096984_row_0]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -141,7 +141,7 @@ SRAM: 348'160/1'310'720 B (26.5625%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 348'160/786'432 B (44.2708%)
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [bf_1074096984_row_3,vector_register_1074079432_0]
+Objs: [vector_register_1074079432_0,bf_1074096984_row_3]
 -------------------------------------
 ==========================================================
 ========================================================

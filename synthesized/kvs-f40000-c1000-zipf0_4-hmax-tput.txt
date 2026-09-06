@@ -103,9 +103,9 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 18'696 (100%)
-  Num phase 2 speculations: 1'366 (7.30638%)
-  Num speculated modules:   183'887
+  Num phase 1 speculations: 18'616 (100%)
+  Num phase 2 speculations: 1'356 (7.28406%)
+  Num speculated modules:   183'687
   Num EPs generated:        160
 
 Switch placement:

@@ -1,14 +1,14 @@
 {
   "bdd": "cl.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 203,
-    "num_phase1_speculations": 18747,
-    "num_phase2_speculations": 992,
-    "num_speculated_modules": 214005,
-    "time_per_instantiation_us": 29397,
-    "time_per_speculation_us": 96,
-    "total_time_spent_generating_execution_plans_us": 5967627,
-    "total_time_spent_speculating_us": 20723642
+    "num_execution_plans_generated": 207,
+    "num_phase1_speculations": 18816,
+    "num_phase2_speculations": 968,
+    "num_speculated_modules": 216768,
+    "time_per_instantiation_us": 5881,
+    "time_per_speculation_us": 94,
+    "total_time_spent_generating_execution_plans_us": 1217571,
+    "total_time_spent_speculating_us": 20441353
   },
   "heuristic": {
     "meta": [
@@ -25,7 +25,7 @@
         "name": "Recirculations"
       },
       {
-        "description": "57 / 62",
+        "description": "58 / 63",
         "name": "BDD Progress"
       },
       {
@@ -40,7 +40,7 @@
     "score": [
       0,
       69357500,
-      57,
+      58,
       -4,
       -36278272,
       -1
@@ -71,7 +71,7 @@
   "name": "cl-f40000-c1000000-zipf0_2-hmax-tput",
   "profile_file": "cl-f40000-c1000000-zipf0_2.json",
   "search_meta": {
-    "avg_bdd_size": 51,
+    "avg_bdd_size": 52,
     "avg_children_per_node": [
       {
         "avg": 0.0,
@@ -222,7 +222,7 @@
         "node_id": 183
       },
       {
-        "avg": 0.0,
+        "avg": 3.0,
         "node_id": 170
       },
       {
@@ -254,7 +254,7 @@
         "node_id": 173
       },
       {
-        "avg": 2.0,
+        "avg": 3.0,
         "node_id": 182
       },
       {
@@ -351,13 +351,13 @@
       }
     ],
     "backtracks": 1,
-    "branching_factor": 3.018181818181818,
-    "elapsed_time_seconds": 106,
+    "branching_factor": 3.0727272727272728,
+    "elapsed_time_seconds": 97,
     "finished_eps": 1,
-    "ss_size": 203,
-    "steps": 59,
-    "total_ss_size_estimation": 4613520449008.192,
-    "unfinished_eps": 144
+    "ss_size": 207,
+    "steps": 60,
+    "total_ss_size_estimation": 7271680109098.331,
+    "unfinished_eps": 147
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

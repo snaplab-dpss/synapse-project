@@ -96,9 +96,9 @@ Search Metadata:
     Node 181: 3
 
 Global Stats:
-  Num phase 1 speculations: 12'692 (100%)
-  Num phase 2 speculations: 601 (4.73527%)
-  Num speculated modules:   151'125
+  Num phase 1 speculations: 12'897 (100%)
+  Num phase 2 speculations: 601 (4.66%)
+  Num speculated modules:   153'575
   Num EPs generated:        149
 
 Switch placement:

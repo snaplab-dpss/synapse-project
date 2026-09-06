@@ -30,7 +30,7 @@ Stateful Implementations:
   1074047984: Tofino::MapSetTable
 
 Search Metadata:
-  Elapsed time:       57 seconds
+  Elapsed time:       51 seconds
   Steps:              50
   Backtracks:         0
   Search space size:  149
@@ -96,9 +96,9 @@ Search Metadata:
     Node 181: 3
 
 Global Stats:
-  Num phase 1 speculations: 12'663 (100%)
-  Num phase 2 speculations: 601 (4.74611%)
-  Num speculated modules:   150'893
+  Num phase 1 speculations: 12'876 (100%)
+  Num phase 2 speculations: 601 (4.6676%)
+  Num speculated modules:   153'407
   Num EPs generated:        149
 
 Switch placement:

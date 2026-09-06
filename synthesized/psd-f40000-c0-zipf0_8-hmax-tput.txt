@@ -31,7 +31,7 @@ Stateful Implementations:
   1074109560: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       65 seconds
+  Elapsed time:       52 seconds
   Steps:              67
   Backtracks:         0
   Search space size:  185
@@ -111,9 +111,9 @@ Search Metadata:
     Node 163: 0
 
 Global Stats:
-  Num phase 1 speculations: 12'340 (100%)
-  Num phase 2 speculations: 628 (5.08914%)
-  Num speculated modules:   165'324
+  Num phase 1 speculations: 12'379 (100%)
+  Num phase 2 speculations: 628 (5.07311%)
+  Num speculated modules:   165'818
   Num EPs generated:        185
 
 Switch placement:
@@ -125,7 +125,7 @@ SRAM: 583'480/1'310'720 B (44.516%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 583'480/786'432 B (74.1933%)
 Exact Match Crossbar: 20/128 B (15.625%)
-Objs: [vector_table_1074126776_192,vector_table_1074126776_174,vector_table_1074109560_142,vector_table_1074126776_186,map_table_1074048392_145]
+Objs: [vector_table_1074126776_174,vector_table_1074109560_142,vector_table_1074126776_186,map_table_1074048392_145,vector_table_1074126776_192]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -133,7 +133,7 @@ SRAM: 680'392/1'310'720 B (51.9098%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 680'392/786'432 B (86.5163%)
 Exact Match Crossbar: 38/128 B (29.6875%)
-Objs: [bf_1074096984_hash_1,bf_1074096984_hash_0,dchain_table_1074096568_167,vector_register_1074079432_0,bf_1074096984_row_2,bf_1074096984_hash_2,bf_1074096984_row_1,bf_1074096984_row_0,bf_1074096984_hash_3]
+Objs: [bf_1074096984_hash_1,bf_1074096984_hash_0,dchain_table_1074096568_167,vector_register_1074079432_0,bf_1074096984_hash_2,bf_1074096984_row_2,bf_1074096984_row_1,bf_1074096984_row_0,bf_1074096984_hash_3]
 -------------------------------------
 -------------------------------------
 Stage 2
