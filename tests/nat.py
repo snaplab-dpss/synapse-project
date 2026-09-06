@@ -37,6 +37,9 @@ NF = "nat-f40000-c0-unif-hmax-tput"
 # symbols so the dataplane's big-endian read of the port on the way back stays consistent).
 # NAT_INDEX_BYTE_ORDER=big checks the rest of the NAT under synapse's convention.
 INDEX_BYTE_ORDER = environ.get("NAT_INDEX_BYTE_ORDER", "little")
+# The controller-managed dchain hands out indexes 0, 1, 2, ... in order; a dataplane FCFS cached
+# table (high-churn max-tput solutions) allocates the slot by hash, so that check does not apply.
+SEQUENTIAL_INDEXES = environ.get("NAT_SEQUENTIAL_INDEXES", "1") == "1"
 
 PUBLIC_IP = "1.2.3.4"
 LAN_PORTS = [p for p in NF_PORTS if p % 2 == 1]
@@ -104,12 +107,15 @@ def open_flow(ports: Ports, lan: int, wan: int, proto: str = "udp") -> tuple:
 def test(ports: Ports) -> None:
     lan, wan = LAN_PORTS[0], WAN_OF[LAN_PORTS[0]]
 
-    step(f"fresh start: back-to-back new flows get external ports for indexes 0, 1, 2 ({INDEX_BYTE_ORDER}-endian on the wire)")
     sleep(3 * EXPIRATION_SEC)  # let flows from any previous run expire
-    for index in range(3):
-        lan_pkt = build_packet(flow=build_flow())
-        ports.send(lan, lan_pkt)
-        expect_packet_from_port(ports, wan, translate_out(lan_pkt, external_port_of(index)), STRICT, timeout=CPU_PATH_TIMEOUT)
+    if SEQUENTIAL_INDEXES:
+        step(f"fresh start: back-to-back new flows get external ports for indexes 0, 1, 2 ({INDEX_BYTE_ORDER}-endian on the wire)")
+        for index in range(3):
+            lan_pkt = build_packet(flow=build_flow())
+            ports.send(lan, lan_pkt)
+            expect_packet_from_port(ports, wan, translate_out(lan_pkt, external_port_of(index)), STRICT, timeout=CPU_PATH_TIMEOUT)
+    else:
+        step("NAT_SEQUENTIAL_INDEXES=0: skipping the sequential-index check (a dataplane cached table allocates by hash)")
 
     for lan_i in LAN_PORTS:
         wan_i = WAN_OF[lan_i]
