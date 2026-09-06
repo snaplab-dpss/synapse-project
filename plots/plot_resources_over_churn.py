@@ -19,7 +19,10 @@ PLOTS_DIR = CURRENT_DIR / "plots"
 
 SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
 
-TARGET_NFS = ["fw", "nat", "psd", "cl", "kvs"]
+TARGET_NFS = ["fw", "nat", "psd", "cl", "kvs", "hyperloglog"]
+
+# Legend labels; NFs missing from this map are shown as their upper-cased name.
+NF_LABELS = {"hyperloglog": "HLL"}
 
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
@@ -37,7 +40,7 @@ def build_synapse_nf_name(nf: str, total_flows: int, churn: int, zipf: float) ->
 def plot(data: dict[str, dict[int, tuple[Resources, Resources]]]):
     churns = sorted(list(set(churn for nf_data in data.values() for churn in nf_data)))
 
-    ind = np.arange(len(data))
+    ind = np.arange(len(churns))
     bar_width = 0.15
 
     fig, ax = plt.subplots(constrained_layout=True)
@@ -52,6 +55,7 @@ def plot(data: dict[str, dict[int, tuple[Resources, Resources]]]):
         "#FF7F00",
         "#FF3D3D",
         "#293132",
+        "#00A878",
     ]
 
     pos = ind
@@ -61,17 +65,17 @@ def plot(data: dict[str, dict[int, tuple[Resources, Resources]]]):
         for churn in churns:
             ys.append(nf_data[churn][0].stages * 100)
             yerrs.append(nf_data[churn][1].stages * 100)
-        ax.bar(pos, ys, bar_width, yerr=yerrs, label=nf.upper(), alpha=0.99, hatch=hatch, error_kw=dict(lw=1, capsize=1, capthick=0.3), color=color)
+        ax.bar(pos, ys, bar_width, yerr=yerrs, label=NF_LABELS.get(nf, nf.upper()), alpha=0.99, hatch=hatch, error_kw=dict(lw=1, capsize=1, capthick=0.3), color=color)
         pos = pos + bar_width
 
     labels = [whole_number_to_label(churn) for churn in churns]
 
     ax.set_xlabel("Churn (fpm)")
-    ax.set_xticks(ind + bar_width * 2, labels)
+    ax.set_xticks(ind + bar_width * (len(data) - 1) / 2, labels)
     ax.tick_params(axis="both", length=0)
     ax.grid(visible=False, axis="x")
 
-    ax.legend(bbox_to_anchor=(0.4, 1.35), loc="upper center", ncols=5, columnspacing=0.6, handletextpad=0.2, fontsize="small")
+    ax.legend(bbox_to_anchor=(0.4, 1.35), loc="upper center", ncols=len(data), columnspacing=0.6, handletextpad=0.2, fontsize="small")
     fig.set_size_inches(width, height * 0.8)
 
     print("-> ", OUTPUT_FILE)
