@@ -23,7 +23,9 @@ std::vector<Hash> build_hashes(DS_ID id, u32 height, const std::vector<bits_t> &
 std::vector<Register> build_rows(const tna_properties_t &properties, DS_ID id, u32 width, u32 height) {
   std::vector<Register> rows;
   const bits_t hash_size    = bits_from_pow2_capacity(width);
-  const bits_t counter_size = 32;
+  // A bloom filter cell is one bit (Tofino registers support 1-bit cells); 32-bit cells
+  // overstated the SRAM 32x and made a 2^20-bit filter unplaceable.
+  const bits_t counter_size = 1;
 
   for (size_t i = 0; i < height; i++) {
     Register row(properties, id + "_row_" + std::to_string(i), width, hash_size, counter_size,
