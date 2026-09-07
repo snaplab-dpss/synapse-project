@@ -36,6 +36,7 @@ public:
   void place(EP *ep, const BDDNode *node, addr_t obj, DS *ds);
   void place(EP *ep, const BDDNode *node, addr_t obj, DS *ds, const std::unordered_set<DS_ID> &deps);
   bool can_place(const EP *ep, const BDDNode *node, const DS *ds) const;
+  bool can_place(const EP *ep, const BDDNode *node, const DS *ds, const std::unordered_set<DS_ID> &deps) const;
 
   void debug() const override;
 
