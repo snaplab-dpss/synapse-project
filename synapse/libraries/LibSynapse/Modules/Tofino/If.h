@@ -38,6 +38,15 @@ public:
         : expr(_expr), phv_limitation_workaround(_phv_limitation_workaround) {}
   };
 
+  // An arithmetic operand of the condition, computed in the data plane ahead of the gateway
+  // as op `op_id` of the ComputeAction `action_id` (a gateway can't evaluate arithmetic, and
+  // a bare assignment in the apply block gets folded back into the condition by bf-p4c).
+  struct materialized_operand_t {
+    klee::ref<klee::Expr> expr;
+    std::string op_id;
+    DS_ID action_id;
+  };
+
 private:
   klee::ref<klee::Expr> original_condition;
 
@@ -46,10 +55,13 @@ private:
   // This will later be split into multiple branch conditions, each evaluating
   // each sub condition.
   std::vector<condition_t> conditions;
+  std::vector<materialized_operand_t> materialized_operands;
 
 public:
-  If(const BDDNode *_node, klee::ref<klee::Expr> _original_condition, const std::vector<condition_t> &_conditions)
-      : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions(_conditions) {}
+  If(const BDDNode *_node, klee::ref<klee::Expr> _original_condition, const std::vector<condition_t> &_conditions,
+     const std::vector<materialized_operand_t> &_materialized_operands = {})
+      : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions(_conditions),
+        materialized_operands(_materialized_operands) {}
 
   If(const BDDNode *_node, klee::ref<klee::Expr> _original_condition)
       : TofinoModule(ModuleType::Tofino_If, "If", _node), original_condition(_original_condition), conditions({_original_condition}) {}
@@ -57,12 +69,21 @@ public:
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
   virtual Module *clone() const {
-    If *cloned = new If(node, original_condition, conditions);
+    If *cloned = new If(node, original_condition, conditions, materialized_operands);
     return cloned;
   }
 
   klee::ref<klee::Expr> get_original_condition() const { return original_condition; }
   const std::vector<condition_t> &get_conditions() const { return conditions; }
+  const std::vector<materialized_operand_t> &get_materialized_operands() const { return materialized_operands; }
+
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override {
+    std::unordered_set<DS_ID> ids;
+    for (const materialized_operand_t &operand : materialized_operands) {
+      ids.insert(operand.action_id);
+    }
+    return ids;
+  }
 };
 
 class IfFactory : public TofinoModuleFactory {

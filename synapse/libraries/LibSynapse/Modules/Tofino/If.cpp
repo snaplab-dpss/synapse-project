@@ -1,4 +1,5 @@
 #include <LibSynapse/Modules/Tofino/If.h>
+#include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/Modules/Tofino/Then.h>
 #include <LibSynapse/Modules/Tofino/Else.h>
 #include <LibSynapse/ExecutionPlan.h>
@@ -362,6 +363,47 @@ std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna
   return conditions;
 }
 
+namespace {
+
+// The distinct arithmetic operands the gateway needs computed ahead of it, with the op ids
+// they get, in the order of the conditions.
+std::vector<If::materialized_operand_t> get_operands_to_materialize(const BDDNode *node, const std::vector<If::condition_t> &conditions) {
+  std::vector<If::materialized_operand_t> operands;
+  for (const If::condition_t &condition : conditions) {
+    for (const klee::ref<klee::Expr> &operand : condition.operands_to_materialize) {
+      const bool seen = std::any_of(operands.begin(), operands.end(),
+                                    [&operand](const If::materialized_operand_t &o) { return solver_toolbox.are_exprs_always_equal(o.expr, operand); });
+      if (seen) {
+        continue;
+      }
+      const std::string op_id = "cond_operand_" + std::to_string(node->get_id()) + "_" + std::to_string(operands.size());
+      operands.push_back({operand, op_id, ""});
+    }
+  }
+  return operands;
+}
+
+// Places every operand as an ALU op (sharing the current run's actions like any compute
+// step); fills in the action ids. Empty when one of them can't be placed.
+std::optional<DS_ID> place_operands(TofinoModuleFactory::ComputeStepBuilder &builder, const EP *ep, const BDDNode *node,
+                                    std::vector<If::materialized_operand_t> &operands, const speculations_t *speculations) {
+  DS_ID last;
+  for (If::materialized_operand_t &operand : operands) {
+    const std::unordered_set<DS_ID> deps = speculations ? TofinoContext::get_dataflow_deps(ep, node, operand.expr, *speculations)
+                                                        : TofinoContext::get_dataflow_deps(ep, node, operand.expr);
+    const std::optional<DS_ID> action =
+        builder.place({.id = operand.op_id, .kind = ComputeOpKind::ALU, .width = operand.expr->getWidth()}, deps);
+    if (!action) {
+      return {};
+    }
+    operand.action_id = *action;
+    last              = *action;
+  }
+  return last;
+}
+
+} // namespace
+
 std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Branch) {
     return {};
@@ -374,11 +416,24 @@ std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *nod
   }
 
   // Decline branches whose condition can't be lowered onto a Tofino gateway.
-  if (get_compatible_conditions(get_tna(ep), branch_node->get_condition()).empty()) {
+  const std::vector<If::condition_t> conditions = get_compatible_conditions(get_tna(ep), branch_node->get_condition());
+  if (conditions.empty()) {
     return {};
   }
 
-  return spec_impl_t(decide(ep, node), speculations.ctx);
+  std::vector<If::materialized_operand_t> operands = get_operands_to_materialize(node, conditions);
+  if (operands.empty()) {
+    return spec_impl_t(decide(ep, node), speculations.ctx);
+  }
+
+  // The operands are compute steps ahead of the gateway; the gateway itself ends the run.
+  std::optional<spec_impl_t> spec = speculate_compute_step(
+      ep, node, [&](ComputeStepBuilder &builder) { return place_operands(builder, ep, node, operands, &speculations); }, speculations);
+  if (spec) {
+    spec->compute_step = false;
+    spec->compute_actions.clear();
+  }
+  return spec;
 }
 
 std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -402,7 +457,20 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
   assert(branch_node->get_on_true() && "Branch node without on_true");
   assert(branch_node->get_on_false() && "Branch node without on_false");
 
-  Module *if_module   = new If(node, condition, conditions);
+  std::vector<If::materialized_operand_t> operands = get_operands_to_materialize(node, conditions);
+  std::unique_ptr<EP> new_ep;
+  if (operands.empty()) {
+    new_ep = std::make_unique<EP>(*ep);
+  } else {
+    std::optional<compute_step_t> step =
+        implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return place_operands(builder, ep, node, operands, nullptr); });
+    if (!step) {
+      return {};
+    }
+    new_ep = std::move(step->ep);
+  }
+
+  Module *if_module   = new If(node, condition, conditions, operands);
   Module *then_module = new Then(node);
   Module *else_module = new Else(node);
 
@@ -416,8 +484,6 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
 
   EPLeaf then_leaf(then_node, branch_node->get_on_true());
   EPLeaf else_leaf(else_node, branch_node->get_on_false());
-
-  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
   new_ep->process_leaf(if_node, {then_leaf, else_leaf});
 
@@ -440,9 +506,12 @@ std::unique_ptr<Module> IfFactory::create(const BDD *bdd, const Context &ctx, co
   klee::ref<klee::Expr> condition = branch_node->get_condition();
   const Tofino::TNA &tna          = ctx.get_target_ctx<TofinoContext>()->get_tna();
 
-  const std::vector<If::condition_t> conditions = get_compatible_conditions(tna, condition);
-
-  return std::make_unique<If>(node, condition, conditions);
+  const std::vector<If::condition_t> conditions   = get_compatible_conditions(tna, condition);
+  std::vector<If::materialized_operand_t> operands = get_operands_to_materialize(node, conditions);
+  for (If::materialized_operand_t &operand : operands) {
+    operand.action_id = ctx.get_target_ctx<TofinoContext>()->find_compute_action(operand.op_id);
+  }
+  return std::make_unique<If>(node, condition, conditions, operands);
 }
 
 } // namespace Tofino
