@@ -27,6 +27,11 @@ bool is_constant_signed(klee::ref<klee::Expr> expr);
 bool is_conditional(klee::ref<klee::Expr> expr);
 bool match_endian_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &target);
 klee::ref<klee::Expr> swap_endianness(klee::ref<klee::Expr> expr);
+// A byte swap written the way DPDK's rte_bswap* do it (byte masks and shifts), of any width;
+// `target` is the value being swapped.
+bool match_byte_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &target);
+// Rewrite every byte swap in `expr` as the byte reordering it is (Concat of Extracts).
+klee::ref<klee::Expr> canonicalize_byte_swaps(klee::ref<klee::Expr> expr);
 
 i64 get_constant_signed(klee::ref<klee::Expr> expr);
 bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr);
