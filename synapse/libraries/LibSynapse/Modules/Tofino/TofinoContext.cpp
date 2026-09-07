@@ -1,6 +1,7 @@
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibCore/Debug.h>
 
 #include <algorithm>
 #include <cassert>
@@ -208,11 +209,12 @@ void TofinoContext::place(EP *ep, const BDDNode *node, addr_t obj, DS *ds, const
   tna.pipeline.place(ds, deps);
 }
 
-bool TofinoContext::can_place(const EP *ep, const BDDNode *node, const DS *ds) const {
-  const std::unordered_set<DS_ID> deps = ep->get_ctx().get_target_ctx<TofinoContext>()->get_stateful_deps(ep, node);
-  const PlacementStatus status         = tna.pipeline.can_place(ds, deps);
+bool TofinoContext::can_place(const EP *ep, const BDDNode *node, const DS *ds) const { return can_place(ep, node, ds, get_stateful_deps(ep, node)); }
 
-  if (status != PlacementStatus::Success) {
+bool TofinoContext::can_place(const EP *ep, const BDDNode *node, const DS *ds, const std::unordered_set<DS_ID> &deps) const {
+  const PlacementStatus status = tna.pipeline.can_place(ds, deps);
+
+  if (status != PlacementStatus::Success && LibCore::dbg_mode_active) {
     std::cerr << "[" << ep->get_active_target() << "] Cannot place ds " << ds->id << " with deps=[";
     for (const DS_ID &dep : deps) {
       std::cerr << dep << ",";
@@ -220,7 +222,7 @@ bool TofinoContext::can_place(const EP *ep, const BDDNode *node, const DS *ds) c
     std::cerr << " ] (reason=" << status << ")\n";
   }
 
-  return true;
+  return status == PlacementStatus::Success;
 }
 
 void TofinoContext::debug() const {

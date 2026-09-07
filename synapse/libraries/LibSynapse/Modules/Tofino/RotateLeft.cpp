@@ -62,14 +62,21 @@ std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode 
   const DS_ID table_id = build_table_id(node);
   Table *table         = new Table(table_id, 1, {}, {rotation->out->getWidth()});
 
+  // A stateless step only waits for the producer of its operand, so independent steps can
+  // share a stage. When no stage can take it (the pipeline is used up), decline: the search
+  // then recirculates or hands the rest to the controller.
+  const std::unordered_set<DS_ID> deps = TofinoContext::get_dataflow_deps(ep, node, rotation->x);
+  if (!ep->get_ctx().get_target_ctx<TofinoContext>()->can_place(ep, node, table, deps)) {
+    delete table;
+    return {};
+  }
+
   Module *module             = new RotateLeft(node, table_id, rotation->x, rotation->amount, rotation->out);
   EPNode *ep_node            = new EPNode(module);
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
-  // A stateless step only waits for the producer of its operand, so independent steps can
-  // share a stage.
   TofinoContext *tofino_ctx = new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>();
-  tofino_ctx->place(new_ep.get(), node, node->get_id(), table, TofinoContext::get_dataflow_deps(new_ep.get(), node, rotation->x));
+  tofino_ctx->place(new_ep.get(), node, node->get_id(), table, deps);
 
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
