@@ -155,6 +155,7 @@ private:
   success_condition_t count_trailing_zeros(coder_t &, const Call *);
   success_condition_t find_first_set_bit(coder_t &, const Call *);
   success_condition_t min(coder_t &, const Call *);
+  success_condition_t rotate_left(coder_t &, const Call *);
   success_condition_t power_of_two(coder_t &, const Call *);
   success_condition_t divide(coder_t &, const Call *);
   success_condition_t ln(coder_t &, const Call *);

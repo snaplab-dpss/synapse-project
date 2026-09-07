@@ -683,6 +683,7 @@ BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, st
                             POPULATE_SYNTHESIZER(count_trailing_zeros),
                             POPULATE_SYNTHESIZER(find_first_set_bit),
                             POPULATE_SYNTHESIZER(min),
+                            POPULATE_SYNTHESIZER(rotate_left),
                             POPULATE_SYNTHESIZER(power_of_two),
                             POPULATE_SYNTHESIZER(divide),
                             POPULATE_SYNTHESIZER(ln),
@@ -2133,6 +2134,22 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::min(coder_t &coder, const Ca
 
   coder.indent();
   coder << "uint32_t " << v.name << " = min(" << transpiler.transpile(a) << ", " << transpiler.transpile(b) << ");\n";
+
+  stack_add(v);
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::rotate_left(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> x = call.args.at("x").expr;
+  klee::ref<klee::Expr> n = call.args.at("n").expr;
+
+  var_t v = build_var("rotated", call.ret);
+
+  coder.indent();
+  coder << "uint32_t " << v.name << " = rotate_left(" << transpiler.transpile(x) << ", " << transpiler.transpile(n) << ");\n";
 
   stack_add(v);
 
