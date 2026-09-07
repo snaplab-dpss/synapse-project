@@ -1,3 +1,4 @@
+#include <LibSynapse/GlobalStats.h>
 #include <LibSynapse/Context.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/Modules/Tofino/ParserCondition.h>
@@ -403,6 +404,7 @@ Context::Context(const Context &other)
       dchains_failing_to_allocate_new_index_hit_rates(other.dchains_failing_to_allocate_new_index_hit_rates), expiration_data(other.expiration_data),
       expr_structs(other.expr_structs), ds_impls(other.ds_impls),
       ds_impls_decisions_per_bdd_node_and_obj(other.ds_impls_decisions_per_bdd_node_and_obj), ds_usage_counts(other.ds_usage_counts) {
+  GlobalStats::num_context_copies++;
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
   }

@@ -97,6 +97,9 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
   std::cerr << "SS size (est):    " << scientific(search_meta.total_ss_size_estimation) << "\n";
   std::cerr << "Current SS size:  " << int2hr(search_meta.ss_size) << "\n";
   std::cerr << "Search Steps:     " << int2hr(search_meta.steps) << "\n";
+  std::cerr << "Speculations:     " << int2hr(GlobalStats::num_speculated_modules) << " modules, " << int2hr(GlobalStats::num_phase1_speculations)
+            << "/" << int2hr(GlobalStats::num_phase2_speculations) << " comparisons (phase 1/2), " << int2hr(GlobalStats::num_context_copies)
+            << " context copies, " << GlobalStats::total_time_spent_speculating / 1000000 << " s\n";
   std::cerr << "Unfinished EPs:   " << int2hr(search_meta.unfinished_eps) << "\n";
   std::cerr << "Finished EPs:     " << int2hr(search_meta.finished_eps) << "\n";
 
