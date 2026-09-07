@@ -3,10 +3,10 @@
 import os
 import rich
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Tuple
+from typing import Callable, Optional, Tuple
 from itertools import product
 
 from helpers.orchestrator import Orchestrator, Task
@@ -27,7 +27,7 @@ SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
 DEVICES = list(range(2, 32))
 
-DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd", "pol", "hyperloglog"]
+DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd", "pol", "hyperloglog", "smartcookie"]
 # DEFAULT_RATE = [100_000_000_000]  # 100 Gbps
 # DEFAULT_TOTAL_PACKETS = [160_000_000]
 DEFAULT_RATE = [10_000_000_000]  # 10 Gbps
@@ -46,6 +46,10 @@ class NF:
     warmup_devices: list[int]
     unique_devices: list[int]
     fwd_rules: list[Tuple[int, int]]
+    # Devices the profiler replays on, and which unique device's pcap each of them replays
+    # (default: round-robin over unique_devices).
+    devices: list[int] = field(default_factory=lambda: list(DEVICES))
+    pcap_device: Optional[Callable[[int], int]] = None
 
     def get_pcap_generator(self) -> Path:
         return SYNAPSE_BIN_DIR / self.pcap_generator
@@ -73,6 +77,9 @@ NFs = {
     "cl": NF("cl", "cl.bdd", "pcap-generator-cl", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
     "pol": NF("pol", "pol.bdd", "pcap-generator-pol", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
     "hyperloglog": NF("hyperloglog", "hyperloglog.bdd", "pcap-generator-hyperloglog", warmup_devices=[], unique_devices=DEVICES[:2], fwd_rules=[]),
+    # The server is on device 0 (the NF's default) and replays its own pcap; every other device is a client.
+    "smartcookie": NF("smartcookie", "smartcookie.bdd", "pcap-generator-smartcookie", warmup_devices=[], unique_devices=[0, DEVICES[0]], fwd_rules=[],
+                      devices=[0] + DEVICES, pcap_device=lambda dev: 0 if dev == 0 else DEVICES[0]),
 }
 
 
@@ -323,12 +330,15 @@ def profile_nf_against_pcaps(
         warmup_pcaps.append(unique_warmup_pcaps[i % len(unique_warmup_pcaps)])
 
     pcaps = []
-    for i, dev in enumerate(DEVICES):
-        pcaps.append(unique_pcaps[i % len(unique_pcaps)])
+    for i, dev in enumerate(nf.devices):
+        if nf.pcap_device:
+            pcaps.append(PCAP_DIR / f"{pcap_base_name}-dev{nf.pcap_device(dev)}.pcap")
+        else:
+            pcaps.append(unique_pcaps[i % len(unique_pcaps)])
 
     cmd_parts = [str(SYNTHESIZED_DIR / "build" / profiler_name), str(PROFILE_DIR / report)]
     cmd_parts += [f"--warmup {warmup_dev}:{warmup_pcap}" for warmup_dev, warmup_pcap in zip(nf.warmup_devices, warmup_pcaps)]
-    cmd_parts += [f"{dev}:{pcap}" for dev, pcap in zip(DEVICES, pcaps)]
+    cmd_parts += [f"{dev}:{pcap}" for dev, pcap in zip(nf.devices, pcaps)]
     profile_cmd = " ".join(cmd_parts)
 
     return Task(
