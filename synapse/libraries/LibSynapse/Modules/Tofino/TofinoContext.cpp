@@ -67,12 +67,12 @@ void TofinoContext::parser_select(const BDDNode *node, const std::vector<parser_
 
   if (!last_parser_op) {
     // No leaf node found, add the initial parser state.
-    tna.parser.add_select(id, selections);
+    tna.parser.mutate().add_select(id, selections);
     return;
   }
 
   const bdd_node_id_t leaf_id = last_parser_op->get_id();
-  tna.parser.add_select(leaf_id, id, selections, direction);
+  tna.parser.mutate().add_select(leaf_id, id, selections, direction);
 }
 
 void TofinoContext::parser_transition(const BDDNode *node, klee::ref<klee::Expr> hdr, const BDDNode *last_parser_op, std::optional<bool> direction) {
@@ -80,12 +80,12 @@ void TofinoContext::parser_transition(const BDDNode *node, klee::ref<klee::Expr>
 
   if (!last_parser_op) {
     // No leaf node found, add the initial parser state.
-    tna.parser.add_extract(id, hdr);
+    tna.parser.mutate().add_extract(id, hdr);
     return;
   }
 
   const bdd_node_id_t leaf_id = last_parser_op->get_id();
-  tna.parser.add_extract(leaf_id, id, hdr, direction);
+  tna.parser.mutate().add_extract(leaf_id, id, hdr, direction);
 }
 
 void TofinoContext::parser_accept(const BDDNode *node, const BDDNode *last_parser_op, std::optional<bool> direction) {
@@ -93,10 +93,10 @@ void TofinoContext::parser_accept(const BDDNode *node, const BDDNode *last_parse
 
   if (!last_parser_op) {
     // No leaf node found, add the initial parser state.
-    tna.parser.accept(id);
+    tna.parser.mutate().accept(id);
   } else {
     const bdd_node_id_t leaf_id = last_parser_op->get_id();
-    tna.parser.accept(leaf_id, id, direction);
+    tna.parser.mutate().accept(leaf_id, id, direction);
   }
 }
 
@@ -105,10 +105,10 @@ void TofinoContext::parser_reject(const BDDNode *node, const BDDNode *last_parse
 
   if (!last_parser_op) {
     // No leaf node found, add the initial parser state.
-    tna.parser.reject(id);
+    tna.parser.mutate().reject(id);
   } else {
     const bdd_node_id_t leaf_id = last_parser_op->get_id();
-    tna.parser.reject(leaf_id, id, direction);
+    tna.parser.mutate().reject(leaf_id, id, direction);
   }
 }
 

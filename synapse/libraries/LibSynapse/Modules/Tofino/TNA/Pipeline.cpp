@@ -46,7 +46,7 @@ void Pipeline::dump(std::ostream &os) const {
   ss << "\n";
   ss << "====================== TNA Pipeline ======================\n";
 
-  for (const Stage &stage : resources.stages) {
+  for (const Stage &stage : resources->stages) {
     if (stage.data_structures.empty()) {
       continue;
     }
@@ -122,10 +122,10 @@ void Pipeline::dump(std::ostream &os) const {
 void Pipeline::debug() const { dump(std::cerr); }
 
 int Pipeline::get_placed_stage(DS_ID ds_id) const {
-  auto it = std::find_if(resources.stages.begin(), resources.stages.end(),
+  auto it = std::find_if(resources->stages.begin(), resources->stages.end(),
                          [ds_id](const Stage &stage) { return stage.data_structures.find(ds_id) != stage.data_structures.end(); });
 
-  if (it != resources.stages.end()) {
+  if (it != resources->stages.end()) {
     return it->stage_id;
   }
 
@@ -135,7 +135,7 @@ int Pipeline::get_placed_stage(DS_ID ds_id) const {
 bool Pipeline::already_placed(DS_ID ds_id) const { return get_placed_stage(ds_id) >= 0; }
 
 bool Pipeline::already_requested(DS_ID ds_id) const {
-  return std::any_of(placement_requests.begin(), placement_requests.end(), [ds_id](const PlacementRequest &request) { return request.ds == ds_id; });
+  return std::any_of(placement_requests->begin(), placement_requests->end(), [ds_id](const PlacementRequest &request) { return request.ds == ds_id; });
 }
 
 bool Pipeline::detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
@@ -166,7 +166,7 @@ int Pipeline::get_soonest_stage_satisfying_all_dependencies(const std::unordered
   std::unordered_set<DS_ID> cummulative_ds;
   int soonest_stage_id = -1;
 
-  for (const Stage &stage : resources.stages) {
+  for (const Stage &stage : resources->stages) {
     cummulative_ds.insert(stage.data_structures.begin(), stage.data_structures.end());
 
     bool all_dependencies_are_satisfied =
@@ -178,7 +178,7 @@ int Pipeline::get_soonest_stage_satisfying_all_dependencies(const std::unordered
     }
   }
 
-  if (soonest_stage_id >= static_cast<int>(resources.stages.size())) {
+  if (soonest_stage_id >= static_cast<int>(resources->stages.size())) {
     soonest_stage_id = -1;
   }
 
@@ -198,10 +198,10 @@ void Pipeline::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
   }
 
   assert_or_panic(result.resources.has_value(), "Placement result should have resources on success");
-  resources = *result.resources;
+  resources.set(*result.resources);
 
   if (!duplicated_request) {
-    placement_requests.push_back({ds->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)});
+    placement_requests.mutate().push_back({ds->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)});
   }
 }
 

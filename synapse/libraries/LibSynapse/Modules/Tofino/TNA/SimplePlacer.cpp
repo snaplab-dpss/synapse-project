@@ -37,7 +37,7 @@ bool detect_changes_to_already_placed_data_structure(const Pipeline &pipeline, c
 }
 
 PlacementResult concretize_placements(const Pipeline &pipeline, const PlacementRequest &request, const std::vector<Placement> &placements) {
-  PipelineResources resources = pipeline.resources;
+  PipelineResources resources = *pipeline.resources;
 
   for (const Placement &placement : placements) {
     assert(placement.stage_id >= 0 && placement.stage_id < static_cast<int>(resources.stages.size()) && "Invalid stage ID in placement");
@@ -66,7 +66,7 @@ PlacementResult concretize_placements(const Pipeline &pipeline, const PlacementR
 PlacementResult clean_slate_placement(const Pipeline &pipeline, const DS *ds, const std::unordered_set<DS_ID> &deps) {
   Pipeline clean_slate_pipeline(pipeline.properties, pipeline.data_structures);
 
-  for (const PlacementRequest &req : pipeline.placement_requests) {
+  for (const PlacementRequest &req : *pipeline.placement_requests) {
     const DS *requested_ds = clean_slate_pipeline.data_structures.get_ds_from_id(req.ds);
 
     std::unordered_set<DS_ID> req_deps = *req.deps;
@@ -79,10 +79,10 @@ PlacementResult clean_slate_placement(const Pipeline &pipeline, const DS *ds, co
       return result;
     }
 
-    clean_slate_pipeline.resources = *result.resources;
+    clean_slate_pipeline.resources.set(*result.resources);
   }
 
-  return clean_slate_pipeline.resources;
+  return *clean_slate_pipeline.resources;
 }
 
 PlacementResult find_placements(const Pipeline &pipeline, const DS *ds, const std::unordered_set<DS_ID> &deps) {
@@ -129,14 +129,14 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *ds, const st
         return result;
       }
 
-      snapshot.resources = *result.resources;
+      snapshot.resources.set(*result.resources);
       new_deps.insert(independent_ds->id);
     }
 
     current_deps.insert(new_deps.begin(), new_deps.end());
   }
 
-  return snapshot.resources;
+  return *snapshot.resources;
 }
 
 PlacementResult find_placements_table(const Pipeline &pipeline, const Table *table, const std::unordered_set<DS_ID> &deps) {
@@ -161,7 +161,7 @@ PlacementResult find_placements_table(const Pipeline &pipeline, const Table *tab
 
   std::vector<Placement> placements;
 
-  for (const Stage &stage : pipeline.resources.stages) {
+  for (const Stage &stage : pipeline.resources->stages) {
     if (stage.stage_id < soonest_stage_id) {
       continue;
     }
@@ -222,7 +222,7 @@ PlacementResult find_placements_reg(const Pipeline &pipeline, const Register *re
 
   std::vector<Placement> placements;
 
-  for (const Stage &stage : pipeline.resources.stages) {
+  for (const Stage &stage : pipeline.resources->stages) {
     if (stage.stage_id < soonest_stage_id) {
       continue;
     }
@@ -290,7 +290,7 @@ PlacementResult find_placements_meter(const Pipeline &pipeline, const Meter *met
 
   std::vector<Placement> placements;
 
-  for (const Stage &stage : pipeline.resources.stages) {
+  for (const Stage &stage : pipeline.resources->stages) {
     if (stage.stage_id < soonest_stage_id) {
       continue;
     }
@@ -356,7 +356,7 @@ PlacementResult find_placements_hash(const Pipeline &pipeline, const Hash *hash,
 
   std::vector<Placement> placements;
 
-  for (const Stage &stage : pipeline.resources.stages) {
+  for (const Stage &stage : pipeline.resources->stages) {
     if (stage.stage_id < soonest_stage_id) {
       continue;
     }
@@ -394,7 +394,7 @@ PlacementResult find_placements_hash(const Pipeline &pipeline, const Hash *hash,
 PlacementResult find_placements_digest(const Pipeline &pipeline, const Digest *digest, const std::unordered_set<DS_ID> &deps) {
   assert(!pipeline.already_placed(digest->id) && "Digest already placed");
 
-  if (pipeline.resources.used_digests >= pipeline.properties.max_digests) {
+  if (pipeline.resources->used_digests >= pipeline.properties.max_digests) {
     return PlacementStatus::NotEnoughDigests;
   }
 
@@ -434,7 +434,7 @@ PlacementResult find_placements_lpm(const Pipeline &pipeline, const LPM *lpm, co
 
   std::vector<Placement> placements;
 
-  for (const Stage &stage : pipeline.resources.stages) {
+  for (const Stage &stage : pipeline.resources->stages) {
     if (stage.stage_id < soonest_stage_id) {
       continue;
     }
