@@ -81,7 +81,8 @@ p4/Makefile               APP := smartcookie; includes tofino/tools/Makefile
 
 The **cookie computation, verification, bloom filter and packet-crafting logic
 are unchanged.** The edits are portability fixes for our Tofino 2 DUT and
-bf-p4c 9.13.4, plus the testbed port plan:
+bf-p4c 9.13.4, the testbed port plan, and one deliberate parameter change
+(item 6, the bloom filter size):
 
 1. **Tofino 2 target.** `#include <tna.p4>` →
    `#if __TARGET_TOFINO__ == 2 #include <t2na.p4> #else #include <tna.p4> #endif`.
@@ -89,8 +90,9 @@ bf-p4c 9.13.4, plus the testbed port plan:
    normal paths) → `pkt.advance(PORT_METADATA_SIZE)`.
 3. **Explicit `RegisterAction` index types.** bf-p4c 9.13.4 cannot infer the `_`
    index placeholder: the two `reg_timedelta` actions (1 cell, indexed by a
-   constant) got `bit<32>`, the four bloom-filter actions got `bit<12>`
-   (their `Hash<bit<12>>` index). Pure type annotations.
+   constant) got `bit<32>`, the four bloom-filter actions got the width of
+   their hash index (`bit<12>` upstream, `bit<20>` after item 6). Pure type
+   annotations.
 4. **One recirculation port per pipe.** Upstream picked one of Tofino 1's two
    recirculation ports (68, 196) with a 1-bit random number. Tofino 2 has four
    pipes; `select_recirc_port` sends a packet to the recirculation port of the
@@ -101,6 +103,17 @@ bf-p4c 9.13.4, plus the testbed port plan:
 5. **`SERVER_PORT = 136`** (was 12): dev port of front-panel port 1, the port
    our KVS NFs use for their server (`KVS_SERVER_PORT` in
    `tofino/switcharoo`). Still a global constant, as upstream.
+6. **Paper-sized bloom filter: 2 × 2^20 bits (was 2 × 4096).** The released
+   prototype's 4096-bit arrays saturate after a few thousand confirmed
+   connections (every lookup then hits, and unverified traffic reaches the
+   server), which the paper's 2^20-bit arrays are there to prevent. This is the
+   one change that is not a port: `Register<bit<1>,_>(32w4096)` →
+   `32w1048576` and `Hash<bit<12>>` → `Hash<bit<20>>` for both arrays; k = 2
+   as upstream (the paper uses three arrays), still never cleaned. It compiles
+   to the same 13 stages; the cost is SRAM only (16 → 30 blocks, map RAM 6 →
+   20, see `p4/smartcookie-resources.txt`) and the SYN-flood path never
+   touches these registers, so the benchmark numbers are unaffected. Our
+   synthesized NFs use the same size.
 
 Everything else is upstream's, including things an expert *could* improve on
 Tofino 2 but that would change the design rather than port it:
@@ -125,8 +138,9 @@ the paper are not in the released prototype, and we port it as released:
   last-line cookie check on bloom-filter false positives.
 - Cookie epochs are 2^28 ns ≈ 268 ms with the current + 2 previous accepted
   (paper: 1 s, current + previous).
-- Bloom filter: k = 2 arrays of 4096 bits, never cleaned (paper: 3 × 2^20 bits,
-  rotating, cleaned every 15 s).
+- Bloom filter: k = 2 arrays, never cleaned; 4096 bits each as released, 2^20
+  bits each in our port (change 6 above). Paper: 3 × 2^20 bits, rotating,
+  cleaned every 15 s.
 - Hash key is hardcoded (`DEFAULT_SIP_KEY_*`); the control-plane `sip_init`
   action is commented out upstream (paper: keys rotated every 5-30 s).
 - No MSS in the cookie, no TTL filtering, no switch-ID in the setup tag.
