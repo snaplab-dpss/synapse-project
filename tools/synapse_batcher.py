@@ -133,7 +133,8 @@ def run_synapse(
     synapse_cpp = f"{name}.cpp"
     synapse_p4 = f"{name}.p4"
 
-    config = "tofino2-kvs.toml" if nf.name == "kvs" else "tofino2.toml"
+    # NFs with a server on front-panel port 1 (NF device 0) need it wired in the switch config.
+    config = {"kvs": "tofino2-kvs.toml", "smartcookie": "tofino2-smartcookie.toml"}.get(nf.name, "tofino2.toml")
 
     files_consumed = [
         SYNAPSE_BIN_DIR / "synapse",
