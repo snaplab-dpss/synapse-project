@@ -30,6 +30,13 @@ unsigned min(unsigned a, unsigned b) {
   return klee_int("min");
 }
 
+unsigned rotate_left(unsigned x, unsigned n) {
+  klee_trace_ret();
+  klee_trace_param_u32(x, "x");
+  klee_trace_param_u32(n, "n");
+  return klee_int("rotated");
+}
+
 unsigned power_of_two(unsigned exponent) {
   klee_trace_ret();
   klee_trace_param_u32(exponent, "exponent");
