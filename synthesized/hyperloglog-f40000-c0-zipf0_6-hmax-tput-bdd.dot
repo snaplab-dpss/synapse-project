@@ -9,6 +9,8 @@ Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 Fwd={
 30:0.00000009}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"37"[label="37:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++(Extract 24 (266 - ln__35) )++(Extract 16 (266 - ln__35) )++(Extract 8 (266 - ln__35) )++(266 - ln__35)++packet_chunks[0:6]])\lHR=0.00000009",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"36"[label="36:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.00000009",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"22"[label="22:ln(\l  x:(64 - vector_data__17),\l  scale:64) -> ln__22\l=>{ln__22}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"40"[label="40:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++quotient__16[0:4]++packet_chunks[0:6]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"17"[label="17:vector_borrow(\l  vector:1073952248,\l  index:0,\l  val_out:1074037608[ -> 1073966144])\l=>{vector_data__17}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"7"[label="7:find_first_set_bit(x:(hash__6 & 1048575)) -> first_set_bit__7\l=>{first_set_bit__7}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
@@ -16,24 +18,27 @@ Fwd={
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"28"[label="28:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"15"[label="15:vector_return(\l  vector:1073935032,\l  index:0,\l  value:1073948928[(vector_data__14 + (power_of_two__12 - power_of_two__13))])\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"13"[label="13:power_of_two(exponent:(20 - first_set_bit__7)) -> power_of_two__13\l=>{power_of_two__13}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"29"[label="29:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.99999306",shape=box,style="filled,",fillcolor="#fe000054",border=0,];
+	"34"[label="34:((1 + vector_data__17) < 64)\nHR=0.00000009",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
+	"14"[label="14:vector_borrow(\l  vector:1073935032,\l  index:0,\l  val_out:1074037536[ -> 1073948928])\l=>{vector_data__14}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"26"[label="26:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"44"[label="44:fwd(DEVICE)\lHR=0.00000001
 Fwd={
 30:0.00000001}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"12"[label="12:power_of_two(exponent:(20 - min__11)) -> power_of_two__12\l=>{power_of_two__12}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"16"[label="16:divide(\l  numerator:3046596202,\l  denominator:(67108864 - (vector_data__14 + (power_of_two__12 - power_of_two__13)))) -> quotient__16\l=>{quotient__16}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"8"[label="8:vector_borrow(\l  vector:1073917816,\l  index:(hash__6 >> 26),\l  val_out:1074037448[ -> 1073931712])\l=>{min__11,vector_data__8}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"4"[label="4:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
-	"5"[label="5:packet_borrow_next_chunk(\l  p:1074027408,\l  length:20,\l  chunk:1074038736[ -> 1073756352])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"18"[label="18:min__11\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
-	"22"[label="22:ln(\l  x:(64 - vector_data__17),\l  scale:64) -> ln__22\l=>{ln__22}\lHR=0.99999989",shape=box,style="filled,",fillcolor="#fe000054",border=0,];
+	"13"[label="13:power_of_two(exponent:(20 - first_set_bit__7)) -> power_of_two__13\l=>{power_of_two__13}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"15"[label="15:vector_return(\l  vector:1073935032,\l  index:0,\l  value:1073948928[(vector_data__14 + unrolled__0)])\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"29"[label="29:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.99999306",shape=box,style="filled,",fillcolor="#fe000054",border=0,];
+	"82"[label="82:op_sub(\l  a:power_of_two__12,\l  b:power_of_two__13) -> unrolled__0\l=>{unrolled__0}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"20"[label="20:(quotient__16 < 160)\nHR=0.99999989",shape=ellipse,style="filled,",fillcolor="#fe000054",border=0,];
+	"4"[label="4:((8 == packet_chunks[12:14]) & (20 <= (... + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"5"[label="5:packet_borrow_next_chunk(\l  p:1074027408,\l  length:20,\l  chunk:1074038736[ -> 1073756352])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"16"[label="16:divide(\l  numerator:3046596202,\l  denominator:(67108864 - unrolled__1)) -> quotient__16\l=>{quotient__16}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"8"[label="8:vector_borrow(\l  vector:1073917816,\l  index:(hash__6 >> 26),\l  val_out:1074037448[ -> 1073931712])\l=>{min__11,vector_data__8}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"83"[label="83:op_add(\l  a:vector_data__14,\l  b:unrolled__0) -> unrolled__1\l=>{unrolled__1}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"24"[label="24:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++(Extract 24 (266 - ln__22) )++(Extract 16 (266 - ln__22) )++(Extract 8 (266 - ln__22) )++(266 - ln__22)++packet_chunks[0:6]])\lHR=0.00000683",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"18"[label="18:min__11\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"21"[label="21:(vector_data__17 < 64)\nHR=0.00000683",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
 	"23"[label="23:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.00000683",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"24"[label="24:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++(Extract 24 (266 - ln__22) )++(Extract 16 (266 - ln__22) )++(Extract 8 (266 - ln__22) )++(266 - ln__22)++packet_chunks[0:6]])\lHR=0.00000683",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"25"[label="25:fwd(DEVICE)\lHR=0.00000683
 Fwd={
 6:0.00000024,5:0.00000022,4:0.00000024,10:0.00000024,
@@ -44,8 +49,8 @@ Fwd={
 20:0.00000024,21:0.00000022,22:0.00000024,23:0.00000022,
 24:0.00000024,25:0.00000022,26:0.00000024,27:0.00000022,
 28:0.00000024,3:0.00000022}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"3"[label="3:packet_borrow_next_chunk(\l  p:1074027408,\l  length:14,\l  chunk:1074038000[ -> 1073756096])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"6"[label="6:hash_obj(\l  obj:1074037360[packet_chunks[268:276]],\l  size:8) -> hash__6\l=>{hash__6}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"3"[label="3:packet_borrow_next_chunk(\l  p:1074027408,\l  length:14,\l  chunk:1074038000[ -> 1073756096])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"30"[label="30:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++quotient__16[0:4]++packet_chunks[0:6]])\lHR=0.99999306",shape=box,style="filled,",fillcolor="#fe000054",border=0,];
 	"35"[label="35:ln(\l  x:(63 - vector_data__17),\l  scale:64) -> ln__35\l=>{ln__35}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"27"[label="27:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756096[packet_chunks[12:14]++0++0++quotient__16[0:4]++packet_chunks[0:6]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
@@ -60,9 +65,6 @@ Fwd={
 24:0.03333310,25:0.03333311,26:0.03333310,27:0.03333311,
 28:0.03333310,3:0.03333311}",shape=box,style="filled,",fillcolor="#fe000054",border=0,];
 	"33"[label="33:(quotient__16 < 160)\nHR=0.00000011",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
-	"14"[label="14:vector_borrow(\l  vector:1073935032,\l  index:0,\l  val_out:1074037536[ -> 1073948928])\l=>{vector_data__14}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"34"[label="34:((1 + vector_data__17) < 64)\nHR=0.00000009",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
-	"36"[label="36:packet_return_chunk(\l  p:1074027408,\l  the_chunk:1073756352[packet_chunks[256:276]])\lHR=0.00000009",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"3" -> "4";
 	"4" -> "5" [label="True"];
 	"4" -> "80" [label="False"];
@@ -72,14 +74,16 @@ Fwd={
 	"8" -> "13";
 	"13" -> "12";
 	"12" -> "14";
-	"14" -> "15";
-	"15" -> "16";
-	"16" -> "17";
-	"17" -> "35";
-	"35" -> "18";
-	"18" -> "22" [label="True"];
+	"14" -> "82";
+	"82" -> "17";
+	"17" -> "22";
+	"22" -> "35";
+	"35" -> "15";
+	"15" -> "83";
+	"83" -> "16";
+	"16" -> "18";
+	"18" -> "20" [label="True"];
 	"18" -> "33" [label="False"];
-	"22" -> "20";
 	"20" -> "21" [label="True"];
 	"20" -> "29" [label="False"];
 	"21" -> "23" [label="True"];

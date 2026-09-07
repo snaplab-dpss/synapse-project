@@ -169,47 +169,53 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
       // EP node  454
       // BDD node 13:power_of_two(exponent:(Sub w32 (w32 20) (ReadLSB w32 (w32 0) first_set_bit__7)))
       u32 power_1 = libnf::power_of_two((20) - (bswap32(cpu_hdr_extra->first_set_bit__7)));
-      // EP node  492
+      // EP node  511
       // BDD node 14:vector_borrow(vector:(w64 1073935032), index:(w32 0), val_out:(w64 1074037536)[ -> (w64 1073948928)])
       u8 *vector_cell_1;
       libnf::vector_borrow(state->cpu_vector_1073935032, 0, (void **)&vector_cell_1);
       u32 vector_value_1 = *(u32 *)vector_cell_1;
-      // EP node  572
-      // BDD node 15:vector_return(vector:(w64 1073935032), index:(w32 0), value:(w64 1073948928)[(Add w32 (ReadLSB w32 (w32 0) vector_data__14) (Sub w32 (ReadLSB w32 (w32 0) power_of_two__12) (ReadLSB w32 (w32 0) power_of_two__13)))])
-      vector_cell_1[0] = (u32)(((vector_value_1) + ((power_0) - (power_1))));
-      vector_cell_1[1] = (u32)(((vector_value_1) + ((power_0) - (power_1)))>>8);
-      vector_cell_1[2] = (u32)(((vector_value_1) + ((power_0) - (power_1)))>>16);
-      vector_cell_1[3] = (u32)(((vector_value_1) + ((power_0) - (power_1)))>>24);
+      // EP node  551
+      // BDD node 82:op_sub(a:(ReadLSB w32 (w32 0) power_of_two__12), b:(ReadLSB w32 (w32 0) power_of_two__13))
+      u32 unrolled_0 = (power_0) - (power_1);
+      // EP node  635
+      // BDD node 15:vector_return(vector:(w64 1073935032), index:(w32 0), value:(w64 1073948928)[(Add w32 (ReadLSB w32 (w32 0) vector_data__14) (ReadLSB w32 (w32 0) unrolled__0))])
+      vector_cell_1[0] = (u32)(((vector_value_1) + (unrolled_0)));
+      vector_cell_1[1] = (u32)(((vector_value_1) + (unrolled_0))>>8);
+      vector_cell_1[2] = (u32)(((vector_value_1) + (unrolled_0))>>16);
+      vector_cell_1[3] = (u32)(((vector_value_1) + (unrolled_0))>>24);
       libnf::vector_return(state->cpu_vector_1073935032, 0, vector_cell_1);
-      // EP node  594
-      // BDD node 16:divide(numerator:(w32 3046596202), denominator:(Sub w32 (w32 67108864) (Add w32 (ReadLSB w32 (w32 0) vector_data__14) (Sub w32 (ReadLSB w32 (w32 0) power_of_two__12) (ReadLSB w32 (w32 0) power_of_two__13)))))
-      u32 quotient_0 = libnf::divide(3046596202LL, (67108864) - ((vector_value_1) + ((power_0) - (power_1))));
-      // EP node  616
+      // EP node  658
+      // BDD node 83:op_add(a:(ReadLSB w32 (w32 0) vector_data__14), b:(ReadLSB w32 (w32 0) unrolled__0))
+      u32 unrolled_1 = (vector_value_1) + (unrolled_0);
+      // EP node  704
+      // BDD node 16:divide(numerator:(w32 3046596202), denominator:(Sub w32 (w32 67108864) (ReadLSB w32 (w32 0) unrolled__1)))
+      u32 quotient_0 = libnf::divide(3046596202LL, (67108864) - (unrolled_1));
+      // EP node  728
       // BDD node 17:vector_borrow(vector:(w64 1073952248), index:(w32 0), val_out:(w64 1074037608)[ -> (w64 1073966144)])
       u8 *vector_cell_2;
       libnf::vector_borrow(state->cpu_vector_1073952248, 0, (void **)&vector_cell_2);
       u32 vector_value_2 = *(u32 *)vector_cell_2;
-      // EP node  685
+      // EP node  803
       // BDD node 18:if ((Eq false (Eq (w32 0) (ReadLSB w32 (w32 0) min__11)))
       if ((0) != (minimum_0)) {
-        // EP node  686
+        // EP node  804
         // BDD node 18:if ((Eq false (Eq (w32 0) (ReadLSB w32 (w32 0) min__11)))
-        // EP node  737
+        // EP node  859
         // BDD node 19:vector_return(vector:(w64 1073952248), index:(w32 0), value:(w64 1073966144)[(ReadLSB w32 (w32 0) vector_data__17)])
-        // EP node  791
+        // EP node  917
         // BDD node 20:if ((Ult (ReadLSB w32 (w32 0) quotient__16) (w32 160))
         if ((quotient_0) < (160)) {
-          // EP node  792
+          // EP node  918
           // BDD node 20:if ((Ult (ReadLSB w32 (w32 0) quotient__16) (w32 160))
-          // EP node  946
+          // EP node  1082
           // BDD node 21:if ((Ult (ReadLSB w32 (w32 0) vector_data__17) (w32 64))
           if ((vector_value_2) < (64)) {
-            // EP node  947
+            // EP node  1083
             // BDD node 21:if ((Ult (ReadLSB w32 (w32 0) vector_data__17) (w32 64))
-            // EP node  981
+            // EP node  1119
             // BDD node 22:ln(x:(Sub w32 (w32 64) (ReadLSB w32 (w32 0) vector_data__17)), scale:(w32 64))
             u32 logarithm_0 = libnf::ln((64) - (vector_value_2), 64);
-            // EP node  1089
+            // EP node  1233
             // BDD node 24:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Extract w8 24 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__22))) (Concat w72 (Extract w8 16 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__22))) (Concat w64 (Extract w8 8 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__22))) (Concat w56 (Extract w8 0 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__22))) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
             hdr_0[6] = (u32)(((266) - (logarithm_0)));
             hdr_0[7] = (u32)(((266) - (logarithm_0))>>8);
@@ -217,13 +223,13 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
             hdr_0[9] = (u32)(((266) - (logarithm_0))>>24);
             hdr_0[10] = 0;
             hdr_0[11] = 0;
-            // EP node  1127
+            // EP node  1273
             // BDD node 25:FORWARD
             cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
           } else {
-            // EP node  948
+            // EP node  1084
             // BDD node 21:if ((Ult (ReadLSB w32 (w32 0) vector_data__17) (w32 64))
-            // EP node  4283
+            // EP node  4856
             // BDD node 27:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Read w8 (w32 3) quotient__16) (Concat w72 (Read w8 (w32 2) quotient__16) (Concat w64 (Read w8 (w32 1) quotient__16) (Concat w56 (Read w8 (w32 0) quotient__16) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
             hdr_0[6] = quotient_0 & 255;
             hdr_0[7] = (quotient_0>>8) & 255;
@@ -231,14 +237,14 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
             hdr_0[9] = (quotient_0>>24) & 255;
             hdr_0[10] = 0;
             hdr_0[11] = 0;
-            // EP node  4843
+            // EP node  5444
             // BDD node 28:FORWARD
             cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
           }
         } else {
-          // EP node  793
+          // EP node  919
           // BDD node 20:if ((Ult (ReadLSB w32 (w32 0) quotient__16) (w32 160))
-          // EP node  881
+          // EP node  1013
           // BDD node 30:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Read w8 (w32 3) quotient__16) (Concat w72 (Read w8 (w32 2) quotient__16) (Concat w64 (Read w8 (w32 1) quotient__16) (Concat w56 (Read w8 (w32 0) quotient__16) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
           hdr_0[6] = quotient_0 & 255;
           hdr_0[7] = (quotient_0>>8) & 255;
@@ -246,34 +252,34 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
           hdr_0[9] = (quotient_0>>24) & 255;
           hdr_0[10] = 0;
           hdr_0[11] = 0;
-          // EP node  913
+          // EP node  1047
           // BDD node 31:FORWARD
           cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
         }
       } else {
-        // EP node  687
+        // EP node  805
         // BDD node 18:if ((Eq false (Eq (w32 0) (ReadLSB w32 (w32 0) min__11)))
-        // EP node  3772
+        // EP node  4317
         // BDD node 32:vector_return(vector:(w64 1073952248), index:(w32 0), value:(w64 1073966144)[(Add w32 (w32 1) (ReadLSB w32 (w32 0) vector_data__17))])
         vector_cell_2[0] = (u32)(((1) + (vector_value_2)));
         vector_cell_2[1] = (u32)(((1) + (vector_value_2))>>8);
         vector_cell_2[2] = (u32)(((1) + (vector_value_2))>>16);
         vector_cell_2[3] = (u32)(((1) + (vector_value_2))>>24);
         libnf::vector_return(state->cpu_vector_1073952248, 0, vector_cell_2);
-        // EP node  4133
+        // EP node  4698
         // BDD node 33:if ((Ult (ReadLSB w32 (w32 0) quotient__16) (w32 160))
         if ((quotient_0) < (160)) {
-          // EP node  4134
+          // EP node  4699
           // BDD node 33:if ((Ult (ReadLSB w32 (w32 0) quotient__16) (w32 160))
-          // EP node  4597
+          // EP node  5186
           // BDD node 34:if ((Ult (Add w32 (w32 1) (ReadLSB w32 (w32 0) vector_data__17)) (w32 64))
           if (((1) + (vector_value_2)) < (64)) {
-            // EP node  4598
+            // EP node  5187
             // BDD node 34:if ((Ult (Add w32 (w32 1) (ReadLSB w32 (w32 0) vector_data__17)) (w32 64))
-            // EP node  5099
+            // EP node  5712
             // BDD node 35:ln(x:(Sub w32 (w32 63) (ReadLSB w32 (w32 0) vector_data__17)), scale:(w32 64))
             u32 logarithm_1 = libnf::ln((63) - (vector_value_2), 64);
-            // EP node  5718
+            // EP node  6359
             // BDD node 37:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Extract w8 24 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__35))) (Concat w72 (Extract w8 16 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__35))) (Concat w64 (Extract w8 8 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__35))) (Concat w56 (Extract w8 0 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__35))) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
             hdr_0[6] = (u32)(((266) - (logarithm_1)));
             hdr_0[7] = (u32)(((266) - (logarithm_1))>>8);
@@ -281,13 +287,13 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
             hdr_0[9] = (u32)(((266) - (logarithm_1))>>24);
             hdr_0[10] = 0;
             hdr_0[11] = 0;
-            // EP node  5903
+            // EP node  6552
             // BDD node 38:FORWARD
             cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
           } else {
-            // EP node  4599
+            // EP node  5188
             // BDD node 34:if ((Ult (Add w32 (w32 1) (ReadLSB w32 (w32 0) vector_data__17)) (w32 64))
-            // EP node  5537
+            // EP node  6170
             // BDD node 40:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Read w8 (w32 3) quotient__16) (Concat w72 (Read w8 (w32 2) quotient__16) (Concat w64 (Read w8 (w32 1) quotient__16) (Concat w56 (Read w8 (w32 0) quotient__16) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
             hdr_0[6] = quotient_0 & 255;
             hdr_0[7] = (quotient_0>>8) & 255;
@@ -295,14 +301,14 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
             hdr_0[9] = (quotient_0>>24) & 255;
             hdr_0[10] = 0;
             hdr_0[11] = 0;
-            // EP node  5810
+            // EP node  6455
             // BDD node 41:FORWARD
             cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
           }
         } else {
-          // EP node  4135
+          // EP node  4700
           // BDD node 33:if ((Ult (ReadLSB w32 (w32 0) quotient__16) (w32 160))
-          // EP node  5360
+          // EP node  5985
           // BDD node 43:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Read w8 (w32 3) quotient__16) (Concat w72 (Read w8 (w32 2) quotient__16) (Concat w64 (Read w8 (w32 1) quotient__16) (Concat w56 (Read w8 (w32 0) quotient__16) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
           hdr_0[6] = quotient_0 & 255;
           hdr_0[7] = (quotient_0>>8) & 255;
@@ -310,7 +316,7 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
           hdr_0[9] = (quotient_0>>24) & 255;
           hdr_0[10] = 0;
           hdr_0[11] = 0;
-          // EP node  5627
+          // EP node  6264
           // BDD node 44:FORWARD
           cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
         }
@@ -318,63 +324,69 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
     } else {
       // EP node  195
       // BDD node 9:if ((Ule (ReadLSB w32 (w32 0) first_set_bit__7) (ReadLSB w32 (w32 0) vector_data__8))
-      // EP node  1318
+      // EP node  1474
       // BDD node 45:vector_return(vector:(w64 1073917816), index:(LShr w32 (ReadLSB w32 (w32 0) hash__6) (w32 26)), value:(w64 1073931712)[(ReadLSB w32 (w32 0) first_set_bit__7)])
       vector_cell_0[0] = bswap32(cpu_hdr_extra->first_set_bit__7) & 255;
       vector_cell_0[1] = (bswap32(cpu_hdr_extra->first_set_bit__7)>>8) & 255;
       vector_cell_0[2] = (bswap32(cpu_hdr_extra->first_set_bit__7)>>16) & 255;
       vector_cell_0[3] = (bswap32(cpu_hdr_extra->first_set_bit__7)>>24) & 255;
       libnf::vector_return(state->cpu_vector_1073917816, (bswap32(cpu_hdr_extra->hash__6)) >> (26), vector_cell_0);
-      // EP node  1436
+      // EP node  1598
       // BDD node 46:min(a:(ReadLSB w32 (w32 0) first_set_bit__7), b:(ReadLSB w32 (w32 0) vector_data__8))
       u32 minimum_1 = libnf::min(bswap32(cpu_hdr_extra->first_set_bit__7), vector_value_0);
-      // EP node  1596
+      // EP node  1766
       // BDD node 47:power_of_two(exponent:(Sub w32 (w32 20) (ReadLSB w32 (w32 0) min__46)))
       u32 power_2 = libnf::power_of_two((20) - (minimum_1));
-      // EP node  1719
+      // EP node  1895
       // BDD node 48:power_of_two(exponent:(Sub w32 (w32 20) (ReadLSB w32 (w32 0) first_set_bit__7)))
       u32 power_3 = libnf::power_of_two((20) - (bswap32(cpu_hdr_extra->first_set_bit__7)));
-      // EP node  1803
+      // EP node  2027
       // BDD node 49:vector_borrow(vector:(w64 1073935032), index:(w32 0), val_out:(w64 1074037536)[ -> (w64 1073948928)])
       u8 *vector_cell_3;
       libnf::vector_borrow(state->cpu_vector_1073935032, 0, (void **)&vector_cell_3);
       u32 vector_value_3 = *(u32 *)vector_cell_3;
-      // EP node  1975
-      // BDD node 50:vector_return(vector:(w64 1073935032), index:(w32 0), value:(w64 1073948928)[(Add w32 (ReadLSB w32 (w32 0) vector_data__49) (Sub w32 (ReadLSB w32 (w32 0) power_of_two__47) (ReadLSB w32 (w32 0) power_of_two__48)))])
-      vector_cell_3[0] = (u32)(((vector_value_3) + ((power_2) - (power_3))));
-      vector_cell_3[1] = (u32)(((vector_value_3) + ((power_2) - (power_3)))>>8);
-      vector_cell_3[2] = (u32)(((vector_value_3) + ((power_2) - (power_3)))>>16);
-      vector_cell_3[3] = (u32)(((vector_value_3) + ((power_2) - (power_3)))>>24);
+      // EP node  2117
+      // BDD node 84:op_sub(a:(ReadLSB w32 (w32 0) power_of_two__47), b:(ReadLSB w32 (w32 0) power_of_two__48))
+      u32 unrolled_2 = (power_2) - (power_3);
+      // EP node  2301
+      // BDD node 50:vector_return(vector:(w64 1073935032), index:(w32 0), value:(w64 1073948928)[(Add w32 (ReadLSB w32 (w32 0) vector_data__49) (ReadLSB w32 (w32 0) unrolled__2))])
+      vector_cell_3[0] = (u32)(((vector_value_3) + (unrolled_2)));
+      vector_cell_3[1] = (u32)(((vector_value_3) + (unrolled_2))>>8);
+      vector_cell_3[2] = (u32)(((vector_value_3) + (unrolled_2))>>16);
+      vector_cell_3[3] = (u32)(((vector_value_3) + (unrolled_2))>>24);
       libnf::vector_return(state->cpu_vector_1073935032, 0, vector_cell_3);
-      // EP node  2020
-      // BDD node 51:divide(numerator:(w32 3046596202), denominator:(Sub w32 (w32 67108864) (Add w32 (ReadLSB w32 (w32 0) vector_data__49) (Sub w32 (ReadLSB w32 (w32 0) power_of_two__47) (ReadLSB w32 (w32 0) power_of_two__48)))))
-      u32 quotient_1 = libnf::divide(3046596202LL, (67108864) - ((vector_value_3) + ((power_2) - (power_3))));
-      // EP node  2065
+      // EP node  2349
+      // BDD node 85:op_add(a:(ReadLSB w32 (w32 0) vector_data__49), b:(ReadLSB w32 (w32 0) unrolled__2))
+      u32 unrolled_3 = (vector_value_3) + (unrolled_2);
+      // EP node  2445
+      // BDD node 51:divide(numerator:(w32 3046596202), denominator:(Sub w32 (w32 67108864) (ReadLSB w32 (w32 0) unrolled__3)))
+      u32 quotient_1 = libnf::divide(3046596202LL, (67108864) - (unrolled_3));
+      // EP node  2494
       // BDD node 52:vector_borrow(vector:(w64 1073952248), index:(w32 0), val_out:(w64 1074037608)[ -> (w64 1073966144)])
       u8 *vector_cell_4;
       libnf::vector_borrow(state->cpu_vector_1073952248, 0, (void **)&vector_cell_4);
       u32 vector_value_4 = *(u32 *)vector_cell_4;
-      // EP node  2203
+      // EP node  2644
       // BDD node 53:if ((Eq false (Eq (w32 0) (ReadLSB w32 (w32 0) min__46)))
       if ((0) != (minimum_1)) {
-        // EP node  2204
+        // EP node  2645
         // BDD node 53:if ((Eq false (Eq (w32 0) (ReadLSB w32 (w32 0) min__46)))
-        // EP node  2301
+        // EP node  2750
         // BDD node 54:vector_return(vector:(w64 1073952248), index:(w32 0), value:(w64 1073966144)[(ReadLSB w32 (w32 0) vector_data__52)])
-        // EP node  2401
+        // EP node  2858
         // BDD node 55:if ((Ult (ReadLSB w32 (w32 0) quotient__51) (w32 160))
         if ((quotient_1) < (160)) {
-          // EP node  2402
+          // EP node  2859
           // BDD node 55:if ((Ult (ReadLSB w32 (w32 0) quotient__51) (w32 160))
-          // EP node  3283
+          // EP node  3800
           // BDD node 56:if ((Ult (ReadLSB w32 (w32 0) vector_data__52) (w32 64))
           if ((vector_value_4) < (64)) {
-            // EP node  3284
+            // EP node  3801
             // BDD node 56:if ((Ult (ReadLSB w32 (w32 0) vector_data__52) (w32 64))
-            // EP node  3351
+            // EP node  3872
             // BDD node 57:ln(x:(Sub w32 (w32 64) (ReadLSB w32 (w32 0) vector_data__52)), scale:(w32 64))
             u32 logarithm_2 = libnf::ln((64) - (vector_value_4), 64);
-            // EP node  3558
+            // EP node  4091
             // BDD node 59:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Extract w8 24 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__57))) (Concat w72 (Extract w8 16 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__57))) (Concat w64 (Extract w8 8 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__57))) (Concat w56 (Extract w8 0 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__57))) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
             hdr_0[6] = (u32)(((266) - (logarithm_2)));
             hdr_0[7] = (u32)(((266) - (logarithm_2))>>8);
@@ -382,13 +394,13 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
             hdr_0[9] = (u32)(((266) - (logarithm_2))>>24);
             hdr_0[10] = 0;
             hdr_0[11] = 0;
-            // EP node  3629
+            // EP node  4166
             // BDD node 60:FORWARD
             cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
           } else {
-            // EP node  3285
+            // EP node  3802
             // BDD node 56:if ((Ult (ReadLSB w32 (w32 0) vector_data__52) (w32 64))
-            // EP node  4517
+            // EP node  5102
             // BDD node 62:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Read w8 (w32 3) quotient__51) (Concat w72 (Read w8 (w32 2) quotient__51) (Concat w64 (Read w8 (w32 1) quotient__51) (Concat w56 (Read w8 (w32 0) quotient__51) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
             hdr_0[6] = quotient_1 & 255;
             hdr_0[7] = (quotient_1>>8) & 255;
@@ -396,14 +408,14 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
             hdr_0[9] = (quotient_1>>24) & 255;
             hdr_0[10] = 0;
             hdr_0[11] = 0;
-            // EP node  5098
+            // EP node  5711
             // BDD node 63:FORWARD
             cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
           }
         } else {
-          // EP node  2403
+          // EP node  2860
           // BDD node 55:if ((Ult (ReadLSB w32 (w32 0) quotient__51) (w32 160))
-          // EP node  2560
+          // EP node  3029
           // BDD node 65:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Read w8 (w32 3) quotient__51) (Concat w72 (Read w8 (w32 2) quotient__51) (Concat w64 (Read w8 (w32 1) quotient__51) (Concat w56 (Read w8 (w32 0) quotient__51) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
           hdr_0[6] = quotient_1 & 255;
           hdr_0[7] = (quotient_1>>8) & 255;
@@ -411,34 +423,34 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
           hdr_0[9] = (quotient_1>>24) & 255;
           hdr_0[10] = 0;
           hdr_0[11] = 0;
-          // EP node  2615
+          // EP node  3088
           // BDD node 66:FORWARD
           cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
         }
       } else {
-        // EP node  2205
+        // EP node  2646
         // BDD node 53:if ((Eq false (Eq (w32 0) (ReadLSB w32 (w32 0) min__46)))
-        // EP node  2726
+        // EP node  3207
         // BDD node 67:vector_return(vector:(w64 1073952248), index:(w32 0), value:(w64 1073966144)[(Add w32 (w32 1) (ReadLSB w32 (w32 0) vector_data__52))])
         vector_cell_4[0] = (u32)(((1) + (vector_value_4)));
         vector_cell_4[1] = (u32)(((1) + (vector_value_4))>>8);
         vector_cell_4[2] = (u32)(((1) + (vector_value_4))>>16);
         vector_cell_4[3] = (u32)(((1) + (vector_value_4))>>24);
         libnf::vector_return(state->cpu_vector_1073952248, 0, vector_cell_4);
-        // EP node  2783
+        // EP node  3268
         // BDD node 68:if ((Ult (ReadLSB w32 (w32 0) quotient__51) (w32 160))
         if ((quotient_1) < (160)) {
-          // EP node  2784
+          // EP node  3269
           // BDD node 68:if ((Ult (ReadLSB w32 (w32 0) quotient__51) (w32 160))
-          // EP node  2901
+          // EP node  3394
           // BDD node 69:if ((Ult (Add w32 (w32 1) (ReadLSB w32 (w32 0) vector_data__52)) (w32 64))
           if (((1) + (vector_value_4)) < (64)) {
-            // EP node  2902
+            // EP node  3395
             // BDD node 69:if ((Ult (Add w32 (w32 1) (ReadLSB w32 (w32 0) vector_data__52)) (w32 64))
-            // EP node  2963
+            // EP node  3460
             // BDD node 70:ln(x:(Sub w32 (w32 63) (ReadLSB w32 (w32 0) vector_data__52)), scale:(w32 64))
             u32 logarithm_3 = libnf::ln((63) - (vector_value_4), 64);
-            // EP node  3152
+            // EP node  3661
             // BDD node 72:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Extract w8 24 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__70))) (Concat w72 (Extract w8 16 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__70))) (Concat w64 (Extract w8 8 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__70))) (Concat w56 (Extract w8 0 (Sub w32 (w32 266) (ReadLSB w32 (w32 0) ln__70))) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
             hdr_0[6] = (u32)(((266) - (logarithm_3)));
             hdr_0[7] = (u32)(((266) - (logarithm_3))>>8);
@@ -446,13 +458,13 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
             hdr_0[9] = (u32)(((266) - (logarithm_3))>>24);
             hdr_0[10] = 0;
             hdr_0[11] = 0;
-            // EP node  3217
+            // EP node  3730
             // BDD node 73:FORWARD
             cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
           } else {
-            // EP node  2903
+            // EP node  3396
             // BDD node 69:if ((Ult (Add w32 (w32 1) (ReadLSB w32 (w32 0) vector_data__52)) (w32 64))
-            // EP node  4438
+            // EP node  5019
             // BDD node 75:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Read w8 (w32 3) quotient__51) (Concat w72 (Read w8 (w32 2) quotient__51) (Concat w64 (Read w8 (w32 1) quotient__51) (Concat w56 (Read w8 (w32 0) quotient__51) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
             hdr_0[6] = quotient_1 & 255;
             hdr_0[7] = (quotient_1>>8) & 255;
@@ -460,14 +472,14 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
             hdr_0[9] = (quotient_1>>24) & 255;
             hdr_0[10] = 0;
             hdr_0[11] = 0;
-            // EP node  5012
+            // EP node  5621
             // BDD node 76:FORWARD
             cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
           }
         } else {
-          // EP node  2785
+          // EP node  3270
           // BDD node 68:if ((Ult (ReadLSB w32 (w32 0) quotient__51) (w32 160))
-          // EP node  4360
+          // EP node  4937
           // BDD node 78:packet_return_chunk(p:(w64 1074027408), the_chunk:(w64 1073756096)[(Concat w112 (Read w8 (w32 13) packet_chunks) (Concat w104 (Read w8 (w32 12) packet_chunks) (Concat w96 (w8 0) (Concat w88 (w8 0) (Concat w80 (Read w8 (w32 3) quotient__51) (Concat w72 (Read w8 (w32 2) quotient__51) (Concat w64 (Read w8 (w32 1) quotient__51) (Concat w56 (Read w8 (w32 0) quotient__51) (ReadLSB w48 (w32 0) packet_chunks)))))))))])
           hdr_0[6] = quotient_1 & 255;
           hdr_0[7] = (quotient_1>>8) & 255;
@@ -475,7 +487,7 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
           hdr_0[9] = (quotient_1>>24) & 255;
           hdr_0[10] = 0;
           hdr_0[11] = 0;
-          // EP node  4927
+          // EP node  5532
           // BDD node 79:FORWARD
           cpu_hdr->egress_dev = bswap16(bswap32(cpu_hdr_extra->DEVICE) & 65535);
         }

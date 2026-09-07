@@ -7,36 +7,36 @@ Args:
   Profile file:       hyperloglog-f40000-c0-zipf0_6.json
   Seed:               0
   Targets:
-    Tofino (48 modules)
-    Ctrl (96 modules)
+    Tofino (49 modules)
+    Ctrl (97 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'250'000'000,39,-10,-1'069'312,0>
+  Score: <0,2'250'000'000,41,-12,-1'069'440,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
-  BDD Progress: 39 / 39
-  Stages: 10
-  Memory Usage: 1069312 bits
+  BDD Progress: 41 / 41
+  Stages: 12
+  Memory Usage: 1069440 bits
 
 Stateful Implementations:
-  1073952248: Tofino::VectorRegister
   1073935032: Tofino::VectorRegister
+  1073952248: Tofino::VectorRegister
   1073917816: Tofino::VectorRegister
 
 Search Metadata:
-  Elapsed time:       8 seconds
-  Steps:              40
+  Elapsed time:       5 seconds
+  Steps:              42
   Backtracks:         1
-  Search space size:  128
-  Unfinished EPs:     88
+  Search space size:  136
+  Unfinished EPs:     94
   Finished EPs:       1
-  Avg BDD size:       39
+  Avg BDD size:       41
   Branching factor:   2
-  Total SS size est.: 248'835'912
+  Total SS size est.: 1'352'920'348
   Avg children per node:
     Node 73: 0
     Node 60: 0
@@ -58,25 +58,28 @@ Search Metadata:
     Node 58: 0
     Node 44: 2
     Node 40: 3
-    Node 53: 0
+    Node 36: 3
+    Node 31: 2
+    Node 27: 3
+    Node 23: 3
+    Node 85: 0
+    Node 26: 3
+    Node 83: 3
     Node 50: 0
-    Node 15: 4
+    Node 15: 3
     Node 74: 0
+    Node 84: 0
+    Node 82: 5
     Node 49: 0
-    Node 14: 8
-    Node 19: 0
-    Node 78: 0
+    Node 14: 6
     Node 48: 0
     Node 13: 5
-    Node 18: 4
-    Node 77: 0
     Node 47: 0
-    Node 12: 4
-    Node 32: 0
+    Node 12: 5
     Node 3: 2
     Node 52: 0
     Node 81: 2
-    Node 22: 3
+    Node 22: 5
     Node 4: 3
     Node 5: 3
     Node 64: 0
@@ -88,7 +91,7 @@ Search Metadata:
     Node 16: 3
     Node 45: 0
     Node 7: 3
-    Node 17: 5
+    Node 17: 6
     Node 46: 0
     Node 8: 4
     Node 67: 0
@@ -98,6 +101,12 @@ Search Metadata:
     Node 69: 0
     Node 11: 0
     Node 70: 0
+    Node 18: 3
+    Node 77: 0
+    Node 53: 0
+    Node 19: 0
+    Node 78: 0
+    Node 32: 0
     Node 54: 0
     Node 20: 3
     Node 33: 3
@@ -106,23 +115,18 @@ Search Metadata:
     Node 34: 3
     Node 42: 3
     Node 56: 0
-    Node 26: 3
     Node 30: 3
     Node 35: 4
     Node 39: 3
     Node 43: 3
     Node 57: 0
     Node 61: 0
-    Node 23: 3
-    Node 27: 3
-    Node 31: 2
-    Node 36: 3
 
 Global Stats:
-  Num phase 1 speculations: 4'018 (100%)
-  Num phase 2 speculations: 445 (11.0752%)
-  Num speculated modules:   41'477
-  Num EPs generated:        128
+  Num phase 1 speculations: 4'039 (100%)
+  Num phase 2 speculations: 429 (10.6214%)
+  Num speculated modules:   43'176
+  Num EPs generated:        136
 
 Switch placement:
 
@@ -169,27 +173,27 @@ Objs: [power_of_two_12]
 -------------------------------------
 -------------------------------------
 Stage 5
-SRAM: 16'388/1'310'720 B (1.25031%)
+SRAM: 8/1'310'720 B (0.000610352%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 16'388/786'432 B (2.08384%)
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1073935032_0]
+MapRAM: 0/786'432 B (0%)
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [op_sub_82]
 -------------------------------------
 -------------------------------------
 Stage 6
 SRAM: 16'388/1'310'720 B (1.25031%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 16'388/786'432 B (2.08384%)
-Exact Match Crossbar: 1/128 B (0.78125%)
-Objs: [divide_16]
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1073952248_0]
 -------------------------------------
 -------------------------------------
 Stage 7
-SRAM: 16'388/1'310'720 B (1.25031%)
+SRAM: 584/1'310'720 B (0.0445557%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 16'388/786'432 B (2.08384%)
+MapRAM: 0/786'432 B (0%)
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1073952248_0]
+Objs: [ln_22]
 -------------------------------------
 -------------------------------------
 Stage 8
@@ -201,11 +205,27 @@ Objs: [ln_35]
 -------------------------------------
 -------------------------------------
 Stage 9
-SRAM: 584/1'310'720 B (0.0445557%)
+SRAM: 16'388/1'310'720 B (1.25031%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 16'388/786'432 B (2.08384%)
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1073935032_0]
+-------------------------------------
+-------------------------------------
+Stage 10
+SRAM: 8/1'310'720 B (0.000610352%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [ln_22]
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [op_add_83]
+-------------------------------------
+-------------------------------------
+Stage 11
+SRAM: 16'388/1'310'720 B (1.25031%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 16'388/786'432 B (2.08384%)
+Exact Match Crossbar: 1/128 B (0.78125%)
+Objs: [divide_16]
 -------------------------------------
 ==========================================================
 ========================================================
