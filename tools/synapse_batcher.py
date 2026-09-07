@@ -163,7 +163,6 @@ def run_synapse(
     profile_visualizer_cmd += f" --name {name}"
     profile_visualizer_cmd += f" --out {OUT_DIR}"
     profile_visualizer_cmd += " --skip-synthesis" if skip_synthesis else ""
-    profile_visualizer_cmd += " --allow-deadends" if gallium else ""
 
     return Task(
         f"run_synapse_{name}",
