@@ -3,6 +3,7 @@
 #include <LibSynapse/Modules/Tofino/DataStructures/DataStructures.h>
 #include <LibSynapse/Modules/Tofino/TNA/TNAProperties.h>
 #include <LibSynapse/Modules/Tofino/TNA/Parser.h>
+#include <LibCore/Cow.h>
 #include <LibSynapse/Modules/Tofino/TNA/Pipeline.h>
 #include <LibBDD/BDD.h>
 #include <LibCore/Types.h>
@@ -22,7 +23,8 @@ struct TNA {
   constexpr const static double TABLE_CAPACITY_EFFICIENCY{0.9};
   const tna_config_t tna_config;
 
-  Parser parser;
+  // Built once during context pre-processing, then read-only: copies share it.
+  LibCore::Cow<Parser> parser;
   Pipeline pipeline;
 
   TNA(const tna_config_t &_tna_config, const DataStructures &_data_structures)

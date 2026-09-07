@@ -25,7 +25,7 @@ struct ds_relationships_t {
 ds_relationships_t get_ds_relationships(const Pipeline &pipeline, const DS *target_ds, const std::unordered_set<DS_ID> &deps) {
   std::vector<ConcretizedPlacementRequest> placement_requests;
 
-  for (const PlacementRequest &request : pipeline.placement_requests) {
+  for (const PlacementRequest &request : *pipeline.placement_requests) {
     const DS *request_ds = pipeline.data_structures.get_ds_from_id(request.ds);
     placement_requests.push_back({request_ds, *request.deps});
   }

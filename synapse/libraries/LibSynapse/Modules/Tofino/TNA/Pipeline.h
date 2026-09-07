@@ -1,6 +1,7 @@
 #pragma once
 
 #include <LibSynapse/Modules/Tofino/DataStructures/DataStructures.h>
+#include <LibCore/Cow.h>
 #include <LibSynapse/Modules/Tofino/TNA/TNAProperties.h>
 #include <LibCore/Types.h>
 
@@ -112,19 +113,21 @@ struct Pipeline {
   const tna_properties_t &properties;
   const DataStructures &data_structures;
 
-  PipelineResources resources;
-  std::vector<PlacementRequest> placement_requests;
+  // Both change only when something is placed, and a pipeline is copied far more often than
+  // that (once per speculation): copies share them until then.
+  LibCore::Cow<PipelineResources> resources;
+  LibCore::Cow<std::vector<PlacementRequest>> placement_requests;
 
   Pipeline(const tna_properties_t &_properties, const DataStructures &_data_structures);
   Pipeline(const Pipeline &other, const DataStructures &_data_structures);
 
   u8 get_used_stages() const {
-    return std::count_if(resources.stages.begin(), resources.stages.end(), [](const Stage &stage) { return !stage.data_structures.empty(); });
+    return std::count_if(resources->stages.begin(), resources->stages.end(), [](const Stage &stage) { return !stage.data_structures.empty(); });
   }
 
   bits_t get_memory_usage() const {
     bits_t used_memory = 0;
-    for (const Stage &stage : resources.stages) {
+    for (const Stage &stage : resources->stages) {
       used_memory += properties.sram_per_stage - stage.available_sram;
       used_memory += properties.tcam_per_stage - stage.available_tcam;
       used_memory += properties.map_ram_per_stage - stage.available_map_ram;
@@ -132,7 +135,7 @@ struct Pipeline {
     return used_memory;
   }
 
-  u8 get_used_digests() const { return resources.used_digests; }
+  u8 get_used_digests() const { return resources->used_digests; }
 
   bool detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   int get_soonest_stage_satisfying_all_dependencies(const std::unordered_set<DS_ID> &deps) const;

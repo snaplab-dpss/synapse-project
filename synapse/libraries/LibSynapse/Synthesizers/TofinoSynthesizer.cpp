@@ -55,7 +55,7 @@ const Parser &get_tofino_parser(const EP *ep) {
   const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   const TNA &tna                  = tofino_ctx->get_tna();
-  return tna.parser;
+  return *tna.parser;
 }
 
 } // namespace
