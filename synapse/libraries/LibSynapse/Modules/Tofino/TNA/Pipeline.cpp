@@ -26,6 +26,7 @@ PipelineResources::PipelineResources(const tna_properties_t &properties) {
         .available_map_ram          = properties.map_ram_per_stage,
         .available_exact_match_xbar = properties.exact_match_xbar_per_stage,
         .available_logical_ids      = properties.max_logical_sram_and_tcam_tables_per_stage,
+        .available_hash_dist_units  = properties.hash_dist_units_per_stage,
         .data_structures            = {},
     };
 
@@ -90,6 +91,11 @@ void Pipeline::dump(std::ostream &os) const {
     ss << " B ";
     ss << "(" << map_ram_usage << "%)";
     ss << "\n";
+
+    ss << "Logical IDs: " << (properties.max_logical_sram_and_tcam_tables_per_stage - stage.available_logical_ids) << "/"
+       << properties.max_logical_sram_and_tcam_tables_per_stage << "\n";
+    ss << "Hash Dist Units: " << (properties.hash_dist_units_per_stage - stage.available_hash_dist_units) << "/" << properties.hash_dist_units_per_stage
+       << "\n";
 
     ss << "Exact Match Crossbar: ";
     ss << int2hr(xbar_consumed / 8);

@@ -17,6 +17,7 @@ PlacementResult find_placements_reg(const Pipeline &pipeline, const Register *re
 PlacementResult find_placements_meter(const Pipeline &pipeline, const Meter *meter, const std::unordered_set<DS_ID> &deps);
 PlacementResult find_placements_hash(const Pipeline &pipeline, const Hash *hash, const std::unordered_set<DS_ID> &deps);
 PlacementResult find_placements_digest(const Pipeline &pipeline, const Digest *digest, const std::unordered_set<DS_ID> &deps);
+PlacementResult find_placements_compute_action(const Pipeline &pipeline, const ComputeAction *action, const std::unordered_set<DS_ID> &deps);
 PlacementResult find_placements_lpm(const Pipeline &pipeline, const LPM *lpm, const std::unordered_set<DS_ID> &deps);
 
 } // namespace SimplePlacer

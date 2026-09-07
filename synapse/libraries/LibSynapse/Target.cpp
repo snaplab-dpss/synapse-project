@@ -34,6 +34,7 @@ targets_config_t::targets_config_t(const std::filesystem::path &targets_config_f
       .map_ram_per_stage                          = *config["switch"]["arch"]["map_ram_per_stage"].value<bits_t>(),
       .max_logical_tcam_tables_per_stage          = *config["switch"]["arch"]["max_logical_tcam_tables_per_stage"].value<int>(),
       .max_logical_sram_and_tcam_tables_per_stage = *config["switch"]["arch"]["max_logical_sram_and_tcam_tables_per_stage"].value<int>(),
+      .hash_dist_units_per_stage                  = *config["switch"]["arch"]["hash_dist_units_per_stage"].value<int>(),
       .phv_size                                   = *config["switch"]["arch"]["phv_size"].value<bits_t>(),
       .phv_8bit_containers                        = *config["switch"]["arch"]["phv_8bit_containers"].value<int>(),
       .phv_16bit_containers                       = *config["switch"]["arch"]["phv_16bit_containers"].value<int>(),

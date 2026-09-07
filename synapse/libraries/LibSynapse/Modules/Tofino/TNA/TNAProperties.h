@@ -18,6 +18,7 @@ struct tna_properties_t {
   bits_t map_ram_per_stage;
   int max_logical_tcam_tables_per_stage;
   int max_logical_sram_and_tcam_tables_per_stage;
+  int hash_dist_units_per_stage;
   bits_t phv_size;
   int phv_8bit_containers;
   int phv_16bit_containers;
