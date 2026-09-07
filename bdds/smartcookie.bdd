@@ -426,7 +426,7 @@ array unrolled__227[8] : w32 -> w8 = symbolic
     (w64 1073926928)
     (w64 0)
     (w16 12)
-    (w32 4096)
+    (w32 1048576)
     (w32 2)
     (ReadLSB w32 (w32 0) bf_allocation_succeeded)
     (ReadLSB w32 (w32 0) bf_allocation_succeeded)
@@ -2538,7 +2538,7 @@ array unrolled__227[8] : w32 -> w8 = symbolic
 (Sle (ZExt w32 (ReadLSB w16 (w32 0) data_len)) (ZExt w32 (ReadLSB w16 (w32 0) pkt_len)))
 (Ule (w64 14) (ZExt w64 (ReadLSB w16 (w32 0) data_len)))
 ;;-- Init --
-0:(CALL bf_allocate(bf_out:(w64 1073926656)&[(w64 0)->(w64 1073926928)][],cleanup_interval:(w64 0),key_size:(w16 12),width:(w32 4096),height:(w32 2))->(ReadLSB w32 (w32 0) bf_allocation_succeeded)=><{bf_allocation_succeeded:bf_allocation_succeeded:(ReadLSB w32 (w32 0) bf_allocation_succeeded)}>)
+0:(CALL bf_allocate(bf_out:(w64 1073926656)&[(w64 0)->(w64 1073926928)][],cleanup_interval:(w64 0),key_size:(w16 12),width:(w32 1048576),height:(w32 2))->(ReadLSB w32 (w32 0) bf_allocation_succeeded)=><{bf_allocation_succeeded:bf_allocation_succeeded:(ReadLSB w32 (w32 0) bf_allocation_succeeded)}>)
 1:(CALL vector_allocate(vector_out:(w64 1073926664)&[(w64 0)->(w64 1073939504)][],capacity:(w32 1),elem_size:(w32 4))->(ReadLSB w32 (w32 0) vector_alloc_success)=><{vector_alloc_success:vector_alloc_success:(ReadLSB w32 (w32 0) vector_alloc_success)}>)
 ;; -- Nodes --
 2:(CALL packet_borrow_next_chunk(chunk:(w64 1074043064)&[->(w64 1073756880)][],length:(w32 14),p:(w64 1074032664))*{the_chunk:[->(ReadLSB w112 (w32 0) packet_chunks)]}*->[]=><{packet_chunks:packet_chunks:(ReadLSB w112 (w32 0) packet_chunks)}>)

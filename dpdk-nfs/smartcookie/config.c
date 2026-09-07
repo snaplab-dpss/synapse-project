@@ -13,7 +13,7 @@ const uint16_t DEFAULT_SERVER_DEV          = 0;
 const uint32_t DEFAULT_SIP_KEY_0           = 0x33323130; // upstream's default key
 const uint32_t DEFAULT_SIP_KEY_1           = 0x42413938;
 const uint32_t DEFAULT_BLOOM_FILTER_HEIGHT = 2;
-const uint32_t DEFAULT_BLOOM_FILTER_WIDTH  = 4096;
+const uint32_t DEFAULT_BLOOM_FILTER_WIDTH  = 1048576; // 2^20 bits per array, the paper's size (see tofino/smartcookie/README.md)
 
 #define PARSE_ERROR(format, ...)                                                                                                                     \
   nf_config_usage();                                                                                                                                 \
