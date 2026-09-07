@@ -61,6 +61,7 @@ class Ln;
 class Divide;
 class ArithmeticOp;
 class RotateLeft;
+class RotateLeftShifts;
 } // namespace Tofino
 
 namespace Controller {
@@ -272,6 +273,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ArithmeticOp *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeft *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeftShifts *m) { return Action::doChildren; }
 
   // ========================================
   // Controller

@@ -55,6 +55,7 @@
 #include <LibSynapse/Modules/Tofino/ComputeTablePowerOfTwo.h>
 #include <LibSynapse/Modules/Tofino/ArithmeticOp.h>
 #include <LibSynapse/Modules/Tofino/RotateLeft.h>
+#include <LibSynapse/Modules/Tofino/RotateLeftShifts.h>
 #include <LibSynapse/Modules/Tofino/ComputeTableLn.h>
 #include <LibSynapse/Modules/Tofino/Divide.h>
 
@@ -116,6 +117,7 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<DivideFactory>());
               f.push_back(std::make_unique<ArithmeticOpFactory>());
               f.push_back(std::make_unique<RotateLeftFactory>());
+              f.push_back(std::make_unique<RotateLeftShiftsFactory>());
               f.push_back(std::make_unique<SendToControllerFactory>());
               return f;
             }(),

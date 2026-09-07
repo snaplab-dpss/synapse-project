@@ -5302,6 +5302,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeftShifts *node) {
+  panic("RotateLeftShifts synthesis not implemented yet");
+}
+
 code_t TofinoSynthesizer::action_operand(DS_ID table_id, const std::string &suffix, klee::ref<klee::Expr> operand, bool force_stage) {
   const std::optional<var_t> var = ingress_vars.get(operand);
   const bool reachable = is_constant(operand) || (var.has_value() && (var->is_header_field || var->name.rfind("meta.", 0) == 0));

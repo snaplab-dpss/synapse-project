@@ -260,6 +260,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ArithmeticOp *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeft *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeftShifts *node) override final;
 
   void emit_compute_table(const EP *ep, DS_ID table_id, klee::ref<klee::Expr> in, klee::ref<klee::Expr> out);
   // Code for `operand` usable inside an action (metadata, header fields and constants as they
