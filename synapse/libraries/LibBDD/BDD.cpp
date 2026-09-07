@@ -112,6 +112,7 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"count_trailing_zeros", {"trailing_zeros"}},
     {"find_first_set_bit", {"first_set_bit"}},
     {"min", {"min"}},
+    {"rotate_left", {"rotated"}},
     {"power_of_two", {"power_of_two"}},
     {"divide", {"quotient"}},
     {"ln", {"ln"}},
