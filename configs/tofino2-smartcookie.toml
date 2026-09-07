@@ -235,6 +235,7 @@ tcam_per_stage                             = 540672        # 44 * 512 * 24 bits
 map_ram_per_stage                          = 6291456       # 128 * 1024 * 48 bits
 max_logical_tcam_tables_per_stage          = 8
 max_logical_sram_and_tcam_tables_per_stage = 16
+hash_dist_units_per_stage                  = 6             # 16 bits each; a 32-bit @in_hash op takes 2
 phv_size                                   = 5000          # bits
 phv_8bit_containers                        = 80
 phv_16bit_containers                       = 120

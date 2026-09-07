@@ -81,6 +81,7 @@ struct Stage {
   bits_t available_map_ram;
   bits_t available_exact_match_xbar;
   int available_logical_ids;
+  int available_hash_dist_units;
   std::unordered_set<DS_ID> data_structures;
 };
 

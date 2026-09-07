@@ -20,6 +20,7 @@ enum class DSType {
   Meter,
   Hash,
   Digest,
+  ComputeAction,
 
   // ========================
   // Compositional types
@@ -52,6 +53,8 @@ inline std::string ds_type_to_string(DSType type) {
     return "Hash";
   case DSType::Digest:
     return "Digest";
+  case DSType::ComputeAction:
+    return "ComputeAction";
   case DSType::MapTable:
     return "MapTable";
   case DSType::MapSetTable:

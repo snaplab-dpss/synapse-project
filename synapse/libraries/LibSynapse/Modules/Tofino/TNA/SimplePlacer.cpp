@@ -12,6 +12,7 @@ struct Placement {
   bits_t map_ram;
   bits_t xbar;
   int logical_ids;
+  int hash_dist_units = 0;
   DS_ID obj;
   DSType type;
 };
@@ -48,11 +49,13 @@ PlacementResult concretize_placements(const Pipeline &pipeline, const PlacementR
     assert(stage.available_map_ram >= placement.map_ram && "Not enough MAP RAM");
     assert(stage.available_exact_match_xbar >= placement.xbar && "Not enough XBAR");
     assert(stage.available_logical_ids >= placement.logical_ids && "Not enough logical IDs");
+    assert(stage.available_hash_dist_units >= placement.hash_dist_units && "Not enough hash distribution units");
 
     stage.available_sram -= placement.sram;
     stage.available_map_ram -= placement.map_ram;
     stage.available_exact_match_xbar -= placement.xbar;
     stage.available_logical_ids -= placement.logical_ids;
+    stage.available_hash_dist_units -= placement.hash_dist_units;
     stage.data_structures.insert(placement.obj);
 
     if (placement.type == DSType::Digest) {
@@ -103,6 +106,9 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *ds, const st
       break;
     case DSType::Digest:
       result = find_placements_digest(pipeline, dynamic_cast<const Digest *>(ds), deps);
+      break;
+    case DSType::ComputeAction:
+      result = find_placements_compute_action(pipeline, dynamic_cast<const ComputeAction *>(ds), deps);
       break;
     case DSType::LPM:
       result = find_placements_lpm(pipeline, dynamic_cast<const LPM *>(ds), deps);
@@ -389,6 +395,60 @@ PlacementResult find_placements_hash(const Pipeline &pipeline, const Hash *hash,
   }
 
   return concretize_placements(pipeline, {hash->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)}, placements);
+}
+
+PlacementResult find_placements_compute_action(const Pipeline &pipeline, const ComputeAction *action, const std::unordered_set<DS_ID> &deps) {
+  assert(!pipeline.already_placed(action->id) && "Compute action already placed");
+
+  if (action->get_hash_bits() > ComputeAction::MAX_HASH_BITS_PER_ACTION) {
+    return PlacementStatus::TooLarge;
+  }
+
+  const int soonest_stage_id = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
+  if (soonest_stage_id < 0) {
+    return PlacementStatus::UnmetDependencies;
+  }
+
+  // A keyless table with a single default action: one logical ID, no match resources. Ops
+  // through the hash unit take hash distribution units.
+  const int hash_dist_units = action->get_hash_dist_units();
+
+  std::vector<Placement> placements;
+
+  for (const Stage &stage : pipeline.resources->stages) {
+    if (stage.stage_id < soonest_stage_id) {
+      continue;
+    }
+
+    if (stage.available_logical_ids == 0) {
+      continue;
+    }
+
+    if (hash_dist_units > stage.available_hash_dist_units) {
+      continue;
+    }
+
+    const Placement placement = {
+        .stage_id        = stage.stage_id,
+        .sram            = 0,
+        .tcam            = 0,
+        .map_ram         = 0,
+        .xbar            = 0,
+        .logical_ids     = 1,
+        .hash_dist_units = hash_dist_units,
+        .obj             = action->id,
+        .type            = action->type,
+    };
+
+    placements.push_back(placement);
+    break;
+  }
+
+  if (placements.empty()) {
+    return PlacementStatus::NoAvailableStage;
+  }
+
+  return concretize_placements(pipeline, {action->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)}, placements);
 }
 
 PlacementResult find_placements_digest(const Pipeline &pipeline, const Digest *digest, const std::unordered_set<DS_ID> &deps) {

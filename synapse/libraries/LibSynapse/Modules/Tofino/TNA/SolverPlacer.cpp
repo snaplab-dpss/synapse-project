@@ -88,6 +88,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
 
   const int TotalStages         = pipeline.properties.stages;
   const int MaxLogicalIDs       = pipeline.properties.max_logical_sram_and_tcam_tables_per_stage;
+  const int MaxHashDistUnits    = pipeline.properties.hash_dist_units_per_stage;
   const int TotalXbarPerStage   = pipeline.properties.exact_match_xbar_per_stage;
   const int TotalSRAMPerStage   = pipeline.properties.sram_per_stage;
   const int TotalTCAMPerStage   = pipeline.properties.tcam_per_stage;
@@ -181,6 +182,9 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
       // Assume the digest takes 1 entry. This entry is meaningless.
       capacity = 1;
     } break;
+    case DSType::ComputeAction: {
+      capacity = 1;
+    } break;
     case DSType::LPM: {
       const LPM *lpm = dynamic_cast<const LPM *>(ds);
       capacity       = lpm->capacity;
@@ -221,6 +225,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
   std::vector<GRBLinExpr> map_ram_used_per_stage(TotalStages, 0);
   std::vector<GRBLinExpr> xbar_used_per_stage(TotalStages, 0);
   std::vector<GRBLinExpr> logical_ids_used_per_stage(TotalStages, 0);
+  std::vector<GRBLinExpr> hash_dist_units_used_per_stage(TotalStages, 0);
 
   for (int s = 0; s < TotalStages; s++) {
     for (const DS *ds : ds_relationships.primitive_data_structures) {
@@ -229,6 +234,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
       u32 ds_map_ram_per_entry_used = 0;
       u32 ds_xbar_used              = 0;
       u32 ds_logical_ids_used       = 0;
+      u32 ds_hash_dist_units_used   = 0;
 
       switch (ds->type) {
       case DSType::Table: {
@@ -270,6 +276,15 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
         ds_xbar_used              = 0;
         ds_logical_ids_used       = 0;
       } break;
+      case DSType::ComputeAction: {
+        const ComputeAction *action = dynamic_cast<const ComputeAction *>(ds);
+        ds_sram_per_entry_used      = 0;
+        ds_tcam_per_entry_used      = 0;
+        ds_map_ram_per_entry_used   = 0;
+        ds_xbar_used                = 0;
+        ds_logical_ids_used         = 1;
+        ds_hash_dist_units_used     = action->get_hash_dist_units();
+      } break;
       case DSType::LPM: {
         const LPM *lpm            = dynamic_cast<const LPM *>(ds);
         ds_sram_per_entry_used    = 0;
@@ -291,6 +306,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
       map_ram_used_per_stage[s]     = map_ram_used_per_stage[s] + e * ds_map_ram_per_entry_used;
       xbar_used_per_stage[s]        = xbar_used_per_stage[s] + p * ds_xbar_used;
       logical_ids_used_per_stage[s] = logical_ids_used_per_stage[s] + p * ds_logical_ids_used;
+      hash_dist_units_used_per_stage[s] = hash_dist_units_used_per_stage[s] + p * ds_hash_dist_units_used;
     }
 
     model.addConstr(sram_used_per_stage[s] <= TotalSRAMPerStage, "sram_used_per_stage_" + std::to_string(s));
@@ -298,6 +314,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
     model.addConstr(map_ram_used_per_stage[s] <= TotalMapRAMPerStage, "map_ram_used_per_stage_" + std::to_string(s));
     model.addConstr(xbar_used_per_stage[s] <= TotalXbarPerStage, "xbar_used_per_stage_" + std::to_string(s));
     model.addConstr(logical_ids_used_per_stage[s] <= MaxLogicalIDs, "logical_ids_used_per_stage_" + std::to_string(s));
+    model.addConstr(hash_dist_units_used_per_stage[s] <= MaxHashDistUnits, "hash_dist_units_used_per_stage_" + std::to_string(s));
   }
 
   GRBLinExpr digests_used = 0;
@@ -390,6 +407,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
     pipeline_resources.stages[s].available_map_ram -= static_cast<bits_t>(map_ram_used_per_stage[s].getValue());
     pipeline_resources.stages[s].available_exact_match_xbar -= static_cast<bits_t>(xbar_used_per_stage[s].getValue());
     pipeline_resources.stages[s].available_logical_ids -= static_cast<bits_t>(logical_ids_used_per_stage[s].getValue());
+    pipeline_resources.stages[s].available_hash_dist_units -= static_cast<int>(hash_dist_units_used_per_stage[s].getValue());
 
     for (const DS *ds : ds_relationships.primitive_data_structures) {
       const int p = std::round(p_s_t.at({s, ds->id}).get(GRB_DoubleAttr_X));
@@ -417,6 +435,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
 
   const int TotalStages         = pipeline.properties.stages;
   const int MaxLogicalIDs       = pipeline.properties.max_logical_sram_and_tcam_tables_per_stage;
+  const int MaxHashDistUnits    = pipeline.properties.hash_dist_units_per_stage;
   const int TotalXbarPerStage   = pipeline.properties.exact_match_xbar_per_stage;
   const int TotalSRAMPerStage   = pipeline.properties.sram_per_stage;
   const int TotalTCAMPerStage   = pipeline.properties.tcam_per_stage;
@@ -528,6 +547,9 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
       // Assume the digest takes 1 entry. This entry is meaningless.
       capacity = ctx.int_val(1);
     } break;
+    case DSType::ComputeAction: {
+      capacity = ctx.int_val(1);
+    } break;
     case DSType::LPM: {
       const LPM *lpm = dynamic_cast<const LPM *>(ds);
       capacity       = ctx.int_val(lpm->capacity);
@@ -568,6 +590,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
   std::vector<z3::expr> map_ram_used_per_stage(TotalStages, ctx.int_val(0));
   std::vector<z3::expr> xbar_used_per_stage(TotalStages, ctx.int_val(0));
   std::vector<z3::expr> logical_ids_used_per_stage(TotalStages, ctx.int_val(0));
+  std::vector<z3::expr> hash_dist_units_used_per_stage(TotalStages, ctx.int_val(0));
 
   for (int s = 0; s < TotalStages; s++) {
     for (const DS *ds : ds_relationships.primitive_data_structures) {
@@ -576,6 +599,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
       z3::expr ds_map_ram_per_entry_used = ctx.int_val(0);
       z3::expr ds_xbar_used              = ctx.int_val(0);
       z3::expr ds_logical_ids_used       = ctx.int_val(0);
+      z3::expr ds_hash_dist_units_used   = ctx.int_val(0);
 
       switch (ds->type) {
       case DSType::Table: {
@@ -617,6 +641,15 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
         ds_xbar_used              = ctx.int_val(0);
         ds_logical_ids_used       = ctx.int_val(0);
       } break;
+      case DSType::ComputeAction: {
+        const ComputeAction *action = dynamic_cast<const ComputeAction *>(ds);
+        ds_sram_per_entry_used      = ctx.int_val(0);
+        ds_tcam_per_entry_used      = ctx.int_val(0);
+        ds_map_ram_per_entry_used   = ctx.int_val(0);
+        ds_xbar_used                = ctx.int_val(0);
+        ds_logical_ids_used         = ctx.int_val(1);
+        ds_hash_dist_units_used     = ctx.int_val(action->get_hash_dist_units());
+      } break;
       case DSType::LPM: {
         const LPM *lpm            = dynamic_cast<const LPM *>(ds);
         ds_sram_per_entry_used    = ctx.int_val(0);
@@ -638,6 +671,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
       map_ram_used_per_stage[s]     = map_ram_used_per_stage[s] + e * ds_map_ram_per_entry_used;
       xbar_used_per_stage[s]        = xbar_used_per_stage[s] + p * ds_xbar_used;
       logical_ids_used_per_stage[s] = logical_ids_used_per_stage[s] + p * ds_logical_ids_used;
+      hash_dist_units_used_per_stage[s] = hash_dist_units_used_per_stage[s] + p * ds_hash_dist_units_used;
     }
 
     solver.add(sram_used_per_stage[s] <= TotalSRAMPerStage);
@@ -645,6 +679,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
     solver.add(map_ram_used_per_stage[s] <= TotalMapRAMPerStage);
     solver.add(xbar_used_per_stage[s] <= TotalXbarPerStage);
     solver.add(logical_ids_used_per_stage[s] <= MaxLogicalIDs);
+    solver.add(hash_dist_units_used_per_stage[s] <= MaxHashDistUnits);
   }
 
   z3::expr digests_used = ctx.int_val(0);
@@ -738,6 +773,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
     pipeline_resources.stages[s].available_map_ram -= model.eval(map_ram_used_per_stage[s]).get_numeral_int();
     pipeline_resources.stages[s].available_exact_match_xbar -= model.eval(xbar_used_per_stage[s]).get_numeral_int();
     pipeline_resources.stages[s].available_logical_ids -= model.eval(logical_ids_used_per_stage[s]).get_numeral_int();
+    pipeline_resources.stages[s].available_hash_dist_units -= model.eval(hash_dist_units_used_per_stage[s]).get_numeral_int();
 
     for (const DS *ds : ds_relationships.primitive_data_structures) {
       const z3::expr placed = model.eval(p_s_t.at({s, ds->id}));
