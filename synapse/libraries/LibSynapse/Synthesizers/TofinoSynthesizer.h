@@ -259,8 +259,15 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ln *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ArithmeticOp *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeft *node) override final;
 
   void emit_compute_table(const EP *ep, DS_ID table_id, klee::ref<klee::Expr> in, klee::ref<klee::Expr> out);
+  // Code for `operand` usable inside an action (metadata, header fields and constants as they
+  // are; anything else staged into `meta.<table_id><suffix>` first, or always if `force_stage`).
+  code_t action_operand(DS_ID table_id, const std::string &suffix, klee::ref<klee::Expr> operand, bool force_stage = false);
+  // A keyless table whose only action assigns `computation` to `out_var`: one stage, as the
+  // placer charged for it. `in_hash` computes the assignment in the hash unit (@in_hash).
+  void emit_compute_step(DS_ID table_id, const var_t &out_var, const code_t &computation, bool in_hash);
 
   coder_t &get(const std::string &marker);
 

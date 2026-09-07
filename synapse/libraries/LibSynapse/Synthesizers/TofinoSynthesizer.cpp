@@ -5220,28 +5220,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     return EPVisitor::Action::doChildren;
   }
 
-  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
-  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
-
   const var_t out_var = alloc_var(table_id + "_out", out, EXACT_NAME | IS_INGRESS_METADATA);
   declare_var_in_ingress_metadata(out_var);
 
-  // The action can only read metadata, header fields and constants: anything else (an
-  // apply-block local, a layout expression) is staged into metadata first.
   std::vector<code_t> operands;
   for (unsigned i = 0; i < value->getNumKids(); i++) {
-    klee::ref<klee::Expr> operand = value->getKid(i);
-    const std::optional<var_t> var = ingress_vars.get(operand);
-    const bool reachable = is_constant(operand) || (var.has_value() && (var->is_header_field || var->name.rfind("meta.", 0) == 0));
-    if (reachable) {
-      operands.push_back(transpiler.transpile(operand));
-      continue;
-    }
-    const var_t staged = alloc_var(table_id + (i == 0 ? "_a" : "_b"), operand, SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
-    declare_var_in_ingress_metadata(staged);
-    ingress_apply.indent();
-    ingress_apply << staged.name << " = " << transpiler.transpile(operand) << ";\n";
-    operands.push_back(staged.name);
+    operands.push_back(action_operand(table_id, i == 0 ? "_a" : "_b", value->getKid(i)));
   }
 
   code_t computation;
@@ -5286,6 +5270,58 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     panic("Not an arithmetic operation: %s", expr_to_string(value).c_str());
   }
 
+  emit_compute_step(table_id, out_var, computation, false);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeft *node) {
+  const DS_ID table_id      = node->get_table_id();
+  klee::ref<klee::Expr> x   = node->get_x();
+  const u32 n               = node->get_amount();
+  klee::ref<klee::Expr> out = node->get_out();
+  const bits_t width        = out->getWidth();
+
+  const var_t out_var = alloc_var(table_id + "_out", out, EXACT_NAME | IS_INGRESS_METADATA);
+  declare_var_in_ingress_metadata(out_var);
+
+  // The operand gets bit-sliced below, so it must be a plain field, not a slice or an expression.
+  const std::optional<var_t> x_var = ingress_vars.get(x);
+  const bool x_is_plain_field      = x_var.has_value() && !x_var->is_slice();
+  const code_t a                   = action_operand(table_id, "_a", x, !x_is_plain_field);
+
+  // rotl(a, n) = a[w-1-n:0] ++ a[w-1:w-n]. Whole bytes move through the PHV; any other amount
+  // goes through the hash unit, as the SmartCookie expert does.
+  code_t computation = a;
+  if (n != 0) {
+    computation = a + "[" + std::to_string(width - 1 - n) + ":0] ++ " + a + "[" + std::to_string(width - 1) + ":" + std::to_string(width - n) + "]";
+  }
+
+  emit_compute_step(table_id, out_var, computation, n % 8 != 0);
+
+  return EPVisitor::Action::doChildren;
+}
+
+code_t TofinoSynthesizer::action_operand(DS_ID table_id, const std::string &suffix, klee::ref<klee::Expr> operand, bool force_stage) {
+  const std::optional<var_t> var = ingress_vars.get(operand);
+  const bool reachable = is_constant(operand) || (var.has_value() && (var->is_header_field || var->name.rfind("meta.", 0) == 0));
+  if (reachable && !force_stage) {
+    return transpiler.transpile(operand);
+  }
+
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const var_t staged = alloc_var(table_id + suffix, operand, SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
+  declare_var_in_ingress_metadata(staged);
+  ingress_apply.indent();
+  ingress_apply << staged.name << " = " << transpiler.transpile(operand) << ";\n";
+  return staged.name;
+}
+
+void TofinoSynthesizer::emit_compute_step(DS_ID table_id, const var_t &out_var, const code_t &computation, bool in_hash) {
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
   if (declared_ds.find(table_id) == declared_ds.end()) {
     declared_ds.insert(table_id);
 
@@ -5295,7 +5331,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress << "action " << action_name << "() {\n";
     ingress.inc();
     ingress.indent();
-    ingress << out_var.name << " = " << computation << ";\n";
+    if (in_hash) {
+      ingress << "@in_hash { " << out_var.name << " = " << computation << "; }\n";
+    } else {
+      ingress << out_var.name << " = " << computation << ";\n";
+    }
     ingress.dec();
     ingress.indent();
     ingress << "}\n";
@@ -5317,8 +5357,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   ingress_apply.indent();
   ingress_apply << table_id << ".apply();\n";
-
-  return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *node) {

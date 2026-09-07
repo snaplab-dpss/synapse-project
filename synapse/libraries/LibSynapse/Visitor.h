@@ -60,6 +60,7 @@ class PowerOfTwo;
 class Ln;
 class Divide;
 class ArithmeticOp;
+class RotateLeft;
 } // namespace Tofino
 
 namespace Controller {
@@ -150,6 +151,7 @@ class PowerOfTwo;
 class Divide;
 class Ln;
 class ArithmeticOp;
+class RotateLeft;
 class TokenBucketAllocate;
 class TokenBucketIsTracing;
 class TokenBucketTrace;
@@ -269,6 +271,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ln *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ArithmeticOp *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeft *m) { return Action::doChildren; }
 
   // ========================================
   // Controller
@@ -329,6 +332,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Divide *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ln *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::ArithmeticOp *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::RotateLeft *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterUpdate *m) { return Action::doChildren; }
