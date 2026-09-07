@@ -24,25 +24,20 @@
 namespace LibSynapse {
 namespace Tofino {
 
+// The placed data structures of one execution plan. A data structure is never modified after
+// it is saved (modules that want a changed one save a clone under the same id), so copies of
+// this container -- one per speculation and per execution plan -- share the objects instead of
+// cloning them; that is what keeps speculation affordable on plans with hundreds of tables.
 class DataStructures {
 private:
-  std::vector<std::unique_ptr<DS>> data;
+  std::vector<std::shared_ptr<DS>> data;
   std::unordered_map<addr_t, std::unordered_set<DS *>> data_per_obj; // FIXME: there should be only one DS per addr_t
   std::unordered_map<DS_ID, DS *> data_per_id;
 
 public:
   DataStructures() {}
 
-  DataStructures(const DataStructures &other) {
-    for (const auto &[addr, dss] : other.data_per_obj) {
-      for (DS *ds : dss) {
-        DS *clone = ds->clone();
-        data.emplace_back(clone);
-        data_per_obj[addr].insert(clone);
-        data_per_id[clone->id] = clone;
-      }
-    }
-  }
+  DataStructures(const DataStructures &other) : data(other.data), data_per_obj(other.data_per_obj), data_per_id(other.data_per_id) {}
 
   DataStructures(DataStructures &&other)                 = delete;
   DataStructures &operator=(const DataStructures &other) = delete;
@@ -70,7 +65,7 @@ public:
   const DS *get_ds_from_id(DS_ID id) const {
     auto it = data_per_id.find(id);
     if (it == data_per_id.end()) {
-      for (const std::unique_ptr<DS> &ds : data) {
+      for (const std::shared_ptr<DS> &ds : data) {
         const std::vector<DS_ID> unwrapped_ids = ds->unwrap();
         if (std::find(unwrapped_ids.begin(), unwrapped_ids.end(), id) != unwrapped_ids.end()) {
           return ds.get();
@@ -82,7 +77,7 @@ public:
   }
 
   void save(addr_t addr, std::unique_ptr<DS> ds) {
-    if (std::find(data.begin(), data.end(), ds) != data.end()) {
+    if (std::find_if(data.begin(), data.end(), [&ds](const std::shared_ptr<DS> &d) { return d.get() == ds.get(); }) != data.end()) {
       return;
     }
 
@@ -91,14 +86,14 @@ public:
     if (found_it != data_per_id.end()) {
       DS *old = found_it->second;
       assert(old->id == ds->id && "Data structure ID mismatch");
-      data.erase(std::remove_if(data.begin(), data.end(), [old](const std::unique_ptr<DS> &d) { return d.get() == old; }), data.end());
+      data.erase(std::remove_if(data.begin(), data.end(), [old](const std::shared_ptr<DS> &d) { return d.get() == old; }), data.end());
       data_per_id.erase(ds->id);
       data_per_obj[addr].erase(old);
     }
 
     data_per_obj[addr].insert(ds.get());
     data_per_id[ds->id] = ds.get();
-    data.push_back(std::move(ds));
+    data.emplace_back(std::move(ds));
   }
 
   void debug() const {

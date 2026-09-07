@@ -10,6 +10,7 @@ extern u64 num_phase2_speculations;
 
 extern u64 num_speculated_modules;
 extern u64 num_execution_plans_generated;
+extern u64 num_context_copies;
 
 extern time_us_t total_time_spent_speculating;
 extern time_us_t total_time_spent_generating_execution_plans;
