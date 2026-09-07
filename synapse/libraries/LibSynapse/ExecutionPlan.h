@@ -128,6 +128,8 @@ public:
   const speculations_t &get_speculations() const;
   port_ingress_t get_speculative_node_egress(hit_rate_t hr, const BDDNode *node, const speculations_t &speculations,
                                              bool local_recirculation_decision = false) const;
+  // Recirculations before `node`: the ones the plan already made plus the ones speculated so far.
+  u8 count_speculative_past_recirculations(const BDDNode *node, const speculations_t &speculations) const;
   pps_t estimate_tput_pps() const;
 
   // Sources of error:

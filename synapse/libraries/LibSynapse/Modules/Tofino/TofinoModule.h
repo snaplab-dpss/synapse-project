@@ -101,6 +101,17 @@ public:
   static void speculate_sending_to_controller(const EP *ep, const BDDNode *node, Context &ctx, const speculations_t &speculations,
                                               hit_rate_t relative_hr_sent_to_controller, bool local_recirculation_decision);
 
+  // A packet is recirculated at most this many times (search and speculation alike).
+  static constexpr u8 MAX_PAST_RECIRCULATIONS = 4;
+
+  // Speculates a stateless compute step (op_*, rotate_left) that `node` implements as the
+  // keyless `table` computing `value` from its operands: places it in the speculation's
+  // pipeline, and when no stage can take it speculates a recirculation first (charged to the
+  // recirculation ports, up to MAX_PAST_RECIRCULATIONS). Declines if it can't be placed even
+  // then. Takes ownership of `table`.
+  std::optional<spec_impl_t> speculate_compute_step(const EP *ep, const BDDNode *node, Table *table, klee::ref<klee::Expr> value,
+                                                    const speculations_t &speculations) const;
+
   // ======================================================================
   //  Map Table
   // ======================================================================

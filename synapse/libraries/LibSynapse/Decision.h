@@ -47,6 +47,9 @@ struct spec_impl_t {
   std::optional<TargetType> next_target;
   bool recirculated;
   bdd_node_ids_t skip;
+  // Symbols this speculation computes in the data plane, with the data structure (id)
+  // holding each: what speculations of their consumers depend on.
+  std::unordered_map<std::string, std::string> produced;
 
   spec_impl_t(const decision_t &_decision, const Context &_ctx) : decision(_decision), ctx(_ctx), recirculated(false) {}
 };
@@ -64,6 +67,10 @@ struct spec_impl_lite_t {
 struct speculations_t {
   std::vector<spec_impl_lite_t> speculations_per_node;
   Context ctx;
+  // Data-plane producers of symbols speculated so far in the current pass (see
+  // spec_impl_t::produced); a speculated recirculation starts a new pass and empties it.
+  std::unordered_map<std::string, std::string> producers;
+  bool recirculated_since_leaf = false;
 
   speculations_t copy_and_append(const spec_impl_t &spec_impl) const {
     speculations_t new_speculations = *this;
@@ -74,6 +81,11 @@ struct speculations_t {
   void append(const spec_impl_t &spec_impl) {
     speculations_per_node.emplace_back(spec_impl);
     ctx = spec_impl.ctx;
+    if (spec_impl.recirculated) {
+      producers.clear();
+      recirculated_since_leaf = true;
+    }
+    producers.insert(spec_impl.produced.begin(), spec_impl.produced.end());
   }
 };
 

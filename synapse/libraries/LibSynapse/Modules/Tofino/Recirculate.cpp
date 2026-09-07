@@ -22,7 +22,7 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode
     return {};
   }
 
-  if (active_leaf.node->count_past_recirculations() > 4) {
+  if (active_leaf.node->count_past_recirculations() > MAX_PAST_RECIRCULATIONS) {
     return {};
   }
 
