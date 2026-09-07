@@ -44,6 +44,7 @@ struct sc_flow_t {
 
 struct sc_config_t {
   device_t server_dev;
+  std::vector<device_t> client_devs;
   double attack_ratio;
   double unconfirmed_ratio;
 };
@@ -51,6 +52,7 @@ struct sc_config_t {
 class SmartCookieTrafficGenerator : public TrafficGenerator {
 private:
   const sc_config_t sc_config;
+  std::vector<device_t> client_devs;
   std::vector<sc_flow_t> flows;
   std::mt19937 rng;
   time_ns_t next_timesync;
@@ -64,7 +66,15 @@ private:
     } else if (r < sc_config.attack_ratio + sc_config.unconfirmed_ratio) {
       cls = FlowClass::Unconfirmed;
     }
-    return {random_flow(), cls, static_cast<u32>(rng()), false};
+
+    // The switch routes server->client traffic by the first octet of the client's IP (the
+    // expert's naive_routing), so client IPs start with a client device number, as the
+    // testbed assigns them.
+    flow_t flow                    = random_flow();
+    const device_t client_dev      = client_devs[rng() % client_devs.size()];
+    flow.five_tuple.src_ip         = (flow.five_tuple.src_ip & 0xffffff00) | client_dev;
+
+    return {flow, cls, static_cast<u32>(rng()), false};
   }
 
   // Writes a TCP header over the template's UDP header + payload bytes.
@@ -97,6 +107,16 @@ private:
 public:
   SmartCookieTrafficGenerator(const config_t &_config, const sc_config_t &_sc_config)
       : TrafficGenerator("smartcookie", _config, true), sc_config(_sc_config), rng(_config.random_seed), next_timesync(0) {
+    client_devs = sc_config.client_devs;
+    if (client_devs.empty()) {
+      for (const device_t dev : config.devices) {
+        if (dev != sc_config.server_dev) {
+          client_devs.push_back(dev);
+        }
+      }
+    }
+    assert(!client_devs.empty() && "No client devices");
+
     flows.reserve(config.total_flows);
     for (size_t i = 0; i < config.total_flows; i++) {
       flows.push_back(new_flow());
@@ -166,6 +186,7 @@ int main(int argc, char *argv[]) {
   app.add_option("--zipf-param", config.zipf_param, "Zipf parameter.")->default_val(TrafficGenerator::DEFAULT_ZIPF_PARAM);
   app.add_option("--devs", config.devices, "Devices (the server device plus the client devices).")->required();
   app.add_option("--server-dev", sc_config.server_dev, "Device the server is attached to.")->default_val(0);
+  app.add_option("--client-devs", sc_config.client_devs, "Devices client IPs are numbered after (default: every device but the server's).");
   app.add_option("--attack-ratio", sc_config.attack_ratio, "Fraction of flows that are SYN floods.")->default_val(0.4);
   app.add_option("--unconfirmed-ratio", sc_config.unconfirmed_ratio, "Fraction of flows whose data the server never confirmed.")->default_val(0.1);
   app.add_option("--seed", config.random_seed, "Random seed.")->default_val(std::random_device()());

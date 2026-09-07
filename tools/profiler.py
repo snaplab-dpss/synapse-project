@@ -50,6 +50,8 @@ class NF:
     # (default: round-robin over unique_devices).
     devices: list[int] = field(default_factory=lambda: list(DEVICES))
     pcap_device: Optional[Callable[[int], int]] = None
+    # Extra arguments for this NF's pcap generator.
+    pcap_extra_args: str = ""
 
     def get_pcap_generator(self) -> Path:
         return SYNAPSE_BIN_DIR / self.pcap_generator
@@ -79,7 +81,8 @@ NFs = {
     "hyperloglog": NF("hyperloglog", "hyperloglog.bdd", "pcap-generator-hyperloglog", warmup_devices=[], unique_devices=DEVICES[:2], fwd_rules=[]),
     # The server is on device 0 (the NF's default) and replays its own pcap; every other device is a client.
     "smartcookie": NF("smartcookie", "smartcookie.bdd", "pcap-generator-smartcookie", warmup_devices=[], unique_devices=[0, DEVICES[0]], fwd_rules=[],
-                      devices=[0] + DEVICES, pcap_device=lambda dev: 0 if dev == 0 else DEVICES[0]),
+                      devices=[0] + DEVICES, pcap_device=lambda dev: 0 if dev == 0 else DEVICES[0],
+                      pcap_extra_args=f"--client-devs {' '.join(map(str, DEVICES))}"),
 }
 
 
@@ -180,6 +183,8 @@ def generate_pcaps(
         cmd += f" --traffic zipf --zipf-param {zipf_param}"
     cmd += f" --devs {dev_list}"
     cmd += " --seed 0"
+    if nf.pcap_extra_args:
+        cmd += f" {nf.pcap_extra_args}"
 
     return Task(
         f"generate_pcap_{nf.name}_f{total_flows}_c{churn_fpm}_zipf{zipf_param}",
