@@ -66,6 +66,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ln *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ArithmeticOp *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeft *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeftShifts *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *node) override final;
