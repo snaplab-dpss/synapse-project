@@ -1355,16 +1355,21 @@ bool simplify_extract_of_concats(klee::ref<klee::Expr> extract_expr, klee::ref<k
     current_offset += current_expr->getWidth();
   }
 
-  out = nullptr;
+  klee::ref<klee::Expr> result;
   for (klee::ref<klee::Expr> target_expr : target_exprs) {
-    if (out.isNull()) {
-      out = target_expr;
+    if (result.isNull()) {
+      result = target_expr;
     } else {
-      out = solver_toolbox.exprBuilder->Concat(target_expr, out);
+      result = solver_toolbox.exprBuilder->Concat(target_expr, result);
     }
   }
 
-  return !out.isNull();
+  if (result.isNull()) {
+    return false;
+  }
+
+  out = result;
+  return true;
 }
 
 bool simplify_extract_ext(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Expr> &out) {
@@ -1403,6 +1408,12 @@ bool simplify_extract_ext(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Ex
 
   if (size == src->getWidth()) {
     out = src;
+    return true;
+  }
+
+  // Wider than the source: a narrower extension of it, not a slice.
+  if (size > src->getWidth()) {
+    out = expr->getKind() == klee::Expr::Kind::ZExt ? solver_toolbox.exprBuilder->ZExt(src, size) : solver_toolbox.exprBuilder->SExt(src, size);
     return true;
   }
 
@@ -1857,6 +1868,48 @@ bool simplify_add_non_neg_sext(klee::ref<klee::Expr> expr, klee::ref<klee::Expr>
 
 using simplifier_fn = std::function<bool(klee::ref<klee::Expr>, klee::ref<klee::Expr> &)>;
 
+// Bit layout only: reads, constants, slices, extensions and concatenations.
+bool is_layout_expr(klee::ref<klee::Expr> expr) {
+  switch (expr->getKind()) {
+  case klee::Expr::Read:
+  case klee::Expr::Constant:
+    return true;
+  case klee::Expr::Extract:
+  case klee::Expr::ZExt:
+  case klee::Expr::SExt:
+  case klee::Expr::Concat:
+    for (unsigned i = 0; i < expr->getNumKids(); i++) {
+      if (!is_layout_expr(expr->getKid(i))) {
+        return false;
+      }
+    }
+    return true;
+  default:
+    return false;
+  }
+}
+
+// (LShr X c) with X pure layout and c a whole number of bytes is a slice, not a shift:
+// (ZExt (Extract c (w-c) X) w). Lets e.g. "first octet of an address" reach the targets as a field.
+bool simplify_lshr_layout_by_bytes(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
+  if (expr->getKind() != klee::Expr::LShr) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> x     = expr->getKid(0);
+  klee::ref<klee::Expr> shift = expr->getKid(1);
+  const bits_t width          = expr->getWidth();
+
+  u64 c;
+  if (!solver_toolbox.strict_value_from_expr(shift, c) || c == 0 || c % 8 != 0 || c >= width || !is_layout_expr(x)) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> slice = solver_toolbox.exprBuilder->Extract(x, c, width - c);
+  out                         = solver_toolbox.exprBuilder->ZExt(slice, width);
+  return true;
+}
+
 enum class simplifier_type_t {
   ExtractZeroZExtConditional,
   ExtractZeroSameWidth,
@@ -1870,6 +1923,7 @@ enum class simplifier_type_t {
   AddNegativeSExt,
   AddNonNegativeSExt,
   ComparePowerOfTwoMinusOne,
+  LShrLayoutByBytes,
 };
 
 std::ostream &operator<<(std::ostream &os, const simplifier_type_t &type) {
@@ -1904,6 +1958,9 @@ std::ostream &operator<<(std::ostream &os, const simplifier_type_t &type) {
   case simplifier_type_t::AddNegativeSExt:
     os << "AddNegativeSExt";
     break;
+  case simplifier_type_t::LShrLayoutByBytes:
+    os << "LShrLayoutByBytes";
+    break;
   case simplifier_type_t::AddNonNegativeSExt:
     os << "AddNonNegativeSExt";
     break;
@@ -1929,7 +1986,11 @@ std::vector<simplifier_type_t> apply_simplifiers(const simplifiers_t &simplifier
   simplified_expr = expr;
 
   for (auto op : simplifiers) {
-    if (op.apply(expr, simplified_expr)) {
+    // A rule only owns the result when it succeeds (some write through `out` before giving up).
+    klee::ref<klee::Expr> candidate;
+    if (op.apply(expr, candidate)) {
+      assert(!candidate.isNull() && "Simplifier returned a null expression");
+      simplified_expr = candidate;
       simplifications_applied.push_back(op.type);
       return simplifications_applied;
     }
@@ -1990,6 +2051,7 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
       {simplifier_type_t::ExtractConcats, simplify_extract_of_concats},
       {simplifier_type_t::ExtractRead, simplify_extract_read},
       {simplifier_type_t::ExtractExt, simplify_extract_ext},
+      {simplifier_type_t::LShrLayoutByBytes, simplify_lshr_layout_by_bytes},
       {simplifier_type_t::CompareEqZero, simplify_cmp_eq_0},
       {simplifier_type_t::CompareZExtEqSize, simplify_cmp_zext_eq_size},
       {simplifier_type_t::NotEq, simplify_not_eq},
@@ -2047,6 +2109,7 @@ klee::ref<klee::Expr> simplify_conditional(klee::ref<klee::Expr> expr) {
       {simplifier_type_t::ExtractConcats, simplify_extract_of_concats},
       {simplifier_type_t::ExtractZeroSameWidth, simplify_extract_0_same_width},
       {simplifier_type_t::ExtractExt, simplify_extract_ext},
+      {simplifier_type_t::LShrLayoutByBytes, simplify_lshr_layout_by_bytes},
       {simplifier_type_t::CompareEqZero, simplify_cmp_eq_0},
       {simplifier_type_t::CompareZExtEqSize, simplify_cmp_zext_eq_size},
       {simplifier_type_t::NotEq, simplify_not_eq},
