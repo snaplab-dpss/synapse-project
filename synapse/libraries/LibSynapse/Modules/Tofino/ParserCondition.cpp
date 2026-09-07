@@ -39,6 +39,14 @@ std::vector<parser_selection_t> ParserConditionFactory::build_parser_select(klee
   condition = filter(condition, {"packet_chunks", "DEVICE"});
   condition = simplify_conditional(condition);
 
+  // A condition that only checked the packet length (e.g. "enough bytes left for the next
+  // header") has nothing left to select on: the parser always takes the true branch, as
+  // minimum-size frames already satisfy such checks.
+  if (is_constant(condition)) {
+    assert_or_panic(solver_toolbox.is_expr_always_true(condition), "Parser condition is never true: %s", expr_to_string(condition).c_str());
+    return {};
+  }
+
   parser_selection_t selection;
 
   switch (condition->getKind()) {
