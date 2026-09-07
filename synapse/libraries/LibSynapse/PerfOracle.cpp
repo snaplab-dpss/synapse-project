@@ -348,13 +348,18 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
   // Recirculation traffic can only come from global ingress and other recirculation ports.
   const std::vector<pps_t> recirc_egress = get_recirculated_egress(ingress);
 
-  const hit_rate_t global_recirc_hr = recirc_ports_ingress.global;
+  // The traffic leaving the recirculation ports at depth d (its (d+1)-th pass) is shared by
+  // its consumers in proportion to their fraction of everything on that pass: the first-pass
+  // fraction for depth 0, the surplus fraction of the previous depth after that.
+  const auto pass_hr = [this](recirculation_depth_t depth) -> hit_rate_t {
+    return depth == 0 ? recirc_ports_ingress.global : recirc_ports_ingress.get_hr_at_recirc_depth(depth - 1);
+  };
 
   // 2. Then we calculate the controller throughput (as it can be a bottleneck).
   // The controller can receive traffic from both global ingress and recirculation ports.
   pps_t controller_tput = ingress * controller_ingress.global.value;
   for (const auto &[recirc_depth, hr] : controller_ingress.recirc) {
-    controller_tput += recirc_egress.at(recirc_depth) * (hr / global_recirc_hr);
+    controller_tput += recirc_egress.at(recirc_depth) * (hr / pass_hr(recirc_depth));
   }
 
   controller_tput = std::min(controller_tput, controller_capacity);
@@ -375,7 +380,7 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     }
 
     for (const auto &[recirc_depth, hr] : port_ingress.recirc) {
-      port_tput += recirc_egress.at(recirc_depth) * (hr / global_recirc_hr);
+      port_tput += recirc_egress.at(recirc_depth) * (hr / pass_hr(recirc_depth));
     }
 
     const pps_t port_capacity = bps2pps(front_panel_ports_capacities.at(fwd_port), avg_pkt_size);
