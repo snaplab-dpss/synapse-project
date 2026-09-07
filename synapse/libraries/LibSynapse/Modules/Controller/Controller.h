@@ -56,6 +56,7 @@
 #include <LibSynapse/Modules/Controller/CountTrailingZeros.h>
 #include <LibSynapse/Modules/Controller/Min.h>
 #include <LibSynapse/Modules/Controller/PowerOfTwo.h>
+#include <LibSynapse/Modules/Controller/ArithmeticOp.h>
 #include <LibSynapse/Modules/Controller/Divide.h>
 #include <LibSynapse/Modules/Controller/Ln.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorRegisterAllocate.h>
@@ -164,6 +165,7 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<PowerOfTwoFactory>());
               f.push_back(std::make_unique<DivideFactory>());
               f.push_back(std::make_unique<LnFactory>());
+              f.push_back(std::make_unique<ArithmeticOpFactory>());
               f.push_back(std::make_unique<DataplaneVectorRegisterAllocateFactory>());
               f.push_back(std::make_unique<DataplaneVectorRegisterLookupFactory>());
               f.push_back(std::make_unique<DataplaneVectorRegisterUpdateFactory>());

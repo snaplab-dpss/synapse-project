@@ -218,6 +218,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::PowerOfTwo *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Divide *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ln *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::ArithmeticOp *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterUpdate *node) override final;
