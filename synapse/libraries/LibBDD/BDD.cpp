@@ -1,4 +1,5 @@
 #include <LibBDD/BDD.h>
+#include <LibBDD/Unroll.h>
 #include <LibBDD/CallPathsGroups.h>
 #include <LibBDD/Visitors/Visitor.h>
 #include <LibCore/Solver.h>
@@ -117,6 +118,21 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"divide", {"quotient"}},
     {"ln", {"ln"}},
 
+    // Unrolled arithmetic (see Unroll.h).
+    {"op_add", {"unrolled"}},
+    {"op_sub", {"unrolled"}},
+    {"op_mul", {"unrolled"}},
+    {"op_udiv", {"unrolled"}},
+    {"op_sdiv", {"unrolled"}},
+    {"op_urem", {"unrolled"}},
+    {"op_srem", {"unrolled"}},
+    {"op_and", {"unrolled"}},
+    {"op_or", {"unrolled"}},
+    {"op_xor", {"unrolled"}},
+    {"op_not", {"unrolled"}},
+    {"op_shl", {"unrolled"}},
+    {"op_lshr", {"unrolled"}},
+    {"op_ashr", {"unrolled"}},
 };
 
 typedef Symbols (*SymbolsExtractor)(const call_t &call, const Symbols &symbols);
@@ -1625,6 +1641,16 @@ klee::ConstraintManager BDD::get_constraints(const BDDNode *node) const {
   klee::ConstraintManager constraints = base_constraints;
   for (klee::ref<klee::Expr> constraint : node->get_ordered_branch_constraints()) {
     constraints.addConstraint(constraint);
+  }
+  // Unrolled arithmetic keeps its meaning: unrolled == a <op> b (see Unroll.h).
+  for (const BDDNode *prev = node; prev; prev = prev->get_prev()) {
+    if (prev->get_type() != BDDNodeType::Call) {
+      continue;
+    }
+    const call_t &call = dynamic_cast<const Call *>(prev)->get_call();
+    if (is_unrolled_op(call)) {
+      constraints.addConstraint(solver_toolbox.exprBuilder->Eq(call.ret, unrolled_op_value(call)));
+    }
   }
   return constraints;
 }
