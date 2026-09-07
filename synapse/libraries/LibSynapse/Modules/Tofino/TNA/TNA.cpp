@@ -7,6 +7,7 @@ namespace LibSynapse {
 namespace Tofino {
 
 using LibCore::get_unique_symbolic_reads;
+using LibCore::is_constant;
 using LibCore::is_power_of_two;
 using LibCore::is_readLSB;
 using LibCore::stitch_conditions;
@@ -125,6 +126,12 @@ bool TNA::is_simple_conditional_expr(klee::ref<klee::Expr> condition) const {
   case klee::Expr::Kind::Add:
   case klee::Expr::Kind::Sub: {
     is_simple = is_simple_conditional_expr(condition->getKid(0)) && is_simple_conditional_expr(condition->getKid(1));
+  } break;
+  // A masked field (e.g. a TCP flag test, `flags & SYN`) is a ternary gateway match.
+  case klee::Expr::Kind::And: {
+    klee::ref<klee::Expr> lhs = condition->getKid(0);
+    klee::ref<klee::Expr> rhs = condition->getKid(1);
+    is_simple = (is_constant(rhs) && is_simple_conditional_expr(lhs)) || (is_constant(lhs) && is_simple_conditional_expr(rhs));
   } break;
   case klee::Expr::Kind::Concat: {
     is_simple = is_readLSB(condition);
