@@ -1,4 +1,5 @@
 #include <LibBDD/BDD.h>
+#include <LibBDD/Unroll.h>
 #include <LibBDD/Visitors/PrinterDebug.h>
 #include <LibCore/Debug.h>
 
@@ -15,10 +16,12 @@ int main(int argc, char **argv) {
   std::vector<std::filesystem::path> input_call_path_files;
   std::filesystem::path input_bdd_file;
   std::filesystem::path output_bdd_file;
+  bool no_unroll{false};
 
   app.add_option("call-paths", input_call_path_files, "Call paths");
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.");
   app.add_option("--out", output_bdd_file, "Output file for BDD serialization.");
+  app.add_flag("--no-unroll", no_unroll, "Keep nested arithmetic in expressions instead of unrolling it into op_* nodes (see LibBDD/Unroll.h).");
 
   CLI11_PARSE(app, argc, argv);
 
@@ -35,6 +38,10 @@ int main(int argc, char **argv) {
     bdd = std::make_unique<BDD>(call_paths.get_view());
   } else {
     bdd = std::make_unique<BDD>(input_bdd_file, &manager);
+  }
+
+  if (!no_unroll) {
+    unroll_arithmetic(*bdd);
   }
 
   const BDD::inspection_report_t bdd_inspection_report = bdd->inspect();
