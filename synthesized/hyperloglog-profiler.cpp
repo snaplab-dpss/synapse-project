@@ -864,15 +864,17 @@ bool nf_init() {
   node_pkt_counter.insert({64, 0});
   node_pkt_counter.insert({63, 0});
   node_pkt_counter.insert({62, 0});
-  node_pkt_counter.insert({31, 0});
-  node_pkt_counter.insert({30, 0});
+  node_pkt_counter.insert({61, 0});
+  node_pkt_counter.insert({60, 0});
+  node_pkt_counter.insert({59, 0});
+  node_pkt_counter.insert({58, 0});
   node_pkt_counter.insert({29, 0});
   node_pkt_counter.insert({28, 0});
   node_pkt_counter.insert({27, 0});
   node_pkt_counter.insert({26, 0});
-  node_pkt_counter.insert({25, 0});
-  node_pkt_counter.insert({24, 0});
+  node_pkt_counter.insert({85, 0});
   node_pkt_counter.insert({23, 0});
+  node_pkt_counter.insert({82, 0});
   node_pkt_counter.insert({22, 0});
   node_pkt_counter.insert({21, 0});
   node_pkt_counter.insert({20, 0});
@@ -880,6 +882,11 @@ bool nf_init() {
   node_pkt_counter.insert({18, 0});
   node_pkt_counter.insert({17, 0});
   node_pkt_counter.insert({16, 0});
+  node_pkt_counter.insert({25, 0});
+  node_pkt_counter.insert({84, 0});
+  node_pkt_counter.insert({83, 0});
+  node_pkt_counter.insert({24, 0});
+  node_pkt_counter.insert({15, 0});
   node_pkt_counter.insert({3, 0});
   node_pkt_counter.insert({4, 0});
   node_pkt_counter.insert({5, 0});
@@ -892,7 +899,8 @@ bool nf_init() {
   node_pkt_counter.insert({12, 0});
   node_pkt_counter.insert({13, 0});
   node_pkt_counter.insert({14, 0});
-  node_pkt_counter.insert({15, 0});
+  node_pkt_counter.insert({30, 0});
+  node_pkt_counter.insert({31, 0});
   node_pkt_counter.insert({32, 0});
   node_pkt_counter.insert({33, 0});
   node_pkt_counter.insert({34, 0});
@@ -919,10 +927,6 @@ bool nf_init() {
   node_pkt_counter.insert({55, 0});
   node_pkt_counter.insert({56, 0});
   node_pkt_counter.insert({57, 0});
-  node_pkt_counter.insert({58, 0});
-  node_pkt_counter.insert({59, 0});
-  node_pkt_counter.insert({60, 0});
-  node_pkt_counter.insert({61, 0});
   return true;
 }
 
@@ -972,12 +976,18 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
       uint8_t* vector_cell2 = 0;
       vector_borrow(vector2, 0, (void**)&vector_cell2);
       uint32_t vector_value_out2 = *(uint32_t*)vector_cell2;
+      // BDDNode 82
+      inc_path_counter(82);
+      uint32_t unrolled = (power) - (power2);
       // BDDNode 15
       inc_path_counter(15);
-      *(uint32_t*)vector_cell2 = (vector_value_out2) + ((power) - (power2));
+      *(uint32_t*)vector_cell2 = (vector_value_out2) + (unrolled);
+      // BDDNode 83
+      inc_path_counter(83);
+      uint32_t unrolled2 = (vector_value_out2) + (unrolled);
       // BDDNode 16
       inc_path_counter(16);
-      uint32_t quotient = divide(3046596202, (67108864) - ((vector_value_out2) + ((power) - (power2))));
+      uint32_t quotient = divide(3046596202, (67108864) - (unrolled2));
       // BDDNode 17
       inc_path_counter(17);
       uint8_t* vector_cell3 = 0;
@@ -1135,12 +1145,18 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
       uint8_t* vector_cell4 = 0;
       vector_borrow(vector2, 0, (void**)&vector_cell4);
       uint32_t vector_value_out4 = *(uint32_t*)vector_cell4;
+      // BDDNode 84
+      inc_path_counter(84);
+      uint32_t unrolled3 = (power3) - (power4);
       // BDDNode 50
       inc_path_counter(50);
-      *(uint32_t*)vector_cell4 = (vector_value_out4) + ((power3) - (power4));
+      *(uint32_t*)vector_cell4 = (vector_value_out4) + (unrolled3);
+      // BDDNode 85
+      inc_path_counter(85);
+      uint32_t unrolled4 = (vector_value_out4) + (unrolled3);
       // BDDNode 51
       inc_path_counter(51);
-      uint32_t quotient2 = divide(3046596202, (67108864) - ((vector_value_out4) + ((power3) - (power4))));
+      uint32_t quotient2 = divide(3046596202, (67108864) - (unrolled4));
       // BDDNode 52
       inc_path_counter(52);
       uint8_t* vector_cell5 = 0;

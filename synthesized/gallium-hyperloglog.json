@@ -1,14 +1,14 @@
 {
   "bdd": "hyperloglog.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 146,
-    "num_phase1_speculations": 252,
+    "num_execution_plans_generated": 156,
+    "num_phase1_speculations": 272,
     "num_phase2_speculations": 8,
-    "num_speculated_modules": 5711,
-    "time_per_instantiation_us": 1252,
-    "time_per_speculation_us": 2,
-    "total_time_spent_generating_execution_plans_us": 182878,
-    "total_time_spent_speculating_us": 15813
+    "num_speculated_modules": 6141,
+    "time_per_instantiation_us": 1554,
+    "time_per_speculation_us": 3,
+    "total_time_spent_generating_execution_plans_us": 242452,
+    "total_time_spent_speculating_us": 21478
   },
   "heuristic": {
     "meta": [
@@ -27,7 +27,7 @@
       0,
       0,
       8,
-      79
+      83
     ]
   },
   "implementations": [
@@ -47,7 +47,7 @@
   "name": "gallium-hyperloglog",
   "profile_file": "hyperloglog-f40000-c10000-zipf1_2.json",
   "search_meta": {
-    "avg_bdd_size": 79,
+    "avg_bdd_size": 83,
     "avg_children_per_node": [
       {
         "avg": 0.0,
@@ -131,7 +131,31 @@
       },
       {
         "avg": 0.0,
-        "node_id": 53
+        "node_id": 36
+      },
+      {
+        "avg": 0.0,
+        "node_id": 31
+      },
+      {
+        "avg": 0.0,
+        "node_id": 27
+      },
+      {
+        "avg": 0.0,
+        "node_id": 23
+      },
+      {
+        "avg": 0.0,
+        "node_id": 85
+      },
+      {
+        "avg": 0.0,
+        "node_id": 26
+      },
+      {
+        "avg": 0.0,
+        "node_id": 83
       },
       {
         "avg": 0.0,
@@ -147,19 +171,19 @@
       },
       {
         "avg": 0.0,
+        "node_id": 84
+      },
+      {
+        "avg": 0.0,
+        "node_id": 82
+      },
+      {
+        "avg": 0.0,
         "node_id": 49
       },
       {
         "avg": 0.0,
         "node_id": 14
-      },
-      {
-        "avg": 0.0,
-        "node_id": 19
-      },
-      {
-        "avg": 0.0,
-        "node_id": 78
       },
       {
         "avg": 0.0,
@@ -171,23 +195,11 @@
       },
       {
         "avg": 0.0,
-        "node_id": 18
-      },
-      {
-        "avg": 0.0,
-        "node_id": 77
-      },
-      {
-        "avg": 0.0,
         "node_id": 47
       },
       {
         "avg": 0.0,
         "node_id": 12
-      },
-      {
-        "avg": 0.0,
-        "node_id": 32
       },
       {
         "avg": 2.0,
@@ -291,6 +303,30 @@
       },
       {
         "avg": 0.0,
+        "node_id": 18
+      },
+      {
+        "avg": 0.0,
+        "node_id": 77
+      },
+      {
+        "avg": 0.0,
+        "node_id": 53
+      },
+      {
+        "avg": 0.0,
+        "node_id": 19
+      },
+      {
+        "avg": 0.0,
+        "node_id": 78
+      },
+      {
+        "avg": 0.0,
+        "node_id": 32
+      },
+      {
+        "avg": 0.0,
         "node_id": 54
       },
       {
@@ -323,10 +359,6 @@
       },
       {
         "avg": 0.0,
-        "node_id": 26
-      },
-      {
-        "avg": 0.0,
         "node_id": 30
       },
       {
@@ -348,32 +380,16 @@
       {
         "avg": 0.0,
         "node_id": 61
-      },
-      {
-        "avg": 0.0,
-        "node_id": 23
-      },
-      {
-        "avg": 0.0,
-        "node_id": 27
-      },
-      {
-        "avg": 0.0,
-        "node_id": 31
-      },
-      {
-        "avg": 0.0,
-        "node_id": 36
       }
     ],
     "backtracks": 0,
-    "branching_factor": 1.2278481012658229,
-    "elapsed_time_seconds": 0,
+    "branching_factor": 1.216867469879518,
+    "elapsed_time_seconds": 1,
     "finished_eps": 1,
-    "ss_size": 146,
-    "steps": 80,
-    "total_ss_size_estimation": 3753.3341897615355,
-    "unfinished_eps": 66
+    "ss_size": 156,
+    "steps": 84,
+    "total_ss_size_estimation": 4649.566427249017,
+    "unfinished_eps": 72
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
