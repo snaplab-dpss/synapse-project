@@ -1,4 +1,5 @@
 #include <LibBDD/Visitors/BDDSynthesizer.h>
+#include <LibBDD/Unroll.h>
 #include <LibBDD/BDD.h>
 #include <LibCore/Debug.h>
 #include <LibCore/Expr.h>
@@ -150,7 +151,16 @@ klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitConcat(const klee::Co
 
   coder_t &coder = coders.top();
 
-  BDDSynthesizer::var_t var = synthesizer->stack_get(expr);
+  BDDSynthesizer::var_t var;
+  if (!synthesizer->stack_find(expr, var)) {
+    // Not a value we hold as is (e.g. a field's bytes in reversed order): assemble it from its parts.
+    klee::ref<klee::Expr> msb = e.getKid(0);
+    klee::ref<klee::Expr> lsb = e.getKid(1);
+    const bits_t width        = expr->getWidth();
+    const code_t type         = type_from_size(width <= 8 ? 8 : width <= 16 ? 16 : width <= 32 ? 32 : 64);
+    coder << "((" << type << ")(" << transpile(msb) << ") << " << lsb->getWidth() << " | (" << type << ")(" << transpile(lsb) << "))";
+    return Action::skipChildren();
+  }
 
   if (!var.addr.isNull() && expr->getWidth() > 8) {
     coder << "*";
@@ -394,8 +404,19 @@ klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitOr(const klee::OrExpr
 }
 
 klee::ExprVisitor::Action BDDSynthesizer::Transpiler::visitXor(const klee::XorExpr &e) {
-  klee::ref<klee::Expr> expr = const_cast<klee::XorExpr *>(&e);
-  TODO(expr);
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << "(";
+  coder << transpile(lhs);
+  coder << ")";
+  coder << " ^ ";
+  coder << "(";
+  coder << transpile(rhs);
+  coder << ")";
+
   return Action::skipChildren();
 }
 
@@ -687,7 +708,11 @@ BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, st
                             POPULATE_SYNTHESIZER(power_of_two),
                             POPULATE_SYNTHESIZER(divide),
                             POPULATE_SYNTHESIZER(ln),
-                        }) {}
+                        }) {
+  for (const std::string &name : unrolled_op_function_names()) {
+    function_synthesizers[name] = std::bind(&BDDSynthesizer::unrolled_op, this, std::placeholders::_1, std::placeholders::_2);
+  }
+}
 
 void BDDSynthesizer::synthesize() {
   // Global state
@@ -2150,6 +2175,19 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::rotate_left(coder_t &coder, 
 
   coder.indent();
   coder << "uint32_t " << v.name << " = rotate_left(" << transpiler.transpile(x) << ", " << transpiler.transpile(n) << ");\n";
+
+  stack_add(v);
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::unrolled_op(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  var_t v = build_var("unrolled", call.ret);
+
+  coder.indent();
+  coder << Transpiler::type_from_size(call.ret->getWidth()) << " " << v.name << " = " << transpiler.transpile(unrolled_op_value(call)) << ";\n";
 
   stack_add(v);
 
