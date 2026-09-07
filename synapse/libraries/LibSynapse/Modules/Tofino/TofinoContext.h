@@ -34,11 +34,18 @@ public:
   void parser_reject(const BDDNode *_node, const BDDNode *last_parser_op, std::optional<bool> direction);
 
   void place(EP *ep, const BDDNode *node, addr_t obj, DS *ds);
+  void place(EP *ep, const BDDNode *node, addr_t obj, DS *ds, const std::unordered_set<DS_ID> &deps);
   bool can_place(const EP *ep, const BDDNode *node, const DS *ds) const;
 
   void debug() const override;
 
+  // Every data structure placed since the last recirculation: the program-order dependencies
+  // a stateful step must follow.
   static std::unordered_set<DS_ID> get_stateful_deps(const EP *ep, const BDDNode *node);
+  // Only the data structures that produce the symbols `value` reads (since the last
+  // recirculation): what a stateless computation of `value` actually has to wait for, so
+  // independent steps can share a stage.
+  static std::unordered_set<DS_ID> get_dataflow_deps(const EP *ep, const BDDNode *node, klee::ref<klee::Expr> value);
 };
 
 } // namespace Tofino
