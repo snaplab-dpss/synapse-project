@@ -38,7 +38,10 @@ std::optional<spec_impl_t> ArithmeticOpFactory::speculate(const EP *ep, const BD
   if (!matches(node)) {
     return {};
   }
-  return spec_impl_t(decide(ep, node), speculations.ctx);
+  const call_t &call          = dynamic_cast<const Call *>(node)->get_call();
+  klee::ref<klee::Expr> value = unrolled_op_value(call);
+  Table *table                = new Table(build_table_id(node), 1, {}, {call.ret->getWidth()});
+  return speculate_compute_step(ep, node, table, value, speculations);
 }
 
 std::vector<impl_t> ArithmeticOpFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

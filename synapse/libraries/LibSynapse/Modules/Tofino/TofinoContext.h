@@ -10,6 +10,10 @@
 namespace LibSynapse {
 namespace Tofino {
 
+} // namespace Tofino
+struct speculations_t;
+namespace Tofino {
+
 class TofinoContext : public TargetContext {
 private:
   DataStructures data_structures;
@@ -35,8 +39,12 @@ public:
 
   void place(EP *ep, const BDDNode *node, addr_t obj, DS *ds);
   void place(EP *ep, const BDDNode *node, addr_t obj, DS *ds, const std::unordered_set<DS_ID> &deps);
+  void place(addr_t obj, DS *ds, const std::unordered_set<DS_ID> &deps);
   bool can_place(const EP *ep, const BDDNode *node, const DS *ds) const;
   bool can_place(const EP *ep, const BDDNode *node, const DS *ds, const std::unordered_set<DS_ID> &deps) const;
+  bool can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
+  // Simple placer only: for speculation, which cannot afford the ILP fallback per node.
+  bool can_place_fast(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
 
   void debug() const override;
 
@@ -47,6 +55,10 @@ public:
   // recirculation): what a stateless computation of `value` actually has to wait for, so
   // independent steps can share a stage.
   static std::unordered_set<DS_ID> get_dataflow_deps(const EP *ep, const BDDNode *node, klee::ref<klee::Expr> value);
+  // Same, during speculation: producers speculated in the current pass count too, and the
+  // plan's own producers no longer do once a recirculation was speculated.
+  static std::unordered_set<DS_ID> get_dataflow_deps(const EP *ep, const BDDNode *node, klee::ref<klee::Expr> value,
+                                                     const speculations_t &speculations);
 };
 
 } // namespace Tofino

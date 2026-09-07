@@ -6,6 +6,7 @@
 #include <LibCore/Expr.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
+#include <LibBDD/Unroll.h>
 
 #include <chrono>
 
@@ -19,6 +20,16 @@ constexpr const pps_t TPUT_PRECISION{500};
 using LibBDD::BDDNodeType;
 using LibBDD::BDDNodeVisitAction;
 using LibBDD::call_t;
+
+// An unrolled arithmetic op or a rotate_left: a stateless data-plane computation with exactly
+// one way to implement it on the switch.
+bool is_stateless_compute_node(const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Call) {
+    return false;
+  }
+  const call_t &call = dynamic_cast<const LibBDD::Call *>(node)->get_call();
+  return LibBDD::is_unrolled_op(call) || call.function_name == "rotate_left";
+}
 using LibCore::expr_addr_to_obj_addr;
 using LibCore::pps2bps;
 using LibCore::tput2str;
@@ -897,6 +908,13 @@ speculations_t EP::speculate(const speculations_t &speculations, std::list<specu
       continue;
     }
 
+    // One-shot passes only rank two candidates against each other; the stateless compute
+    // steps behind them cost the same either way, and speculating (placing) each of them
+    // there is what made comparisons quadratic. The full pass still places them all.
+    if (strategy == SpeculationStrategy::OneShot && is_stateless_compute_node(speculation_target.node)) {
+      continue;
+    }
+
     const spec_impl_t speculation = get_best_speculation(speculation_target, complete_speculation, ingress, speculation_target_nodes, strategy);
 
     complete_speculation.append(speculation);
@@ -924,8 +942,10 @@ speculations_t EP::speculate(const speculations_t &speculations, std::list<specu
 
 speculations_t EP::speculate(std::list<speculation_target_t> speculation_target_nodes, pps_t ingress, SpeculationStrategy strategy) const {
   speculations_t speculations = {
-      .speculations_per_node = {},
-      .ctx                   = ctx,
+      .speculations_per_node   = {},
+      .ctx                     = ctx,
+      .producers               = {},
+      .recirculated_since_leaf = false,
   };
   return speculate(speculations, speculation_target_nodes, ingress, strategy);
 }
@@ -1036,6 +1056,28 @@ port_ingress_t EP::get_speculative_node_egress(hit_rate_t hr, const BDDNode *nod
   }
 
   return egress;
+}
+
+u8 EP::count_speculative_past_recirculations(const BDDNode *node, const speculations_t &speculations) const {
+  u8 past_recirculations = 0;
+
+  const EPNode *leaf           = get_leaf_ep_node_from_bdd_node(node);
+  const BDDNode *last_ancestor = nullptr;
+  if (leaf && leaf->get_module()) {
+    last_ancestor = leaf->get_module()->get_node();
+    past_recirculations += leaf->count_past_recirculations();
+  }
+
+  while (node && node != last_ancestor) {
+    auto found_it = std::find_if(speculations.speculations_per_node.begin(), speculations.speculations_per_node.end(),
+                                 [node](const spec_impl_lite_t &spec) { return spec.decision.node == node->get_id(); });
+    if (found_it != speculations.speculations_per_node.end() && found_it->recirculated) {
+      past_recirculations++;
+    }
+    node = node->get_prev();
+  }
+
+  return past_recirculations;
 }
 
 void EP::clear_caches() const {

@@ -1,5 +1,7 @@
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
+#include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/ExecutionPlan.h>
 
 #include <unordered_set>
@@ -219,6 +221,45 @@ std::optional<klee::ref<klee::Expr>> TofinoModuleFactory::get_register_increment
   }
 
   return delta;
+}
+
+std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP *ep, const BDDNode *node, Table *table, klee::ref<klee::Expr> value,
+                                                                       const speculations_t &speculations) const {
+  Context new_ctx           = speculations.ctx;
+  TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
+
+  std::unordered_set<DS_ID> deps = TofinoContext::get_dataflow_deps(ep, node, value, speculations);
+  bool recirculated              = false;
+
+  if (!tofino_ctx->can_place_fast(table, deps)) {
+    // The pipeline is used up: the packet goes around once more, and the step waits for
+    // nothing placed in the previous pass.
+    if (ep->count_speculative_past_recirculations(node, speculations) > MAX_PAST_RECIRCULATIONS) {
+      delete table;
+      return {};
+    }
+
+    deps.clear();
+    if (!tofino_ctx->can_place_fast(table, deps)) {
+      delete table;
+      return {};
+    }
+
+    const hit_rate_t node_hr = new_ctx.get_profiler().get_hr(node);
+    new_ctx.get_mutable_perf_oracle().add_recirculated_traffic(ep->get_speculative_node_egress(node_hr, node, speculations));
+    recirculated = true;
+  }
+
+  const DS_ID table_id = table->id;
+  tofino_ctx->place(node->get_id(), table, deps);
+
+  spec_impl_t spec_impl(decide(ep, node), new_ctx);
+  spec_impl.recirculated = recirculated;
+  for (const symbol_t &symbol : dynamic_cast<const Call *>(node)->get_local_symbols().get()) {
+    spec_impl.produced[symbol.name] = table_id;
+  }
+
+  return spec_impl;
 }
 
 bool TofinoModuleFactory::reads_pending_write_borrow_value(const BDDNode *node, klee::ref<klee::Expr> expr) {

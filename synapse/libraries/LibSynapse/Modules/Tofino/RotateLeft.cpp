@@ -47,10 +47,12 @@ DS_ID build_table_id(const BDDNode *node) { return "rotate_left_" + std::to_stri
 } // namespace
 
 std::optional<spec_impl_t> RotateLeftFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
-  if (!get_rotation(node)) {
+  const std::optional<rotation_t> rotation = get_rotation(node);
+  if (!rotation) {
     return {};
   }
-  return spec_impl_t(decide(ep, node), speculations.ctx);
+  Table *table = new Table(build_table_id(node), 1, {}, {rotation->out->getWidth()});
+  return speculate_compute_step(ep, node, table, rotation->x, speculations);
 }
 
 std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {

@@ -27,7 +27,7 @@ ds_relationships_t get_ds_relationships(const Pipeline &pipeline, const DS *targ
 
   for (const PlacementRequest &request : pipeline.placement_requests) {
     const DS *request_ds = pipeline.data_structures.get_ds_from_id(request.ds);
-    placement_requests.push_back({request_ds, request.deps});
+    placement_requests.push_back({request_ds, *request.deps});
   }
   if (!pipeline.already_requested(target_ds->id)) {
     placement_requests.push_back({target_ds, deps});

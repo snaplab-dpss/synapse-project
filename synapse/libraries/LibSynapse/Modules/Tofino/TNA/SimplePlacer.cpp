@@ -66,14 +66,15 @@ PlacementResult concretize_placements(const Pipeline &pipeline, const PlacementR
 PlacementResult clean_slate_placement(const Pipeline &pipeline, const DS *ds, const std::unordered_set<DS_ID> &deps) {
   Pipeline clean_slate_pipeline(pipeline.properties, pipeline.data_structures);
 
-  for (PlacementRequest req : pipeline.placement_requests) {
+  for (const PlacementRequest &req : pipeline.placement_requests) {
     const DS *requested_ds = clean_slate_pipeline.data_structures.get_ds_from_id(req.ds);
 
+    std::unordered_set<DS_ID> req_deps = *req.deps;
     if (requested_ds->id == ds->id) {
-      req.deps.insert(deps.begin(), deps.end());
+      req_deps.insert(deps.begin(), deps.end());
     }
 
-    const PlacementResult result = find_placements(clean_slate_pipeline, requested_ds, req.deps);
+    const PlacementResult result = find_placements(clean_slate_pipeline, requested_ds, req_deps);
     if (result.status != PlacementStatus::Success) {
       return result;
     }
@@ -203,7 +204,7 @@ PlacementResult find_placements_table(const Pipeline &pipeline, const Table *tab
     return PlacementStatus::TooLarge;
   }
 
-  return concretize_placements(pipeline, {table->id, deps}, placements);
+  return concretize_placements(pipeline, {table->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)}, placements);
 }
 
 PlacementResult find_placements_reg(const Pipeline &pipeline, const Register *reg, const std::unordered_set<DS_ID> &deps) {
@@ -265,7 +266,7 @@ PlacementResult find_placements_reg(const Pipeline &pipeline, const Register *re
     return PlacementStatus::TooLarge;
   }
 
-  return concretize_placements(pipeline, {reg->id, deps}, placements);
+  return concretize_placements(pipeline, {reg->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)}, placements);
 }
 
 PlacementResult find_placements_meter(const Pipeline &pipeline, const Meter *meter, const std::unordered_set<DS_ID> &deps) {
@@ -332,7 +333,7 @@ PlacementResult find_placements_meter(const Pipeline &pipeline, const Meter *met
     return PlacementStatus::TooLarge;
   }
 
-  return concretize_placements(pipeline, {meter->id, deps}, placements);
+  return concretize_placements(pipeline, {meter->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)}, placements);
 }
 
 PlacementResult find_placements_hash(const Pipeline &pipeline, const Hash *hash, const std::unordered_set<DS_ID> &deps) {
@@ -387,7 +388,7 @@ PlacementResult find_placements_hash(const Pipeline &pipeline, const Hash *hash,
     return PlacementStatus::MultipleReasons;
   }
 
-  return concretize_placements(pipeline, {hash->id, deps}, placements);
+  return concretize_placements(pipeline, {hash->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)}, placements);
 }
 
 PlacementResult find_placements_digest(const Pipeline &pipeline, const Digest *digest, const std::unordered_set<DS_ID> &deps) {
@@ -413,7 +414,7 @@ PlacementResult find_placements_digest(const Pipeline &pipeline, const Digest *d
       .type        = digest->type,
   };
 
-  return concretize_placements(pipeline, {digest->id, deps}, {placement});
+  return concretize_placements(pipeline, {digest->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)}, {placement});
 }
 
 PlacementResult find_placements_lpm(const Pipeline &pipeline, const LPM *lpm, const std::unordered_set<DS_ID> &deps) {
@@ -476,7 +477,7 @@ PlacementResult find_placements_lpm(const Pipeline &pipeline, const LPM *lpm, co
     return PlacementStatus::TooLarge;
   }
 
-  return concretize_placements(pipeline, {lpm->id, deps}, placements);
+  return concretize_placements(pipeline, {lpm->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)}, placements);
 }
 
 } // namespace SimplePlacer

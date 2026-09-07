@@ -92,9 +92,11 @@ struct PipelineResources {
   PipelineResources &operator=(const PipelineResources &other) = default;
 };
 
+// A dependency set is fixed once requested; requests share it across the many copies of a
+// pipeline (one per speculation), so copying a pipeline costs O(requests), not O(requests^2).
 struct PlacementRequest {
   DS_ID ds;
-  std::unordered_set<DS_ID> deps;
+  std::shared_ptr<const std::unordered_set<DS_ID>> deps;
 };
 
 struct PlacementResult {
@@ -141,6 +143,8 @@ struct Pipeline {
 
   void place(const DS *ds, const std::unordered_set<DS_ID> &deps);
   PlacementStatus can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
+  // Simple placer only (no ILP fallback): cheap and conservative, for speculation.
+  PlacementStatus can_place_fast(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   PlacementResult find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
 
   void debug() const;

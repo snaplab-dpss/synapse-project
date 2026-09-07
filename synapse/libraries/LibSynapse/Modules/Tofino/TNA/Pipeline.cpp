@@ -201,7 +201,7 @@ void Pipeline::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
   resources = *result.resources;
 
   if (!duplicated_request) {
-    placement_requests.push_back({ds->id, deps});
+    placement_requests.push_back({ds->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)});
   }
 }
 
@@ -217,6 +217,20 @@ PlacementStatus Pipeline::can_place(const DS *ds, const std::unordered_set<DS_ID
   }
 
   return find_placements(ds, deps).status;
+}
+
+PlacementStatus Pipeline::can_place_fast(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
+  if (ds->primitive) {
+    if (deps.find(ds->id) != deps.end()) {
+      return PlacementStatus::SelfDependence;
+    }
+  }
+
+  if (already_requested(ds->id) && !detect_changes_to_already_placed_data_structure(ds, deps)) {
+    return PlacementStatus::Success;
+  }
+
+  return SimplePlacer::find_placements(*this, ds, deps).status;
 }
 
 PlacementResult Pipeline::find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps) const {

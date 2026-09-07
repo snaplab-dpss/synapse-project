@@ -201,12 +201,35 @@ std::unordered_set<DS_ID> TofinoContext::get_dataflow_deps(const EP *ep, const B
 
 void TofinoContext::place(EP *ep, const BDDNode *node, addr_t obj, DS *ds) { place(ep, node, obj, ds, get_stateful_deps(ep, node)); }
 
-void TofinoContext::place(EP *ep, const BDDNode *node, addr_t obj, DS *ds, const std::unordered_set<DS_ID> &deps) {
+void TofinoContext::place(EP *ep, const BDDNode *node, addr_t obj, DS *ds, const std::unordered_set<DS_ID> &deps) { place(obj, ds, deps); }
+
+void TofinoContext::place(addr_t obj, DS *ds, const std::unordered_set<DS_ID> &deps) {
   if (!data_structures.has(ds->id)) {
     data_structures.save(obj, std::unique_ptr<DS>(ds));
   }
 
   tna.pipeline.place(ds, deps);
+}
+
+bool TofinoContext::can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const { return tna.pipeline.can_place(ds, deps) == PlacementStatus::Success; }
+
+bool TofinoContext::can_place_fast(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
+  return tna.pipeline.can_place_fast(ds, deps) == PlacementStatus::Success;
+}
+
+std::unordered_set<DS_ID> TofinoContext::get_dataflow_deps(const EP *ep, const BDDNode *node, klee::ref<klee::Expr> value,
+                                                           const speculations_t &speculations) {
+  std::unordered_set<DS_ID> deps;
+  if (!speculations.recirculated_since_leaf) {
+    deps = get_dataflow_deps(ep, node, value);
+  }
+  for (const std::string &name : symbol_t::get_symbols_names(value)) {
+    auto found_it = speculations.producers.find(name);
+    if (found_it != speculations.producers.end()) {
+      deps.insert(found_it->second);
+    }
+  }
+  return deps;
 }
 
 bool TofinoContext::can_place(const EP *ep, const BDDNode *node, const DS *ds) const { return can_place(ep, node, ds, get_stateful_deps(ep, node)); }
