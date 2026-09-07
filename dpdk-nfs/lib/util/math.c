@@ -25,6 +25,11 @@ unsigned find_first_set_bit(unsigned x) { return x == 0 ? 0 : (unsigned)__builti
 
 unsigned min(unsigned a, unsigned b) { return a < b ? a : b; }
 
+unsigned rotate_left(unsigned x, unsigned n) {
+  n &= 31;
+  return n == 0 ? x : (x << n) | (x >> (32 - n));
+}
+
 unsigned power_of_two(unsigned exponent) { return 1u << exponent; }
 
 unsigned divide(unsigned numerator, unsigned denominator) { return denominator == 0 ? 0 : numerator / denominator; }

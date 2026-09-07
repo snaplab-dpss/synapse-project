@@ -25,6 +25,9 @@ unsigned find_first_set_bit(unsigned x);
 // Returns the smaller of a and b.
 unsigned min(unsigned a, unsigned b);
 
+// Rotates the 32-bit value x left by n bits (n taken modulo 32).
+unsigned rotate_left(unsigned x, unsigned n);
+
 unsigned power_of_two(unsigned exponent);
 unsigned divide(unsigned numerator, unsigned denominator);
 // Natural logarithm with a caller-provided fixed-point scale: returns ln(x) * scale.
