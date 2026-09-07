@@ -57,8 +57,10 @@ std::vector<impl_t> ArithmeticOpFactory::process_node(const EP *ep, const BDDNod
   EPNode *ep_node            = new EPNode(module);
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
+  // A stateless step only waits for the producers of its operands, so independent steps can
+  // share a stage.
   TofinoContext *tofino_ctx = new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>();
-  tofino_ctx->place(new_ep.get(), node, node->get_id(), table);
+  tofino_ctx->place(new_ep.get(), node, node->get_id(), table, TofinoContext::get_dataflow_deps(new_ep.get(), node, value));
 
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});

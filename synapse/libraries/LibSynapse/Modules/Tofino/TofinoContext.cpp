@@ -4,9 +4,14 @@
 
 #include <algorithm>
 #include <cassert>
+#include <functional>
 
 namespace LibSynapse {
 namespace Tofino {
+
+using LibBDD::Call;
+using LibCore::symbol_t;
+using LibCore::Symbols;
 
 namespace {
 
@@ -106,7 +111,28 @@ void TofinoContext::parser_reject(const BDDNode *node, const BDDNode *last_parse
   }
 }
 
-std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const BDDNode *node) {
+namespace {
+
+// The symbols a Tofino module's data structures stand for: its node's own, and for a
+// vector_return (the register update fused with its borrow) the borrowed value too.
+Symbols get_produced_symbols(const Module *module) {
+  const BDDNode *node = module->get_node();
+  if (!node || node->get_type() != BDDNodeType::Call) {
+    return {};
+  }
+  const Call *call_node = dynamic_cast<const Call *>(node);
+  Symbols symbols       = call_node->get_local_symbols();
+  if (call_node->get_call().function_name == "vector_return") {
+    if (const Call *vector_borrow = call_node->get_vector_borrow_from_return()) {
+      symbols.add(vector_borrow->get_local_symbols());
+    }
+  }
+  return symbols;
+}
+
+// Walks the EP back from `node` to the last recirculation (or the last non-Tofino module),
+// collecting the primitive data structures of every module `keep` accepts.
+std::unordered_set<DS_ID> collect_deps(const EP *ep, const BDDNode *node, const std::function<bool(const Module *)> &keep) {
   std::unordered_set<DS_ID> deps;
 
   const EPNode *ep_node = get_ep_node_from_bdd_node(ep, node);
@@ -133,16 +159,18 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const B
 
     const TofinoModule *tofino_module = dynamic_cast<const TofinoModule *>(module);
 
-    for (DS_ID ds_id : tofino_module->get_generated_ds()) {
-      const DS *ds = tofino_ctx->get_data_structures().get_ds_from_id(ds_id);
+    if (keep(module)) {
+      for (DS_ID ds_id : tofino_module->get_generated_ds()) {
+        const DS *ds = tofino_ctx->get_data_structures().get_ds_from_id(ds_id);
 
-      if (ds->primitive) {
-        deps.insert(ds_id);
-        continue;
-      }
+        if (ds->primitive) {
+          deps.insert(ds_id);
+          continue;
+        }
 
-      for (const std::unordered_set<DS_ID> &data_structures : ds->get_internal_primitive_ids()) {
-        deps.insert(data_structures.begin(), data_structures.end());
+        for (const std::unordered_set<DS_ID> &data_structures : ds->get_internal_primitive_ids()) {
+          deps.insert(data_structures.begin(), data_structures.end());
+        }
       }
     }
 
@@ -152,10 +180,27 @@ std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const B
   return deps;
 }
 
-void TofinoContext::place(EP *ep, const BDDNode *node, addr_t obj, DS *ds) {
-  const Tofino::TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
-  const std::unordered_set<DS_ID> deps    = tofino_ctx->get_stateful_deps(ep, node);
+} // namespace
 
+std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const BDDNode *node) {
+  return collect_deps(ep, node, [](const Module *) { return true; });
+}
+
+std::unordered_set<DS_ID> TofinoContext::get_dataflow_deps(const EP *ep, const BDDNode *node, klee::ref<klee::Expr> value) {
+  const std::unordered_set<std::string> read = symbol_t::get_symbols_names(value);
+  return collect_deps(ep, node, [&read](const Module *module) {
+    for (const symbol_t &symbol : get_produced_symbols(module).get()) {
+      if (read.count(symbol.name)) {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
+void TofinoContext::place(EP *ep, const BDDNode *node, addr_t obj, DS *ds) { place(ep, node, obj, ds, get_stateful_deps(ep, node)); }
+
+void TofinoContext::place(EP *ep, const BDDNode *node, addr_t obj, DS *ds, const std::unordered_set<DS_ID> &deps) {
   if (!data_structures.has(ds->id)) {
     data_structures.save(obj, std::unique_ptr<DS>(ds));
   }

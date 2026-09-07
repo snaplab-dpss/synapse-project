@@ -66,8 +66,10 @@ std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode 
   EPNode *ep_node            = new EPNode(module);
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
+  // A stateless step only waits for the producer of its operand, so independent steps can
+  // share a stage.
   TofinoContext *tofino_ctx = new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>();
-  tofino_ctx->place(new_ep.get(), node, node->get_id(), table);
+  tofino_ctx->place(new_ep.get(), node, node->get_id(), table, TofinoContext::get_dataflow_deps(new_ep.get(), node, rotation->x));
 
   const EPLeaf leaf(ep_node, node->get_next());
   new_ep->process_leaf(ep_node, {leaf});
