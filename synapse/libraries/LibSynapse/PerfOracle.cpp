@@ -269,106 +269,60 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
     // std::cerr << "[Double recirc] Tout[0] = " << tput2str(Tout[0], "bps") << "\n";
     // std::cerr << "[Double recirc] Tout[1] = " << tput2str(Tout[1], "bps") << "\n";
   } break;
-  case 3: {
-    // s1 is relative to s0
-    // s0 is relative to the first recirculation
-
-    const hit_rate_t hr_surplus_0 = recirc_ports_ingress.get_hr_at_recirc_depth(0);
-    const hit_rate_t hr_surplus_1 = recirc_ports_ingress.get_hr_at_recirc_depth(1);
-
-    if (hr_surplus_0 == 0) {
-      // Nothing to recirculate actually
-      break;
-    }
-
-    const double s0 = hr_surplus_0 / recirc_ports_ingress.global;
-    const double s1 = hr_surplus_1 / hr_surplus_0;
-
-    const double a = (s1 / s0) * (1.0 / Tin_bps_per_pipe);
-    const double b = 1;
-    const double c = Tin_bps_per_pipe;
-    const double d = -1.0 * Tin_bps_per_pipe * Cr * s0;
-
-    const std::vector<double> Ts0_coefficients = {d, c, b, a};
-    const double Ts0                           = newton_root_finder(Ts0_coefficients, 0, Cr);
-    const double Ts1                           = Ts0 * Ts0 * (1.0 / Tin_bps_per_pipe) * (s1 / s0);
-
-    Tout[0] = (Tin_bps_per_pipe / static_cast<double>(Tin_bps_per_pipe + Ts0 + Ts1)) * Cr * (1.0 - s0);
-    Tout[1] = (Ts0 / static_cast<double>(Tin_bps_per_pipe + Ts0 + Ts1)) * Cr * (1.0 - s1);
-    Tout[2] = (Ts1 / static_cast<double>(Tin_bps_per_pipe + Ts0 + Ts1)) * Cr;
-  } break;
   default: {
-    // s0 is relative to the first recirculation
-    // s1 is relative to s0
-    // s2 is relative to s1
-    // ...
+    // n surplus levels. s[0] is the fraction of the first-pass egress that goes around again,
+    // and s[i] the fraction of the i-th surplus egress that goes around once more. Each level
+    // i feeds the port with Ts[i] and, when saturated, gets its share Ts[i] / (Tin + sum(Ts))
+    // of Cr, so Ts[0] is the positive root of
+    //   Ts0 * (Tin + Ts0 + Ts1 + ...) = s0 * Tin * Cr,  with  Ts[i] = Ts[i-1] * s[i] * Ts0 / (Tin * s0).
+    const size_t n = Tout.size() - 1;
 
-    bool nothing_to_recirculate = false;
-    if (recirc_ports_ingress.global <= 0) {
-      nothing_to_recirculate = true;
+    std::vector<double> s(n, 0.0);
+    hit_rate_t prev = recirc_ports_ingress.global;
+    for (size_t i = 0; i < n; i++) {
+      const hit_rate_t hr = recirc_ports_ingress.get_hr_at_recirc_depth(i);
+      s[i]                = prev > 0 ? hr / prev : 0.0;
+      prev                = hr;
     }
 
-    for (u8 i = 0; !nothing_to_recirculate && i < Tout.size(); i++) {
-      if (recirc_ports_ingress.get_hr_at_recirc_depth(i) <= 0) {
-        nothing_to_recirculate = true;
-        break;
-      }
-    }
-
-    if (nothing_to_recirculate) {
+    if (s[0] <= 0) {
+      // No surplus after all: only the first pass goes through the port.
+      Tout[0] = std::min(Tin_bps_per_pipe, Cr);
       break;
     }
 
-    std::vector<double> s(Tout.size() - 1);
-    for (u8 i = 0; i < s.size(); i++) {
-      if (i == 0) {
-        s[i] = recirc_ports_ingress.get_hr_at_recirc_depth(i + 1) / recirc_ports_ingress.global;
-      } else {
-        s[i] = recirc_ports_ingress.get_hr_at_recirc_depth(i + 1) / recirc_ports_ingress.get_hr_at_recirc_depth(i);
-      }
-    }
-
-    std::vector<double> Ts0_coefficients;
-
-    Ts0_coefficients.push_back(-1.0 * Tin_bps_per_pipe * Cr * s[0]);
-    Ts0_coefficients.push_back(Tin_bps_per_pipe);
-    Ts0_coefficients.push_back(1.0);
-
-    for (u8 i = 1; i < s.size(); i++) {
+    // Polynomial in Ts0, by increasing degree: -s0*Tin*Cr + Tin*x + x^2 + sum_i c_i * x^(i+2),
+    // c_i = prod_{j=1..i} s[j] / (Tin * s0)^i.
+    std::vector<double> Ts0_coefficients = {-1.0 * Tin_bps_per_pipe * Cr * s[0], Tin_bps_per_pipe, 1.0};
+    for (size_t i = 1; i < n; i++) {
       double coefficient = 1.0;
-      for (u8 j = 1; j <= i; j++) {
+      for (size_t j = 1; j <= i; j++) {
         coefficient *= s[j];
       }
-      coefficient /= pow(Tin_bps_per_pipe * s[0], i);
+      coefficient /= pow(Tin_bps_per_pipe * s[0], static_cast<double>(i));
       Ts0_coefficients.push_back(coefficient);
     }
 
-    std::vector<double> Ts(s.size());
-    for (u8 i = 0; i < s.size(); i++) {
-      if (i == 0) {
-        Ts[0] = newton_root_finder(Ts0_coefficients, 0, Cr);
-      } else {
-        Ts[i] = pow(Ts[0], i + 1) * (1.0 / pow(Tin_bps_per_pipe * s[0], i));
-        for (u8 j = 1; j <= i; j++) {
-          Ts[i] *= s[j];
-        }
+    std::vector<double> Ts(n, 0.0);
+    Ts[0] = newton_root_finder(Ts0_coefficients, 0, Cr);
+    for (size_t i = 1; i < n; i++) {
+      Ts[i] = pow(Ts[0], static_cast<double>(i + 1)) / pow(Tin_bps_per_pipe * s[0], static_cast<double>(i));
+      for (size_t j = 1; j <= i; j++) {
+        Ts[i] *= s[j];
       }
     }
 
     double Ts_sum = 0;
-    for (u8 i = 0; i < s.size(); i++) {
+    for (size_t i = 0; i < n; i++) {
       Ts_sum += Ts[i];
     }
 
-    for (u8 i = 0; i < s.size() + 1; i++) {
-      if (i == 0) {
-        Tout[i] = (Tin_bps_per_pipe / (Tin_bps_per_pipe + Ts_sum)) * Cr * (1.0 - s[i]);
-      } else if (i < s.size()) {
-        Tout[i] = (Ts[i - 1] / (Tin_bps_per_pipe + Ts_sum)) * Cr * (1.0 - s[i]);
-      } else {
-        Tout[i] = (Tin_bps_per_pipe / (Tin_bps_per_pipe + Ts_sum)) * Cr;
-      }
+    const double share = Cr / (Tin_bps_per_pipe + Ts_sum);
+    Tout[0]            = Tin_bps_per_pipe * share * (1.0 - s[0]);
+    for (size_t i = 1; i < n; i++) {
+      Tout[i] = Ts[i - 1] * share * (1.0 - s[i]);
     }
+    Tout[n] = Ts[n - 1] * share;
   }
   }
 
