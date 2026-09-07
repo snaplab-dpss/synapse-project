@@ -37,10 +37,16 @@ struct bdd_visualizer_opts_t {
   std::optional<Color> default_color;
   std::unordered_map<bdd_node_id_t, std::string> annotations_per_node;
   processed_t processed;
+  // Expressions in labels are elided past this many nested operators and this many characters
+  // (0 = unlimited); the .bdd file keeps them in full.
+  unsigned expr_max_depth = 4;
+  size_t expr_max_len     = 200;
 };
 
 class BDDViz : public BDDVisitor {
 protected:
+  std::string pp(klee::ref<klee::Expr> expr, bool use_signed = true) const;
+
   const Node call_node;
   const Node branch_node;
   const Node forward_node;

@@ -9,6 +9,16 @@ using LibCore::pretty_print_expr;
 using LibCore::solver_toolbox;
 using LibCore::Graphviz::Style;
 
+// Label rendering: depth-limited, then length-capped (see bdd_visualizer_opts_t).
+std::string BDDViz::pp(klee::ref<klee::Expr> expr, bool use_signed) const {
+  std::string str = pretty_print_expr(expr, use_signed, opts.expr_max_depth);
+  if (opts.expr_max_len > 0 && str.size() > opts.expr_max_len) {
+    str.resize(opts.expr_max_len);
+    str += "...";
+  }
+  return str;
+}
+
 namespace {
 
 const Color COLOR_PROCESSED(Color::Literal::Gray);
@@ -119,7 +129,7 @@ BDDVisitor::Action BDDViz::visit(const Branch *node) {
   tree_node.color = get_color(node);
 
   std::stringstream label;
-  label << node->get_id() << ":" << pretty_print_expr(condition);
+  label << node->get_id() << ":" << pp(condition);
   if (opts.annotations_per_node.find(node->get_id()) != opts.annotations_per_node.end()) {
     label << "\\n";
     label << opts.annotations_per_node.at(node->get_id());
@@ -165,18 +175,18 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
     if (arg.fn_ptr_name.first) {
       label << arg.fn_ptr_name.second;
     } else {
-      label << pretty_print_expr(arg.expr, false);
+      label << pp(arg.expr, false);
 
       if (!arg.in.isNull() || !arg.out.isNull()) {
         label << "[";
 
         if (!arg.in.isNull()) {
-          label << pretty_print_expr(arg.in, false);
+          label << pp(arg.in, false);
         }
 
         if (!arg.out.isNull() && (arg.in.isNull() || !solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
           label << " -> ";
-          label << pretty_print_expr(arg.out, false);
+          label << pp(arg.out, false);
         }
 
         label << "]";
@@ -193,7 +203,7 @@ BDDVisitor::Action BDDViz::visit(const Call *node) {
   label << ")";
 
   if (!call.ret.isNull()) {
-    label << " -> " << pretty_print_expr(call.ret);
+    label << " -> " << pp(call.ret);
   }
 
   const Symbols &symbols = node->get_local_symbols();
@@ -251,7 +261,7 @@ BDDVisitor::Action BDDViz::visit(const Route *node) {
   label << id << ":";
   switch (operation) {
   case RouteOp::Forward: {
-    label << "fwd(" << pretty_print_expr(dst_device, false) << ")";
+    label << "fwd(" << pp(dst_device, false) << ")";
     break;
   }
   case RouteOp::Drop: {

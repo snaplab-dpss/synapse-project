@@ -12,6 +12,9 @@ namespace LibCore {
 
 std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner = false);
 std::string pretty_print_expr(klee::ref<klee::Expr> expr, bool use_signed = true);
+// Prints at most `max_depth` nested operator levels, eliding deeper subexpressions as "..."
+// (0 = unlimited). Bounds both the output and the cost on expressions with heavy sharing.
+std::string pretty_print_expr(klee::ref<klee::Expr> expr, bool use_signed, unsigned max_depth);
 
 bool is_readLSB(klee::ref<klee::Expr> expr);
 bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol);

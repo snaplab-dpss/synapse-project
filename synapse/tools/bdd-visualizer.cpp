@@ -15,11 +15,13 @@ int main(int argc, char **argv) {
   std::filesystem::path output_dot_file;
   std::filesystem::path bdd_profile_file;
   bool show{false};
+  bool full_exprs{false};
 
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")->required();
   app.add_option("--out", output_dot_file, "Output dot file.");
   app.add_option("--profile", bdd_profile_file, "BDD profile file.");
   app.add_flag("--show", show, "Render dot file.");
+  app.add_flag("--full-exprs", full_exprs, "Print expressions in full in node labels (no depth or length limit).");
 
   CLI11_PARSE(app, argc, argv);
 
@@ -50,6 +52,10 @@ int main(int argc, char **argv) {
     if (!output_dot_file.empty()) {
       bdd_visualizer_opts_t opts;
       opts.fname = output_dot_file.string();
+      if (full_exprs) {
+        opts.expr_max_depth = 0;
+        opts.expr_max_len   = 0;
+      }
 
       BDDViz generator(opts);
       generator.visit(&bdd);
