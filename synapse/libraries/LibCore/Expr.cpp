@@ -592,67 +592,95 @@ public:
   }
 };
 
+// KLEE prints shared subexpressions once, as labels (N0:(...)) referenced elsewhere. Inlining them
+// turns that DAG into a tree, which is exponential in the depth of the sharing (e.g. an ARX hash
+// whose rounds reuse the previous round's words). Past this size the remaining labels are kept:
+// the string stays valid kQuery, just less readable.
+constexpr size_t MAX_INLINED_EXPR_STR_SIZE = 1 << 20;
+
+static bool is_label_char(char c) { return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_'; }
+
+// Finds `label` in `s` from `from` as a whole token: "N1" must not match inside "N10".
+static size_t find_label(const std::string &s, const std::string &label, size_t from) {
+  while (true) {
+    size_t pos = s.find(label, from);
+    if (pos == std::string::npos) {
+      return pos;
+    }
+    size_t after = pos + label.size();
+    bool whole   = (pos == 0 || !is_label_char(s[pos - 1])) && (after == s.size() || !is_label_char(s[after]));
+    if (whole) {
+      return pos;
+    }
+    from = after;
+  }
+}
+
 void remove_expr_str_labels(std::string &expr_str) {
-  while (1) {
-    size_t delim = expr_str.find(":");
+  // Labels are numbered in definition order, so a label nested inside another's body has the
+  // higher number. Inlining innermost first means a body never contains another definition, so
+  // copying it is always sound, and stopping at the size cap leaves every remaining label with
+  // its single definition.
+  std::vector<std::pair<unsigned long, std::string>> labels;
+  for (size_t colon = expr_str.find(':'); colon != std::string::npos; colon = expr_str.find(':', colon + 1)) {
+    size_t digits = colon;
+    while (digits > 0 && expr_str[digits - 1] >= '0' && expr_str[digits - 1] <= '9') {
+      digits--;
+    }
+    if (digits == colon || digits == 0 || expr_str[digits - 1] != 'N' || (digits >= 2 && is_label_char(expr_str[digits - 2]))) {
+      continue;
+    }
+    labels.emplace_back(std::stoul(expr_str.substr(digits, colon - digits)), expr_str.substr(digits - 1, colon - digits + 1));
+  }
+  std::sort(labels.rbegin(), labels.rend());
 
-    if (delim == std::string::npos) {
-      break;
+  for (const std::pair<unsigned long, std::string> &label : labels) {
+    const std::string &label_name = label.second;
+    if (expr_str.size() > MAX_INLINED_EXPR_STR_SIZE) {
+      return;
     }
 
-    size_t start = delim;
-    size_t end   = delim;
+    // The definition is the first whole-token occurrence; its body is the parenthesized term
+    // right after the colon.
+    size_t delim = find_label(expr_str, label_name, 0);
+    assert(delim != std::string::npos && expr_str[delim + label_name.size()] == ':' && "Label definition not found");
+    delim += label_name.size();
 
-    while (expr_str[--start] != 'N') {
-      assert(start > 0 && start < expr_str.size() && "Invalid start");
-    }
-
-    std::string pre  = expr_str.substr(0, start);
-    std::string post = expr_str.substr(end + 1);
-
-    std::string label_name = expr_str.substr(start, end - start);
-    std::string label_expr;
-
-    expr_str = pre + post;
-
+    size_t body_start   = delim + 1;
+    size_t body_end     = body_start;
     int parenthesis_lvl = 0;
-
-    for (char c : post) {
-      if (c == '(') {
+    for (; body_end < expr_str.size(); body_end++) {
+      if (expr_str[body_end] == '(') {
         parenthesis_lvl++;
-      } else if (c == ')') {
+      } else if (expr_str[body_end] == ')') {
         parenthesis_lvl--;
       }
-
-      label_expr += c;
-
       if (parenthesis_lvl == 0) {
+        body_end++;
         break;
       }
     }
+    const std::string label_expr = expr_str.substr(body_start, body_end - body_start);
 
-    while (1) {
-      delim = expr_str.find(label_name);
-
-      if (delim == std::string::npos) {
-        break;
-      }
-
-      size_t label_sz = label_name.size();
-
-      if (delim + label_sz < expr_str.size() && expr_str[delim + label_sz] == ':') {
-        pre  = expr_str.substr(0, delim);
-        post = expr_str.substr(delim + label_sz + 1);
-
-        expr_str = pre + post;
+    // Substitute every reference. The definition is kept until the end, so stopping at the size
+    // cap always leaves a valid string.
+    size_t pos = 0;
+    while ((pos = find_label(expr_str, label_name, pos)) != std::string::npos) {
+      if (pos + label_name.size() < expr_str.size() && expr_str[pos + label_name.size()] == ':') {
+        pos += label_name.size() + 1;
         continue;
       }
-
-      pre  = expr_str.substr(0, delim);
-      post = expr_str.substr(delim + label_sz);
-
-      expr_str = pre + label_expr + post;
+      expr_str.replace(pos, label_name.size(), label_expr);
+      pos += label_expr.size();
+      if (expr_str.size() > MAX_INLINED_EXPR_STR_SIZE) {
+        return;
+      }
     }
+
+    // Drop the definition's label, keeping its body.
+    size_t def = find_label(expr_str, label_name, 0);
+    assert(def != std::string::npos && expr_str[def + label_name.size()] == ':' && "Label definition not found");
+    expr_str.erase(def, label_name.size() + 1);
   }
 }
 
