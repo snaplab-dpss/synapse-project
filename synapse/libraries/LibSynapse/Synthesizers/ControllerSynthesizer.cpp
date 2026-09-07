@@ -1798,6 +1798,17 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::RotateLeft *node) {
+  coder_t &coder                  = get_current_coder();
+  const code_t x_code             = transpiler.transpile(node->get_x());
+  const code_t n_code             = transpiler.transpile(node->get_n());
+  const klee::ref<klee::Expr> out = node->get_out();
+  const var_t out_var             = alloc_var("rotated", out, {}, NO_OPTION);
+  coder.indent();
+  coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::rotate_left(" << x_code << ", " << n_code << ");\n";
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Divide *node) {
   coder_t &coder            = get_current_coder();
   const code_t num_code     = transpiler.transpile(node->get_numerator());

@@ -65,6 +65,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::PowerOfTwo *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ln *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ArithmeticOp *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeft *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableReadInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FCFSCachedTableInsert *node) override final;
@@ -138,6 +139,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Divide *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ln *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ArithmeticOp *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::RotateLeft *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *node) override final;
