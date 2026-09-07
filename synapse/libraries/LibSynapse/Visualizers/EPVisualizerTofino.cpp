@@ -59,6 +59,7 @@ SHOW_MODULE_NAME(Tofino::CountTrailingZeros)
 SHOW_MODULE_NAME(Tofino::FindFirstSetBit)
 SHOW_MODULE_NAME(Tofino::PowerOfTwo)
 SHOW_MODULE_NAME(Tofino::Ln)
+SHOW_MODULE_NAME(Tofino::ArithmeticOp)
 SHOW_MODULE_NAME(Tofino::VectorRegisterReadConditionalIncrement)
 
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *node) {

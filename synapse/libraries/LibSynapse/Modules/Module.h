@@ -75,6 +75,7 @@ enum class ModuleType {
   Tofino_PowerOfTwo,
   Tofino_Ln,
   Tofino_Divide,
+  Tofino_ArithmeticOp,
 
   // ========================================
   // Controller
@@ -165,6 +166,7 @@ enum class ModuleType {
   Controller_PowerOfTwo,
   Controller_Divide,
   Controller_Ln,
+  Controller_ArithmeticOp,
   Controller_TokenBucketAllocate,
   Controller_TokenBucketIsTracing,
   Controller_TokenBucketTrace,
@@ -366,6 +368,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_PowerOfTwo:
     os << "Tofino_PowerOfTwo";
+    break;
+  case ModuleType::Tofino_ArithmeticOp:
+    os << "Tofino_ArithmeticOp";
     break;
   case ModuleType::Tofino_Ln:
     os << "Tofino_Ln";
@@ -597,6 +602,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_PowerOfTwo:
     os << "Controller_PowerOfTwo";
+    break;
+  case ModuleType::Controller_ArithmeticOp:
+    os << "Controller_ArithmeticOp";
     break;
   case ModuleType::Controller_Divide:
     os << "Controller_Divide";

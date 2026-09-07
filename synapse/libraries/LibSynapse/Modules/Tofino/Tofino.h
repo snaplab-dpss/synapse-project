@@ -53,6 +53,7 @@
 #include <LibSynapse/Modules/Tofino/ComputeTableCountTrailingZeros.h>
 #include <LibSynapse/Modules/Tofino/ComputeTableFindFirstSetBit.h>
 #include <LibSynapse/Modules/Tofino/ComputeTablePowerOfTwo.h>
+#include <LibSynapse/Modules/Tofino/ArithmeticOp.h>
 #include <LibSynapse/Modules/Tofino/ComputeTableLn.h>
 #include <LibSynapse/Modules/Tofino/Divide.h>
 
@@ -112,6 +113,7 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<PowerOfTwoFactory>());
               f.push_back(std::make_unique<LnFactory>());
               f.push_back(std::make_unique<DivideFactory>());
+              f.push_back(std::make_unique<ArithmeticOpFactory>());
               f.push_back(std::make_unique<SendToControllerFactory>());
               return f;
             }(),

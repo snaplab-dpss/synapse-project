@@ -221,6 +221,24 @@ std::optional<klee::ref<klee::Expr>> TofinoModuleFactory::get_register_increment
   return delta;
 }
 
+bool TofinoModuleFactory::reads_pending_write_borrow_value(const BDDNode *node, klee::ref<klee::Expr> expr) {
+  const std::unordered_set<std::string> read = symbol_t::get_symbols_names(expr);
+
+  for (const Call *vector_borrow : node->get_prev_functions({"vector_borrow"})) {
+    if (!vector_borrow->is_vector_write() || !read.count(vector_borrow->get_local_symbol("vector_data").name)) {
+      continue;
+    }
+    for (const Call *vector_return : vector_borrow->get_vector_returns_from_borrow()) {
+      // is_reachable walks backwards: the return is still ahead iff `node` is one of its ancestors.
+      if (vector_return->is_reachable(node->get_id())) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 Symbols TofinoModuleFactory::get_relevant_dataplane_state(const EP *ep, const BDDNode *node) {
   const bdd_node_ids_t &roots = ep->get_target_roots(TargetType::Tofino);
 

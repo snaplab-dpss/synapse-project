@@ -1712,7 +1712,7 @@ void TofinoSynthesizer::transpile_fcfs_cs_decl(const FCFSCachedSet *fcfs_cs, con
 
 code_t TofinoSynthesizer::var_t::get_type() const { return force_bool ? "bool" : TofinoSynthesizer::Transpiler::type_from_size(size); }
 
-bool TofinoSynthesizer::var_t::is_bool() const { return force_bool || is_conditional(expr); }
+bool TofinoSynthesizer::var_t::is_bool() const { return force_bool || (!expr.isNull() && is_conditional(expr)); }
 
 void TofinoSynthesizer::var_t::declare(coder_t &coder, std::optional<code_t> assignment) const {
   coder.indent();
@@ -5188,6 +5188,122 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Ln *node) {
   emit_compute_table(ep, node->get_table_id(), node->get_in(), node->get_out());
+  return EPVisitor::Action::doChildren;
+}
+
+// An unrolled arithmetic operation: a keyless table whose only action computes the value into
+// metadata, so the P4 carries the same one-stage step the placer charged for it.
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ArithmeticOp *node) {
+  const DS_ID table_id        = node->get_table_id();
+  klee::ref<klee::Expr> value = node->get_value();
+  klee::ref<klee::Expr> out   = node->get_out();
+
+  // Another module may already hold this very value (e.g. a register's returned new value);
+  // the result is then just another name for it.
+  if (std::optional<var_t> held = ingress_vars.get(value)) {
+    const var_t alias(held->name, out, out->getWidth(), false, held->is_header_field, false);
+    ingress_vars.insert_back(alias, /*allow_duplicates=*/true);
+    return EPVisitor::Action::doChildren;
+  }
+
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const var_t out_var = alloc_var(table_id + "_out", out, EXACT_NAME | IS_INGRESS_METADATA);
+  declare_var_in_ingress_metadata(out_var);
+
+  // The action can only read metadata, header fields and constants: anything else (an
+  // apply-block local, a layout expression) is staged into metadata first.
+  std::vector<code_t> operands;
+  for (unsigned i = 0; i < value->getNumKids(); i++) {
+    klee::ref<klee::Expr> operand = value->getKid(i);
+    const std::optional<var_t> var = ingress_vars.get(operand);
+    const bool reachable = is_constant(operand) || (var.has_value() && (var->is_header_field || var->name.rfind("meta.", 0) == 0));
+    if (reachable) {
+      operands.push_back(transpiler.transpile(operand));
+      continue;
+    }
+    const var_t staged = alloc_var(table_id + (i == 0 ? "_a" : "_b"), operand, SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
+    declare_var_in_ingress_metadata(staged);
+    ingress_apply.indent();
+    ingress_apply << staged.name << " = " << transpiler.transpile(operand) << ";\n";
+    operands.push_back(staged.name);
+  }
+
+  code_t computation;
+  switch (value->getKind()) {
+  case klee::Expr::Add:
+    computation = operands[0] + " + " + operands[1];
+    break;
+  case klee::Expr::Sub:
+    computation = operands[0] + " - " + operands[1];
+    break;
+  case klee::Expr::Mul:
+    computation = operands[0] + " * " + operands[1];
+    break;
+  case klee::Expr::UDiv:
+  case klee::Expr::SDiv:
+    computation = operands[0] + " / " + operands[1];
+    break;
+  case klee::Expr::URem:
+  case klee::Expr::SRem:
+    computation = operands[0] + " % " + operands[1];
+    break;
+  case klee::Expr::And:
+    computation = operands[0] + " & " + operands[1];
+    break;
+  case klee::Expr::Or:
+    computation = operands[0] + " | " + operands[1];
+    break;
+  case klee::Expr::Xor:
+    computation = operands[0] + " ^ " + operands[1];
+    break;
+  case klee::Expr::Not:
+    computation = "~" + operands[0];
+    break;
+  case klee::Expr::Shl:
+    computation = operands[0] + " << " + operands[1];
+    break;
+  case klee::Expr::LShr:
+  case klee::Expr::AShr:
+    computation = operands[0] + " >> " + operands[1];
+    break;
+  default:
+    panic("Not an arithmetic operation: %s", expr_to_string(value).c_str());
+  }
+
+  if (declared_ds.find(table_id) == declared_ds.end()) {
+    declared_ds.insert(table_id);
+
+    const code_t action_name = table_id + "_compute";
+
+    ingress.indent();
+    ingress << "action " << action_name << "() {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << out_var.name << " = " << computation << ";\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+
+    ingress.indent();
+    ingress << "table " << table_id << " {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << "actions = { " << action_name << "; }\n";
+    ingress.indent();
+    ingress << "default_action = " << action_name << "();\n";
+    ingress.indent();
+    ingress << "size = 1;\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+    ingress << "\n";
+  }
+
+  ingress_apply.indent();
+  ingress_apply << table_id << ".apply();\n";
+
   return EPVisitor::Action::doChildren;
 }
 

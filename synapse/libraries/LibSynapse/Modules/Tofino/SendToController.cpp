@@ -497,6 +497,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Tofino_PowerOfTwo:
     case ModuleType::Tofino_Ln:
     case ModuleType::Tofino_Divide:
+    case ModuleType::Tofino_ArithmeticOp:
     case ModuleType::Controller_Ignore:
     case ModuleType::Controller_ParseHeader:
     case ModuleType::Controller_ModifyHeader:
@@ -580,6 +581,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Controller_PowerOfTwo:
     case ModuleType::Controller_Divide:
     case ModuleType::Controller_Ln:
+    case ModuleType::Controller_ArithmeticOp:
     case ModuleType::Controller_TokenBucketAllocate:
     case ModuleType::Controller_TokenBucketIsTracing:
     case ModuleType::Controller_TokenBucketTrace:

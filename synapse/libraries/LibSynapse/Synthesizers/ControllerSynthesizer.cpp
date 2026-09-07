@@ -1788,6 +1788,16 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ArithmeticOp *node) {
+  coder_t &coder                  = get_current_coder();
+  const code_t value_code         = transpiler.transpile(node->get_value());
+  const klee::ref<klee::Expr> out = node->get_out();
+  const var_t out_var             = alloc_var("unrolled", out, {}, NO_OPTION);
+  coder.indent();
+  coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = " << value_code << ";\n";
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Divide *node) {
   coder_t &coder            = get_current_coder();
   const code_t num_code     = transpiler.transpile(node->get_numerator());
