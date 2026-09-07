@@ -616,14 +616,14 @@ control SwitchIngress(
         
     
     // bloom filter for flows
-	Register<bit<1>,_ >(32w4096) reg_bloom_1;
-    RegisterAction<bit<1>, bit<12>, bit<1>>(reg_bloom_1) regact_bloom_1_get = 
+	Register<bit<1>,_ >(32w1048576) reg_bloom_1;
+    RegisterAction<bit<1>, bit<20>, bit<1>>(reg_bloom_1) regact_bloom_1_get = 
     {
         void apply(inout bit<1> value, out bit<1> ret){
             ret = value;
         }
     };
-    RegisterAction<bit<1>, bit<12>, bit<1>>(reg_bloom_1) regact_bloom_1_set = 
+    RegisterAction<bit<1>, bit<20>, bit<1>>(reg_bloom_1) regact_bloom_1_set = 
     {
         void apply(inout bit<1> value, out bit<1> ret){
             value = 1;
@@ -631,14 +631,14 @@ control SwitchIngress(
         }
     };
 
-    Register<bit<1>,_ >(32w4096) reg_bloom_2;
-    RegisterAction<bit<1>, bit<12>, bit<1>>(reg_bloom_2) regact_bloom_2_get = 
+    Register<bit<1>,_ >(32w1048576) reg_bloom_2;
+    RegisterAction<bit<1>, bit<20>, bit<1>>(reg_bloom_2) regact_bloom_2_get = 
     {
         void apply(inout bit<1> value, out bit<1> ret){
             ret = value;
         }
     };
-    RegisterAction<bit<1>, bit<12>, bit<1>>(reg_bloom_2) regact_bloom_2_set = 
+    RegisterAction<bit<1>, bit<20>, bit<1>>(reg_bloom_2) regact_bloom_2_set = 
     {
         void apply(inout bit<1> value, out bit<1> ret){
             value = 1;
@@ -646,8 +646,8 @@ control SwitchIngress(
         }
     };
 
-    Hash<bit<12>>(HashAlgorithm_t.CRC16) hash_1;
-    Hash<bit<12>>(HashAlgorithm_t.CRC32) hash_2;
+    Hash<bit<20>>(HashAlgorithm_t.CRC16) hash_1;
+    Hash<bit<20>>(HashAlgorithm_t.CRC32) hash_2;
     action set_bloom_1_a(){
         regact_bloom_1_set.execute(hash_1.get({ hdr.ipv4.src_addr, hdr.ipv4.dst_addr, hdr.tcp.src_port,hdr.tcp.dst_port }));
     }
