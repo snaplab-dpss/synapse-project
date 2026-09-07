@@ -211,6 +211,44 @@ void Pipeline::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
   }
 }
 
+int Pipeline::find_stage_for_compute_action(const ComputeAction *action, const std::unordered_set<DS_ID> &deps) const {
+  const int soonest_stage_id = get_soonest_stage_satisfying_all_dependencies(deps);
+  if (soonest_stage_id < 0) {
+    return -1;
+  }
+  const int hash_dist_units = action->get_hash_dist_units();
+  for (const Stage &stage : resources->stages) {
+    if (stage.stage_id >= soonest_stage_id && stage.available_logical_ids > 0 && stage.available_hash_dist_units >= hash_dist_units) {
+      return stage.stage_id;
+    }
+  }
+  return -1;
+}
+
+void Pipeline::append_to_compute_action(DS_ID action_id, int extra_hash_dist_units, const std::unordered_set<DS_ID> &extra_deps) {
+  const int stage_id = get_placed_stage(action_id);
+  assert_or_panic(stage_id >= 0, "Compute action %s is not placed", action_id.c_str());
+
+  if (extra_hash_dist_units > 0) {
+    Stage &stage = resources.mutate().stages[stage_id];
+    assert_or_panic(stage.available_hash_dist_units >= extra_hash_dist_units, "Not enough hash distribution units in stage %d", stage_id);
+    stage.available_hash_dist_units -= extra_hash_dist_units;
+  }
+
+  for (PlacementRequest &request : placement_requests.mutate()) {
+    if (request.ds != action_id) {
+      continue;
+    }
+    if (std::all_of(extra_deps.begin(), extra_deps.end(), [&request](DS_ID dep) { return request.deps->contains(dep); })) {
+      return;
+    }
+    std::unordered_set<DS_ID> deps = *request.deps;
+    deps.insert(extra_deps.begin(), extra_deps.end());
+    request.deps = std::make_shared<const std::unordered_set<DS_ID>>(deps);
+    return;
+  }
+}
+
 PlacementStatus Pipeline::can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
   if (ds->primitive) {
     if (deps.find(ds->id) != deps.end()) {

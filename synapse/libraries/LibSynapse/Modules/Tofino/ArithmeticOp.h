@@ -5,28 +5,30 @@
 namespace LibSynapse {
 namespace Tofino {
 
-// One unrolled arithmetic operation (an op_* BDD node, see LibBDD/Unroll.h): a keyless table
-// whose single action computes `value` (a <op> b) into metadata. Modeling it as a table gives
-// the placer the stage the ALU operation costs.
+// One unrolled arithmetic operation (an op_* BDD node, see LibBDD/Unroll.h) computing `value`
+// (a <op> b) into metadata. It runs inside a ComputeAction (action_id): its own when nothing
+// else in the current run of stateless steps can take it, otherwise one it shares with
+// independent steps placed in the same stage.
 class ArithmeticOp : public TofinoModule {
 private:
-  DS_ID table_id;
+  DS_ID action_id;
   klee::ref<klee::Expr> value;
   klee::ref<klee::Expr> out;
 
 public:
-  ArithmeticOp(const BDDNode *_node, DS_ID _table_id, klee::ref<klee::Expr> _value, klee::ref<klee::Expr> _out)
-      : TofinoModule(ModuleType::Tofino_ArithmeticOp, "ArithmeticOp", _node), table_id(_table_id), value(_value), out(_out) {}
+  ArithmeticOp(const BDDNode *_node, DS_ID _action_id, klee::ref<klee::Expr> _value, klee::ref<klee::Expr> _out)
+      : TofinoModule(ModuleType::Tofino_ArithmeticOp, "ArithmeticOp", _node), action_id(_action_id), value(_value), out(_out) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
-  virtual Module *clone() const override { return new ArithmeticOp(node, table_id, value, out); }
+  virtual Module *clone() const override { return new ArithmeticOp(node, action_id, value, out); }
 
-  DS_ID get_table_id() const { return table_id; }
+  DS_ID get_action_id() const { return action_id; }
+  std::string get_op_id() const;
   klee::ref<klee::Expr> get_value() const { return value; }
   klee::ref<klee::Expr> get_out() const { return out; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {table_id}; }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {action_id}; }
 };
 
 class ArithmeticOpFactory : public TofinoModuleFactory {

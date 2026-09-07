@@ -1,6 +1,5 @@
 #include <LibSynapse/Modules/Tofino/RotateLeft.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
-#include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Expr.h>
 
@@ -42,17 +41,25 @@ std::optional<rotation_t> get_rotation(const BDDNode *node) {
   return rotation_t{x, amount, call.ret};
 }
 
-DS_ID build_table_id(const BDDNode *node) { return "rotate_left_" + std::to_string(node->get_id()); }
+std::string build_op_id(const BDDNode *node) { return "rotate_left_" + std::to_string(node->get_id()); }
+
+compute_op_t build_op(const BDDNode *node, const rotation_t &rotation) {
+  const ComputeOpKind kind = (rotation.amount % 8 != 0) ? ComputeOpKind::Hash : ComputeOpKind::ALU;
+  return compute_op_t{.id = build_op_id(node), .kind = kind, .width = rotation.out->getWidth()};
+}
 
 } // namespace
+
+std::string RotateLeft::get_op_id() const { return build_op_id(node); }
 
 std::optional<spec_impl_t> RotateLeftFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   const std::optional<rotation_t> rotation = get_rotation(node);
   if (!rotation) {
     return {};
   }
-  Table *table = new Table(build_table_id(node), 1, {}, {rotation->out->getWidth()});
-  return speculate_compute_step(ep, node, table, rotation->x, speculations);
+  const compute_op_t op                = build_op(node, *rotation);
+  const std::unordered_set<DS_ID> deps = TofinoContext::get_dataflow_deps(ep, node, rotation->x, speculations);
+  return speculate_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return builder.place(op, deps); }, speculations);
 }
 
 std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -61,30 +68,21 @@ std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode 
     return {};
   }
 
-  const DS_ID table_id = build_table_id(node);
-  Table *table         = new Table(table_id, 1, {}, {rotation->out->getWidth()});
-
-  // A stateless step only waits for the producer of its operand, so independent steps can
-  // share a stage. When no stage can take it (the pipeline is used up), decline: the search
-  // then recirculates or hands the rest to the controller.
+  const compute_op_t op                = build_op(node, *rotation);
   const std::unordered_set<DS_ID> deps = TofinoContext::get_dataflow_deps(ep, node, rotation->x);
-  if (!ep->get_ctx().get_target_ctx<TofinoContext>()->can_place(ep, node, table, deps)) {
-    delete table;
+  std::optional<compute_step_t> step   = implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return builder.place(op, deps); });
+  if (!step) {
     return {};
   }
 
-  Module *module             = new RotateLeft(node, table_id, rotation->x, rotation->amount, rotation->out);
-  EPNode *ep_node            = new EPNode(module);
-  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
-
-  TofinoContext *tofino_ctx = new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>();
-  tofino_ctx->place(new_ep.get(), node, node->get_id(), table, deps);
+  Module *module  = new RotateLeft(node, step->action_id, rotation->x, rotation->amount, rotation->out);
+  EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());
-  new_ep->process_leaf(ep_node, {leaf});
+  step->ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
-  impls.emplace_back(implement(ep, node, std::move(new_ep)));
+  impls.emplace_back(implement(ep, node, std::move(step->ep)));
   return impls;
 }
 
@@ -93,7 +91,8 @@ std::unique_ptr<Module> RotateLeftFactory::create(const BDD *bdd, const Context 
   if (!rotation) {
     return {};
   }
-  return std::make_unique<RotateLeft>(node, build_table_id(node), rotation->x, rotation->amount, rotation->out);
+  const DS_ID action_id = ctx.get_target_ctx<TofinoContext>()->find_compute_action(build_op_id(node));
+  return std::make_unique<RotateLeft>(node, action_id, rotation->x, rotation->amount, rotation->out);
 }
 
 } // namespace Tofino

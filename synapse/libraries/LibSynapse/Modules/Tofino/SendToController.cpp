@@ -499,6 +499,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Tofino_Divide:
     case ModuleType::Tofino_ArithmeticOp:
     case ModuleType::Tofino_RotateLeft:
+    case ModuleType::Tofino_RotateLeftShifts:
     case ModuleType::Controller_Ignore:
     case ModuleType::Controller_ParseHeader:
     case ModuleType::Controller_ModifyHeader:

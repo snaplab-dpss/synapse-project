@@ -50,6 +50,10 @@ struct spec_impl_t {
   // Symbols this speculation computes in the data plane, with the data structure (id)
   // holding each: what speculations of their consumers depend on.
   std::unordered_map<std::string, std::string> produced;
+  // A stateless compute step, and the compute actions it placed its ops in (in order): the
+  // steps that follow may share them.
+  bool compute_step = false;
+  std::vector<std::string> compute_actions;
 
   spec_impl_t(const decision_t &_decision, const Context &_ctx) : decision(_decision), ctx(_ctx), recirculated(false) {}
 };
@@ -71,6 +75,10 @@ struct speculations_t {
   // spec_impl_t::produced); a speculated recirculation starts a new pass and empties it.
   std::unordered_map<std::string, std::string> producers;
   bool recirculated_since_leaf = false;
+  // Compute actions of the current run of consecutive compute steps (in order), and whether
+  // that run extends back into the execution plan's leaf.
+  std::vector<std::string> run_actions;
+  bool run_reaches_leaf = true;
 
   speculations_t copy_and_append(const spec_impl_t &spec_impl) const {
     speculations_t new_speculations = *this;
@@ -86,6 +94,15 @@ struct speculations_t {
       recirculated_since_leaf = true;
     }
     producers.insert(spec_impl.produced.begin(), spec_impl.produced.end());
+    if (spec_impl.recirculated || !spec_impl.compute_step) {
+      run_actions.clear();
+      run_reaches_leaf = false;
+    }
+    for (const std::string &action : spec_impl.compute_actions) {
+      if (std::find(run_actions.begin(), run_actions.end(), action) == run_actions.end()) {
+        run_actions.push_back(action);
+      }
+    }
   }
 };
 

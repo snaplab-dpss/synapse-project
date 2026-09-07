@@ -30,9 +30,10 @@ struct ComputeAction : public DS {
   static constexpr bits_t MAX_HASH_BITS_PER_ACTION = 32;
   static constexpr bits_t HASH_DIST_UNIT_BITS      = 16;
 
+  addr_t obj; // Address the action is registered under in the context's data structures.
   std::vector<compute_op_t> ops;
 
-  ComputeAction(DS_ID id, const std::vector<compute_op_t> &ops = {});
+  ComputeAction(DS_ID id, addr_t obj, const std::vector<compute_op_t> &ops = {});
   ComputeAction(const ComputeAction &other);
 
   DS *clone() const override;

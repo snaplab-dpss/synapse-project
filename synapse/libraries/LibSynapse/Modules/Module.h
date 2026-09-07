@@ -77,6 +77,7 @@ enum class ModuleType {
   Tofino_Divide,
   Tofino_ArithmeticOp,
   Tofino_RotateLeft,
+  Tofino_RotateLeftShifts,
 
   // ========================================
   // Controller
@@ -376,6 +377,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_RotateLeft:
     os << "Tofino_RotateLeft";
+    break;
+  case ModuleType::Tofino_RotateLeftShifts:
+    os << "Tofino_RotateLeftShifts";
     break;
   case ModuleType::Tofino_Ln:
     os << "Tofino_Ln";

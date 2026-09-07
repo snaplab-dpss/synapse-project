@@ -5,9 +5,9 @@
 namespace LibSynapse {
 namespace Tofino {
 
-ComputeAction::ComputeAction(DS_ID _id, const std::vector<compute_op_t> &_ops) : DS(DSType::ComputeAction, true, _id), ops(_ops) {}
+ComputeAction::ComputeAction(DS_ID _id, addr_t _obj, const std::vector<compute_op_t> &_ops) : DS(DSType::ComputeAction, true, _id), obj(_obj), ops(_ops) {}
 
-ComputeAction::ComputeAction(const ComputeAction &other) : DS(other.type, other.primitive, other.id), ops(other.ops) {}
+ComputeAction::ComputeAction(const ComputeAction &other) : DS(other.type, other.primitive, other.id), obj(other.obj), ops(other.ops) {}
 
 DS *ComputeAction::clone() const { return new ComputeAction(*this); }
 

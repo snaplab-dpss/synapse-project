@@ -146,6 +146,11 @@ struct Pipeline {
   bool already_placed(DS_ID ds_id) const;
 
   void place(const DS *ds, const std::unordered_set<DS_ID> &deps);
+  // The stage a new compute action would take under the simple placer's rules, or -1.
+  int find_stage_for_compute_action(const ComputeAction *action, const std::unordered_set<DS_ID> &deps) const;
+  // An op appended to a placed compute action: charges its extra hash-distribution units in
+  // the action's stage and extends the request's dependencies (for later re-placements).
+  void append_to_compute_action(DS_ID action_id, int extra_hash_dist_units, const std::unordered_set<DS_ID> &extra_deps);
   PlacementStatus can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   // Simple placer only (no ILP fallback): cheap and conservative, for speculation.
   PlacementStatus can_place_fast(const DS *ds, const std::unordered_set<DS_ID> &deps) const;

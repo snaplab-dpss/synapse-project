@@ -5208,7 +5208,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 // An unrolled arithmetic operation: a keyless table whose only action computes the value into
 // metadata, so the P4 carries the same one-stage step the placer charged for it.
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ArithmeticOp *node) {
-  const DS_ID table_id        = node->get_table_id();
+  const DS_ID table_id        = node->get_action_id();
   klee::ref<klee::Expr> value = node->get_value();
   klee::ref<klee::Expr> out   = node->get_out();
 
@@ -5276,7 +5276,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::RotateLeft *node) {
-  const DS_ID table_id      = node->get_table_id();
+  const DS_ID table_id      = node->get_action_id();
   klee::ref<klee::Expr> x   = node->get_x();
   const u32 n               = node->get_amount();
   klee::ref<klee::Expr> out = node->get_out();
