@@ -46,9 +46,25 @@ public:
     return Action::doChildren();
   }
 
+  static bool is_arithmetic(klee::Expr::Kind k) {
+    return k == klee::Expr::Add || k == klee::Expr::Sub || k == klee::Expr::Mul || k == klee::Expr::UDiv || k == klee::Expr::SDiv ||
+           k == klee::Expr::URem || k == klee::Expr::SRem;
+  }
+
   Action visitExpr(const klee::Expr &e) override final {
     if (e.getKind() == klee::Expr::Kind::Read) {
       return Action::doChildren();
+    }
+    // An arithmetic operand is computed into a metadata field ahead of the gateway (see
+    // If::materialized_operand_t), which then reads that field, or the slice of it the
+    // condition extracts, not the operands of the arithmetic.
+    if (is_arithmetic(e.getKind())) {
+      used_phv_bytes += e.getWidth() / 8;
+      return Action::skipChildren();
+    }
+    if (e.getKind() == klee::Expr::Kind::Extract && is_arithmetic(e.getKid(0)->getKind())) {
+      used_phv_bytes += e.getWidth() / 8;
+      return Action::skipChildren();
     }
 
     for (size_t i = 0; i < e.getNumKids(); i++) {
