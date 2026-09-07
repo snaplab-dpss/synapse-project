@@ -373,6 +373,15 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
 
   model.optimize();
 
+  // No solution to read back (infeasible, or the solver gave up): report it, don't throw.
+  const int status = model.get(GRB_IntAttr_Status);
+  if (status == GRB_INFEASIBLE || status == GRB_INF_OR_UNBD || status == GRB_UNBOUNDED) {
+    return PlacementStatus::Unsat;
+  }
+  if (status != GRB_OPTIMAL && status != GRB_SUBOPTIMAL) {
+    return PlacementStatus::Unknown;
+  }
+
   pipeline_resources.used_digests = static_cast<u8>(digests_used.getValue());
 
   for (int s = 0; s < TotalStages; s++) {
