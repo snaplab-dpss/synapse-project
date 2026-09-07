@@ -2192,6 +2192,20 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
 
       auto get_selection_state_name = [state_name](size_t i) -> code_t { return state_name + "_" + std::to_string(i); };
 
+      // Nothing to select on (the condition only checked the packet length): always the true branch.
+      if (select->selections.empty()) {
+        ingress_parser.indent();
+        ingress_parser << "state " << state_name << " {\n";
+        ingress_parser.inc();
+        ingress_parser.indent();
+        ingress_parser << "transition " << get_parser_state_name(select->on_true, false) << ";\n";
+        ingress_parser.dec();
+        ingress_parser.indent();
+        ingress_parser << "}\n";
+        states.push_back(select->on_true);
+        break;
+      }
+
       ingress_parser.indent();
       ingress_parser << "state " << state_name << " {\n";
 
