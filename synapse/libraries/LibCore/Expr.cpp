@@ -2197,6 +2197,166 @@ bool match_endian_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr>
   return false;
 }
 
+namespace {
+
+// One term of a byte swap: a single byte of `src` masked out and shifted to its mirrored
+// position, (Shl|LShr|AShr (And src mask) shift). A source narrower than int is promoted
+// first, which shows up as a ZExt.
+bool match_byte_swap_term(klee::ref<klee::Expr> term, klee::ref<klee::Expr> &src, bytes_t &src_byte, bytes_t &dst_byte) {
+  const klee::Expr::Kind kind = term->getKind();
+  if (kind != klee::Expr::Shl && kind != klee::Expr::LShr && kind != klee::Expr::AShr) {
+    return false;
+  }
+
+  u64 shift;
+  if (!solver_toolbox.strict_value_from_expr(term->getKid(1), shift) || shift % 8 != 0) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> masked = term->getKid(0);
+  if (masked->getKind() != klee::Expr::And) {
+    return false;
+  }
+
+  u64 mask;
+  if (solver_toolbox.strict_value_from_expr(masked->getKid(1), mask)) {
+    src = masked->getKid(0);
+  } else if (solver_toolbox.strict_value_from_expr(masked->getKid(0), mask)) {
+    src = masked->getKid(1);
+  } else {
+    return false;
+  }
+
+  bytes_t byte = 0;
+  while (byte < 8 && mask != (u64(0xff) << (8 * byte))) {
+    byte++;
+  }
+  if (byte == 8) {
+    return false;
+  }
+
+  const bytes_t delta = shift / 8;
+  if (kind == klee::Expr::Shl) {
+    dst_byte = byte + delta;
+  } else if (delta <= byte) {
+    dst_byte = byte - delta;
+  } else {
+    return false;
+  }
+  src_byte = byte;
+
+  // An arithmetic shift only moves bytes when the promoted value's top bits are known zero.
+  const bool promoted = src->getKind() == klee::Expr::ZExt;
+  if (kind == klee::Expr::AShr && !promoted) {
+    return false;
+  }
+  if (promoted) {
+    src = src->getKid(0);
+  }
+
+  return true;
+}
+
+void flatten_or(klee::ref<klee::Expr> expr, std::vector<klee::ref<klee::Expr>> &terms) {
+  if (expr->getKind() == klee::Expr::Or) {
+    flatten_or(expr->getKid(0), terms);
+    flatten_or(expr->getKid(1), terms);
+  } else {
+    terms.push_back(expr);
+  }
+}
+
+// The bytes of `expr` in reverse order.
+klee::ref<klee::Expr> reverse_bytes(klee::ref<klee::Expr> expr) {
+  const bytes_t n_bytes = expr->getWidth() / 8;
+  klee::ref<klee::Expr> reversed;
+  for (bytes_t i = 0; i < n_bytes; i++) {
+    klee::ref<klee::Expr> byte = solver_toolbox.exprBuilder->Extract(expr, 8 * i, 8);
+    reversed                   = reversed.isNull() ? byte : solver_toolbox.exprBuilder->Concat(reversed, byte);
+  }
+  return reversed;
+}
+
+class ByteSwapCanonicalizer : public klee::ExprVisitor::ExprVisitor {
+private:
+  Action canonicalize(const klee::Expr &e) {
+    klee::ref<klee::Expr> expr(const_cast<klee::Expr *>(&e));
+    klee::ref<klee::Expr> target;
+    if (!match_byte_swap_pattern(expr, target)) {
+      return Action::doChildren();
+    }
+    // The swapped value may hold swaps of its own (e.g. swap(swap(x) + 1)).
+    klee::ref<klee::Expr> reversed = reverse_bytes(canonicalize_byte_swaps(target));
+    if (reversed->getWidth() < expr->getWidth()) {
+      reversed = solver_toolbox.exprBuilder->ZExt(reversed, expr->getWidth());
+    }
+    assert_or_panic(solver_toolbox.are_exprs_always_equal(expr, reversed), "Byte swap canonicalization changed the expression");
+    return Action::changeTo(reversed);
+  }
+
+public:
+  Action visitExtract(const klee::ExtractExpr &e) override final { return canonicalize(e); }
+  Action visitOr(const klee::OrExpr &e) override final { return canonicalize(e); }
+};
+
+} // namespace
+
+bool match_byte_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &target) {
+  if (expr->getWidth() % 8 != 0) {
+    return false;
+  }
+
+  // A swap of a source narrower than int is computed at int width, and either truncated back
+  // or used as is (the promoted bytes stay zero).
+  klee::ref<klee::Expr> swap = expr;
+  if (swap->getKind() == klee::Expr::Extract) {
+    const klee::ExtractExpr *extract = static_cast<const klee::ExtractExpr *>(swap.get());
+    if (extract->offset != 0) {
+      return false;
+    }
+    swap = extract->expr;
+  }
+
+  std::vector<klee::ref<klee::Expr>> terms;
+  flatten_or(swap, terms);
+  const bytes_t n_bytes = terms.size();
+  const bits_t width    = 8 * n_bytes;
+  if (n_bytes < 2 || width > swap->getWidth() || width > expr->getWidth()) {
+    return false;
+  }
+
+  klee::ref<klee::Expr> src;
+  std::vector<bool> seen(n_bytes, false);
+  for (const klee::ref<klee::Expr> &term : terms) {
+    klee::ref<klee::Expr> term_src;
+    bytes_t src_byte;
+    bytes_t dst_byte;
+    if (!match_byte_swap_term(term, term_src, src_byte, dst_byte)) {
+      return false;
+    }
+    if (src_byte >= n_bytes || dst_byte != n_bytes - 1 - src_byte || seen[src_byte] || term_src->getWidth() != width) {
+      return false;
+    }
+    if (src.isNull()) {
+      src = term_src;
+    } else if (src->compare(*term_src) != 0) {
+      return false;
+    }
+    seen[src_byte] = true;
+  }
+
+  target = src;
+  return true;
+}
+
+klee::ref<klee::Expr> canonicalize_byte_swaps(klee::ref<klee::Expr> expr) {
+  if (expr.isNull()) {
+    return expr;
+  }
+  ByteSwapCanonicalizer canonicalizer;
+  return canonicalizer.visit(expr);
+}
+
 klee::ref<klee::Expr> concat_exprs(const std::vector<klee::ref<klee::Expr>> &exprs, bool left_to_right) {
   klee::ref<klee::Expr> result;
 
