@@ -46,6 +46,20 @@ public:
   // Simple placer only: for speculation, which cannot afford the ILP fallback per node.
   bool can_place_fast(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
 
+  struct compute_op_plan_t {
+    DS_ID action_id;
+    bool append; // Into an existing action of the run; otherwise a new action named action_id.
+  };
+
+  // Where a stateless op (needing `deps`) goes: appended to the earliest action of the
+  // current run of compute steps that sits at or after all its producers and can still take
+  // it, unless a new action could be placed in an earlier stage. Empty when neither fits.
+  std::optional<compute_op_plan_t> plan_compute_op(const std::vector<DS_ID> &run_actions, DS_ID new_action_id, const compute_op_t &op,
+                                                   const std::unordered_set<DS_ID> &deps) const;
+  void append_compute_op(DS_ID action_id, const compute_op_t &op, const std::unordered_set<DS_ID> &deps);
+  // The compute action holding the op with this id.
+  DS_ID find_compute_action(const std::string &op_id) const;
+
   void debug() const override;
 
   // Every data structure placed since the last recirculation: the program-order dependencies

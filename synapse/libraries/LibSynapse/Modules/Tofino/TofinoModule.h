@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include <LibSynapse/Modules/Module.h>
 #include <LibSynapse/Modules/ModuleFactory.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
@@ -104,12 +106,51 @@ public:
   // A packet is recirculated at most this many times (search and speculation alike).
   static constexpr u8 MAX_PAST_RECIRCULATIONS = 4;
 
-  // Speculates a stateless compute step (op_*, rotate_left) that `node` implements as the
-  // keyless `table` computing `value` from its operands: places it in the speculation's
-  // pipeline, and when no stage can take it speculates a recirculation first (charged to the
-  // recirculation ports, up to MAX_PAST_RECIRCULATIONS). Declines if it can't be placed even
-  // then. Takes ownership of `table`.
-  std::optional<spec_impl_t> speculate_compute_step(const EP *ep, const BDDNode *node, Table *table, klee::ref<klee::Expr> value,
+  // ======================================================================
+  //  Stateless compute steps (op_*, rotate_left)
+  // ======================================================================
+
+  static bool is_compute_module(const Module *module);
+
+  // The compute actions of the run of consecutive compute steps ending at the active leaf
+  // (nearest first). A step only shares an action with steps of its own run: no other module
+  // or recirculation in between.
+  static std::vector<DS_ID> get_compute_run_actions(const EP *ep);
+  static std::vector<DS_ID> get_compute_run_actions(const EP *ep, const speculations_t &speculations);
+
+  // Places the ops of one stateless step (op_*, rotate_left) into `ctx`, each appended to an
+  // action of the run when one can take it (the run's actions, plus those this builder placed)
+  // and in a new action otherwise. In a new pass (after a recirculation) an op only waits for
+  // what this builder placed.
+  struct ComputeStepBuilder {
+    const BDDNode *node;
+    TofinoContext *ctx;
+    std::vector<DS_ID> run;
+    bool full_placer; // The search uses the full placer (ILP fallback); speculation the simple one.
+    bool new_pass;
+    std::vector<DS_ID> actions;
+
+    // The action holding `op`, or empty when no stage can take it.
+    std::optional<DS_ID> place(const compute_op_t &op, std::unordered_set<DS_ID> deps);
+  };
+
+  // Places a step's ops through `build` (which returns the action of the step's output).
+  using compute_step_builder_fn_t = std::function<std::optional<DS_ID>(ComputeStepBuilder &)>;
+
+  struct compute_step_t {
+    std::unique_ptr<EP> ep;
+    DS_ID action_id;
+  };
+
+  // Implements the stateless compute step `node` on a copy of `ep`. Declines (empty) when no
+  // stage can take one of its ops: the search then recirculates or hands the rest to the
+  // controller.
+  std::optional<compute_step_t> implement_compute_step(const EP *ep, const BDDNode *node, const compute_step_builder_fn_t &build) const;
+
+  // Speculative counterpart: places the step in the speculation's pipeline, and when it does
+  // not fit speculates a recirculation first (charged to the recirculation ports, up to
+  // MAX_PAST_RECIRCULATIONS). Declines if it can't be placed even then.
+  std::optional<spec_impl_t> speculate_compute_step(const EP *ep, const BDDNode *node, const compute_step_builder_fn_t &build,
                                                     const speculations_t &speculations) const;
 
   // ======================================================================

@@ -2,6 +2,7 @@
 #include <LibSynapse/Visualizers/EPVisualizer.h>
 #include <LibSynapse/Visualizers/SSVisualizer.h>
 #include <LibSynapse/GlobalStats.h>
+#include <LibSynapse/Modules/Tofino/TofinoContext.h>
 
 #include <LibBDD/Visitors/BDDVisualizer.h>
 
@@ -32,10 +33,11 @@ struct search_step_report_t {
   std::vector<TargetType> targets;
   std::vector<std::string> name;
   std::vector<std::vector<ep_id_t>> gen_ep_ids;
+  std::vector<std::vector<std::string>> gen_ep_scores;
 
   search_step_report_t(const EP *_chosen, const BDDNode *_current) : chosen(_chosen), current(_current) {}
 
-  void save(const ModuleFactory *modgen, const std::vector<impl_t> &implementations) {
+  void save(const ModuleFactory *modgen, const std::vector<impl_t> &implementations, const Heuristic *heuristic) {
     if (implementations.empty()) {
       return;
     }
@@ -43,10 +45,14 @@ struct search_step_report_t {
     targets.push_back(modgen->get_target());
     name.push_back(modgen->get_name());
     gen_ep_ids.emplace_back();
+    gen_ep_scores.emplace_back();
 
     for (const impl_t &impl : implementations) {
       ep_id_t next_ep_id = impl.result->get_id();
       gen_ep_ids.back().push_back(next_ep_id);
+      std::stringstream score;
+      score << heuristic->get_score(impl.result.get());
+      gen_ep_scores.back().push_back(score.str());
     }
   }
 };
@@ -80,7 +86,7 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
       if (j != 0) {
         ep_ids << ",";
       }
-      ep_ids << report.gen_ep_ids[i][j];
+      ep_ids << report.gen_ep_ids[i][j] << "=" << report.gen_ep_scores[i][j];
     }
     ep_ids << "]";
 
@@ -99,7 +105,28 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
   std::cerr << "Search Steps:     " << int2hr(search_meta.steps) << "\n";
   std::cerr << "Speculations:     " << int2hr(GlobalStats::num_speculated_modules) << " modules, " << int2hr(GlobalStats::num_phase1_speculations)
             << "/" << int2hr(GlobalStats::num_phase2_speculations) << " comparisons (phase 1/2), " << int2hr(GlobalStats::num_context_copies)
-            << " context copies, " << GlobalStats::total_time_spent_speculating / 1000000 << " s\n";
+            << " context copies, " << GlobalStats::total_time_spent_speculating / 1000000 << " s in modules, "
+            << GlobalStats::total_time_phase1 / 1000000 << " s in phase 1, " << GlobalStats::total_time_phase2 / 1000000 << " s in phase 2\n";
+  {
+    size_t actions = 0, ops = 0;
+    const Tofino::TofinoContext *tofino_ctx = report.chosen->get_ctx().get_target_ctx<Tofino::TofinoContext>();
+    if (tofino_ctx) {
+      for (const auto &[_, ds] : tofino_ctx->get_data_structures().get_data_per_id()) {
+        if (const Tofino::ComputeAction *action = dynamic_cast<const Tofino::ComputeAction *>(ds)) {
+          actions++;
+          ops += action->ops.size();
+        }
+      }
+    }
+    std::cerr << "Compute actions:  " << actions << " (" << ops << " ops); speculated steps: " << int2hr(GlobalStats::num_spec_compute_appended)
+              << " appended, " << int2hr(GlobalStats::num_spec_compute_new_action) << " new, " << int2hr(GlobalStats::num_spec_compute_recirculated)
+              << " recirculated, " << int2hr(GlobalStats::num_spec_compute_cap_declined) << " cap-declined\n";
+  }
+  std::cerr << "Hot nodes -> ctrl:";
+  for (const auto &[node_id, n] : GlobalStats::hot_nodes_speculated_to_controller) {
+    std::cerr << " " << node_id << "x" << n;
+  }
+  std::cerr << "\n";
   std::cerr << "Unfinished EPs:   " << int2hr(search_meta.unfinished_eps) << "\n";
   std::cerr << "Finished EPs:     " << int2hr(search_meta.finished_eps) << "\n";
 
@@ -200,7 +227,7 @@ search_report_t SearchEngine::search() {
         GlobalStats::num_execution_plans_generated += implementations.size();
 
         search_space->add_to_active_leaf(ep.get(), node, factory.get(), implementations);
-        report.save(factory.get(), implementations);
+        report.save(factory.get(), implementations, heuristic.get());
         new_implementations.insert(new_implementations.end(), std::make_move_iterator(implementations.begin()),
                                    std::make_move_iterator(implementations.end()));
       }

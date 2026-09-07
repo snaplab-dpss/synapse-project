@@ -5,31 +5,33 @@
 namespace LibSynapse {
 namespace Tofino {
 
-// rotate_left(x, n) with a constant n: a keyless table whose single action reorders the
-// bits of x into metadata (x[w-1-n:0] ++ x[w-1:w-n]). A rotation by whole bytes is a PHV
-// move; any other amount is computed by the hash unit (@in_hash), as the SmartCookie
-// expert does. One stage for the placer either way.
+// rotate_left(x, n) with a constant n: reorders the bits of x into metadata. Whole bytes move
+// through the PHV (an ALU op); any other amount goes through the hash unit (@in_hash), as the
+// SmartCookie expert does. It runs inside a ComputeAction (action_id), its own or one shared
+// with independent steps of the same stage.
 class RotateLeft : public TofinoModule {
 private:
-  DS_ID table_id;
+  DS_ID action_id;
   klee::ref<klee::Expr> x;
   u32 amount;
   klee::ref<klee::Expr> out;
 
 public:
-  RotateLeft(const BDDNode *_node, DS_ID _table_id, klee::ref<klee::Expr> _x, u32 _amount, klee::ref<klee::Expr> _out)
-      : TofinoModule(ModuleType::Tofino_RotateLeft, "RotateLeft", _node), table_id(_table_id), x(_x), amount(_amount), out(_out) {}
+  RotateLeft(const BDDNode *_node, DS_ID _action_id, klee::ref<klee::Expr> _x, u32 _amount, klee::ref<klee::Expr> _out)
+      : TofinoModule(ModuleType::Tofino_RotateLeft, "RotateLeft", _node), action_id(_action_id), x(_x), amount(_amount), out(_out) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
-  virtual Module *clone() const override { return new RotateLeft(node, table_id, x, amount, out); }
+  virtual Module *clone() const override { return new RotateLeft(node, action_id, x, amount, out); }
 
-  DS_ID get_table_id() const { return table_id; }
+  DS_ID get_action_id() const { return action_id; }
+  std::string get_op_id() const;
   klee::ref<klee::Expr> get_x() const { return x; }
   u32 get_amount() const { return amount; }
   klee::ref<klee::Expr> get_out() const { return out; }
+  bool uses_hash_unit() const { return amount % 8 != 0; }
 
-  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {table_id}; }
+  virtual std::unordered_set<DS_ID> get_generated_ds() const override { return {action_id}; }
 };
 
 class RotateLeftFactory : public TofinoModuleFactory {

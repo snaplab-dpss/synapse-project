@@ -6,7 +6,6 @@
 #include <LibCore/Expr.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
-#include <LibBDD/Unroll.h>
 
 #include <chrono>
 
@@ -21,15 +20,6 @@ using LibBDD::BDDNodeType;
 using LibBDD::BDDNodeVisitAction;
 using LibBDD::call_t;
 
-// An unrolled arithmetic op or a rotate_left: a stateless data-plane computation with exactly
-// one way to implement it on the switch.
-bool is_stateless_compute_node(const BDDNode *node) {
-  if (node->get_type() != BDDNodeType::Call) {
-    return false;
-  }
-  const call_t &call = dynamic_cast<const LibBDD::Call *>(node)->get_call();
-  return LibBDD::is_unrolled_op(call) || call.function_name == "rotate_left";
-}
 using LibCore::expr_addr_to_obj_addr;
 using LibCore::pps2bps;
 using LibCore::tput2str;
@@ -734,8 +724,10 @@ bool EP::is_better_speculation(const speculations_t &speculations, const spec_im
                                const std::list<speculation_target_t> &speculation_target_nodes, SpeculationStrategy strategy) const {
   GlobalStats::num_phase1_speculations++;
 
+  const steady_clock::time_point phase1_begin = steady_clock::now();
   tput_cmp_t tput_cmp =
       compare_speculations_by_ignored_nodes(speculations, old_speculation, new_speculation, speculation_target, ingress, speculation_target_nodes);
+  GlobalStats::total_time_phase1 += duration_cast<microseconds>(steady_clock::now() - phase1_begin).count();
 
   // if (id == 1 && speculation_target.node->get_id() == 13) {
   //   std::cerr << "\n\n ************************* Speculation for " << speculation_target.node->dump(true, true) << "\n";
@@ -762,9 +754,18 @@ bool EP::is_better_speculation(const speculations_t &speculations, const spec_im
     return tput_cmp.new_pps > tput_cmp.old_pps;
   }
 
+  // Two data-plane implementations of the same stateless step that tie (e.g. a rotate through
+  // the hash unit or through shifts): keep the first, which the target lists first for a
+  // reason (fewer stages), instead of a full-path lookahead per compute step.
+  if (old_speculation.compute_step && new_speculation.compute_step && old_speculation.recirculated == new_speculation.recirculated) {
+    return false;
+  }
+
   GlobalStats::num_phase2_speculations++;
+  const steady_clock::time_point phase2_begin = steady_clock::now();
   tput_cmp = compare_speculations_with_unexplored_nodes_lookahead(speculations, old_speculation, new_speculation, speculation_target, ingress,
                                                                   speculation_target_nodes);
+  GlobalStats::total_time_phase2 += duration_cast<microseconds>(steady_clock::now() - phase2_begin).count();
 
   // if (id == 1 && speculation_target.node->get_id() == 142) {
   //   std::cerr << "\n\n ************************* Speculation for " << speculation_target.node->dump(true, true) << "\n";
@@ -908,14 +909,13 @@ speculations_t EP::speculate(const speculations_t &speculations, std::list<specu
       continue;
     }
 
-    // One-shot passes only rank two candidates against each other; the stateless compute
-    // steps behind them cost the same either way, and speculating (placing) each of them
-    // there is what made comparisons quadratic. The full pass still places them all.
-    if (strategy == SpeculationStrategy::OneShot && is_stateless_compute_node(speculation_target.node)) {
-      continue;
-    }
-
     const spec_impl_t speculation = get_best_speculation(speculation_target, complete_speculation, ingress, speculation_target_nodes, strategy);
+
+    if (strategy == SpeculationStrategy::WithLookahead && speculation.next_target.has_value() &&
+        speculation.next_target.value() == TargetType::Controller &&
+        complete_speculation.ctx.get_profiler().get_hr(speculation_target.node) >= hit_rate_t(1e-3)) {
+      GlobalStats::hot_nodes_speculated_to_controller[speculation_target.node->get_id()]++;
+    }
 
     complete_speculation.append(speculation);
 
@@ -946,6 +946,8 @@ speculations_t EP::speculate(std::list<speculation_target_t> speculation_target_
       .ctx                     = ctx,
       .producers               = {},
       .recirculated_since_leaf = false,
+      .run_actions             = {},
+      .run_reaches_leaf        = true,
   };
   return speculate(speculations, speculation_target_nodes, ingress, strategy);
 }

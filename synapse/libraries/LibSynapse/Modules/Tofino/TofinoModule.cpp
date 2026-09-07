@@ -1,6 +1,8 @@
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
+#include <LibSynapse/GlobalStats.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/ComputeAction.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/ExecutionPlan.h>
 
@@ -223,40 +225,153 @@ std::optional<klee::ref<klee::Expr>> TofinoModuleFactory::get_register_increment
   return delta;
 }
 
-std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP *ep, const BDDNode *node, Table *table, klee::ref<klee::Expr> value,
+bool TofinoModuleFactory::is_compute_module(const Module *module) {
+  return module->get_target() == TargetType::Tofino &&
+         (module->get_type() == ModuleType::Tofino_ArithmeticOp || module->get_type() == ModuleType::Tofino_RotateLeft ||
+          module->get_type() == ModuleType::Tofino_RotateLeftShifts);
+}
+
+namespace {
+
+void push_unique(std::vector<DS_ID> &actions, const DS_ID &id) {
+  if (std::find(actions.begin(), actions.end(), id) == actions.end()) {
+    actions.push_back(id);
+  }
+}
+
+void collect_ep_compute_run(const EP *ep, std::vector<DS_ID> &actions) {
+  if (!ep->has_active_leaf()) {
+    return;
+  }
+  const EPNode *ep_node = ep->get_active_leaf().node;
+  while (ep_node && ep_node->get_module() && TofinoModuleFactory::is_compute_module(ep_node->get_module())) {
+    const TofinoModule *module = dynamic_cast<const TofinoModule *>(ep_node->get_module());
+    for (const DS_ID &id : module->get_generated_ds()) {
+      push_unique(actions, id);
+    }
+    ep_node = ep_node->get_prev();
+  }
+}
+
+} // namespace
+
+std::vector<DS_ID> TofinoModuleFactory::get_compute_run_actions(const EP *ep) {
+  std::vector<DS_ID> actions;
+  collect_ep_compute_run(ep, actions);
+  return actions;
+}
+
+std::vector<DS_ID> TofinoModuleFactory::get_compute_run_actions(const EP *ep, const speculations_t &speculations) {
+  std::vector<DS_ID> actions(speculations.run_actions.rbegin(), speculations.run_actions.rend());
+  if (speculations.run_reaches_leaf) {
+    collect_ep_compute_run(ep, actions);
+  }
+  return actions;
+}
+
+std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const compute_op_t &op, std::unordered_set<DS_ID> deps) {
+  if (new_pass) {
+    std::erase_if(deps, [this](const DS_ID &dep) { return std::find(actions.begin(), actions.end(), dep) == actions.end(); });
+  }
+
+  std::vector<DS_ID> candidates(actions.rbegin(), actions.rend());
+  candidates.insert(candidates.end(), run.begin(), run.end());
+
+  const DS_ID new_action_id = "compute_" + op.id;
+  const std::optional<TofinoContext::compute_op_plan_t> plan = ctx->plan_compute_op(candidates, new_action_id, op, deps);
+
+  if (plan && plan->append) {
+    ctx->append_compute_op(plan->action_id, op, deps);
+    push_unique(actions, plan->action_id);
+    if (!full_placer) {
+      GlobalStats::num_spec_compute_appended++;
+    }
+    return plan->action_id;
+  }
+
+  ComputeAction *action = new ComputeAction(new_action_id, node->get_id(), {op});
+  const bool fits       = full_placer ? ctx->can_place(action, deps) : (plan.has_value() && !plan->append);
+  if (!fits) {
+    delete action;
+    return {};
+  }
+
+  ctx->place(node->get_id(), action, deps);
+  actions.push_back(new_action_id);
+  if (!full_placer) {
+    GlobalStats::num_spec_compute_new_action++;
+  }
+  return new_action_id;
+}
+
+std::optional<TofinoModuleFactory::compute_step_t> TofinoModuleFactory::implement_compute_step(const EP *ep, const BDDNode *node,
+                                                                                               const compute_step_builder_fn_t &build) const {
+  std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
+  TofinoContext *tofino_ctx  = new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>();
+
+  ComputeStepBuilder builder{.node = node, .ctx = tofino_ctx, .run = get_compute_run_actions(ep), .full_placer = true, .new_pass = false, .actions = {}};
+  const std::optional<DS_ID> out = build(builder);
+  if (!out) {
+    return {};
+  }
+
+  return compute_step_t{std::move(new_ep), *out};
+}
+
+std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP *ep, const BDDNode *node, const compute_step_builder_fn_t &build,
                                                                        const speculations_t &speculations) const {
-  Context new_ctx           = speculations.ctx;
-  TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
+  struct attempt_t {
+    Context ctx;
+    std::vector<DS_ID> actions;
+    DS_ID out;
+  };
 
-  std::unordered_set<DS_ID> deps = TofinoContext::get_dataflow_deps(ep, node, value, speculations);
-  bool recirculated              = false;
+  const auto attempt = [&](bool new_pass) -> std::optional<attempt_t> {
+    Context new_ctx           = speculations.ctx;
+    TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
+    ComputeStepBuilder builder{.node        = node,
+                               .ctx         = tofino_ctx,
+                               .run         = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, speculations),
+                               .full_placer = false,
+                               .new_pass    = new_pass,
+                               .actions     = {}};
+    const std::optional<DS_ID> out = build(builder);
+    if (!out) {
+      return {};
+    }
+    return attempt_t{std::move(new_ctx), builder.actions, *out};
+  };
 
-  if (!tofino_ctx->can_place_fast(table, deps)) {
+  bool recirculated               = false;
+  std::optional<attempt_t> result = attempt(false);
+
+  if (!result) {
     // The pipeline is used up: the packet goes around once more, and the step waits for
     // nothing placed in the previous pass.
     if (ep->count_speculative_past_recirculations(node, speculations) > MAX_PAST_RECIRCULATIONS) {
-      delete table;
+      GlobalStats::num_spec_compute_cap_declined++;
       return {};
     }
 
-    deps.clear();
-    if (!tofino_ctx->can_place_fast(table, deps)) {
-      delete table;
+    result = attempt(true);
+    if (!result) {
       return {};
     }
 
-    const hit_rate_t node_hr = new_ctx.get_profiler().get_hr(node);
-    new_ctx.get_mutable_perf_oracle().add_recirculated_traffic(ep->get_speculative_node_egress(node_hr, node, speculations));
+    const hit_rate_t node_hr = result->ctx.get_profiler().get_hr(node);
+    result->ctx.get_mutable_perf_oracle().add_recirculated_traffic(ep->get_speculative_node_egress(node_hr, node, speculations));
     recirculated = true;
+    GlobalStats::num_spec_compute_recirculated++;
   }
 
-  const DS_ID table_id = table->id;
-  tofino_ctx->place(node->get_id(), table, deps);
-
-  spec_impl_t spec_impl(decide(ep, node), new_ctx);
-  spec_impl.recirculated = recirculated;
-  for (const symbol_t &symbol : dynamic_cast<const Call *>(node)->get_local_symbols().get()) {
-    spec_impl.produced[symbol.name] = table_id;
+  spec_impl_t spec_impl(decide(ep, node), result->ctx);
+  spec_impl.recirculated    = recirculated;
+  spec_impl.compute_step    = true;
+  spec_impl.compute_actions = result->actions;
+  if (const Call *call_node = dynamic_cast<const Call *>(node)) {
+    for (const symbol_t &symbol : call_node->get_local_symbols().get()) {
+      spec_impl.produced[symbol.name] = result->out;
+    }
   }
 
   return spec_impl;

@@ -213,6 +213,77 @@ void TofinoContext::place(addr_t obj, DS *ds, const std::unordered_set<DS_ID> &d
 
 bool TofinoContext::can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const { return tna.pipeline.can_place(ds, deps) == PlacementStatus::Success; }
 
+std::optional<TofinoContext::compute_op_plan_t> TofinoContext::plan_compute_op(const std::vector<DS_ID> &run_actions, DS_ID new_action_id,
+                                                                                const compute_op_t &op, const std::unordered_set<DS_ID> &deps) const {
+  const Pipeline &pipeline   = tna.pipeline;
+  const int soonest_stage_id = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
+  if (soonest_stage_id < 0) {
+    return {};
+  }
+
+  const int op_hash_dist_units = (op.kind == ComputeOpKind::Hash) ? ComputeAction::hash_dist_units_for(op.width) : 0;
+
+  int best_stage_id = -1;
+  DS_ID best_action_id;
+  for (const DS_ID &action_id : run_actions) {
+    const ComputeAction *action = dynamic_cast<const ComputeAction *>(data_structures.get_ds_from_id(action_id));
+    if (!action || !action->can_take(op)) {
+      continue;
+    }
+    const int stage_id = pipeline.get_placed_stage(action_id);
+    if (stage_id < soonest_stage_id) {
+      continue;
+    }
+    if (pipeline.resources->stages[stage_id].available_hash_dist_units < op_hash_dist_units) {
+      continue;
+    }
+    if (best_stage_id < 0 || stage_id < best_stage_id) {
+      best_stage_id  = stage_id;
+      best_action_id = action_id;
+    }
+  }
+
+  const ComputeAction fresh(new_action_id, 0, {op});
+  const int new_stage_id = pipeline.find_stage_for_compute_action(&fresh, deps);
+
+  if (best_stage_id >= 0 && (new_stage_id < 0 || best_stage_id <= new_stage_id)) {
+    return compute_op_plan_t{.action_id = best_action_id, .append = true};
+  }
+  if (new_stage_id >= 0) {
+    return compute_op_plan_t{.action_id = new_action_id, .append = false};
+  }
+  return {};
+}
+
+void TofinoContext::append_compute_op(DS_ID action_id, const compute_op_t &op, const std::unordered_set<DS_ID> &deps) {
+  const ComputeAction *old = dynamic_cast<const ComputeAction *>(data_structures.get_ds_from_id(action_id));
+  assert_or_panic(old, "%s is not a compute action", action_id.c_str());
+
+  std::unique_ptr<ComputeAction> updated = std::make_unique<ComputeAction>(*old);
+  updated->ops.push_back(op);
+
+  const int extra_hash_dist_units = updated->get_hash_dist_units() - old->get_hash_dist_units();
+  const addr_t obj                = old->obj;
+
+  data_structures.save(obj, std::move(updated));
+  tna.pipeline.append_to_compute_action(action_id, extra_hash_dist_units, deps);
+}
+
+DS_ID TofinoContext::find_compute_action(const std::string &op_id) const {
+  for (const auto &[id, ds] : data_structures.get_data_per_id()) {
+    const ComputeAction *action = dynamic_cast<const ComputeAction *>(ds);
+    if (!action) {
+      continue;
+    }
+    for (const compute_op_t &op : action->ops) {
+      if (op.id == op_id) {
+        return id;
+      }
+    }
+  }
+  panic("No compute action holds op %s", op_id.c_str());
+}
+
 bool TofinoContext::can_place_fast(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
   return tna.pipeline.can_place_fast(ds, deps) == PlacementStatus::Success;
 }
