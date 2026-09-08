@@ -1,3 +1,13 @@
+// SmartCookie for Tofino 2, written by hand: the ground truth synapse should learn to produce.
+//
+// Hand-written, not synthesized, but on synapse's own P4 template so the two can be diffed. The
+// twelve HalfSipHash rounds are one body executed twice per pipeline per lap, two in ingress and
+// two in egress, over three recirculation laps; the state travels in a recirculated header and a
+// counter in it selects the message word. Semantics follow dpdk-nfs/smartcookie.
+//
+// See tofino/exp-compute/GROUND-TRUTH.md for why it is shaped this way and what synapse cannot
+// express about it yet; tests/smartcookie.py checks it against the C on the model.
+
 #include <core.p4>
 
 #if __TARGET_TOFINO__ == 2
@@ -17,8 +27,9 @@
 #define bswap32(x) (x[7:0] ++ x[15:8] ++ x[23:16] ++ x[31:24])
 #define bswap16(x) (x[7:0] ++ x[15:8])
 
-const bit<16> SIP_CODE_PATH  = 0xff00; // ethertype marking a packet that carries hash state
-const bit<16> SERVER_DEV     = 136;
+const bit<16> SIP_CODE_PATH  = 0xff00; // recirc code_path marking a packet that carries hash state
+const bit<32> SERVER_NF_DEV  = 2;    // front panel port 3 in the test topology
+const bit<9>  SERVER_PORT    = 24;   // and its device port
 const bit<8>  CB_SYNACK      = 1;
 const bit<8>  CB_TAGACK      = 2;
 const bit<8>  SIP_ROUNDS     = 12;
@@ -45,7 +56,7 @@ header cpu_h {
 header recirc_h {
   bit<16> code_path;
   bit<16> ingress_port;
-  bit<16> dev;
+  bit<32> dev;
 }
 
 // The state the hash carries from lap to lap.
@@ -57,6 +68,8 @@ header recirc_state_h {
   bit<32> ctime;
   bit<8>  round;
   bit<8>  cb;
+  @padding bit<7> pad;
+  bit<9>  egr_port;
 }
 
 header hdr0_h {          // ethernet
@@ -67,20 +80,24 @@ header hdr1_h {          // ipv4
   bit<8>  data0;         // version + ihl
   bit<24> data1;         // tos + total length
   bit<40> data2;         // id + flags/frag + ttl
-  bit<24> data3;         // protocol + header checksum
-  bit<32> data4;         // source address
-  bit<32> data5;         // destination address
+  bit<8>  data3;         // protocol
+  bit<16> data4;         // header checksum
+  bit<32> data5;         // source address
+  bit<32> data6;         // destination address
 }
 header hdr2_h {          // tcp
   bit<32> ports;         // source port ++ destination port
   bit<32> data2;         // sequence number
   bit<32> data3;         // acknowledgement number
   bit<16> data4;         // data offset + flags
-  bit<48> data5;         // window + checksum + urgent pointer
+  bit<16> data5;         // window
+  bit<16> data6;         // checksum
+  bit<16> data7;         // urgent pointer
 }
 header hdr3_h {          // udp
-  bit<16> data0;
-  bit<48> data1;
+  bit<16> data0;         // source port
+  bit<16> data1;         // destination port
+  bit<32> data2;         // length + checksum
 }
 header hdr4_h {          // the server agent's clock update
   bit<32> data0;
@@ -99,7 +116,7 @@ struct synapse_ingress_headers_t {
 
 struct synapse_ingress_metadata_t {
   bit<16> ingress_port;
-  bit<16> dev;
+  bit<32> dev;
   bit<32> time;
   bit<32> a0;
   bit<32> a1;
@@ -127,11 +144,11 @@ struct synapse_egress_metadata_t {
   bit<32> a3;
   bit<32> msg;
   bit<32> cookie_val;
+  bit<32> ack_m1;
+  bit<32> seq_p1;
+  bit<32> old_src;
   bit<32> age;
   bit<16> tcp_len;
-  bit<8>  proto;      // staged out of hdr1.data3: a checksum input cannot be a slice
-  bit<16> window;     // staged out of hdr2.data5
-  bit<16> urgent;     // staged out of hdr2.data5
   bit<1>  redo_checksum;
 }
 
@@ -222,7 +239,7 @@ parser IngressParser(
     transition parser_5;
   }
   state parser_5 {
-    transition select (hdr.hdr1.data3[23:16]) {
+    transition select (hdr.hdr1.data3) {
       8w0x06: parser_tcp;
       8w0x11: parser_udp;
       default: accept;
@@ -234,7 +251,7 @@ parser IngressParser(
   }
   state parser_udp {
     pkt.extract(hdr.hdr3);
-    transition select (hdr.hdr3.data0) {
+    transition select (hdr.hdr3.data1) {
       16w5555: parser_timesync;
       default: accept;
     }
@@ -271,11 +288,7 @@ control Ingress(
     ig_intr_tm_md.bypass_egress = 1;
   }
 
-  action fwd_nf_dev(bit<16> port) {
-    fwd(port);
-  }
-
-  action set_ingress_dev(bit<16> nf_dev) {
+  action set_ingress_dev(bit<32> nf_dev) {
     meta.dev = nf_dev;
   }
 
@@ -322,7 +335,7 @@ control Ingress(
   action sip_4_b_odd()  { hdr.recirc_state.v0 = meta.a0; }
   action sip_4_b_even() { hdr.recirc_state.v0 = meta.a0 ^ meta.msg; }
 
-  action msg_src()   { meta.msg = hdr.hdr1.data4; }
+  action msg_src()   { meta.msg = hdr.hdr1.data5; }
   action msg_ports() { meta.msg = hdr.hdr2.ports; }
   action msg_zero()  { meta.msg = 0; }
   table sip_message {
@@ -368,28 +381,55 @@ control Ingress(
   Hash<bit<20>>(HashAlgorithm_t.CRC32) bf_hash_1;
   bit<1> bf_read_0 = 0;
   bit<1> bf_read_1 = 0;
-  action bf_query_0() { bf_read_0 = bf_row_0_read.execute(bf_hash_0.get({ hdr.hdr1.data4, hdr.hdr1.data5, hdr.hdr2.ports })); }
-  action bf_query_1() { bf_read_1 = bf_row_1_read.execute(bf_hash_1.get({ 3w1, hdr.hdr1.data4, 3w1, hdr.hdr1.data5, 3w1, hdr.hdr2.ports })); }
-  action bf_add_0()   { bf_row_0_set.execute(bf_hash_0.get({ hdr.hdr1.data4, hdr.hdr1.data5, hdr.hdr2.ports })); }
-  action bf_add_1()   { bf_row_1_set.execute(bf_hash_1.get({ 3w1, hdr.hdr1.data4, 3w1, hdr.hdr1.data5, 3w1, hdr.hdr2.ports })); }
+  action bf_query_0() { bf_read_0 = bf_row_0_read.execute(bf_hash_0.get({ hdr.hdr1.data5, hdr.hdr1.data6, hdr.hdr2.ports })); }
+  action bf_query_1() { bf_read_1 = bf_row_1_read.execute(bf_hash_1.get({ 3w1, hdr.hdr1.data5, 3w1, hdr.hdr1.data6, 3w1, hdr.hdr2.ports })); }
+  action bf_add_0()   { bf_row_0_set.execute(bf_hash_0.get({ hdr.hdr1.data5, hdr.hdr1.data6, hdr.hdr2.ports })); }
+  action bf_add_1()   { bf_row_1_set.execute(bf_hash_1.get({ 3w1, hdr.hdr1.data5, 3w1, hdr.hdr1.data6, 3w1, hdr.hdr2.ports })); }
   action bf_estimate()      { meta.bf_estimate = bf_read_0 & bf_read_1; }
   action bf_estimate_zero() { meta.bf_estimate = 0; }
 
   // ---------------------------------------------------------------------
   // Forwarding
   // ---------------------------------------------------------------------
-  fwd_op_t fwd_op = fwd_op_t.DROP;
-  bit<16> nf_dev = 0;
+  action fwd_to_cpu() {
+    hdr.recirc.setInvalid();
+    hdr.recirc_state.setInvalid();
+    fwd(CPU_PCIE_PORT);
+  }
 
-  action route()     { @in_hash { ig_intr_tm_md.ucast_egress_port = (bit<9>) hdr.hdr1.data5[31:24]; }
-                       ig_intr_tm_md.bypass_egress = 1; }
-  action to_server() { fwd(SERVER_DEV); }
+  action fwd_nf_dev(bit<16> port) {
+    hdr.cpu.setInvalid();
+    hdr.recirc.setInvalid();
+    hdr.recirc_state.setInvalid();
+    fwd(port);
+  }
+
+  fwd_op_t fwd_op = fwd_op_t.DROP;
+  bit<32> nf_dev = 0;
+  table forwarding_tbl {
+    key = {
+      fwd_op: exact;
+      nf_dev: ternary;
+      meta.ingress_port: ternary;
+    }
+    actions = { fwd; fwd_nf_dev; fwd_to_cpu; drop; }
+    size = 128;
+    const default_action = drop();
+  }
+
+  // naive_routing: the egress device is the first octet of the destination address.
+  action route()     { fwd_op = fwd_op_t.FORWARD_NF_DEV; @in_hash { nf_dev = (bit<32>) hdr.hdr1.data6[31:24]; } }
+  action to_server() { fwd_op = fwd_op_t.FORWARD_NF_DEV; nf_dev = SERVER_NF_DEV; }
+  action discard()   { fwd_op = fwd_op_t.DROP; }
+
+  // A packet carrying hash state keeps its headers, so it cannot go through the forwarding
+  // table: fwd_nf_dev would invalidate them before egress ever parses them.
   action recirculate() {
     ig_intr_tm_md.ucast_egress_port = RECIRCULATION_PORT_0;
     ig_intr_tm_md.bypass_egress = 0;
   }
   action deliver() {
-    ig_intr_tm_md.ucast_egress_port = (bit<9>)hdr.recirc.dev;
+    ig_intr_tm_md.ucast_egress_port = hdr.recirc_state.egr_port;
     ig_intr_tm_md.bypass_egress = 0;
   }
 
@@ -400,7 +440,7 @@ control Ingress(
     hdr.recirc.dev = meta.dev;
   }
 
-  action sip_start(bit<8> cb, bit<16> dev) {
+  action sip_start(bit<8> cb, bit<9> egr_port) {
     hdr.recirc_state.setValid();
     hdr.recirc_state.v0 = SIP_V0;
     hdr.recirc_state.v1 = SIP_V1;
@@ -409,10 +449,10 @@ control Ingress(
     hdr.recirc_state.round = 0;
     hdr.recirc_state.cb = cb;
     hdr.recirc_state.ctime = meta.ctime;
-    meta.dev = dev;
+    hdr.recirc_state.egr_port = egr_port;
   }
-  action start_synack() { sip_start(CB_SYNACK, meta.ingress_port); }
-  action start_tagack() { sip_start(CB_TAGACK, SERVER_DEV); }
+  action start_synack() { sip_start(CB_SYNACK, ig_intr_md.ingress_port); }
+  action start_tagack() { sip_start(CB_TAGACK, SERVER_PORT); }
   action nop() {}
 
   // The branch structure of nf_process, as one table.
@@ -426,20 +466,21 @@ control Ingress(
       hdr.hdr2.data4[6:6] : ternary; // ECE
       meta.bf_estimate    : ternary;
     }
-    actions = { drop; route; to_server; start_synack; start_tagack; nop; }
-    default_action = drop();
+    actions = { discard; route; to_server; start_synack; start_tagack; nop; }
+    default_action = discard();
     size = 32;
     const entries = {
       // the server's clock update was applied before this table
-      (false, true,  1, _, _, _, _) : drop();
+      (false, true,  1, _, _, _, _) : discard();
       // any other non-TCP packet is routed by the destination address
+      (false, true,  0, _, _, _, _) : route();
       (false, false, _, _, _, _, _) : route();
       // from the server: an ECE tag records the flow, anything else is plain traffic
-      (true,  false, 1, _, _, 1, _) : drop();
+      (true,  false, 1, _, _, 1, _) : discard();
       (true,  false, 1, _, _, 0, _) : route();
       // from a client: a SYN earns a cookie, a SYN-ACK is dropped
       (true,  false, 0, 1, 0, _, _) : start_synack();
-      (true,  false, 0, 1, 1, _, _) : drop();
+      (true,  false, 0, 1, 1, _, _) : discard();
       // an already verified flow goes straight to the server
       (true,  false, 0, 0, _, _, 1) : to_server();
       // otherwise the cookie carried in the ACK is checked
@@ -453,7 +494,7 @@ control Ingress(
   apply {
     ingress_port_to_nf_dev.apply();
 
-    if (meta.ingress_port == SERVER_DEV) { mark_server(); } else { mark_not_server(); }
+    if (meta.dev == SERVER_NF_DEV) { mark_server(); } else { mark_not_server(); }
 
     if (!hdr.recirc_state.isValid()) {
       // first pass: work out the cookie epoch, consult the bloom filter, then triage
@@ -462,7 +503,7 @@ control Ingress(
       if (hdr.hdr4.isValid() && meta.is_server == 1) {
         delta_calc();
         delta_write();
-        drop();
+        discard();
       } else {
         delta_read();
         ctime_sub();
@@ -493,8 +534,10 @@ control Ingress(
       sip_bump();
 
       build_recirc_hdr(SIP_CODE_PATH);
-      hdr.hdr0.data1 = SIP_CODE_PATH;
-      if (hdr.recirc_state.round >= SIP_ROUNDS) { deliver(); } else { recirculate(); }
+      if (hdr.recirc_state.round >= SIP_ROUNDS - 2) { deliver(); } else { recirculate(); }
+    } else {
+      ig_intr_tm_md.bypass_egress = 1;
+      forwarding_tbl.apply();
     }
   }
 }
@@ -590,7 +633,7 @@ control Egress(
   action sip_4_b_even() { hdr.recirc_state.v0 = eg_md.a0 ^ eg_md.msg; }
 
   // The SYN path hashes the sequence number, the ACK path hashes it minus one.
-  action msg_dst()    { eg_md.msg = hdr.hdr1.data5; }
+  action msg_dst()    { eg_md.msg = hdr.hdr1.data6; }
   action msg_seq()    { eg_md.msg = hdr.hdr2.data2; }
   action msg_seq_m1() { eg_md.msg = hdr.hdr2.data2 - 1; }
   action msg_zero()   { eg_md.msg = 0; }
@@ -614,8 +657,8 @@ control Egress(
                                                        ^ hdr.recirc_state.v2 ^ hdr.recirc_state.v3; }
   }
   action final_tagack() {
-    @in_hash { eg_md.cookie_val = hdr.hdr2.data3 ^ hdr.recirc_state.v0 ^ hdr.recirc_state.v1
-                                                 ^ hdr.recirc_state.v2 ^ hdr.recirc_state.v3; }
+    @in_hash { eg_md.cookie_val = eg_md.ack_m1 ^ hdr.recirc_state.v0 ^ hdr.recirc_state.v1
+                                              ^ hdr.recirc_state.v2 ^ hdr.recirc_state.v3; }
   }
   action nop() {}
   table sip_final_synack {
@@ -633,14 +676,16 @@ control Egress(
     const entries = { (12, CB_TAGACK): final_tagack(); }
   }
 
-  action ack_from_seq() { hdr.hdr2.data3 = hdr.hdr2.data2 + 1; }
   action craft_synack() {
-    // An action reads all its sources before writing any destination, so these two
-    // statements swap the addresses rather than duplicating one of them.
-    hdr.hdr1.data4 = hdr.hdr1.data5;
-    hdr.hdr1.data5 = hdr.hdr1.data4;
+    hdr.hdr2.data3 = eg_md.seq_p1;
+    // The addresses swap through the copy taken on the way in; a two-statement swap of two
+    // fields would only duplicate one of them, because statements run in order.
+    hdr.hdr1.data5 = hdr.hdr1.data6;
+    hdr.hdr1.data6 = eg_md.old_src;
+    // A whole-field write of a field in terms of itself is fine: it is one operation.
     hdr.hdr2.ports = hdr.hdr2.ports[15:0] ++ hdr.hdr2.ports[31:16];
-    hdr.hdr2.data4 = 8w0x50 ++ (hdr.hdr2.data4[7:0] | 8w0x12);
+    hdr.hdr2.data4[15:8] = 8w0x50;
+    hdr.hdr2.data4[7:0] = hdr.hdr2.data4[7:0] | 8w0x12;
     hdr.hdr1.data0 = 8w0x45;
     hdr.hdr1.data1[15:0] = 16w0x0028;
     eg_md.redo_checksum = 1;
@@ -649,17 +694,18 @@ control Egress(
   action age_calc() { eg_md.age = hdr.recirc_state.ctime - eg_md.cookie_val; }
   action tag_onward() {
     hdr.hdr2.data2 = hdr.hdr2.data2 - 1;
-    hdr.hdr2.data4 = 8w0x50 ++ (hdr.hdr2.data4[7:0] | 8w0x40);
+    hdr.hdr2.data4[15:8] = 8w0x50;
+    hdr.hdr2.data4[7:0] = hdr.hdr2.data4[7:0] | 8w0x40;
     hdr.hdr1.data0 = 8w0x45;
     hdr.hdr1.data1[15:0] = 16w0x0028;
     eg_md.redo_checksum = 1;
     eg_md.tcp_len = 20;
   }
   action drop() { ig_intr_dprs_md.drop_ctl = 1; }
-  action stage_checksum_fields() {
-    eg_md.proto  = hdr.hdr1.data3[23:16];
-    eg_md.window = hdr.hdr2.data5[47:32];
-    eg_md.urgent = hdr.hdr2.data5[15:0];
+  action stage_fields() {
+    eg_md.ack_m1 = hdr.hdr2.data3 - 1;
+    eg_md.seq_p1 = hdr.hdr2.data2 + 1;
+    eg_md.old_src = hdr.hdr1.data5;
   }
 
   // A 32-bit inequality does not fit a gateway, so the accepted epochs are entries.
@@ -674,13 +720,12 @@ control Egress(
   action strip_state() {
     hdr.recirc.setInvalid();
     hdr.recirc_state.setInvalid();
-    hdr.hdr0.data1 = 16w0x0800;
   }
   action keep_state() {}
 
   apply {
     eg_md.redo_checksum = 0;
-    stage_checksum_fields();
+    stage_fields();
 
     if (hdr.recirc_state.isValid()) {
       sip_message.apply();
@@ -694,7 +739,6 @@ control Egress(
 
       if (hdr.recirc_state.round >= SIP_ROUNDS) {
         if (hdr.recirc_state.cb == CB_SYNACK) {
-          ack_from_seq();
           craft_synack();
         } else {
           age_calc();
@@ -718,14 +762,14 @@ control EgressDeparser(
 
   apply {
     if (eg_md.redo_checksum == 1) {
-      hdr.hdr1.data3[15:0] = ipv4_checksum.update({
-        hdr.hdr1.data0, hdr.hdr1.data1, hdr.hdr1.data2, eg_md.proto,
-        hdr.hdr1.data4, hdr.hdr1.data5
+      hdr.hdr1.data4 = ipv4_checksum.update({
+        hdr.hdr1.data0, hdr.hdr1.data1, hdr.hdr1.data2, hdr.hdr1.data3,
+        hdr.hdr1.data5, hdr.hdr1.data6
       });
-      hdr.hdr2.data5[31:16] = tcp_checksum.update({
-        hdr.hdr1.data4, hdr.hdr1.data5, 8w0, eg_md.proto, eg_md.tcp_len,
+      hdr.hdr2.data6 = tcp_checksum.update({
+        hdr.hdr1.data5, hdr.hdr1.data6, 8w0, hdr.hdr1.data3, eg_md.tcp_len,
         hdr.hdr2.ports, hdr.hdr2.data2, hdr.hdr2.data3, hdr.hdr2.data4,
-        eg_md.window, eg_md.urgent
+        hdr.hdr2.data5, hdr.hdr2.data7
       });
     }
     pkt.emit(hdr);
