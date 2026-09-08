@@ -119,6 +119,26 @@ and two in egress.
 `sipfull.p4` closes it: the chain plus the time-delta register plus the bloom, with the rounds
 split across the two pipelines, compiles in 3 s.
 
+## Does the unrolled chain fit if it uses egress? (`sc_unrolled.p4`)
+
+Yes. The twelve rounds written out linearly, 2 in ingress and 4 in egress per lap, two laps and
+**one** recirculation, compiles in 7 s (19 ingress stages, 18 egress). The rolled ground truth
+needs two recirculations, so the unrolled form is not the thing that made SmartCookie infeasible.
+
+Getting there took four compiles, and every failure was "supports up to 20 stages, using 21" or
+"using 25" -- never PHV, never hash units. Two rules came out of it:
+
+- A SipRound is four dependency levels, so twelve rounds are 48 and cannot fit one pass over both
+  pipelines (40 stages) however they are allocated.
+- Mutually exclusive branches share stages, but only from where they start. Emitting the
+  recirculated lap *before* the first pass's clock/bloom/triage block took ingress from 21 stages
+  to 18; the same reordering in egress took it from 21 to 18. The order alternative code paths are
+  emitted in decides whether a program fits.
+
+Caveat, recorded rather than solved: the bloom filter stops working in this build although its
+source is byte-identical to the working one, so `sc_unrolled.p4` passes every part of
+`tests/smartcookie.py` except the recorded-flow path. See `GROUND-TRUTH.md`.
+
 ## A crash the nested-pass fix exposed
 
 Making the recirculation passes reachable (commit `e76cbb4fc`) turned six of the fourteen

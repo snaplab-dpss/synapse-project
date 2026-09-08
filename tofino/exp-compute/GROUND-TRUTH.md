@@ -128,3 +128,83 @@ no in-action swap, no concat containing an operation, no deparser checksum and n
 rewrite. So nothing is broken right now, but items 1 and 2 become live the moment the emitter is
 taught to rewrite packets in place, and item 3 changes what header guessing has to produce before
 a checksum can be emitted at all.
+
+## Plan for changing synapse
+
+Agreed order of attack (2026-09-08). It is not the order the list above is numbered in: that one
+runs by difficulty, this one by dependency and by value.
+
+| order | item | why here |
+|---|---|---|
+| 1 | 2, use the egress pipeline | gates item 1, and pays off beyond SmartCookie |
+| 2 | 4 + 5, deliberate `@in_hash` and hash-action placement | mechanical, needed either way |
+| 3 | 6, wide comparisons as table entries | mechanical, small |
+| 4 | 7, checksums and splitting fields to suit them | self-contained, a correctness gap for any packet-crafting NF |
+| 5 | 3, loop counter and dispatch | new module, only needed if the loop is rolled |
+| 6 | 1, one body executed many times | the big one, and **no longer on the critical path**: see below |
+
+The five rules under "What compiling cannot tell you" are not separate work; each attaches to
+whichever item touches it.
+
+### The open question is answered: the unrolled chain fits, given egress
+
+`sc_unrolled.p4` is the same NF with the twelve rounds written out linearly instead of as one
+re-executed body, split across the two pipelines. **It compiles in 7 s with one recirculation**,
+where the rolled ground truth needs two. Ingress uses 19 stages, egress 18, over 139 actions and
+40 `@in_hash` sites.
+
+So loop rolling is not required for SmartCookie to fit. Item 1 is a code-size question, not a
+feasibility one, and item 2 is both necessary and sufficient. What the failures along the way said:
+
+- **The chain never failed on PHV or hash units once split.** Every failed attempt reported
+  "supports up to 20 stages, using 21" (or 25). The hash-unit competition that defeated the
+  ingress-only form is gone once half the rounds live in egress, exactly as predicted, and what is
+  left is a pure critical-path problem.
+- **A SipRound is 4 dependency levels**, so twelve rounds are 48 and a single pass over both
+  pipelines (40 stages) can never hold them. Two passes can.
+- **Mutually exclusive branches share stages, but only from where they start.** Lap 1's and lap 2's
+  code overlay each other in the same stages, so the bound is the largest lap per pipeline rather
+  than the sum. But a lap emitted after another lap's tables begins after them: emitting the
+  *recirculated* lap first, before the first pass's clock/bloom/triage block, took ingress from 21
+  stages to 18, and the same reordering in egress took it from 21 to 18. **The order in which
+  alternative code paths are emitted decides whether a program fits.** This is the most directly
+  actionable rule for the synthesizer to come out of the experiment, and it is invisible unless you
+  read the stage assignment out of the `.bfa`.
+- **Ingress is the scarce pipeline**, because the clock, bloom and triage tables sit ahead of the
+  chain: it holds about 2 rounds per lap against egress's 4.
+
+**Open, and not understood: the bloom filter stops working in this build.** Everything else passes
+`tests/smartcookie.py` against it, including the full SYN to cookie to verified-ACK round trip and
+the hash-versus-reference check, so the unrolled twelve rounds are correct. But an ECE packet from
+the server no longer records its flow, and the bloom source is byte-identical to the version that
+works. The hash inputs of the set and read tables were checked in the `.bfa` and are consistent,
+and giving the two read bits their own metadata fields does not help. Whatever it is, it is a third
+case of placement alone changing behaviour with no compiler complaint. `sc_unrolled.p4` is kept as
+an experiment, deliberately not in `synthesized/`, because it is not a validated solution.
+
+### What item 2 entails
+
+Three things, found by reading the code rather than guessing:
+
+- **The template has nowhere to put egress code.** `tofino.template.p4` has `EGRESS_HEADERS` and
+  `EGRESS_METADATA` markers, so the structs can be filled, but the egress parser has no marker,
+  `control Egress` is a hardcoded `apply {}`, and the deparser has none. Four or five new
+  insertion points are the mechanical part.
+- **The placer models one pipeline, not two.** `tna_properties_t` has `stages = 20` and a single
+  `PipelineResources`; `pipes = 4` is the physical pipes and is unrelated. A recirculation pass is
+  one 20-stage pool. It has to become ingress + egress: two pools with a one-way dependency, and
+  anything crossing the boundary has to travel in a header, because the two share no metadata.
+- **It is worth more than SmartCookie.** Any plan over 20 stages recirculates today, and
+  recirculation costs throughput. With egress a pass gets 40 stages, so some existing NFs may drop
+  a recirculation outright. The search heuristic has to learn that an egress stage is nearly free
+  where a recirculation is not.
+
+Three constraints bound what can go there:
+
+- **Egress cannot redirect.** The egress port is chosen in ingress; egress can drop but not
+  re-route, so any module that changes the forwarding decision stays in ingress.
+- **The controller addresses tables as `"Ingress.x"`.** Egress tables would be `"Egress.x"` and
+  sycon has no support for that. The ground truth avoids it by using only `const entries` in
+  egress, which is a fair restriction to start with but excludes controller-populated tables.
+- **The egress parser has to be generated** to match exactly what the ingress deparser emits,
+  which today is implicit.
