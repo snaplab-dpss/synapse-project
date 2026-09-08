@@ -24,7 +24,7 @@ the usual forwarding actions. A reader should be able to diff it against a synth
 | stages | 17 ingress, 17 egress (of 20 each) |
 | match tables | 47 |
 | chain actions | 28 declarations (17 names, most written once per pipeline), executing 12 SipRounds |
-| `@in_hash` sites | 10 |
+| `@in_hash` sites | 8 |
 
 ## Semantics
 
@@ -72,14 +72,30 @@ Kept here so the gap is explicit. Ordered by how hard each looks.
    lap, with tables keyed on it selecting the message word and the finish action. Synapse has no
    module for a counter carried across recirculations, nor for dispatching on one.
 
-4. **Emitting an operation into the hash unit deliberately.** `@in_hash` is used here for the
-   non-byte-aligned rotates, for the four-way final xor, for the byte read that picks the routing
-   port, and for the timestamp read. Synapse has no notion of choosing the hash unit for an
-   operation that would otherwise not fit.
+4. **Emitting an operation into the hash unit deliberately.** Smaller than it looked, once tested.
+   Synapse *already* has half of it: `RotateLeft::uses_hash_unit()` sends any rotate that is not a
+   whole number of bytes through `@in_hash`, and `ComputeAction` budgets hash bits and hash
+   distribution units. What is missing is the general case: **an expression tree that would span
+   stages collapses into one hash-unit op**. `v0 ^ v1 ^ v2 ^ v3` costs three ALU instructions and
+   an action cannot span stages ("xor: action spanning multiple stages"), but it is a single
+   `@in_hash` op. That is the rule to add.
+   Two other uses in an earlier version of this file turned out to be superstition: a slice-and-
+   widen read of an intrinsic (`ctime = ingress_mac_tstamp[47:16]`) and a byte read feeding a table
+   parameter (`nf_dev = dst[31:24]`) both compile as plain ALU ops and pass the model test. They
+   have been removed, taking the program from ten `@in_hash` sites to eight.
 
-5. **Placing hash-producing actions to respect their own limits.** One `@in_hash` per action, one
-   hash-producing action per table (two exceed the immediate pathway), and a hash operation
-   cannot sit in a keyless table. These are emission rules, mechanical once known.
+5. **Respecting the immediate pathway, which is a per-table budget.** Not "one hash-producing
+   action per table": the limit is **32 bits of hash-produced immediate data per table, summed over
+   its actions**. Merging the two final-xor actions into one table gives
+   "the number of bits required to go through the immediate pathway 64 ... is greater than the
+   available bits 32", and bf-p4c then crashes with SIGSEGV rather than exiting cleanly.
+   Synapse models this per *action* (`ComputeAction::MAX_HASH_BITS_PER_ACTION`), which happens to
+   agree today only because it emits one action per keyless table. The accounting has to move to
+   the table as soon as one table carries several actions, which is exactly what item 3's dispatch
+   tables need.
+   The claim that a hash operation cannot sit in a keyless table is **wrong**: every round action
+   here holds an `@in_hash` and is called bare from the apply block, and bf-p4c compiles each into
+   a keyless `hash_action` table. The bloom's `Hash.get()` queries are the same shape.
 
 6. **Wide comparisons as table entries.** `age > 2` on a 32-bit value does not fit a gateway, so
    the three accepted values are constant table entries. Synapse emits gateway conditions and

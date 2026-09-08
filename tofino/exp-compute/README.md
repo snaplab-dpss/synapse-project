@@ -183,9 +183,17 @@ lives in it, and the unrolled chain has around 160 values against the loop's nin
 
 ## Other target rules found along the way
 
-- One `@in_hash` per action, and one hash-producing action per table (two exceed the 64-bit
-  immediate pathway, which is why the expert splits its final xor across two tables).
-- A hash operation cannot sit in a keyless table.
+- The hash unit's immediate pathway carries **32 bits per table**, summed over the table's actions:
+  two 32-bit `@in_hash` actions in one table give "the number of bits required to go through the
+  immediate pathway 64 ... is greater than the available bits 32", after which bf-p4c crashes with
+  SIGSEGV instead of exiting. This is why the ground truth splits its final xor across two tables.
+- A hash operation **can** sit in a keyless table: the ground truth's round actions each hold an
+  `@in_hash`, are called bare from the apply block, and compile to keyless `hash_action` tables.
+  (An earlier note here claimed the opposite.)
+- `@in_hash` is needed for a multi-operand expression that would otherwise span stages
+  (`a ^ b ^ c ^ d` is one hash op but three ALU instructions, and an action cannot span stages).
+  It is *not* needed for a slice-and-widen read of an intrinsic, nor for a byte read feeding a
+  table parameter; both were tried without it and compile and pass the model test.
 - `@in_hash` accepts a non-byte-aligned rotate but rejects an aligned one
   ("source of modify_field invalid"); aligned rotates are written bare.
 - Subtraction cannot take a table parameter as action data; addition can, so `a - k` becomes

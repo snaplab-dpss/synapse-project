@@ -357,7 +357,7 @@ control Ingress(
   RegisterAction<bit<32>, bit<32>, bit<32>>(timedelta) timedelta_write = {
     void apply(inout bit<32> value, out bit<32> ret) { value = meta.delta; ret = 0; }
   };
-  action time_read()   { @in_hash { meta.ctime = (bit<32>) ig_intr_md.ingress_mac_tstamp[47:16]; } }
+  action time_read()   { meta.ctime = (bit<32>) ig_intr_md.ingress_mac_tstamp[47:16]; }
   action delta_read()  { meta.delta = timedelta_read.execute(0); }
   action ctime_sub()   { meta.ctime = meta.ctime - meta.delta; }
   action ctime_shift() { meta.ctime = meta.ctime >> 12; }
@@ -418,7 +418,7 @@ control Ingress(
   }
 
   // naive_routing: the egress device is the first octet of the destination address.
-  action route()     { fwd_op = fwd_op_t.FORWARD_NF_DEV; @in_hash { nf_dev = (bit<32>) hdr.hdr1.data6[31:24]; } }
+  action route()     { fwd_op = fwd_op_t.FORWARD_NF_DEV; nf_dev = (bit<32>) hdr.hdr1.data6[31:24]; }
   action to_server() { fwd_op = fwd_op_t.FORWARD_NF_DEV; nf_dev = SERVER_NF_DEV; }
   action discard()   { fwd_op = fwd_op_t.DROP; }
 
