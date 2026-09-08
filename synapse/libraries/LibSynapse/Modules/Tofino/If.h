@@ -41,11 +41,7 @@ public:
   // An arithmetic operand of the condition, computed in the data plane ahead of the gateway
   // as op `op_id` of the ComputeAction `action_id` (a gateway can't evaluate arithmetic, and
   // a bare assignment in the apply block gets folded back into the condition by bf-p4c).
-  struct materialized_operand_t {
-    klee::ref<klee::Expr> expr;
-    std::string op_id;
-    DS_ID action_id;
-  };
+  using materialized_operand_t = TofinoModuleFactory::compute_operand_t;
 
 private:
   klee::ref<klee::Expr> original_condition;

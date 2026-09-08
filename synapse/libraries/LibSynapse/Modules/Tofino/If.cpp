@@ -383,25 +383,6 @@ std::vector<If::materialized_operand_t> get_operands_to_materialize(const BDDNod
   return operands;
 }
 
-// Places every operand as an ALU op (sharing the current run's actions like any compute
-// step); fills in the action ids. Empty when one of them can't be placed.
-std::optional<DS_ID> place_operands(TofinoModuleFactory::ComputeStepBuilder &builder, const EP *ep, const BDDNode *node,
-                                    std::vector<If::materialized_operand_t> &operands, const speculations_t *speculations) {
-  DS_ID last;
-  for (If::materialized_operand_t &operand : operands) {
-    const std::unordered_set<DS_ID> deps = speculations ? TofinoContext::get_dataflow_deps(ep, node, operand.expr, *speculations)
-                                                        : TofinoContext::get_dataflow_deps(ep, node, operand.expr);
-    const std::optional<DS_ID> action =
-        builder.place({.id = operand.op_id, .kind = ComputeOpKind::ALU, .width = operand.expr->getWidth()}, deps);
-    if (!action) {
-      return {};
-    }
-    operand.action_id = *action;
-    last              = *action;
-  }
-  return last;
-}
-
 } // namespace
 
 std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
@@ -428,7 +409,12 @@ std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *nod
 
   // The operands are compute steps ahead of the gateway; the gateway itself ends the run.
   std::optional<spec_impl_t> spec = speculate_compute_step(
-      ep, node, [&](ComputeStepBuilder &builder) { return place_operands(builder, ep, node, operands, &speculations); }, speculations);
+      ep, node, [&](ComputeStepBuilder &builder) -> std::optional<DS_ID> {
+        if (!place_operand_ops(builder, ep, node, operands, &speculations)) {
+          return {};
+        }
+        return operands.back().action_id;
+      }, speculations);
   if (spec) {
     spec->compute_step = false;
     spec->compute_actions.clear();
@@ -463,7 +449,12 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
     new_ep = std::make_unique<EP>(*ep);
   } else {
     std::optional<compute_step_t> step =
-        implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return place_operands(builder, ep, node, operands, nullptr); });
+        implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) -> std::optional<DS_ID> {
+          if (!place_operand_ops(builder, ep, node, operands, nullptr)) {
+            return {};
+          }
+          return operands.back().action_id;
+        });
     if (!step) {
       return {};
     }

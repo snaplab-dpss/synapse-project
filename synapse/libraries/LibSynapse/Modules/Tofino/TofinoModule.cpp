@@ -1,5 +1,10 @@
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
 #include <LibSynapse/GlobalStats.h>
+#include <LibSynapse/Modules/Tofino/ArithmeticOp.h>
+#include <LibSynapse/Modules/Tofino/RotateLeft.h>
+#include <LibSynapse/Modules/Tofino/RotateLeftShifts.h>
+#include <LibBDD/Unroll.h>
+#include <LibCore/Expr.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
 #include <LibSynapse/Modules/Tofino/DataStructures/ComputeAction.h>
@@ -239,21 +244,73 @@ void push_unique(std::vector<DS_ID> &actions, const DS_ID &id) {
   }
 }
 
-void collect_ep_compute_run(const EP *ep, std::vector<DS_ID> &actions) {
-  if (!ep->has_active_leaf()) {
-    return;
-  }
-  const EPNode *ep_node = ep->get_active_leaf().node;
-  while (ep_node && ep_node->get_module() && TofinoModuleFactory::is_compute_module(ep_node->get_module())) {
-    const TofinoModule *module = dynamic_cast<const TofinoModule *>(ep_node->get_module());
-    for (const DS_ID &id : module->get_generated_ds()) {
-      push_unique(actions, id);
+bool is_run_transparent(ModuleType type) { return type == ModuleType::Tofino_Ignore; }
+
+// Ignored nodes do nothing in the data plane: a reordering may interleave them with the steps
+// of a run without breaking it.
+void collect_ep_compute_run_from(const EPNode *ep_node, std::vector<DS_ID> &actions) {
+  while (ep_node && ep_node->get_module() &&
+         (TofinoModuleFactory::is_compute_module(ep_node->get_module()) || is_run_transparent(ep_node->get_module()->get_type()))) {
+    if (TofinoModuleFactory::is_compute_module(ep_node->get_module())) {
+      const TofinoModule *module = dynamic_cast<const TofinoModule *>(ep_node->get_module());
+      for (const DS_ID &id : module->get_generated_ds()) {
+        push_unique(actions, id);
+      }
     }
     ep_node = ep_node->get_prev();
   }
 }
 
+void collect_ep_compute_run(const EP *ep, std::vector<DS_ID> &actions) {
+  if (!ep->has_active_leaf()) {
+    return;
+  }
+  collect_ep_compute_run_from(ep->get_active_leaf().node, actions);
+}
+
 } // namespace
+
+bool TofinoModuleFactory::is_plain_operand(klee::ref<klee::Expr> expr) { return LibCore::is_constant(expr) || LibCore::is_readLSB(expr); }
+
+std::vector<TofinoModuleFactory::compute_operand_t>
+TofinoModuleFactory::get_operands_to_compute(const std::string &op_id_base, const std::vector<std::pair<std::string, klee::ref<klee::Expr>>> &exprs) {
+  std::vector<compute_operand_t> operands;
+  for (const auto &[suffix, expr] : exprs) {
+    if (!is_plain_operand(expr)) {
+      operands.push_back({expr, op_id_base + suffix, ""});
+    }
+  }
+  return operands;
+}
+
+bool TofinoModuleFactory::place_operand_ops(ComputeStepBuilder &builder, const EP *ep, const BDDNode *node, std::vector<compute_operand_t> &operands,
+                                            const speculations_t *speculations) {
+  for (compute_operand_t &operand : operands) {
+    const std::unordered_set<DS_ID> deps = speculations ? TofinoContext::get_dataflow_deps(ep, node, operand.expr, *speculations)
+                                                        : TofinoContext::get_dataflow_deps(ep, node, operand.expr);
+    const std::optional<DS_ID> action =
+        builder.place({.id = operand.op_id, .kind = ComputeOpKind::ALU, .width = operand.expr->getWidth()}, deps);
+    if (!action) {
+      return false;
+    }
+    operand.action_id = *action;
+  }
+  return true;
+}
+
+std::unordered_set<DS_ID> TofinoModuleFactory::get_op_deps(const EP *ep, const BDDNode *node, const std::vector<klee::ref<klee::Expr>> &plain,
+                                                           const std::vector<compute_operand_t> &computed, const speculations_t *speculations) {
+  std::unordered_set<DS_ID> deps;
+  for (const klee::ref<klee::Expr> &expr : plain) {
+    const std::unordered_set<DS_ID> d =
+        speculations ? TofinoContext::get_dataflow_deps(ep, node, expr, *speculations) : TofinoContext::get_dataflow_deps(ep, node, expr);
+    deps.insert(d.begin(), d.end());
+  }
+  for (const compute_operand_t &operand : computed) {
+    deps.insert(operand.action_id);
+  }
+  return deps;
+}
 
 std::vector<DS_ID> TofinoModuleFactory::get_compute_run_actions(const EP *ep) {
   std::vector<DS_ID> actions;
@@ -261,15 +318,36 @@ std::vector<DS_ID> TofinoModuleFactory::get_compute_run_actions(const EP *ep) {
   return actions;
 }
 
-std::vector<DS_ID> TofinoModuleFactory::get_compute_run_actions(const EP *ep, const speculations_t &speculations) {
-  std::vector<DS_ID> actions(speculations.run_actions.rbegin(), speculations.run_actions.rend());
-  if (speculations.run_reaches_leaf) {
-    collect_ep_compute_run(ep, actions);
+std::vector<DS_ID> TofinoModuleFactory::get_compute_run_actions(const EP *ep, const BDDNode *node, const speculations_t &speculations) {
+  // Up the node's own path: the pass's compute steps (nearest first), then the plan's from the
+  // leaf of the node's branch, until anything that is not a compute step or transparent, or a
+  // recirculation.
+  std::vector<DS_ID> actions;
+  for (const BDDNode *n = node->get_prev(); n; n = n->get_prev()) {
+    const speculations_t::node_info_t *info = speculations.find_node_info(n->get_id());
+    if (!info) {
+      collect_ep_compute_run_from(ep->get_leaf_ep_node_from_bdd_node(node), actions);
+      break;
+    }
+    if (!info->compute_step && !is_run_transparent(info->module)) {
+      break;
+    }
+    for (const DS_ID &action : info->actions) {
+      push_unique(actions, action);
+    }
+    if (info->recirculated) {
+      break;
+    }
   }
   return actions;
 }
 
 std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const compute_op_t &op, std::unordered_set<DS_ID> deps) {
+  auto placed_it = placed_ops.find(op.id);
+  if (placed_it != placed_ops.end()) {
+    return placed_it->second;
+  }
+
   if (new_pass) {
     std::erase_if(deps, [this](const DS_ID &dep) { return std::find(actions.begin(), actions.end(), dep) == actions.end(); });
   }
@@ -283,6 +361,7 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   if (plan && plan->append) {
     ctx->append_compute_op(plan->action_id, op, deps);
     push_unique(actions, plan->action_id);
+    placed_ops.insert({op.id, plan->action_id});
     if (!full_placer) {
       GlobalStats::num_spec_compute_appended++;
     }
@@ -298,10 +377,147 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
 
   ctx->place(node->get_id(), action, deps);
   actions.push_back(new_action_id);
+  placed_ops.insert({op.id, new_action_id});
   if (!full_placer) {
     GlobalStats::num_spec_compute_new_action++;
   }
   return new_action_id;
+}
+
+bool TofinoModuleFactory::is_compute_node(const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Call) {
+    return false;
+  }
+  const LibBDD::call_t &call = dynamic_cast<const Call *>(node)->get_call();
+  return LibBDD::is_unrolled_op(call) || call.function_name == "rotate_left";
+}
+
+namespace {
+
+// Whether placing the step `node` computes places ops of its own before its op (operands that
+// aren't plain values), which a failed step would leave behind.
+bool step_has_computed_operands(const BDDNode *node) {
+  const LibBDD::call_t &call = dynamic_cast<const Call *>(node)->get_call();
+  if (LibBDD::is_unrolled_op(call)) {
+    klee::ref<klee::Expr> value = LibBDD::unrolled_op_value(call);
+    for (unsigned i = 0; i < value->getNumKids(); i++) {
+      if (!TofinoModuleFactory::is_plain_operand(value->getKid(i))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  return !TofinoModuleFactory::is_plain_operand(call.args.at("x").expr);
+}
+
+// Places the compute step `node` with the module the search would pick first for it: the
+// arithmetic op, or the hash-unit rotate with the shift form as fallback.
+std::optional<DS_ID> place_compute_node(TofinoModuleFactory::ComputeStepBuilder &builder, const EP *ep, const BDDNode *node,
+                                        const speculations_t *speculations) {
+  if (std::optional<DS_ID> out = ArithmeticOpFactory::place(builder, ep, node, speculations)) {
+    return out;
+  }
+  if (std::optional<DS_ID> out = RotateLeftFactory::place(builder, ep, node, speculations)) {
+    return out;
+  }
+  return RotateLeftShiftsFactory::place(builder, ep, node, speculations);
+}
+
+} // namespace
+
+std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
+  struct attempt_t {
+    Context ctx;
+    std::vector<DS_ID> actions;
+    std::unordered_map<std::string, std::string> produced;
+    bdd_node_ids_t skip;
+  };
+
+  const auto attempt = [&](bool new_pass) -> std::optional<attempt_t> {
+    Context new_ctx           = speculations.ctx;
+    TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
+    ComputeStepBuilder builder{.node        = node,
+                               .ctx         = tofino_ctx,
+                               .run         = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, node, speculations),
+                               .full_placer = false,
+                               .new_pass    = new_pass,
+                               .actions     = {},
+                               .placed_ops  = {}};
+
+    // The steps of the run see the ones placed before them (run_specs notes each as it goes).
+    speculations_t run_specs = speculations;
+    attempt_t result{std::move(new_ctx), {}, {}, {}};
+    for (const BDDNode *n = node; n && is_compute_node(n); n = n->get_next()) {
+      builder.node = n;
+
+      // A step whose operand ops fit but whose own op doesn't must leave nothing behind: the
+      // op is speculated again on its own, in a pass where the operands go elsewhere.
+      std::optional<Context> ctx_before_step;
+      std::vector<DS_ID> actions_before_step;
+      std::unordered_map<std::string, DS_ID> placed_ops_before_step;
+      if (step_has_computed_operands(n)) {
+        ctx_before_step        = result.ctx;
+        actions_before_step    = builder.actions;
+        placed_ops_before_step = builder.placed_ops;
+      }
+
+      const std::optional<DS_ID> out = place_compute_node(builder, ep, n, &run_specs);
+      if (!out) {
+        if (ctx_before_step) {
+          result.ctx         = std::move(*ctx_before_step);
+          builder.ctx        = result.ctx.get_mutable_target_ctx<TofinoContext>();
+          builder.actions    = std::move(actions_before_step);
+          builder.placed_ops = std::move(placed_ops_before_step);
+        }
+        if (n == node) {
+          return {};
+        }
+        break; // The run stops here; this op recirculates when it is speculated on its own.
+      }
+      speculations_t::node_info_t info{ModuleType::Tofino_ArithmeticOp, true, new_pass && n == node, builder.actions, {}};
+      for (const symbol_t &symbol : dynamic_cast<const Call *>(n)->get_local_symbols().get()) {
+        result.produced[symbol.name] = *out;
+        info.produced[symbol.name]   = *out;
+      }
+      run_specs.note(n->get_id(), info);
+      if (n != node) {
+        result.skip.insert(n->get_id());
+      }
+    }
+    result.actions = builder.actions;
+    return result;
+  };
+
+  bool recirculated               = false;
+  std::optional<attempt_t> result = attempt(false);
+
+  if (!result) {
+    // The pipeline is used up: the packet goes around once more, and the run waits for nothing
+    // placed in the previous pass.
+    if (ep->count_speculative_past_recirculations(node, speculations) > MAX_PAST_RECIRCULATIONS) {
+      GlobalStats::num_spec_compute_cap_declined++;
+      return {};
+    }
+
+    result = attempt(true);
+    if (!result) {
+      return {};
+    }
+
+    const hit_rate_t node_hr = result->ctx.get_profiler().get_hr(node);
+    const port_ingress_t eg  = ep->get_speculative_node_egress(node_hr, node, speculations);
+    result->ctx.get_mutable_perf_oracle().add_recirculated_traffic(eg);
+    recirculated = true;
+    GlobalStats::num_spec_compute_recirculated++;
+  }
+
+  spec_impl_t spec_impl(decide(ep, node), result->ctx);
+  spec_impl.recirculated    = recirculated;
+  spec_impl.compute_step    = true;
+  spec_impl.compute_actions = result->actions;
+  spec_impl.produced        = result->produced;
+  spec_impl.skip            = result->skip;
+  return spec_impl;
 }
 
 std::optional<TofinoModuleFactory::compute_step_t> TofinoModuleFactory::implement_compute_step(const EP *ep, const BDDNode *node,
@@ -309,7 +525,8 @@ std::optional<TofinoModuleFactory::compute_step_t> TofinoModuleFactory::implemen
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
   TofinoContext *tofino_ctx  = new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>();
 
-  ComputeStepBuilder builder{.node = node, .ctx = tofino_ctx, .run = get_compute_run_actions(ep), .full_placer = true, .new_pass = false, .actions = {}};
+  ComputeStepBuilder builder{
+      .node = node, .ctx = tofino_ctx, .run = get_compute_run_actions(ep), .full_placer = true, .new_pass = false, .actions = {}, .placed_ops = {}};
   const std::optional<DS_ID> out = build(builder);
   if (!out) {
     return {};
@@ -331,10 +548,11 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP 
     TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
     ComputeStepBuilder builder{.node        = node,
                                .ctx         = tofino_ctx,
-                               .run         = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, speculations),
+                               .run         = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, node, speculations),
                                .full_placer = false,
                                .new_pass    = new_pass,
-                               .actions     = {}};
+                               .actions     = {},
+                               .placed_ops  = {}};
     const std::optional<DS_ID> out = build(builder);
     if (!out) {
       return {};

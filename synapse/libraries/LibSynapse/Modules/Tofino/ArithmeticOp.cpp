@@ -31,23 +31,60 @@ std::string build_op_id(const BDDNode *node) {
   return call.function_name + "_" + std::to_string(node->get_id());
 }
 
-compute_op_t build_op(const BDDNode *node) {
+struct step_t {
+  klee::ref<klee::Expr> value;
+  klee::ref<klee::Expr> out;
+  compute_op_t op;
+  std::vector<TofinoModuleFactory::compute_operand_t> operands; // Non-plain operands, computed first.
+  std::vector<klee::ref<klee::Expr>> plain_operands;
+};
+
+step_t build_step(const BDDNode *node) {
   const call_t &call = dynamic_cast<const Call *>(node)->get_call();
-  return compute_op_t{.id = build_op_id(node), .kind = ComputeOpKind::ALU, .width = call.ret->getWidth()};
+  step_t step;
+  step.value = unrolled_op_value(call);
+  step.out   = call.ret;
+  step.op    = compute_op_t{.id = build_op_id(node), .kind = ComputeOpKind::ALU, .width = call.ret->getWidth()};
+
+  std::vector<std::pair<std::string, klee::ref<klee::Expr>>> kids;
+  for (unsigned i = 0; i < step.value->getNumKids(); i++) {
+    kids.emplace_back(i == 0 ? "_a" : "_b", step.value->getKid(i));
+  }
+  step.operands = TofinoModuleFactory::get_operands_to_compute(step.op.id, kids);
+  for (const auto &[_, kid] : kids) {
+    if (TofinoModuleFactory::is_plain_operand(kid)) {
+      step.plain_operands.push_back(kid);
+    }
+  }
+  return step;
+}
+
+// Places the operands to compute, then the op itself.
+std::optional<DS_ID> place_step(TofinoModuleFactory::ComputeStepBuilder &builder, const EP *ep, const BDDNode *node, step_t &step,
+                                const speculations_t *speculations) {
+  if (!TofinoModuleFactory::place_operand_ops(builder, ep, node, step.operands, speculations)) {
+    return {};
+  }
+  return builder.place(step.op, TofinoModuleFactory::get_op_deps(ep, node, step.plain_operands, step.operands, speculations));
 }
 
 } // namespace
 
 std::string ArithmeticOp::get_op_id() const { return build_op_id(node); }
 
+std::optional<DS_ID> ArithmeticOpFactory::place(ComputeStepBuilder &builder, const EP *ep, const BDDNode *node, const speculations_t *speculations) {
+  if (!matches(node)) {
+    return {};
+  }
+  step_t step = build_step(node);
+  return place_step(builder, ep, node, step, speculations);
+}
+
 std::optional<spec_impl_t> ArithmeticOpFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (!matches(node)) {
     return {};
   }
-  const call_t &call                   = dynamic_cast<const Call *>(node)->get_call();
-  const compute_op_t op                = build_op(node);
-  const std::unordered_set<DS_ID> deps = TofinoContext::get_dataflow_deps(ep, node, unrolled_op_value(call), speculations);
-  return speculate_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return builder.place(op, deps); }, speculations);
+  return speculate_compute_run(ep, node, speculations);
 }
 
 std::vector<impl_t> ArithmeticOpFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
@@ -55,25 +92,20 @@ std::vector<impl_t> ArithmeticOpFactory::process_node(const EP *ep, const BDDNod
     return {};
   }
 
-  const call_t &call          = dynamic_cast<const Call *>(node)->get_call();
-  klee::ref<klee::Expr> value = unrolled_op_value(call);
-  klee::ref<klee::Expr> out   = call.ret;
-
-  const compute_op_t op                = build_op(node);
-  const std::unordered_set<DS_ID> deps = TofinoContext::get_dataflow_deps(ep, node, value);
-  std::optional<compute_step_t> step   = implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return builder.place(op, deps); });
-  if (!step) {
+  step_t step                              = build_step(node);
+  std::optional<compute_step_t> impl_step = implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return place_step(builder, ep, node, step, nullptr); });
+  if (!impl_step) {
     return {};
   }
 
-  Module *module  = new ArithmeticOp(node, step->action_id, value, out);
+  Module *module  = new ArithmeticOp(node, impl_step->action_id, step.value, step.out, step.operands);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());
-  step->ep->process_leaf(ep_node, {leaf});
+  impl_step->ep->process_leaf(ep_node, {leaf});
 
   std::vector<impl_t> impls;
-  impls.emplace_back(implement(ep, node, std::move(step->ep)));
+  impls.emplace_back(implement(ep, node, std::move(impl_step->ep)));
   return impls;
 }
 
@@ -81,9 +113,12 @@ std::unique_ptr<Module> ArithmeticOpFactory::create(const BDD *bdd, const Contex
   if (!matches(node)) {
     return {};
   }
-  const call_t &call = dynamic_cast<const Call *>(node)->get_call();
-  const DS_ID action_id = ctx.get_target_ctx<TofinoContext>()->find_compute_action(build_op_id(node));
-  return std::make_unique<ArithmeticOp>(node, action_id, unrolled_op_value(call), call.ret);
+  step_t step                     = build_step(node);
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+  for (compute_operand_t &operand : step.operands) {
+    operand.action_id = tofino_ctx->find_compute_action(operand.op_id);
+  }
+  return std::make_unique<ArithmeticOp>(node, tofino_ctx->find_compute_action(step.op.id), step.value, step.out, step.operands);
 }
 
 } // namespace Tofino

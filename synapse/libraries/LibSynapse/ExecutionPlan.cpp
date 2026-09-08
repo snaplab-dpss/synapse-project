@@ -15,6 +15,8 @@ namespace {
 
 constexpr const pps_t STABLE_TPUT_PRECISION{500};
 constexpr const pps_t TPUT_PRECISION{500};
+// Below this fraction of the traffic a node is cold: tie-breaks there skip the lookahead.
+const hit_rate_t COLD_NODE_HIT_RATE{1e-3};
 
 using LibBDD::BDDNodeType;
 using LibBDD::BDDNodeVisitAction;
@@ -571,6 +573,7 @@ void EP::sort_leaves() {
 }
 
 std::list<EP::speculation_target_t> EP::get_nodes_targeted_for_speculation() const {
+  const steady_clock::time_point begin = steady_clock::now();
   std::list<speculation_target_t> speculation_targets;
 
   const TargetType initial_target = targets.get_initial_target().type;
@@ -583,6 +586,30 @@ std::list<EP::speculation_target_t> EP::get_nodes_targeted_for_speculation() con
     }
   }
 
+
+  // Breadth-first over the whole remaining BDD, whatever the leaves: the greedy speculation
+  // packs stages in this order, and the estimate must not swing just because a branch got
+  // implemented (which splits one leaf's interleaved subtrees into two sequential ones).
+  // Depths in one traversal (the BDD's own lookup walks the tree per call).
+  std::unordered_map<bdd_node_id_t, int> depth;
+  std::function<void(const BDDNode *, int)> walk = [&](const BDDNode *n, int d) {
+    while (n) {
+      depth[n->get_id()] = d++;
+      if (n->get_type() == BDDNodeType::Branch) {
+        const LibBDD::Branch *branch = dynamic_cast<const LibBDD::Branch *>(n);
+        walk(branch->get_on_true(), d);
+        n = branch->get_on_false();
+        continue;
+      }
+      n = n->get_next();
+    }
+  };
+  walk(bdd->get_root(), 0);
+  speculation_targets.sort([&depth](const speculation_target_t &a, const speculation_target_t &b) {
+    return depth.at(a.node->get_id()) < depth.at(b.node->get_id());
+  });
+
+  GlobalStats::time_spec_targets += duration_cast<microseconds>(steady_clock::now() - begin).count();
   return speculation_targets;
 }
 
@@ -761,6 +788,14 @@ bool EP::is_better_speculation(const speculations_t &speculations, const spec_im
     return false;
   }
 
+  // A node that (almost) never sees traffic can't change the throughput either way; a full-path
+  // lookahead there would only rank the resources the cold path takes, at the cost of replaying
+  // the rest of the plan twice per such node. Keep the first candidate (the target lists the
+  // data-plane implementations first).
+  if (speculations.ctx.get_profiler().get_hr(speculation_target.node) < COLD_NODE_HIT_RATE) {
+    return false;
+  }
+
   GlobalStats::num_phase2_speculations++;
   const steady_clock::time_point phase2_begin = steady_clock::now();
   tput_cmp = compare_speculations_with_unexplored_nodes_lookahead(speculations, old_speculation, new_speculation, speculation_target, ingress,
@@ -815,6 +850,7 @@ spec_impl_t EP::get_best_speculation(const speculation_target_t &speculation_tar
       const std::optional<spec_impl_t> spec = modgen->speculate(this, speculation_target.node, speculations);
       steady_clock::time_point end          = steady_clock::now();
 
+      GlobalStats::time_speculating_per_factory[modgen->get_name()] += duration_cast<microseconds>(end - begin).count();
       if (!spec.has_value()) {
         GlobalStats::total_time_spent_speculating += duration_cast<microseconds>(end - begin).count();
         continue;
@@ -917,7 +953,10 @@ speculations_t EP::speculate(const speculations_t &speculations, std::list<specu
       GlobalStats::hot_nodes_speculated_to_controller[speculation_target.node->get_id()]++;
     }
 
+    const steady_clock::time_point t_append = steady_clock::now();
     complete_speculation.append(speculation);
+    const steady_clock::time_point t_affected = steady_clock::now();
+    GlobalStats::time_spec_append += duration_cast<microseconds>(t_affected - t_append).count();
 
     if (speculation.next_target.has_value()) {
       std::unordered_set<const BDDNode *> affected_nodes;
@@ -931,10 +970,13 @@ speculations_t EP::speculate(const speculations_t &speculations, std::list<specu
         }
       }
     }
+    const steady_clock::time_point t_remove = steady_clock::now();
+    GlobalStats::time_spec_affected += duration_cast<microseconds>(t_remove - t_affected).count();
 
     speculation_target_nodes.remove_if([&speculation](const speculation_target_t &st) {
       return speculation.skip.contains(st.node->get_id()) || (st.target == TargetType::Controller && st.node->get_type() != BDDNodeType::Route);
     });
+    GlobalStats::time_spec_remove += duration_cast<microseconds>(steady_clock::now() - t_remove).count();
   }
 
   return complete_speculation;
@@ -944,10 +986,7 @@ speculations_t EP::speculate(std::list<speculation_target_t> speculation_target_
   speculations_t speculations = {
       .speculations_per_node   = {},
       .ctx                     = ctx,
-      .producers               = {},
-      .recirculated_since_leaf = false,
-      .run_actions             = {},
-      .run_reaches_leaf        = true,
+      .by_node                 = {},
   };
   return speculate(speculations, speculation_target_nodes, ingress, strategy);
 }
@@ -965,6 +1004,7 @@ speculations_t EP::speculate() const {
 
   return complete_speculation;
 }
+
 
 const speculations_t &EP::get_speculations() const {
   if (!cached_speculations.has_value()) {
