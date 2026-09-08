@@ -666,19 +666,6 @@ control Ingress(
                   // BDD node 174:dchain_rejuvenate_index
                   fwd_op = fwd_op_t.RECIRCULATE;
                   build_recirc_hdr(1);
-                  if (hdr.recirc.code_path == 1) {
-                    // EP node  2177:Ignore
-                    // BDD node 174:dchain_rejuvenate_index
-                    // EP node  2290:VectorTableLookup
-                    // BDD node 175:vector_borrow
-                    meta.key_32b_0 = meta.dev;
-                    vector_table_1074093704_175.apply();
-                    // EP node  2406:Ignore
-                    // BDD node 176:vector_return
-                    // EP node  2920:Forward
-                    // BDD node 180:FORWARD
-                    nf_dev[15:0] = vector_table_1074093704_175_get_value_param0;
-                  }
                 } else {
                   // EP node  1189:Else
                   // BDD node 155:map_get
@@ -719,6 +706,18 @@ control Ingress(
           // EP node  4404:ParserReject
           // BDD node 185:DROP
         }
+      } else if (hdr.recirc.code_path == 1) {
+        // EP node  2177:Ignore
+        // BDD node 174:dchain_rejuvenate_index
+        // EP node  2290:VectorTableLookup
+        // BDD node 175:vector_borrow
+        meta.key_32b_0 = meta.dev;
+        vector_table_1074093704_175.apply();
+        // EP node  2406:Ignore
+        // BDD node 176:vector_return
+        // EP node  2920:Forward
+        // BDD node 180:FORWARD
+        nf_dev[15:0] = vector_table_1074093704_175_get_value_param0;
       }
 
     } else {

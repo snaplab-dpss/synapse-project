@@ -2112,7 +2112,7 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
 
 coder_t &TofinoSynthesizer::get(const std::string &marker) {
   if (marker == MARKER_INGRESS_CONTROL_APPLY && active_recirc_code_path) {
-    return code_template.get(MARKER_INGRESS_CONTROL_APPLY_RECIRC);
+    return recirc_coders[*active_recirc_code_path];
   }
   return code_template.get(marker);
 }
@@ -2129,6 +2129,26 @@ void TofinoSynthesizer::synthesize() {
   ingress_vars.push();
 
   EPVisitor::visit(target_ep);
+
+  // The recirculation passes are mutually exclusive: the code path is read from the header the
+  // previous pass wrote and is never reassigned, so they belong in one if / else-if chain.
+  // Emitting them into a single coder nested each pass inside the previous one's block, which
+  // left every pass after the first unreachable.
+  {
+    coder_t &recirc = code_template.get(MARKER_INGRESS_CONTROL_APPLY_RECIRC);
+    for (code_path_t code_path = 0; code_path < recirc_coders.size(); code_path++) {
+      recirc.indent();
+      recirc << (code_path == 0 ? code_t("") : code_t("} else "));
+      recirc << "if (hdr.recirc.code_path == ";
+      recirc << (i64)code_path;
+      recirc << ") {\n";
+      recirc << recirc_coders[code_path].dump();
+    }
+    if (!recirc_coders.empty()) {
+      recirc.indent();
+      recirc << "}\n";
+    }
+  }
 
   // Transpile the parser after the whole EP has been visited so we have all the headers available.
 
@@ -2392,7 +2412,7 @@ TofinoSynthesizer::var_t TofinoSynthesizer::alloc_var(const code_t &proposed_nam
 
 code_path_t TofinoSynthesizer::alloc_recirc_coder() {
   const size_t size = recirc_coders.size();
-  recirc_coders.emplace_back();
+  recirc_coders.emplace_back(code_template.get(MARKER_INGRESS_CONTROL_APPLY_RECIRC).lvl + 1);
   return size;
 }
 
@@ -2443,7 +2463,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const EPNode *next = ep_node->get_children()[0];
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
-  coder_t &recirc        = get(MARKER_INGRESS_CONTROL_APPLY_RECIRC);
 
   // 1. Allocate a new recirculation code path
   const code_path_t code_path = alloc_recirc_coder();
@@ -2561,17 +2580,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_vars.insert_back(var, /*allow_duplicates=*/true);
   }
 
-  recirc.indent();
-  recirc << "if (hdr.recirc.code_path == " << code_path << ") {\n";
-  recirc.inc();
-
   ingress_vars.push();
   visit(ep, next);
   ingress_vars.pop();
-
-  recirc.dec();
-  recirc.indent();
-  recirc << "}\n";
 
   // 5. Revert the state back to before the recirculation was made
   active_recirc_code_path = enclosing_recirc_code_path;

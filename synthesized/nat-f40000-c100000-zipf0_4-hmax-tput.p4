@@ -832,14 +832,6 @@ control Ingress(
                     fwd_op = fwd_op_t.RECIRCULATE;
                     build_recirc_hdr(1);
                     hdr.recirc.cached_insert_success0 = cached_insert_success0;
-                    if (hdr.recirc.code_path == 1) {
-                      // EP node  6116:SendToController
-                      // BDD node 281:tofino_force_send_to_controller
-                      fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                      build_cpu_hdr(6116);
-                      hdr.cpu.cached_insert_success0 = hdr.recirc.cached_insert_success0;
-                      hdr.cpu.dev = meta.dev;
-                    }
                   }
                 }
               }
@@ -854,6 +846,13 @@ control Ingress(
           // EP node  6953:ParserReject
           // BDD node 193:DROP
         }
+      } else if (hdr.recirc.code_path == 1) {
+        // EP node  6116:SendToController
+        // BDD node 281:tofino_force_send_to_controller
+        fwd_op = fwd_op_t.FORWARD_TO_CPU;
+        build_cpu_hdr(6116);
+        hdr.cpu.cached_insert_success0 = hdr.recirc.cached_insert_success0;
+        hdr.cpu.dev = meta.dev;
       }
 
     } else {
