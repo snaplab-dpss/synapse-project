@@ -141,6 +141,7 @@ private:
     std::optional<var_t> get(const code_t &name) const;
     std::optional<var_t> get(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     std::optional<var_t> get_exact(klee::ref<klee::Expr> expr) const;
+    std::optional<var_t> compose_hdr_fields(klee::ref<klee::Expr> expr) const;
     std::optional<var_t> get_hdr(klee::ref<klee::Expr> expr, transpiler_opt_t opt = TRANSPILER_OPT_NO_OPTION) const;
     std::optional<var_t> get_exact_hdr(klee::ref<klee::Expr> expr) const;
     std::vector<var_t> get_all() const;
@@ -265,10 +266,10 @@ private:
   void emit_compute_table(const EP *ep, DS_ID table_id, klee::ref<klee::Expr> in, klee::ref<klee::Expr> out);
   // Code for `operand` usable inside an action (metadata, header fields and constants as they
   // are; anything else staged into `meta.<table_id><suffix>` first, or always if `force_stage`).
-  code_t action_operand(DS_ID table_id, const std::string &suffix, klee::ref<klee::Expr> operand, bool force_stage = false);
   // A keyless table whose only action assigns `computation` to `out_var`: one stage, as the
   // placer charged for it. `in_hash` computes the assignment in the hash unit (@in_hash).
-  void emit_compute_step(DS_ID table_id, const var_t &out_var, const code_t &computation, bool in_hash);
+  // Emits the run of consecutive compute steps starting at `first` (see the definition).
+  void emit_compute_run(const EP *ep, const EPNode *first);
 
   coder_t &get(const std::string &marker);
 
