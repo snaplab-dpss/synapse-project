@@ -26,6 +26,18 @@ bool is_constant(klee::ref<klee::Expr> expr);
 bool is_constant_signed(klee::ref<klee::Expr> expr);
 bool is_conditional(klee::ref<klee::Expr> expr);
 bool match_endian_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &target);
+
+// A read of consecutive bytes of one array: a byte, or a concatenation of bytes in
+// little-endian order (the most significant byte has the highest address, the form of a
+// ReadLSB) or in network order (an NF byte-swapping its little-endian read).
+struct consecutive_bytes_t {
+  std::string array;
+  u32 lo; // Lowest address.
+  u32 hi; // Highest address.
+  bool network_order;
+  std::vector<klee::ref<klee::Expr>> bytes; // The byte reads, by increasing address.
+};
+std::optional<consecutive_bytes_t> get_consecutive_bytes(klee::ref<klee::Expr> expr);
 klee::ref<klee::Expr> swap_endianness(klee::ref<klee::Expr> expr);
 // A byte swap written the way DPDK's rte_bswap* do it (byte masks and shifts), of any width;
 // `target` is the value being swapped.
