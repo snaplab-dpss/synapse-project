@@ -180,14 +180,16 @@ private:
 
   std::shared_ptr<ProfilerNode> root;
 
-  // Not the prettiest solution, but will do.
-  // We cache on reads, and invalidate on writes.
-  mutable struct {
+  // Lookups into the tree, filled on reads. Copies of a profiler share the tree until one of
+  // them writes (clone_tree_if_shared), so they share this cache too; a cloned tree gets a
+  // fresh one, rebuilt from the clone rather than resolved node by node by constraints.
+  struct cache_t {
     std::unordered_map<bdd_node_id_t, ProfilerNode *> n2p;
     std::unordered_map<ProfilerNode *, bdd_node_id_t> p2n;
     std::unordered_map<bdd_node_id_t, ProfilerNode *> e2p;
     std::unordered_map<ProfilerNode *, bdd_node_id_t> p2e;
-  } cache;
+  };
+  mutable std::shared_ptr<cache_t> cache;
 
 public:
   Profiler(const BDD *bdd, const bdd_profile_t &bdd_profile, const std::unordered_set<u16> &available_devs);

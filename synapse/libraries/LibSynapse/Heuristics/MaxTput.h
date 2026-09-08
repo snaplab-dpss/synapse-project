@@ -92,7 +92,17 @@ private:
     return meta.processed_nodes.size();
   }
 
-  i64 get_tput_speculation(const EP *ep) const { return ep->speculate_tput_pps(); }
+  // Ranked at 3 significant digits: the estimate is not accurate beyond that, and comparing it
+  // exactly made the search chase rounding noise (a speculated vs a placed recirculation differ
+  // by ~1000 pps) back to every open sibling.
+  i64 get_tput_speculation(const EP *ep) const {
+    i64 tput = ep->speculate_tput_pps();
+    i64 unit = 1;
+    while (tput / unit >= 1000) {
+      unit *= 10;
+    }
+    return (tput / unit) * unit;
+  }
 
   i64 get_pipeline_usage(const EP *ep) const {
     const Tofino::TNA &tna = ep->get_ctx().get_target_ctx<Tofino::TofinoContext>()->get_tna();

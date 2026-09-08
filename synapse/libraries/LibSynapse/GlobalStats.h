@@ -3,6 +3,7 @@
 #include <LibCore/Types.h>
 
 #include <map>
+#include <string>
 
 namespace LibSynapse {
 namespace GlobalStats {
@@ -17,6 +18,24 @@ extern time_us_t total_time_phase1;
 extern time_us_t total_time_phase2;
 // Hot BDD nodes (>= 0.1% of traffic) a top-level speculation pass sent to the controller.
 extern std::map<u64, u64> hot_nodes_speculated_to_controller;
+// Time spent in each module factory's speculate(), by factory name.
+extern std::map<std::string, time_us_t> time_speculating_per_factory;
+extern u64 num_profiler_cache_misses;
+extern time_us_t time_spec_targets;
+extern time_us_t time_search_implement;
+extern time_us_t time_reorder_ops;
+extern time_us_t time_reorder_eps;
+extern u64 num_reorder_candidates;
+extern u64 num_reorder_ops;
+extern time_us_t time_search_ss_add;
+extern time_us_t time_search_log;
+extern time_us_t time_search_heuristic_add;
+extern time_us_t time_search_pop;
+extern time_us_t time_spec_affected;
+extern time_us_t time_spec_append;
+extern time_us_t time_spec_remove;
+extern u64 num_profiler_copies;
+extern u64 num_profiler_cache_clears;
 // Speculated compute steps: appended to an action of their run, placed in a new action, placed
 // after a speculated recirculation, or declined at the recirculation cap.
 extern u64 num_spec_compute_appended;

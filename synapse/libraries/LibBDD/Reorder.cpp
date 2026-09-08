@@ -1018,7 +1018,8 @@ double estimate_reorder(const BDD *bdd, const BDDNode *anchor) {
 }
 } // namespace
 
-candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor, bdd_node_id_t proposed_candidate_id) {
+candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor, bdd_node_id_t proposed_candidate_id,
+                                                 const Symbols *known_anchor_symbols) {
   candidate_info_t candidate_info;
 
   const BDDNode *proposed_candidate = bdd->get_node_by_id(proposed_candidate_id);
@@ -1045,7 +1046,8 @@ candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t 
     return candidate_info;
   }
 
-  const Symbols anchor_symbols = bdd->get_generated_symbols(anchor.node);
+  // The symbols known at the anchor are the same for every candidate: computed once by the caller.
+  const Symbols anchor_symbols = known_anchor_symbols ? *known_anchor_symbols : bdd->get_generated_symbols(anchor.node);
 
   assert(anchor.node && "Anchor node not found");
   assert(proposed_candidate && "Proposed candidate node not found");
@@ -1124,12 +1126,13 @@ std::vector<reorder_op_t> get_reorder_ops(const BDD *bdd, const anchor_info_t &a
 
   const symbol_t reordering_barrier_symbol = bdd->get_reordering_barrier_symbol();
 
-  next->visit_nodes([&ops, &bdd, &reordering_barrier_symbol, anchor, next, anchor_info, allow_candidate](const BDDNode *node) {
+  const Symbols anchor_symbols = bdd->get_generated_symbols(anchor_node);
+  next->visit_nodes([&ops, &bdd, &reordering_barrier_symbol, &anchor_symbols, anchor, next, anchor_info, allow_candidate](const BDDNode *node) {
     if (anchor_crosses_barrier_on_path_to_candidate(anchor, node, reordering_barrier_symbol)) {
       return BDDNodeVisitAction::Continue;
     }
 
-    const candidate_info_t proposed_candidate = concretize_reordering_candidate(bdd, anchor, node->get_id());
+    const candidate_info_t proposed_candidate = concretize_reordering_candidate(bdd, anchor, node->get_id(), &anchor_symbols);
 
     if (proposed_candidate.status == ReorderingCandidateStatus::Valid && allow_candidate(proposed_candidate)) {
       ops.push_back({anchor_info, next->get_id(), proposed_candidate});
@@ -1215,9 +1218,18 @@ std::unique_ptr<BDD> reorder(const BDD *original_bdd, const reorder_op_t &op) {
   // beyond its users" invariant. The candidate vetting cannot always predict it
   // for the shape-altering clone path, so we validate the produced BDD here and
   // discard the reordering if it broke symbol availability, rather than crashing.
-  const BDD::inspection_report_t inspection_report = bdd->inspect();
-  if (inspection_report.status != BDD::InspectionStatus::Ok) {
-    return nullptr;
+  const bool shape_altering = candidate_info.is_branch || !candidate_info.condition.isNull();
+  // A pull of a candidate without siblings can't break it either (nothing is removed, the
+  // candidate's inputs are all known at the anchor, and nothing it crosses depended on its
+  // outputs); a sibling pull replaces the siblings by the candidate, whose generated symbols
+  // then differ from the ones their consumers use. Inspecting the whole BDD costs more than
+  // everything else a reordering does, so only those cases pay for it.
+  const bool needs_inspection = shape_altering || !candidate_info.siblings.empty();
+  if (needs_inspection) {
+    const BDD::inspection_report_t inspection_report = bdd->inspect();
+    if (inspection_report.status != BDD::InspectionStatus::Ok) {
+      return nullptr;
+    }
   }
 
   return bdd;
@@ -1295,7 +1307,7 @@ reordered_bdd_t try_reorder(const BDD *bdd, const anchor_info_t &anchor_info, bd
   const vector_t anchor_vector = {anchor, anchor_info.direction};
   const BDDNode *next          = get_vector_next(anchor_vector);
 
-  const candidate_info_t proposed_candidate = concretize_reordering_candidate(bdd, anchor_vector, candidate_id);
+  const candidate_info_t proposed_candidate = concretize_reordering_candidate(bdd, anchor_vector, candidate_id, nullptr);
   const reorder_op_t op                     = {anchor_info, next->get_id(), proposed_candidate};
 
   reordered_bdd_t result{

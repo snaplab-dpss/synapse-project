@@ -1,6 +1,7 @@
 #pragma once
 
 #include <LibSynapse/PerfOracle.h>
+#include <LibCore/Cow.h>
 #include <LibSynapse/Profiler.h>
 #include <LibSynapse/Target.h>
 
@@ -96,25 +97,35 @@ public:
 class Context {
 private:
   Profiler profiler;
-  PerfOracle perf_oracle;
+  // Everything below changes at a handful of search steps but is copied at every speculated
+  // node: copies share it until one of them writes (see S()).
+  struct State {
+    std::unordered_map<addr_t, map_config_t> map_configs;
+    std::unordered_map<addr_t, vector_config_t> vector_configs;
+    std::unordered_map<addr_t, dchain_config_t> dchain_configs;
+    std::unordered_map<addr_t, cms_config_t> cms_configs;
+    std::unordered_map<addr_t, bf_config_t> bf_configs;
+    std::unordered_map<addr_t, cht_config_t> cht_configs;
+    std::unordered_map<addr_t, tb_config_t> tb_configs;
 
-  std::unordered_map<addr_t, map_config_t> map_configs;
-  std::unordered_map<addr_t, vector_config_t> vector_configs;
-  std::unordered_map<addr_t, dchain_config_t> dchain_configs;
-  std::unordered_map<addr_t, cms_config_t> cms_configs;
-  std::unordered_map<addr_t, bf_config_t> bf_configs;
-  std::unordered_map<addr_t, cht_config_t> cht_configs;
-  std::unordered_map<addr_t, tb_config_t> tb_configs;
+    std::vector<map_coalescing_objs_t> coalescing_candidates;
+    std::unordered_set<addr_t> dchains_used_exclusively_for_linking_maps_with_vectors;
+    std::unordered_map<addr_t, std::vector<hit_rate_t>> dchains_failing_to_allocate_new_index_hit_rates;
+    std::optional<expiration_data_t> expiration_data;
+    std::vector<expr_struct_t> expr_structs;
 
-  std::vector<map_coalescing_objs_t> coalescing_candidates;
-  std::unordered_set<addr_t> dchains_used_exclusively_for_linking_maps_with_vectors;
-  std::unordered_map<addr_t, std::vector<hit_rate_t>> dchains_failing_to_allocate_new_index_hit_rates;
-  std::optional<expiration_data_t> expiration_data;
-  std::vector<expr_struct_t> expr_structs;
+    std::unordered_map<addr_t, DSImpl> ds_impls;
+    std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> ds_impls_decisions_per_bdd_node_and_obj;
+    std::map<std::pair<addr_t, DSImpl>, u32> ds_usage_counts;
+  };
 
-  std::unordered_map<addr_t, DSImpl> ds_impls;
-  std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> ds_impls_decisions_per_bdd_node_and_obj;
-  std::map<std::pair<addr_t, DSImpl>, u32> ds_usage_counts;
+  LibCore::Cow<PerfOracle> perf_oracle;
+  LibCore::Cow<State> state;
+
+  // The shared state: read-only from const members, detached on first write otherwise.
+  const State &S() const { return *state; }
+  State &S() { return state.mutate(); }
+
   std::unordered_map<TargetType, TargetContext *> target_ctxs;
 
 public:
