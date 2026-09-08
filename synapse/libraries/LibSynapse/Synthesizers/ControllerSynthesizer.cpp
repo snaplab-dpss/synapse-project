@@ -168,7 +168,13 @@ code_t ControllerSynthesizer::Transpiler::type_from_size(bits_t size) {
   return type;
 }
 
-code_t ControllerSynthesizer::Transpiler::type_from_expr(klee::ref<klee::Expr> expr) { return type_from_size(expr->getWidth()); }
+code_t ControllerSynthesizer::Transpiler::type_from_expr(klee::ref<klee::Expr> expr) {
+  // A value's type: the narrowest native one holding its bits (a 48-bit result lives in a u64;
+  // the code truncating into it masks, see visitExtract).
+  const bits_t width = expr->getWidth();
+  assert(width >= 1 && width <= 64 && "Unsupported value width");
+  return width == 1 ? "bool" : type_from_size(width <= 8 ? 8 : width <= 16 ? 16 : width <= 32 ? 32 : 64);
+}
 
 klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitRead(const klee::ReadExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ReadExpr *>(&e);
@@ -200,6 +206,18 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSelect(const k
 klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitConcat(const klee::ConcatExpr &e) {
   klee::ref<klee::Expr> expr = const_cast<klee::ConcatExpr *>(&e);
   coder_t &coder             = coders.top();
+
+  // Bytes of a buffer in network order (the NF byte-swapped its little-endian read): the
+  // swap of that read.
+  const std::optional<LibCore::consecutive_bytes_t> bytes = LibCore::get_consecutive_bytes(expr);
+  if (bytes && bytes->network_order && (expr->getWidth() == 16 || expr->getWidth() == 32)) {
+    klee::ref<klee::Expr> little_endian;
+    for (klee::ref<klee::Expr> byte : bytes->bytes) {
+      little_endian = little_endian.isNull() ? byte : solver_toolbox.exprBuilder->Concat(byte, little_endian);
+    }
+    coder << (expr->getWidth() == 16 ? "bswap16(" : "bswap32(") << transpile(little_endian, loaded_opt) << ")";
+    return Action::skipChildren();
+  }
 
   if (std::optional<ControllerSynthesizer::var_t> var = synthesizer->vars.get(expr, loaded_opt)) {
     if (var->is_ptr) {
@@ -238,9 +256,10 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitExtract(const 
   const bits_t offset       = e.offset;
   klee::ref<klee::Expr> arg = e.expr;
 
+  const bool native_width = width == 1 || width == 8 || width == 16 || width == 32 || width == 64;
   if (width != arg->getWidth()) {
     coder << "(";
-    coder << type_from_expr(arg);
+    coder << type_from_expr(expr);
     coder << ")";
     coder << "(";
   }
@@ -256,6 +275,10 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitExtract(const 
 
   if (width != arg->getWidth()) {
     coder << ")";
+    if (!native_width) {
+      // The cast alone doesn't truncate to `width` bits.
+      coder << " & " << ((1ull << width) - 1) << "ull";
+    }
   }
 
   return Action::skipChildren();
@@ -363,7 +386,15 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitOr(const klee:
 }
 
 klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitXor(const klee::XorExpr &e) {
-  panic("TODO: visitXor");
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> lhs = e.getKid(0);
+  klee::ref<klee::Expr> rhs = e.getKid(1);
+
+  coder << "(" << transpile(lhs, loaded_opt) << ")";
+  coder << " ^ ";
+  coder << "(" << transpile(rhs, loaded_opt) << ")";
+
   return Action::skipChildren();
 }
 
@@ -771,8 +802,10 @@ void ControllerSynthesizer::synthesize() {
   symbol_t device  = bdd->get_device();
   symbol_t pkt_len = bdd->get_packet_len();
 
-  alloc_var("now", now.expr, {}, NO_OPTION);
-  alloc_var("size", pkt_len.expr, {}, NO_OPTION);
+  // The nf_process parameters, under their own names (a unique name would be now_0, which
+  // nothing declares).
+  alloc_var("now", now.expr, {}, EXACT_NAME);
+  alloc_var("size", pkt_len.expr, {}, EXACT_NAME);
 
   synthesize_nf_process();
   synthesize_state_member_init_list();
@@ -1788,13 +1821,30 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+namespace {
+
+// The C type holding a value of `width` bits, and the mask that keeps it in `width` bits
+// when the type is wider (the NF's arithmetic wraps at `width`, e.g. a 48-bit result).
+std::pair<code_t, code_t> value_type_and_mask(bits_t width) {
+  assert(width >= 1 && width <= 64 && "Unsupported value width");
+  const bits_t native = width <= 8 ? 8 : width <= 16 ? 16 : width <= 32 ? 32 : 64;
+  const code_t type   = width == 1 ? "bool" : "u" + std::to_string(native);
+  if (width == 1 || width == native) {
+    return {type, ""};
+  }
+  return {type, std::to_string((1ull << width) - 1) + "ull"};
+}
+
+} // namespace
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::ArithmeticOp *node) {
   coder_t &coder                  = get_current_coder();
   const code_t value_code         = transpiler.transpile(node->get_value());
   const klee::ref<klee::Expr> out = node->get_out();
   const var_t out_var             = alloc_var("unrolled", out, {}, NO_OPTION);
+  const auto [type, mask]         = value_type_and_mask(out->getWidth());
   coder.indent();
-  coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = " << value_code << ";\n";
+  coder << type << " " << out_var.name << " = " << (mask.empty() ? value_code : "(" + value_code + ") & " + mask) << ";\n";
   return EPVisitor::Action::doChildren;
 }
 
