@@ -12,8 +12,9 @@ Build directories (`out_*`) and logs are not kept. A healthy program here compil
 anything still running after a couple of minutes is failing slowly and should be treated as a
 failure.
 
-`GROUND-TRUTH.md` describes `sipgt.p4`, the hand-written SmartCookie that compiles, and lists
-what synapse cannot express about it. That file is the point of everything below.
+`GROUND-TRUTH.md` describes `synthesized/smartcookie-manual.p4`, the hand-written SmartCookie that
+compiles and passes `tests/smartcookie.py`, and lists what synapse cannot express about it. That
+file is the point of everything below.
 
 ## Skeleton
 
@@ -29,9 +30,15 @@ NF hashes it as one 32-bit network-order word. Can the P4 rebuild it with `++`?
 - `concatB`: the same concat used directly as an xor operand: PHV allocation fails.
 - `concatC`: byte-reversed concat of slices (the bswap32 macro spelled out): compiles.
 - `concatD`: slicing a parenthesised concat, `(a ++ b)[7:0] ++ ...`: compiles.
+- `concatE`: `f = C ++ (f[7:0] | K)`: compiles, and is **silently wrong**. The assembly reads
+  `set hdr.ipv4.frag.0-7, $concat_to_slice1` with nothing anywhere assigning that temporary, so
+  the low byte comes out zero and the OR is lost. Found by the model test, not the compiler.
+- `concatF`: the same write split into `f[15:8] = C; f[7:0] = f[7:0] | K;`: correct, and the
+  assembly shows the `or` instruction.
 
 Takeaway: a field concat must be materialised by its own assignment before any arithmetic
-uses it; the existing `bswap32` macro works over a concat.
+uses it; the existing `bswap32` macro works over a concat; and an operation inside a concat that
+is written straight back to the field is dropped, so write the pieces separately.
 
 ## Hash rotates, ALU chains and headers (`phvT*.p4`, `phvW*.p4`)
 
@@ -166,5 +173,9 @@ lives in it, and the unrolled chain has around 160 values against the loop's nin
 - A condition inside an action must be a simple comparison on action data.
 - A 32-bit inequality does not fit a gateway's 4 bytes + 12 bits, so accepted ranges become
   constant table entries.
-- A `Checksum()` input cannot be a slice, so fields packed inside wider ones must be staged into
-  metadata first.
+- A `Checksum()` in the deparser can neither read nor write a slice. The read side can be worked
+  around by staging into metadata; the **write** side cannot, and is silently ignored, so the
+  packet keeps its original checksum. Fields a checksum touches must be their own header fields.
+- Statements inside an action execute in order, so `a = b; b = a;` duplicates `b` instead of
+  swapping; but a single write of a field in terms of itself
+  (`ports = ports[15:0] ++ ports[31:16]`) is one operation and is correct.
