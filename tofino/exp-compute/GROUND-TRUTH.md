@@ -50,222 +50,65 @@ words, the round counter, the callback type, the egress port and the cookie time
 recirculated header; the message word for each lap is chosen by a table keyed on the counter.
 
 This is the shape the whole investigation converged on, and each element of it was forced by a
-measured failure. See `README.md` for the experiments behind them.
+measured failure. See `README.md` for the experiments behind them. `sc_unrolled.p4` next door is
+the same NF with the rounds written out linearly instead, which also compiles and needs one
+recirculation rather than two; the section below says what that settled.
 
-## What synapse cannot express today
+## The work, in the order we will do it
 
-Kept here so the gap is explicit. Ordered by how hard each looks.
+Every item below started as "synapse cannot express this". Testing each one before planning any
+work shrank most of them: one dissolved entirely, one left the critical path, and two turned out to
+be largely implemented already. What follows is ordered by the order we will actually take, with
+the original numbering kept in brackets so older notes still line up.
 
-1. **One body executed many times.** The chain is written once and re-executed on each lap, so
-   three laps cost one lap of hardware. Synapse emits separate code per lap, because its BDD
-   arrived from symbolic execution with the loop already unrolled and nothing marking the twelve
-   rounds as iterations of one thing. This is the large gap: it needs the repeated structure
-   recognised, a body emitted once, and the search and placer taught what that costs.
-   *Consequence today: 92 distinct actions and about 160 live values, against 19 and 9 here.*
+The five rules under "Emission rules the compiler will not enforce" are not separate work; each
+attaches to whichever item touches it.
 
-2. **Using the egress pipeline.** All synapse output lives in ingress. The ground truth needs
-   egress for half the rounds, which is what brings the hash-unit demand inside budget. This is
-   the smaller gap and it may matter more: the unrolled form has never been tried with the work
-   split across both pipelines, and that experiment is still open.
+### 1. Use the egress pipeline *(was item 2)*
 
-3. **A loop counter and dispatch on it, needed only if the loop is rolled.** The rolled ground
-   truth carries `round` in the recirculated header, does `round = round + 2` each half-lap, and
-   keys tables on it to pick the message word and the finish action. That is a genuine runtime
-   counter and synapse has no module for one.
-   **The unrolled form does not need it.** Synapse already emits a pass identifier into the
-   recirculation header (`build_recirc_hdr(N)` writing `hdr.recirc.code_path`), dispatches on it
-   with an `if (hdr.recirc.code_path == N)` chain, and carries live variables across the boundary.
-   `sc_unrolled.p4` was rewritten to use exactly that, with its bespoke counter field deleted, and
-   still compiles in 7 s -- dispatching in *egress* as well as ingress. So for the direction we are
-   taking, item 3 is not a new module at all. What is left of it belongs to item 2: **the egress
-   parser has to extract the recirculation header and the egress control has to open with the same
-   `code_path` chain the ingress has.**
+All synapse output lives in ingress. The ground truth needs egress for half its rounds, and the
+unrolled experiment showed this is the whole of what SmartCookie needs. It also pays off beyond
+SmartCookie: any plan over 20 stages recirculates today, and recirculation costs throughput.
 
-4. **Emitting an operation into the hash unit deliberately.** Smaller than it looked, once tested.
-   Synapse *already* has half of it: `RotateLeft::uses_hash_unit()` sends any rotate that is not a
-   whole number of bytes through `@in_hash`, and `ComputeAction` budgets hash bits and hash
-   distribution units. What is missing is the general case: **an expression tree that would span
-   stages collapses into one hash-unit op**. `v0 ^ v1 ^ v2 ^ v3` costs three ALU instructions and
-   an action cannot span stages ("xor: action spanning multiple stages"), but it is a single
-   `@in_hash` op. That is the rule to add.
-   Two other uses in an earlier version of this file turned out to be superstition: a slice-and-
-   widen read of an intrinsic (`ctime = ingress_mac_tstamp[47:16]`) and a byte read feeding a table
-   parameter (`nf_dev = dst[31:24]`) both compile as plain ALU ops and pass the model test. They
-   have been removed, taking the program from ten `@in_hash` sites to eight.
+But egress buys **critical-path depth, not capacity**. A plan bound by dependency depth, as
+SmartCookie is, can drop a recirculation; a plan bound by SRAM or logical table ids gains nothing,
+because those are shared with ingress. The search heuristic has to learn that an egress stage is
+nearly free where a recirculation is not, and the placer has to know which budget is binding.
 
-5. **Respecting the immediate pathway, which is a per-table budget.** Not "one hash-producing
-   action per table": the limit is **32 bits of hash-produced immediate data per table, summed over
-   its actions**. Merging the two final-xor actions into one table gives
-   "the number of bits required to go through the immediate pathway 64 ... is greater than the
-   available bits 32", and bf-p4c then crashes with SIGSEGV rather than exiting cleanly.
-   Synapse models this per *action* (`ComputeAction::MAX_HASH_BITS_PER_ACTION`), which happens to
-   agree today only because it emits one action per keyless table. The accounting has to move to
-   the table as soon as one table carries several actions, which is exactly what item 3's dispatch
-   tables need.
-   The claim that a hash operation cannot sit in a keyless table is **wrong**: every round action
-   here holds an `@in_hash` and is called bare from the apply block, and bf-p4c compiles each into
-   a keyless `hash_action` table. The bloom's `Hash.get()` queries are the same shape.
+**The template has nowhere to put egress code.** `tofino.template.p4` has `EGRESS_HEADERS` and
+`EGRESS_METADATA` markers, so the structs can be filled, but the egress parser has no marker,
+`control Egress` is a hardcoded `apply {}`, and the deparser has none. Four or five new insertion
+points are the mechanical part.
 
-6. **Wide comparisons, where synapse is mostly right already.** `age > 2` on a 32-bit value does
-   not fit a gateway ("condition too complex, limit of 4 bytes + 12 bits of PHV input exceeded"),
-   so the three accepted epochs are constant table entries here. Measured, the gateway budget
-   splits by comparison kind rather than by width alone:
+**The placer models one pipeline, not two.** `tna_properties_t` has `stages = 20` and a single
+`PipelineResources`; `pipes = 4` is the physical pipes and is unrelated. A recirculation pass is one
+20-stage pool. It has to become ingress + egress, and anything crossing the boundary has to travel
+in a header, because the two gresses share no metadata.
 
-   | condition | limit on PHV operands |
-   |---|---|
-   | `==`, `!=` | 4 bytes, so a 32-bit equality fits |
-   | `<`, `>`, `<=`, `>=` against a power-of-two boundary | free at any width: it is a "high bits are zero" mask test |
-   | `<`, `>`, `<=`, `>=` otherwise | **12 bits total**, and a constant operand costs nothing |
+**Absorbed from the dissolved item 3:** the egress parser has to extract the recirculation header
+and the egress control has to open with the same `if (hdr.recirc.code_path == N)` chain the ingress
+has. Synapse already emits that chain in ingress and already carries live variables across a
+recirculation, so this is reuse, not new machinery.
 
-   Toys: `cmpk12.p4` (12-bit field vs a constant) compiles, `cmpk13.p4` (13 bits) does not, and
-   `cmp12.p4` -- two 12-bit *fields*, 24 bits of operand -- does not either.
+**And the emission-order rule**, which is the most directly actionable thing the experiment
+produced: mutually exclusive branches share stages, but only from where they start. A lap emitted
+after another lap's tables begins after them. Emitting the *recirculated* lap first, ahead of the
+first pass's clock/bloom/triage block, took ingress from 21 stages to 18, and the same reordering in
+egress took it from 21 to 18 and made the program compile. **The order in which alternative code
+paths are emitted decides whether a program fits**, and it is invisible unless you read the stage
+assignment out of the `.bfa`.
 
-   Synapse already covers most of this. `If.cpp`'s `is_wide_const_inequality` diverts a relational
-   against a constant wider than 8 bits away from the gateway, exempts the power-of-two case, and
-   falls back to rewriting the comparison over narrow slices rather than punting to the controller.
-   Two gaps remain, both latent (nothing shipped hits them):
-   - the threshold is 8 bits where the hardware allows 12, so some conditions are split that need
-     not be;
-   - a relational between **two non-constant operands** is not checked at all: it bypasses
-     `is_wide_const_inequality` (which requires a constant RHS) and passes
-     `condition_meets_phv_limit`, which counts bytes against 4 without regard to comparison kind.
-     Two 12-bit fields are 2 bytes and sail through, and bf-p4c then rejects the program. The check
-     needs to sum the non-constant operand widths against 12 bits for relational comparisons.
+Three constraints bound what can go in egress:
 
-7. **Deparser checksums. This is a live correctness bug, not a missing nicety.** Synapse emits no
-   dataplane checksum at all: `Ignore.cpp` lists `nf_set_rte_ipv4_udptcp_checksum` among the calls
-   it drops, and `ModifyHeader.cpp`'s `filter_out_checksum_mods` strips the checksum field write
-   from the header modifications. So a packet the *dataplane* rewrites leaves with the checksum it
-   arrived with; only packets that take the CPU path are corrected, by the controller's
-   `update_ipv4_tcpudp_checksums`.
-   Verified on a shipped solution: `nat-f40000-c0-unif-hmax-tput` with `NAT_INDEX_BYTE_ORDER=big`
-   fails `tests/nat.py` on the fast path with both the IPv4 and the UDP checksum wrong, and passes
-   as soon as `NAT_CHECK_CHECKSUMS=0` is set. Checksums are the only thing still failing there.
+- **Egress cannot redirect.** The egress port is chosen in ingress; egress can drop but not
+  re-route, so any module that changes the forwarding decision stays in ingress.
+- **The controller addresses tables as `"Ingress.x"`.** Egress tables would be `"Egress.x"` and
+  sycon has no support for that. The ground truth avoids it by using only `const entries` in
+  egress, which is a fair restriction to start with but excludes controller-populated tables.
+- **The egress parser has to be generated** to match exactly what the ingress deparser emits, which
+  today is implicit.
 
-   The target's rule, measured both ways and asymmetric in a way that matters:
-   - a `Checksum()` **input** that is a slice is a hard error, "unexpected type of parameter
-     hdr.hdr1.data2[39:8] in Checksum";
-   - a `Checksum()` **output** written to a slice compiles with 0 errors and is **silently
-     ignored**, leaving the original checksum on the wire. This is how the first version of this
-     program shipped a wrong checksum past the compiler.
-
-   So every field a checksum touches must be a header field in its own right, which is a constraint
-   on header guessing, not just on emission: the IPv4 protocol and header checksum are separate
-   fields here, as are the TCP window, checksum and urgent pointer. The ground truth shows the
-   whole shape of the fix, deparser `Checksum().update({...})` guarded by a flag the rewriting
-   actions set.
-
-Items 4 through 7 are ordinary emission rules synapse could adopt. Item 3 is a modest new module.
-Items 1 and 2 are the real question, and 2 should be tested before 1 is attempted.
-
-## What compiling cannot tell you
-
-An earlier version of this program compiled in 4 s with 0 errors and was wrong in six ways. Five
-are constraints the emitter has to respect; they are listed here because a synthesizer that only
-checks "does bf-p4c accept it" will violate every one of them and never find out. The sixth was a
-plain transcription slip on my part, hashing `ack` where the cookie check wants `ack - 1`, which
-is the other reason `tests/smartcookie.py` exists.
-
-1. **Statements inside an action run in order.** A two-field swap written as `a = b; b = a;`
-   duplicates `b`. The old value has to be captured by an earlier action, because a temporary
-   written and read inside one action makes it span stages, which bf-p4c does reject. A *single*
-   whole-field write of a field in terms of itself is fine and is one operation:
-   `ports = ports[15:0] ++ ports[31:16]` swaps correctly.
-2. **The same ordering across tables.** `ack = seq + 1` has to read `seq` before the table that
-   writes the cookie into it, so it is staged on the way into the pipeline.
-3. **A deparser `Checksum()` can neither read nor write a slice.** The write is silently ignored
-   and the packet keeps the checksum it arrived with, which is why item 7 above splits header
-   fields instead of staging them into metadata: staging fixes the read side and does nothing for
-   the write side.
-4. **A recirculated packet still has to parse.** Marking a packet in flight by rewriting its
-   ethertype made the ingress parser reject it on the way back round, so the second and third laps
-   hashed nothing. The recirculation header's `code_path` is the marker; the ethertype is left
-   alone.
-5. **`f = C ++ (f[7:0] | K)` silently loses the OR.** This one is a bf-p4c bug, not a rule to
-   follow: it allocates a temporary for the concat operand and never writes it
-   (`set hdr.f.0-7, $concat_to_slice27`, with nothing anywhere assigning `$concat_to_slice27`), so
-   the field comes out zero. Two slice assignments compile to `set hdr.f.8-15, C` plus
-   `or B7, K, B7` and are correct. Reproducers: `concatE.p4` (broken), `concatF.p4` (correct).
-
-None of these five appear in any solution synapse ships today: a scan of `synthesized/*.p4` finds
-no in-action swap, no concat containing an operation, no deparser checksum and no ethertype
-rewrite. So nothing is broken right now, but items 1 and 2 become live the moment the emitter is
-taught to rewrite packets in place, and item 3 changes what header guessing has to produce before
-a checksum can be emitted at all.
-
-## Plan for changing synapse
-
-Agreed order of attack (2026-09-08). It is not the order the list above is numbered in: that one
-runs by difficulty, this one by dependency and by value.
-
-| order | item | why here |
-|---|---|---|
-| 1 | 2, use the egress pipeline | gates item 1, and pays off beyond SmartCookie |
-| 2 | 4 + 5, deliberate `@in_hash` and hash-action placement | mechanical, needed either way |
-| 3 | 6, wide comparisons as table entries | mechanical, small |
-| 4 | 7, checksums and splitting fields to suit them | self-contained, a correctness gap for any packet-crafting NF |
-| 5 | 3, loop counter and dispatch | **dissolved**: synapse's `code_path` already does it; see below |
-| 6 | 1, one body executed many times | the big one, and **no longer on the critical path**: see below |
-
-The five rules under "What compiling cannot tell you" are not separate work; each attaches to
-whichever item touches it.
-
-### The open question is answered: the unrolled chain fits, given egress
-
-`sc_unrolled.p4` is the same NF with the twelve rounds written out linearly instead of as one
-re-executed body, split across the two pipelines. **It compiles in 7 s with one recirculation**,
-where the rolled ground truth needs two. Ingress uses 19 stages, egress 18, over 139 actions and
-40 `@in_hash` sites.
-
-So loop rolling is not required for SmartCookie to fit. Item 1 is a code-size question, not a
-feasibility one, and item 2 is both necessary and sufficient. What the failures along the way said:
-
-- **The chain never failed on PHV or hash units once split.** Every failed attempt reported
-  "supports up to 20 stages, using 21" (or 25). The hash-unit competition that defeated the
-  ingress-only form is gone once half the rounds live in egress, exactly as predicted, and what is
-  left is a pure critical-path problem.
-- **A SipRound is 4 dependency levels**, so twelve rounds are 48 and a single pass over both
-  pipelines (40 stages) can never hold them. Two passes can.
-- **Mutually exclusive branches share stages, but only from where they start.** Lap 1's and lap 2's
-  code overlay each other in the same stages, so the bound is the largest lap per pipeline rather
-  than the sum. But a lap emitted after another lap's tables begins after them: emitting the
-  *recirculated* lap first, before the first pass's clock/bloom/triage block, took ingress from 21
-  stages to 18, and the same reordering in egress took it from 21 to 18. **The order in which
-  alternative code paths are emitted decides whether a program fits.** This is the most directly
-  actionable rule for the synthesizer to come out of the experiment, and it is invisible unless you
-  read the stage assignment out of the `.bfa`.
-- **Ingress is the scarce pipeline**, because the clock, bloom and triage tables sit ahead of the
-  chain: it holds about 2 rounds per lap against egress's 4.
-
-**Open, and not understood: the bloom filter stops working in this build.** Everything else passes
-`tests/smartcookie.py` against it, including the full SYN to cookie to verified-ACK round trip and
-the hash-versus-reference check, so the unrolled twelve rounds are correct. But an ECE packet from
-the server no longer records its flow, and the bloom source is byte-identical to the version that
-works. The hash inputs of the set and read tables were checked in the `.bfa` and are consistent,
-and giving the two read bits their own metadata fields does not help. Whatever it is, it is a third
-case of placement alone changing behaviour with no compiler complaint. `sc_unrolled.p4` is kept as
-an experiment, deliberately not in `synthesized/`, because it is not a validated solution.
-
-### What item 2 entails
-
-Three things, found by reading the code rather than guessing:
-
-- **The template has nowhere to put egress code.** `tofino.template.p4` has `EGRESS_HEADERS` and
-  `EGRESS_METADATA` markers, so the structs can be filled, but the egress parser has no marker,
-  `control Egress` is a hardcoded `apply {}`, and the deparser has none. Four or five new
-  insertion points are the mechanical part.
-- **The placer models one pipeline, not two.** `tna_properties_t` has `stages = 20` and a single
-  `PipelineResources`; `pipes = 4` is the physical pipes and is unrelated. A recirculation pass is
-  one 20-stage pool. It has to become ingress + egress: two pools with a one-way dependency, and
-  anything crossing the boundary has to travel in a header, because the two share no metadata.
-- **It is worth more than SmartCookie, but only for the right kind of plan.** Any plan over 20
-  stages recirculates today, and recirculation costs throughput. Egress buys **critical-path depth,
-  not capacity**: a plan bound by dependency depth, as SmartCookie is, can drop a recirculation,
-  while a plan bound by SRAM or logical table ids gains nothing, because those are shared with
-  ingress (see below). The search heuristic has to learn that an egress stage is nearly free where
-  a recirculation is not, and the placer has to know which of the two kinds of budget is binding.
-
-### How the pipeline's resources actually spread across the two gresses
+#### How the pipeline's resources actually spread across the two gresses
 
 Measured from `resources.json` and the assembly of the ground truth's own build, because the answer
 differs per resource and none of it is half/half.
@@ -292,12 +135,160 @@ egress <= 20), **one shared memory constraint per physical stage** summing what 
 there, and **one PHV pool partitioned** between them. Today it has a single 20-stage pool with all
 of these folded into it, which is right only as long as egress stays empty.
 
-Three constraints bound what can go there:
+### 2. Deparser checksums *(was item 7, promoted: this one is already broken)*
 
-- **Egress cannot redirect.** The egress port is chosen in ingress; egress can drop but not
-  re-route, so any module that changes the forwarding decision stays in ingress.
-- **The controller addresses tables as `"Ingress.x"`.** Egress tables would be `"Egress.x"` and
-  sycon has no support for that. The ground truth avoids it by using only `const entries` in
-  egress, which is a fair restriction to start with but excludes controller-populated tables.
-- **The egress parser has to be generated** to match exactly what the ingress deparser emits,
-  which today is implicit.
+Promoted above the emission rules because it is not a SmartCookie feature, it is a **live
+correctness bug in shipped solutions**, and it is independent of everything else on this list.
+
+Synapse emits no dataplane checksum at all: `Ignore.cpp` lists `nf_set_rte_ipv4_udptcp_checksum`
+among the calls it drops, and `ModifyHeader.cpp`'s `filter_out_checksum_mods` strips the checksum
+field write from the header modifications. So a packet the *dataplane* rewrites leaves with the
+checksum it arrived with; only packets that take the CPU path are corrected, by the controller's
+`update_ipv4_tcpudp_checksums`.
+
+Verified on a shipped solution: `nat-f40000-c0-unif-hmax-tput` with `NAT_INDEX_BYTE_ORDER=big`
+fails `tests/nat.py` on the fast path with both the IPv4 and the UDP checksum wrong, and passes as
+soon as `NAT_CHECK_CHECKSUMS=0` is set. Checksums are the only thing still failing there.
+
+The target's rule, measured both ways and asymmetric in a way that matters:
+
+- a `Checksum()` **input** that is a slice is a hard error, "unexpected type of parameter
+  hdr.hdr1.data2[39:8] in Checksum";
+- a `Checksum()` **output** written to a slice compiles with 0 errors and is **silently ignored**,
+  leaving the original checksum on the wire. This is how the first version of this program shipped a
+  wrong checksum past the compiler.
+
+So every field a checksum touches must be a header field in its own right, which is a constraint on
+**header guessing**, not just on emission: the IPv4 protocol and header checksum are separate fields
+here, as are the TCP window, checksum and urgent pointer. The ground truth shows the whole shape of
+the fix, a deparser `Checksum().update({...})` guarded by a flag the rewriting actions set.
+
+### 3. `@in_hash` for an expression that would span stages *(was item 4)*
+
+Synapse already has half of this: `RotateLeft::uses_hash_unit()` sends any rotate that is not a
+whole number of bytes through `@in_hash`, and `ComputeAction` budgets hash bits and hash
+distribution units. What is missing is the general case: **an expression tree that would span stages
+collapses into one hash-unit op.** `v0 ^ v1 ^ v2 ^ v3` costs three ALU instructions and an action
+cannot span stages ("xor: action spanning multiple stages"), but it is a single `@in_hash` op.
+
+Two other uses in an earlier version of this file turned out to be superstition: a slice-and-widen
+read of an intrinsic (`ctime = ingress_mac_tstamp[47:16]`) and a byte read feeding a table parameter
+(`nf_dev = dst[31:24]`) both compile as plain ALU ops and pass the model test. They have been
+removed, taking the program from ten `@in_hash` sites to eight.
+
+### 4. The immediate pathway is a per-table budget *(was item 5)*
+
+Not "one hash-producing action per table": the limit is **32 bits of hash-produced immediate data
+per table, summed over its actions**. Merging the two final-xor actions into one table gives "the
+number of bits required to go through the immediate pathway 64 ... is greater than the available
+bits 32", and bf-p4c then crashes with SIGSEGV rather than exiting cleanly.
+
+Synapse models this per *action* (`ComputeAction::MAX_HASH_BITS_PER_ACTION`), which agrees with the
+hardware today only because it emits one action per keyless table. The accounting has to move to the
+table as soon as one table carries several actions.
+
+The claim that a hash operation cannot sit in a keyless table is **wrong**: every round action here
+holds an `@in_hash` and is called bare from the apply block, and bf-p4c compiles each into a keyless
+`hash_action` table. The bloom's `Hash.get()` queries are the same shape.
+
+### 5. Gateway comparisons *(was item 6)*
+
+Measured, the gateway budget splits by comparison kind rather than by width alone:
+
+| condition | limit on PHV operands |
+|---|---|
+| `==`, `!=` | 4 bytes, so a 32-bit equality fits |
+| `<`, `>`, `<=`, `>=` against a power-of-two boundary | free at any width: it is a "high bits are zero" mask test |
+| `<`, `>`, `<=`, `>=` otherwise | **12 bits total**, and a constant operand costs nothing |
+
+Toys: `cmpk12.p4` (12-bit field vs a constant) compiles, `cmpk13.p4` (13 bits) does not, and
+`cmp12.p4` -- two 12-bit *fields*, 24 bits of operand -- does not either. `age > 2` on a 32-bit
+value is why the three accepted epochs are constant table entries in the ground truth.
+
+Synapse already covers most of this. `If.cpp`'s `is_wide_const_inequality` diverts a relational
+against a constant wider than 8 bits away from the gateway, exempts the power-of-two case, and falls
+back to rewriting the comparison over narrow slices rather than punting to the controller. Two gaps
+remain, both latent:
+
+- the threshold is 8 bits where the hardware allows 12, so some conditions are split that need not
+  be;
+- a relational between **two non-constant operands** is not checked at all: it bypasses
+  `is_wide_const_inequality` (which requires a constant RHS) and passes `condition_meets_phv_limit`,
+  which counts bytes against 4 without regard to comparison kind. Two 12-bit fields are 2 bytes and
+  sail through, and bf-p4c then rejects the program. The check needs to sum the non-constant operand
+  widths against 12 bits for relational comparisons.
+
+### 6. Optional: emit one body executed many times *(was item 1)*
+
+The rolled ground truth writes the chain once and re-executes it each lap, so three laps cost one
+lap of hardware. Synapse emits separate code per lap, because its BDD arrived from symbolic
+execution with the loop already unrolled and nothing marking the twelve rounds as iterations of one
+thing. Doing this needs the repeated structure recognised, a body emitted once, and the search and
+placer taught what that costs.
+
+**It is no longer on the critical path.** `sc_unrolled.p4` compiles with the unrolled chain split
+across the two pipelines, so this is a code-size question, not a feasibility one.
+
+### Dissolved: a loop counter and dispatch on it *(was item 3)*
+
+Only a *rolled* loop needs a runtime counter (`round = round + 2` with tables keyed on it). The
+unrolled form needs a **pass identifier**, which is a plan-time constant, and synapse already emits
+one: `build_recirc_hdr(N)` writes `hdr.recirc.code_path` and an `if (hdr.recirc.code_path == N)`
+chain dispatches on it. `sc_unrolled.p4` was rewritten to use exactly that with its bespoke counter
+field deleted, and still compiles in 7 s, dispatching in egress as well as ingress. Nothing to build.
+
+## Emission rules the compiler will not enforce
+
+An earlier version of this program compiled in 4 s with 0 errors and was wrong in six ways. Five are
+constraints the emitter has to respect; they are listed here because a synthesizer that only checks
+"does bf-p4c accept it" will violate every one of them and never find out. The sixth was a plain
+transcription slip on my part, hashing `ack` where the cookie check wants `ack - 1`, which is the
+other reason `tests/smartcookie.py` exists.
+
+1. **Statements inside an action run in order.** A two-field swap written as `a = b; b = a;`
+   duplicates `b`. The old value has to be captured by an earlier action, because a temporary
+   written and read inside one action makes it span stages, which bf-p4c does reject. A *single*
+   whole-field write of a field in terms of itself is fine and is one operation:
+   `ports = ports[15:0] ++ ports[31:16]` swaps correctly.
+2. **The same ordering across tables.** `ack = seq + 1` has to read `seq` before the table that
+   writes the cookie into it, so it is staged on the way into the pipeline.
+3. **A deparser `Checksum()` can neither read nor write a slice**, and the write is silently
+   ignored. See the work item above; staging inputs into metadata fixes the read side and does
+   nothing for the write side, which is why header fields have to be split instead.
+4. **A recirculated packet still has to parse.** Marking a packet in flight by rewriting its
+   ethertype made the ingress parser reject it on the way back round, so the second and third laps
+   hashed nothing. The recirculation header's `code_path` is the marker; the ethertype is left alone.
+5. **`f = C ++ (f[7:0] | K)` silently loses the OR.** This one is a bf-p4c bug, not a rule to
+   follow: it allocates a temporary for the concat operand and never writes it
+   (`set hdr.f.0-7, $concat_to_slice27`, with nothing anywhere assigning `$concat_to_slice27`), so
+   the field comes out zero. Two slice assignments compile to `set hdr.f.8-15, C` plus
+   `or B7, K, B7` and are correct. Reproducers: `concatE.p4` (broken), `concatF.p4` (correct).
+
+Rules 1, 2, 4 and 5 appear in no solution synapse ships today: a scan of `synthesized/*.p4` finds no
+in-action swap, no concat containing an operation and no ethertype rewrite. They become live the
+moment the emitter is taught to rewrite packets in place. Rule 3 is already live, as work item 2
+says.
+
+## What the unrolled experiment established
+
+`sc_unrolled.p4` is the same NF with the twelve rounds written out linearly instead of as one
+re-executed body, split across the two pipelines. **It compiles in 7 s with one recirculation**,
+where the rolled ground truth needs two. Ingress uses 19 stages, egress 18, over 139 actions.
+
+- **The chain never failed on PHV or hash units once split.** Every failed attempt reported
+  "supports up to 20 stages, using 21" (or 25). The hash-unit competition that defeated the
+  ingress-only form is gone once half the rounds live in egress, and what is left is a pure
+  critical-path problem.
+- **A SipRound is 4 dependency levels**, so twelve rounds are 48 and a single pass over both
+  pipelines (40 stages) can never hold them. Two passes can.
+- **Ingress is the scarce pipeline**, because the clock, bloom and triage tables sit ahead of the
+  chain: it holds about 2 rounds per lap against egress's 4.
+
+**Open, and not understood: the bloom filter stops working in this build.** Everything else passes
+`tests/smartcookie.py` against it, including the full SYN to cookie to verified-ACK round trip and
+the hash-versus-reference check, so the unrolled twelve rounds are correct. But an ECE packet from
+the server no longer records its flow, and the bloom source is byte-identical to the version that
+works. The hash inputs of the set and read tables were checked in the `.bfa` and are consistent, and
+giving the two read bits their own metadata fields does not help. Whatever it is, it is a third case
+of placement alone changing behaviour with no compiler complaint. `sc_unrolled.p4` is kept as an
+experiment, deliberately not in `synthesized/`, because it is not a validated solution.
