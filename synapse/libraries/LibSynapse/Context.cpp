@@ -92,10 +92,10 @@ void Context::bdd_pre_processing_get_coalescing_candidates(const BDD *bdd) {
 
       map_coalescing_objs_t candidate;
       if (bdd->get_map_coalescing_objs(addr, candidate)) {
-        coalescing_candidates.push_back(candidate);
+        S().coalescing_candidates.push_back(candidate);
 
         if (bdd->is_dchain_used_exclusively_for_linking_maps_with_vectors(candidate.dchain)) {
-          dchains_used_exclusively_for_linking_maps_with_vectors.insert(candidate.dchain);
+          S().dchains_used_exclusively_for_linking_maps_with_vectors.insert(candidate.dchain);
         }
       }
     }
@@ -103,12 +103,12 @@ void Context::bdd_pre_processing_get_coalescing_candidates(const BDD *bdd) {
 }
 
 void Context::bdd_pre_processing_get_dchains_failing_to_allocate_new_index_hit_rates(const BDD *bdd) {
-  for (const map_coalescing_objs_t &map_objs : coalescing_candidates) {
+  for (const map_coalescing_objs_t &map_objs : S().coalescing_candidates) {
     const std::vector<branch_direction_t> branches_checking_index_alloc = bdd->find_all_branches_checking_index_alloc(map_objs.dchain);
     for (const branch_direction_t &branch_direction : branches_checking_index_alloc) {
       const BDDNode *failure_node = branch_direction.get_failure_node();
       const hit_rate_t failure_hr = profiler.get_hr(failure_node);
-      dchains_failing_to_allocate_new_index_hit_rates[map_objs.dchain].push_back(failure_hr);
+      S().dchains_failing_to_allocate_new_index_hit_rates[map_objs.dchain].push_back(failure_hr);
     }
   }
 }
@@ -123,7 +123,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("map_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const map_config_t cfg    = get_map_config_from_bdd(*bdd, addr);
-      map_configs[addr]         = cfg;
+      S().map_configs[addr]         = cfg;
       continue;
     }
 
@@ -131,7 +131,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("vector_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const vector_config_t cfg = get_vector_config_from_bdd(*bdd, addr);
-      vector_configs[addr]      = cfg;
+      S().vector_configs[addr]      = cfg;
       continue;
     }
 
@@ -139,7 +139,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("chain_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const dchain_config_t cfg = get_dchain_config_from_bdd(*bdd, addr);
-      dchain_configs[addr]      = cfg;
+      S().dchain_configs[addr]      = cfg;
       continue;
     }
 
@@ -147,7 +147,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("cms_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const cms_config_t cfg    = get_cms_config_from_bdd(*bdd, addr);
-      cms_configs[addr]         = cfg;
+      S().cms_configs[addr]         = cfg;
       continue;
     }
 
@@ -155,7 +155,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("bf_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const bf_config_t cfg     = get_bf_config_from_bdd(*bdd, addr);
-      bf_configs[addr]          = cfg;
+      S().bf_configs[addr]          = cfg;
       continue;
     }
 
@@ -163,7 +163,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("cht").expr;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const cht_config_t cfg    = get_cht_config_from_bdd(*bdd, addr);
-      cht_configs[addr]         = cfg;
+      S().cht_configs[addr]         = cfg;
       continue;
     }
 
@@ -171,7 +171,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("tb_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const tb_config_t cfg     = get_tb_config_from_bdd(*bdd, addr);
-      tb_configs[addr]          = cfg;
+      S().tb_configs[addr]          = cfg;
       continue;
     }
   }
@@ -189,13 +189,13 @@ void Context::bdd_pre_processing_get_structural_fields(const BDD *bdd) {
     if (call.function_name == "packet_borrow_next_chunk") {
       expr_struct_t header;
       if (call_node->guess_header_fields_from_packet_borrow(header)) {
-        expr_structs.push_back(header);
+        S().expr_structs.push_back(header);
       }
     } else if (call.function_name == "vector_borrow") {
       expr_struct_t value_struct;
       if (call_node->guess_value_fields_from_vector_borrow(value_struct)) {
         bool found = false;
-        for (expr_struct_t &existing_struct : expr_structs) {
+        for (expr_struct_t &existing_struct : S().expr_structs) {
           const bool same_expr = solver_toolbox.are_exprs_always_equal(existing_struct.expr, value_struct.expr);
 
           if (!same_expr) {
@@ -212,7 +212,7 @@ void Context::bdd_pre_processing_get_structural_fields(const BDD *bdd) {
         }
 
         if (!found) {
-          expr_structs.push_back(value_struct);
+          S().expr_structs.push_back(value_struct);
         }
       }
     }
@@ -326,7 +326,7 @@ void Context::bdd_pre_processing_log() {
   std::cerr << "\n";
 
   std::cerr << "Coalescing candidates:\n";
-  for (const map_coalescing_objs_t &candidate : coalescing_candidates) {
+  for (const map_coalescing_objs_t &candidate : S().coalescing_candidates) {
     std::cerr << "  ";
     std::cerr << " map=" << candidate.map << ", dchain=" << candidate.dchain << ", vectors=[";
     size_t i = 0;
@@ -340,13 +340,13 @@ void Context::bdd_pre_processing_log() {
   }
 
   std::cerr << "Dchains used exclusively for linking maps with vectors: [";
-  for (const addr_t dchain : dchains_used_exclusively_for_linking_maps_with_vectors) {
+  for (const addr_t dchain : S().dchains_used_exclusively_for_linking_maps_with_vectors) {
     std::cerr << dchain << " ";
   }
   std::cerr << "]\n";
 
   std::cerr << "Hit rates of dchains failing to allocate new index:\n";
-  for (const auto &[dchain, hit_rates] : dchains_failing_to_allocate_new_index_hit_rates) {
+  for (const auto &[dchain, hit_rates] : S().dchains_failing_to_allocate_new_index_hit_rates) {
     std::cerr << "  dchain=" << dchain << ", hit rates={";
     size_t i = 0;
     for (hit_rate_t hr : hit_rates) {
@@ -360,7 +360,7 @@ void Context::bdd_pre_processing_log() {
 
   std::cerr << "\n";
   std::cerr << "Structural estimations:\n";
-  for (const expr_struct_t &expr_struct : expr_structs) {
+  for (const expr_struct_t &expr_struct : S().expr_structs) {
     std::cerr << "--------------------------------\n";
     std::cerr << "Expr: " << expr_to_string(expr_struct.expr, true) << "\n";
     std::cerr << "Fields:\n";
@@ -373,14 +373,15 @@ void Context::bdd_pre_processing_log() {
 }
 
 Context::Context(const BDD *bdd, const TargetsView &targets, const targets_config_t &targets_config, const Profiler &_profiler)
-    : profiler(_profiler), perf_oracle(targets_config, profiler.get_avg_pkt_bytes()), expiration_data(build_expiration_data(bdd)) {
+    : profiler(_profiler), perf_oracle(targets_config, profiler.get_avg_pkt_bytes()) {
+  S().expiration_data = build_expiration_data(bdd);
   for (const TargetView &target : targets.elements) {
     target_ctxs[target.type] = target.base_ctx->clone();
   }
 
   const Tofino::TofinoContext *tofino_ctx = get_target_ctx_if_available<Tofino::TofinoContext>();
-  if (tofino_ctx && expiration_data.has_value()) {
-    const time_ns_t expiration_time     = expiration_data->expiration_time;
+  if (tofino_ctx && S().expiration_data.has_value()) {
+    const time_ns_t expiration_time     = S().expiration_data->expiration_time;
     const time_ns_t min_expiration_time = tofino_ctx->get_tna().tna_config.properties.min_expiration_time * MILLION;
 
     if (expiration_time < min_expiration_time) {
@@ -396,14 +397,7 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const targets_confi
   bdd_pre_processing_log();
 }
 
-Context::Context(const Context &other)
-    : profiler(other.profiler), perf_oracle(other.perf_oracle), map_configs(other.map_configs), vector_configs(other.vector_configs),
-      dchain_configs(other.dchain_configs), cms_configs(other.cms_configs), bf_configs(other.bf_configs), cht_configs(other.cht_configs),
-      tb_configs(other.tb_configs), coalescing_candidates(other.coalescing_candidates),
-      dchains_used_exclusively_for_linking_maps_with_vectors(other.dchains_used_exclusively_for_linking_maps_with_vectors),
-      dchains_failing_to_allocate_new_index_hit_rates(other.dchains_failing_to_allocate_new_index_hit_rates), expiration_data(other.expiration_data),
-      expr_structs(other.expr_structs), ds_impls(other.ds_impls),
-      ds_impls_decisions_per_bdd_node_and_obj(other.ds_impls_decisions_per_bdd_node_and_obj), ds_usage_counts(other.ds_usage_counts) {
+Context::Context(const Context &other) : profiler(other.profiler), perf_oracle(other.perf_oracle), state(other.state) {
   GlobalStats::num_context_copies++;
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
@@ -411,15 +405,8 @@ Context::Context(const Context &other)
 }
 
 Context::Context(Context &&other)
-    : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)), map_configs(std::move(other.map_configs)),
-      vector_configs(std::move(other.vector_configs)), dchain_configs(std::move(other.dchain_configs)), cms_configs(std::move(other.cms_configs)),
-      bf_configs(std::move(other.bf_configs)), cht_configs(std::move(other.cht_configs)), tb_configs(std::move(other.tb_configs)),
-      coalescing_candidates(std::move(other.coalescing_candidates)),
-      dchains_used_exclusively_for_linking_maps_with_vectors(std::move(other.dchains_used_exclusively_for_linking_maps_with_vectors)),
-      dchains_failing_to_allocate_new_index_hit_rates(std::move(other.dchains_failing_to_allocate_new_index_hit_rates)),
-      expiration_data(std::move(other.expiration_data)), expr_structs(std::move(other.expr_structs)), ds_impls(std::move(other.ds_impls)),
-      ds_impls_decisions_per_bdd_node_and_obj(std::move(other.ds_impls_decisions_per_bdd_node_and_obj)),
-      ds_usage_counts(std::move(other.ds_usage_counts)), target_ctxs(std::move(other.target_ctxs)) {}
+    : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)), state(std::move(other.state)),
+      target_ctxs(std::move(other.target_ctxs)) {}
 
 Context::~Context() {
   for (auto &target_ctx_pair : target_ctxs) {
@@ -443,22 +430,8 @@ Context &Context::operator=(const Context &other) {
   }
 
   profiler                                               = other.profiler;
-  perf_oracle                                            = other.perf_oracle;
-  map_configs                                            = other.map_configs;
-  vector_configs                                         = other.vector_configs;
-  dchain_configs                                         = other.dchain_configs;
-  cms_configs                                            = other.cms_configs;
-  bf_configs                                             = other.bf_configs;
-  cht_configs                                            = other.cht_configs;
-  tb_configs                                             = other.tb_configs;
-  coalescing_candidates                                  = other.coalescing_candidates;
-  dchains_used_exclusively_for_linking_maps_with_vectors = other.dchains_used_exclusively_for_linking_maps_with_vectors;
-  dchains_failing_to_allocate_new_index_hit_rates        = other.dchains_failing_to_allocate_new_index_hit_rates;
-  expiration_data                                        = other.expiration_data;
-  expr_structs                                           = other.expr_structs;
-  ds_impls                                               = other.ds_impls;
-  ds_impls_decisions_per_bdd_node_and_obj                = other.ds_impls_decisions_per_bdd_node_and_obj;
-  ds_usage_counts                                        = other.ds_usage_counts;
+  perf_oracle = other.perf_oracle;
+  state       = other.state;
 
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
@@ -480,22 +453,8 @@ Context &Context::operator=(Context &&other) {
   }
 
   profiler                                               = std::move(other.profiler);
-  perf_oracle                                            = std::move(other.perf_oracle);
-  map_configs                                            = std::move(other.map_configs);
-  vector_configs                                         = std::move(other.vector_configs);
-  dchain_configs                                         = std::move(other.dchain_configs);
-  cms_configs                                            = std::move(other.cms_configs);
-  bf_configs                                             = std::move(other.bf_configs);
-  cht_configs                                            = std::move(other.cht_configs);
-  tb_configs                                             = std::move(other.tb_configs);
-  coalescing_candidates                                  = std::move(other.coalescing_candidates);
-  dchains_used_exclusively_for_linking_maps_with_vectors = std::move(other.dchains_used_exclusively_for_linking_maps_with_vectors);
-  dchains_failing_to_allocate_new_index_hit_rates        = std::move(other.dchains_failing_to_allocate_new_index_hit_rates);
-  expiration_data                                        = std::move(other.expiration_data);
-  expr_structs                                           = std::move(other.expr_structs);
-  ds_impls                                               = std::move(other.ds_impls);
-  ds_impls_decisions_per_bdd_node_and_obj                = std::move(other.ds_impls_decisions_per_bdd_node_and_obj);
-  ds_usage_counts                                        = std::move(other.ds_usage_counts);
+  perf_oracle = std::move(other.perf_oracle);
+  state       = std::move(other.state);
   target_ctxs                                            = std::move(other.target_ctxs);
 
   return *this;
@@ -504,46 +463,46 @@ Context &Context::operator=(Context &&other) {
 const Profiler &Context::get_profiler() const { return profiler; }
 Profiler &Context::get_mutable_profiler() { return profiler; }
 
-const PerfOracle &Context::get_perf_oracle() const { return perf_oracle; }
-PerfOracle &Context::get_mutable_perf_oracle() { return perf_oracle; }
+const PerfOracle &Context::get_perf_oracle() const { return *perf_oracle; }
+PerfOracle &Context::get_mutable_perf_oracle() { return perf_oracle.mutate(); }
 
 const map_config_t &Context::get_map_config(addr_t addr) const {
-  assert(map_configs.find(addr) != map_configs.end() && "Map not found");
-  return map_configs.at(addr);
+  assert(S().map_configs.find(addr) != S().map_configs.end() && "Map not found");
+  return S().map_configs.at(addr);
 }
 
 const vector_config_t &Context::get_vector_config(addr_t addr) const {
-  assert(vector_configs.find(addr) != vector_configs.end() && "Vector not found");
-  return vector_configs.at(addr);
+  assert(S().vector_configs.find(addr) != S().vector_configs.end() && "Vector not found");
+  return S().vector_configs.at(addr);
 }
 
 const dchain_config_t &Context::get_dchain_config(addr_t addr) const {
-  assert(dchain_configs.find(addr) != dchain_configs.end() && "Dchain not found");
-  return dchain_configs.at(addr);
+  assert(S().dchain_configs.find(addr) != S().dchain_configs.end() && "Dchain not found");
+  return S().dchain_configs.at(addr);
 }
 
 const cms_config_t &Context::get_cms_config(addr_t addr) const {
-  assert(cms_configs.find(addr) != cms_configs.end() && "CMS not found");
-  return cms_configs.at(addr);
+  assert(S().cms_configs.find(addr) != S().cms_configs.end() && "CMS not found");
+  return S().cms_configs.at(addr);
 }
 
 const bf_config_t &Context::get_bf_config(addr_t addr) const {
-  assert(bf_configs.find(addr) != bf_configs.end() && "BF not found");
-  return bf_configs.at(addr);
+  assert(S().bf_configs.find(addr) != S().bf_configs.end() && "BF not found");
+  return S().bf_configs.at(addr);
 }
 
 const cht_config_t &Context::get_cht_config(addr_t addr) const {
-  assert(cht_configs.find(addr) != cht_configs.end() && "CHT not found");
-  return cht_configs.at(addr);
+  assert(S().cht_configs.find(addr) != S().cht_configs.end() && "CHT not found");
+  return S().cht_configs.at(addr);
 }
 
 const tb_config_t &Context::get_tb_config(addr_t addr) const {
-  assert(tb_configs.find(addr) != tb_configs.end() && "TB not found");
-  return tb_configs.at(addr);
+  assert(S().tb_configs.find(addr) != S().tb_configs.end() && "TB not found");
+  return S().tb_configs.at(addr);
 }
 
 std::optional<map_coalescing_objs_t> Context::get_map_coalescing_objs(addr_t obj) const {
-  for (const map_coalescing_objs_t &candidate : coalescing_candidates) {
+  for (const map_coalescing_objs_t &candidate : S().coalescing_candidates) {
     bool match = false;
 
     match = match || candidate.map == obj;
@@ -559,40 +518,40 @@ std::optional<map_coalescing_objs_t> Context::get_map_coalescing_objs(addr_t obj
 }
 
 bool Context::is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const {
-  return dchains_used_exclusively_for_linking_maps_with_vectors.contains(dchain);
+  return S().dchains_used_exclusively_for_linking_maps_with_vectors.contains(dchain);
 }
 
 const std::vector<hit_rate_t> &Context::get_failing_to_allocate_new_index_hit_rates(addr_t dchain) const {
-  auto found_it = dchains_failing_to_allocate_new_index_hit_rates.find(dchain);
-  assert(found_it != dchains_failing_to_allocate_new_index_hit_rates.end() && "Dchain not found");
+  auto found_it = S().dchains_failing_to_allocate_new_index_hit_rates.find(dchain);
+  assert(found_it != S().dchains_failing_to_allocate_new_index_hit_rates.end() && "Dchain not found");
   return found_it->second;
 }
 
-const std::optional<expiration_data_t> &Context::get_expiration_data() const { return expiration_data; }
+const std::optional<expiration_data_t> &Context::get_expiration_data() const { return S().expiration_data; }
 
-const std::vector<expr_struct_t> &Context::get_expr_structs() const { return expr_structs; }
+const std::vector<expr_struct_t> &Context::get_expr_structs() const { return S().expr_structs; }
 
 void Context::save_ds_impl(bdd_node_id_t node_id, addr_t obj, DSImpl impl) {
   assert(can_impl_ds(obj, impl) && "Incompatible implementation");
-  ds_impls[obj]                                           = impl;
-  ds_impls_decisions_per_bdd_node_and_obj[{node_id, obj}] = impl;
-  ds_usage_counts[{obj, impl}]++;
+  S().ds_impls[obj]                                           = impl;
+  S().ds_impls_decisions_per_bdd_node_and_obj[{node_id, obj}] = impl;
+  S().ds_usage_counts[{obj, impl}]++;
 }
 
-bool Context::has_ds_impl(addr_t obj) const { return ds_impls.find(obj) != ds_impls.end(); }
-DSImpl Context::get_ds_impl(addr_t obj) const { return ds_impls.at(obj); }
+bool Context::has_ds_impl(addr_t obj) const { return S().ds_impls.find(obj) != S().ds_impls.end(); }
+DSImpl Context::get_ds_impl(addr_t obj) const { return S().ds_impls.at(obj); }
 
 bool Context::check_ds_impl(addr_t obj, DSImpl decision) const {
-  auto found_it = ds_impls.find(obj);
-  return found_it != ds_impls.end() && found_it->second == decision;
+  auto found_it = S().ds_impls.find(obj);
+  return found_it != S().ds_impls.end() && found_it->second == decision;
 }
 
 bool Context::can_impl_ds(addr_t obj, DSImpl decision) const {
-  auto found_it = ds_impls.find(obj);
-  return found_it == ds_impls.end() || found_it->second == decision;
+  auto found_it = S().ds_impls.find(obj);
+  return found_it == S().ds_impls.end() || found_it->second == decision;
 }
 
-const std::unordered_map<addr_t, DSImpl> &Context::get_ds_impls() const { return ds_impls; }
+const std::unordered_map<addr_t, DSImpl> &Context::get_ds_impls() const { return S().ds_impls; }
 
 std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   switch (impl) {
@@ -693,7 +652,7 @@ std::string ds_impl_to_string(DSImpl impl) {
 void Context::debug() const {
   std::cerr << "~~~~~~~~~~~~~~~~~~~~~~~~ Context ~~~~~~~~~~~~~~~~~~~~~~~~\n";
   std::cerr << "Implementations: [\n";
-  for (const auto &[obj, impl] : ds_impls) {
+  for (const auto &[obj, impl] : S().ds_impls) {
     std::cerr << "    " << obj << ": " << impl << "\n";
   }
   std::cerr << "]\n";
@@ -702,7 +661,7 @@ void Context::debug() const {
     ctx->debug();
   }
 
-  perf_oracle.debug();
+  perf_oracle->debug();
 
   std::cerr << "\n";
   std::cerr << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
@@ -714,7 +673,7 @@ void Context::translate(SymbolManager *symbol_manager, const std::vector<symbol_
     translations[old_symbol.name] = new_symbol.name;
   }
 
-  for (expr_struct_t &expr_struct : expr_structs) {
+  for (expr_struct_t &expr_struct : S().expr_structs) {
     expr_struct.expr = symbol_manager->translate(expr_struct.expr, translations);
     for (klee::ref<klee::Expr> &field : expr_struct.fields) {
       field = symbol_manager->translate(field, translations);
@@ -723,9 +682,9 @@ void Context::translate(SymbolManager *symbol_manager, const std::vector<symbol_
 }
 
 const std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> &Context::get_ds_impls_decisions_per_bdd_node_and_obj() const {
-  return ds_impls_decisions_per_bdd_node_and_obj;
+  return S().ds_impls_decisions_per_bdd_node_and_obj;
 }
 
-const std::map<std::pair<addr_t, DSImpl>, u32> &Context::get_ds_usage_counts() const { return ds_usage_counts; }
+const std::map<std::pair<addr_t, DSImpl>, u32> &Context::get_ds_usage_counts() const { return S().ds_usage_counts; }
 
 } // namespace LibSynapse

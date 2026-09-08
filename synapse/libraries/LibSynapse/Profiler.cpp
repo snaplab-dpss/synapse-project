@@ -1,4 +1,7 @@
 #include <LibSynapse/Profiler.h>
+#include <LibSynapse/GlobalStats.h>
+
+#include <functional>
 #include <LibSynapse/EPNode.h>
 #include <LibCore/Debug.h>
 #include <LibCore/RandomEngine.h>
@@ -320,7 +323,7 @@ std::set<std::pair<u32, u32>> Profiler::get_ln_inputs(const BDDNode *node) const
 Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, const std::unordered_set<u16> &available_devs)
     : bdd_profile(new bdd_profile_t(_bdd_profile)),
       flows_stats_per_bdd_node(std::make_shared<std::unordered_map<bdd_node_id_t, std::vector<flow_stats_t>>>()),
-      avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), root(nullptr), cache() {
+      avg_pkt_size(bdd_profile->meta.bytes / bdd_profile->meta.pkts), root(nullptr), cache(std::make_shared<cache_t>()) {
   const BDDNode *bdd_root = bdd->get_root();
 
   assert(bdd_profile->counters.find(bdd_root->get_id()) != bdd_profile->counters.end() && "Root node not found");
@@ -356,7 +359,9 @@ Profiler::Profiler(const BDD *bdd, const bdd_profile_t &_bdd_profile, const std:
 
 Profiler::Profiler(const Profiler &other)
     : bdd_profile(other.bdd_profile), flows_stats_per_bdd_node(other.flows_stats_per_bdd_node), avg_pkt_size(other.avg_pkt_size), root(other.root),
-      cache(other.cache) {}
+      cache(other.cache) {
+  GlobalStats::num_profiler_copies++;
+}
 
 Profiler::Profiler(Profiler &&other)
     : bdd_profile(std::move(other.bdd_profile)), flows_stats_per_bdd_node(std::move(other.flows_stats_per_bdd_node)),
@@ -439,12 +444,13 @@ ProfilerNode *Profiler::get_node(const std::vector<klee::ref<klee::Expr>> &const
 }
 
 ProfilerNode *Profiler::get_node(const BDDNode *node) const {
-  auto found_it = cache.n2p.find(node->get_id());
-  if (found_it != cache.n2p.end()) {
+  auto found_it = cache->n2p.find(node->get_id());
+  if (found_it != cache->n2p.end()) {
     assert(found_it->second && "Invalid profiler node");
     return found_it->second;
   }
 
+  GlobalStats::num_profiler_cache_misses++;
   const std::vector<klee::ref<klee::Expr>> constraints = node->get_ordered_branch_constraints();
   ProfilerNode *profiler_node                          = get_node(constraints);
 
@@ -452,15 +458,15 @@ ProfilerNode *Profiler::get_node(const BDDNode *node) const {
     panic("Profiler node not found");
   }
 
-  cache.n2p[node->get_id()] = profiler_node;
-  cache.p2n[profiler_node]  = node->get_id();
+  cache->n2p[node->get_id()] = profiler_node;
+  cache->p2n[profiler_node]  = node->get_id();
 
   return profiler_node;
 }
 
 ProfilerNode *Profiler::get_node(const EPNode *node) const {
-  auto found_it = cache.e2p.find(node->get_id());
-  if (found_it != cache.e2p.end()) {
+  auto found_it = cache->e2p.find(node->get_id());
+  if (found_it != cache->e2p.end()) {
     assert(found_it->second && "Invalid profiler node");
     return found_it->second;
   }
@@ -472,8 +478,8 @@ ProfilerNode *Profiler::get_node(const EPNode *node) const {
     panic("Profiler node not found");
   }
 
-  cache.e2p[node->get_id()] = profiler_node;
-  cache.p2e[profiler_node]  = node->get_id();
+  cache->e2p[node->get_id()] = profiler_node;
+  cache->p2e[profiler_node]  = node->get_id();
 
   return profiler_node;
 }
@@ -677,10 +683,8 @@ hit_rate_t Profiler::get_hr(const std::vector<klee::ref<klee::Expr>> &constraint
 }
 
 void Profiler::clear_cache() const {
-  cache.n2p.clear();
-  cache.p2n.clear();
-  cache.e2p.clear();
-  cache.p2e.clear();
+  GlobalStats::num_profiler_cache_clears++;
+  cache = std::make_shared<cache_t>();
 }
 
 void Profiler::debug() const {
@@ -692,16 +696,47 @@ void Profiler::debug() const {
 }
 
 void Profiler::clone_tree_if_shared() {
-  clear_cache();
-
   assert(root && "Invalid profiler root node");
 
-  // No need to clone a tree that is not shared.
+  // No need to clone a tree that is not shared; the write that follows may change its shape.
   if (root.use_count() == 1) {
+    clear_cache();
     return;
   }
 
-  root = std::shared_ptr<ProfilerNode>(root->clone(true));
+  // The clone has the exact shape of the original: carry the lookups over to it instead of
+  // resolving every node again by its constraints.
+  ProfilerNode *new_root = root->clone(true);
+
+  std::unordered_map<ProfilerNode *, ProfilerNode *> translation;
+  std::function<void(ProfilerNode *, ProfilerNode *)> pair_up = [&](ProfilerNode *old_node, ProfilerNode *new_node) {
+    if (!old_node || !new_node) {
+      return;
+    }
+    translation[old_node] = new_node;
+    pair_up(old_node->on_true, new_node->on_true);
+    pair_up(old_node->on_false, new_node->on_false);
+  };
+  pair_up(root.get(), new_root);
+
+  std::shared_ptr<cache_t> new_cache = std::make_shared<cache_t>();
+  for (const auto &[id, node] : cache->n2p) {
+    auto found_it = translation.find(node);
+    if (found_it != translation.end()) {
+      new_cache->n2p[id]               = found_it->second;
+      new_cache->p2n[found_it->second] = id;
+    }
+  }
+  for (const auto &[id, node] : cache->e2p) {
+    auto found_it = translation.find(node);
+    if (found_it != translation.end()) {
+      new_cache->e2p[id]               = found_it->second;
+      new_cache->p2e[found_it->second] = id;
+    }
+  }
+
+  cache = new_cache;
+  root  = std::shared_ptr<ProfilerNode>(new_root);
 }
 
 void Profiler::translate(SymbolManager *symbol_manager, const BDDNode *reordered_node, const std::vector<symbol_translation_t> &translated_symbols) {

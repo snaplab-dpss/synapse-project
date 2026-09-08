@@ -95,7 +95,12 @@ std::vector<std::unique_ptr<EP>> get_reordered(const EP *ep, bool assert_integri
   const bool allow_shape_altering_ops = false;
 
   std::vector<std::unique_ptr<EP>> reordered;
-  for (reordered_bdd_t &new_bdd : reorder(bdd, anchor_info, allow_shape_altering_ops)) {
+  const steady_clock::time_point t_ops = steady_clock::now();
+  std::vector<reordered_bdd_t> new_bdds = reorder(bdd, anchor_info, allow_shape_altering_ops);
+  GlobalStats::time_reorder_ops += duration_cast<microseconds>(steady_clock::now() - t_ops).count();
+  GlobalStats::num_reorder_ops += new_bdds.size();
+  const steady_clock::time_point t_eps = steady_clock::now();
+  for (reordered_bdd_t &new_bdd : new_bdds) {
     const bool is_ancestor     = false;
     std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep, is_ancestor);
 
@@ -116,6 +121,7 @@ std::vector<std::unique_ptr<EP>> get_reordered(const EP *ep, bool assert_integri
 
     reordered.push_back(std::move(new_ep));
   }
+  GlobalStats::time_reorder_eps += duration_cast<microseconds>(steady_clock::now() - t_eps).count();
 
   return reordered;
 }
