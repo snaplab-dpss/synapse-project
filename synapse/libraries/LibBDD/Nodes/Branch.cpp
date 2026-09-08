@@ -81,7 +81,9 @@ bool Branch::is_parser_condition() const {
     return false;
   }
 
-  const std::vector<std::string> allowed_names{"pkt_len", "packet_chunks", "DEVICE"};
+  // Not the device: the parser only sees the port, and the port-to-device mapping is a
+  // control-plane table applied in ingress, so a parser can't select on it.
+  const std::vector<std::string> allowed_names{"pkt_len", "packet_chunks"};
   const std::unordered_set<std::string> names = symbol_t::get_symbols_names(condition);
 
   for (const std::string &name : names) {
