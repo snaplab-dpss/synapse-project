@@ -27,7 +27,8 @@
 #define bswap32(x) (x[7:0] ++ x[15:8] ++ x[23:16] ++ x[31:24])
 #define bswap16(x) (x[7:0] ++ x[15:8])
 
-const bit<16> SIP_CODE_PATH  = 0xff00; // recirc code_path marking a packet that carries hash state
+const bit<16> SIP_PASS_1     = 0xff01;
+const bit<16> SIP_PASS_2     = 0xff02; // recirc code_path marking a packet that carries hash state
 const bit<32> SERVER_NF_DEV  = 2;    // front panel port 3 in the test topology
 const bit<9>  SERVER_PORT    = 24;   // and its device port
 const bit<8>  CB_SYNACK      = 1;
@@ -66,7 +67,6 @@ header recirc_state_h {
   bit<32> v2;
   bit<32> v3;
   bit<32> ctime;
-  bit<8>  round;
   bit<8>  cb;
   @padding bit<7> pad;
   bit<9>  egr_port;
@@ -213,7 +213,8 @@ parser IngressParser(
   state parse_recirc {
     pkt.extract(hdr.recirc);
     transition select(hdr.recirc.code_path) {
-      SIP_CODE_PATH: parse_recirc_state;
+      SIP_PASS_1: parse_recirc_state;
+      SIP_PASS_2: parse_recirc_state;
       default: parser_init;
     }
   }
@@ -456,8 +457,6 @@ control Ingress(
     hdr.recirc_state.v2 = meta.a2[15:0] ++ meta.a2[31:16];
   }
   action i10_4b() { hdr.recirc_state.v0 = meta.a0; }
-  action sip_bump() { hdr.recirc_state.round = 1; }
-  action sip_bump2() { hdr.recirc_state.round = 2; }
   action msg_seq()    { meta.msg = hdr.hdr2.data2; }
   action msg_seq_m1() { meta.msg = hdr.hdr2.data2 - 1; }
   table msg3_sel {
@@ -565,7 +564,6 @@ control Ingress(
     hdr.recirc_state.v1 = SIP_V1;
     hdr.recirc_state.v2 = SIP_V2;
     hdr.recirc_state.v3 = SIP_V3;
-    hdr.recirc_state.round = 0;
     hdr.recirc_state.cb = cb;
     hdr.recirc_state.ctime = meta.ctime;
     hdr.recirc_state.egr_port = egr_port;
@@ -621,8 +619,7 @@ control Ingress(
         i8_1a(); i8_1b(); i8_2a(); i8_3a(); i8_3b(); i8_4a(); i8_4b();
         i9_1a(); i9_1b(); i9_2a(); i9_3a(); i9_3b(); i9_4a(); i9_4b();
         i10_1a(); i10_1b(); i10_2a(); i10_3a(); i10_3b(); i10_4a(); i10_4b();
-              sip_bump2();
-      build_recirc_hdr(SIP_CODE_PATH);
+              build_recirc_hdr(SIP_PASS_2);
       deliver();
     } else {
       if (meta.dev == SERVER_NF_DEV) { mark_server(); } else { mark_not_server(); }
@@ -656,8 +653,7 @@ control Ingress(
   i1_pre();
   i1_1a(); i1_1b(); i1_2a(); i1_3a(); i1_3b(); i1_4a(); i1_4b();
   i2_1a(); i2_1b(); i2_2a(); i2_3a(); i2_3b(); i2_4a(); i2_4b();
-        sip_bump();
-        build_recirc_hdr(SIP_CODE_PATH);
+        build_recirc_hdr(SIP_PASS_2);
         recirculate();
       } else {
         ig_intr_tm_md.bypass_egress = 1;
@@ -889,18 +885,18 @@ control Egress(
   }
   action nop() {}
   table sip_final_synack {
-    key = { hdr.recirc_state.round: exact; hdr.recirc_state.cb: ternary; }
+    key = { hdr.recirc_state.cb: exact; }
     actions = { final_synack; nop; }
     default_action = nop();
     size = 8;
-    const entries = { (2, CB_SYNACK): final_synack(); }
+    const entries = { CB_SYNACK: final_synack(); }
   }
   table sip_final_tagack {
-    key = { hdr.recirc_state.round: exact; hdr.recirc_state.cb: ternary; }
+    key = { hdr.recirc_state.cb: exact; }
     actions = { final_tagack; nop; }
     default_action = nop();
     size = 8;
-    const entries = { (2, CB_TAGACK): final_tagack(); }
+    const entries = { CB_TAGACK: final_tagack(); }
   }
 
   action craft_synack() {
@@ -957,7 +953,7 @@ control Egress(
     if (hdr.recirc_state.isValid()) {
       // The finishing lap is emitted first so its tail is not placed behind the other lap's
       // rounds; mutually exclusive branches share stages, but only from where they start.
-      if (hdr.recirc_state.round == 2) {
+      if (hdr.recirc.code_path == SIP_PASS_2) {
         e11_1a(); e11_1b(); e11_2a(); e11_3a(); e11_3b(); e11_4a(); e11_4b();
         e12_1a(); e12_1b(); e12_2a(); e12_3a(); e12_3b(); e12_4a(); e12_4b();
 
