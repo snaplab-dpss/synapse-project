@@ -19,7 +19,24 @@ file is the point of everything below.
 ## Skeleton
 
 `cmp12.p4`: ethernet + ipv4 parser, a few metadata fields, an `init` action and a forwarding
-decision. Every toy is this file with the actions replaced.
+decision. Every toy is this file with the actions replaced. Note that the skeleton as written does
+**not** compile: its `meta.t0 <= meta.t1` on two 12-bit fields is 24 bits of gateway operand. The
+toys derived from it replace that condition, which is why they build.
+
+## Gateway comparisons (`cmp12.p4`, `cmpk12.p4`, `cmpk13.p4`)
+
+Question: how wide a comparison fits a gateway? The error names the budget, "limit of 4 bytes +
+12 bits of PHV input", and the two halves serve different comparisons:
+
+| condition | limit on PHV operands |
+|---|---|
+| `==`, `!=` | 4 bytes: a 32-bit equality fits |
+| `<`, `>`, `<=`, `>=` against a power-of-two boundary | free at any width, it is a mask test on the high bits |
+| `<`, `>`, `<=`, `>=` otherwise | 12 bits total; a constant operand costs nothing |
+
+`cmpk12.p4` (12-bit field vs a constant) compiles; `cmpk13.p4` (13 bits) does not; `cmp12.p4`
+(two 12-bit fields, 24 bits) does not. A 32-bit `==` compiles, a 32-bit `>` does not, and a 32-bit
+`< 4` does -- which is why `kvs`'s shipped `ts_1_diff < 16384` is legal.
 
 ## Header-field concatenation (`concat*.p4`)
 
