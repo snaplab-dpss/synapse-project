@@ -47,6 +47,7 @@ header recirc_h {
   bit<16> code_path;
   bit<16> ingress_port;
   bit<32> dev;
+  bit<32> cached_insert_success0;
 
 };
 
@@ -651,10 +652,10 @@ control Ingress(
               vector_table_1074085544_139.apply();
               // EP node  258:Ignore
               // BDD node 140:vector_return
-              // EP node  327:If
+              // EP node  340:If
               // BDD node 141:if
               if ((32w0x00000000) == (vector_table_1074085544_139_get_value_param0)){
-                // EP node  328:Then
+                // EP node  341:Then
                 // BDD node 141:if
                 // EP node  614:FCFSCachedTableIsIndexAllocated
                 // BDD node 142:dchain_is_index_allocated
@@ -663,10 +664,10 @@ control Ingress(
                 if(fcfs_ct_1074053136_reg_liveness_query_timestamp.execute(index0)) {
                   is_allocated0 = 1;
                 }
-                // EP node  955:If
+                // EP node  979:If
                 // BDD node 143:if
                 if ((32w0x00000000) != (is_allocated0)){
-                  // EP node  956:Then
+                  // EP node  980:Then
                   // BDD node 143:if
                   // EP node  1070:VectorRegisterLookup
                   // BDD node 144:vector_borrow
@@ -679,7 +680,7 @@ control Ingress(
                   // BDD node 145:vector_return
                   // EP node  1351:Ignore
                   // BDD node 146:dchain_rejuvenate_index
-                  // EP node  1454:If
+                  // EP node  1484:If
                   // BDD node 147:if
                   bool cond0 = false;
                   if ((meta.vector_reg_value1) == (hdr.hdr1.data3)){
@@ -688,7 +689,7 @@ control Ingress(
                     }
                   }
                   if (cond0) {
-                    // EP node  1455:Then
+                    // EP node  1485:Then
                     // BDD node 147:if
                     // EP node  2661:VectorTableLookup
                     // BDD node 149:vector_borrow
@@ -710,21 +711,21 @@ control Ingress(
                     // BDD node 154:FORWARD
                     nf_dev[15:0] = vector_table_1074102760_149_get_value_param0;
                   } else {
-                    // EP node  1456:Else
+                    // EP node  1486:Else
                     // BDD node 147:if
                     // EP node  4192:Drop
                     // BDD node 158:DROP
                     fwd_op = fwd_op_t.DROP;
                   }
                 } else {
-                  // EP node  957:Else
+                  // EP node  981:Else
                   // BDD node 143:if
-                  // EP node  7871:Drop
+                  // EP node  7969:Drop
                   // BDD node 162:DROP
                   fwd_op = fwd_op_t.DROP;
                 }
               } else {
-                // EP node  329:Else
+                // EP node  342:Else
                 // BDD node 141:if
                 // EP node  897:FCFSCachedTableReadInsert
                 // BDD node 163:map_get
@@ -826,24 +827,31 @@ control Ingress(
                   } else {
                     // EP node  903:Else
                     // BDD node 163:map_get
-                    // EP node  6042:SendToController
+                    // EP node  5969:Recirculate
                     // BDD node 281:tofino_force_send_to_controller
-                    fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                    build_cpu_hdr(6042);
-                    hdr.cpu.cached_insert_success0 = cached_insert_success0;
-                    hdr.cpu.dev = meta.dev;
+                    fwd_op = fwd_op_t.RECIRCULATE;
+                    build_recirc_hdr(1);
+                    hdr.recirc.cached_insert_success0 = cached_insert_success0;
+                    if (hdr.recirc.code_path == 1) {
+                      // EP node  6116:SendToController
+                      // BDD node 281:tofino_force_send_to_controller
+                      fwd_op = fwd_op_t.FORWARD_TO_CPU;
+                      build_cpu_hdr(6116);
+                      hdr.cpu.cached_insert_success0 = hdr.recirc.cached_insert_success0;
+                      hdr.cpu.dev = meta.dev;
+                    }
                   }
                 }
               }
             }
             // EP node  68:Else
             // BDD node 137:if
-            // EP node  7480:ParserReject
+            // EP node  7573:ParserReject
             // BDD node 191:DROP
           }
           // EP node  23:Else
           // BDD node 135:if
-          // EP node  6868:ParserReject
+          // EP node  6953:ParserReject
           // BDD node 193:DROP
         }
       }

@@ -7,20 +7,20 @@ Args:
   Profile file:       psd-f40000-c10000-zipf0_2.json
   Seed:               0
   Targets:
-    Tofino (48 modules)
-    Ctrl (96 modules)
+    Tofino (51 modules)
+    Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'249'999'500,75,-2,-17'785'984,-1>
+  Score: <0,2'240'000'000,75,-2,-17'589'376,-1>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 1
   BDD Progress: 75 / 82
   Stages: 2
-  Memory Usage: 17785984 bits
+  Memory Usage: 17589376 bits
 
 Stateful Implementations:
   1074079432: Tofino::VectorRegister
@@ -31,7 +31,7 @@ Stateful Implementations:
   1074109560: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       77 seconds
+  Elapsed time:       40 seconds
   Steps:              77
   Backtracks:         0
   Search space size:  220
@@ -129,9 +129,9 @@ Search Metadata:
     Node 163: 3
 
 Global Stats:
-  Num phase 1 speculations: 18'098 (100%)
-  Num phase 2 speculations: 1'012 (5.59178%)
-  Num speculated modules:   229'098
+  Num phase 1 speculations: 11'984 (100%)
+  Num phase 2 speculations: 132 (1.10147%)
+  Num speculated modules:   145'246
   Num EPs generated:        220
 
 Switch placement:
@@ -139,19 +139,23 @@ Switch placement:
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 722'504/1'310'720 B (55.1227%)
+SRAM: 719'432/1'310'720 B (54.8883%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 722'504/786'432 B (91.8711%)
+MapRAM: 719'432/786'432 B (91.4805%)
+Logical IDs: 16/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 46/128 B (35.9375%)
-Objs: [vector_table_1074126776_161,fcfs_ct_1074048392_reg_liveness,vector_table_1074126776_192,bf_1074096984_row_0,vector_table_1074126776_186,vector_table_1074109560_142,fcfs_ct_1074048392_table_145,fcfs_ct_1074048392_hash_145,bf_1074096984_hash_0,fcfs_ct_1074048392_reg_key_0,vector_table_1074126776_174,fcfs_ct_1074048392_hash_147]
+Objs: [vector_table_1074126776_161,fcfs_ct_1074048392_reg_liveness,fcfs_ct_1074048392_hash_147,vector_table_1074126776_174,fcfs_ct_1074048392_reg_key_0,bf_1074096984_hash_0,vector_table_1074109560_142,vector_table_1074126776_186,fcfs_ct_1074048392_hash_145,fcfs_ct_1074048392_table_145,vector_table_1074126776_192,bf_1074096984_row_0]
 -------------------------------------
 -------------------------------------
 Stage 1
-SRAM: 389'120/1'310'720 B (29.6875%)
+SRAM: 379'904/1'310'720 B (28.9844%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 389'120/786'432 B (49.4792%)
+MapRAM: 379'904/786'432 B (48.3073%)
+Logical IDs: 14/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 28/128 B (21.875%)
-Objs: [bf_1074096984_row_3,bf_1074096984_hash_1,bf_1074096984_row_2,bf_1074096984_hash_2,bf_1074096984_row_1,bf_1074096984_hash_3,vector_register_1074079432_0]
+Objs: [bf_1074096984_hash_1,bf_1074096984_row_3,bf_1074096984_hash_2,bf_1074096984_row_2,bf_1074096984_row_1,bf_1074096984_hash_3,vector_register_1074079432_0]
 -------------------------------------
 ==========================================================
 ========================================================

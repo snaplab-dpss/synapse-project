@@ -26,17 +26,17 @@ Fwd={
 30:0.00002841}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"174"[label="174:packet_return_chunk(\l  p:1074212240,\l  the_chunk:1073764272[packet_chunks[256:276]])\lHR=0.49996294",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"177"[label="177:vector_borrow(\l  vector:1074110176,\l  index:DEVICE,\l  val_out:1074231776[ -> 1074124072])\l=>{vector_data__177}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"137"[label="137:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"143"[label="143:!vector_data__141\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"268"[label="268:packet_borrow_next_chunk(\l  p:1074212240,\l  length:20,\l  chunk:1074223736[ -> 1073764272])\l=>{packet_chunks}\lHR=0.00000865",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"137"[label="137:((8 == packet_chunks[12:14]) & (20 <= (... + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"144"[label="144:map_get(\l  map:1074047984,\l  key:1074222218[packet_chunks[512:516]++packet_chunks[268:276]],\l  value_out:1074225280[4294967295 -> allocated_index__144]) -> map_has_this_key__144\l=>{map_has_this_key__144,allocated_index__144}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"179"[label="179:packet_return_chunk(\l  p:1074212240,\l  the_chunk:1073764528[packet_chunks[512:516]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"265"[label="265:fwd(vector_data__160)\lHR=0.00000865
 Fwd={
 30:0.00000865}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"143"[label="143:!vector_data__141\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
-	"268"[label="268:packet_borrow_next_chunk(\l  p:1074212240,\l  length:20,\l  chunk:1074223736[ -> 1073764272])\l=>{packet_chunks}\lHR=0.00000865",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"235"[label="235:cms_inc_and_query_min_estimate()\l=>{min_estimate__147}\lHR=0.00003706",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"136"[label="136:packet_borrow_next_chunk(\l  p:1074212240,\l  length:14,\l  chunk:1074223000[ -> 1073764016])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"139"[label="139:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"139"[label="139:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"255"[label="255:packet_return_chunk(\l  p:1074212240,\l  the_chunk:1073764528[packet_chunks[512:516]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"146"[label="146:cms_increment(\l  cms:1074080384,\l  key:1074225314[packet_chunks[268:276]])\lHR=0.00003706",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"148"[label="148:(min_estimate__147 <= 131071)\nHR=0.00003706",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
@@ -86,12 +86,12 @@ Fwd={
 	"137" -> "138" [label="True"];
 	"137" -> "186" [label="False"];
 	"138" -> "139";
-	"139" -> "140" [label="True"];
+	"139" -> "141" [label="True"];
 	"139" -> "183" [label="False"];
-	"140" -> "144";
-	"144" -> "141";
-	"141" -> "142";
-	"142" -> "143";
+	"141" -> "140";
+	"140" -> "142";
+	"142" -> "144";
+	"144" -> "143";
 	"143" -> "145" [label="True"];
 	"143" -> "177" [label="False"];
 	"145" -> "146" [label="True"];

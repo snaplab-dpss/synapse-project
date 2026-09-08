@@ -2,26 +2,26 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 212,
-    "num_phase1_speculations": 24541,
-    "num_phase2_speculations": 1224,
-    "num_speculated_modules": 286303,
-    "time_per_instantiation_us": 2880,
-    "time_per_speculation_us": 37,
-    "total_time_spent_generating_execution_plans_us": 610637,
-    "total_time_spent_speculating_us": 10640791
+    "num_phase1_speculations": 14578,
+    "num_phase2_speculations": 176,
+    "num_speculated_modules": 174024,
+    "time_per_instantiation_us": 2809,
+    "time_per_speculation_us": 39,
+    "total_time_spent_generating_execution_plans_us": 595644,
+    "total_time_spent_speculating_us": 6823218
   },
   "heuristic": {
     "meta": [
       {
-        "description": "29.57 Gbps (42.00 Mpps)",
+        "description": "29.66 Gbps (42.13 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "29.57 Gbps (42.00 Mpps)",
+        "description": "29.66 Gbps (42.13 Mpps)",
         "name": "Spec"
       },
       {
-        "description": "3",
+        "description": "4",
         "name": "Recirculations"
       },
       {
@@ -39,11 +39,11 @@
     ],
     "score": [
       0,
-      42003000,
+      42100000,
       69,
       -5,
       -32425984,
-      -3
+      -4
     ]
   },
   "implementations": [
@@ -384,15 +384,15 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1370967741935485,
-    "elapsed_time_seconds": 63,
+    "elapsed_time_seconds": 16,
     "finished_eps": 1,
     "ss_size": 212,
-    "steps": 72,
+    "steps": 73,
     "total_ss_size_estimation": 517722536470.30646,
-    "unfinished_eps": 140
+    "unfinished_eps": 139
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 29570356992,
-  "tput_estimation_pps": 42003348
+  "tput_estimation_bps": 29658088064,
+  "tput_estimation_pps": 42127966
 }

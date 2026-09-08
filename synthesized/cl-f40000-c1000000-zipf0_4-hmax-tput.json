@@ -2,13 +2,13 @@
   "bdd": "cl.bdd",
   "global_stats": {
     "num_execution_plans_generated": 175,
-    "num_phase1_speculations": 13240,
-    "num_phase2_speculations": 659,
-    "num_speculated_modules": 153330,
-    "time_per_instantiation_us": 11562,
-    "time_per_speculation_us": 99,
-    "total_time_spent_generating_execution_plans_us": 2023447,
-    "total_time_spent_speculating_us": 15234158
+    "num_phase1_speculations": 11062,
+    "num_phase2_speculations": 173,
+    "num_speculated_modules": 117069,
+    "time_per_instantiation_us": 923,
+    "time_per_speculation_us": 108,
+    "total_time_spent_generating_execution_plans_us": 161625,
+    "total_time_spent_speculating_us": 12748351
   },
   "heuristic": {
     "meta": [
@@ -17,7 +17,7 @@
         "name": "Tput"
       },
       {
-        "description": "49.52 Gbps (70.34 Mpps)",
+        "description": "49.52 Gbps (70.33 Mpps)",
         "name": "Spec"
       },
       {
@@ -29,20 +29,20 @@
         "name": "BDD Progress"
       },
       {
-        "description": "3",
+        "description": "9",
         "name": "Stages"
       },
       {
-        "description": "36278272 bits",
+        "description": "26134528 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      70339000,
+      70300000,
       58,
-      -3,
-      -36278272,
+      -9,
+      -26134528,
       -1
     ]
   },
@@ -118,7 +118,7 @@
         "node_id": 146
       },
       {
-        "avg": 3.0,
+        "avg": 2.0,
         "node_id": 149
       },
       {
@@ -126,7 +126,7 @@
         "node_id": 178
       },
       {
-        "avg": 2.5,
+        "avg": 3.0,
         "node_id": 145
       },
       {
@@ -234,7 +234,7 @@
         "node_id": 184
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 171
       },
       {
@@ -351,16 +351,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.081818181818182,
-    "elapsed_time_seconds": 64,
+    "branching_factor": 3.090909090909091,
+    "elapsed_time_seconds": 36,
     "finished_eps": 1,
     "ss_size": 175,
     "steps": 59,
-    "total_ss_size_estimation": 7838648138332.093,
+    "total_ss_size_estimation": 8448029516852.338,
     "unfinished_eps": 116
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 49518894656,
-  "tput_estimation_pps": 70339339
+  "tput_estimation_bps": 49515873792,
+  "tput_estimation_pps": 70335048
 }

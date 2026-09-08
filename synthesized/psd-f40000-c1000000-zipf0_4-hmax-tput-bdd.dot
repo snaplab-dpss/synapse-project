@@ -21,8 +21,8 @@ Fwd={
 	"190"[label="190:packet_return_chunk(\l  p:1074236248,\l  the_chunk:1073762480[packet_chunks])\lHR=0.49996292",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"189"[label="189:packet_return_chunk(\l  p:1074236248,\l  the_chunk:1073762736[packet_chunks[256:276]])\lHR=0.49996292",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"188"[label="188:packet_return_chunk(\l  p:1074236248,\l  the_chunk:1073762992[packet_chunks[512:516]])\lHR=0.49996292",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"185"[label="185:vector_return(\l  vector:1074079432,\l  index:allocated_index__145,\l  value:1074093328[vector_data__168])\lHR=0.49996292",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"186"[label="186:vector_borrow(\l  vector:1074126776,\l  index:DEVICE,\l  val_out:1074257680[ -> 1074140672])\l=>{vector_data__186}\lHR=0.49996292",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"185"[label="185:vector_return(\l  vector:1074079432,\l  index:allocated_index__145,\l  value:1074093328[vector_data__168])\lHR=0.49996292",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"184"[label="184:drop()\lHR=0.00000000
 Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"182"[label="182:packet_return_chunk(\l  p:1074236248,\l  the_chunk:1073762736[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
@@ -43,7 +43,7 @@ Fwd={
 	"303"[label="303:packet_borrow_next_chunk(\l  p:1074236248,\l  length:4,\l  chunk:1074248384[ -> 1073762992])\l=>{packet_chunks}\lHR=0.00001511",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"160"[label="160:bf_set(\l  bf:1074096984,\l  key:1074249874[packet_chunks[514:516]++packet_chunks[268:272]])\lHR=0.00002197",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"168"[label="168:vector_borrow(\l  vector:1074079432,\l  index:allocated_index__145,\l  val_out:1074249344[ -> 1074093328])\l=>{vector_data__168}\lHR=0.49996292",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"140"[label="140:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"140"[label="140:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"187"[label="187:vector_return(\l  vector:1074126776,\l  index:DEVICE,\l  value:1074140672[vector_data__186])\lHR=0.49996292",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"289"[label="289:fwd(vector_data__149)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
@@ -62,7 +62,7 @@ Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"142"[label="142:vector_borrow(\l  vector:1074109560,\l  index:DEVICE,\l  val_out:1074248664[ -> 1074123456])\l=>{vector_data__142}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"135"[label="135:expire_items_single_map(\l  chain:1074096568,\l  vector:1074062216,\l  time:(18446744072709551616 + next_time),\l  map:1074048392) -> number_of_freed_flows__135\l=>{number_of_freed_flows__135}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"175"[label="175:vector_return(\l  vector:1074126776,\l  index:DEVICE,\l  value:1074140672[vector_data__174])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"138"[label="138:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"138"[label="138:((8 == packet_chunks[12:14]) & (20 <= (... + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"195"[label="195:packet_return_chunk(\l  p:1074236248,\l  the_chunk:1073762736[packet_chunks[256:276]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"179"[label="179:fwd(vector_data__174)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
@@ -96,7 +96,7 @@ Fwd={
 	"183"[label="183:packet_return_chunk(\l  p:1074236248,\l  the_chunk:1073762480[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"296"[label="296:packet_return_chunk(\l  p:1074236248,\l  the_chunk:1073762992[packet_chunks[512:516]])\lHR=0.00001511",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"297"[label="297:packet_return_chunk(\l  p:1074236248,\l  the_chunk:1073762736[packet_chunks[256:276]])\lHR=0.00001511",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"145"[label="145:map_get(\l  map:1074048392,\l  key:1074249212[packet_chunks[268:272]],\l  value_out:1074249272[4294967295 -> allocated_index__145]) -> map_has_this_key__145\l=>{map_has_this_key__145,allocated_index__145}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"145"[label="145:map_get(\l  map:1074048392,\l  key:1074249212[packet_chunks[268:272]],\l  value_out:1074249272[4294967295 -> allocated_index__145]) -> map_has_this_key__145\l=>{map_has_this_key__145,allocated_index__145}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"171"[label="171:!bf_query_estimate__169\nHR=0.49996292",shape=ellipse,style="filled,",fillcolor="#7f007f54",border=0,];
 	"172"[label="172:(vector_data__168 < 16)\nHR=0.00000000",shape=ellipse,style="filled,",fillcolor="#0000ff54",border=0,];
 	"305"[label="305:packet_borrow_next_chunk(\l  p:1074236248,\l  length:20,\l  chunk:1074247728[ -> 1073762736])\l=>{packet_chunks}\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
@@ -109,13 +109,13 @@ Fwd={
 	"140" -> "141" [label="True"];
 	"140" -> "198" [label="False"];
 	"141" -> "142";
-	"142" -> "143";
+	"142" -> "145";
+	"145" -> "143";
 	"143" -> "144";
-	"144" -> "145" [label="True"];
+	"144" -> "146" [label="True"];
 	"144" -> "192" [label="False"];
-	"145" -> "146";
 	"146" -> "147" [label="True"];
-	"146" -> "167" [label="False"];
+	"146" -> "168" [label="False"];
 	"147" -> "281";
 	"281" -> "158" [label="True"];
 	"281" -> "301" [label="False"];
@@ -147,11 +147,11 @@ Fwd={
 	"296" -> "297";
 	"297" -> "298";
 	"298" -> "299";
-	"167" -> "168";
-	"168" -> "169";
+	"168" -> "167";
+	"167" -> "169";
 	"169" -> "171";
 	"171" -> "172" [label="True"];
-	"171" -> "186" [label="False"];
+	"171" -> "185" [label="False"];
 	"172" -> "174" [label="True"];
 	"172" -> "180" [label="False"];
 	"174" -> "175";
@@ -167,8 +167,8 @@ Fwd={
 	"181" -> "182";
 	"182" -> "183";
 	"183" -> "184";
-	"186" -> "185";
-	"185" -> "187";
+	"185" -> "186";
+	"186" -> "187";
 	"187" -> "188";
 	"188" -> "189";
 	"189" -> "190";

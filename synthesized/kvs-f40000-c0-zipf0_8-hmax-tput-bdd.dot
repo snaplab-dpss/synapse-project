@@ -47,14 +47,14 @@ Fwd={
 Fwd={
 0:0.00289918}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"16"[label="16:dchain_allocate_new_index(\l  chain:1073971272,\l  index_out:1074041680[2880154539 -> new_index__16],\l  time:next_time) -> not_out_of_space__16\l=>{not_out_of_space__16,new_index__16}\lHR=0.00289918",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"8"[label="8:((17 == packet_chunks[265]) & (8 <= (-34 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"8"[label="8:((17 == packet_chunks[265]) & (8 <= (-34 + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"53"[label="53:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073760224[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"38"[label="38:dchain_rejuvenate_index(\l  chain:1073971272,\l  index:allocated_index__13,\l  time:next_time) -> 1\lHR=0.69562020",shape=box,style="filled,",fillcolor="#b1004d54",border=0,];
 	"58"[label="58:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"10"[label="10:(((-25086 == packet_chunks[512:514]) | (-25086 == packet_chunks[514:516])) & (12 <= (-42 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"10"[label="10:(((-25086 == packet_chunks[512:514]) | (-25086 == packet_chunks[514:516])) & (12 <= (... + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"7"[label="7:packet_borrow_next_chunk(\l  p:1074027920,\l  length:20,\l  chunk:1074039360[ -> 1073759712])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"45"[label="45:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759456[packet_chunks[12:14]++packet_chunks[0:6]++packet_chunks[6:12]])\lHR=0.00659486",shape=box,style="filled,",fillcolor="#0100fd54",border=0,];
-	"6"[label="6:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"6"[label="6:((8 == packet_chunks[12:14]) & (20 <= (... + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"66"[label="66:drop()\lHR=0.00000000
 Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"19"[label="19:packet_return_chunk(\l  p:1074027920,\l  the_chunk:1073759968[packet_chunks[512:520]])\lHR=0.00289918",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];

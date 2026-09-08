@@ -476,13 +476,8 @@ control Ingress(
     }
   }
 
-  action op_sub_82_compute() {
+  action compute_op_sub_82() {
     meta.op_sub_82_out = meta.power_of_two_12_out - meta.power_of_two_13_out;
-  }
-  table op_sub_82 {
-    actions = { op_sub_82_compute; }
-    default_action = op_sub_82_compute();
-    size = 1;
   }
 
   Register<bit<32>,_>(1, 0) vector_register_1073952248_0;
@@ -719,9 +714,9 @@ control Ingress(
           power_of_two_12.apply();
           // EP node  252:Ignore
           // BDD node 14:vector_borrow
-          // EP node  321:ArithmeticOp
+          // EP node  332:ArithmeticOp
           // BDD node 82:op_sub
-          op_sub_82.apply();
+          compute_op_sub_82();
           // EP node  396:VectorRegisterReadConditionalIncrement
           // BDD node 17:vector_borrow
           meta.vector_reg_value0 = vector_register_1073952248_0_read_conditional_write_396.execute(32w0x00000000);
@@ -737,18 +732,18 @@ control Ingress(
           // BDD node 15:vector_return
           meta.reg_incr0 = meta.op_sub_82_out;
           bit<32> reg_new0 = vector_register_1073935032_0_add_value_601.execute(32w0x00000000);
-          // EP node  652:ArithmeticOp
+          // EP node  668:ArithmeticOp
           // BDD node 83:op_add
           // EP node  706:Divide
           // BDD node 16:divide
           meta.divide_16_denom = (32w0x04000000) - (reg_new0);
           bit<32> quotient0 = divide_16_calc.execute(0);
-          // EP node  763:If
+          // EP node  781:If
           // BDD node 18:if
           if ((32w0x00000000) != (meta.vector_reg_shadow0)){
-            // EP node  764:Then
+            // EP node  782:Then
             // BDD node 18:if
-            // EP node  827:If
+            // EP node  848:If
             // BDD node 20:if
             bool cond0 = false;
             if ((24w0x000000) == (quotient0[31:8])){
@@ -757,12 +752,12 @@ control Ingress(
               }
             }
             if (cond0) {
-              // EP node  828:Then
+              // EP node  849:Then
               // BDD node 20:if
-              // EP node  1127:If
+              // EP node  1153:If
               // BDD node 21:if
               if ((meta.vector_reg_value0) <= (32w0x0000003f)){
-                // EP node  1128:Then
+                // EP node  1154:Then
                 // BDD node 21:if
                 // EP node  1355:ModifyHeader
                 // BDD node 24:packet_return_chunk
@@ -775,7 +770,7 @@ control Ingress(
                 // BDD node 25:FORWARD
                 nf_dev[15:0] = meta.dev[15:0];
               } else {
-                // EP node  1129:Else
+                // EP node  1155:Else
                 // BDD node 21:if
                 // EP node  2692:ModifyHeader
                 // BDD node 27:packet_return_chunk
@@ -788,7 +783,7 @@ control Ingress(
                 nf_dev[15:0] = meta.dev[15:0];
               }
             } else {
-              // EP node  829:Else
+              // EP node  850:Else
               // BDD node 20:if
               // EP node  1012:ModifyHeader
               // BDD node 30:packet_return_chunk
@@ -801,9 +796,9 @@ control Ingress(
               nf_dev[15:0] = meta.dev[15:0];
             }
           } else {
-            // EP node  765:Else
+            // EP node  783:Else
             // BDD node 18:if
-            // EP node  1494:If
+            // EP node  1525:If
             // BDD node 33:if
             bool cond1 = false;
             if ((24w0x000000) == (quotient0[31:8])){
@@ -812,9 +807,9 @@ control Ingress(
               }
             }
             if (cond1) {
-              // EP node  1495:Then
+              // EP node  1526:Then
               // BDD node 33:if
-              // EP node  1601:If
+              // EP node  1635:If
               // BDD node 34:if
               bool cond2 = false;
               if ((24w0x000000) == (meta.vector_reg_value0[31:8])){
@@ -823,7 +818,7 @@ control Ingress(
                 }
               }
               if (cond2) {
-                // EP node  1602:Then
+                // EP node  1636:Then
                 // BDD node 34:if
                 // EP node  1885:ModifyHeader
                 // BDD node 37:packet_return_chunk
@@ -836,7 +831,7 @@ control Ingress(
                 // BDD node 38:FORWARD
                 nf_dev[15:0] = meta.dev[15:0];
               } else {
-                // EP node  1603:Else
+                // EP node  1637:Else
                 // BDD node 34:if
                 // EP node  2969:ModifyHeader
                 // BDD node 40:packet_return_chunk
@@ -849,7 +844,7 @@ control Ingress(
                 nf_dev[15:0] = meta.dev[15:0];
               }
             } else {
-              // EP node  1496:Else
+              // EP node  1527:Else
               // BDD node 33:if
               // EP node  2831:ModifyHeader
               // BDD node 43:packet_return_chunk

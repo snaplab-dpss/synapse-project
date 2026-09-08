@@ -7,14 +7,14 @@ Args:
   Profile file:       kvs-f40000-c10000-unif.json
   Seed:               0
   Targets:
-    Tofino (48 modules)
-    Ctrl (96 modules)
+    Tofino (51 modules)
+    Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,90'336'000,49,-4,-3'502'640,0>
+  Score: <0,90'300'000,49,-4,-3'502'640,0>
   Tput: 63.60 Gbps (90.34 Mpps)
   Spec: 63.60 Gbps (90.34 Mpps)
   Recirculations: 0
@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       39 seconds
+  Elapsed time:       7 seconds
   Steps:              49
   Backtracks:         0
   Search space size:  160
@@ -103,9 +103,9 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 20'134 (100%)
-  Num phase 2 speculations: 1'391 (6.90871%)
-  Num speculated modules:   203'954
+  Num phase 1 speculations: 7'648 (100%)
+  Num phase 2 speculations: 167 (2.18358%)
+  Num speculated modules:   89'816
   Num EPs generated:        160
 
 Switch placement:
@@ -116,6 +116,8 @@ Stage 0
 SRAM: 36'412/1'310'720 B (2.77802%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [hh_table_1073923096_table_13]
 -------------------------------------
@@ -124,6 +126,8 @@ Stage 1
 SRAM: 65'537/1'310'720 B (5.00008%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 65'537/786'432 B (8.33346%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 5/128 B (3.90625%)
 Objs: [hh_table_1073923096_packet_sampler,hh_table_1073923096_cached_counters]
 -------------------------------------
@@ -132,14 +136,18 @@ Stage 2
 SRAM: 86'020/1'310'720 B (6.56281%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 86'020/786'432 B (10.938%)
+Logical IDs: 9/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 37/128 B (28.9062%)
-Objs: [hh_table_1073923096_digest,hh_table_1073923096_threshold,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_cms_row_3,hh_table_1073923096_hash_calc_0]
+Objs: [hh_table_1073923096_threshold,hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_3,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_digest,hh_table_1073923096_hash_calc_0]
 -------------------------------------
 -------------------------------------
 Stage 3
 SRAM: 49'152/1'310'720 B (3.75%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 49'152/786'432 B (6.25%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [vector_register_1073954136_0]
 -------------------------------------

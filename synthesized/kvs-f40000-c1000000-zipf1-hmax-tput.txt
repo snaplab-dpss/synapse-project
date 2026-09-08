@@ -7,17 +7,17 @@ Args:
   Profile file:       kvs-f40000-c1000000-zipf1.json
   Seed:               0
   Targets:
-    Tofino (48 modules)
-    Ctrl (96 modules)
+    Tofino (51 modules)
+    Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,275'201'500,44,-14,-7'864'320,-1>
+  Score: <0,275'000'000,44,-14,-7'864'320,0>
   Tput: 193.74 Gbps (275.20 Mpps)
   Spec: 193.74 Gbps (275.20 Mpps)
-  Recirculations: 1
+  Recirculations: 0
   BDD Progress: 44 / 47
   Stages: 14
   Memory Usage: 7864320 bits
@@ -28,15 +28,15 @@ Stateful Implementations:
   1073923096: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       41 seconds
-  Steps:              45
+  Elapsed time:       16 seconds
+  Steps:              44
   Backtracks:         0
-  Search space size:  147
-  Unfinished EPs:     102
+  Search space size:  145
+  Unfinished EPs:     101
   Finished EPs:       1
   Avg BDD size:       47
   Branching factor:   2
-  Total SS size est.: 14'939'853'821
+  Total SS size est.: 16'034'656'888
   Avg children per node:
     Node 32: 0
     Node 31: 0
@@ -84,7 +84,7 @@ Search Metadata:
     Node 24: 0
     Node 36: 3
     Node 42: 3
-    Node 48: 2.5
+    Node 48: 3
     Node 20: 3
     Node 25: 0
     Node 37: 2
@@ -103,10 +103,10 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 16'285 (100%)
-  Num phase 2 speculations: 1'220 (7.49156%)
-  Num speculated modules:   153'981
-  Num EPs generated:        147
+  Num phase 1 speculations: 5'646 (100%)
+  Num phase 2 speculations: 120 (2.1254%)
+  Num speculated modules:   69'159
+  Num EPs generated:        145
 
 Switch placement:
 
@@ -116,6 +116,8 @@ Stage 0
 SRAM: 0/1'310'720 B (0%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
 Objs: [cuckoo_hash_table_1073923096_hash_calc_0]
 -------------------------------------
@@ -124,6 +126,8 @@ Stage 1
 SRAM: 0/1'310'720 B (0%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
 Objs: [cuckoo_hash_table_1073923096_hash_calc_1]
 -------------------------------------
@@ -132,6 +136,8 @@ Stage 2
 SRAM: 0/1'310'720 B (0%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
 Objs: [cuckoo_hash_table_1073923096_hash_calc_2]
 -------------------------------------
@@ -140,6 +146,8 @@ Stage 3
 SRAM: 32'768/1'310'720 B (2.5%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 32'768/786'432 B (4.16667%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
 Objs: [cuckoo_hash_table_1073923096_reg_k_1]
 -------------------------------------
@@ -148,6 +156,8 @@ Stage 4
 SRAM: 32'768/1'310'720 B (2.5%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 32'768/786'432 B (4.16667%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
 Objs: [cuckoo_hash_table_1073923096_reg_k_2]
 -------------------------------------
@@ -156,6 +166,8 @@ Stage 5
 SRAM: 32'768/1'310'720 B (2.5%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 32'768/786'432 B (4.16667%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
 Objs: [cuckoo_hash_table_1073923096_reg_v_1]
 -------------------------------------
@@ -164,6 +176,8 @@ Stage 6
 SRAM: 32'768/1'310'720 B (2.5%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 32'768/786'432 B (4.16667%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
 Objs: [cuckoo_hash_table_1073923096_reg_v_2]
 -------------------------------------
@@ -172,6 +186,8 @@ Stage 7
 SRAM: 32'768/1'310'720 B (2.5%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 32'768/786'432 B (4.16667%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
 Objs: [cuckoo_hash_table_1073923096_reg_ts_1]
 -------------------------------------
@@ -180,6 +196,8 @@ Stage 8
 SRAM: 32'768/1'310'720 B (2.5%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 32'768/786'432 B (4.16667%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
 Objs: [cuckoo_hash_table_1073923096_reg_ts_2]
 -------------------------------------
@@ -188,6 +206,8 @@ Stage 9
 SRAM: 0/1'310'720 B (0%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [cuckoo_hash_table_1073923096_hash_old_key]
 -------------------------------------
@@ -196,6 +216,8 @@ Stage 10
 SRAM: 0/1'310'720 B (0%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [cuckoo_hash_table_1073923096_hash_new_key]
 -------------------------------------
@@ -204,6 +226,8 @@ Stage 11
 SRAM: 0/1'310'720 B (0%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [cuckoo_hash_table_1073923096_hash_old_key_2]
 -------------------------------------
@@ -212,6 +236,8 @@ Stage 12
 SRAM: 147'456/1'310'720 B (11.25%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 147'456/786'432 B (18.75%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
 Objs: [cuckoo_hash_table_1073923096_swap_transient]
 -------------------------------------
@@ -220,6 +246,8 @@ Stage 13
 SRAM: 147'456/1'310'720 B (11.25%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 147'456/786'432 B (18.75%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
 Objs: [cuckoo_hash_table_1073923096_swapped_transient]
 -------------------------------------

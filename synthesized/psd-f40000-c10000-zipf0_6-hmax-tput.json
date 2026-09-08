@@ -2,13 +2,13 @@
   "bdd": "psd.bdd",
   "global_stats": {
     "num_execution_plans_generated": 220,
-    "num_phase1_speculations": 18098,
-    "num_phase2_speculations": 1012,
-    "num_speculated_modules": 229098,
-    "time_per_instantiation_us": 5132,
-    "time_per_speculation_us": 56,
-    "total_time_spent_generating_execution_plans_us": 1129100,
-    "total_time_spent_speculating_us": 12962489
+    "num_phase1_speculations": 11984,
+    "num_phase2_speculations": 132,
+    "num_speculated_modules": 145246,
+    "time_per_instantiation_us": 7895,
+    "time_per_speculation_us": 84,
+    "total_time_spent_generating_execution_plans_us": 1736927,
+    "total_time_spent_speculating_us": 12251382
   },
   "heuristic": {
     "meta": [
@@ -33,16 +33,16 @@
         "name": "Stages"
       },
       {
-        "description": "17261696 bits",
+        "description": "17065088 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      2249999500,
+      2240000000,
       75,
       -2,
-      -17261696,
+      -17065088,
       -1
     ]
   },
@@ -424,7 +424,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.971014492753623,
-    "elapsed_time_seconds": 64,
+    "elapsed_time_seconds": 40,
     "finished_eps": 1,
     "ss_size": 220,
     "steps": 77,
