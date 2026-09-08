@@ -14,7 +14,7 @@ Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"147"[label="147:drop()\lHR=0.00000000
 Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"182"[label="182:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762256[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"135"[label="135:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"135"[label="135:((8 == packet_chunks[12:14]) & (20 <= (... + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"175"[label="175:vector_borrow(\l  vector:1074093704,\l  index:DEVICE,\l  val_out:1074215112[ -> 1074107600])\l=>{vector_data__175}\lHR=0.49996294",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"154"[label="154:fwd(vector_data__149)\lHR=0.50000000
 Fwd={
@@ -40,7 +40,7 @@ Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"139"[label="139:vector_borrow(\l  vector:1074076488,\l  index:DEVICE,\l  val_out:1074207712[ -> 1074090384])\l=>{vector_data__139}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"143"[label="143:!map_has_this_key__142\nHR=0.50000000",shape=ellipse,style="filled,",fillcolor="#7f007f54",border=0,];
 	"151"[label="151:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762768[packet_chunks[512:516]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"137"[label="137:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"137"[label="137:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"144"[label="144:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762768[packet_chunks[512:516]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"155"[label="155:map_get(\l  map:1074044080,\l  key:1074205314[packet_chunks[512:516]++packet_chunks[268:276]],\l  value_out:1074210936[2880154539 -> allocated_index__155]) -> map_has_this_key__155\l=>{map_has_this_key__155,allocated_index__155}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"179"[label="179:packet_return_chunk(\l  p:1074195336,\l  the_chunk:1073762256[packet_chunks])\lHR=0.49996294",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];

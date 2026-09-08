@@ -2,13 +2,13 @@
   "bdd": "fw.bdd",
   "global_stats": {
     "num_execution_plans_generated": 175,
-    "num_phase1_speculations": 15206,
-    "num_phase2_speculations": 726,
-    "num_speculated_modules": 179943,
-    "time_per_instantiation_us": 1035,
-    "time_per_speculation_us": 83,
-    "total_time_spent_generating_execution_plans_us": 181276,
-    "total_time_spent_speculating_us": 15100357
+    "num_phase1_speculations": 12376,
+    "num_phase2_speculations": 199,
+    "num_speculated_modules": 135539,
+    "time_per_instantiation_us": 972,
+    "time_per_speculation_us": 101,
+    "total_time_spent_generating_execution_plans_us": 170156,
+    "total_time_spent_speculating_us": 13814371
   },
   "heuristic": {
     "meta": [
@@ -39,7 +39,7 @@
     ],
     "score": [
       0,
-      73699500,
+      73600000,
       56,
       -6,
       -32076480,
@@ -344,7 +344,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.2037037037037037,
-    "elapsed_time_seconds": 41,
+    "elapsed_time_seconds": 21,
     "finished_eps": 1,
     "ss_size": 175,
     "steps": 56,

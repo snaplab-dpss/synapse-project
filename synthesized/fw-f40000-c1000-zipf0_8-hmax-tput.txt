@@ -7,14 +7,14 @@ Args:
   Profile file:       fw-f40000-c1000-zipf0_8.json
   Seed:               0
   Targets:
-    Tofino (48 modules)
-    Ctrl (96 modules)
+    Tofino (51 modules)
+    Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'249'999'500,48,-3,-13'986'816,0>
+  Score: <0,2'240'000'000,48,-3,-13'986'816,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
@@ -29,7 +29,7 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       56 seconds
+  Elapsed time:       35 seconds
   Steps:              49
   Backtracks:         0
   Search space size:  180
@@ -94,9 +94,9 @@ Search Metadata:
     Node 159: 0
 
 Global Stats:
-  Num phase 1 speculations: 13'613 (100%)
-  Num phase 2 speculations: 711 (5.22295%)
-  Num speculated modules:   166'331
+  Num phase 1 speculations: 11'245 (100%)
+  Num phase 2 speculations: 229 (2.03646%)
+  Num speculated modules:   126'229
   Num EPs generated:        180
 
 Switch placement:
@@ -107,6 +107,8 @@ Stage 0
 SRAM: 288/1'310'720 B (0.0219727%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [vector_table_1074076488_139]
 -------------------------------------
@@ -115,6 +117,8 @@ Stage 1
 SRAM: 1'310'720/1'310'720 B (100%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 24/128 B (18.75%)
 Objs: [map_set_table_1074044080_155,map_set_table_1074044080_142]
 -------------------------------------
@@ -123,6 +127,8 @@ Stage 2
 SRAM: 437'344/1'310'720 B (33.3667%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 3/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 20/128 B (15.625%)
 Objs: [vector_table_1074093704_175,vector_table_1074093704_149,map_set_table_1074044080_155]
 -------------------------------------

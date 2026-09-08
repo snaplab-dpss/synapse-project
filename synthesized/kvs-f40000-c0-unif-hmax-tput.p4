@@ -613,20 +613,20 @@ control Ingress(
                   }
                 }
               }
-              // EP node  558:If
+              // EP node  573:If
               // BDD node 12:if
               if ((16w0x0000) != (meta.dev[15:0])){
-                // EP node  559:Then
+                // EP node  574:Then
                 // BDD node 12:if
-                // EP node  615:If
+                // EP node  633:If
                 // BDD node 14:if
                 if (!hit0){
-                  // EP node  616:Then
+                  // EP node  634:Then
                   // BDD node 14:if
-                  // EP node  681:If
+                  // EP node  702:If
                   // BDD node 15:if
                   if ((8w0x01) == (hdr.hdr3.data0)){
-                    // EP node  682:Then
+                    // EP node  703:Then
                     // BDD node 15:if
                     // EP node  1937:HHTableOutOfBandUpdate
                     // BDD node 16:dchain_allocate_new_index
@@ -639,7 +639,7 @@ control Ingress(
                     // BDD node 22:FORWARD
                     nf_dev[15:0] = 16w0x0000;
                   } else {
-                    // EP node  683:Else
+                    // EP node  704:Else
                     // BDD node 15:if
                     // EP node  785:ModifyHeader
                     // BDD node 33:packet_return_chunk
@@ -651,7 +651,7 @@ control Ingress(
                     nf_dev[15:0] = 16w0x0000;
                   }
                 } else {
-                  // EP node  617:Else
+                  // EP node  635:Else
                   // BDD node 14:if
                   // EP node  1199:Ignore
                   // BDD node 38:dchain_rejuvenate_index
@@ -707,7 +707,7 @@ control Ingress(
                   }
                 }
               } else {
-                // EP node  560:Else
+                // EP node  575:Else
                 // BDD node 12:if
                 // EP node  5093:Forward
                 // BDD node 57:FORWARD

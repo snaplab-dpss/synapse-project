@@ -42,7 +42,7 @@ Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"133"[label="133:expire_items_single_map(\l  chain:1074085120,\l  vector:1074066960,\l  time:(18446744072709551616 + next_time),\l  map:1074053136) -> number_of_freed_flows__133\l=>{number_of_freed_flows__133}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"181"[label="181:dchain_rejuvenate_index(\l  chain:1074085120,\l  index:allocated_index__163,\l  time:next_time) -> 1\lHR=0.49999963",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"134"[label="134:packet_borrow_next_chunk(\l  p:1074206216,\l  length:14,\l  chunk:1074216968[ -> 1073763360])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"135"[label="135:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"135"[label="135:((8 == packet_chunks[12:14]) & (20 <= (... + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"175"[label="175:vector_borrow(\l  vector:1074102760,\l  index:DEVICE,\l  val_out:1074225152[ -> 1074116656])\l=>{vector_data__175}\lHR=0.00000013",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"154"[label="154:fwd(vector_data__149)\lHR=0.49873115
 Fwd={
@@ -62,7 +62,7 @@ Drop={0.00126885}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"139"[label="139:vector_borrow(\l  vector:1074085544,\l  index:DEVICE,\l  val_out:1074218640[ -> 1074099440])\l=>{vector_data__139}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"143"[label="143:is_index_allocated__142\nHR=0.50000000",shape=ellipse,style="filled,",fillcolor="#7f007f54",border=0,];
 	"151"[label="151:packet_return_chunk(\l  p:1074206216,\l  the_chunk:1073763872[vector_data__144[8:10]++packet_chunks[512:514]])\lHR=0.49873115",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"137"[label="137:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"137"[label="137:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"144"[label="144:vector_borrow(\l  vector:1074066960,\l  index:packet_chunks[514:516],\l  val_out:1074219304[ -> 1074080856])\l=>{vector_data__144}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"278"[label="278:packet_return_chunk(\l  p:1074206216,\l  the_chunk:1073763616[packet_chunks[272:276]++4++3++2++1++checksum__174[0:2]++packet_chunks[256:266]])\lHR=0.00000024",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"155"[label="155:packet_return_chunk(\l  p:1074206216,\l  the_chunk:1073763872[packet_chunks[512:516]])\lHR=0.00126885",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];

@@ -2,13 +2,13 @@
   "bdd": "hyperloglog.bdd",
   "global_stats": {
     "num_execution_plans_generated": 136,
-    "num_phase1_speculations": 3932,
-    "num_phase2_speculations": 409,
-    "num_speculated_modules": 42558,
-    "time_per_instantiation_us": 1016,
-    "time_per_speculation_us": 6,
-    "total_time_spent_generating_execution_plans_us": 138224,
-    "total_time_spent_speculating_us": 282863
+    "num_phase1_speculations": 1709,
+    "num_phase2_speculations": 13,
+    "num_speculated_modules": 24074,
+    "time_per_instantiation_us": 1796,
+    "time_per_speculation_us": 1,
+    "total_time_spent_generating_execution_plans_us": 244300,
+    "total_time_spent_speculating_us": 28105
   },
   "heuristic": {
     "meta": [
@@ -33,16 +33,16 @@
         "name": "Stages"
       },
       {
-        "description": "1069440 bits",
+        "description": "1069312 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      2249999500,
+      2240000000,
       41,
       -12,
-      -1069440,
+      -1069312,
       0
     ]
   },
@@ -400,7 +400,7 @@
     ],
     "backtracks": 1,
     "branching_factor": 2.0963855421686746,
-    "elapsed_time_seconds": 5,
+    "elapsed_time_seconds": 1,
     "finished_eps": 1,
     "ss_size": 136,
     "steps": 42,

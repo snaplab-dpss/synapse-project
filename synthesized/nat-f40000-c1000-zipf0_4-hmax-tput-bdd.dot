@@ -22,7 +22,7 @@ Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"174"[label="174:nf_set_rte_ipv4_udptcp_checksum(\l  ip_header:1073763616,\l  l4_header:1073763872,\l  packet:1074155272) -> checksum__174\l=>{checksum__174}\lHR=0.00000004",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"177"[label="177:packet_return_chunk(\l  p:1074206216,\l  the_chunk:1073763872[packet_chunks[514:516]++new_index__165[0:2]])\lHR=0.00000004",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"133"[label="133:expire_items_single_map(\l  chain:1074085120,\l  vector:1074066960,\l  time:(18446744072709551616 + next_time),\l  map:1074053136) -> number_of_freed_flows__133\l=>{number_of_freed_flows__133}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"135"[label="135:((8 == packet_chunks[12:14]) & (20 <= (-14 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"135"[label="135:((8 == packet_chunks[12:14]) & (20 <= (... + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"175"[label="175:vector_borrow(\l  vector:1074102760,\l  index:DEVICE,\l  val_out:1074225152[ -> 1074116656])\l=>{vector_data__175}\lHR=0.00000004",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"154"[label="154:fwd(vector_data__149)\lHR=0.49986153
 Fwd={
@@ -52,7 +52,7 @@ Fwd={
 	"148"[label="148:nf_set_rte_ipv4_udptcp_checksum(\l  ip_header:1073763616,\l  l4_header:1073763872,\l  packet:1074155272) -> checksum__148\l=>{checksum__148}\lHR=0.49986153",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"251"[label="251:packet_borrow_next_chunk(\l  p:1074206216,\l  length:4,\l  chunk:1074218360[ -> 1073763872])\l=>{packet_chunks}\lHR=0.00000004",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"151"[label="151:packet_return_chunk(\l  p:1074206216,\l  the_chunk:1073763872[vector_data__144[8:10]++packet_chunks[512:514]])\lHR=0.49986153",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"137"[label="137:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + pkt_len)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
+	"137"[label="137:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"144"[label="144:vector_borrow(\l  vector:1074066960,\l  index:packet_chunks[514:516],\l  val_out:1074219304[ -> 1074080856])\l=>{vector_data__144}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"162"[label="162:drop()\lHR=0.00000000
 Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];

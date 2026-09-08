@@ -613,20 +613,20 @@ control Ingress(
                   }
                 }
               }
-              // EP node  558:If
+              // EP node  573:If
               // BDD node 12:if
               if ((16w0x0000) != (meta.dev[15:0])){
-                // EP node  559:Then
+                // EP node  574:Then
                 // BDD node 12:if
-                // EP node  615:If
+                // EP node  633:If
                 // BDD node 14:if
                 if (!hit0){
-                  // EP node  616:Then
+                  // EP node  634:Then
                   // BDD node 14:if
-                  // EP node  1340:If
+                  // EP node  1372:If
                   // BDD node 15:if
                   if ((8w0x01) == (hdr.hdr3.data0)){
-                    // EP node  1341:Then
+                    // EP node  1373:Then
                     // BDD node 15:if
                     // EP node  2634:HHTableOutOfBandUpdate
                     // BDD node 16:dchain_allocate_new_index
@@ -639,7 +639,7 @@ control Ingress(
                     // BDD node 22:FORWARD
                     nf_dev[15:0] = 16w0x0000;
                   } else {
-                    // EP node  1342:Else
+                    // EP node  1374:Else
                     // BDD node 15:if
                     // EP node  1488:ModifyHeader
                     // BDD node 33:packet_return_chunk
@@ -651,7 +651,7 @@ control Ingress(
                     nf_dev[15:0] = 16w0x0000;
                   }
                 } else {
-                  // EP node  617:Else
+                  // EP node  635:Else
                   // BDD node 14:if
                   // EP node  702:Ignore
                   // BDD node 38:dchain_rejuvenate_index
@@ -707,7 +707,7 @@ control Ingress(
                   }
                 }
               } else {
-                // EP node  560:Else
+                // EP node  575:Else
                 // BDD node 12:if
                 // EP node  5218:Forward
                 // BDD node 57:FORWARD

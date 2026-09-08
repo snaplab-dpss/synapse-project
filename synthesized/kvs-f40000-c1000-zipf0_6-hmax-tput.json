@@ -1,14 +1,14 @@
 {
   "bdd": "kvs.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 162,
-    "num_phase1_speculations": 27625,
-    "num_phase2_speculations": 1637,
-    "num_speculated_modules": 267811,
-    "time_per_instantiation_us": 4202,
-    "time_per_speculation_us": 16,
-    "total_time_spent_generating_execution_plans_us": 680741,
-    "total_time_spent_speculating_us": 4479892
+    "num_execution_plans_generated": 160,
+    "num_phase1_speculations": 6920,
+    "num_phase2_speculations": 132,
+    "num_speculated_modules": 82386,
+    "time_per_instantiation_us": 4334,
+    "time_per_speculation_us": 17,
+    "total_time_spent_generating_execution_plans_us": 693516,
+    "total_time_spent_speculating_us": 1456282
   },
   "heuristic": {
     "meta": [
@@ -21,7 +21,7 @@
         "name": "Spec"
       },
       {
-        "description": "1",
+        "description": "0",
         "name": "Recirculations"
       },
       {
@@ -39,11 +39,11 @@
     ],
     "score": [
       0,
-      149454000,
+      149000000,
       49,
       -4,
       -3961392,
-      -1
+      0
     ]
   },
   "implementations": [
@@ -134,7 +134,7 @@
         "node_id": 64
       },
       {
-        "avg": 2.5,
+        "avg": 3.0,
         "node_id": 5
       },
       {
@@ -319,16 +319,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.753968253968254,
-    "elapsed_time_seconds": 61,
+    "branching_factor": 2.761904761904762,
+    "elapsed_time_seconds": 10,
     "finished_eps": 1,
-    "ss_size": 162,
-    "steps": 50,
-    "total_ss_size_estimation": 59260392258.93785,
-    "unfinished_eps": 112
+    "ss_size": 160,
+    "steps": 49,
+    "total_ss_size_estimation": 63363355379.48724,
+    "unfinished_eps": 111
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 105215872960,
-  "tput_estimation_pps": 149454365
+  "tput_estimation_bps": 105215556160,
+  "tput_estimation_pps": 149453915
 }
