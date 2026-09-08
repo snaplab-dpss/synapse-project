@@ -1,6 +1,9 @@
 #include <LibCore/Math.h>
 #include <LibCore/Debug.h>
 
+#include <algorithm>
+#include <cmath>
+
 namespace LibCore {
 
 namespace {
@@ -25,41 +28,71 @@ horners_result_t poly_calc_horners_method(const std::vector<double> &coefficient
 }
 
 double newton_root_finder(const std::vector<double> &coefficients, u64 min, u64 max) {
-  //   std::cerr << "Min: " << min << "\n";
-  //   std::cerr << "Max: " << max << "\n";
-  //   if (coefficients.size() > 10) {
-  //     std::cerr << "Coefficients:\n";
-  //     for (const auto &coef : coefficients) {
-  //       std::cerr << std::scientific << coef << "\n";
-  //     }
-  //   }
+  // Solved in y = x / max so the iteration works near unit scale (the callers' polynomials
+  // have degrees up to the recirculation depth and coefficients spanning tens of orders of
+  // magnitude). Newton steps are kept inside a bracket that always holds a sign change; a step
+  // leaving it, or not shrinking it, bisects instead. Falls back to plain Newton when the
+  // bracket ends don't differ in sign.
+  const double scale = static_cast<double>(max) > 0 ? static_cast<double>(max) : 1.0;
+  std::vector<double> scaled(coefficients.size());
+  double power = 1.0;
+  for (size_t i = 0; i < coefficients.size(); i++) {
+    scaled[i] = coefficients[i] * power;
+    power *= scale;
+  }
 
-  double x = min;
+  double lo   = static_cast<double>(min) / scale;
+  double hi   = static_cast<double>(max) / scale;
+  double f_lo = poly_calc_horners_method(scaled, lo).f;
+  double f_hi = poly_calc_horners_method(scaled, hi).f;
 
-  std::set<double> tested;
+  if (f_lo == 0) {
+    return lo * scale;
+  }
+  if (f_hi == 0) {
+    return hi * scale;
+  }
+
+  const bool bracketed = (f_lo < 0) != (f_hi < 0);
+  double x             = lo;
+
   for (int i = 0; i < NEWTON_MAX_ITERATIONS; i++) {
-    const horners_result_t poly_calc = poly_calc_horners_method(coefficients, x);
+    const horners_result_t poly_calc = poly_calc_horners_method(scaled, x);
+    assert_or_panic(!std::isinf(poly_calc.f) && !std::isnan(poly_calc.f), "Precision issues. This is a bug.");
     if (std::abs(poly_calc.f) <= NEWTON_PRECISION) {
       break;
     }
 
-    // std::cerr << " x " << std::scientific << x;
-    // std::cerr << " f(x) " << std::scientific << poly_calc.f;
-    // std::cerr << " df/dx " << std::scientific << poly_calc.df_dx << "\n";
+    if (bracketed) {
+      if ((poly_calc.f < 0) == (f_lo < 0)) {
+        lo   = x;
+        f_lo = poly_calc.f;
+      } else {
+        hi   = x;
+        f_hi = poly_calc.f;
+      }
+      if (hi - lo <= 1e-12 * std::max(1.0, hi)) {
+        break;
+      }
+    }
 
-    tested.insert(x);
-    assert_or_panic(!std::isinf(poly_calc.f), "Precision issues. This is a bug.");
-
-    x -= poly_calc.f / poly_calc.df_dx;
-
-    if (tested.find(x) != tested.end()) {
-      // We are stuck in a loop. Let's just return the best effort.
+    double next = x - poly_calc.f / poly_calc.df_dx;
+    if (bracketed && (!(next > lo && next < hi) || std::isnan(next))) {
+      next = (lo + hi) / 2;
+    }
+    if (next == x) {
       break;
     }
+    x = next;
   }
 
-  assert_or_panic(x >= min, "Root is below minimum (%lf < %lu)", x, min);
-  assert_or_panic(x <= max, "Root is above maximum (%lf > %lu)", x, max);
+  if (bracketed) {
+    x = std::min(std::max(x, lo), hi);
+  }
+  x *= scale;
+
+  assert_or_panic(x >= static_cast<double>(min), "Root is below minimum (%lf < %lu)", x, min);
+  assert_or_panic(x <= static_cast<double>(max), "Root is above maximum (%lf > %lu)", x, max);
 
   return x;
 }
