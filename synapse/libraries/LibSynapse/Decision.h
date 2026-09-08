@@ -1,5 +1,8 @@
 #pragma once
 
+#include <array>
+#include <memory>
+
 #include <LibSynapse/Context.h>
 #include <LibSynapse/EPNode.h>
 #include <LibSynapse/Modules/Module.h>
@@ -71,14 +74,51 @@ struct spec_impl_lite_t {
 struct speculations_t {
   std::vector<spec_impl_lite_t> speculations_per_node;
   Context ctx;
-  // Data-plane producers of symbols speculated so far in the current pass (see
-  // spec_impl_t::produced); a speculated recirculation starts a new pass and empties it.
-  std::unordered_map<std::string, std::string> producers;
-  bool recirculated_since_leaf = false;
-  // Compute actions of the current run of consecutive compute steps (in order), and whether
-  // that run extends back into the execution plan's leaf.
-  std::vector<std::string> run_actions;
-  bool run_reaches_leaf = true;
+  // What the pass decided for each node so far (a consumed node maps to the step that took
+  // it), so a step can look at its own BDD ancestry, whatever order the pass visits nodes in:
+  // the run of compute steps it may share actions with, the producers of its operands, and
+  // the recirculations (pass boundaries) on its path.
+  struct node_info_t {
+    ModuleType module;
+    bool compute_step;
+    bool recirculated;
+    std::vector<std::string> actions;                       // Compute actions the step placed ops in.
+    std::unordered_map<std::string, std::string> produced;  // Symbol -> data structure computing it.
+  };
+  // Persistent, so that copying a pass's state (done per lookahead) is cheap: fixed-size chunks
+  // of shared entries, and a write copies only the chunk it touches.
+  class node_infos_t {
+  private:
+    static constexpr size_t CHUNK = 64;
+    using chunk_t                 = std::array<std::shared_ptr<const node_info_t>, CHUNK>;
+    std::vector<std::shared_ptr<chunk_t>> chunks;
+
+  public:
+    const node_info_t *find(bdd_node_id_t id) const {
+      const size_t c = id / CHUNK;
+      if (c >= chunks.size() || !chunks[c]) {
+        return nullptr;
+      }
+      return (*chunks[c])[id % CHUNK].get();
+    }
+
+    void set(bdd_node_id_t id, std::shared_ptr<const node_info_t> info) {
+      const size_t c = id / CHUNK;
+      if (c >= chunks.size()) {
+        chunks.resize(c + 1);
+      }
+      if (!chunks[c]) {
+        chunks[c] = std::make_shared<chunk_t>();
+      } else if (chunks[c].use_count() > 1) {
+        chunks[c] = std::make_shared<chunk_t>(*chunks[c]);
+      }
+      (*chunks[c])[id % CHUNK] = std::move(info);
+    }
+  };
+  node_infos_t by_node;
+
+  const node_info_t *find_node_info(bdd_node_id_t id) const { return by_node.find(id); }
+  void note(bdd_node_id_t id, node_info_t info) { by_node.set(id, std::make_shared<const node_info_t>(std::move(info))); }
 
   speculations_t copy_and_append(const spec_impl_t &spec_impl) const {
     speculations_t new_speculations = *this;
@@ -89,19 +129,11 @@ struct speculations_t {
   void append(const spec_impl_t &spec_impl) {
     speculations_per_node.emplace_back(spec_impl);
     ctx = spec_impl.ctx;
-    if (spec_impl.recirculated) {
-      producers.clear();
-      recirculated_since_leaf = true;
-    }
-    producers.insert(spec_impl.produced.begin(), spec_impl.produced.end());
-    if (spec_impl.recirculated || !spec_impl.compute_step) {
-      run_actions.clear();
-      run_reaches_leaf = false;
-    }
-    for (const std::string &action : spec_impl.compute_actions) {
-      if (std::find(run_actions.begin(), run_actions.end(), action) == run_actions.end()) {
-        run_actions.push_back(action);
-      }
+    const auto info = std::make_shared<const node_info_t>(
+        node_info_t{spec_impl.decision.module, spec_impl.compute_step, spec_impl.recirculated, spec_impl.compute_actions, spec_impl.produced});
+    by_node.set(spec_impl.decision.node, info);
+    for (bdd_node_id_t consumed : spec_impl.skip) {
+      by_node.set(consumed, info);
     }
   }
 };

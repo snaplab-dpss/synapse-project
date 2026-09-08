@@ -133,17 +133,10 @@ Symbols get_produced_symbols(const Module *module) {
 
 // Walks the EP back from `node` to the last recirculation (or the last non-Tofino module),
 // collecting the primitive data structures of every module `keep` accepts.
-std::unordered_set<DS_ID> collect_deps(const EP *ep, const BDDNode *node, const std::function<bool(const Module *)> &keep) {
+// The data structures of the plan's modules `keep` selects, walking up from `ep_node` until
+// the last recirculation (what was placed before it is in a previous pass).
+std::unordered_set<DS_ID> collect_deps_from(const EP *ep, const EPNode *ep_node, const std::function<bool(const Module *)> &keep) {
   std::unordered_set<DS_ID> deps;
-
-  const EPNode *ep_node = get_ep_node_from_bdd_node(ep, node);
-  if (!ep_node) {
-    ep_node = get_ep_node_leaf_from_future_bdd_node(ep, node);
-
-    if (!ep_node) {
-      return deps;
-    }
-  }
 
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
 
@@ -179,6 +172,17 @@ std::unordered_set<DS_ID> collect_deps(const EP *ep, const BDDNode *node, const 
   }
 
   return deps;
+}
+
+std::unordered_set<DS_ID> collect_deps(const EP *ep, const BDDNode *node, const std::function<bool(const Module *)> &keep) {
+  const EPNode *ep_node = get_ep_node_from_bdd_node(ep, node);
+  if (!ep_node) {
+    ep_node = get_ep_node_leaf_from_future_bdd_node(ep, node);
+    if (!ep_node) {
+      return {};
+    }
+  }
+  return collect_deps_from(ep, ep_node, keep);
 }
 
 } // namespace
@@ -246,6 +250,7 @@ std::optional<TofinoContext::compute_op_plan_t> TofinoContext::plan_compute_op(c
   const ComputeAction fresh(new_action_id, 0, {op});
   const int new_stage_id = pipeline.find_stage_for_compute_action(&fresh, deps);
 
+
   if (best_stage_id >= 0 && (new_stage_id < 0 || best_stage_id <= new_stage_id)) {
     return compute_op_plan_t{.action_id = best_action_id, .append = true};
   }
@@ -290,14 +295,38 @@ bool TofinoContext::can_place_fast(const DS *ds, const std::unordered_set<DS_ID>
 
 std::unordered_set<DS_ID> TofinoContext::get_dataflow_deps(const EP *ep, const BDDNode *node, klee::ref<klee::Expr> value,
                                                            const speculations_t &speculations) {
+  const std::unordered_set<std::string> read = symbol_t::get_symbols_names(value);
+  const auto keep                            = [&read](const Module *module) {
+    for (const symbol_t &symbol : get_produced_symbols(module).get()) {
+      if (read.count(symbol.name)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Up the node's own path: the pass's decisions first, then the plan from the leaf of the
+  // node's branch (the last plan node on the path, possibly a recirculation). A recirculation
+  // ends the pass: a value from an earlier pass travels in the recirculation header, so it
+  // constrains nothing.
   std::unordered_set<DS_ID> deps;
-  if (!speculations.recirculated_since_leaf) {
-    deps = get_dataflow_deps(ep, node, value);
-  }
-  for (const std::string &name : symbol_t::get_symbols_names(value)) {
-    auto found_it = speculations.producers.find(name);
-    if (found_it != speculations.producers.end()) {
-      deps.insert(found_it->second);
+  std::unordered_set<std::string> pending = read; // Symbols whose producer we haven't met yet.
+  for (const BDDNode *n = node->get_prev(); n && !pending.empty(); n = n->get_prev()) {
+    const speculations_t::node_info_t *info = speculations.find_node_info(n->get_id());
+    if (!info) {
+      if (const EPNode *leaf = ep->get_leaf_ep_node_from_bdd_node(node)) {
+        const std::unordered_set<DS_ID> plan_deps = collect_deps_from(ep, leaf, keep);
+        deps.insert(plan_deps.begin(), plan_deps.end());
+      }
+      break;
+    }
+    for (const auto &[symbol, ds] : info->produced) {
+      if (pending.erase(symbol)) {
+        deps.insert(ds);
+      }
+    }
+    if (info->recirculated) {
+      break;
     }
   }
   return deps;

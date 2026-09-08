@@ -111,12 +111,30 @@ public:
   // ======================================================================
 
   static bool is_compute_module(const Module *module);
+  // A BDD node that is a stateless compute step (an op_* call or a rotate_left).
+  static bool is_compute_node(const BDDNode *node);
+
+  // An operand of a compute op that the data plane can't read as is (an expression, not a
+  // constant or a whole value): computed first as op `op_id` of the ComputeAction
+  // `action_id`, one stage ahead.
+  struct compute_operand_t {
+    klee::ref<klee::Expr> expr;
+    std::string op_id;
+    DS_ID action_id;
+  };
+
+  // A constant or a whole read of one value: usable as an action operand directly.
+  static bool is_plain_operand(klee::ref<klee::Expr> expr);
+
+  // The operands among `exprs` (op id = base + suffix) that need computing first.
+  static std::vector<compute_operand_t> get_operands_to_compute(const std::string &op_id_base,
+                                                                const std::vector<std::pair<std::string, klee::ref<klee::Expr>>> &exprs);
 
   // The compute actions of the run of consecutive compute steps ending at the active leaf
   // (nearest first). A step only shares an action with steps of its own run: no other module
   // or recirculation in between.
   static std::vector<DS_ID> get_compute_run_actions(const EP *ep);
-  static std::vector<DS_ID> get_compute_run_actions(const EP *ep, const speculations_t &speculations);
+  static std::vector<DS_ID> get_compute_run_actions(const EP *ep, const BDDNode *node, const speculations_t &speculations);
 
   // Places the ops of one stateless step (op_*, rotate_left) into `ctx`, each appended to an
   // action of the run when one can take it (the run's actions, plus those this builder placed)
@@ -129,10 +147,21 @@ public:
     bool full_placer; // The search uses the full placer (ILP fallback); speculation the simple one.
     bool new_pass;
     std::vector<DS_ID> actions;
+    std::unordered_map<std::string, DS_ID> placed_ops; // By op id: placing an op twice is a no-op.
 
     // The action holding `op`, or empty when no stage can take it.
     std::optional<DS_ID> place(const compute_op_t &op, std::unordered_set<DS_ID> deps);
   };
+
+  // Places every operand as an ALU op through `builder` (sharing the run's actions); fills in
+  // the action ids. Empty when one of them can't be placed. `speculations` when speculating.
+  static bool place_operand_ops(ComputeStepBuilder &builder, const EP *ep, const BDDNode *node, std::vector<compute_operand_t> &operands,
+                                const speculations_t *speculations);
+
+  // Placement dependencies of an op reading `exprs` (plain ones: their producers; computed
+  // ones: their actions).
+  static std::unordered_set<DS_ID> get_op_deps(const EP *ep, const BDDNode *node, const std::vector<klee::ref<klee::Expr>> &plain,
+                                               const std::vector<compute_operand_t> &computed, const speculations_t *speculations);
 
   // Places a step's ops through `build` (which returns the action of the step's output).
   using compute_step_builder_fn_t = std::function<std::optional<DS_ID>(ComputeStepBuilder &)>;
@@ -146,6 +175,15 @@ public:
   // stage can take one of its ops: the search then recirculates or hands the rest to the
   // controller.
   std::optional<compute_step_t> implement_compute_step(const EP *ep, const BDDNode *node, const compute_step_builder_fn_t &build) const;
+
+  // Speculates the run of consecutive compute steps starting at `node` as one step: the estimate
+  // assumes the greedy continuation the search would take anyway (append or new action, hash
+  // unit then shifts, recirculate when the depth is exhausted), so one context copy and one
+  // candidate comparison serve the whole run instead of one per op. The nodes after the first
+  // that got placed are consumed (skip); the run stops before the first op that no longer fits
+  // in the current pass (it recirculates when speculated on its own). The search itself still
+  // decides op by op with every candidate.
+  std::optional<spec_impl_t> speculate_compute_run(const EP *ep, const BDDNode *node, const speculations_t &speculations) const;
 
   // Speculative counterpart: places the step in the speculation's pipeline, and when it does
   // not fit speculates a recirculation first (charged to the recirculation ports, up to

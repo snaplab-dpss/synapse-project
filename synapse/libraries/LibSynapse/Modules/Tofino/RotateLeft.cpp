@@ -16,7 +16,11 @@ struct rotation_t {
   klee::ref<klee::Expr> x;
   u32 amount;
   klee::ref<klee::Expr> out;
+  compute_op_t op;
+  std::vector<TofinoModuleFactory::compute_operand_t> operands; // x, when it isn't a plain value.
 };
+
+std::string build_op_id(const BDDNode *node) { return "rotate_left_" + std::to_string(node->get_id()); }
 
 // The rotation `node` computes, if it is one the data plane can do: a constant amount, and
 // an operand readable here (a reordering can bring us before the register update that
@@ -38,44 +42,54 @@ std::optional<rotation_t> get_rotation(const BDDNode *node) {
 
   const bits_t width = call.ret->getWidth();
   const u32 amount   = solver_toolbox.value_from_expr(n) % width;
-  return rotation_t{x, amount, call.ret};
+
+  rotation_t rotation{x, amount, call.ret, {}, {}};
+  rotation.op       = compute_op_t{.id = build_op_id(node), .kind = (amount % 8 != 0) ? ComputeOpKind::Hash : ComputeOpKind::ALU, .width = width};
+  rotation.operands = TofinoModuleFactory::get_operands_to_compute(rotation.op.id, {{"_x", x}});
+  return rotation;
 }
 
-std::string build_op_id(const BDDNode *node) { return "rotate_left_" + std::to_string(node->get_id()); }
-
-compute_op_t build_op(const BDDNode *node, const rotation_t &rotation) {
-  const ComputeOpKind kind = (rotation.amount % 8 != 0) ? ComputeOpKind::Hash : ComputeOpKind::ALU;
-  return compute_op_t{.id = build_op_id(node), .kind = kind, .width = rotation.out->getWidth()};
+std::optional<DS_ID> place_rotation(TofinoModuleFactory::ComputeStepBuilder &builder, const EP *ep, const BDDNode *node, rotation_t &rotation,
+                                    const speculations_t *speculations) {
+  if (!TofinoModuleFactory::place_operand_ops(builder, ep, node, rotation.operands, speculations)) {
+    return {};
+  }
+  const std::vector<klee::ref<klee::Expr>> plain = rotation.operands.empty() ? std::vector<klee::ref<klee::Expr>>{rotation.x} : std::vector<klee::ref<klee::Expr>>{};
+  return builder.place(rotation.op, TofinoModuleFactory::get_op_deps(ep, node, plain, rotation.operands, speculations));
 }
 
 } // namespace
 
 std::string RotateLeft::get_op_id() const { return build_op_id(node); }
 
-std::optional<spec_impl_t> RotateLeftFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
-  const std::optional<rotation_t> rotation = get_rotation(node);
+std::optional<DS_ID> RotateLeftFactory::place(ComputeStepBuilder &builder, const EP *ep, const BDDNode *node, const speculations_t *speculations) {
+  std::optional<rotation_t> rotation = get_rotation(node);
   if (!rotation) {
     return {};
   }
-  const compute_op_t op                = build_op(node, *rotation);
-  const std::unordered_set<DS_ID> deps = TofinoContext::get_dataflow_deps(ep, node, rotation->x, speculations);
-  return speculate_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return builder.place(op, deps); }, speculations);
+  return place_rotation(builder, ep, node, *rotation, speculations);
+}
+
+std::optional<spec_impl_t> RotateLeftFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
+  if (!get_rotation(node)) {
+    return {};
+  }
+  return speculate_compute_run(ep, node, speculations);
 }
 
 std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
-  const std::optional<rotation_t> rotation = get_rotation(node);
+  std::optional<rotation_t> rotation = get_rotation(node);
   if (!rotation) {
     return {};
   }
 
-  const compute_op_t op                = build_op(node, *rotation);
-  const std::unordered_set<DS_ID> deps = TofinoContext::get_dataflow_deps(ep, node, rotation->x);
-  std::optional<compute_step_t> step   = implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return builder.place(op, deps); });
+  std::optional<compute_step_t> step =
+      implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return place_rotation(builder, ep, node, *rotation, nullptr); });
   if (!step) {
     return {};
   }
 
-  Module *module  = new RotateLeft(node, step->action_id, rotation->x, rotation->amount, rotation->out);
+  Module *module  = new RotateLeft(node, step->action_id, rotation->x, rotation->amount, rotation->out, rotation->operands);
   EPNode *ep_node = new EPNode(module);
 
   const EPLeaf leaf(ep_node, node->get_next());
@@ -87,12 +101,16 @@ std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode 
 }
 
 std::unique_ptr<Module> RotateLeftFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
-  const std::optional<rotation_t> rotation = get_rotation(node);
+  std::optional<rotation_t> rotation = get_rotation(node);
   if (!rotation) {
     return {};
   }
-  const DS_ID action_id = ctx.get_target_ctx<TofinoContext>()->find_compute_action(build_op_id(node));
-  return std::make_unique<RotateLeft>(node, action_id, rotation->x, rotation->amount, rotation->out);
+  const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
+  for (compute_operand_t &operand : rotation->operands) {
+    operand.action_id = tofino_ctx->find_compute_action(operand.op_id);
+  }
+  return std::make_unique<RotateLeft>(node, tofino_ctx->find_compute_action(rotation->op.id), rotation->x, rotation->amount, rotation->out,
+                                      rotation->operands);
 }
 
 } // namespace Tofino
