@@ -106,9 +106,31 @@ Kept here so the gap is explicit. Ordered by how hard each looks.
    here holds an `@in_hash` and is called bare from the apply block, and bf-p4c compiles each into
    a keyless `hash_action` table. The bloom's `Hash.get()` queries are the same shape.
 
-6. **Wide comparisons as table entries.** `age > 2` on a 32-bit value does not fit a gateway, so
-   the three accepted values are constant table entries. Synapse emits gateway conditions and
-   would hit the 4-byte limit.
+6. **Wide comparisons, where synapse is mostly right already.** `age > 2` on a 32-bit value does
+   not fit a gateway ("condition too complex, limit of 4 bytes + 12 bits of PHV input exceeded"),
+   so the three accepted epochs are constant table entries here. Measured, the gateway budget
+   splits by comparison kind rather than by width alone:
+
+   | condition | limit on PHV operands |
+   |---|---|
+   | `==`, `!=` | 4 bytes, so a 32-bit equality fits |
+   | `<`, `>`, `<=`, `>=` against a power-of-two boundary | free at any width: it is a "high bits are zero" mask test |
+   | `<`, `>`, `<=`, `>=` otherwise | **12 bits total**, and a constant operand costs nothing |
+
+   Toys: `cmpk12.p4` (12-bit field vs a constant) compiles, `cmpk13.p4` (13 bits) does not, and
+   `cmp12.p4` -- two 12-bit *fields*, 24 bits of operand -- does not either.
+
+   Synapse already covers most of this. `If.cpp`'s `is_wide_const_inequality` diverts a relational
+   against a constant wider than 8 bits away from the gateway, exempts the power-of-two case, and
+   falls back to rewriting the comparison over narrow slices rather than punting to the controller.
+   Two gaps remain, both latent (nothing shipped hits them):
+   - the threshold is 8 bits where the hardware allows 12, so some conditions are split that need
+     not be;
+   - a relational between **two non-constant operands** is not checked at all: it bypasses
+     `is_wide_const_inequality` (which requires a constant RHS) and passes
+     `condition_meets_phv_limit`, which counts bytes against 4 without regard to comparison kind.
+     Two 12-bit fields are 2 bytes and sail through, and bf-p4c then rejects the program. The check
+     needs to sum the non-constant operand widths against 12 bits for relational comparisons.
 
 7. **Deparser checksums, over fields split to suit them.** A `Checksum()` can neither read nor
    write a slice, so every field one touches has to be a header field in its own right: the IPv4
