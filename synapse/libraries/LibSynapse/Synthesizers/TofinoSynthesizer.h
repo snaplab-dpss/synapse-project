@@ -8,6 +8,7 @@
 
 #include <klee/util/ExprVisitor.h>
 
+#include <deque>
 #include <filesystem>
 #include <stack>
 #include <optional>
@@ -202,7 +203,11 @@ private:
 
   std::unordered_set<DS_ID> declared_ds;
   std::unordered_map<bdd_node_id_t, Stack> parser_vars;
-  std::vector<coder_t> recirc_coders;
+  // One coder per recirculation pass, assembled into an if / else-if chain at the end of
+  // synthesis. A deque, not a vector: coder_t's copy constructor does not carry the stream
+  // over, so a reallocation would silently drop code already emitted, and references handed
+  // out by get() must survive later allocations.
+  std::deque<coder_t> recirc_coders;
   std::optional<code_path_t> active_recirc_code_path;
   std::unordered_set<code_t> ingress_metadata_var_names;
 
