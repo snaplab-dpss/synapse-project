@@ -135,6 +135,10 @@ Getting there took four compiles, and every failure was "supports up to 20 stage
   to 18; the same reordering in egress took it from 21 to 18. The order alternative code paths are
   emitted in decides whether a program fits.
 
+It dispatches through synapse's existing pass identifier, `hdr.recirc.code_path`, in both ingress
+and egress, with no counter field of its own: the mechanism the synthesizer already emits for
+multi-pass solutions is enough for an unrolled loop.
+
 Caveat, recorded rather than solved: the bloom filter stops working in this build although its
 source is byte-identical to the working one, so `sc_unrolled.p4` passes every part of
 `tests/smartcookie.py` except the recorded-flow path. See `GROUND-TRUTH.md`.

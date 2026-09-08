@@ -68,9 +68,18 @@ Kept here so the gap is explicit. Ordered by how hard each looks.
    the smaller gap and it may matter more: the unrolled form has never been tried with the work
    split across both pipelines, and that experiment is still open.
 
-3. **A loop counter and dispatch on it.** A field in the recirculated header, incremented each
-   lap, with tables keyed on it selecting the message word and the finish action. Synapse has no
-   module for a counter carried across recirculations, nor for dispatching on one.
+3. **A loop counter and dispatch on it, needed only if the loop is rolled.** The rolled ground
+   truth carries `round` in the recirculated header, does `round = round + 2` each half-lap, and
+   keys tables on it to pick the message word and the finish action. That is a genuine runtime
+   counter and synapse has no module for one.
+   **The unrolled form does not need it.** Synapse already emits a pass identifier into the
+   recirculation header (`build_recirc_hdr(N)` writing `hdr.recirc.code_path`), dispatches on it
+   with an `if (hdr.recirc.code_path == N)` chain, and carries live variables across the boundary.
+   `sc_unrolled.p4` was rewritten to use exactly that, with its bespoke counter field deleted, and
+   still compiles in 7 s -- dispatching in *egress* as well as ingress. So for the direction we are
+   taking, item 3 is not a new module at all. What is left of it belongs to item 2: **the egress
+   parser has to extract the recirculation header and the egress control has to open with the same
+   `code_path` chain the ingress has.**
 
 4. **Emitting an operation into the hash unit deliberately.** Smaller than it looked, once tested.
    Synapse *already* has half of it: `RotateLeft::uses_hash_unit()` sends any rotate that is not a
@@ -156,7 +165,7 @@ runs by difficulty, this one by dependency and by value.
 | 2 | 4 + 5, deliberate `@in_hash` and hash-action placement | mechanical, needed either way |
 | 3 | 6, wide comparisons as table entries | mechanical, small |
 | 4 | 7, checksums and splitting fields to suit them | self-contained, a correctness gap for any packet-crafting NF |
-| 5 | 3, loop counter and dispatch | new module, only needed if the loop is rolled |
+| 5 | 3, loop counter and dispatch | **dissolved**: synapse's `code_path` already does it; see below |
 | 6 | 1, one body executed many times | the big one, and **no longer on the critical path**: see below |
 
 The five rules under "What compiling cannot tell you" are not separate work; each attaches to
