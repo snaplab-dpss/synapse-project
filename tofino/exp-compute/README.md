@@ -112,6 +112,24 @@ and two in egress.
 `sipfull.p4` closes it: the chain plus the time-delta register plus the bloom, with the rounds
 split across the two pipelines, compiles in 3 s.
 
+## A crash the nested-pass fix exposed
+
+Making the recirculation passes reachable (commit `e76cbb4fc`) turned six of the fourteen
+multi-pass solutions from failing to compiling, and turned one, `nat-f40000-c100000-zipf0_6`,
+into a bf-p4c internal compiler error with no message.
+
+Bisected: pass 2 is the trigger. Inside it, either dropping the fourth register write or dropping
+the byte-granular header writes makes it compile, and one, two or three register writes are fine
+where four crash. Two independent fixes work:
+
+- pack the vector's 32+32+16+16 registers into 32+32+32, three stateful ALUs instead of four;
+- write the header fields whole instead of byte by byte.
+
+The second is the one we took, because it needs no change to the register layout and no answer to
+the byte-order question. Folding just the all-constant byte writes into one assignment
+(`hdr.hdr1.data3 = 32w0x01020304` in place of four byte writes) is enough to clear the crash.
+bf-p4c crashing rather than reporting an error is its own bug.
+
 ## What we ruled out
 
 Recorded as prose because the artifacts were not worth keeping. None of these fixed the problem:

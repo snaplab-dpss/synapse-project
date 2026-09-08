@@ -2941,6 +2941,82 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   std::vector<code_t> assignments;
 
+  // Constant bytes that together fill a whole header field are emitted as one assignment. Writing
+  // a field byte by byte makes bf-p4c slice its container, and that slicing then propagates into
+  // everything computed from the field; on one NAT solution it crashed the compiler outright
+  // (tofino/exp-compute/README.md). Only all-constant fields are folded: a field's klee offset 0
+  // is its most significant byte, and for anything else the byte order of the written value is
+  // the convention this backend has not pinned down yet.
+  for (const bits_t field_width : {64u, 48u, 40u, 32u, 24u, 16u}) {
+    const bytes_t field_bytes = field_width / 8;
+
+    for (const expr_mod_t &mod : changes) {
+      if (mod.width != 8 || bytes_already_dealt_with.contains(mod.offset / 8)) {
+        continue;
+      }
+
+      for (bits_t first = 0; first < field_width; first += 8) {
+        if (first > mod.offset) {
+          break;
+        }
+        const bits_t field_offset = mod.offset - first;
+        if (field_offset + field_width > hdr->getWidth()) {
+          continue;
+        }
+
+        const std::optional<var_t> field = ingress_vars.get_hdr(solver_toolbox.exprBuilder->Extract(hdr, field_offset, field_width));
+        if (!field || field->size != field_width || field->is_slice()) {
+          continue;
+        }
+
+        // Every byte of the field must be written here, and none of them already handled.
+        std::vector<const expr_mod_t *> field_bytes_written(field_bytes, nullptr);
+        for (const expr_mod_t &candidate : changes) {
+          if (candidate.width != 8 || candidate.offset < field_offset || candidate.offset >= field_offset + field_width) {
+            continue;
+          }
+          field_bytes_written[(candidate.offset - field_offset) / 8] = &candidate;
+        }
+
+        bool complete = true;
+        for (const expr_mod_t *byte : field_bytes_written) {
+          complete &= byte != nullptr && !bytes_already_dealt_with.contains(byte->offset / 8);
+        }
+        if (!complete) {
+          continue;
+        }
+
+        bool all_constant = true;
+        for (const expr_mod_t *byte : field_bytes_written) {
+          all_constant &= is_constant(byte->expr);
+        }
+        if (!all_constant) {
+          continue;
+        }
+
+        // Byte at klee offset p sits at the field's bits [width-1-p : width-8-p].
+        u64 value = 0;
+        for (bytes_t b = 0; b < field_bytes; b++) {
+          value |= solver_toolbox.value_from_expr(field_bytes_written[b]->expr) << (field_width - 8 - b * 8);
+        }
+
+        coder_t assignment;
+        assignment << field->name;
+        assignment << " = ";
+        std::stringstream literal;
+        literal << std::to_string(field_width) << "w0x" << std::hex << std::setfill('0') << std::setw(field_width / 4) << value;
+        assignment << literal.str();
+        assignment << ";";
+        assignments.push_back(assignment.dump());
+
+        for (const expr_mod_t *byte : field_bytes_written) {
+          bytes_already_dealt_with.insert(byte->offset / 8);
+        }
+        break;
+      }
+    }
+  }
+
   for (size_t i = 0; i < changes.size(); i++) {
     const expr_mod_t &mod = changes[i];
 
