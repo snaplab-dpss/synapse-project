@@ -777,10 +777,7 @@ control Ingress(
                   // EP node  2315:ModifyHeader
                   // BDD node 186:packet_return_chunk
                   swap_action_186();
-                  hdr.hdr1.data3[31:24] = 8w0x01;
-                  hdr.hdr1.data3[23:16] = 8w0x02;
-                  hdr.hdr1.data3[15:8] = 8w0x03;
-                  hdr.hdr1.data3[7:0] = 8w0x04;
+                  hdr.hdr1.data3 = 32w0x01020304;
                   // EP node  2579:Forward
                   // BDD node 188:FORWARD
                   nf_dev[15:0] = vector_table_1074102760_183_get_value_param0;
@@ -817,10 +814,7 @@ control Ingress(
                     // EP node  5551:ModifyHeader
                     // BDD node 178:packet_return_chunk
                     swap_action_178();
-                    hdr.hdr1.data3[31:24] = 8w0x01;
-                    hdr.hdr1.data3[23:16] = 8w0x02;
-                    hdr.hdr1.data3[15:8] = 8w0x03;
-                    hdr.hdr1.data3[7:0] = 8w0x04;
+                    hdr.hdr1.data3 = 32w0x01020304;
                     // EP node  5913:Forward
                     // BDD node 180:FORWARD
                     nf_dev[15:0] = vector_table_1074102760_175_get_value_param0;
