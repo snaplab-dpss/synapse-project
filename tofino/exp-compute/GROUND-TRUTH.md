@@ -1,13 +1,16 @@
-# Ground-truth SmartCookie (`sipgt.p4`)
+# Ground-truth SmartCookie (`synthesized/smartcookie-manual.p4`)
 
-A complete SmartCookie for Tofino 2, written by hand, that compiles. It is the reference the
-synthesized solution should be judged against: what synapse ought to produce, and the yardstick
-for how far its output is from something the target accepts.
+A complete SmartCookie for Tofino 2, written by hand, that compiles **and passes the model test**
+(`tests/smartcookie.py`). It is the reference the synthesized solution should be judged against:
+what synapse ought to produce, and the yardstick for how far its output is from something the
+target accepts.
 
-Compiles with the SDE's compiler in 4 s:
+It lives in `synthesized/` rather than here so it sits next to the machine-generated solutions it
+is meant to be diffed against, and so the testbed can run it like any other NF:
 
 ```
-bf-p4c --target tofino2 --arch t2na -o out_sipgt sipgt.p4
+bf-p4c --target tofino2 --arch t2na -o out synthesized/smartcookie-manual.p4   # 6 s
+sudo -E tests/testbed.py up smartcookie-manual && sudo -E python3 tests/smartcookie.py
 ```
 
 It follows synapse's own P4 template: the same `synapse_ingress_headers_t` and
@@ -18,8 +21,8 @@ the usual forwarding actions. A reader should be able to diff it against a synth
 
 | | |
 |---|---|
-| stages | 17 ingress, 14 egress (of 20 each) |
-| tables | 62 |
+| stages | 17 ingress, 17 egress (of 20 each) |
+| match tables | 47 |
 | round actions written | 21, invoked 32 times, executing 12 SipRounds |
 | `@in_hash` sites | 10 |
 
@@ -89,3 +92,35 @@ Kept here so the gap is explicit. Ordered by how hard each looks.
 
 Items 4 through 7 are ordinary emission rules synapse could adopt. Item 3 is a modest new module.
 Items 1 and 2 are the real question, and 2 should be tested before 1 is attempted.
+
+## What testing it changed
+
+Six bugs only the model test could find. Each is a rule synapse's emitter has to obey, and none of
+them showed up as a compiler error.
+
+1. **Statements inside an action run in order.** A two-field swap written as
+   `a = b; b = a;` duplicates `b`. The value has to be captured by an earlier action
+   (a temporary written and read inside one action makes it span stages, which bf-p4c rejects).
+   A *single* whole-field write of a field in terms of itself is fine:
+   `ports = ports[15:0] ++ ports[31:16]` is one operation and swaps correctly.
+2. **The same ordering across tables.** `ack = seq + 1` has to read `seq` before the table that
+   writes the cookie into it, so it is staged on the way into the pipeline.
+3. **`f = C ++ (f[7:0] | K)` silently loses the OR.** bf-p4c allocates a temporary for the concat
+   operand and never writes it (`set hdr.f.0-7, $concat_to_slice27`, with nothing assigning
+   `$concat_to_slice27`), so the field gets zero. Two slice assignments compile to
+   `set hdr.f.8-15, C` plus `or B7, K, B7` and are correct. Minimal reproducers:
+   `concatE.p4` (broken) and `concatF.p4` (correct). This is a compiler bug, not a rule.
+4. **A deparser `Checksum()` can neither read nor write a slice.** Writing to one is silently
+   ignored and the packet keeps its original checksum. Every field the checksum touches has to be
+   its own header field, which is why the IPv4 protocol/checksum and the TCP
+   window/checksum/urgent are split rather than staged into metadata (item 7 above was the wrong
+   fix: staging solves the read side and does nothing for the write side).
+5. **A recirculated packet still has to parse.** Marking a packet in flight by rewriting its
+   ethertype made the ingress parser reject it on the way back round, so the second and third laps
+   hashed nothing. The recirculation header's `code_path` is the marker; the ethertype is left
+   alone.
+6. **`verify_cookie` hashes `ack - 1`, not `ack`.** Plain transcription error, but it is the kind
+   of thing that compiles and produces a plausible-looking cookie forever.
+
+Items 1, 2 and 5 are ordering constraints a synthesizer must respect and cannot discover by
+compiling; item 4 changes what "header guessing" has to produce.
