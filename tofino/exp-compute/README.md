@@ -222,9 +222,10 @@ lives in it, and the unrolled chain has around 160 values against the loop's nin
 - A condition inside an action must be a simple comparison on action data.
 - A 32-bit inequality does not fit a gateway's 4 bytes + 12 bits, so accepted ranges become
   constant table entries.
-- A `Checksum()` in the deparser can neither read nor write a slice. The read side can be worked
-  around by staging into metadata; the **write** side cannot, and is silently ignored, so the
-  packet keeps its original checksum. Fields a checksum touches must be their own header fields.
+- A `Checksum()` in the deparser can neither read nor write a slice, and the two fail differently:
+  a sliced **input** is a hard error ("unexpected type of parameter ... in Checksum"), while a
+  sliced **output** compiles with 0 errors and is silently ignored, leaving the original checksum
+  on the wire. Fields a checksum touches must be their own header fields.
 - Statements inside an action execute in order, so `a = b; b = a;` duplicates `b` instead of
   swapping; but a single write of a field in terms of itself
   (`ports = ports[15:0] ++ ports[31:16]`) is one operation and is correct.

@@ -132,11 +132,28 @@ Kept here so the gap is explicit. Ordered by how hard each looks.
      Two 12-bit fields are 2 bytes and sail through, and bf-p4c then rejects the program. The check
      needs to sum the non-constant operand widths against 12 bits for relational comparisons.
 
-7. **Deparser checksums, over fields split to suit them.** A `Checksum()` can neither read nor
-   write a slice, so every field one touches has to be a header field in its own right: the IPv4
-   protocol and header checksum are separate fields here, as are the TCP window, checksum and
-   urgent pointer, rather than packed into the wider fields synapse's header guessing would
-   produce. Synapse emits no dataplane checksum at all today.
+7. **Deparser checksums. This is a live correctness bug, not a missing nicety.** Synapse emits no
+   dataplane checksum at all: `Ignore.cpp` lists `nf_set_rte_ipv4_udptcp_checksum` among the calls
+   it drops, and `ModifyHeader.cpp`'s `filter_out_checksum_mods` strips the checksum field write
+   from the header modifications. So a packet the *dataplane* rewrites leaves with the checksum it
+   arrived with; only packets that take the CPU path are corrected, by the controller's
+   `update_ipv4_tcpudp_checksums`.
+   Verified on a shipped solution: `nat-f40000-c0-unif-hmax-tput` with `NAT_INDEX_BYTE_ORDER=big`
+   fails `tests/nat.py` on the fast path with both the IPv4 and the UDP checksum wrong, and passes
+   as soon as `NAT_CHECK_CHECKSUMS=0` is set. Checksums are the only thing still failing there.
+
+   The target's rule, measured both ways and asymmetric in a way that matters:
+   - a `Checksum()` **input** that is a slice is a hard error, "unexpected type of parameter
+     hdr.hdr1.data2[39:8] in Checksum";
+   - a `Checksum()` **output** written to a slice compiles with 0 errors and is **silently
+     ignored**, leaving the original checksum on the wire. This is how the first version of this
+     program shipped a wrong checksum past the compiler.
+
+   So every field a checksum touches must be a header field in its own right, which is a constraint
+   on header guessing, not just on emission: the IPv4 protocol and header checksum are separate
+   fields here, as are the TCP window, checksum and urgent pointer. The ground truth shows the
+   whole shape of the fix, deparser `Checksum().update({...})` guarded by a flag the rewriting
+   actions set.
 
 Items 4 through 7 are ordinary emission rules synapse could adopt. Item 3 is a modest new module.
 Items 1 and 2 are the real question, and 2 should be tested before 1 is attempted.
