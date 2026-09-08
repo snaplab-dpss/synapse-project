@@ -194,10 +194,39 @@ Three things, found by reading the code rather than guessing:
   `PipelineResources`; `pipes = 4` is the physical pipes and is unrelated. A recirculation pass is
   one 20-stage pool. It has to become ingress + egress: two pools with a one-way dependency, and
   anything crossing the boundary has to travel in a header, because the two share no metadata.
-- **It is worth more than SmartCookie.** Any plan over 20 stages recirculates today, and
-  recirculation costs throughput. With egress a pass gets 40 stages, so some existing NFs may drop
-  a recirculation outright. The search heuristic has to learn that an egress stage is nearly free
-  where a recirculation is not.
+- **It is worth more than SmartCookie, but only for the right kind of plan.** Any plan over 20
+  stages recirculates today, and recirculation costs throughput. Egress buys **critical-path depth,
+  not capacity**: a plan bound by dependency depth, as SmartCookie is, can drop a recirculation,
+  while a plan bound by SRAM or logical table ids gains nothing, because those are shared with
+  ingress (see below). The search heuristic has to learn that an egress stage is nearly free where
+  a recirculation is not, and the placer has to know which of the two kinds of budget is binding.
+
+### How the pipeline's resources actually spread across the two gresses
+
+Measured from `resources.json` and the assembly of the ground truth's own build, because the answer
+differs per resource and none of it is half/half.
+
+- **Stage depth: two independent budgets.** Both gresses walk the *same* 20 physical stages;
+  `stages = 20` is not 20 ingress plus 20 egress of hardware. What each gress gets on its own is a
+  dependency-depth budget of 20, which bf-p4c reports per gress ("using 21"). The unrolled build
+  uses 19 ingress and 18 egress and compiles, so the two budgets genuinely do not draw each other
+  down. This is the one place egress is free, and it has been entirely unused.
+- **Stage memory: one shared pool per physical stage, not a split.** The resource report has 17
+  stage entries for a program that uses 17 ingress *and* 17 egress stages, because they are the
+  same stages. Ten of the seventeen hold tables from both gresses, drawing on one 80-unit SRAM grid
+  (8 rows x 10 columns), 24 TCAM units and 16 logical table ids. Stage 0 holds 2 ingress and 3
+  egress tables; stage 12 holds 2 and 2. So `sram_per_stage`, `tcam_per_stage`, `map_ram_per_stage`,
+  `max_logical_*`, `hash_dist_units_per_stage` and the xbar figures are per *physical* stage and
+  shared. Ingress has had them to itself only because nothing was ever placed in egress.
+- **PHV: one pool, partitioned.** Ingress and egress containers are disjoint: 34 and 35 containers
+  in the ground truth, with zero overlap. The report's totals (80 8-bit, 120 16-bit, 80 32-bit)
+  match `configs/tofino2.toml` exactly, so the `phv_*_containers` numbers are the whole-chip pool
+  that gets split. Egress's share is unused today, but claiming it takes it away from ingress.
+
+The model the placer needs is therefore: **two independent depth constraints** (ingress <= 20,
+egress <= 20), **one shared memory constraint per physical stage** summing what both gresses put
+there, and **one PHV pool partitioned** between them. Today it has a single 20-stage pool with all
+of these folded into it, which is right only as long as egress stays empty.
 
 Three constraints bound what can go there:
 
