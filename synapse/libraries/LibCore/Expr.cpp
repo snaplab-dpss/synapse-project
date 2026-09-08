@@ -2250,6 +2250,55 @@ bool match_endian_swap_16_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Ex
   return true;
 }
 
+namespace {
+void flatten_concat(klee::ref<klee::Expr> expr, std::vector<klee::ref<klee::Expr>> &leaves) {
+  if (expr->getKind() == klee::Expr::Concat) {
+    flatten_concat(expr->getKid(0), leaves);
+    flatten_concat(expr->getKid(1), leaves);
+  } else {
+    leaves.push_back(expr);
+  }
+}
+} // namespace
+
+std::optional<consecutive_bytes_t> get_consecutive_bytes(klee::ref<klee::Expr> expr) {
+  std::vector<klee::ref<klee::Expr>> leaves;
+  flatten_concat(expr, leaves);
+
+  std::vector<u32> addrs;
+  std::string array;
+  for (klee::ref<klee::Expr> leaf : leaves) {
+    if (leaf->getKind() != klee::Expr::Read || leaf->getWidth() != 8) {
+      return {};
+    }
+    const klee::ReadExpr *read = dynamic_cast<const klee::ReadExpr *>(leaf.get());
+    if (!is_constant(read->index)) {
+      return {};
+    }
+    if (addrs.empty()) {
+      array = read->updates.root->name;
+    } else if (read->updates.root->name != array) {
+      return {};
+    }
+    addrs.push_back(solver_toolbox.value_from_expr(read->index));
+  }
+
+  bool descending = true;
+  bool ascending  = true;
+  for (size_t i = 1; i < addrs.size(); i++) {
+    descending = descending && addrs[i] + 1 == addrs[i - 1];
+    ascending  = ascending && addrs[i] == addrs[i - 1] + 1;
+  }
+  if (addrs.size() > 1 && !descending && !ascending) {
+    return {};
+  }
+  const bool network_order = addrs.size() > 1 && ascending;
+  if (!network_order) {
+    std::reverse(leaves.begin(), leaves.end());
+  }
+  return consecutive_bytes_t{array, std::min(addrs.front(), addrs.back()), std::max(addrs.front(), addrs.back()), network_order, leaves};
+}
+
 bool match_endian_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &target) {
   if (match_endian_swap_16_pattern(expr, target)) {
     return true;
