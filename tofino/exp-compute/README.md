@@ -8,12 +8,17 @@ compiler:
 bf-p4c --target tofino2 --arch t2na -o out_X X.p4
 ```
 
-Build directories (`out_*`) and logs are not kept.
+Build directories (`out_*`) and logs are not kept. A healthy program here compiles in seconds;
+anything still running after a couple of minutes is failing slowly and should be treated as a
+failure.
+
+`GROUND-TRUTH.md` describes `sipgt.p4`, the hand-written SmartCookie that compiles, and lists
+what synapse cannot express about it. That file is the point of everything below.
 
 ## Skeleton
 
 `cmp12.p4`: ethernet + ipv4 parser, a few metadata fields, an `init` action and a forwarding
-decision. Every experiment is this file with the actions replaced.
+decision. Every toy is this file with the actions replaced.
 
 ## Header-field concatenation (`concat*.p4`)
 
@@ -30,32 +35,118 @@ uses it; the existing `bswap32` macro works over a concat.
 
 ## Hash rotates, ALU chains and headers (`phvT*.p4`, `phvW*.p4`)
 
-Question: the synthesized SmartCookie P4 fails PHV allocation ("field slices must be packed
-together", "unable to slice group") around its `@in_hash` rotates. Which shape triggers it?
+Question: the synthesized SmartCookie fails PHV allocation around its `@in_hash` rotates.
+Which shape triggers it?
 
 - `phvT1..T4`: odd-bit `@in_hash` rotates on metadata chained through xor/add, results and
-  inputs copied into a recirculation-style header (T4 also parses that header back and feeds
-  its fields to more rotates): all compile.
-- `phvW1..W3`: the chain's final value written byte-wise, shifted by one byte, into a 40-bit
-  header field (the synthesized cookie write): fail. `phvW5`: the same writes from a plain
-  value: compiles. `phvW4`: the chain's value written whole into a 32-bit `hdr.tcp.seq`: fails.
-- `phvW6..W8`: W4 without the `>> 12`, or with byte shifts instead: still fail. `phvW9`: the
-  shifted value xored with a plain value instead of the chain: compiles.
-- `phvW10`: hash inputs read from a dedicated header (expert style): fails. `phvW11`: the
-  rotate input computed into its own variable instead of being shared: fails.
-- `phvW12`: both rotates in shift form (`x << n`, `x >> (32-n)`, then `|`): compiles.
+  inputs copied into a recirculation-style header: all compile.
+- `phvW1..W3`: the chain's final value written byte-wise into a 40-bit header field: fail.
+  `phvW5`: the same writes from a plain value: compiles. `phvW4`: the chain's value written
+  whole into a 32-bit `hdr.tcp.seq`: fails.
+- `phvW6..W8`: W4 without the `>> 12`, or with byte shifts: still fail. `phvW9`: the shifted
+  value xored with a plain value instead of the chain: compiles.
+- `phvW10`: hash inputs read from a dedicated header: fails. `phvW11`: the rotate input in its
+  own variable: fails. `phvW12`: both rotates in shift form: compiles.
 
-Takeaway (from bf-p4c's own message on W4): the allocator slices the whole ALU group at the
-hash-rotate input's odd bit (`a0[24:0]`, `a0[31:25]`), and a 32-bit add on operands sliced
-like that needs four PHV sources where Tofino 2 allows two. Whether that happens depends on
-the allocator's choices (T4 passes, W4 fails), so the hash form is fragile for values that
-reach a packet header; the shift form avoids odd slicing altogether.
+Takeaway (from bf-p4c's own message on W4): the allocator slices the ALU group at the rotate
+input's odd bit, and a 32-bit add on operands sliced like that needs four PHV sources where
+Tofino 2 allows two.
 
-## SmartCookie bisection (`sc/`)
+This is the finding that sent us down the shift-form path, and it was the wrong lesson to draw.
+The expert agent rotates the same way and compiles, because its odd rotates go through
+`@in_hash` on values that live in their own pinned containers. What actually breaks is a
+*shared* container collecting a slice boundary for every rotate amount that ever passes through
+it. See `GROUND-TRUTH.md`.
 
-`sc/sc.p4` is the synthesized SmartCookie solution (c0-unif profile) that fails as above;
-`sc_churn.p4` the high-churn one (same error). `sc_nohash.p4` drops the `@in_hash`
-annotations, `sc_e2.p4` removes the second recirculation path, `sc_e6.p4` moves the
-recirculation-header traffic onto metadata: the first two fail identically, the third moves
-the error to the cookie's header write. Takeaway: the recirculation header was a symptom; the
-odd-slice propagation above is the cause.
+## Actions and stages (`arxR*.p4`)
+
+`arxR<R>L<L>.p4` is the skeleton plus a synthetic add-rotate-xor chain of R rounds, emitted the
+way synapse emits: statements grouped into named actions, each called once from the apply block.
+
+| file | chain actions | result |
+|---|---|---|
+| `arxR4L1` | 12 | compiles |
+| `arxR12L1` | 36 | "tofino2 supports up to 20 stages, using 37" |
+| `arxR24L1` | 72 | "supports up to 20 stages, using 73" |
+
+Takeaway: **dependent** actions each need their own stage. In this toy every round feeds the
+next, so 36 chain actions need 37 stages. Independent actions do share a stage (the expert puts
+11 tables in stage 0), so this is a critical-path bound, not a per-action cost.
+
+## The synthesized SmartCookie, and why it does not compile (`sc/`)
+
+- `sc/sc.p4`: the synthesized solution as it first stood. Fails PHV allocation.
+- `sc/sc_r21.p4`: synapse's output after the emission rules below were added to the synthesizer.
+  Still fails, and its recirculation passes are emitted **nested**
+  (`if (code_path==0) { ... if (code_path==1) { ... } }`) with nothing assigning `code_path`
+  between them, so every pass after the first is unreachable. That is a correctness bug in
+  `TofinoSynthesizer::visit(Recirculate)`, not only a compile problem, and it affects 14 of the
+  committed solutions across `cl`, `nat`, `psd` and `fw`.
+- `sc/sc_m1.p4`: the same program with the passes rewritten as an if / else-if chain, which is
+  what they should have been.
+- `sc/sc_x0.p4`: the whole program with the hash chain deleted and nothing else touched.
+  **Compiles in 15 s.** So the tables, bloom filter, keys, recirculation and controller headers
+  and forwarding are all fine; the chain is the entire problem.
+
+## Where the chain actually fails (`sc/sc_k*.p4`, `sipmin*.p4`, `sipfull.p4`)
+
+`sipmin.p4` is the skeleton plus the expert's chain idiom: four state words in a header, four
+pinned metadata temporaries, eight round actions, two rounds. **Compiles in 10 s, and in 2 s
+with the container pins** (`sipminp.p4`), so the shape is sound and pinning materially helps the
+allocator.
+
+`sc/sc_k1.p4` is that chain written into `sc_x0`, entirely in ingress. It fails. Emptying one
+feature at a time says why:
+
+| file | change from `sc_k1` | result |
+|---|---|---|
+| `sc/sc_k2.p4` | bloom filter emptied | compiles, 8 s |
+| `sc/sc_k10.p4` | **only the bloom's hash computations emptied** | compiles, 9 s |
+
+The bloom's CRC hashes and the chain's `@in_hash` rotates compete for hash units. When a rotate
+cannot get one the compiler slices the operand instead, and the slicing propagates to everything
+computed from it. That is the mechanism behind every fragmentation we chased. Our ingress asked
+for 26 `@in_hash` sites; the expert's asks for about ten, because it runs two rounds in ingress
+and two in egress.
+
+`sipfull.p4` closes it: the chain plus the time-delta register plus the bloom, with the rounds
+split across the two pipelines, compiles in 3 s.
+
+## What we ruled out
+
+Recorded as prose because the artifacts were not worth keeping. None of these fixed the problem:
+
+- **Reusing metadata slots more tightly.** Program-wide liveness, per-pass slot pools, and a
+  linear-scan reallocation down to the true floor of 13 slots: no effect. The allocator was
+  already near optimal, and around 30 of 48 32-bit containers is comfortably inside budget.
+- **Giving every value its own field.** The opposite of the above: 160 metadata and 34 state
+  fields. Compile time went to 18 minutes and it still failed.
+- **Container pragmas.** `@pa_container_size` and `@pa_atomic` on slots and state fields do not
+  fix the slicing, although pinning genuinely helps when the fields are few and dedicated.
+- **Keeping recirculated state in a separate header**, in its own parser state, or pinned.
+- **One statement per action**, and merging every run into one action per dependency level. The
+  stage arithmetic improves, the slicing does not.
+- **Splitting the traversals** so each fits in 20 stages. Six traversals, all within budget, same
+  failure.
+- **Chasing sub-word accesses one at a time**: whole-field port and address swaps, splitting a
+  header field into aligned pieces, snapshotting a field before a byte read. Each moved the error
+  to the next value, and a copy re-links the two fields so the fragmentation follows.
+
+The common thread is that all of them tried to make the *unrolled* chain fit. It does not,
+because a shared container must satisfy the union of the constraints of every value that ever
+lives in it, and the unrolled chain has around 160 values against the loop's nine.
+
+## Other target rules found along the way
+
+- One `@in_hash` per action, and one hash-producing action per table (two exceed the 64-bit
+  immediate pathway, which is why the expert splits its final xor across two tables).
+- A hash operation cannot sit in a keyless table.
+- `@in_hash` accepts a non-byte-aligned rotate but rejects an aligned one
+  ("source of modify_field invalid"); aligned rotates are written bare.
+- Subtraction cannot take a table parameter as action data; addition can, so `a - k` becomes
+  `a + (-k)` with the controller storing the two's complement.
+- A condition inside an action must be a simple comparison on action data.
+- A 32-bit inequality does not fit a gateway's 4 bytes + 12 bits, so accepted ranges become
+  constant table entries.
+- A `Checksum()` input cannot be a slice, so fields packed inside wider ones must be staged into
+  metadata first.
