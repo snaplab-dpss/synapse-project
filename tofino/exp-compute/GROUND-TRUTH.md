@@ -1,30 +1,39 @@
-# Ground-truth SmartCookie (`synthesized/smartcookie-manual.p4`)
+# Ground-truth SmartCookie
 
-A complete SmartCookie for Tofino 2, written by hand, that compiles **and passes the model test**
-(`tests/smartcookie.py`). It is the reference the synthesized solution should be judged against:
+Two complete SmartCookies for Tofino 2, written by hand, that compile **and pass the model test**
+(`tests/smartcookie.py`). They are the reference the synthesized solution should be judged against:
 what synapse ought to produce, and the yardstick for how far its output is from something the
 target accepts.
 
-It lives in `synthesized/` rather than here so it sits next to the machine-generated solutions it
-is meant to be diffed against, and so the testbed can run it like any other NF:
+| | `smartcookie-unrolled.p4` | `smartcookie-manual.p4` |
+|---|---|---|
+| the twelve rounds | written out linearly | one body, re-executed |
+| rounds per lap | 2 ingress + 4 egress | 2 ingress + 2 egress |
+| laps / recirculations | 2 / **1** | 3 / 2 |
+| stages | 18 ingress, 19 egress | 17 ingress, 17 egress |
+| match tables | 82 | 47 |
+| `@in_hash` sites | 40 | 8 |
+| compile time | 7 s | 6 s |
+
+**`smartcookie-unrolled.p4` is the one synapse should aim at.** Separate code per lap is what
+synapse's BDD already produces, so it needs no loop rolling, and it costs one recirculation instead
+of two. The rolled one is kept because it is the smaller, clearer program, and because it is where
+most of the target rules below were learned.
+
+Both live in `synthesized/` rather than here so they sit next to the machine-generated solutions
+they are meant to be diffed against, and so the testbed can run them like any other NF:
 
 ```
-bf-p4c --target tofino2 --arch t2na -o out synthesized/smartcookie-manual.p4   # 6 s
-sudo -E tests/testbed.py up smartcookie-manual && sudo -E python3 tests/smartcookie.py
+bf-p4c --target tofino2 --arch t2na -o out synthesized/smartcookie-unrolled.p4   # 7 s
+sudo -E tests/testbed.py up smartcookie-unrolled
+sudo -E python3 tests/smartcookie.py --nf smartcookie-unrolled
 ```
 
-It follows synapse's own P4 template: the same `synapse_ingress_headers_t` and
+Both follow synapse's own P4 template: the same `synapse_ingress_headers_t` and
 `synapse_ingress_metadata_t` structs, the `cpu_h` / `recirc_h` / `recirc_state_h` headers, the
 `hdr0..hdr4` layout that synapse's header guessing produces for ethernet, IPv4, TCP and UDP, the
 `TofinoIngressParser` and `IngressParser` shape, the `fwd_op_t` enum, `ingress_port_to_nf_dev` and
 the usual forwarding actions. A reader should be able to diff it against a synthesized file.
-
-| | |
-|---|---|
-| stages | 17 ingress, 17 egress (of 20 each) |
-| match tables | 47 |
-| chain actions | 28 declarations (17 names, most written once per pipeline), executing 12 SipRounds |
-| `@in_hash` sites | 8 |
 
 ## Semantics
 
@@ -49,10 +58,13 @@ lap, two in ingress and two in egress. Twelve rounds therefore take three laps. 
 words, the round counter, the callback type, the egress port and the cookie time travel in a
 recirculated header; the message word for each lap is chosen by a table keyed on the counter.
 
-This is the shape the whole investigation converged on, and each element of it was forced by a
-measured failure. See `README.md` for the experiments behind them. `sc_unrolled.p4` next door is
-the same NF with the rounds written out linearly instead, which also compiles and needs one
-recirculation rather than two; the section below says what that settled.
+That is `smartcookie-manual.p4`. `smartcookie-unrolled.p4` keeps the same semantics and the same
+recirculated state, but writes the rounds out one after another, two in ingress and four in egress
+per lap, over two laps; its message words are inlined rather than chosen by a table, and the lap is
+identified by `hdr.recirc.code_path`, which is what synapse already emits.
+
+Each element of both was forced by a measured failure. See `README.md` for the experiments behind
+them, and the section at the end for what the unrolled one settled.
 
 ## The work: first, make it compile
 
@@ -225,7 +237,26 @@ So every field a checksum touches must be a header field in its own right, which
 here, as are the TCP window, checksum and urgent pointer. The ground truth shows the whole shape of
 the fix, a deparser `Checksum().update({...})` guarded by a flag the rewriting actions set.
 
-### 5. The immediate pathway is a per-table budget *(was item 5)*
+### 5. A register's read and write must share one table *(new)*
+
+Found by the unrolled experiment, and the worst silent failure of the investigation: **bf-p4c will
+split a `Register` across two stages rather than refuse.** `Ingress.bf_row_0` was allocated SRAM in
+stages 4 *and* 5, with a stateful ALU in each (`tbl_bf_add$salu`, `tbl_bf_query$st1$salu`), so the
+bloom's write and its read landed on different copies of the state and never saw each other. The
+program compiled with 0 errors and quietly lost every insertion.
+
+The fix is an emission rule: **put a register's read and its write in the same table**, as actions
+selected by a key, so they cannot be placed in different stages. That put each row back into one
+stage and the unrolled solution passes.
+
+Synapse today does the opposite: PSD emits `..._read_and_set`, `..._set_to_one` and `..._read` as
+three separate actions per bloom row, each called bare from the apply block and so each its own
+keyless table. Checked across the shipped solutions and **no register is currently split** (psd 5
+registers, cl 8, nat 0, each in one stage), so this is latent. But it is triggered by placement
+pressure, and item 1 exists precisely to let synapse build denser programs, so the risk goes up as
+soon as that lands.
+
+### 6. The immediate pathway is a per-table budget *(was item 5)*
 
 Not "one hash-producing action per table": the limit is **32 bits of hash-produced immediate data
 per table, summed over its actions**. Merging the two final-xor actions into one table gives "the
@@ -240,7 +271,7 @@ The claim that a hash operation cannot sit in a keyless table is **wrong**: ever
 holds an `@in_hash` and is called bare from the apply block, and bf-p4c compiles each into a keyless
 `hash_action` table. The bloom's `Hash.get()` queries are the same shape.
 
-### 6. Gateway comparisons *(was item 6)*
+### 7. Gateway comparisons *(was item 6)*
 
 Measured, the gateway budget splits by comparison kind rather than by width alone:
 
@@ -267,16 +298,20 @@ remain, both latent:
   sail through, and bf-p4c then rejects the program. The check needs to sum the non-constant operand
   widths against 12 bits for relational comparisons.
 
-### 7. Optional: emit one body executed many times *(was item 1)*
+### Not planned: emit one body executed many times *(was item 1)*
 
 The rolled ground truth writes the chain once and re-executes it each lap, so three laps cost one
-lap of hardware. Synapse emits separate code per lap, because its BDD arrived from symbolic
-execution with the loop already unrolled and nothing marking the twelve rounds as iterations of one
-thing. Doing this needs the repeated structure recognised, a body emitted once, and the search and
-placer taught what that costs.
+lap of hardware, and this was originally the headline gap: synapse emits separate code per lap
+because its BDD arrived from symbolic execution with the loop already unrolled.
 
-**It is no longer on the critical path.** `sc_unrolled.p4` compiles with the unrolled chain split
-across the two pipelines, so this is a code-size question, not a feasibility one.
+**The measurement removed the reason to do it.** The unrolled solution needs *one* recirculation
+where the rolled one needs two, so rolling would not buy throughput; it would cost one. What it
+would buy is code size, 142 actions against 67. Against that it needs the repeated structure
+recognised in the BDD, a body emitted once, and the search and placer taught what that costs, which
+is by far the largest piece of work on any version of this list.
+
+Kept as a note rather than an item: nothing in SmartCookie needs it. If another NF turns out to be
+bound by code size rather than by recirculations, revisit.
 
 ### Dissolved: a loop counter and dispatch on it *(was item 3)*
 
@@ -307,22 +342,28 @@ other reason `tests/smartcookie.py` exists.
 4. **A recirculated packet still has to parse.** Marking a packet in flight by rewriting its
    ethertype made the ingress parser reject it on the way back round, so the second and third laps
    hashed nothing. The recirculation header's `code_path` is the marker; the ethertype is left alone.
-5. **`f = C ++ (f[7:0] | K)` silently loses the OR.** This one is a bf-p4c bug, not a rule to
+5. **An action that uses the hash distribution unit cannot be a table's `default_action`**
+   ("Cannot specify bf_query_0 as the default action, as it requires the hash distribution unit").
+   It can be a `const entries` action, and it can sit in a keyless table called bare from the apply
+   block. This is very likely the origin of the old, wrongly generalised note that a hash operation
+   cannot sit in a keyless table at all.
+6. **`f = C ++ (f[7:0] | K)` silently loses the OR.** This one is a bf-p4c bug, not a rule to
    follow: it allocates a temporary for the concat operand and never writes it
    (`set hdr.f.0-7, $concat_to_slice27`, with nothing anywhere assigning `$concat_to_slice27`), so
    the field comes out zero. Two slice assignments compile to `set hdr.f.8-15, C` plus
    `or B7, K, B7` and are correct. Reproducers: `concatE.p4` (broken), `concatF.p4` (correct).
 
-Rules 1, 2, 4 and 5 appear in no solution synapse ships today: a scan of `synthesized/*.p4` finds no
+Rules 1, 2, 4 and 6 appear in no solution synapse ships today: a scan of `synthesized/*.p4` finds no
 in-action swap, no concat containing an operation and no ethertype rewrite. They become live the
 moment the emitter is taught to rewrite packets in place. Rule 3 is already live, as work item 2
 says.
 
-## What the unrolled experiment established
+## What the unrolled solution established
 
-`sc_unrolled.p4` is the same NF with the twelve rounds written out linearly instead of as one
-re-executed body, split across the two pipelines. **It compiles in 7 s with one recirculation**,
-where the rolled ground truth needs two. Ingress uses 19 stages, egress 18, over 139 actions.
+`synthesized/smartcookie-unrolled.p4` is the same NF with the twelve rounds written out linearly
+instead of as one re-executed body, split across the two pipelines. **It compiles in 7 s with one
+recirculation and passes `tests/smartcookie.py`**, where the rolled ground truth needs two
+recirculations. Ingress uses 18 stages, egress 19, over 142 actions.
 
 - **The chain never failed on PHV or hash units once split.** Every failed attempt reported
   "supports up to 20 stages, using 21" (or 25). The hash-unit competition that defeated the
@@ -340,9 +381,9 @@ in stages 4 *and* 5, with two stateful ALUs, `tbl_bf_add$salu` in one and `tbl_b
 the other. The ECE packet set the bit in one copy and the client packet read the other. `bf_row_1`,
 placed in a single stage, was fine. 0 errors reported.
 
-The fix is an emission rule, and it is the one to give synapse: **put a register's read and its
-write in the same table**, as actions selected by a key, so they cannot be placed in different
-stages. Doing that put each row back in one stage and the test passes, three runs in a row.
+The fix is an emission rule, and it is now work item 5: **put a register's read and its write in the
+same table**, as actions selected by a key, so they cannot be placed in different stages. Doing that
+put each row back in one stage and the test passes, three runs in a row.
 
 That change surfaced one more target rule: **an action that uses the hash distribution unit cannot
 be a table's `default_action`** ("Cannot specify bf_query_0 as the default action, as it requires

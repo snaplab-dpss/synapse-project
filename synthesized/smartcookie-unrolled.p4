@@ -1,3 +1,12 @@
+// SmartCookie for Tofino 2, written by hand, with the twelve HalfSipHash rounds written out
+// linearly instead of as one re-executed body: two rounds in ingress and four in egress per lap,
+// two laps, one recirculation. The rolled sibling, smartcookie-manual.p4, needs two.
+//
+// This is the shape synapse should aim at, because it needs no loop rolling: separate code per
+// lap is what synapse's BDD already produces. It compiles in 7 s and passes tests/smartcookie.py.
+//
+// See tofino/exp-compute/GROUND-TRUTH.md for the rules behind it.
+
 // SmartCookie for Tofino 2, written by hand: the ground truth synapse should learn to produce.
 //
 // Hand-written, not synthesized, but on synapse's own P4 template so the two can be diffed. The
