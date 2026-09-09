@@ -200,6 +200,7 @@ private:
   Stack hdr_vars;
   Stack cpu_hdr_vars;
   Stack recirc_hdr_vars;
+  Stack egress_state_hdr_vars;
 
   std::unordered_set<DS_ID> declared_ds;
   std::unordered_map<bdd_node_id_t, Stack> parser_vars;
@@ -213,6 +214,10 @@ private:
   // Set once a SendToEgress is emitted. Until then the ingress bypasses the egress pipeline
   // exactly as it always has, so a solution that stays in ingress is emitted unchanged.
   bool uses_egress = false;
+
+  // While set, everything the emitter writes goes to the egress pipeline's coders instead of
+  // the ingress ones, so the existing emission code works unchanged on the far side of the cut.
+  bool in_egress = false;
   std::unordered_set<code_t> ingress_metadata_var_names;
 
   const EP *target_ep;
@@ -223,6 +228,7 @@ private:
 
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToEgress *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ignore *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::If *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Then *node) override final;

@@ -467,6 +467,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Tofino_Drop:
     case ModuleType::Tofino_Broadcast:
     case ModuleType::Tofino_Recirculate:
+    case ModuleType::Tofino_SendToEgress:
     case ModuleType::Tofino_Then:
     case ModuleType::Tofino_Else:
     case ModuleType::Tofino_ParserCondition:

@@ -10,6 +10,7 @@ class EPNode;
 namespace Tofino {
 class SendToController;
 class Recirculate;
+class SendToEgress;
 class Ignore;
 class If;
 class Then;
@@ -220,6 +221,7 @@ public:
 
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToEgress *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ignore *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::If *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Then *m) { return Action::doChildren; }

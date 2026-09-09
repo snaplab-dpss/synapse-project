@@ -30,6 +30,7 @@ enum class ModuleType {
   Tofino_Drop,
   Tofino_Broadcast,
   Tofino_Recirculate,
+  Tofino_SendToEgress,
   Tofino_If,
   Tofino_Then,
   Tofino_Else,
@@ -353,6 +354,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_Recirculate:
     os << "Tofino_Recirculate";
+    break;
+  case ModuleType::Tofino_SendToEgress:
+    os << "Tofino_SendToEgress";
     break;
   case ModuleType::Tofino_LPMLookup:
     os << "Tofino_LPMLookup";
