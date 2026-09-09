@@ -100,19 +100,12 @@ namespace {
 // already exists -- the plan's own nodes, and the module type each speculation records -- so the
 // generic structures need nothing Tofino-specific added to them.
 bool crossed_this_pass(const EP *ep, const BDDNode *node, const speculations_t &speculations) {
-  for (const EPNode *prev = ep->get_active_leaf().node; prev; prev = prev->get_prev()) {
-    const Module *module = prev->get_module();
-    if (!module || module->get_target() != TargetType::Tofino) {
-      break;
-    }
-    if (module->get_type() == ModuleType::Tofino_SendToEgress) {
-      return true;
-    }
-    if (module->get_type() == ModuleType::Tofino_Recirculate) {
-      return false;
-    }
-  }
-
+  // The two walks cover different stretches of time and have to be consulted in that order. The
+  // speculated steps come after the plan's own nodes, so they are asked first: a recirculation the
+  // lookahead predicts ends the pass exactly as a placed one does, and the pass after it is
+  // entitled to its own crossing. Asking the plan first says "already crossed" for the whole
+  // speculation once the plan contains one crossing, which denies every later pass a free egress
+  // and made the lookahead predict five recirculations where it should have predicted one.
   for (const BDDNode *n = node; n; n = n->get_prev()) {
     auto found = std::find_if(speculations.speculations_per_node.begin(), speculations.speculations_per_node.end(),
                               [n](const spec_impl_lite_t &spec) { return spec.decision.node == n->get_id(); });
@@ -124,6 +117,19 @@ bool crossed_this_pass(const EP *ep, const BDDNode *node, const speculations_t &
     }
     if (found->fresh_context) {
       return true;
+    }
+  }
+
+  for (const EPNode *prev = ep->get_active_leaf().node; prev; prev = prev->get_prev()) {
+    const Module *module = prev->get_module();
+    if (!module || module->get_target() != TargetType::Tofino) {
+      break;
+    }
+    if (module->get_type() == ModuleType::Tofino_SendToEgress) {
+      return true;
+    }
+    if (module->get_type() == ModuleType::Tofino_Recirculate) {
+      return false;
     }
   }
 
