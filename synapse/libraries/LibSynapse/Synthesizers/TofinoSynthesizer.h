@@ -218,6 +218,11 @@ private:
   // While set, everything the emitter writes goes to the egress pipeline's coders instead of
   // the ingress ones, so the existing emission code works unchanged on the far side of the cut.
   bool in_egress = false;
+
+  // The packet headers that are valid where the plan crossed into egress, in extraction order.
+  // Only packets that crossed reach the egress, and they all took the one path that led to the
+  // cut, so the egress parser can extract exactly these, linearly.
+  std::vector<code_t> egress_parser_hdrs;
   std::unordered_set<code_t> ingress_metadata_var_names;
 
   const EP *target_ep;

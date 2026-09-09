@@ -2280,6 +2280,13 @@ void TofinoSynthesizer::synthesize() {
     coder_t &eg_parser = code_template.get(MARKER_EGRESS_PARSER_START);
     eg_parser.indent();
     eg_parser << "pkt.extract(hdr.egress_state);\n";
+    coder_t &eg_hdrs = code_template.get(MARKER_EGRESS_HEADERS);
+    for (const code_t &hdr_name : egress_parser_hdrs) {
+      eg_parser.indent();
+      eg_parser << "pkt.extract(" << hdr_name << ");\n";
+      const code_t stem = hdr_name.substr(hdr_name.rfind('.') + 1);
+      eg_hdrs << "  " << stem << "_h " << stem << ";\n";
+    }
     eg_parser.indent();
     eg_parser << "transition accept;\n";
 
@@ -2692,6 +2699,25 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   uses_egress = true;
+
+  // The egress parser has to see exactly what the ingress deparser emitted. Only packets that
+  // crossed here reach it, and they all took this one path, so the headers extracted along the
+  // way are the whole story.
+  {
+    std::vector<code_t> hdrs;
+    for (const EPNode *prev = ep_node; prev; prev = prev->get_prev()) {
+      const Module *prev_module = prev->get_module();
+      if (!prev_module || prev_module->get_type() != ModuleType::Tofino_ParserExtraction) {
+        continue;
+      }
+      const Tofino::ParserExtraction *extraction = dynamic_cast<const Tofino::ParserExtraction *>(prev_module);
+      if (const std::optional<var_t> hdr_var = hdr_vars.get(extraction->get_hdr())) {
+        hdrs.push_back(hdr_var->name);
+      }
+    }
+    std::reverse(hdrs.begin(), hdrs.end());
+    egress_parser_hdrs = hdrs;
+  }
 
   ingress_apply.indent();
   ingress_apply << "meta.to_egress = 1;\n";
