@@ -94,6 +94,43 @@ public:
 
 } // namespace
 
+
+namespace {
+// Whether the pass this node belongs to has already crossed into the egress. Read off state that
+// already exists -- the plan's own nodes, and the module type each speculation records -- so the
+// generic structures need nothing Tofino-specific added to them.
+bool crossed_this_pass(const EP *ep, const BDDNode *node, const speculations_t &speculations) {
+  for (const EPNode *prev = ep->get_active_leaf().node; prev; prev = prev->get_prev()) {
+    const Module *module = prev->get_module();
+    if (!module || module->get_target() != TargetType::Tofino) {
+      break;
+    }
+    if (module->get_type() == ModuleType::Tofino_SendToEgress) {
+      return true;
+    }
+    if (module->get_type() == ModuleType::Tofino_Recirculate) {
+      return false;
+    }
+  }
+
+  for (const BDDNode *n = node; n; n = n->get_prev()) {
+    auto found = std::find_if(speculations.speculations_per_node.begin(), speculations.speculations_per_node.end(),
+                              [n](const spec_impl_lite_t &spec) { return spec.decision.node == n->get_id(); });
+    if (found == speculations.speculations_per_node.end()) {
+      continue;
+    }
+    if (found->recirculated) {
+      return false;
+    }
+    if (found->fresh_context) {
+      return true;
+    }
+  }
+
+  return false;
+}
+} // namespace
+
 bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) {
   while (node) {
     if (node->get_module()->get_target() == TargetType::Tofino) {
@@ -489,7 +526,15 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
   };
 
   bool recirculated               = false;
+  bool crossed                    = false;
   std::optional<attempt_t> result = attempt(false);
+
+  if (!result && !crossed_this_pass(ep, node, speculations)) {
+    // The ingress is used up, but the egress is a second pipeline on the same pass: the same
+    // fresh placement context a recirculation would give, without costing a lap.
+    result  = attempt(true);
+    crossed = result.has_value();
+  }
 
   if (!result) {
     // The pipeline is used up: the packet goes around once more, and the run waits for nothing
@@ -512,6 +557,7 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
   }
 
   spec_impl_t spec_impl(decide(ep, node), result->ctx);
+  spec_impl.fresh_context   = recirculated || crossed;
   spec_impl.recirculated    = recirculated;
   spec_impl.compute_step    = true;
   spec_impl.compute_actions = result->actions;
@@ -561,7 +607,14 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP 
   };
 
   bool recirculated               = false;
+  bool crossed                    = false;
   std::optional<attempt_t> result = attempt(false);
+
+  if (!result && !crossed_this_pass(ep, node, speculations)) {
+    // A fresh placement context for free, in the egress, before paying for a lap.
+    result  = attempt(true);
+    crossed = result.has_value();
+  }
 
   if (!result) {
     // The pipeline is used up: the packet goes around once more, and the step waits for
@@ -583,6 +636,7 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP 
   }
 
   spec_impl_t spec_impl(decide(ep, node), result->ctx);
+  spec_impl.fresh_context   = recirculated || crossed;
   spec_impl.recirculated    = recirculated;
   spec_impl.compute_step    = true;
   spec_impl.compute_actions = result->actions;

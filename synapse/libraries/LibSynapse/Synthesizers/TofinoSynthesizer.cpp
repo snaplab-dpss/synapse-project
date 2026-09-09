@@ -2573,14 +2573,18 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
+  // Reached past a crossing, the port and the header's ingress-only fields (ingress_port, dev)
+  // still have to be written in the ingress; only the values this pass computed are written here.
+  coder_t &pass_end = (in_egress && ingress_coder_at_cut) ? *ingress_coder_at_cut : ingress_apply;
+
   // 1. Allocate a new recirculation code path
   const code_path_t code_path = alloc_recirc_coder();
 
   // 2. Build the recirculation header and populate it with the current stack
-  ingress_apply.indent();
-  ingress_apply << "fwd_op = fwd_op_t.RECIRCULATE;\n";
-  ingress_apply.indent();
-  ingress_apply << "build_recirc_hdr(" << code_path << ");\n";
+  pass_end.indent();
+  pass_end << "fwd_op = fwd_op_t.RECIRCULATE;\n";
+  pass_end.indent();
+  pass_end << "build_recirc_hdr(" << code_path << ");\n";
 
   Stacks stack_backup = ingress_vars;
 
@@ -2727,16 +2731,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     egress_parser_hdrs = hdrs;
   }
 
-  if (const klee::ref<klee::Expr> dst_device = node->get_dst_device(); !dst_device.isNull()) {
-    code_t dst_device_code                    = transpiler.transpile(dst_device);
-    const std::optional<var_t> dst_device_var = ingress_vars.get(dst_device);
-    if (dst_device_var.has_value() && dst_device_var->is_header_field) {
-      dst_device_code = transpiler.swap_endianness(dst_device_code, dst_device->getWidth());
-    }
-    ingress_apply.indent();
-    ingress_apply << "nf_dev[15:0] = " << dst_device_code << ";\n";
-  }
-
   ingress_apply.indent();
   ingress_apply << "meta.to_egress = 1;\n";
   ingress_apply.indent();
@@ -2819,6 +2813,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_vars.insert_back(var, /*allow_duplicates=*/true);
   }
 
+  coder_t *const enclosing_cut_coder = ingress_coder_at_cut;
+  ingress_coder_at_cut               = &ingress_apply;
+
   const bool enclosing_in_egress = in_egress;
   in_egress                      = true;
 
@@ -2826,8 +2823,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   visit(ep, next);
   ingress_vars.pop();
 
-  in_egress    = enclosing_in_egress;
-  ingress_vars = stack_backup;
+  in_egress            = enclosing_in_egress;
+  ingress_coder_at_cut = enclosing_cut_coder;
+  ingress_vars         = stack_backup;
 
   return EPVisitor::Action::skipChildren;
 }
@@ -3003,14 +3001,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Else *node) { return EPVisitor::Action::doChildren; }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Forward *node) {
-  if (in_egress) {
-    // SendToEgress already wrote the port: the egress cannot choose one, which is why the cut
-    // was only allowed where every reachable route agreed.
-    return EPVisitor::Action::doChildren;
-  }
-
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
-  coder_t &ingress                 = get(MARKER_INGRESS_CONTROL_APPLY);
+  // Past a crossing the port still has to be written in ingress. The crossing only happened where
+  // this device was computable there, so the expression resolves.
+  coder_t &ingress = (in_egress && ingress_coder_at_cut) ? *ingress_coder_at_cut : get(MARKER_INGRESS_CONTROL_APPLY);
 
   code_t dst_device_code = transpiler.transpile(dst_device);
 

@@ -48,6 +48,8 @@ struct spec_impl_t {
   decision_t decision;
   Context ctx;
   std::optional<TargetType> next_target;
+  // See spec_impl_lite_t: a fresh placement context need not have cost a lap.
+  bool fresh_context = false;
   bool recirculated;
   bdd_node_ids_t skip;
   // Symbols this speculation computes in the data plane, with the data structure (id)
@@ -64,11 +66,16 @@ struct spec_impl_t {
 struct spec_impl_lite_t {
   decision_t decision;
   std::optional<TargetType> next_target;
+  // Whether the step began a fresh placement context, and whether that cost the packet a lap.
+  // The two are not the same: a target with more than one pipeline per pass can start a fresh
+  // context for free by moving to the next one, where going around again costs throughput.
+  bool fresh_context;
   bool recirculated;
   bdd_node_ids_t skip;
 
   spec_impl_lite_t(const spec_impl_t &_spec_impl)
-      : decision(_spec_impl.decision), next_target(_spec_impl.next_target), recirculated(_spec_impl.recirculated), skip(_spec_impl.skip) {}
+      : decision(_spec_impl.decision), next_target(_spec_impl.next_target), fresh_context(_spec_impl.fresh_context),
+        recirculated(_spec_impl.recirculated), skip(_spec_impl.skip) {}
 };
 
 struct speculations_t {
