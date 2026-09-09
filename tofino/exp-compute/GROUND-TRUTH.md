@@ -153,6 +153,44 @@ Three constraints bound what can go in egress:
   dependency chain. Stage memory deliberately keeps accumulating, which is exactly right: the two
   gresses share the physical stages.
 
+#### Where the implementation actually stands (2026-09-09, overnight)
+
+Built and working, on main, every commit building:
+
+- The template has egress insertion points, a generated `egress_state_h` for values crossing the
+  boundary, and a synthesizer-written bypass decision.
+- A `SendToEgress` module, guarded on every reachable route agreeing, emitting the pulled-back
+  forwarding decision itself.
+- The egress parser is generated from the headers extracted on the path to the cut.
+- Metadata past the cut is named `eg_md`, `Forward` becomes a no-op there and `Drop` uses the
+  egress drop control.
+- Crossing starts a fresh dependency chain, so the egress gets its own depth budget.
+
+**Synapse does emit egress code.** One run put the whole HalfSipHash round body in the `Egress`
+control, reading its inputs from `hdr.egress_state`, with a matching egress parser. So the
+machinery works end to end.
+
+**The blocker is a dead end, and it is not where it looks.** With the crossing offered more
+freely the search dies with "Dead end reached! No module can handle this BDD node". The dumped
+plan contains **no crossing at all**: it is a plan where BDD reordering hoisted the route, `Forward`
+was placed, work was left over, and `Recirculate` is barred because a forwarding decision has been
+made. That is exactly the situation `SendToEgress` exists to rescue, and the allowlist declines it
+there, so **the allowlist is what causes the dead end**. Counted over one run: of 178 offers, 172
+were declined by the allowlist, 0 by the uniform-route test and 0 by the "pass has real work" test.
+The four call names that decline it are `bf_query`, `vector_borrow`, `vector_return` and
+`nf_set_rte_ipv4_udptcp_checksum`.
+
+**So the next step is not more guard tuning.** The crossing has to be offered wherever a hoisted
+route leaves work behind, which means the egress has to be able to hold whatever is left, which
+means controller-managed tables in egress, which means teaching sycon to address `Egress.*` and not
+only `Ingress.*`. That is the piece to do next, and it is the one the "constraints" list below
+already flagged. Until then the allowlist is deliberately narrow: the search completes (468 steps,
+no dead end) and produces the same solution as before, so main is in a working state, with the
+egress path dormant rather than half-wired.
+
+Verified after the change: `cl` regenerates structurally identical (only EP node ids renumber,
+because registering a new factory shifts them) and compiles with 0 errors.
+
 #### How the pipeline's resources actually spread across the two gresses
 
 Measured from `resources.json` and the assembly of the ground truth's own build, because the answer
