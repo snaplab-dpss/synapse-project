@@ -219,6 +219,11 @@ private:
   // the ingress ones, so the existing emission code works unchanged on the far side of the cut.
   bool in_egress = false;
 
+  // The ingress apply coder that was open where the plan crossed. A pass-ending module reached
+  // in egress writes its port there: ucast_egress_port is an ingress field, and plan order is not
+  // emission order, so the write lands in the ingress even though the node sits later.
+  coder_t *ingress_coder_at_cut = nullptr;
+
   // The packet headers that are valid where the plan crossed into egress, in extraction order.
   // Only packets that crossed reach the egress, and they all took the one path that led to the
   // cut, so the egress parser can extract exactly these, linearly.
