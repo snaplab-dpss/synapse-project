@@ -12,9 +12,10 @@ Build directories (`out_*`) and logs are not kept. A healthy program here compil
 anything still running after a couple of minutes is failing slowly and should be treated as a
 failure.
 
-`GROUND-TRUTH.md` describes `synthesized/smartcookie-manual.p4`, the hand-written SmartCookie that
-compiles and passes `tests/smartcookie.py`, and lists what synapse cannot express about it. That
-file is the point of everything below.
+`GROUND-TRUTH.md` describes the two hand-written SmartCookies that compile and pass
+`tests/smartcookie.py` -- `synthesized/smartcookie-unrolled.p4`, the one synapse should aim at, and
+`synthesized/smartcookie-manual.p4`, the smaller rolled sibling -- and lists the work that would let
+synapse produce them. That file is the point of everything below.
 
 ## Skeleton
 
@@ -136,7 +137,7 @@ and two in egress.
 `sipfull.p4` closes it: the chain plus the time-delta register plus the bloom, with the rounds
 split across the two pipelines, compiles in 3 s.
 
-## Does the unrolled chain fit if it uses egress? (`sc_unrolled.p4`)
+## Does the unrolled chain fit if it uses egress? (`synthesized/smartcookie-unrolled.p4`)
 
 Yes. The twelve rounds written out linearly, 2 in ingress and 4 in egress per lap, two laps and
 **one** recirculation, compiles in 7 s (19 ingress stages, 18 egress). The rolled ground truth
