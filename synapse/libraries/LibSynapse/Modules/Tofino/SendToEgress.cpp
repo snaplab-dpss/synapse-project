@@ -1,6 +1,5 @@
 #include <LibSynapse/Modules/Tofino/SendToEgress.h>
 #include <LibSynapse/ExecutionPlan.h>
-#include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibCore/Solver.h>
 
 namespace LibSynapse {
@@ -159,10 +158,6 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   // the traffic manager.
 
   const Symbols symbols = get_relevant_dataplane_state(ep, node);
-
-  // The egress is a separate pipeline with its own PHV partition, so the budget starts over here
-  // too -- and unlike a recirculation this one costs no lap, which is the whole point of crossing.
-  new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>()->get_mutable_tna().pipeline.reset_phv();
 
   Module *module  = new SendToEgress(node, symbols, dst_device);
   EPNode *ep_node = new EPNode(module);
