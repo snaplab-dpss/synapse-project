@@ -240,6 +240,16 @@ phv_size                                   = 5000          # bits
 phv_8bit_containers                        = 80
 phv_16bit_containers                       = 120
 phv_32bit_containers                       = 80
+# How much of a long computation one gress may hold. bf-p4c stops being able to place a chain
+# past a point that is not about PHV capacity -- it gives up having used under a tenth of it --
+# but about laying the chain out legally. Measured on SmartCookie by cutting the chain down until
+# it built: half of it fits in the ingress, two thirds does not, so the real figure is near 120.
+#
+# Left effectively off, because enforcing it does not currently pay: at 120 the search meets it by
+# offloading to the controller (1 Kpps against 286 Mpps), and at 200 the crossing is rarely legal
+# where the budget bites, so it recirculates instead. The crossing's legality rule has to be
+# relaxed before this number can be turned on.
+max_compute_ops_per_gress                  = 1000000   # effectively off, see above
 packet_buffer_size                         = 512000000     # 64e6 * 8 bits
 exact_match_xbar_per_stage                 = 1024          # 128 * 8 bits
 max_exact_match_keys                       = 16

@@ -230,6 +230,8 @@ phv_size                                   = 4000          # bits
 phv_8bit_containers                        = 64
 phv_16bit_containers                       = 96
 phv_32bit_containers                       = 64
+# See the note in tofino2.toml. Tofino 1 has 12 stages against Tofino 2's 20, so proportionally less.
+max_compute_ops_per_gress                  = 1000000   # effectively off, see above
 packet_buffer_size                         = 160000000     # 20e6 * 8 bits
 exact_match_xbar_per_stage                 = 1024          # 128 * 8 bits
 max_exact_match_keys                       = 16

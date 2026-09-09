@@ -1,5 +1,6 @@
 #include <LibSynapse/Modules/Tofino/Recirculate.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibSynapse/Modules/Tofino/TofinoContext.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -38,6 +39,10 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode
   new_ep->get_mutable_ctx().get_mutable_perf_oracle().add_recirculated_traffic(ep->get_node_egress(hr, ep->get_active_leaf().node));
 
   const Symbols symbols = get_relevant_dataplane_state(ep, node);
+
+  // The packet comes back through the ingress, so what it computes on the next lap is charged
+  // there -- and to the same budget as the first lap, since bf-p4c lays the gress out as a whole.
+  new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>()->get_mutable_tna().pipeline.back_to_ingress();
   const u32 code_path   = node->get_id();
 
   Module *module  = new Recirculate(node, symbols, code_path);

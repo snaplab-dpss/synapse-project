@@ -395,6 +395,15 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
     std::erase_if(deps, [this](const DS_ID &dep) { return std::find(actions.begin(), actions.end(), dep) == actions.end(); });
   }
 
+  // A gress only takes so much of a long computation before bf-p4c can no longer lay it out --
+  // measured, not a PHV capacity limit, which is barely touched when it gives up. Refusing here
+  // sends the compute-run ladder to its next option: the egress, which is a second budget, and
+  // only then another lap, which is not.
+  Pipeline &pipeline = ctx->get_mutable_tna().pipeline;
+  if (!new_gress && !pipeline.compute_op_fits()) {
+    return {};
+  }
+
   std::vector<DS_ID> candidates(actions.rbegin(), actions.rend());
   candidates.insert(candidates.end(), run.begin(), run.end());
 
@@ -403,6 +412,7 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
 
   if (plan && plan->append) {
     ctx->append_compute_op(plan->action_id, op, deps);
+    pipeline.charge_compute_op();
     push_unique(actions, plan->action_id);
     placed_ops.insert({op.id, plan->action_id});
     if (!full_placer) {
@@ -419,6 +429,7 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   }
 
   ctx->place(node->get_id(), action, deps);
+  pipeline.charge_compute_op();
   actions.push_back(new_action_id);
   placed_ops.insert({op.id, new_action_id});
   if (!full_placer) {
@@ -476,14 +487,24 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
     bdd_node_ids_t skip;
   };
 
-  const auto attempt = [&](bool new_pass) -> std::optional<attempt_t> {
+  const auto attempt = [&](bool new_pass, bool new_gress = false) -> std::optional<attempt_t> {
     Context new_ctx           = speculations.ctx;
     TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
+
+    // The egress is a second pipeline with a budget of its own; a recirculation is not, since
+    // bf-p4c lays out the one gress as a whole. Crossing moves the charge, it does not clear it.
+    if (new_gress) {
+      tofino_ctx->get_mutable_tna().pipeline.cross_to_egress();
+    } else if (new_pass) {
+      // A new pass that is not a crossing is a recirculation: back through the ingress.
+      tofino_ctx->get_mutable_tna().pipeline.back_to_ingress();
+    }
     ComputeStepBuilder builder{.node        = node,
                                .ctx         = tofino_ctx,
                                .run         = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, node, speculations),
                                .full_placer = false,
                                .new_pass    = new_pass,
+                               .new_gress   = new_gress,
                                .actions     = {},
                                .placed_ops  = {}};
 
@@ -538,7 +559,7 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
   if (!result && !crossed_this_pass(ep, node, speculations)) {
     // The ingress is used up, but the egress is a second pipeline on the same pass: the same
     // fresh placement context a recirculation would give, without costing a lap.
-    result  = attempt(true);
+    result  = attempt(true, /*new_gress=*/true);
     crossed = result.has_value();
   }
 
@@ -578,7 +599,7 @@ std::optional<TofinoModuleFactory::compute_step_t> TofinoModuleFactory::implemen
   TofinoContext *tofino_ctx  = new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>();
 
   ComputeStepBuilder builder{
-      .node = node, .ctx = tofino_ctx, .run = get_compute_run_actions(ep), .full_placer = true, .new_pass = false, .actions = {}, .placed_ops = {}};
+      .node = node, .ctx = tofino_ctx, .run = get_compute_run_actions(ep), .full_placer = true, .new_pass = false, .new_gress = false, .actions = {}, .placed_ops = {}};
   const std::optional<DS_ID> out = build(builder);
   if (!out) {
     return {};
@@ -595,14 +616,24 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP 
     DS_ID out;
   };
 
-  const auto attempt = [&](bool new_pass) -> std::optional<attempt_t> {
+  const auto attempt = [&](bool new_pass, bool new_gress = false) -> std::optional<attempt_t> {
     Context new_ctx           = speculations.ctx;
     TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
+
+    // The egress is a second pipeline with a budget of its own; a recirculation is not, since
+    // bf-p4c lays out the one gress as a whole. Crossing moves the charge, it does not clear it.
+    if (new_gress) {
+      tofino_ctx->get_mutable_tna().pipeline.cross_to_egress();
+    } else if (new_pass) {
+      // A new pass that is not a crossing is a recirculation: back through the ingress.
+      tofino_ctx->get_mutable_tna().pipeline.back_to_ingress();
+    }
     ComputeStepBuilder builder{.node        = node,
                                .ctx         = tofino_ctx,
                                .run         = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, node, speculations),
                                .full_placer = false,
                                .new_pass    = new_pass,
+                               .new_gress   = new_gress,
                                .actions     = {},
                                .placed_ops  = {}};
     const std::optional<DS_ID> out = build(builder);
@@ -618,7 +649,7 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP 
 
   if (!result && !crossed_this_pass(ep, node, speculations)) {
     // A fresh placement context for free, in the egress, before paying for a lap.
-    result  = attempt(true);
+    result  = attempt(true, /*new_gress=*/true);
     crossed = result.has_value();
   }
 

@@ -159,6 +159,11 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
 
   const Symbols symbols = get_relevant_dataplane_state(ep, node);
 
+  // From here the computation is charged to the egress, which has a budget of its own. That is
+  // what the crossing buys, and why it is worth a header's width of state: a recirculation does
+  // not do it, since one gress is laid out as a whole.
+  new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>()->get_mutable_tna().pipeline.cross_to_egress();
+
   Module *module  = new SendToEgress(node, symbols, dst_device);
   EPNode *ep_node = new EPNode(module);
 

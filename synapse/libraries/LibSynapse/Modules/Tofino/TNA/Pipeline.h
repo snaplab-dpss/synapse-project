@@ -89,6 +89,16 @@ struct PipelineResources {
   std::vector<Stage> stages;
   u8 used_digests;
 
+  // Computations placed in each gress, for the whole program. Neither is ever reset: bf-p4c lays
+  // a gress out as a whole, so what a recirculated packet computes on its later laps still has to
+  // sit alongside the first lap's work, and the same holds for the egress across passes. Crossing
+  // moves the charge to the other gress rather than clearing anything, so the two budgets
+  // together are all a solution ever gets. (Two earlier attempts reset per pass and per crossing;
+  // both modelled a constraint the hardware does not have.)
+  int used_compute_ops_ingress;
+  int used_compute_ops_egress;
+  bool building_egress;
+
   PipelineResources(const tna_properties_t &properties);
   PipelineResources(const PipelineResources &other);
   PipelineResources &operator=(const PipelineResources &other) = default;
@@ -137,6 +147,19 @@ struct Pipeline {
   }
 
   u8 get_used_digests() const { return resources->used_digests; }
+
+  int get_used_compute_ops() const {
+    return resources->building_egress ? resources->used_compute_ops_egress : resources->used_compute_ops_ingress;
+  }
+  bool compute_op_fits() const { return get_used_compute_ops() < properties.max_compute_ops_per_gress; }
+  void charge_compute_op() {
+    PipelineResources &r = resources.mutate();
+    (r.building_egress ? r.used_compute_ops_egress : r.used_compute_ops_ingress)++;
+  }
+  void cross_to_egress() { resources.mutate().building_egress = true; }
+  // A recirculated packet re-enters through the ingress, so later laps are charged there again.
+  void back_to_ingress() { resources.mutate().building_egress = false; }
+  bool is_building_egress() const { return resources->building_egress; }
 
   bool detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   int get_soonest_stage_satisfying_all_dependencies(const std::unordered_set<DS_ID> &deps) const;

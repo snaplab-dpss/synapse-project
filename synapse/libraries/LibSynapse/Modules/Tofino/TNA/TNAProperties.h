@@ -23,6 +23,7 @@ struct tna_properties_t {
   int phv_8bit_containers;
   int phv_16bit_containers;
   int phv_32bit_containers;
+  int max_compute_ops_per_gress;
   bits_t packet_buffer_size;
   bits_t exact_match_xbar_per_stage;
   int max_exact_match_keys;
