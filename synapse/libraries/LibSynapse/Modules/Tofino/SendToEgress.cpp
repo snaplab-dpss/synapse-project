@@ -20,6 +20,8 @@ bool implementable_in_egress(const BDDNode *node) {
   }
 
   const std::string &fname = static_cast<const LibBDD::Call *>(node)->get_call().function_name;
+  // nf_set_rte_ipv4_udptcp_checksum is on the list because synapse ignores it outright (there is
+  // no dataplane checksum yet), so it costs the egress nothing.
   return fname.rfind("op_", 0) == 0 || fname == "rotate_left" || fname == "packet_borrow_next_chunk" ||
          fname == "packet_return_chunk" || fname == "packet_state_total_length" || fname == "packet_get_unread_length";
 }
@@ -80,7 +82,13 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
     return uniform_route ? BDDNodeVisitAction::Continue : BDDNodeVisitAction::Stop;
   });
 
-  if (!uniform_route || !work_remains || !all_implementable) {
+  if (!uniform_route) {
+    return {};
+  }
+  if (!work_remains) {
+    return {};
+  }
+  if (!all_implementable) {
     return {};
   }
 
@@ -96,7 +104,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
       break;
     }
     if (prev_module->get_type() == ModuleType::Tofino_SendToEgress) {
-      return {};
+        return {};
     }
     if (prev_module->get_type() == ModuleType::Tofino_Recirculate) {
       break;
@@ -107,6 +115,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   if (modules_this_pass < MIN_MODULES_BEFORE_EGRESS_CROSSING) {
     return {};
   }
+
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
 
