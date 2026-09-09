@@ -1,5 +1,6 @@
 #include <LibSynapse/Modules/Tofino/Recirculate.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibSynapse/Modules/Tofino/TofinoContext.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -39,6 +40,10 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode
 
   const Symbols symbols = get_relevant_dataplane_state(ep, node);
   const u32 code_path   = node->get_id();
+
+  // A new pass: the packet re-enters through the parser, so the gress's PHV budget starts over.
+  // The speculation ladder in TofinoModule.cpp resets it the same way for its `new_pass` attempts.
+  new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>()->get_mutable_tna().pipeline.reset_phv();
 
   Module *module  = new Recirculate(node, symbols, code_path);
   EPNode *ep_node = new EPNode(module);

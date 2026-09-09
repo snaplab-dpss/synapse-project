@@ -89,6 +89,15 @@ struct PipelineResources {
   std::vector<Stage> stages;
   u8 used_digests;
 
+  // Bits of PHV the current pass has committed in the gress it is currently building. Unlike
+  // everything else here it is not cumulative over the whole program: a recirculation re-parses
+  // and an egress crossing moves to the other gress's own PHV partition, so both reset it.
+  //
+  // The charge is deliberately crude -- every computed value costs its width and nothing is ever
+  // given back when it dies -- because its only job is to make a gress fill up. See the note on
+  // phv_bits_per_pass_per_gress in the target config.
+  bits_t used_phv_bits;
+
   PipelineResources(const tna_properties_t &properties);
   PipelineResources(const PipelineResources &other);
   PipelineResources &operator=(const PipelineResources &other) = default;
@@ -137,6 +146,11 @@ struct Pipeline {
   }
 
   u8 get_used_digests() const { return resources->used_digests; }
+
+  bits_t get_used_phv_bits() const { return resources->used_phv_bits; }
+  bool phv_fits(bits_t extra) const { return resources->used_phv_bits + extra <= properties.phv_bits_per_pass_per_gress; }
+  void charge_phv(bits_t bits) { resources.mutate().used_phv_bits += bits; }
+  void reset_phv() { resources.mutate().used_phv_bits = 0; }
 
   bool detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   int get_soonest_stage_satisfying_all_dependencies(const std::unordered_set<DS_ID> &deps) const;

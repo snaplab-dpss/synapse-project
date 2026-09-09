@@ -395,6 +395,15 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
     std::erase_if(deps, [this](const DS_ID &dep) { return std::find(actions.begin(), actions.end(), dep) == actions.end(); });
   }
 
+  // The op's result has to live in a PHV container until it is read. Nothing frees it here, so a
+  // long arithmetic chain eventually exhausts the gress -- which is the point: it is what makes
+  // the search look at the egress, and then at another pass. Without it a chain of any length
+  // looks placeable, because the only thing that ever stopped it was stage depth.
+  Pipeline &pipeline = ctx->get_mutable_tna().pipeline;
+  if (!pipeline.phv_fits(op.width)) {
+    return {};
+  }
+
   std::vector<DS_ID> candidates(actions.rbegin(), actions.rend());
   candidates.insert(candidates.end(), run.begin(), run.end());
 
@@ -403,6 +412,7 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
 
   if (plan && plan->append) {
     ctx->append_compute_op(plan->action_id, op, deps);
+    pipeline.charge_phv(op.width);
     push_unique(actions, plan->action_id);
     placed_ops.insert({op.id, plan->action_id});
     if (!full_placer) {
@@ -419,6 +429,7 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   }
 
   ctx->place(node->get_id(), action, deps);
+  pipeline.charge_phv(op.width);
   actions.push_back(new_action_id);
   placed_ops.insert({op.id, new_action_id});
   if (!full_placer) {
@@ -479,6 +490,13 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
   const auto attempt = [&](bool new_pass) -> std::optional<attempt_t> {
     Context new_ctx           = speculations.ctx;
     TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
+
+    // A new pass means either the egress (its own PHV partition) or a recirculation (a re-parse):
+    // both start the gress's PHV budget over. This mirrors what Recirculate and SendToEgress do
+    // when the search actually places them, so speculation and implementation agree.
+    if (new_pass) {
+      tofino_ctx->get_mutable_tna().pipeline.reset_phv();
+    }
     ComputeStepBuilder builder{.node        = node,
                                .ctx         = tofino_ctx,
                                .run         = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, node, speculations),
@@ -598,6 +616,13 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP 
   const auto attempt = [&](bool new_pass) -> std::optional<attempt_t> {
     Context new_ctx           = speculations.ctx;
     TofinoContext *tofino_ctx = new_ctx.get_mutable_target_ctx<TofinoContext>();
+
+    // A new pass means either the egress (its own PHV partition) or a recirculation (a re-parse):
+    // both start the gress's PHV budget over. This mirrors what Recirculate and SendToEgress do
+    // when the search actually places them, so speculation and implementation agree.
+    if (new_pass) {
+      tofino_ctx->get_mutable_tna().pipeline.reset_phv();
+    }
     ComputeStepBuilder builder{.node        = node,
                                .ctx         = tofino_ctx,
                                .run         = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, node, speculations),
