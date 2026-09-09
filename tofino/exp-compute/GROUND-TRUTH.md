@@ -134,6 +134,25 @@ Three constraints bound what can go in egress:
 - **The egress parser has to be generated** to match exactly what the ingress deparser emits, which
   today is implicit.
 
+#### What implementing it turned up (2026-09-09)
+
+- **The obvious guard cannot fire.** "Cross only once the forwarding decision has been made" never
+  triggers, because every BDD path ends in its own route node: by the time a decision exists there
+  is nothing left to do. `SendToEgress` never appeared in the search space at all. The guard has to
+  *pull the decision back* instead: allow the cut when every route still reachable agrees on the
+  device, and have the module emit that decision itself. Drops downstream are fine, broadcast is
+  not. With that, the module appears 122 times in the search space.
+- **Past the cut, `Forward` emits nothing and `Drop` uses the egress drop control.** The port was
+  written before the crossing, so the route node in egress has nothing left to do.
+- **Offering the crossing everywhere destroys the search.** The estimated search space went from
+  2.0e11 to 2.3e61 and the winner got *worse* (259 Mpps, 3 recirculations, against 287 and 2),
+  because the option is pure noise until the placer can exploit it. Requiring that the pass already
+  holds real work before the crossing is offered brings it back to 5.6e12.
+- **The depth budget is a two-line change.** `collect_deps_from` and `was_ds_already_used` already
+  stop walking at a recirculation; stopping at an egress crossing too gives the egress its own
+  dependency chain. Stage memory deliberately keeps accumulating, which is exactly right: the two
+  gresses share the physical stages.
+
 #### How the pipeline's resources actually spread across the two gresses
 
 Measured from `resources.json` and the assembly of the ground truth's own build, because the answer
