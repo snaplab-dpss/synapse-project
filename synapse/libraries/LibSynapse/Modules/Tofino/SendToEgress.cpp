@@ -5,6 +5,11 @@
 namespace LibSynapse {
 namespace Tofino {
 
+namespace {
+// Crossing into egress is only worth considering once the ingress has real work in it.
+constexpr size_t MIN_MODULES_BEFORE_EGRESS_CROSSING = 8;
+} // namespace
+
 std::optional<spec_impl_t> SendToEgressFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   // Nothing to predict: crossing into egress implements no BDD node.
   return {};
@@ -59,14 +64,27 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   }
 
   // One crossing per pass: there is no way back to ingress without recirculating, and a
-  // recirculation needs a port, which egress cannot set.
-  const EPNode *prev = active_leaf.node;
-  while (prev) {
+  // recirculation needs a port, which egress cannot set. The same walk counts what this pass has
+  // already placed: crossing buys depth, so offering it before the ingress holds any real work
+  // only multiplies the search space, which it does violently (2e61 estimated states against the
+  // 2e11 of a plain ingress search).
+  size_t modules_this_pass = 0;
+  for (const EPNode *prev = active_leaf.node; prev; prev = prev->get_prev()) {
     const Module *prev_module = prev->get_module();
-    if (prev_module && prev_module->get_type() == ModuleType::Tofino_SendToEgress) {
+    if (!prev_module || prev_module->get_target() != TargetType::Tofino) {
+      break;
+    }
+    if (prev_module->get_type() == ModuleType::Tofino_SendToEgress) {
       return {};
     }
-    prev = prev->get_prev();
+    if (prev_module->get_type() == ModuleType::Tofino_Recirculate) {
+      break;
+    }
+    modules_this_pass++;
+  }
+
+  if (modules_this_pass < MIN_MODULES_BEFORE_EGRESS_CROSSING) {
+    return {};
   }
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
@@ -76,7 +94,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
 
   const Symbols symbols = get_relevant_dataplane_state(ep, node);
 
-  Module *module  = new SendToEgress(node, symbols);
+  Module *module  = new SendToEgress(node, symbols, dst_device);
   EPNode *ep_node = new EPNode(module);
 
   // The node itself is not implemented here, only moved to the other pipeline.
