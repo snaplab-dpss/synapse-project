@@ -39,7 +39,6 @@ targets_config_t::targets_config_t(const std::filesystem::path &targets_config_f
       .phv_8bit_containers                        = *config["switch"]["arch"]["phv_8bit_containers"].value<int>(),
       .phv_16bit_containers                       = *config["switch"]["arch"]["phv_16bit_containers"].value<int>(),
       .phv_32bit_containers                       = *config["switch"]["arch"]["phv_32bit_containers"].value<int>(),
-      .phv_bits_per_pass_per_gress                = *config["switch"]["arch"]["phv_bits_per_pass_per_gress"].value<bits_t>(),
       .packet_buffer_size                         = *config["switch"]["arch"]["packet_buffer_size"].value<bits_t>(),
       .exact_match_xbar_per_stage                 = *config["switch"]["arch"]["exact_match_xbar_per_stage"].value<bits_t>(),
       .max_exact_match_keys                       = *config["switch"]["arch"]["max_exact_match_keys"].value<int>(),
