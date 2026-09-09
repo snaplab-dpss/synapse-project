@@ -209,6 +209,10 @@ private:
   // out by get() must survive later allocations.
   std::deque<coder_t> recirc_coders;
   std::optional<code_path_t> active_recirc_code_path;
+
+  // Set once a SendToEgress is emitted. Until then the ingress bypasses the egress pipeline
+  // exactly as it always has, so a solution that stays in ingress is emitted unchanged.
+  bool uses_egress = false;
   std::unordered_set<code_t> ingress_metadata_var_names;
 
   const EP *target_ep;
