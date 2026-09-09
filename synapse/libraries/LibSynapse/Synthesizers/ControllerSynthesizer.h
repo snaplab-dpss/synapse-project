@@ -160,9 +160,16 @@ private:
   void synthesize_state_member_init_list();
 
   void visit(const EP *ep, const EPNode *ep_node) override final;
+
+  // Tables declared past an egress crossing live in the Egress control block, and bf_rt names
+  // them "Egress.<id>". Nothing else about the controller changes: sycon's Table takes the name
+  // as a plain string.
+  bool in_egress = false;
+  const char *gress() const { return in_egress ? "Egress." : "Ingress."; }
   void log(const EPNode *node) const override final;
 
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToEgress *node) override final;
 
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ignore *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ParseHeader *node) override final;
