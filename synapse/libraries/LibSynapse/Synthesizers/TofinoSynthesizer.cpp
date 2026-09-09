@@ -2277,6 +2277,19 @@ void TofinoSynthesizer::synthesize() {
     }
     eg_state_hdr << "}\n";
 
+    // Helpers the ingress control has inline. Emitted only when the egress is used, so a
+    // solution that stays in ingress comes out byte-identical.
+    coder_t &eg_control = code_template.get(MARKER_EGRESS_CONTROL);
+    eg_control << "  action swap(inout bit<8> a, inout bit<8> b) {\n";
+    eg_control << "    bit<8> tmp = a;\n";
+    eg_control << "    a = b;\n";
+    eg_control << "    b = tmp;\n";
+    eg_control << "  }\n\n";
+    eg_control << "  bit<1> diff_sign_bit;\n";
+    eg_control << "  action calculate_diff_32b(bit<32> a, bit<32> b) { diff_sign_bit = (a - b)[31:31]; }\n";
+    eg_control << "  action calculate_diff_16b(bit<16> a, bit<16> b) { diff_sign_bit = (a - b)[15:15]; }\n";
+    eg_control << "  action calculate_diff_8b(bit<8> a, bit<8> b) { diff_sign_bit = (a - b)[7:7]; }\n";
+
     code_template.get(MARKER_INGRESS_EGRESS_STATE_FIELD) << "  egress_state_h egress_state;\n";
     code_template.get(MARKER_EGRESS_EGRESS_STATE_FIELD) << "  egress_state_h egress_state;\n";
     code_template.get(MARKER_INGRESS_METADATA) << "  bit<1> to_egress;\n";
@@ -2294,9 +2307,12 @@ void TofinoSynthesizer::synthesize() {
     eg_parser.indent();
     eg_parser << "transition accept;\n";
 
-    coder_t &eg_deparser = code_template.get(MARKER_EGRESS_DEPARSER_APPLY);
-    eg_deparser.indent();
-    eg_deparser << "hdr.egress_state.setInvalid();\n";
+    // Not in the deparser: "Assignment to a header field in the deparser is only allowed when the
+    // source is checksum update, mirror, resubmit or learning digest". The state header is dropped
+    // at the end of the egress control instead, which is where the hand-written reference does it.
+    coder_t &eg_apply = code_template.get(MARKER_EGRESS_CONTROL_APPLY);
+    eg_apply.indent();
+    eg_apply << "hdr.egress_state.setInvalid();\n";
   }
 
   coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER_APPLY);
