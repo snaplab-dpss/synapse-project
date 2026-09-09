@@ -131,8 +131,11 @@ Symbols get_produced_symbols(const Module *module) {
   return symbols;
 }
 
-// Walks the EP back from `node` to the last recirculation (or the last non-Tofino module),
-// collecting the primitive data structures of every module `keep` accepts.
+// Walks the EP back from `node` to the last recirculation or egress crossing (or the last
+// non-Tofino module), collecting the primitive data structures of every module `keep` accepts.
+// Both boundaries start a fresh dependency chain: a recirculation because it is a new pass, an
+// egress crossing because the egress is a second 20-stage pipeline with its own depth budget.
+// Stage memory is deliberately not reset, because the two gresses share the physical stages.
 // The data structures of the plan's modules `keep` selects, walking up from `ep_node` until
 // the last recirculation (what was placed before it is in a previous pass).
 std::unordered_set<DS_ID> collect_deps_from(const EP *ep, const EPNode *ep_node, const std::function<bool(const Module *)> &keep) {
@@ -147,7 +150,7 @@ std::unordered_set<DS_ID> collect_deps_from(const EP *ep, const EPNode *ep_node,
       break;
     }
 
-    if (module->get_type() == ModuleType::Tofino_Recirculate) {
+    if (module->get_type() == ModuleType::Tofino_Recirculate || module->get_type() == ModuleType::Tofino_SendToEgress) {
       break;
     }
 
