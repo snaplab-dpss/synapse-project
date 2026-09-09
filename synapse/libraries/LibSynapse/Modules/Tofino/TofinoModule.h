@@ -146,6 +146,7 @@ public:
     std::vector<DS_ID> run;
     bool full_placer; // The search uses the full placer (ILP fallback); speculation the simple one.
     bool new_pass;
+    bool new_gress; // Crossing into the egress: a second pipeline, so a second compute budget.
     std::vector<DS_ID> actions;
     std::unordered_map<std::string, DS_ID> placed_ops; // By op id: placing an op twice is a no-op.
 

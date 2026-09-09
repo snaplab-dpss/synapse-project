@@ -400,6 +400,11 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
   }
 
   pipeline_resources.used_digests = static_cast<u8>(digests_used.getValue());
+  // Not one of the solver's variables: nothing it places consumes it, so carry it over rather
+  // than letting the freshly built PipelineResources zero it.
+  pipeline_resources.used_compute_ops_ingress = pipeline.resources->used_compute_ops_ingress;
+  pipeline_resources.used_compute_ops_egress  = pipeline.resources->used_compute_ops_egress;
+  pipeline_resources.building_egress          = pipeline.resources->building_egress;
 
   for (int s = 0; s < TotalStages; s++) {
     pipeline_resources.stages[s].available_sram -= static_cast<bits_t>(sram_used_per_stage[s].getValue());
@@ -766,6 +771,11 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
 
   PipelineResources pipeline_resources(pipeline.properties);
   pipeline_resources.used_digests = model.eval(digests_used).get_numeral_int();
+  // Not one of the solver's variables: nothing it places consumes it, so carry it over rather
+  // than letting the freshly built PipelineResources zero it.
+  pipeline_resources.used_compute_ops_ingress = pipeline.resources->used_compute_ops_ingress;
+  pipeline_resources.used_compute_ops_egress  = pipeline.resources->used_compute_ops_egress;
+  pipeline_resources.building_egress          = pipeline.resources->building_egress;
 
   for (int s = 0; s < TotalStages; s++) {
     pipeline_resources.stages[s].available_sram -= model.eval(sram_used_per_stage[s]).get_numeral_int();
