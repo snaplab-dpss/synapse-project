@@ -1,6 +1,7 @@
 #include <LibSynapse/Synthesizers/TofinoSynthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Strings.h>
+#include <functional>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -17,6 +18,105 @@ using LibCore::simplify;
 using LibCore::solver_toolbox;
 
 namespace {
+
+// Values the compute run produces, by variable name.
+bool is_compute_value(const std::string &name) {
+  const size_t dot       = name.rfind('.');
+  const std::string stem = dot == std::string::npos ? name : name.substr(dot + 1);
+  return stem.rfind("rotate_left", 0) == 0 || stem.rfind("op_", 0) == 0 || stem.rfind("bf_", 0) == 0;
+}
+
+// Split a canonical ReadLSB into its first `keep` bytes (in packet order) and the rest.
+//
+// Rebuilt from the expression's own Read leaves, because both halves have to stay in the ReadLSB
+// shape the transpiler recognises. Building them out of Extracts instead -- bytes_in_expr followed
+// by concat_exprs -- yields byte-level Concats that visitConcat cannot render, which is how the
+// first attempt at this died: "TODO: visitConcat: (Concat w32 (Concat w24 (ReadMSB w16 ...".
+bool split_read(klee::ref<klee::Expr> expr, bytes_t keep, klee::ref<klee::Expr> &head, klee::ref<klee::Expr> &tail) {
+  std::vector<klee::ref<klee::Expr>> leaves; // most significant byte first
+  const std::function<void(klee::ref<klee::Expr>)> collect = [&](klee::ref<klee::Expr> e) {
+    if (e->getKind() == klee::Expr::Concat) {
+      collect(e->getKid(0));
+      collect(e->getKid(1));
+      return;
+    }
+    leaves.push_back(e);
+  };
+  collect(expr);
+
+  const size_t n = expr->getWidth() / 8;
+  if (leaves.size() != n || keep == 0 || keep >= n) {
+    return false;
+  }
+  for (const klee::ref<klee::Expr> &leaf : leaves) {
+    if (leaf->getWidth() != 8) {
+      return false;
+    }
+  }
+
+  const auto rebuild = [](std::vector<klee::ref<klee::Expr>>::const_iterator begin,
+                          std::vector<klee::ref<klee::Expr>>::const_iterator end) {
+    klee::ref<klee::Expr> out = *(end - 1);
+    for (auto it = end - 1; it != begin;) {
+      --it;
+      out = solver_toolbox.exprBuilder->Concat(*it, out);
+    }
+    return out;
+  };
+
+  // Packet order is the reverse of `leaves`, so the first `keep` packet bytes are the last `keep`
+  // entries and the remainder is everything before them.
+  tail = rebuild(leaves.begin(), leaves.end() - keep);
+  head = rebuild(leaves.end() - keep, leaves.end());
+  return true;
+}
+
+
+// An operation on an N-bit value zero-extended to the BDD's 32-bit int width, against a constant
+// that fits in N bits, is really an N-bit operation. Emitted at 32 bits it needs a cast that
+// violates Tofino2's action constraints; the ground truth writes the same thing narrow, as
+// `hdr.hdr2.data4[7:0] | 8w0x12`. Bitwise only -- narrowing an add or a shift would lose a carry.
+klee::ref<klee::Expr> narrow_widened_bitop(klee::ref<klee::Expr> e) {
+  switch (e->getKind()) {
+  case klee::Expr::And:
+  case klee::Expr::Or:
+  case klee::Expr::Xor:
+    break;
+  default:
+    return nullptr;
+  }
+
+  klee::ref<klee::Expr> zext = e->getKid(0);
+  klee::ref<klee::Expr> cnst = e->getKid(1);
+  if (zext->getKind() == klee::Expr::Constant) {
+    std::swap(zext, cnst);
+  }
+  if (zext->getKind() != klee::Expr::ZExt || cnst->getKind() != klee::Expr::Constant) {
+    return nullptr;
+  }
+
+  const klee::ref<klee::Expr> inner = zext->getKid(0);
+  const bits_t narrow               = inner->getWidth();
+  if (narrow >= e->getWidth() || narrow > 64) {
+    return nullptr;
+  }
+
+  const u64 value = LibCore::solver_toolbox.value_from_expr(cnst);
+  if (narrow < 64 && (value >> narrow) != 0) {
+    return nullptr;
+  }
+
+  const klee::ref<klee::Expr> narrowed_const = LibCore::solver_toolbox.exprBuilder->Constant(value, narrow);
+  switch (e->getKind()) {
+  case klee::Expr::And:
+    return LibCore::solver_toolbox.exprBuilder->And(inner, narrowed_const);
+  case klee::Expr::Or:
+    return LibCore::solver_toolbox.exprBuilder->Or(inner, narrowed_const);
+  default:
+    return LibCore::solver_toolbox.exprBuilder->Xor(inner, narrowed_const);
+  }
+}
+
 
 constexpr const u16 CUCKOO_CODE_PATH = 0xffff;
 
@@ -2362,6 +2462,14 @@ void TofinoSynthesizer::synthesize() {
     code_template.get(MARKER_INGRESS_METADATA) << "  bit<1> to_egress;\n";
 
     coder_t &eg_parser = code_template.get(MARKER_EGRESS_PARSER_START);
+    // The crossing always recirculates -- the egress cannot choose a port -- so the ingress runs
+    // build_recirc_hdr on this path and its deparser emits hdr.recirc, which precedes
+    // egress_state in the header struct. Without extracting it here the egress parser reads
+    // egress_state out of the recirculation header's bytes, hdr.recirc stays invalid in egress,
+    // and the egress's writes to it are dead: bf-p4c then eliminates the whole egress compute
+    // chain, which is how a plan that discards half its work looked like it fit.
+    eg_parser.indent();
+    eg_parser << "pkt.extract(hdr.recirc);\n";
     eg_parser.indent();
     eg_parser << "pkt.extract(hdr.egress_state);\n";
     coder_t &eg_hdrs = code_template.get(MARKER_EGRESS_HEADERS);
@@ -2499,6 +2607,19 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
         const code_t next_false =
             i < select->selections.size() - 1 ? get_selection_state_name(i + 1) : get_parser_state_name(select->on_false, false);
 
+        // parser_selection_t carries `negated` and this emitter used to ignore it, so a condition
+        // like BDD node 5's `!(17 == protocol)` came out as `17: on_true`. Measured consequence on
+        // SmartCookie: IPv4 protocol 0x11 (UDP) reached the 160-bit TCP header and 0x06 (TCP) fell
+        // through to the 64-bit UDP one, so a TCP packet never got a TCP header at all.
+        //
+        // Un-negated, the chain is an OR: selection i matches -> on_true, else try the next.
+        // Negated it is the De Morgan dual, an AND of nots: a match settles it as false, and only
+        // falling off the end of the chain reaches on_true.
+        const code_t on_match = selection.negated ? get_parser_state_name(select->on_false, false) : next_true;
+        const code_t on_default =
+            !selection.negated ? next_false
+            : (i < select->selections.size() - 1 ? get_selection_state_name(i + 1) : get_parser_state_name(select->on_true, false));
+
         // Labels take the selector's declared width, which can exceed the NF value's (the
         // 16-bit device selects on the 32-bit meta.dev).
         const std::optional<var_t> selector = ingress_vars.get(selection.target);
@@ -2509,11 +2630,11 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
             label = solver_toolbox.exprBuilder->ZExt(value, selector_width);
           }
           ingress_parser.indent();
-          ingress_parser << transpiler.transpile(label, TRANSPILER_OPT_SWAP_CONST_ENDIANNESS) << ": " << next_true << ";\n";
+          ingress_parser << transpiler.transpile(label, TRANSPILER_OPT_SWAP_CONST_ENDIANNESS) << ": " << on_match << ";\n";
         }
 
         ingress_parser.indent();
-        ingress_parser << "default: " << next_false << ";\n";
+        ingress_parser << "default: " << on_default << ";\n";
 
         ingress_parser.dec();
         ingress_parser.indent();
@@ -2634,17 +2755,27 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     cpu_var.name  = "hdr.cpu." + var->get_stem();
     cpu_hdr_vars.push(cpu_var);
 
-    ingress_apply.indent();
-    ingress_apply << cpu_var.name;
+    // A sliced write cannot go through the hash unit, so it stays a plain copy.
+    const bool sliced   = symbol.name == "next_time";
+    // Every computed value, not just the ones a rotate cut directly. The controller header is
+    // written on the slow path, all of its fields at once, and they all end up in the compute
+    // chain's supercluster, so an unwrapped one drags the whole group back into the ALU. The
+    // egress-state and recirculation writes below are different: those are few and on the fast
+    // path, and wrapping the uncut ones there only spends hash-distribution units.
+    const bool via_hash = !sliced && is_compute_value(var->name);
 
-    // Hack
-    if (symbol.name == "next_time") {
+    ingress_apply.indent();
+    if (via_hash) {
+      ingress_apply << "@in_hash { ";
+    }
+    ingress_apply << cpu_var.name;
+    if (sliced) {
       ingress_apply << "[47:16]";
     }
-
     ingress_apply << " = ";
     ingress_apply << var->name;
-    ingress_apply << ";\n";
+    ingress_apply << ";";
+    ingress_apply << (via_hash ? " }\n" : "\n");
   }
 
   return EPVisitor::Action::doChildren;
@@ -2766,11 +2897,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     recirc_vars.push_back(local_recirc_var);
     local_recirc_vars_by_name.insert({recirc_var.name, local_recirc_var});
 
+    const bool via_hash = cut_values.count(var.name) > 0;
     ingress_apply.indent();
+    if (via_hash) {
+      ingress_apply << "@in_hash { ";
+    }
     ingress_apply << local_recirc_var.name;
     ingress_apply << " = ";
     ingress_apply << var.name;
-    ingress_apply << ";\n";
+    ingress_apply << ";";
+    ingress_apply << (via_hash ? " }\n" : "\n");
   }
   }
 
@@ -2936,11 +3072,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       egress_vars.push_back(local_egress_var);
       local_egress_vars_by_name.insert({egress_var.name, local_egress_var});
 
+      const bool via_hash = cut_values.count(var.name) > 0;
       ingress_apply.indent();
+      if (via_hash) {
+        ingress_apply << "@in_hash { ";
+      }
       ingress_apply << local_egress_var.name;
       ingress_apply << " = ";
       ingress_apply << var.name;
-      ingress_apply << ";\n";
+      ingress_apply << ";";
+      ingress_apply << (via_hash ? " }\n" : "\n");
     }
   }
 
@@ -3218,33 +3359,77 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   std::vector<emitted_field_t> emitted;
   {
+    // Merging alone is not enough, because a guessed field can straddle a boundary a read needs.
+    // Measured on SmartCookie's TCP header, whose guess is [16][16][24][8][24][24][48]: the 32-bit
+    // acknowledgement occupies bytes 8..11 but the guess puts a field at bytes 11..13, so no run of
+    // whole fields sums to an aligned 4 bytes there and the header came out ...[24][24][48]. The
+    // acknowledgement then had to be read as `data2 ++ data3[23:16]`, and bf-p4c rejects a concat
+    // as an ALU operand ("read in a way too complex for the compiler to currently handle").
+    //
+    // So try whole-field merges first, exactly as before, and only when none fits allow the last
+    // contributing field to be split, carrying its remainder forward. On that header this yields
+    // [32][32][32][16][48] -- the layout the hand-fixed solution needed.
+    std::vector<klee::ref<klee::Expr>> work(hdr_fields_guess.begin(), hdr_fields_guess.end());
     bytes_t offset = 0;
     size_t i       = 0;
-    while (i < hdr_fields_guess.size()) {
+    while (i < work.size()) {
       size_t best_len   = 1;
-      bits_t best_width = hdr_fields_guess[i]->getWidth();
+      bits_t best_width = work[i]->getWidth();
+      bool merged       = false;
 
       for (const bytes_t target : {4u, 2u}) {
         if (offset % target != 0) {
           continue;
         }
         bits_t acc = 0;
-        for (size_t j = i; j < hdr_fields_guess.size() && acc < target * 8; j++) {
-          acc += hdr_fields_guess[j]->getWidth();
+        for (size_t j = i; j < work.size() && acc < target * 8; j++) {
+          acc += work[j]->getWidth();
           if (acc == target * 8) {
             best_len   = j - i + 1;
             best_width = acc;
+            merged     = true;
             break;
           }
         }
-        if (best_len > 1) {
+        if (merged) {
           break;
         }
       }
 
+      for (const bytes_t target : {4u, 2u}) {
+        if (merged || offset % target != 0) {
+          continue;
+        }
+        bits_t acc = 0;
+        size_t j   = i;
+        for (; j < work.size() && acc < target * 8; j++) {
+          acc += work[j]->getWidth();
+        }
+        if (acc <= target * 8 || j == i) {
+          continue;
+        }
+        // work[j - 1] overshoots: keep the bytes that complete this field and push the rest back.
+        const bits_t overshoot = acc - target * 8;
+        const bits_t keep      = work[j - 1]->getWidth() - overshoot;
+        if (keep == 0 || keep % 8 != 0) {
+          continue;
+        }
+        klee::ref<klee::Expr> head;
+        klee::ref<klee::Expr> tail;
+        if (!split_read(work[j - 1], keep / 8, head, tail)) {
+          continue;
+        }
+        work[j - 1] = head;
+        work.insert(work.begin() + j, tail);
+        best_len   = j - i;
+        best_width = target * 8;
+        merged     = true;
+        break;
+      }
+
       emitted_field_t field{{}, best_width};
       for (size_t j = i; j < i + best_len; j++) {
-        field.parts.push_back(hdr_fields_guess[j]);
+        field.parts.push_back(work[j]);
       }
       emitted.push_back(field);
       offset += best_width / 8;
@@ -3427,11 +3612,26 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     if (!materialized_bases.insert(expr_to_string(base)).second) {
       continue;
     }
-    const code_t base_code = transpiler.transpile(base);
-    const var_t base_var   = alloc_var("hdr_val", base, IS_INGRESS_METADATA);
+    klee::ref<klee::Expr> emitted           = base;
+    const klee::ref<klee::Expr> narrowed_op = narrow_widened_bitop(base);
+    if (!narrowed_op.isNull()) {
+      emitted = narrowed_op;
+    }
+
+    const code_t base_code = transpiler.transpile(emitted);
+    const var_t base_var   = alloc_var("hdr_val", emitted, IS_INGRESS_METADATA);
     declare_var_in_ingress_metadata(base_var);
     ingress_apply.indent();
     ingress_apply << base_var.name << " = " << base_code << ";\n";
+
+    // The field assembly below looks the value up by the low bytes of the original wide
+    // expression, so give those the narrowed variable's name too.
+    if (!narrowed_op.isNull()) {
+      // EXACT_NAME only: base_var.name already carries the metadata prefix, and IS_INGRESS_METADATA
+      // would prepend a second one.
+      const klee::ref<klee::Expr> low_bytes = LibCore::solver_toolbox.exprBuilder->Extract(base, 0, emitted->getWidth());
+      alloc_var(base_var.name, low_bytes, EXACT_NAME);
+    }
   }
 
   std::vector<code_t> assignments;
@@ -3496,7 +3696,40 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
         // Byte at klee offset p sits at the field's bits [width-1-p : width-8-p], so offset 0 is
         // the field's most significant byte and the bytes concatenate in their klee order.
+        // When every byte is written and they reassemble a value we already hold, write that value
+        // rather than a concatenation of its own bytes: the concat is the identity, but bf-p4c
+        // reads it as one PHV source per byte and rejects the action -- measured on SmartCookie as
+        // `hdr.hdr2.data1 = meta.hdr_val0[31:24] ++ ... ++ meta.hdr_val0[7:0]`.
+        std::optional<var_t> whole_var;
+        if (!all_constant) {
+          bool every_byte_written = true;
+          for (bytes_t b = 0; b < field_bytes; b++) {
+            every_byte_written &= field_bytes_written[b] != nullptr;
+          }
+          if (every_byte_written) {
+            std::vector<klee::ref<klee::Expr>> parts;
+            for (bytes_t b = 0; b < field_bytes; b++) {
+              parts.push_back(field_bytes_written[b]->expr);
+            }
+            // parts[0] is the field's most significant byte, which concat_exprs puts at the high
+            // end only with left_to_right = false.
+            whole_var = ingress_vars.get(LibCore::concat_exprs(parts, false));
+          }
+        }
+
+        // A packet header field is deparsed and `exact_containers`, so it cannot be split; copying
+        // a value the rotate chain has cut into one needs a PHV source per piece, against a limit
+        // of two. Route it through the hash unit, as the ground truth does
+        // (`@in_hash { hdr.hdr2.data2 = ctime ^ v0 ^ v1 ^ v2 ^ v3; }`). Only the materialized
+        // arithmetic temporaries carry such values; a plain header-to-header move does not.
+        const bool via_hash = whole_var.has_value() && whole_var->name.find("hdr_val") != std::string::npos;
+
+        // Byte at klee offset p sits at the field's bits [width-1-p : width-8-p], so offset 0 is
+        // the field's most significant byte and the bytes concatenate in their klee order.
         coder_t assignment;
+        if (via_hash) {
+          assignment << "@in_hash { ";
+        }
         assignment << field->name;
         assignment << " = ";
 
@@ -3509,18 +3742,25 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
           literal << std::to_string(field_width) << "w0x" << std::hex << std::setfill('0') << std::setw(field_width / 4) << value;
           assignment << literal.str();
         } else {
-          for (bytes_t b = 0; b < field_bytes; b++) {
-            assignment << (b > 0 ? " ++ " : "");
-            if (field_bytes_written[b]) {
-              assignment << transpiler.transpile(field_bytes_written[b]->expr);
-            } else {
-              const bits_t high = field_width - 1 - b * 8;
-              assignment << field->name << "[" << high << ":" << (high - 7) << "]";
+          if (whole_var.has_value()) {
+            assignment << whole_var->name;
+          } else {
+            for (bytes_t b = 0; b < field_bytes; b++) {
+              assignment << (b > 0 ? " ++ " : "");
+              if (field_bytes_written[b]) {
+                assignment << transpiler.transpile(field_bytes_written[b]->expr);
+              } else {
+                const bits_t high = field_width - 1 - b * 8;
+                assignment << field->name << "[" << high << ":" << (high - 7) << "]";
+              }
             }
           }
         }
 
         assignment << ";";
+        if (via_hash) {
+          assignment << " }";
+        }
         assignments.push_back(assignment.dump());
 
         for (const expr_mod_t *byte : field_bytes_written) {
@@ -6199,6 +6439,11 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
         break;
       }
       const code_t a = operand_code(rot->get_x(), rot->get_operands());
+      // A concat rotate cuts its operand's container. Remember which values that happens to, so a
+      // later copy of one into a deparsed header field can be routed through the hash unit while
+      // the uncut ones stay ordinary moves -- each @in_hash costs hash-distribution units, and
+      // only three 32-bit ones fit per stage, so wrapping indiscriminately buys PHV with stages.
+      cut_values.insert(a);
       ops.push_back({rot->get_action_id(), rot->get_op_id(), out.name + " = " + rotation_code(a, n, width) + ";", rot->uses_hash_unit()});
     } break;
     case ModuleType::Tofino_RotateLeftShifts: {
@@ -6254,24 +6499,49 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       continue;
     }
 
-    ingress.indent();
-    ingress << "action " << action_id << "() {\n";
-    ingress.inc();
+    // bf-p4c allows 32 bits through a table's immediate pathway, which is one 32-bit @in_hash op;
+    // a second one in the same action is "the number of bits required to go through the immediate
+    // pathway 64 ... is greater than the available bits 32". The hand-written ground truth never
+    // has more than one per action. Keep the first here and give each of the rest an action of its
+    // own, invoked straight after: the statements in an action are independent by construction, so
+    // moving one to the next stage cannot change what it reads.
+    std::vector<const op_emission_t *> kept;
+    std::vector<const op_emission_t *> spilled;
+    bool hash_taken = false;
     for (const op_emission_t *statement : statements) {
-      ingress.indent();
-      if (statement->in_hash) {
-        ingress << "@in_hash { " << statement->statement << " }\n";
-      } else {
-        ingress << statement->statement << "\n";
+      if (statement->in_hash && hash_taken) {
+        spilled.push_back(statement);
+        continue;
       }
+      hash_taken |= statement->in_hash;
+      kept.push_back(statement);
     }
-    ingress.dec();
-    ingress.indent();
-    ingress << "}\n";
-    ingress << "\n";
 
-    ingress_apply.indent();
-    ingress_apply << action_id << "();\n";
+    const auto emit_action = [&](const code_t &name, const std::vector<const op_emission_t *> &body) {
+      ingress.indent();
+      ingress << "action " << name << "() {\n";
+      ingress.inc();
+      for (const op_emission_t *statement : body) {
+        ingress.indent();
+        if (statement->in_hash) {
+          ingress << "@in_hash { " << statement->statement << " }\n";
+        } else {
+          ingress << statement->statement << "\n";
+        }
+      }
+      ingress.dec();
+      ingress.indent();
+      ingress << "}\n";
+      ingress << "\n";
+
+      ingress_apply.indent();
+      ingress_apply << name << "();\n";
+    };
+
+    emit_action(action_id, kept);
+    for (size_t i = 0; i < spilled.size(); i++) {
+      emit_action(action_id + "_h" + std::to_string(i + 1), {spilled[i]});
+    }
   }
 
   for (const DS_ID &action_id : action_ids) {

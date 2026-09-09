@@ -75,6 +75,13 @@ inline std::string placement_status_to_string(const PlacementStatus &status) {
   return ss.str();
 }
 
+// Which half of the chip a placement belongs to. Memory is shared between them -- one physical
+// stage's SRAM, TCAM and logical IDs serve both -- but depth is not: the ingress runs to
+// completion before the egress starts.
+enum class Gress { Ingress, Egress };
+
+inline const char *to_string(Gress gress) { return gress == Gress::Egress ? "egress" : "ingress"; }
+
 struct Stage {
   int stage_id;
   bits_t available_sram;
@@ -98,8 +105,7 @@ struct PipelineResources {
   // both modelled a constraint the hardware does not have.)
   int used_compute_ops_ingress;
   int used_compute_ops_egress;
-  bool building_egress;
-  int pass_compute_ops; // Debug scaffolding only, see pass_compute_op_fits().
+  Gress gress;
 
   PipelineResources(const tna_properties_t &properties);
   PipelineResources(const PipelineResources &other);
@@ -111,6 +117,11 @@ struct PipelineResources {
 struct PlacementRequest {
   DS_ID ds;
   std::shared_ptr<const std::unordered_set<DS_ID>> deps;
+  // Which gress placed this. The stages themselves stay shared -- one physical stage's SRAM, TCAM
+  // and logical IDs serve both gresses, so summing them there is right -- but *depth* is not
+  // shared: the ingress runs to completion before the egress starts, so an egress table need not
+  // sit after the ingress tables it reads from.
+  Gress gress = Gress::Ingress;
 };
 
 struct PlacementResult {
@@ -151,40 +162,17 @@ struct Pipeline {
   u8 get_used_digests() const { return resources->used_digests; }
 
   int get_used_compute_ops() const {
-    return resources->building_egress ? resources->used_compute_ops_egress : resources->used_compute_ops_ingress;
+    return resources->gress == Gress::Egress ? resources->used_compute_ops_egress : resources->used_compute_ops_ingress;
   }
   bool compute_op_fits() const { return get_used_compute_ops() < properties.max_compute_ops_per_gress; }
   void charge_compute_op() {
     PipelineResources &r = resources.mutate();
-    (r.building_egress ? r.used_compute_ops_egress : r.used_compute_ops_ingress)++;
+    (r.gress == Gress::Egress ? r.used_compute_ops_egress : r.used_compute_ops_ingress)++;
   }
-  void cross_to_egress() {
-    PipelineResources &r = resources.mutate();
-    r.building_egress    = true;
-    r.pass_compute_ops   = 0;
-  }
+  void cross_to_egress() { resources.mutate().gress = Gress::Egress; }
   // A recirculated packet re-enters through the ingress, so later laps are charged there again.
-  void back_to_ingress() {
-    PipelineResources &r = resources.mutate();
-    r.building_egress    = false;
-    r.pass_compute_ops   = 0;
-  }
-  bool is_building_egress() const { return resources->building_egress; }
-
-  // DEBUG SCAFFOLDING, off unless SYNAPSE_FORCE_EGRESS_AFTER is set. Caps what one *pass* puts in
-  // a gress, which is not a real constraint -- a gress is laid out as a whole -- but it forces the
-  // shape the hand-written solution has (a little in ingress, the bulk in egress, every lap) so we
-  // can ask whether synapse can build a compiling program at all, separately from whether its
-  // search would ever choose to.
-  int get_pass_compute_ops() const { return resources->pass_compute_ops; }
-  void charge_pass_compute_op() { resources.mutate().pass_compute_ops++; }
-  bool pass_compute_op_fits() const {
-    static const char *limit = getenv("SYNAPSE_FORCE_EGRESS_AFTER");
-    if (!limit || resources->building_egress) {
-      return true;
-    }
-    return resources->pass_compute_ops < atoi(limit);
-  }
+  void back_to_ingress() { resources.mutate().gress = Gress::Ingress; }
+  Gress get_gress() const { return resources->gress; }
 
   bool detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   int get_soonest_stage_satisfying_all_dependencies(const std::unordered_set<DS_ID> &deps) const;

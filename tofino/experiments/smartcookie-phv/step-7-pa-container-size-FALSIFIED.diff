@@ -1,0 +1,36 @@
+--- scg6.p4	2026-09-09 16:34:54.975643120 +0000
++++ scg9.p4	2026-09-09 16:57:30.119723674 +0000
+@@ -582,6 +582,33 @@
+ 
+ 
+ 
++@pa_container_size("ingress", "hdr.cpu.op_add_285_out", 32)
++@pa_container_size("ingress", "hdr.cpu.op_add_336_out", 32)
++@pa_container_size("ingress", "hdr.cpu.op_lshr_333_out", 32)
++@pa_container_size("ingress", "hdr.cpu.op_lshr_458_out", 32)
++@pa_container_size("ingress", "hdr.egress_state.op_lshr_449_out", 32)
++@pa_container_size("ingress", "hdr.hdr2.data1", 32)
++@pa_container_size("ingress", "hdr.hdr2.data2", 32)
++@pa_container_size("ingress", "meta.hdr_val1", 32)
++@pa_container_size("ingress", "meta.op_add_285_out", 32)
++@pa_container_size("ingress", "meta.op_add_336_out", 32)
++@pa_container_size("ingress", "meta.op_add_451_out", 32)
++@pa_container_size("ingress", "meta.op_lshr_333_out", 32)
++@pa_container_size("ingress", "meta.op_lshr_447_out", 32)
++@pa_container_size("ingress", "meta.op_lshr_458_out", 32)
++@pa_container_size("ingress", "meta.op_sub_448_out", 32)
++@pa_container_size("ingress", "meta.op_xor_453_out", 32)
++@pa_container_size("ingress", "meta.op_xor_454_out", 32)
++@pa_container_size("ingress", "meta.op_xor_455_out", 32)
++@pa_container_size("ingress", "meta.op_xor_456_out", 32)
++@pa_container_size("ingress", "meta.op_xor_457_out", 32)
++@pa_container_size("ingress", "meta.rotate_left_175_out", 32)
++@pa_container_size("ingress", "meta.rotate_left_176_out", 32)
++@pa_container_size("ingress", "meta.rotate_left_177_out", 32)
++@pa_container_size("ingress", "meta.rotate_left_177_x_out", 32)
++@pa_container_size("ingress", "meta.rotate_left_178_out", 32)
++@pa_container_size("ingress", "meta.rotate_left_178_x_out", 32)
++@pa_container_size("ingress", "meta.time", 32)
+ control Ingress(
+   inout synapse_ingress_headers_t hdr,
+   inout synapse_ingress_metadata_t meta,

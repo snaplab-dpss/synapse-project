@@ -1,0 +1,33 @@
+--- scg1.p4	2026-09-09 16:07:29.231545292 +0000
++++ scg2.p4	2026-09-09 16:08:49.447550061 +0000
+@@ -111,8 +111,8 @@
+ header hdr2_h {
+   bit<32> data0;
+   bit<32> data1;
+-  bit<24> data2;
+-  bit<24> data3;
++  bit<32> data2;
++  bit<16> data3;
+   bit<48> data4;
+ }
+ header hdr3_h {
+@@ -817,7 +817,7 @@
+     meta.op_shl_265_a_out = meta.op_shl_265_a_out;
+     meta.op_add_285_out = 32w0xffffffff + hdr.hdr2.data1;
+     meta.op_or_266_b_out = meta.op_or_266_b_out;
+-    meta.op_add_336_out = 32w0xffffffff + (hdr.hdr2.data2 ++ hdr.hdr2.data3[23:16]);
++    meta.op_add_336_out = 32w0xffffffff + hdr.hdr2.data2;
+     meta.op_lshr_333_out = meta.time;
+   }
+ 
+@@ -1350,8 +1350,8 @@
+         meta.hdr_val1 = (32w0x00000001) + (hdr.hdr2.data1);
+         meta.hdr_val2 = ((bit<32>)(hdr.hdr2.data3[7:0])) | (32w0x00000012);
+         hdr.hdr2.data1 = meta.hdr_val0[31:24] ++ meta.hdr_val0[23:16] ++ meta.hdr_val0[15:8] ++ meta.hdr_val0[7:0];
+-        hdr.hdr2.data2 = meta.hdr_val1[31:24] ++ meta.hdr_val1[23:16] ++ meta.hdr_val1[15:8];
+-        hdr.hdr2.data3 = meta.hdr_val1[7:0] ++ 8w0x50 ++ meta.hdr_val2[7:0];
++        hdr.hdr2.data2 = meta.hdr_val1;
++        hdr.hdr2.data3 = 8w0x50 ++ meta.hdr_val2[7:0];
+         // EP node  140729:ModifyHeader
+         // BDD node 181:packet_return_chunk
+         swap_action_181();
