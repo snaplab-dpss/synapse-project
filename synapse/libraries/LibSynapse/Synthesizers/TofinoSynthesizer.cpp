@@ -33,6 +33,14 @@ constexpr const char *const MARKER_INGRESS_DEPARSER             = "INGRESS_DEPAR
 constexpr const char *const MARKER_INGRESS_DEPARSER_APPLY       = "INGRESS_DEPARSER_APPLY";
 constexpr const char *const MARKER_EGRESS_HEADERS               = "EGRESS_HEADERS";
 constexpr const char *const MARKER_EGRESS_METADATA              = "EGRESS_METADATA";
+constexpr const char *const MARKER_EGRESS_STATE_HEADER          = "EGRESS_STATE_HEADER";
+constexpr const char *const MARKER_INGRESS_EGRESS_DECISION      = "INGRESS_EGRESS_DECISION";
+constexpr const char *const MARKER_EGRESS_PARSER_START          = "EGRESS_PARSER_START";
+constexpr const char *const MARKER_EGRESS_PARSER                = "EGRESS_PARSER";
+constexpr const char *const MARKER_EGRESS_CONTROL               = "EGRESS_CONTROL";
+constexpr const char *const MARKER_EGRESS_CONTROL_APPLY         = "EGRESS_CONTROL_APPLY";
+constexpr const char *const MARKER_EGRESS_DEPARSER              = "EGRESS_DEPARSER";
+constexpr const char *const MARKER_EGRESS_DEPARSER_APPLY        = "EGRESS_DEPARSER_APPLY";
 constexpr const char *const MARKER_CONTROL_BLOCKS               = "CONTROL_BLOCKS";
 
 constexpr const char *const MARKER_CUCKOO_IDX_WIDTH       = "CUCKOO_IDX_WIDTH";
@@ -2106,6 +2114,14 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_INGRESS_DEPARSER_APPLY, 2},
                                              {MARKER_EGRESS_HEADERS, 1},
                                              {MARKER_EGRESS_METADATA, 1},
+                                             {MARKER_EGRESS_STATE_HEADER, 0},
+                                             {MARKER_INGRESS_EGRESS_DECISION, 2},
+                                             {MARKER_EGRESS_PARSER_START, 2},
+                                             {MARKER_EGRESS_PARSER, 1},
+                                             {MARKER_EGRESS_CONTROL, 1},
+                                             {MARKER_EGRESS_CONTROL_APPLY, 2},
+                                             {MARKER_EGRESS_DEPARSER, 1},
+                                             {MARKER_EGRESS_DEPARSER_APPLY, 2},
                                              {MARKER_CONTROL_BLOCKS, 0},
                                          }),
       target_ep(_ep), transpiler(this) {}
@@ -2148,6 +2164,35 @@ void TofinoSynthesizer::synthesize() {
       recirc.indent();
       recirc << "}\n";
     }
+  }
+
+  // The template no longer hardcodes these: a solution that uses the egress pipeline must not
+  // bypass it, and the egress parser needs a transition. Written here so a solution that does not
+  // use egress emits exactly what the template used to contain.
+  {
+    coder_t &decision = code_template.get(MARKER_INGRESS_EGRESS_DECISION);
+    decision.indent();
+    if (uses_egress) {
+      decision << "if (meta.to_egress == 1) {\n";
+      decision.inc();
+      decision.indent();
+      decision << "ig_tm_md.bypass_egress = 0;\n";
+      decision.dec();
+      decision.indent();
+      decision << "} else {\n";
+      decision.inc();
+      decision.indent();
+      decision << "ig_tm_md.bypass_egress = 1;\n";
+      decision.dec();
+      decision.indent();
+      decision << "}\n";
+    } else {
+      decision << "ig_tm_md.bypass_egress = 1;\n";
+    }
+
+    coder_t &eg_parser_start = code_template.get(MARKER_EGRESS_PARSER_START);
+    eg_parser_start.indent();
+    eg_parser_start << "transition accept;\n";
   }
 
   // Transpile the parser after the whole EP has been visited so we have all the headers available.

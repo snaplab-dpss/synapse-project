@@ -46,6 +46,8 @@ header recirc_h {
   bit<16> ingress_port;
   bit<32> dev;
 /*@{RECIRCULATION_HEADER}@*/
+
+/*@{EGRESS_STATE_HEADER}@*/
 };
 
 header cuckoo_h {
@@ -274,7 +276,7 @@ control Ingress(
     }
 
     forwarding_tbl.apply();
-    ig_tm_md.bypass_egress = 1;
+/*@{INGRESS_EGRESS_DECISION}@*/
   }
 }
 
@@ -311,8 +313,9 @@ parser EgressParser(
   /* This is a mandatory state, required by Tofino Architecture */
   state start {
     tofino_parser.apply(pkt, eg_intr_md);
-    transition accept;
+/*@{EGRESS_PARSER_START}@*/
   }
+/*@{EGRESS_PARSER}@*/
 }
 
 control Egress(
@@ -323,7 +326,10 @@ control Egress(
   inout egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md,
   inout egress_intrinsic_metadata_for_output_port_t eg_intr_oport_md
 ) {
-  apply {}
+/*@{EGRESS_CONTROL}@*/
+  apply {
+/*@{EGRESS_CONTROL_APPLY}@*/
+  }
 }
 
 control EgressDeparser(
@@ -332,7 +338,9 @@ control EgressDeparser(
   in    synapse_egress_metadata_t eg_md,
   in    egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md
 ) {
+/*@{EGRESS_DEPARSER}@*/
   apply {
+/*@{EGRESS_DEPARSER_APPLY}@*/
     pkt.emit(hdr);
   }
 }
