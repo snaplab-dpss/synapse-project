@@ -76,7 +76,8 @@ the original numbering kept in brackets so older notes still line up.
 **Items 1 to 3 are what it takes to make synapse emit a SmartCookie that compiles**, which is the
 milestone we are aiming at, and they are the only ones on the critical path. Items 4 to 6 are
 correctness and quality: none of them stops a program compiling, and checksums in particular mean
-the result will not be *correct* until item 4 lands. Item 7 is optional.
+the result will not be *correct* until item 4 lands, and item 5 guards against state being
+silently duplicated.
 
 The five rules under "Emission rules the compiler will not enforce" are not separate work; each
 attaches to whichever item touches it.
@@ -183,7 +184,7 @@ cannot span stages ("xor: action spanning multiple stages"), but it is a single 
 (`LibBDD/Unroll.cpp`) already turns every multi-operand expression into one `op_*` BDD node per
 operation, `Xor` included, and hyperloglog's shipped P4 shows `op_sub` then `op_add` as separate
 nodes. So synapse would emit three chained xors, not one illegal action, and this looked like a mere
-stage-budget cost. It is not. Four variants of `sc_unrolled.p4`, changing only how the final xor is
+stage-budget cost. It is not. Four variants of `smartcookie-unrolled.p4`, changing only how the final xor is
 written:
 
 | how the 4-way xor is emitted | result |
@@ -318,8 +319,8 @@ bound by code size rather than by recirculations, revisit.
 Only a *rolled* loop needs a runtime counter (`round = round + 2` with tables keyed on it). The
 unrolled form needs a **pass identifier**, which is a plan-time constant, and synapse already emits
 one: `build_recirc_hdr(N)` writes `hdr.recirc.code_path` and an `if (hdr.recirc.code_path == N)`
-chain dispatches on it. `sc_unrolled.p4` was rewritten to use exactly that with its bespoke counter
-field deleted, and still compiles in 7 s, dispatching in egress as well as ingress. Nothing to build.
+chain dispatches on it. `smartcookie-unrolled.p4` was written to use exactly that, with no counter
+field of its own, and it compiles in 7 s, dispatching in egress as well as ingress. Nothing to build.
 
 ## Emission rules the compiler will not enforce
 
