@@ -31,7 +31,10 @@ from os import environ
 
 from util import *
 
-NF = "smartcookie-manual"
+# Defaults to the hand-written ground truth. A synthesized solution is tested by naming it here
+# together with its topology, e.g.
+#   SC_NF=smartcookie-f40000-c0-unif-hmax-tput SC_SERVER_PORT=1 SC_SERVER_DEV=0 ./smartcookie.py
+NF = environ.get("SC_NF", "smartcookie-manual")
 
 # Which front panel port the server sits on, and the NF device it is known by. The hand-written
 # solutions put it on port 3 / device 2; a synthesized solution follows configs/tofino2-smartcookie
