@@ -8,6 +8,21 @@ namespace Tofino {
 namespace {
 // Crossing into egress is only worth considering once the ingress has real work in it.
 constexpr size_t MIN_MODULES_BEFORE_EGRESS_CROSSING = 8;
+
+// What the egress can actually implement. Everything past the cut has to be one of these, or the
+// plan reaches a point with no legal module and the whole search dead-ends: there is no way back
+// to ingress, no recirculating and no handing off to the controller from there. Stateful calls
+// are excluded because they become controller-managed tables, which sycon only addresses in the
+// ingress.
+bool implementable_in_egress(const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Call) {
+    return true;
+  }
+
+  const std::string &fname = static_cast<const LibBDD::Call *>(node)->get_call().function_name;
+  return fname.rfind("op_", 0) == 0 || fname == "rotate_left" || fname == "packet_borrow_next_chunk" ||
+         fname == "packet_return_chunk" || fname == "packet_state_total_length" || fname == "packet_get_unread_length";
+}
 } // namespace
 
 std::optional<spec_impl_t> SendToEgressFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
@@ -31,9 +46,15 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   bool work_remains  = false;
   klee::ref<klee::Expr> dst_device;
 
+  bool all_implementable = true;
+
   node->visit_nodes([&](const BDDNode *future) {
     if (future->get_type() != BDDNodeType::Route) {
       work_remains = true;
+      if (!implementable_in_egress(future)) {
+        all_implementable = false;
+        return BDDNodeVisitAction::Stop;
+      }
       return BDDNodeVisitAction::Continue;
     }
 
@@ -59,7 +80,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
     return uniform_route ? BDDNodeVisitAction::Continue : BDDNodeVisitAction::Stop;
   });
 
-  if (!uniform_route || !work_remains) {
+  if (!uniform_route || !work_remains || !all_implementable) {
     return {};
   }
 
