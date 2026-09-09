@@ -47,8 +47,9 @@ header recirc_h {
   bit<32> dev;
 /*@{RECIRCULATION_HEADER}@*/
 
-/*@{EGRESS_STATE_HEADER}@*/
 };
+
+/*@{EGRESS_STATE_HEADER}@*/
 
 header cuckoo_h {
   bit<8>  op;
