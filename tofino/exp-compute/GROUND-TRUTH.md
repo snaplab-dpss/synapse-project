@@ -203,6 +203,40 @@ name as a plain string -- and only `ControllerSynthesizer.cpp` hardcoded `"Ingre
 Verified after the change: `cl` regenerates structurally identical (only EP node ids renumber,
 because registering a new factory shifts them) and compiles with 0 errors.
 
+#### Where it got to, and the next blocker (2026-09-09)
+
+**The search now uses the egress.** The winning plan contains a `SendToEgress` and the emitted P4
+has egress code in it, including the SYN-ACK address and port swap -- the same work the hand-written
+reference puts there. Speculative recirculations fell 64% at equal speculation volume (8'916 ->
+3'224) and cap-declines went 6 -> 0, because the capacity ladder now reaches for a free fresh
+context before charging a lap.
+
+**The original failure is gone.** The one unsatisfiable PHV slicing group spanning the whole hash
+chain, which this NF had been stuck on, no longer appears. Two small fixes followed (the egress
+control needs the ingress's helper actions; the state header must be dropped at the end of the
+egress control, not in its deparser, where header assignment is illegal).
+
+**The next blocker is the width of the recirculation header.** bf-p4c now fails on the action that
+stores live values into `hdr.recirc`, with `rotate_left_152_or_out` split into `[7:0]`, `[15:8]`,
+`[31:16]`. Things that were tried and did *not* fix it, each ruled out by measurement:
+
+- pinning the header fields with `@pa_container_size`: the *source* is what fragments, not the
+  destination;
+- pinning both sides: 45 pins over-constrain the allocator and PHV allocation fails outright;
+- splitting the store across several actions: still fails with only two writes per action, so it is
+  not the "too many sources" half of the message.
+
+The numbers say why: **the recirculation header holds 21 32-bit fields, and the chip has 80 32-bit
+containers for both gresses together.** Header fields have to coexist, since they are deparsed
+together, so that is a quarter of the chip pinned down permanently, with 219 declared metadata
+fields churning through what is left. The allocator fragments because it runs out.
+
+So this is the "160 live values against the ground truth's 9" problem in a smaller form. The rolled
+reference crosses a lap boundary with four state words live; an unrolled plan cut at an arbitrary
+point has many intermediates live. **The plan should prefer pass boundaries where few values are
+live, and nothing in the score expresses that today** -- "Memory Usage" in the score is data
+structure memory, not live state. That cost term is the next piece of work.
+
 #### How the pipeline's resources actually spread across the two gresses
 
 Measured from `resources.json` and the assembly of the ground truth's own build, because the answer
