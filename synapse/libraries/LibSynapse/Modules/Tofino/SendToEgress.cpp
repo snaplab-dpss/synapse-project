@@ -1,5 +1,6 @@
 #include <LibSynapse/Modules/Tofino/SendToEgress.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibCore/Solver.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -16,11 +17,44 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
     return {};
   }
 
-  // The egress cannot choose a port: ucast_egress_port is written in ingress. So the crossing is
-  // only legal once the forwarding decision is fixed, which is what "pulling the decision back"
-  // means. BDD reordering is what creates those opportunities, by hoisting the route node above
-  // the work that is left.
-  if (!active_leaf.node->forwarding_decision_already_made()) {
+  // The egress cannot choose a port: ucast_egress_port is written in ingress. Every BDD path
+  // ends in its route node, so waiting for the decision to have been made leaves nothing to do
+  // on the far side; instead the decision is pulled back to here, which is only sound when every
+  // route still reachable agrees on it. Drops are fine, egress can drop; broadcast is not.
+  bool uniform_route = true;
+  bool saw_forward   = false;
+  bool work_remains  = false;
+  klee::ref<klee::Expr> dst_device;
+
+  node->visit_nodes([&](const BDDNode *future) {
+    if (future->get_type() != BDDNodeType::Route) {
+      work_remains = true;
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const LibBDD::Route *route = dynamic_cast<const LibBDD::Route *>(future);
+    switch (route->get_operation()) {
+    case LibBDD::RouteOp::Drop:
+      break;
+    case LibBDD::RouteOp::Broadcast:
+      uniform_route = false;
+      break;
+    case LibBDD::RouteOp::Forward: {
+      const klee::ref<klee::Expr> device = route->get_dst_device();
+      if (!saw_forward) {
+        saw_forward = true;
+        dst_device  = device;
+      } else if (!solver_toolbox.are_exprs_always_equal(dst_device, device)) {
+        uniform_route = false;
+      }
+      break;
+    }
+    }
+
+    return uniform_route ? BDDNodeVisitAction::Continue : BDDNodeVisitAction::Stop;
+  });
+
+  if (!uniform_route || !work_remains) {
     return {};
   }
 

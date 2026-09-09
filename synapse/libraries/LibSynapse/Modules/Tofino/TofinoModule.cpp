@@ -99,7 +99,7 @@ bool TofinoModuleFactory::was_ds_already_used(const EPNode *node, DS_ID ds_id) {
     if (node->get_module()->get_target() == TargetType::Tofino) {
       const TofinoModule *tofino_module = dynamic_cast<const TofinoModule *>(node->get_module());
 
-      if (tofino_module->get_type() == ModuleType::Tofino_Recirculate) {
+      if (tofino_module->get_type() == ModuleType::Tofino_Recirculate || tofino_module->get_type() == ModuleType::Tofino_SendToEgress) {
         break;
       }
 
