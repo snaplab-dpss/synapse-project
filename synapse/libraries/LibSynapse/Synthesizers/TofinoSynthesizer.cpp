@@ -3377,12 +3377,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   std::vector<code_t> assignments;
 
-  // Constant bytes that together fill a whole header field are emitted as one assignment. Writing
-  // a field byte by byte makes bf-p4c slice its container, and that slicing then propagates into
+  // Bytes that together fill a whole header field are emitted as one assignment. Writing a field
+  // byte by byte makes bf-p4c slice its container, and that slicing then propagates into
   // everything computed from the field; on one NAT solution it crashed the compiler outright
-  // (tofino/exp-compute/README.md). Only all-constant fields are folded: a field's klee offset 0
-  // is its most significant byte, and for anything else the byte order of the written value is
-  // the convention this backend has not pinned down yet.
+  // (tofino/exp-compute/README.md), and on SmartCookie it left the ALU unable to write the field
+  // at all, since an ALU writes whole containers. A field's klee offset 0 is its most significant
+  // byte, so an all-constant field folds to a literal and any other one to the bytes concatenated
+  // in klee order.
   for (const bits_t field_width : {64u, 48u, 40u, 32u, 24u, 16u}) {
     const bytes_t field_bytes = field_width / 8;
 
@@ -3414,39 +3415,59 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
           field_bytes_written[(candidate.offset - field_offset) / 8] = &candidate;
         }
 
-        bool complete = true;
+        // A field written only in part is still emitted whole, reading its own untouched bytes
+        // back: an ALU writes whole containers, so there is no way to write just a slice.
+        bool any_written = false;
+        bool usable      = true;
         for (const expr_mod_t *byte : field_bytes_written) {
-          complete &= byte != nullptr && !bytes_already_dealt_with.contains(byte->offset / 8);
+          if (!byte) {
+            continue;
+          }
+          any_written = true;
+          usable &= !bytes_already_dealt_with.contains(byte->offset / 8);
         }
-        if (!complete) {
+        if (!any_written || !usable) {
           continue;
         }
 
         bool all_constant = true;
         for (const expr_mod_t *byte : field_bytes_written) {
-          all_constant &= is_constant(byte->expr);
-        }
-        if (!all_constant) {
-          continue;
+          all_constant &= byte != nullptr && is_constant(byte->expr);
         }
 
-        // Byte at klee offset p sits at the field's bits [width-1-p : width-8-p].
-        u64 value = 0;
-        for (bytes_t b = 0; b < field_bytes; b++) {
-          value |= solver_toolbox.value_from_expr(field_bytes_written[b]->expr) << (field_width - 8 - b * 8);
-        }
-
+        // Byte at klee offset p sits at the field's bits [width-1-p : width-8-p], so offset 0 is
+        // the field's most significant byte and the bytes concatenate in their klee order.
         coder_t assignment;
         assignment << field->name;
         assignment << " = ";
-        std::stringstream literal;
-        literal << std::to_string(field_width) << "w0x" << std::hex << std::setfill('0') << std::setw(field_width / 4) << value;
-        assignment << literal.str();
+
+        if (all_constant) {
+          u64 value = 0;
+          for (bytes_t b = 0; b < field_bytes; b++) {
+            value |= solver_toolbox.value_from_expr(field_bytes_written[b]->expr) << (field_width - 8 - b * 8);
+          }
+          std::stringstream literal;
+          literal << std::to_string(field_width) << "w0x" << std::hex << std::setfill('0') << std::setw(field_width / 4) << value;
+          assignment << literal.str();
+        } else {
+          for (bytes_t b = 0; b < field_bytes; b++) {
+            assignment << (b > 0 ? " ++ " : "");
+            if (field_bytes_written[b]) {
+              assignment << transpiler.transpile(field_bytes_written[b]->expr);
+            } else {
+              const bits_t high = field_width - 1 - b * 8;
+              assignment << field->name << "[" << high << ":" << (high - 7) << "]";
+            }
+          }
+        }
+
         assignment << ";";
         assignments.push_back(assignment.dump());
 
         for (const expr_mod_t *byte : field_bytes_written) {
-          bytes_already_dealt_with.insert(byte->offset / 8);
+          if (byte) {
+            bytes_already_dealt_with.insert(byte->offset / 8);
+          }
         }
         break;
       }
