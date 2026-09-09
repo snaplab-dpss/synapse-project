@@ -170,23 +170,35 @@ Built and working, on main, every commit building:
 control, reading its inputs from `hdr.egress_state`, with a matching egress parser. So the
 machinery works end to end.
 
-**The blocker is a dead end, and it is not where it looks.** With the crossing offered more
-freely the search dies with "Dead end reached! No module can handle this BDD node". The dumped
-plan contains **no crossing at all**: it is a plan where BDD reordering hoisted the route, `Forward`
-was placed, work was left over, and `Recirculate` is barred because a forwarding decision has been
-made. That is exactly the situation `SendToEgress` exists to rescue, and the allowlist declines it
-there, so **the allowlist is what causes the dead end**. Counted over one run: of 178 offers, 172
-were declined by the allowlist, 0 by the uniform-route test and 0 by the "pass has real work" test.
-The four call names that decline it are `bf_query`, `vector_borrow`, `vector_return` and
+**The blocker is a dead end, and it is not the crossing's fault.** Widening which BDD calls the
+crossing will accept makes the search die with "Dead end reached! No module can handle this BDD
+node". The obvious reading is that the crossing was declined where it was the only way on, so it
+was tested directly: with the guard **fully open** -- every call accepted, the "pass has real work"
+threshold at zero, the forwarding-decision exemption in place -- the search still dies at exactly
+the same step, 113. The dumped plan contains no crossing at all, and instrumentation shows
+`SendToEgress` is never even consulted at that leaf.
+
+So this is a **pre-existing fragility that different exploration exposes**, not something the
+crossing causes: a plan where BDD reordering hoisted the route, `Forward` was placed and work was
+left over, which no module can continue. Merely registering a new factory changes the order the
+search walks in and steers it there. (Note synapse already ships `--allow-deadends` for heuristics
+that hit this, which we do not use.)
+
+Numbers from one run before that was understood, still useful: of 178 offers, 172 were declined by
+the implementability allowlist, 0 by the uniform-route test and 0 by the "pass has real work" test.
+The four call names it declines are `bf_query`, `vector_borrow`, `vector_return` and
 `nf_set_rte_ipv4_udptcp_checksum`.
 
-**So the next step is not more guard tuning.** The crossing has to be offered wherever a hoisted
-route leaves work behind, which means the egress has to be able to hold whatever is left, which
-means controller-managed tables in egress, which means teaching sycon to address `Egress.*` and not
-only `Ingress.*`. That is the piece to do next, and it is the one the "constraints" list below
-already flagged. Until then the allowlist is deliberately narrow: the search completes (468 steps,
-no dead end) and produces the same solution as before, so main is in a working state, with the
-egress path dormant rather than half-wired.
+**Next step: find out why no module can handle that node.** The instrumentation to write is in the
+search's dead-end path, not in the module -- dump which factories were asked and why each declined.
+Until then the allowlist is deliberately narrow, which keeps the search on paths it can finish: it
+completes in 468 steps with no dead end and produces the same solution as before, so main is in a
+working state with the egress path dormant rather than half-wired.
+
+Done since, and safe on its own: data structures declared past a crossing are addressed as
+`Egress.<id>` in the generated controller. libsycon needed no change at all -- its `Table` takes the
+name as a plain string -- and only `ControllerSynthesizer.cpp` hardcoded `"Ingress."`, in 17 places.
+`cl`'s controller comes out byte-identical.
 
 Verified after the change: `cl` regenerates structurally identical (only EP node ids renumber,
 because registering a new factory shifts them) and compiles with 0 errors.
