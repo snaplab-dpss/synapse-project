@@ -40,6 +40,26 @@
 namespace LibSynapse {
 namespace Tofino {
 
+namespace {
+// Past an egress crossing the plan is in the other pipeline, where there is no fwd_op, no
+// build_cpu_hdr and no way to choose a port.
+bool past_egress_crossing_stc(const EPNode *node) {
+  for (const EPNode *prev = node; prev; prev = prev->get_prev()) {
+    const Module *module = prev->get_module();
+    if (!module || module->get_target() != TargetType::Tofino) {
+      return false;
+    }
+    if (module->get_type() == ModuleType::Tofino_SendToEgress) {
+      return true;
+    }
+    if (module->get_type() == ModuleType::Tofino_Recirculate) {
+      return false;
+    }
+  }
+  return false;
+}
+} // namespace
+
 using LibBDD::Call;
 using LibBDD::call_t;
 
@@ -640,6 +660,10 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
   const EPLeaf active_leaf = ep->get_active_leaf();
 
   // We can't send to the controller if a forwarding decision was already made.
+  if (active_leaf.node && past_egress_crossing_stc(active_leaf.node)) {
+    return {};
+  }
+
   if (active_leaf.node && active_leaf.node->forwarding_decision_already_made()) {
     return {};
   }

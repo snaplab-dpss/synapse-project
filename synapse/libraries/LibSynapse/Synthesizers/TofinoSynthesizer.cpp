@@ -2263,6 +2263,10 @@ void TofinoSynthesizer::synthesize() {
   if (uses_egress) {
     coder_t &eg_state_hdr = code_template.get(MARKER_EGRESS_STATE_HEADER);
     eg_state_hdr << "header egress_state_h {\n";
+    if (egress_state_hdr_vars.get_all().empty()) {
+      // An empty header is not valid P4, and the crossing still needs one to mark the packet.
+      eg_state_hdr << "  @padding bit<8> pad;\n";
+    }
     for (const var_t &var : egress_state_hdr_vars.get_all()) {
       const bits_t pad = var.is_bool() ? 7 : (8 - var.expr->getWidth()) % 8;
       if (pad > 0) {
@@ -2475,7 +2479,9 @@ TofinoSynthesizer::var_t TofinoSynthesizer::alloc_var(const code_t &proposed_nam
   code_t name = (option & EXACT_NAME) ? proposed_name : create_unique_name(proposed_name);
 
   if (option & IS_INGRESS_METADATA) {
-    name = "meta." + name;
+    // Past an egress crossing the metadata lives in the egress struct, which the Egress control
+    // takes as eg_md; there is no `meta` on that side of the pipeline.
+    name = (in_egress ? "eg_md." : "meta.") + name;
   }
 
   const var_t var(name, expr, expr->getWidth(), option & FORCE_BOOL, option & (HEADER | HEADER_FIELD), option & BUFFER);
@@ -2495,7 +2501,9 @@ TofinoSynthesizer::var_t TofinoSynthesizer::alloc_var(const code_t &proposed_nam
   code_t name = (option & EXACT_NAME) ? proposed_name : create_unique_name(proposed_name);
 
   if (option & IS_INGRESS_METADATA) {
-    name = "meta." + name;
+    // Past an egress crossing the metadata lives in the egress struct, which the Egress control
+    // takes as eg_md; there is no `meta` on that side of the pipeline.
+    name = (in_egress ? "eg_md." : "meta.") + name;
   }
 
   const var_t var(name, nullptr, size, option & FORCE_BOOL, option & (HEADER | HEADER_FIELD), option & BUFFER);
