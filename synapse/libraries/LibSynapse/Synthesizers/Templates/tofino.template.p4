@@ -86,6 +86,10 @@ struct synapse_egress_headers_t {
 }
 
 struct synapse_egress_metadata_t {
+  // The egress reads the clock itself rather than having it carried across the crossing: the
+  // ingress keeps time as ingress_mac_tstamp[47:16], and the backend rewrites shifts of it to
+  // match, a convention a value travelling in the state header would not carry with it.
+  bit<32> time;
 /*@{EGRESS_METADATA}@*/
 }
 
@@ -353,6 +357,7 @@ control Egress(
 /*@{EGRESS_CONTROL_HELPERS}@*/
 /*@{EGRESS_CONTROL}@*/
   apply {
+    eg_md.time = eg_intr_md_from_prsr.global_tstamp[47:16];
 /*@{EGRESS_CONTROL_APPLY}@*/
   }
 }
