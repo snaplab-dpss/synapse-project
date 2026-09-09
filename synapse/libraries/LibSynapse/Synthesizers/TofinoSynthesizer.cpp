@@ -2727,11 +2727,22 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_vars.insert_back(var, /*allow_duplicates=*/true);
   }
 
+  // A recirculated packet re-enters through the ingress pipeline, so everything past this point
+  // belongs there even when the recirculation itself was reached from the egress. Leaving the flag
+  // set emits the whole tail of the program inside the egress control, where the ingress-only
+  // helpers (fwd_op, build_cpu_hdr) are not in scope.
+  const bool enclosing_in_egress     = in_egress;
+  coder_t *const enclosing_cut_coder = ingress_coder_at_cut;
+  in_egress                          = false;
+  ingress_coder_at_cut               = nullptr;
+
   ingress_vars.push();
   visit(ep, next);
   ingress_vars.pop();
 
   // 5. Revert the state back to before the recirculation was made
+  in_egress               = enclosing_in_egress;
+  ingress_coder_at_cut    = enclosing_cut_coder;
   active_recirc_code_path = enclosing_recirc_code_path;
   ingress_vars = stack_backup;
 
