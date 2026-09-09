@@ -922,6 +922,18 @@ void ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
   EPVisitor::visit(ep, ep_node);
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToEgress *node) {
+  const std::vector<EPNode *> &children = ep_node->get_children();
+  assert(children.size() == 1 && "Expected single child");
+
+  const bool enclosing = in_egress;
+  in_egress            = true;
+  visit(ep, children[0]);
+  in_egress = enclosing;
+
+  return EPVisitor::Action::skipChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) {
   coder_t &coder     = get_current_coder();
   coder_t &cpu_extra = get(MARKER_CPU_HDR_EXTRA);
@@ -2547,7 +2559,7 @@ void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : map_table->tables) {
-    member_init_list << "\"Ingress." << table.id << "\",";
+    member_init_list << "\"" << gress() << table.id << "\",";
     if (table.time_aware == Tofino::TimeAware::Yes) {
       time_aware = true;
     }
@@ -2582,7 +2594,7 @@ void ControllerSynthesizer::transpile_map_set_table_decl(const Tofino::MapSetTab
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : map_set_table->tables) {
-    member_init_list << "\"Ingress." << table.id << "\",";
+    member_init_list << "\"" << gress() << table.id << "\",";
     if (table.time_aware == Tofino::TimeAware::Yes) {
       time_aware = true;
     }
@@ -2617,13 +2629,13 @@ void ControllerSynthesizer::transpile_guarded_map_table_decl(const Tofino::Guard
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : guarded_map_table->tables) {
-    member_init_list << "\"Ingress." << table.id << "\",";
+    member_init_list << "\"" << gress() << table.id << "\",";
     if (table.time_aware == Tofino::TimeAware::Yes) {
       time_aware = true;
     }
   }
   member_init_list << "},";
-  member_init_list << "\"Ingress." << guarded_map_table->guard.id << "\"";
+  member_init_list << "\"" << gress() << guarded_map_table->guard.id << "\"";
 
   if (time_aware) {
     member_init_list << ", " << expiration_time_ms << "LL";
@@ -2650,7 +2662,7 @@ void ControllerSynthesizer::transpile_vector_table_decl(const Tofino::VectorTabl
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : vector_table->tables) {
-    member_init_list << "\"Ingress." << table.id << "\",";
+    member_init_list << "\"" << gress() << table.id << "\",";
   }
   member_init_list << "}";
   member_init_list << ")";
@@ -2675,7 +2687,7 @@ void ControllerSynthesizer::transpile_dchain_table_decl(const Tofino::DchainTabl
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : dchain_table->tables) {
-    member_init_list << "\"Ingress." << table.id << "\",";
+    member_init_list << "\"" << gress() << table.id << "\",";
   }
   member_init_list << "}";
   member_init_list << ", " << expiration_time_ms << "LL";
@@ -2700,7 +2712,7 @@ void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorR
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Register &reg : vector_register->regs) {
-    member_init_list << "\"Ingress." << reg.id << "\",";
+    member_init_list << "\"" << gress() << reg.id << "\",";
   }
   member_init_list << "}";
   member_init_list << ")";
@@ -2725,16 +2737,16 @@ void ControllerSynthesizer::transpile_hh_table_decl(const Tofino::HHTable *hh_ta
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Table &table : hh_table->tables) {
-    member_init_list << "\"Ingress." << table.id << "\", ";
+    member_init_list << "\"" << gress() << table.id << "\", ";
   }
   member_init_list << "}";
-  member_init_list << ", \"Ingress." << hh_table->cached_counters.id << "\"";
+  member_init_list << ", \"" << gress() << hh_table->cached_counters.id << "\"";
   member_init_list << ", {";
   for (const Tofino::Register &cms_row : hh_table->count_min_sketch) {
-    member_init_list << "\"Ingress." << cms_row.id << "\", ";
+    member_init_list << "\"" << gress() << cms_row.id << "\", ";
   }
   member_init_list << "}";
-  member_init_list << ", \"Ingress." << hh_table->threshold.id << "\"";
+  member_init_list << ", \"" << gress() << hh_table->threshold.id << "\"";
   member_init_list << ", \"IngressDeparser." << hh_table->digest.id << "\"";
   member_init_list << ", " << expiration_time_ms << "LL";
   member_init_list << ")";
@@ -2759,7 +2771,7 @@ void ControllerSynthesizer::transpile_fcfs_cs_decl(const Tofino::FCFSCachedSet *
   member_init_list << "\"" << name << "\"";
   member_init_list << ", {";
   for (const Tofino::Table &table : fcfs_cs->tables) {
-    member_init_list << "\"Ingress." << table.id << "\", ";
+    member_init_list << "\"" << gress() << table.id << "\", ";
   }
   member_init_list << "}";
   member_init_list << ", " << expiration_time_ms << "LL";
@@ -2785,13 +2797,13 @@ void ControllerSynthesizer::transpile_fcfs_ct_decl(const Tofino::FCFSCachedTable
   member_init_list << "\"" << name << "\"";
   member_init_list << ", {";
   for (const Tofino::Table &table : fcfs_ct->tables) {
-    member_init_list << "\"Ingress." << table.id << "\", ";
+    member_init_list << "\"" << gress() << table.id << "\", ";
   }
   member_init_list << "}";
-  member_init_list << ", \"Ingress." << fcfs_ct->reg_liveness.id << "\"";
+  member_init_list << ", \"" << gress() << fcfs_ct->reg_liveness.id << "\"";
   member_init_list << ", {";
   for (const Tofino::Register &reg : fcfs_ct->cache_keys) {
-    member_init_list << "\"Ingress." << reg.id << "\", ";
+    member_init_list << "\"" << gress() << reg.id << "\", ";
   }
   member_init_list << "}";
   member_init_list << ", " << expiration_time_ms << "LL";
@@ -2817,7 +2829,7 @@ void ControllerSynthesizer::transpile_cms_decl(const Tofino::CountMinSketch *cms
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Register &row : cms->rows) {
-    member_init_list << "\"Ingress." << row.id << "\", ";
+    member_init_list << "\"" << gress() << row.id << "\", ";
   }
   member_init_list << "}";
   member_init_list << ", " << periodic_cleanup_interval_ms << "LL";
@@ -2843,7 +2855,7 @@ void ControllerSynthesizer::transpile_bf_decl(const Tofino::BloomFilter *bf, tim
   member_init_list << "\"" << name << "\",";
   member_init_list << "{";
   for (const Tofino::Register &row : bf->rows) {
-    member_init_list << "\"Ingress." << row.id << "\", ";
+    member_init_list << "\"" << gress() << row.id << "\", ";
   }
   member_init_list << "}";
   member_init_list << ", " << periodic_cleanup_interval_ms << "LL";
