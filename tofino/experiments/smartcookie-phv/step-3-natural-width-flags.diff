@@ -1,0 +1,24 @@
+--- scg3.p4	2026-09-09 16:17:22.083580533 +0000
++++ scg4.p4	2026-09-09 16:22:21.155598311 +0000
+@@ -342,7 +342,7 @@
+   bit<32> op_xor_457_out;
+   bit<32> hdr_val0;
+   bit<32> hdr_val1;
+-  bit<32> hdr_val2;
++  bit<8> hdr_val2;
+   bit<32> op_lshr_458_out;
+   bit<1> to_egress;
+ 
+@@ -1348,10 +1348,10 @@
+         swap_action_180();
+         meta.hdr_val0 = (hdr.egress_state.op_lshr_449_out) ^ (meta.op_xor_457_out);
+         meta.hdr_val1 = (32w0x00000001) + (hdr.hdr2.data1);
+-        meta.hdr_val2 = ((bit<32>)(hdr.hdr2.data3[7:0])) | (32w0x00000012);
++        meta.hdr_val2 = (hdr.hdr2.data3[7:0]) | (8w0x12);
+         hdr.hdr2.data1 = meta.hdr_val0;
+         hdr.hdr2.data2 = meta.hdr_val1;
+-        hdr.hdr2.data3 = 8w0x50 ++ meta.hdr_val2[7:0];
++        hdr.hdr2.data3 = 8w0x50 ++ meta.hdr_val2;
+         // EP node  140729:ModifyHeader
+         // BDD node 181:packet_return_chunk
+         swap_action_181();

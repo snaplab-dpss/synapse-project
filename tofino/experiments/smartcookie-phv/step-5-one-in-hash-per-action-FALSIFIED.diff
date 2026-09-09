@@ -1,0 +1,316 @@
+--- scg5.p4	2026-09-09 16:28:11.795619154 +0000
++++ scg6.p4	2026-09-09 16:34:54.975643120 +0000
+@@ -850,10 +850,12 @@
+ 
+   action compute_rotate_left_22() {
+     @in_hash { meta.rotate_left_22_out = meta.rotate_left_22_x_out[26:0] ++ meta.rotate_left_22_x_out[31:27]; }
+-    @in_hash { meta.rotate_left_23_out = meta.rotate_left_23_x_out[23:0] ++ meta.rotate_left_23_x_out[31:24]; }
+     meta.rotate_left_24_x_out = meta.rotate_left_24_x_out;
+     meta.op_add_241_out = meta.rotate_left_21_out + meta.rotate_left_23_x_out;
+   }
++  action compute_rotate_left_22_h1() {
++    @in_hash { meta.rotate_left_23_out = meta.rotate_left_23_x_out[23:0] ++ meta.rotate_left_23_x_out[31:24]; }
++  }
+ 
+   action compute_rotate_left_24() {
+     @in_hash { meta.rotate_left_24_out = meta.rotate_left_24_x_out[15:0] ++ meta.rotate_left_24_x_out[31:16]; }
+@@ -870,11 +872,13 @@
+ 
+   action compute_rotate_left_26() {
+     @in_hash { meta.rotate_left_26_out = meta.rotate_left_26_x_out[24:0] ++ meta.rotate_left_26_x_out[31:25]; }
+-    @in_hash { meta.rotate_left_27_out = meta.rotate_left_27_x_out[15:0] ++ meta.rotate_left_27_x_out[31:16]; }
+     meta.op_xor_248_out = meta.rotate_left_25_out ^ meta.op_add_243_out;
+     meta.rotate_left_28_x_out = meta.rotate_left_28_x_out;
+     meta.op_xor_247_out = meta.op_add_245_out ^ hdr.hdr1.data3;
+   }
++  action compute_rotate_left_26_h1() {
++    @in_hash { meta.rotate_left_27_out = meta.rotate_left_27_x_out[15:0] ++ meta.rotate_left_27_x_out[31:16]; }
++  }
+ 
+   action compute_rotate_left_28() {
+     @in_hash { meta.rotate_left_28_out = meta.rotate_left_28_x_out[26:0] ++ meta.rotate_left_28_x_out[31:27]; }
+@@ -890,6 +894,8 @@
+ 
+   action compute_rotate_left_29() {
+     @in_hash { meta.rotate_left_29_out = meta.rotate_left_29_x_out[23:0] ++ meta.rotate_left_29_x_out[31:24]; }
++  }
++  action compute_rotate_left_29_h1() {
+     @in_hash { meta.rotate_left_31_out = meta.rotate_left_31_x_out[18:0] ++ meta.rotate_left_31_x_out[31:19]; }
+   }
+ 
+@@ -961,10 +967,12 @@
+ 
+   action compute_rotate_left_114() {
+     @in_hash { meta.rotate_left_114_out = meta.rotate_left_114_x_out[23:0] ++ meta.rotate_left_114_x_out[31:24]; }
+-    @in_hash { meta.rotate_left_113_out = meta.rotate_left_113_x_out[26:0] ++ meta.rotate_left_113_x_out[31:27]; }
+     meta.rotate_left_115_x_out = meta.rotate_left_115_x_out;
+     meta.op_add_356_out = meta.rotate_left_112_out + meta.rotate_left_114_x_out;
+   }
++  action compute_rotate_left_114_h1() {
++    @in_hash { meta.rotate_left_113_out = meta.rotate_left_113_x_out[26:0] ++ meta.rotate_left_113_x_out[31:27]; }
++  }
+ 
+   action compute_rotate_left_115() {
+     @in_hash { meta.rotate_left_115_out = meta.rotate_left_115_x_out[15:0] ++ meta.rotate_left_115_x_out[31:16]; }
+@@ -1001,10 +1009,12 @@
+   action compute_rotate_left_120() {
+     @in_hash { meta.rotate_left_120_out = meta.rotate_left_120_x_out[23:0] ++ meta.rotate_left_120_x_out[31:24]; }
+     meta.op_add_366_out = meta.rotate_left_118_out + meta.op_xor_365_out;
+-    @in_hash { meta.rotate_left_121_out = meta.rotate_left_121_x_out[15:0] ++ meta.rotate_left_121_x_out[31:16]; }
+     meta.op_xor_367_out = meta.rotate_left_119_out ^ meta.rotate_left_121_x_out;
+     meta.rotate_left_122_x_out = meta.rotate_left_122_x_out;
+   }
++  action compute_rotate_left_120_h1() {
++    @in_hash { meta.rotate_left_121_out = meta.rotate_left_121_x_out[15:0] ++ meta.rotate_left_121_x_out[31:16]; }
++  }
+ 
+   action compute_rotate_left_123_x() {
+     meta.rotate_left_123_x_out = meta.rotate_left_123_x_out;
+@@ -1014,10 +1024,12 @@
+ 
+   action compute_rotate_left_123() {
+     @in_hash { meta.rotate_left_123_out = meta.rotate_left_123_x_out[24:0] ++ meta.rotate_left_123_x_out[31:25]; }
+-    @in_hash { meta.rotate_left_124_out = meta.rotate_left_124_x_out[15:0] ++ meta.rotate_left_124_x_out[31:16]; }
+     meta.op_add_370_out = meta.rotate_left_121_out + meta.rotate_left_123_x_out;
+     meta.rotate_left_125_x_out = meta.rotate_left_125_x_out;
+   }
++  action compute_rotate_left_123_h1() {
++    @in_hash { meta.rotate_left_124_out = meta.rotate_left_124_x_out[15:0] ++ meta.rotate_left_124_x_out[31:16]; }
++  }
+ 
+   action compute_rotate_left_126_x() {
+     meta.rotate_left_126_x_out = meta.rotate_left_126_x_out;
+@@ -1027,10 +1039,12 @@
+ 
+   action compute_rotate_left_126() {
+     @in_hash { meta.rotate_left_126_out = meta.rotate_left_126_x_out[23:0] ++ meta.rotate_left_126_x_out[31:24]; }
+-    @in_hash { meta.rotate_left_127_out = meta.rotate_left_127_x_out[15:0] ++ meta.rotate_left_127_x_out[31:16]; }
+     meta.rotate_left_128_x_out = meta.rotate_left_128_x_out;
+     meta.op_add_374_out = meta.rotate_left_124_out + meta.rotate_left_126_x_out;
+   }
++  action compute_rotate_left_126_h1() {
++    @in_hash { meta.rotate_left_127_out = meta.rotate_left_127_x_out[15:0] ++ meta.rotate_left_127_x_out[31:16]; }
++  }
+ 
+   action compute_rotate_left_128() {
+     @in_hash { meta.rotate_left_128_out = meta.rotate_left_128_x_out[18:0] ++ meta.rotate_left_128_x_out[31:19]; }
+@@ -1040,10 +1054,12 @@
+ 
+   action compute_rotate_left_129() {
+     @in_hash { meta.rotate_left_129_out = meta.rotate_left_129_x_out[24:0] ++ meta.rotate_left_129_x_out[31:25]; }
+-    @in_hash { meta.rotate_left_130_out = meta.rotate_left_130_x_out[15:0] ++ meta.rotate_left_130_x_out[31:16]; }
+     meta.op_add_378_out = meta.rotate_left_127_out + meta.rotate_left_129_x_out;
+     meta.rotate_left_131_x_out = meta.rotate_left_131_x_out;
+   }
++  action compute_rotate_left_129_h1() {
++    @in_hash { meta.rotate_left_130_out = meta.rotate_left_130_x_out[15:0] ++ meta.rotate_left_130_x_out[31:16]; }
++  }
+ 
+   action compute_rotate_left_131() {
+     @in_hash { meta.rotate_left_131_out = meta.rotate_left_131_x_out[26:0] ++ meta.rotate_left_131_x_out[31:27]; }
+@@ -1058,10 +1074,12 @@
+ 
+   action compute_rotate_left_132() {
+     @in_hash { meta.rotate_left_132_out = meta.rotate_left_132_x_out[23:0] ++ meta.rotate_left_132_x_out[31:24]; }
+-    @in_hash { meta.rotate_left_133_out = meta.rotate_left_133_x_out[15:0] ++ meta.rotate_left_133_x_out[31:16]; }
+     meta.op_add_386_out = meta.rotate_left_130_out + meta.rotate_left_132_x_out;
+     meta.op_xor_387_out = meta.rotate_left_131_out ^ meta.rotate_left_133_x_out;
+   }
++  action compute_rotate_left_132_h1() {
++    @in_hash { meta.rotate_left_133_out = meta.rotate_left_133_x_out[15:0] ++ meta.rotate_left_133_x_out[31:16]; }
++  }
+ 
+   action compute_rotate_left_160_x() {
+     meta.rotate_left_160_x_out = meta.rotate_left_160_x_out;
+@@ -1071,9 +1089,13 @@
+ 
+   action compute_rotate_left_160() {
+     @in_hash { meta.rotate_left_160_out = meta.rotate_left_160_x_out[15:0] ++ meta.rotate_left_160_x_out[31:16]; }
++    meta.rotate_left_163_x_out = meta.rotate_left_163_x_out;
++  }
++  action compute_rotate_left_160_h1() {
+     @in_hash { meta.rotate_left_161_out = meta.rotate_left_161_x_out[26:0] ++ meta.rotate_left_161_x_out[31:27]; }
++  }
++  action compute_rotate_left_160_h2() {
+     @in_hash { meta.rotate_left_162_out = meta.rotate_left_162_x_out[23:0] ++ meta.rotate_left_162_x_out[31:24]; }
+-    meta.rotate_left_163_x_out = meta.rotate_left_163_x_out;
+   }
+ 
+   action compute_rotate_left_163() {
+@@ -1093,9 +1115,11 @@
+   action compute_rotate_left_164_or() {
+     meta.rotate_left_164_or_out = meta.rotate_left_164_shl_out | meta.rotate_left_164_shr_out;
+     @in_hash { meta.rotate_left_166_out = meta.rotate_left_166_x_out[15:0] ++ meta.rotate_left_166_x_out[31:16]; }
+-    @in_hash { meta.rotate_left_165_out = meta.rotate_left_165_x_out[24:0] ++ meta.rotate_left_165_x_out[31:25]; }
+     meta.op_add_433_out = meta.rotate_left_163_out + meta.op_xor_432_out;
+   }
++  action compute_rotate_left_164_or_h1() {
++    @in_hash { meta.rotate_left_165_out = meta.rotate_left_165_x_out[24:0] ++ meta.rotate_left_165_x_out[31:25]; }
++  }
+ 
+   action compute_op_xor_434() {
+     meta.op_xor_434_out = meta.rotate_left_164_or_out ^ meta.rotate_left_166_x_out;
+@@ -1105,11 +1129,13 @@
+ 
+   action compute_rotate_left_167() {
+     @in_hash { meta.rotate_left_167_out = meta.rotate_left_167_x_out[26:0] ++ meta.rotate_left_167_x_out[31:27]; }
+-    @in_hash { meta.rotate_left_168_out = meta.rotate_left_168_x_out[23:0] ++ meta.rotate_left_168_x_out[31:24]; }
+     meta.op_add_435_out = meta.op_add_433_out + meta.op_xor_434_out;
+     meta.rotate_left_169_x_out = meta.rotate_left_169_x_out;
+     meta.op_add_437_out = meta.rotate_left_166_out + meta.rotate_left_168_x_out;
+   }
++  action compute_rotate_left_167_h1() {
++    @in_hash { meta.rotate_left_168_out = meta.rotate_left_168_x_out[23:0] ++ meta.rotate_left_168_x_out[31:24]; }
++  }
+ 
+   action compute_rotate_left_169() {
+     @in_hash { meta.rotate_left_169_out = meta.rotate_left_169_x_out[15:0] ++ meta.rotate_left_169_x_out[31:16]; }
+@@ -1230,11 +1256,15 @@
+         // BDD node 160:rotate_left
+         compute_rotate_left_160_x();
+         compute_rotate_left_160();
++        compute_rotate_left_160_h1();
++        compute_rotate_left_160_h2();
+         compute_rotate_left_163();
+         compute_rotate_left_164_shl();
+         compute_rotate_left_164_or();
++        compute_rotate_left_164_or_h1();
+         compute_op_xor_434();
+         compute_rotate_left_167();
++        compute_rotate_left_167_h1();
+         compute_rotate_left_169();
+         compute_rotate_left_170_shl();
+         compute_rotate_left_170_or();
+@@ -1431,12 +1461,15 @@
+                   compute_rotate_left_20();
+                   compute_rotate_left_22_x();
+                   compute_rotate_left_22();
++                  compute_rotate_left_22_h1();
+                   compute_rotate_left_24();
+                   compute_rotate_left_25();
+                   compute_rotate_left_26();
++                  compute_rotate_left_26_h1();
+                   compute_rotate_left_28();
+                   compute_rotate_left_29_x();
+                   compute_rotate_left_29();
++                  compute_rotate_left_29_h1();
+                   // EP node  147213:RotateLeft
+                   // BDD node 18:rotate_left
+                   // EP node  149466:RotateLeft
+@@ -1575,21 +1608,27 @@
+                   compute_rotate_left_111();
+                   compute_rotate_left_114_x();
+                   compute_rotate_left_114();
++                  compute_rotate_left_114_h1();
+                   compute_rotate_left_115();
+                   compute_rotate_left_118_x();
+                   compute_rotate_left_117();
+                   compute_rotate_left_118();
+                   compute_rotate_left_119();
+                   compute_rotate_left_120();
++                  compute_rotate_left_120_h1();
+                   compute_rotate_left_123_x();
+                   compute_rotate_left_123();
++                  compute_rotate_left_123_h1();
+                   compute_rotate_left_126_x();
+                   compute_rotate_left_126();
++                  compute_rotate_left_126_h1();
+                   compute_rotate_left_128();
+                   compute_rotate_left_129();
++                  compute_rotate_left_129_h1();
+                   compute_rotate_left_131();
+                   compute_rotate_left_132_x();
+                   compute_rotate_left_132();
++                  compute_rotate_left_132_h1();
+                   // EP node  5614:ArithmeticOp
+                   // BDD node 381:op_or
+                   // EP node  5868:ArithmeticOp
+@@ -1951,6 +1990,8 @@
+ 
+   action compute_rotate_left_136() {
+     @in_hash { eg_md.rotate_left_136_out = eg_md.rotate_left_136_x_out[15:0] ++ eg_md.rotate_left_136_x_out[31:16]; }
++  }
++  action compute_rotate_left_136_h1() {
+     @in_hash { eg_md.rotate_left_134_out = eg_md.rotate_left_134_x_out[18:0] ++ eg_md.rotate_left_134_x_out[31:19]; }
+   }
+ 
+@@ -1968,10 +2009,12 @@
+ 
+   action compute_rotate_left_137() {
+     @in_hash { eg_md.rotate_left_137_out = eg_md.rotate_left_137_x_out[26:0] ++ eg_md.rotate_left_137_x_out[31:27]; }
+-    @in_hash { eg_md.rotate_left_138_out = eg_md.rotate_left_138_x_out[23:0] ++ eg_md.rotate_left_138_x_out[31:24]; }
+     eg_md.rotate_left_139_x_out = eg_md.rotate_left_139_x_out;
+     eg_md.op_add_394_out = eg_md.rotate_left_136_out + eg_md.op_xor_393_out;
+   }
++  action compute_rotate_left_137_h1() {
++    @in_hash { eg_md.rotate_left_138_out = eg_md.rotate_left_138_x_out[23:0] ++ eg_md.rotate_left_138_x_out[31:24]; }
++  }
+ 
+   action compute_rotate_left_139() {
+     @in_hash { eg_md.rotate_left_139_out = eg_md.rotate_left_139_x_out[15:0] ++ eg_md.rotate_left_139_x_out[31:16]; }
+@@ -2002,10 +2045,12 @@
+ 
+   action compute_rotate_left_143() {
+     @in_hash { eg_md.rotate_left_143_out = eg_md.rotate_left_143_x_out[26:0] ++ eg_md.rotate_left_143_x_out[31:27]; }
+-    @in_hash { eg_md.rotate_left_144_out = eg_md.rotate_left_144_x_out[23:0] ++ eg_md.rotate_left_144_x_out[31:24]; }
+     eg_md.rotate_left_145_x_out = eg_md.rotate_left_145_x_out;
+     eg_md.op_add_404_out = eg_md.rotate_left_142_out + eg_md.rotate_left_144_x_out;
+   }
++  action compute_rotate_left_143_h1() {
++    @in_hash { eg_md.rotate_left_144_out = eg_md.rotate_left_144_x_out[23:0] ++ eg_md.rotate_left_144_x_out[31:24]; }
++  }
+ 
+   action compute_rotate_left_145() {
+     @in_hash { eg_md.rotate_left_145_out = eg_md.rotate_left_145_x_out[15:0] ++ eg_md.rotate_left_145_x_out[31:16]; }
+@@ -2046,6 +2091,8 @@
+   action compute_rotate_left_151() {
+     @in_hash { eg_md.rotate_left_151_out = eg_md.rotate_left_151_x_out[15:0] ++ eg_md.rotate_left_151_x_out[31:16]; }
+     eg_md.rotate_left_152_x_out = eg_md.rotate_left_152_x_out;
++  }
++  action compute_rotate_left_151_h1() {
+     @in_hash { eg_md.rotate_left_153_out = eg_md.rotate_left_153_x_out[24:0] ++ eg_md.rotate_left_153_x_out[31:25]; }
+   }
+ 
+@@ -2066,10 +2113,12 @@
+ 
+   action compute_rotate_left_155() {
+     @in_hash { eg_md.rotate_left_155_out = eg_md.rotate_left_155_x_out[26:0] ++ eg_md.rotate_left_155_x_out[31:27]; }
+-    @in_hash { eg_md.rotate_left_156_out = eg_md.rotate_left_156_x_out[23:0] ++ eg_md.rotate_left_156_x_out[31:24]; }
+     eg_md.rotate_left_157_x_out = eg_md.rotate_left_157_x_out;
+     eg_md.op_add_421_out = eg_md.rotate_left_154_out + eg_md.op_xor_420_out;
+   }
++  action compute_rotate_left_155_h1() {
++    @in_hash { eg_md.rotate_left_156_out = eg_md.rotate_left_156_x_out[23:0] ++ eg_md.rotate_left_156_x_out[31:24]; }
++  }
+ 
+   action compute_rotate_left_157() {
+     @in_hash { eg_md.rotate_left_157_out = eg_md.rotate_left_157_x_out[15:0] ++ eg_md.rotate_left_157_x_out[31:16]; }
+@@ -2095,23 +2144,28 @@
+     // BDD node 136:rotate_left
+     compute_rotate_left_136_x();
+     compute_rotate_left_136();
++    compute_rotate_left_136_h1();
+     compute_rotate_left_135();
+     compute_op_xor_391();
+     compute_rotate_left_137();
++    compute_rotate_left_137_h1();
+     compute_rotate_left_139();
+     compute_rotate_left_140_shl();
+     compute_rotate_left_140_or();
+     compute_rotate_left_143_x();
+     compute_rotate_left_143();
++    compute_rotate_left_143_h1();
+     compute_rotate_left_145();
+     compute_rotate_left_146_shl();
+     compute_rotate_left_146_or();
+     compute_op_xor_409();
+     compute_rotate_left_149();
+     compute_rotate_left_151();
++    compute_rotate_left_151_h1();
+     compute_rotate_left_152();
+     compute_rotate_left_154();
+     compute_rotate_left_155();
++    compute_rotate_left_155_h1();
+     compute_rotate_left_157();
+     compute_rotate_left_158();
+     compute_rotate_left_159();

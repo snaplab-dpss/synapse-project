@@ -1,0 +1,310 @@
+--- scg6.p4	2026-09-09 16:34:54.975643120 +0000
++++ scg8.p4	2026-09-09 16:40:49.887664217 +0000
+@@ -824,21 +824,27 @@
+   action compute_rotate_left_17() {
+     @in_hash { meta.rotate_left_17_out = meta.rotate_left_17_x_out[23:0] ++ meta.rotate_left_17_x_out[31:24]; }
+     meta.rotate_left_19_x_out = meta.rotate_left_19_x_out;
+-    meta.op_add_232_out = 32w0x5d476351 + meta.rotate_left_17_x_out;
+     meta.op_shl_265_out = meta.op_shl_265_a_out << 32w0x00000010;
+   }
++  action compute_rotate_left_17_a1() {
++    meta.op_add_232_out = 32w0x5d476351 + meta.rotate_left_17_x_out;
++  }
+ 
+   action compute_rotate_left_19() {
+     @in_hash { meta.rotate_left_19_out = meta.rotate_left_19_x_out[18:0] ++ meta.rotate_left_19_x_out[31:19]; }
+-    meta.op_add_234_out = meta.rotate_left_17_x_out + meta.rotate_left_19_x_out;
+     meta.rotate_left_20_x_out = meta.rotate_left_20_x_out;
+     meta.op_or_266_out = meta.op_shl_265_out | meta.op_or_266_b_out;
+   }
++  action compute_rotate_left_19_a1() {
++    meta.op_add_234_out = meta.rotate_left_17_x_out + meta.rotate_left_19_x_out;
++  }
+ 
+   action compute_rotate_left_20() {
+     @in_hash { meta.rotate_left_20_out = meta.rotate_left_20_x_out[24:0] ++ meta.rotate_left_20_x_out[31:25]; }
+     meta.op_add_235_out = 32w0x5d476351 + meta.op_add_234_out;
+     meta.rotate_left_21_x_out = meta.rotate_left_21_x_out;
++  }
++  action compute_rotate_left_20_a1() {
+     meta.op_add_237_out = meta.rotate_left_18_out + meta.rotate_left_20_x_out;
+   }
+ 
+@@ -865,10 +871,12 @@
+ 
+   action compute_rotate_left_25() {
+     @in_hash { meta.rotate_left_25_out = meta.rotate_left_25_x_out[18:0] ++ meta.rotate_left_25_x_out[31:19]; }
+-    meta.op_add_243_out = meta.op_add_241_out + meta.rotate_left_25_x_out;
+     meta.rotate_left_27_x_out = meta.rotate_left_27_x_out;
+     meta.op_add_245_out = meta.rotate_left_24_out + meta.rotate_left_26_x_out;
+   }
++  action compute_rotate_left_25_a1() {
++    meta.op_add_243_out = meta.op_add_241_out + meta.rotate_left_25_x_out;
++  }
+ 
+   action compute_rotate_left_26() {
+     @in_hash { meta.rotate_left_26_out = meta.rotate_left_26_x_out[24:0] ++ meta.rotate_left_26_x_out[31:25]; }
+@@ -955,7 +963,7 @@
+     @in_hash { meta.rotate_left_111_out = meta.rotate_left_111_x_out[24:0] ++ meta.rotate_left_111_x_out[31:25]; }
+     meta.op_add_352_out = meta.rotate_left_109_out + meta.op_xor_351_out;
+     meta.rotate_left_112_x_out = meta.rotate_left_112_x_out;
+-    meta.op_sub_448_out = meta.op_lshr_447_out[31:0] - vector_table_1073939504_105_get_value_param0;
++    meta.op_sub_448_out = meta.op_lshr_447_out - vector_table_1073939504_105_get_value_param0;
+   }
+ 
+   action compute_rotate_left_114_x() {
+@@ -968,6 +976,8 @@
+   action compute_rotate_left_114() {
+     @in_hash { meta.rotate_left_114_out = meta.rotate_left_114_x_out[23:0] ++ meta.rotate_left_114_x_out[31:24]; }
+     meta.rotate_left_115_x_out = meta.rotate_left_115_x_out;
++  }
++  action compute_rotate_left_114_a1() {
+     meta.op_add_356_out = meta.rotate_left_112_out + meta.rotate_left_114_x_out;
+   }
+   action compute_rotate_left_114_h1() {
+@@ -976,11 +986,13 @@
+ 
+   action compute_rotate_left_115() {
+     @in_hash { meta.rotate_left_115_out = meta.rotate_left_115_x_out[15:0] ++ meta.rotate_left_115_x_out[31:16]; }
+-    meta.op_xor_357_out = meta.rotate_left_113_out ^ meta.rotate_left_115_x_out;
+     meta.op_xor_359_out = meta.rotate_left_114_out ^ meta.op_add_356_out;
+     meta.rotate_left_116_x_out = meta.rotate_left_116_x_out;
+     meta.rotate_left_117_x_out = meta.rotate_left_117_x_out;
+   }
++  action compute_rotate_left_115_a1() {
++    meta.op_xor_357_out = meta.rotate_left_113_out ^ meta.rotate_left_115_x_out;
++  }
+ 
+   action compute_rotate_left_118_x() {
+     meta.rotate_left_118_x_out = meta.rotate_left_118_x_out;
+@@ -1024,9 +1036,11 @@
+ 
+   action compute_rotate_left_123() {
+     @in_hash { meta.rotate_left_123_out = meta.rotate_left_123_x_out[24:0] ++ meta.rotate_left_123_x_out[31:25]; }
+-    meta.op_add_370_out = meta.rotate_left_121_out + meta.rotate_left_123_x_out;
+     meta.rotate_left_125_x_out = meta.rotate_left_125_x_out;
+   }
++  action compute_rotate_left_123_a1() {
++    meta.op_add_370_out = meta.rotate_left_121_out + meta.rotate_left_123_x_out;
++  }
+   action compute_rotate_left_123_h1() {
+     @in_hash { meta.rotate_left_124_out = meta.rotate_left_124_x_out[15:0] ++ meta.rotate_left_124_x_out[31:16]; }
+   }
+@@ -1040,6 +1054,8 @@
+   action compute_rotate_left_126() {
+     @in_hash { meta.rotate_left_126_out = meta.rotate_left_126_x_out[23:0] ++ meta.rotate_left_126_x_out[31:24]; }
+     meta.rotate_left_128_x_out = meta.rotate_left_128_x_out;
++  }
++  action compute_rotate_left_126_a1() {
+     meta.op_add_374_out = meta.rotate_left_124_out + meta.rotate_left_126_x_out;
+   }
+   action compute_rotate_left_126_h1() {
+@@ -1054,9 +1070,11 @@
+ 
+   action compute_rotate_left_129() {
+     @in_hash { meta.rotate_left_129_out = meta.rotate_left_129_x_out[24:0] ++ meta.rotate_left_129_x_out[31:25]; }
+-    meta.op_add_378_out = meta.rotate_left_127_out + meta.rotate_left_129_x_out;
+     meta.rotate_left_131_x_out = meta.rotate_left_131_x_out;
+   }
++  action compute_rotate_left_129_a1() {
++    meta.op_add_378_out = meta.rotate_left_127_out + meta.rotate_left_129_x_out;
++  }
+   action compute_rotate_left_129_h1() {
+     @in_hash { meta.rotate_left_130_out = meta.rotate_left_130_x_out[15:0] ++ meta.rotate_left_130_x_out[31:16]; }
+   }
+@@ -1074,9 +1092,11 @@
+ 
+   action compute_rotate_left_132() {
+     @in_hash { meta.rotate_left_132_out = meta.rotate_left_132_x_out[23:0] ++ meta.rotate_left_132_x_out[31:24]; }
+-    meta.op_add_386_out = meta.rotate_left_130_out + meta.rotate_left_132_x_out;
+     meta.op_xor_387_out = meta.rotate_left_131_out ^ meta.rotate_left_133_x_out;
+   }
++  action compute_rotate_left_132_a1() {
++    meta.op_add_386_out = meta.rotate_left_130_out + meta.rotate_left_132_x_out;
++  }
+   action compute_rotate_left_132_h1() {
+     @in_hash { meta.rotate_left_133_out = meta.rotate_left_133_x_out[15:0] ++ meta.rotate_left_133_x_out[31:16]; }
+   }
+@@ -1168,10 +1188,12 @@
+     meta.rotate_left_173_shl_out = meta.rotate_left_173_x_out << 5;
+     meta.rotate_left_173_shr_out = meta.rotate_left_173_x_out >> 27;
+     @in_hash { meta.rotate_left_174_out = meta.rotate_left_174_x_out[23:0] ++ meta.rotate_left_174_x_out[31:24]; }
+-    meta.op_add_445_out = meta.rotate_left_172_out + meta.rotate_left_174_x_out;
+     meta.op_add_443_out = meta.op_add_441_out + meta.rotate_left_173_x_out;
+     meta.rotate_left_175_x_out = meta.rotate_left_175_x_out;
+   }
++  action compute_rotate_left_173_shl_a1() {
++    meta.op_add_445_out = meta.rotate_left_172_out + meta.rotate_left_174_x_out;
++  }
+ 
+   action compute_rotate_left_173_or() {
+     meta.rotate_left_173_or_out = meta.rotate_left_173_shl_out | meta.rotate_left_173_shr_out;
+@@ -1183,6 +1205,8 @@
+     @in_hash { meta.rotate_left_177_out = meta.rotate_left_177_x_out[24:0] ++ meta.rotate_left_177_x_out[31:25]; }
+     meta.op_xor_446_out = meta.rotate_left_173_or_out ^ meta.op_add_443_out;
+     meta.rotate_left_176_x_out = meta.rotate_left_176_x_out;
++  }
++  action compute_rotate_left_177_a1() {
+     meta.op_add_451_out = meta.rotate_left_175_out + meta.rotate_left_177_x_out;
+   }
+ 
+@@ -1194,6 +1218,8 @@
+ 
+   action compute_rotate_left_178() {
+     @in_hash { meta.rotate_left_178_out = meta.rotate_left_178_x_out[15:0] ++ meta.rotate_left_178_x_out[31:16]; }
++  }
++  action compute_rotate_left_178_a1() {
+     meta.op_xor_453_out = meta.rotate_left_176_out ^ meta.rotate_left_178_x_out;
+   }
+ 
+@@ -1270,10 +1296,13 @@
+         compute_rotate_left_170_or();
+         compute_rotate_left_173_x();
+         compute_rotate_left_173_shl();
++        compute_rotate_left_173_shl_a1();
+         compute_rotate_left_173_or();
+         compute_rotate_left_177();
++        compute_rotate_left_177_a1();
+         compute_rotate_left_178_x();
+         compute_rotate_left_178();
++        compute_rotate_left_178_a1();
+         compute_op_xor_454();
+         compute_op_xor_455();
+         compute_op_xor_457();
+@@ -1457,13 +1486,17 @@
+                   // BDD node 17:rotate_left
+                   compute_rotate_left_17_x();
+                   compute_rotate_left_17();
++                  compute_rotate_left_17_a1();
+                   compute_rotate_left_19();
++                  compute_rotate_left_19_a1();
+                   compute_rotate_left_20();
++                  compute_rotate_left_20_a1();
+                   compute_rotate_left_22_x();
+                   compute_rotate_left_22();
+                   compute_rotate_left_22_h1();
+                   compute_rotate_left_24();
+                   compute_rotate_left_25();
++                  compute_rotate_left_25_a1();
+                   compute_rotate_left_26();
+                   compute_rotate_left_26_h1();
+                   compute_rotate_left_28();
+@@ -1608,8 +1641,10 @@
+                   compute_rotate_left_111();
+                   compute_rotate_left_114_x();
+                   compute_rotate_left_114();
++                  compute_rotate_left_114_a1();
+                   compute_rotate_left_114_h1();
+                   compute_rotate_left_115();
++                  compute_rotate_left_115_a1();
+                   compute_rotate_left_118_x();
+                   compute_rotate_left_117();
+                   compute_rotate_left_118();
+@@ -1618,16 +1653,20 @@
+                   compute_rotate_left_120_h1();
+                   compute_rotate_left_123_x();
+                   compute_rotate_left_123();
++                  compute_rotate_left_123_a1();
+                   compute_rotate_left_123_h1();
+                   compute_rotate_left_126_x();
+                   compute_rotate_left_126();
++                  compute_rotate_left_126_a1();
+                   compute_rotate_left_126_h1();
+                   compute_rotate_left_128();
+                   compute_rotate_left_129();
++                  compute_rotate_left_129_a1();
+                   compute_rotate_left_129_h1();
+                   compute_rotate_left_131();
+                   compute_rotate_left_132_x();
+                   compute_rotate_left_132();
++                  compute_rotate_left_132_a1();
+                   compute_rotate_left_132_h1();
+                   // EP node  5614:ArithmeticOp
+                   // BDD node 381:op_or
+@@ -2028,6 +2067,8 @@
+     @in_hash { eg_md.rotate_left_141_out = eg_md.rotate_left_141_x_out[24:0] ++ eg_md.rotate_left_141_x_out[31:25]; }
+     eg_md.op_add_396_out = eg_md.op_add_394_out + eg_md.rotate_left_140_x_out;
+     eg_md.rotate_left_142_x_out = eg_md.rotate_left_142_x_out;
++  }
++  action compute_rotate_left_140_shl_a1() {
+     eg_md.op_add_398_out = eg_md.rotate_left_139_out + eg_md.rotate_left_141_x_out;
+   }
+ 
+@@ -2064,6 +2105,8 @@
+     @in_hash { eg_md.rotate_left_147_out = eg_md.rotate_left_147_x_out[24:0] ++ eg_md.rotate_left_147_x_out[31:25]; }
+     eg_md.op_add_406_out = eg_md.op_add_404_out + eg_md.rotate_left_146_x_out;
+     eg_md.rotate_left_148_x_out = eg_md.rotate_left_148_x_out;
++  }
++  action compute_rotate_left_146_shl_a1() {
+     eg_md.op_add_408_out = eg_md.rotate_left_145_out + eg_md.rotate_left_147_x_out;
+   }
+ 
+@@ -2104,12 +2147,14 @@
+ 
+   action compute_rotate_left_154() {
+     @in_hash { eg_md.rotate_left_154_out = eg_md.rotate_left_154_x_out[15:0] ++ eg_md.rotate_left_154_x_out[31:16]; }
+-    eg_md.op_xor_418_out = eg_md.rotate_left_152_out ^ eg_md.rotate_left_154_x_out;
+     eg_md.op_xor_420_out = eg_md.rotate_left_153_out ^ eg_md.op_add_416_out;
+     eg_md.rotate_left_155_x_out = eg_md.rotate_left_155_x_out;
+     eg_md.rotate_left_156_x_out = eg_md.rotate_left_156_x_out;
+     eg_md.op_xor_417_out = eg_md.op_add_416_out ^ hdr.hdr2.data1;
+   }
++  action compute_rotate_left_154_a1() {
++    eg_md.op_xor_418_out = eg_md.rotate_left_152_out ^ eg_md.rotate_left_154_x_out;
++  }
+ 
+   action compute_rotate_left_155() {
+     @in_hash { eg_md.rotate_left_155_out = eg_md.rotate_left_155_x_out[26:0] ++ eg_md.rotate_left_155_x_out[31:27]; }
+@@ -2122,10 +2167,12 @@
+ 
+   action compute_rotate_left_157() {
+     @in_hash { eg_md.rotate_left_157_out = eg_md.rotate_left_157_x_out[15:0] ++ eg_md.rotate_left_157_x_out[31:16]; }
+-    eg_md.op_xor_422_out = eg_md.rotate_left_155_out ^ eg_md.rotate_left_157_x_out;
+     eg_md.rotate_left_158_x_out = eg_md.rotate_left_158_x_out;
+     eg_md.rotate_left_159_x_out = eg_md.rotate_left_159_x_out;
+   }
++  action compute_rotate_left_157_a1() {
++    eg_md.op_xor_422_out = eg_md.rotate_left_155_out ^ eg_md.rotate_left_157_x_out;
++  }
+ 
+   action compute_rotate_left_158() {
+     @in_hash { eg_md.rotate_left_158_out = eg_md.rotate_left_158_x_out[18:0] ++ eg_md.rotate_left_158_x_out[31:19]; }
+@@ -2134,6 +2181,8 @@
+ 
+   action compute_rotate_left_159() {
+     @in_hash { eg_md.rotate_left_159_out = eg_md.rotate_left_159_x_out[24:0] ++ eg_md.rotate_left_159_x_out[31:25]; }
++  }
++  action compute_rotate_left_159_a1() {
+     eg_md.op_add_425_out = eg_md.rotate_left_157_out + eg_md.rotate_left_159_x_out;
+   }
+ 
+@@ -2151,12 +2200,14 @@
+     compute_rotate_left_137_h1();
+     compute_rotate_left_139();
+     compute_rotate_left_140_shl();
++    compute_rotate_left_140_shl_a1();
+     compute_rotate_left_140_or();
+     compute_rotate_left_143_x();
+     compute_rotate_left_143();
+     compute_rotate_left_143_h1();
+     compute_rotate_left_145();
+     compute_rotate_left_146_shl();
++    compute_rotate_left_146_shl_a1();
+     compute_rotate_left_146_or();
+     compute_op_xor_409();
+     compute_rotate_left_149();
+@@ -2164,11 +2215,14 @@
+     compute_rotate_left_151_h1();
+     compute_rotate_left_152();
+     compute_rotate_left_154();
++    compute_rotate_left_154_a1();
+     compute_rotate_left_155();
+     compute_rotate_left_155_h1();
+     compute_rotate_left_157();
++    compute_rotate_left_157_a1();
+     compute_rotate_left_158();
+     compute_rotate_left_159();
++    compute_rotate_left_159_a1();
+     // EP node  43044:RotateLeft
+     // BDD node 134:rotate_left
+     // EP node  43795:ArithmeticOp

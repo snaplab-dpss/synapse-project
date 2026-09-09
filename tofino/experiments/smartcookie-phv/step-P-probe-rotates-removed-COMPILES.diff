@@ -1,0 +1,29 @@
+--- scg6.p4	2026-09-09 16:34:54.975643120 +0000
++++ scg7.p4	2026-09-09 16:39:26.963659288 +0000
+@@ -955,7 +955,7 @@
+     @in_hash { meta.rotate_left_111_out = meta.rotate_left_111_x_out[24:0] ++ meta.rotate_left_111_x_out[31:25]; }
+     meta.op_add_352_out = meta.rotate_left_109_out + meta.op_xor_351_out;
+     meta.rotate_left_112_x_out = meta.rotate_left_112_x_out;
+-    meta.op_sub_448_out = meta.op_lshr_447_out[31:0] - vector_table_1073939504_105_get_value_param0;
++    meta.op_sub_448_out = meta.op_lshr_447_out - vector_table_1073939504_105_get_value_param0;
+   }
+ 
+   action compute_rotate_left_114_x() {
+@@ -1180,7 +1180,7 @@
+   }
+ 
+   action compute_rotate_left_177() {
+-    @in_hash { meta.rotate_left_177_out = meta.rotate_left_177_x_out[24:0] ++ meta.rotate_left_177_x_out[31:25]; }
++    meta.rotate_left_177_out = meta.rotate_left_177_x_out; // PROBE: rotate removed
+     meta.op_xor_446_out = meta.rotate_left_173_or_out ^ meta.op_add_443_out;
+     meta.rotate_left_176_x_out = meta.rotate_left_176_x_out;
+     meta.op_add_451_out = meta.rotate_left_175_out + meta.rotate_left_177_x_out;
+@@ -1193,7 +1193,7 @@
+   }
+ 
+   action compute_rotate_left_178() {
+-    @in_hash { meta.rotate_left_178_out = meta.rotate_left_178_x_out[15:0] ++ meta.rotate_left_178_x_out[31:16]; }
++    meta.rotate_left_178_out = meta.rotate_left_178_x_out; // PROBE: rotate removed
+     meta.op_xor_453_out = meta.rotate_left_176_out ^ meta.rotate_left_178_x_out;
+   }
+ 

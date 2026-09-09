@@ -1,0 +1,343 @@
+--- scg4.p4	2026-09-09 16:22:21.155598311 +0000
++++ scg5.p4	2026-09-09 16:28:11.795619154 +0000
+@@ -822,7 +822,7 @@
+   }
+ 
+   action compute_rotate_left_17() {
+-    meta.rotate_left_17_out = meta.rotate_left_17_x_out[23:0] ++ meta.rotate_left_17_x_out[31:24];
++    @in_hash { meta.rotate_left_17_out = meta.rotate_left_17_x_out[23:0] ++ meta.rotate_left_17_x_out[31:24]; }
+     meta.rotate_left_19_x_out = meta.rotate_left_19_x_out;
+     meta.op_add_232_out = 32w0x5d476351 + meta.rotate_left_17_x_out;
+     meta.op_shl_265_out = meta.op_shl_265_a_out << 32w0x00000010;
+@@ -844,19 +844,19 @@
+ 
+   action compute_rotate_left_22_x() {
+     meta.rotate_left_22_x_out = meta.rotate_left_22_x_out;
+-    meta.rotate_left_21_out = meta.rotate_left_21_x_out[15:0] ++ meta.rotate_left_21_x_out[31:16];
++    @in_hash { meta.rotate_left_21_out = meta.rotate_left_21_x_out[15:0] ++ meta.rotate_left_21_x_out[31:16]; }
+     meta.rotate_left_23_x_out = meta.rotate_left_23_x_out;
+   }
+ 
+   action compute_rotate_left_22() {
+     @in_hash { meta.rotate_left_22_out = meta.rotate_left_22_x_out[26:0] ++ meta.rotate_left_22_x_out[31:27]; }
+-    meta.rotate_left_23_out = meta.rotate_left_23_x_out[23:0] ++ meta.rotate_left_23_x_out[31:24];
++    @in_hash { meta.rotate_left_23_out = meta.rotate_left_23_x_out[23:0] ++ meta.rotate_left_23_x_out[31:24]; }
+     meta.rotate_left_24_x_out = meta.rotate_left_24_x_out;
+     meta.op_add_241_out = meta.rotate_left_21_out + meta.rotate_left_23_x_out;
+   }
+ 
+   action compute_rotate_left_24() {
+-    meta.rotate_left_24_out = meta.rotate_left_24_x_out[15:0] ++ meta.rotate_left_24_x_out[31:16];
++    @in_hash { meta.rotate_left_24_out = meta.rotate_left_24_x_out[15:0] ++ meta.rotate_left_24_x_out[31:16]; }
+     meta.rotate_left_25_x_out = meta.rotate_left_25_x_out;
+     meta.rotate_left_26_x_out = meta.rotate_left_26_x_out;
+   }
+@@ -870,7 +870,7 @@
+ 
+   action compute_rotate_left_26() {
+     @in_hash { meta.rotate_left_26_out = meta.rotate_left_26_x_out[24:0] ++ meta.rotate_left_26_x_out[31:25]; }
+-    meta.rotate_left_27_out = meta.rotate_left_27_x_out[15:0] ++ meta.rotate_left_27_x_out[31:16];
++    @in_hash { meta.rotate_left_27_out = meta.rotate_left_27_x_out[15:0] ++ meta.rotate_left_27_x_out[31:16]; }
+     meta.op_xor_248_out = meta.rotate_left_25_out ^ meta.op_add_243_out;
+     meta.rotate_left_28_x_out = meta.rotate_left_28_x_out;
+     meta.op_xor_247_out = meta.op_add_245_out ^ hdr.hdr1.data3;
+@@ -884,12 +884,12 @@
+ 
+   action compute_rotate_left_29_x() {
+     meta.rotate_left_29_x_out = meta.rotate_left_29_x_out;
+-    meta.rotate_left_30_out = meta.rotate_left_30_x_out[15:0] ++ meta.rotate_left_30_x_out[31:16];
++    @in_hash { meta.rotate_left_30_out = meta.rotate_left_30_x_out[15:0] ++ meta.rotate_left_30_x_out[31:16]; }
+     meta.rotate_left_31_x_out = meta.rotate_left_31_x_out;
+   }
+ 
+   action compute_rotate_left_29() {
+-    meta.rotate_left_29_out = meta.rotate_left_29_x_out[23:0] ++ meta.rotate_left_29_x_out[31:24];
++    @in_hash { meta.rotate_left_29_out = meta.rotate_left_29_x_out[23:0] ++ meta.rotate_left_29_x_out[31:24]; }
+     @in_hash { meta.rotate_left_31_out = meta.rotate_left_31_x_out[18:0] ++ meta.rotate_left_31_x_out[31:19]; }
+   }
+ 
+@@ -900,7 +900,7 @@
+   }
+ 
+   action compute_rotate_left_108() {
+-    meta.rotate_left_108_out = meta.rotate_left_108_x_out[23:0] ++ meta.rotate_left_108_x_out[31:24];
++    @in_hash { meta.rotate_left_108_out = meta.rotate_left_108_x_out[23:0] ++ meta.rotate_left_108_x_out[31:24]; }
+   }
+ 
+   action compute_op_xor_346() {
+@@ -954,20 +954,20 @@
+ 
+   action compute_rotate_left_114_x() {
+     meta.rotate_left_114_x_out = meta.rotate_left_114_x_out;
+-    meta.rotate_left_112_out = meta.rotate_left_112_x_out[15:0] ++ meta.rotate_left_112_x_out[31:16];
++    @in_hash { meta.rotate_left_112_out = meta.rotate_left_112_x_out[15:0] ++ meta.rotate_left_112_x_out[31:16]; }
+     meta.rotate_left_113_x_out = meta.rotate_left_113_x_out;
+     meta.op_lshr_449_out = meta.op_sub_448_out >> 32w0x0000000c;
+   }
+ 
+   action compute_rotate_left_114() {
+-    meta.rotate_left_114_out = meta.rotate_left_114_x_out[23:0] ++ meta.rotate_left_114_x_out[31:24];
++    @in_hash { meta.rotate_left_114_out = meta.rotate_left_114_x_out[23:0] ++ meta.rotate_left_114_x_out[31:24]; }
+     @in_hash { meta.rotate_left_113_out = meta.rotate_left_113_x_out[26:0] ++ meta.rotate_left_113_x_out[31:27]; }
+     meta.rotate_left_115_x_out = meta.rotate_left_115_x_out;
+     meta.op_add_356_out = meta.rotate_left_112_out + meta.rotate_left_114_x_out;
+   }
+ 
+   action compute_rotate_left_115() {
+-    meta.rotate_left_115_out = meta.rotate_left_115_x_out[15:0] ++ meta.rotate_left_115_x_out[31:16];
++    @in_hash { meta.rotate_left_115_out = meta.rotate_left_115_x_out[15:0] ++ meta.rotate_left_115_x_out[31:16]; }
+     meta.op_xor_357_out = meta.rotate_left_113_out ^ meta.rotate_left_115_x_out;
+     meta.op_xor_359_out = meta.rotate_left_114_out ^ meta.op_add_356_out;
+     meta.rotate_left_116_x_out = meta.rotate_left_116_x_out;
+@@ -985,7 +985,7 @@
+   }
+ 
+   action compute_rotate_left_118() {
+-    meta.rotate_left_118_out = meta.rotate_left_118_x_out[15:0] ++ meta.rotate_left_118_x_out[31:16];
++    @in_hash { meta.rotate_left_118_out = meta.rotate_left_118_x_out[15:0] ++ meta.rotate_left_118_x_out[31:16]; }
+     meta.rotate_left_119_x_out = meta.rotate_left_119_x_out;
+     meta.op_xor_361_out = meta.rotate_left_117_out ^ meta.op_add_360_out;
+     meta.op_xor_362_out = meta.op_add_360_out ^ hdr.hdr1.data3;
+@@ -999,9 +999,9 @@
+   }
+ 
+   action compute_rotate_left_120() {
+-    meta.rotate_left_120_out = meta.rotate_left_120_x_out[23:0] ++ meta.rotate_left_120_x_out[31:24];
++    @in_hash { meta.rotate_left_120_out = meta.rotate_left_120_x_out[23:0] ++ meta.rotate_left_120_x_out[31:24]; }
+     meta.op_add_366_out = meta.rotate_left_118_out + meta.op_xor_365_out;
+-    meta.rotate_left_121_out = meta.rotate_left_121_x_out[15:0] ++ meta.rotate_left_121_x_out[31:16];
++    @in_hash { meta.rotate_left_121_out = meta.rotate_left_121_x_out[15:0] ++ meta.rotate_left_121_x_out[31:16]; }
+     meta.op_xor_367_out = meta.rotate_left_119_out ^ meta.rotate_left_121_x_out;
+     meta.rotate_left_122_x_out = meta.rotate_left_122_x_out;
+   }
+@@ -1014,7 +1014,7 @@
+ 
+   action compute_rotate_left_123() {
+     @in_hash { meta.rotate_left_123_out = meta.rotate_left_123_x_out[24:0] ++ meta.rotate_left_123_x_out[31:25]; }
+-    meta.rotate_left_124_out = meta.rotate_left_124_x_out[15:0] ++ meta.rotate_left_124_x_out[31:16];
++    @in_hash { meta.rotate_left_124_out = meta.rotate_left_124_x_out[15:0] ++ meta.rotate_left_124_x_out[31:16]; }
+     meta.op_add_370_out = meta.rotate_left_121_out + meta.rotate_left_123_x_out;
+     meta.rotate_left_125_x_out = meta.rotate_left_125_x_out;
+   }
+@@ -1026,8 +1026,8 @@
+   }
+ 
+   action compute_rotate_left_126() {
+-    meta.rotate_left_126_out = meta.rotate_left_126_x_out[23:0] ++ meta.rotate_left_126_x_out[31:24];
+-    meta.rotate_left_127_out = meta.rotate_left_127_x_out[15:0] ++ meta.rotate_left_127_x_out[31:16];
++    @in_hash { meta.rotate_left_126_out = meta.rotate_left_126_x_out[23:0] ++ meta.rotate_left_126_x_out[31:24]; }
++    @in_hash { meta.rotate_left_127_out = meta.rotate_left_127_x_out[15:0] ++ meta.rotate_left_127_x_out[31:16]; }
+     meta.rotate_left_128_x_out = meta.rotate_left_128_x_out;
+     meta.op_add_374_out = meta.rotate_left_124_out + meta.rotate_left_126_x_out;
+   }
+@@ -1040,7 +1040,7 @@
+ 
+   action compute_rotate_left_129() {
+     @in_hash { meta.rotate_left_129_out = meta.rotate_left_129_x_out[24:0] ++ meta.rotate_left_129_x_out[31:25]; }
+-    meta.rotate_left_130_out = meta.rotate_left_130_x_out[15:0] ++ meta.rotate_left_130_x_out[31:16];
++    @in_hash { meta.rotate_left_130_out = meta.rotate_left_130_x_out[15:0] ++ meta.rotate_left_130_x_out[31:16]; }
+     meta.op_add_378_out = meta.rotate_left_127_out + meta.rotate_left_129_x_out;
+     meta.rotate_left_131_x_out = meta.rotate_left_131_x_out;
+   }
+@@ -1057,8 +1057,8 @@
+   }
+ 
+   action compute_rotate_left_132() {
+-    meta.rotate_left_132_out = meta.rotate_left_132_x_out[23:0] ++ meta.rotate_left_132_x_out[31:24];
+-    meta.rotate_left_133_out = meta.rotate_left_133_x_out[15:0] ++ meta.rotate_left_133_x_out[31:16];
++    @in_hash { meta.rotate_left_132_out = meta.rotate_left_132_x_out[23:0] ++ meta.rotate_left_132_x_out[31:24]; }
++    @in_hash { meta.rotate_left_133_out = meta.rotate_left_133_x_out[15:0] ++ meta.rotate_left_133_x_out[31:16]; }
+     meta.op_add_386_out = meta.rotate_left_130_out + meta.rotate_left_132_x_out;
+     meta.op_xor_387_out = meta.rotate_left_131_out ^ meta.rotate_left_133_x_out;
+   }
+@@ -1070,14 +1070,14 @@
+   }
+ 
+   action compute_rotate_left_160() {
+-    meta.rotate_left_160_out = meta.rotate_left_160_x_out[15:0] ++ meta.rotate_left_160_x_out[31:16];
++    @in_hash { meta.rotate_left_160_out = meta.rotate_left_160_x_out[15:0] ++ meta.rotate_left_160_x_out[31:16]; }
+     @in_hash { meta.rotate_left_161_out = meta.rotate_left_161_x_out[26:0] ++ meta.rotate_left_161_x_out[31:27]; }
+-    meta.rotate_left_162_out = meta.rotate_left_162_x_out[23:0] ++ meta.rotate_left_162_x_out[31:24];
++    @in_hash { meta.rotate_left_162_out = meta.rotate_left_162_x_out[23:0] ++ meta.rotate_left_162_x_out[31:24]; }
+     meta.rotate_left_163_x_out = meta.rotate_left_163_x_out;
+   }
+ 
+   action compute_rotate_left_163() {
+-    meta.rotate_left_163_out = meta.rotate_left_163_x_out[15:0] ++ meta.rotate_left_163_x_out[31:16];
++    @in_hash { meta.rotate_left_163_out = meta.rotate_left_163_x_out[15:0] ++ meta.rotate_left_163_x_out[31:16]; }
+     meta.rotate_left_164_x_out = meta.rotate_left_164_x_out;
+     meta.op_add_429_out = meta.rotate_left_160_out + meta.rotate_left_162_x_out;
+   }
+@@ -1092,7 +1092,7 @@
+ 
+   action compute_rotate_left_164_or() {
+     meta.rotate_left_164_or_out = meta.rotate_left_164_shl_out | meta.rotate_left_164_shr_out;
+-    meta.rotate_left_166_out = meta.rotate_left_166_x_out[15:0] ++ meta.rotate_left_166_x_out[31:16];
++    @in_hash { meta.rotate_left_166_out = meta.rotate_left_166_x_out[15:0] ++ meta.rotate_left_166_x_out[31:16]; }
+     @in_hash { meta.rotate_left_165_out = meta.rotate_left_165_x_out[24:0] ++ meta.rotate_left_165_x_out[31:25]; }
+     meta.op_add_433_out = meta.rotate_left_163_out + meta.op_xor_432_out;
+   }
+@@ -1105,14 +1105,14 @@
+ 
+   action compute_rotate_left_167() {
+     @in_hash { meta.rotate_left_167_out = meta.rotate_left_167_x_out[26:0] ++ meta.rotate_left_167_x_out[31:27]; }
+-    meta.rotate_left_168_out = meta.rotate_left_168_x_out[23:0] ++ meta.rotate_left_168_x_out[31:24];
++    @in_hash { meta.rotate_left_168_out = meta.rotate_left_168_x_out[23:0] ++ meta.rotate_left_168_x_out[31:24]; }
+     meta.op_add_435_out = meta.op_add_433_out + meta.op_xor_434_out;
+     meta.rotate_left_169_x_out = meta.rotate_left_169_x_out;
+     meta.op_add_437_out = meta.rotate_left_166_out + meta.rotate_left_168_x_out;
+   }
+ 
+   action compute_rotate_left_169() {
+-    meta.rotate_left_169_out = meta.rotate_left_169_x_out[15:0] ++ meta.rotate_left_169_x_out[31:16];
++    @in_hash { meta.rotate_left_169_out = meta.rotate_left_169_x_out[15:0] ++ meta.rotate_left_169_x_out[31:16]; }
+     meta.rotate_left_170_x_out = meta.rotate_left_170_x_out;
+     meta.op_xor_440_out = meta.rotate_left_168_out ^ meta.op_add_437_out;
+     meta.rotate_left_171_x_out = meta.rotate_left_171_x_out;
+@@ -1130,7 +1130,7 @@
+   action compute_rotate_left_170_or() {
+     meta.rotate_left_170_or_out = meta.rotate_left_170_shl_out | meta.rotate_left_170_shr_out;
+     meta.rotate_left_171_or_out = meta.rotate_left_171_shl_out | meta.rotate_left_171_shr_out;
+-    meta.rotate_left_172_out = meta.rotate_left_172_x_out[15:0] ++ meta.rotate_left_172_x_out[31:16];
++    @in_hash { meta.rotate_left_172_out = meta.rotate_left_172_x_out[15:0] ++ meta.rotate_left_172_x_out[31:16]; }
+   }
+ 
+   action compute_rotate_left_173_x() {
+@@ -1141,7 +1141,7 @@
+   action compute_rotate_left_173_shl() {
+     meta.rotate_left_173_shl_out = meta.rotate_left_173_x_out << 5;
+     meta.rotate_left_173_shr_out = meta.rotate_left_173_x_out >> 27;
+-    meta.rotate_left_174_out = meta.rotate_left_174_x_out[23:0] ++ meta.rotate_left_174_x_out[31:24];
++    @in_hash { meta.rotate_left_174_out = meta.rotate_left_174_x_out[23:0] ++ meta.rotate_left_174_x_out[31:24]; }
+     meta.op_add_445_out = meta.rotate_left_172_out + meta.rotate_left_174_x_out;
+     meta.op_add_443_out = meta.op_add_441_out + meta.rotate_left_173_x_out;
+     meta.rotate_left_175_x_out = meta.rotate_left_175_x_out;
+@@ -1150,7 +1150,7 @@
+   action compute_rotate_left_173_or() {
+     meta.rotate_left_173_or_out = meta.rotate_left_173_shl_out | meta.rotate_left_173_shr_out;
+     meta.rotate_left_177_x_out = meta.rotate_left_177_x_out;
+-    meta.rotate_left_175_out = meta.rotate_left_175_x_out[15:0] ++ meta.rotate_left_175_x_out[31:16];
++    @in_hash { meta.rotate_left_175_out = meta.rotate_left_175_x_out[15:0] ++ meta.rotate_left_175_x_out[31:16]; }
+   }
+ 
+   action compute_rotate_left_177() {
+@@ -1167,7 +1167,7 @@
+   }
+ 
+   action compute_rotate_left_178() {
+-    meta.rotate_left_178_out = meta.rotate_left_178_x_out[15:0] ++ meta.rotate_left_178_x_out[31:16];
++    @in_hash { meta.rotate_left_178_out = meta.rotate_left_178_x_out[15:0] ++ meta.rotate_left_178_x_out[31:16]; }
+     meta.op_xor_453_out = meta.rotate_left_176_out ^ meta.rotate_left_178_x_out;
+   }
+ 
+@@ -1184,7 +1184,7 @@
+   }
+ 
+   action swap_action_180() {
+-    hdr.hdr2.data0 = hdr.hdr2.data0[15:0] ++ hdr.hdr2.data0[31:16];
++    @in_hash { hdr.hdr2.data0 = hdr.hdr2.data0[15:0] ++ hdr.hdr2.data0[31:16]; }
+   }
+   action swap_action_181() {
+     swap32(hdr.hdr1.data3, hdr.hdr1.data4);
+@@ -1950,7 +1950,7 @@
+   }
+ 
+   action compute_rotate_left_136() {
+-    eg_md.rotate_left_136_out = eg_md.rotate_left_136_x_out[15:0] ++ eg_md.rotate_left_136_x_out[31:16];
++    @in_hash { eg_md.rotate_left_136_out = eg_md.rotate_left_136_x_out[15:0] ++ eg_md.rotate_left_136_x_out[31:16]; }
+     @in_hash { eg_md.rotate_left_134_out = eg_md.rotate_left_134_x_out[18:0] ++ eg_md.rotate_left_134_x_out[31:19]; }
+   }
+ 
+@@ -1968,13 +1968,13 @@
+ 
+   action compute_rotate_left_137() {
+     @in_hash { eg_md.rotate_left_137_out = eg_md.rotate_left_137_x_out[26:0] ++ eg_md.rotate_left_137_x_out[31:27]; }
+-    eg_md.rotate_left_138_out = eg_md.rotate_left_138_x_out[23:0] ++ eg_md.rotate_left_138_x_out[31:24];
++    @in_hash { eg_md.rotate_left_138_out = eg_md.rotate_left_138_x_out[23:0] ++ eg_md.rotate_left_138_x_out[31:24]; }
+     eg_md.rotate_left_139_x_out = eg_md.rotate_left_139_x_out;
+     eg_md.op_add_394_out = eg_md.rotate_left_136_out + eg_md.op_xor_393_out;
+   }
+ 
+   action compute_rotate_left_139() {
+-    eg_md.rotate_left_139_out = eg_md.rotate_left_139_x_out[15:0] ++ eg_md.rotate_left_139_x_out[31:16];
++    @in_hash { eg_md.rotate_left_139_out = eg_md.rotate_left_139_x_out[15:0] ++ eg_md.rotate_left_139_x_out[31:16]; }
+     eg_md.rotate_left_140_x_out = eg_md.rotate_left_140_x_out;
+     eg_md.rotate_left_141_x_out = eg_md.rotate_left_141_x_out;
+   }
+@@ -1990,7 +1990,7 @@
+ 
+   action compute_rotate_left_140_or() {
+     eg_md.rotate_left_140_or_out = eg_md.rotate_left_140_shl_out | eg_md.rotate_left_140_shr_out;
+-    eg_md.rotate_left_142_out = eg_md.rotate_left_142_x_out[15:0] ++ eg_md.rotate_left_142_x_out[31:16];
++    @in_hash { eg_md.rotate_left_142_out = eg_md.rotate_left_142_x_out[15:0] ++ eg_md.rotate_left_142_x_out[31:16]; }
+     eg_md.op_xor_400_out = eg_md.op_add_398_out ^ hdr.egress_state.op_or_381_out;
+     eg_md.op_xor_399_out = eg_md.rotate_left_141_out ^ eg_md.op_add_398_out;
+   }
+@@ -2002,13 +2002,13 @@
+ 
+   action compute_rotate_left_143() {
+     @in_hash { eg_md.rotate_left_143_out = eg_md.rotate_left_143_x_out[26:0] ++ eg_md.rotate_left_143_x_out[31:27]; }
+-    eg_md.rotate_left_144_out = eg_md.rotate_left_144_x_out[23:0] ++ eg_md.rotate_left_144_x_out[31:24];
++    @in_hash { eg_md.rotate_left_144_out = eg_md.rotate_left_144_x_out[23:0] ++ eg_md.rotate_left_144_x_out[31:24]; }
+     eg_md.rotate_left_145_x_out = eg_md.rotate_left_145_x_out;
+     eg_md.op_add_404_out = eg_md.rotate_left_142_out + eg_md.rotate_left_144_x_out;
+   }
+ 
+   action compute_rotate_left_145() {
+-    eg_md.rotate_left_145_out = eg_md.rotate_left_145_x_out[15:0] ++ eg_md.rotate_left_145_x_out[31:16];
++    @in_hash { eg_md.rotate_left_145_out = eg_md.rotate_left_145_x_out[15:0] ++ eg_md.rotate_left_145_x_out[31:16]; }
+     eg_md.rotate_left_146_x_out = eg_md.rotate_left_146_x_out;
+     eg_md.rotate_left_147_x_out = eg_md.rotate_left_147_x_out;
+   }
+@@ -2024,7 +2024,7 @@
+ 
+   action compute_rotate_left_146_or() {
+     eg_md.rotate_left_146_or_out = eg_md.rotate_left_146_shl_out | eg_md.rotate_left_146_shr_out;
+-    eg_md.rotate_left_148_out = eg_md.rotate_left_148_x_out[15:0] ++ eg_md.rotate_left_148_x_out[31:16];
++    @in_hash { eg_md.rotate_left_148_out = eg_md.rotate_left_148_x_out[15:0] ++ eg_md.rotate_left_148_x_out[31:16]; }
+     eg_md.op_xor_411_out = eg_md.rotate_left_147_out ^ eg_md.op_add_408_out;
+     eg_md.rotate_left_150_x_out = eg_md.rotate_left_150_x_out;
+   }
+@@ -2033,7 +2033,7 @@
+     eg_md.op_xor_409_out = eg_md.rotate_left_146_or_out ^ eg_md.op_add_406_out;
+     eg_md.rotate_left_149_x_out = eg_md.rotate_left_149_x_out;
+     eg_md.op_add_412_out = eg_md.rotate_left_148_out + eg_md.op_xor_411_out;
+-    eg_md.rotate_left_150_out = eg_md.rotate_left_150_x_out[23:0] ++ eg_md.rotate_left_150_x_out[31:24];
++    @in_hash { eg_md.rotate_left_150_out = eg_md.rotate_left_150_x_out[23:0] ++ eg_md.rotate_left_150_x_out[31:24]; }
+   }
+ 
+   action compute_rotate_left_149() {
+@@ -2044,7 +2044,7 @@
+   }
+ 
+   action compute_rotate_left_151() {
+-    eg_md.rotate_left_151_out = eg_md.rotate_left_151_x_out[15:0] ++ eg_md.rotate_left_151_x_out[31:16];
++    @in_hash { eg_md.rotate_left_151_out = eg_md.rotate_left_151_x_out[15:0] ++ eg_md.rotate_left_151_x_out[31:16]; }
+     eg_md.rotate_left_152_x_out = eg_md.rotate_left_152_x_out;
+     @in_hash { eg_md.rotate_left_153_out = eg_md.rotate_left_153_x_out[24:0] ++ eg_md.rotate_left_153_x_out[31:25]; }
+   }
+@@ -2056,7 +2056,7 @@
+   }
+ 
+   action compute_rotate_left_154() {
+-    eg_md.rotate_left_154_out = eg_md.rotate_left_154_x_out[15:0] ++ eg_md.rotate_left_154_x_out[31:16];
++    @in_hash { eg_md.rotate_left_154_out = eg_md.rotate_left_154_x_out[15:0] ++ eg_md.rotate_left_154_x_out[31:16]; }
+     eg_md.op_xor_418_out = eg_md.rotate_left_152_out ^ eg_md.rotate_left_154_x_out;
+     eg_md.op_xor_420_out = eg_md.rotate_left_153_out ^ eg_md.op_add_416_out;
+     eg_md.rotate_left_155_x_out = eg_md.rotate_left_155_x_out;
+@@ -2066,13 +2066,13 @@
+ 
+   action compute_rotate_left_155() {
+     @in_hash { eg_md.rotate_left_155_out = eg_md.rotate_left_155_x_out[26:0] ++ eg_md.rotate_left_155_x_out[31:27]; }
+-    eg_md.rotate_left_156_out = eg_md.rotate_left_156_x_out[23:0] ++ eg_md.rotate_left_156_x_out[31:24];
++    @in_hash { eg_md.rotate_left_156_out = eg_md.rotate_left_156_x_out[23:0] ++ eg_md.rotate_left_156_x_out[31:24]; }
+     eg_md.rotate_left_157_x_out = eg_md.rotate_left_157_x_out;
+     eg_md.op_add_421_out = eg_md.rotate_left_154_out + eg_md.op_xor_420_out;
+   }
+ 
+   action compute_rotate_left_157() {
+-    eg_md.rotate_left_157_out = eg_md.rotate_left_157_x_out[15:0] ++ eg_md.rotate_left_157_x_out[31:16];
++    @in_hash { eg_md.rotate_left_157_out = eg_md.rotate_left_157_x_out[15:0] ++ eg_md.rotate_left_157_x_out[31:16]; }
+     eg_md.op_xor_422_out = eg_md.rotate_left_155_out ^ eg_md.rotate_left_157_x_out;
+     eg_md.rotate_left_158_x_out = eg_md.rotate_left_158_x_out;
+     eg_md.rotate_left_159_x_out = eg_md.rotate_left_159_x_out;

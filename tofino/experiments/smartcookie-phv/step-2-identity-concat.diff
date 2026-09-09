@@ -1,0 +1,11 @@
+--- scg2.p4	2026-09-09 16:08:49.447550061 +0000
++++ scg3.p4	2026-09-09 16:17:22.083580533 +0000
+@@ -1349,7 +1349,7 @@
+         meta.hdr_val0 = (hdr.egress_state.op_lshr_449_out) ^ (meta.op_xor_457_out);
+         meta.hdr_val1 = (32w0x00000001) + (hdr.hdr2.data1);
+         meta.hdr_val2 = ((bit<32>)(hdr.hdr2.data3[7:0])) | (32w0x00000012);
+-        hdr.hdr2.data1 = meta.hdr_val0[31:24] ++ meta.hdr_val0[23:16] ++ meta.hdr_val0[15:8] ++ meta.hdr_val0[7:0];
++        hdr.hdr2.data1 = meta.hdr_val0;
+         hdr.hdr2.data2 = meta.hdr_val1;
+         hdr.hdr2.data3 = 8w0x50 ++ meta.hdr_val2[7:0];
+         // EP node  140729:ModifyHeader

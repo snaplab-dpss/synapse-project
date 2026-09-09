@@ -77,12 +77,33 @@ PlacementResult clean_slate_placement(const Pipeline &pipeline, const DS *ds, co
       req_deps.insert(deps.begin(), deps.end());
     }
 
+    // Replay into the gress the request was placed in, and record it, so that the ordering rule
+    // in get_soonest_stage_satisfying_all_dependencies can tell the two apart. Without the record
+    // this pipeline's request list is empty, every dependency looks same-gress, and an egress
+    // table is pushed past the ingress tables it reads -- off the end of the pipeline.
+    if (req.gress == Gress::Egress) {
+      clean_slate_pipeline.cross_to_egress();
+    } else {
+      clean_slate_pipeline.back_to_ingress();
+    }
+
     const PlacementResult result = find_placements(clean_slate_pipeline, requested_ds, req_deps);
     if (result.status != PlacementStatus::Success) {
       return result;
     }
 
     clean_slate_pipeline.resources.set(*result.resources);
+    // Recorded only once placed: were it recorded first, already_requested() would hold for the
+    // very request being replayed, and detect_changes_to_already_placed_data_structure() would
+    // send this function back into itself.
+    clean_slate_pipeline.placement_requests.mutate().push_back(req);
+  }
+
+  // The replay leaves the gress wherever the last request put it; restore the caller's.
+  if (pipeline.resources->gress == Gress::Egress) {
+    clean_slate_pipeline.cross_to_egress();
+  } else {
+    clean_slate_pipeline.back_to_ingress();
   }
 
   return *clean_slate_pipeline.resources;

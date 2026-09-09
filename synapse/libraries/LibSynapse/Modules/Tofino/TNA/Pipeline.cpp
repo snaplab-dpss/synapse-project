@@ -20,8 +20,7 @@ PipelineResources::PipelineResources(const tna_properties_t &properties) {
   used_digests     = 0;
   used_compute_ops_ingress = 0;
   used_compute_ops_egress  = 0;
-  building_egress          = false;
-  pass_compute_ops         = 0;
+  gress                    = Gress::Ingress;
   for (int stage_id = 0; stage_id < properties.stages; stage_id++) {
     const Stage s{
         .stage_id                   = stage_id,
@@ -40,7 +39,7 @@ PipelineResources::PipelineResources(const tna_properties_t &properties) {
 
 PipelineResources::PipelineResources(const PipelineResources &other)
     : stages(other.stages), used_digests(other.used_digests), used_compute_ops_ingress(other.used_compute_ops_ingress),
-      used_compute_ops_egress(other.used_compute_ops_egress), building_egress(other.building_egress), pass_compute_ops(other.pass_compute_ops) {}
+      used_compute_ops_egress(other.used_compute_ops_egress), gress(other.gress) {}
 
 Pipeline::Pipeline(const tna_properties_t &_properties, const DataStructures &_data_structures)
     : properties(_properties), data_structures(_data_structures), resources(_properties) {}
@@ -175,7 +174,25 @@ int Pipeline::get_soonest_stage_satisfying_all_dependencies(const std::unordered
     return 0;
   }
 
+  // A dependency placed in the other gress does not hold this one back. The ingress runs to
+  // completion before the egress starts, and a later lap's ingress runs after the previous lap's
+  // egress, so in either direction the value is already there and stage numbering starts afresh.
+  // Without this an egress table had to sit after every ingress table it read, which on a full
+  // ingress means past stage 20 -- no stage at all. That is why a plan died on the node right
+  // after any crossing, and why a solution could only ever cross once, late.
+  //
+  // The stages themselves stay shared: one physical stage's memory serves both gresses.
   std::unordered_set<DS_ID> cummulative_ds;
+  for (const PlacementRequest &request : *placement_requests) {
+    if (request.gress != resources->gress) {
+      cummulative_ds.insert(request.ds);
+    }
+  }
+
+  if (std::all_of(deps.begin(), deps.end(), [&cummulative_ds](DS_ID dep) { return cummulative_ds.contains(dep); })) {
+    return 0;
+  }
+
   int soonest_stage_id = -1;
 
   for (const Stage &stage : resources->stages) {
@@ -213,7 +230,7 @@ void Pipeline::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
   resources.set(*result.resources);
 
   if (!duplicated_request) {
-    placement_requests.mutate().push_back({ds->id, std::make_shared<const std::unordered_set<DS_ID>>(deps)});
+    placement_requests.mutate().push_back({ds->id, std::make_shared<const std::unordered_set<DS_ID>>(deps), resources->gress});
   }
 }
 

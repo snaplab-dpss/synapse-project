@@ -400,7 +400,7 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   // sends the compute-run ladder to its next option: the egress, which is a second budget, and
   // only then another lap, which is not.
   Pipeline &pipeline = ctx->get_mutable_tna().pipeline;
-  if (!new_gress && (!pipeline.compute_op_fits() || !pipeline.pass_compute_op_fits())) {
+  if (!new_gress && !pipeline.compute_op_fits()) {
     return {};
   }
 
@@ -413,7 +413,6 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   if (plan && plan->append) {
     ctx->append_compute_op(plan->action_id, op, deps);
     pipeline.charge_compute_op();
-    pipeline.charge_pass_compute_op();
     push_unique(actions, plan->action_id);
     placed_ops.insert({op.id, plan->action_id});
     if (!full_placer) {
@@ -431,7 +430,6 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
 
   ctx->place(node->get_id(), action, deps);
   pipeline.charge_compute_op();
-  pipeline.charge_pass_compute_op();
   actions.push_back(new_action_id);
   placed_ops.insert({op.id, new_action_id});
   if (!full_placer) {

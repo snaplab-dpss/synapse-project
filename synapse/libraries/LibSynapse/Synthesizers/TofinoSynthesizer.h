@@ -233,6 +233,12 @@ private:
   // Only packets that crossed reach the egress, and they all took the one path that led to the
   // cut, so the egress parser can extract exactly these, linearly.
   std::vector<code_t> egress_parser_hdrs;
+
+  // Values a concat rotate has cut, by variable name. Copying one into a deparsed header field
+  // needs the hash unit (the field cannot be split, so each piece would be its own PHV source);
+  // copying an uncut one does not, and wrapping it anyway spends hash-distribution units, of
+  // which only three 32-bit ops fit per stage.
+  std::unordered_set<code_t> cut_values;
   std::unordered_set<code_t> ingress_metadata_var_names;
 
   const EP *target_ep;
