@@ -54,12 +54,17 @@ measured failure. See `README.md` for the experiments behind them. `sc_unrolled.
 the same NF with the rounds written out linearly instead, which also compiles and needs one
 recirculation rather than two; the section below says what that settled.
 
-## The work, in the order we will do it
+## The work: first, make it compile
 
 Every item below started as "synapse cannot express this". Testing each one before planning any
 work shrank most of them: one dissolved entirely, one left the critical path, and two turned out to
 be largely implemented already. What follows is ordered by the order we will actually take, with
 the original numbering kept in brackets so older notes still line up.
+
+**Items 1 to 3 are what it takes to make synapse emit a SmartCookie that compiles**, which is the
+milestone we are aiming at, and they are the only ones on the critical path. Items 4 to 6 are
+correctness and quality: none of them stops a program compiling, and checksums in particular mean
+the result will not be *correct* until item 4 lands. Item 7 is optional.
 
 The five rules under "Emission rules the compiler will not enforce" are not separate work; each
 attaches to whichever item touches it.
@@ -80,6 +85,22 @@ nearly free where a recirculation is not, and the placer has to know which budge
 `control Egress` is a hardcoded `apply {}`, and the deparser has none. Four or five new insertion
 points are the mechanical part.
 
+**Crossing into egress is its own module, `SendToEgress`.** Like `Recirculate` it sits at a point
+in the plan and means "everything after here runs in the egress pipeline", so the split is a single
+cut rather than a per-operation choice: one decision per pass, and a clean invariant that makes the
+header-crossing reuse the machinery `visit(Recirculate)` already has for moving the live set into a
+header. Its guard is that **no port-selecting decision may remain downstream**, which forces the
+search to consider egress only when the routing decision can be pulled back ahead of the cut. Two
+details the guard has to get right:
+
+- **Dropping in egress is still allowed**, only choosing a port is not. The ground truth depends on
+  this: the `cookie_age` check drops aged cookies from egress.
+- **Deciding to recirculate is a port selection**, since recirculation is `ucast_egress_port` set to
+  the recirculation port in ingress. So it too must be resolved before the cut.
+
+It also has to be costed at nearly nothing, unlike a recirculation: it is the same packet on the
+same pass. If the oracle does not say so, the search will never choose it.
+
 **The placer models one pipeline, not two.** `tna_properties_t` has `stages = 20` and a single
 `PipelineResources`; `pipes = 4` is the physical pipes and is unrelated. A recirculation pass is one
 20-stage pool. It has to become ingress + egress, and anything crossing the boundary has to travel
@@ -89,14 +110,6 @@ in a header, because the two gresses share no metadata.
 and the egress control has to open with the same `if (hdr.recirc.code_path == N)` chain the ingress
 has. Synapse already emits that chain in ingress and already carries live variables across a
 recirculation, so this is reuse, not new machinery.
-
-**And the emission-order rule**, which is the most directly actionable thing the experiment
-produced: mutually exclusive branches share stages, but only from where they start. A lap emitted
-after another lap's tables begins after them. Emitting the *recirculated* lap first, ahead of the
-first pass's clock/bloom/triage block, took ingress from 21 stages to 18, and the same reordering in
-egress took it from 21 to 18 and made the program compile. **The order in which alternative code
-paths are emitted decides whether a program fits**, and it is invisible unless you read the stage
-assignment out of the `.bfa`.
 
 Three constraints bound what can go in egress:
 
@@ -135,10 +148,43 @@ egress <= 20), **one shared memory constraint per physical stage** summing what 
 there, and **one PHV pool partitioned** between them. Today it has a single 20-stage pool with all
 of these folded into it, which is right only as long as egress stays empty.
 
-### 2. Deparser checksums *(was item 7, promoted: this one is already broken)*
+### 2. Choose the order alternative code paths are emitted
 
-Promoted above the emission rules because it is not a SmartCookie feature, it is a **live
-correctness bug in shipped solutions**, and it is independent of everything else on this list.
+Split out of item 1 because it is required to compile, not an optimisation, and it is invisible
+unless you read the stage assignment out of the `.bfa`.
+
+Mutually exclusive branches share stages, but only from where they start: a lap emitted after
+another lap's tables begins after them. Emitting the *recirculated* lap first, ahead of the first
+pass's clock/bloom/triage block, took ingress from 21 stages to 18, and the same reordering in
+egress took it from 21 to 18 and made the program compile. So the synthesizer has to choose the
+order it emits alternative code paths in, and the placer has to understand that choice.
+
+### 3. `@in_hash` for an expression that would span stages *(was item 4)*
+
+Synapse already has half of this: `RotateLeft::uses_hash_unit()` sends any rotate that is not a
+whole number of bytes through `@in_hash`, and `ComputeAction` budgets hash bits and hash
+distribution units. What is missing is the general case: **an expression tree that would span stages
+collapses into one hash-unit op.** `v0 ^ v1 ^ v2 ^ v3` costs three ALU instructions and an action
+cannot span stages ("xor: action spanning multiple stages"), but it is a single `@in_hash` op.
+
+**Assumption to verify before this is scheduled:** synapse's arithmetic unrolling already enforces
+"at most one arithmetic op per expression", so it probably emits three chained xors rather than one
+illegal action. If so this is not a hard error but a stage-budget cost, two extra dependency levels
+in an egress pipeline that finished at 18 of 20 in the hand build, which may or may not tip it over.
+
+Two other uses in an earlier version of this file turned out to be superstition: a slice-and-widen
+read of an intrinsic (`ctime = ingress_mac_tstamp[47:16]`) and a byte read feeding a table parameter
+(`nf_dev = dst[31:24]`) both compile as plain ALU ops and pass the model test. They have been
+removed, taking the program from ten `@in_hash` sites to eight.
+
+## Then: correctness, quality, and what is optional
+
+### 4. Deparser checksums *(was item 7)*
+
+Behind the compile-critical items only because it does not stop a program compiling. It is
+otherwise the most urgent thing here: not a SmartCookie feature but a **live correctness bug in
+shipped solutions**, and independent of everything else on this list, so it can proceed in
+parallel.
 
 Synapse emits no dataplane checksum at all: `Ignore.cpp` lists `nf_set_rte_ipv4_udptcp_checksum`
 among the calls it drops, and `ModifyHeader.cpp`'s `filter_out_checksum_mods` strips the checksum
@@ -163,20 +209,7 @@ So every field a checksum touches must be a header field in its own right, which
 here, as are the TCP window, checksum and urgent pointer. The ground truth shows the whole shape of
 the fix, a deparser `Checksum().update({...})` guarded by a flag the rewriting actions set.
 
-### 3. `@in_hash` for an expression that would span stages *(was item 4)*
-
-Synapse already has half of this: `RotateLeft::uses_hash_unit()` sends any rotate that is not a
-whole number of bytes through `@in_hash`, and `ComputeAction` budgets hash bits and hash
-distribution units. What is missing is the general case: **an expression tree that would span stages
-collapses into one hash-unit op.** `v0 ^ v1 ^ v2 ^ v3` costs three ALU instructions and an action
-cannot span stages ("xor: action spanning multiple stages"), but it is a single `@in_hash` op.
-
-Two other uses in an earlier version of this file turned out to be superstition: a slice-and-widen
-read of an intrinsic (`ctime = ingress_mac_tstamp[47:16]`) and a byte read feeding a table parameter
-(`nf_dev = dst[31:24]`) both compile as plain ALU ops and pass the model test. They have been
-removed, taking the program from ten `@in_hash` sites to eight.
-
-### 4. The immediate pathway is a per-table budget *(was item 5)*
+### 5. The immediate pathway is a per-table budget *(was item 5)*
 
 Not "one hash-producing action per table": the limit is **32 bits of hash-produced immediate data
 per table, summed over its actions**. Merging the two final-xor actions into one table gives "the
@@ -191,7 +224,7 @@ The claim that a hash operation cannot sit in a keyless table is **wrong**: ever
 holds an `@in_hash` and is called bare from the apply block, and bf-p4c compiles each into a keyless
 `hash_action` table. The bloom's `Hash.get()` queries are the same shape.
 
-### 5. Gateway comparisons *(was item 6)*
+### 6. Gateway comparisons *(was item 6)*
 
 Measured, the gateway budget splits by comparison kind rather than by width alone:
 
@@ -218,7 +251,7 @@ remain, both latent:
   sail through, and bf-p4c then rejects the program. The check needs to sum the non-constant operand
   widths against 12 bits for relational comparisons.
 
-### 6. Optional: emit one body executed many times *(was item 1)*
+### 7. Optional: emit one body executed many times *(was item 1)*
 
 The rolled ground truth writes the chain once and re-executes it each lap, so three laps cost one
 lap of hardware. Synapse emits separate code per lap, because its BDD arrived from symbolic
