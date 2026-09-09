@@ -35,6 +35,7 @@ public:
   // ========================================
 
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToEgress *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Ignore *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::If *node) override final;
@@ -48,6 +49,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserReject *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapSetTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *node) override final;
@@ -173,6 +175,23 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterSet *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneExpireItemsSingleMapIteratively *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::MapAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::ChtAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMapTableAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneGuardedMapTableAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneDchainTableAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorTableAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedSetAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCuckooHashTableAllocate *node) override final;
 
   // ========================================
   // x86

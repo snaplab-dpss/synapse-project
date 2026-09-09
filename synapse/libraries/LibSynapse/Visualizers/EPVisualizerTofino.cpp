@@ -46,6 +46,7 @@ VISIT_BRANCH(Tofino::ParserCondition)
 
 SHOW_MODULE_NAME(Tofino::ParserReject)
 SHOW_MODULE_NAME(Tofino::SendToController)
+SHOW_MODULE_NAME(Tofino::LPMLookup)
 SHOW_MODULE_NAME(Tofino::Drop)
 SHOW_MODULE_NAME(Tofino::Broadcast)
 SHOW_MODULE_NAME(Tofino::ModifyHeader)
@@ -63,6 +64,23 @@ SHOW_MODULE_NAME(Tofino::ArithmeticOp)
 SHOW_MODULE_NAME(Tofino::RotateLeft)
 SHOW_MODULE_NAME(Tofino::RotateLeftShifts)
 SHOW_MODULE_NAME(Tofino::VectorRegisterReadConditionalIncrement)
+
+EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToEgress *node) {
+  std::stringstream label_builder;
+
+  const klee::ref<klee::Expr> dst_device = node->get_dst_device();
+
+  label_builder << "SendToEgress";
+  if (!dst_device.isNull()) {
+    label_builder << " (";
+    label_builder << pretty_print_expr(dst_device, false);
+    label_builder << ")";
+  }
+
+  function_call(ep_node, node->get_node(), node->get_target(), label_builder.str());
+
+  return EPVisitor::Action::doChildren;
+}
 
 EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Tofino::Recirculate *node) {
   std::stringstream label_builder;
