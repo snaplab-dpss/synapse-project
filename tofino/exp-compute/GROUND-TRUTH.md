@@ -167,10 +167,26 @@ distribution units. What is missing is the general case: **an expression tree th
 collapses into one hash-unit op.** `v0 ^ v1 ^ v2 ^ v3` costs three ALU instructions and an action
 cannot span stages ("xor: action spanning multiple stages"), but it is a single `@in_hash` op.
 
-**Assumption to verify before this is scheduled:** synapse's arithmetic unrolling already enforces
-"at most one arithmetic op per expression", so it probably emits three chained xors rather than one
-illegal action. If so this is not a hard error but a stage-budget cost, two extra dependency levels
-in an egress pipeline that finished at 18 of 20 in the hand build, which may or may not tip it over.
+**Verified, and the reason is not what it looks like.** Synapse's arithmetic unrolling
+(`LibBDD/Unroll.cpp`) already turns every multi-operand expression into one `op_*` BDD node per
+operation, `Xor` included, and hyperloglog's shipped P4 shows `op_sub` then `op_add` as separate
+nodes. So synapse would emit three chained xors, not one illegal action, and this looked like a mere
+stage-budget cost. It is not. Four variants of `sc_unrolled.p4`, changing only how the final xor is
+written:
+
+| how the 4-way xor is emitted | result |
+|---|---|
+| one `@in_hash` op | compiles |
+| three chained **ALU** xors into three metadata fields | PHV allocation fails |
+| three chained **ALU** xors into one metadata field | PHV allocation fails |
+| three chained xors, each through **`@in_hash`** | compiles |
+
+The failure names `hdr.recirc_state.v2` fragmenting into bit slices, the same failure mode as the
+original ingress-only SmartCookie. So the rule is not "collapse an expression into one op" but
+**operations on the hash state words have to go through the hash unit**: an ALU read of `v0..v3`
+adds operand-alignment constraints to containers that are already carrying many, and the allocator
+fragments them; a hash-unit read imposes none. Collapsing into a single op is one way to satisfy
+that, three hash ops are another. **This item is required to compile.**
 
 Two other uses in an earlier version of this file turned out to be superstition: a slice-and-widen
 read of an intrinsic (`ctime = ingress_mac_tstamp[47:16]`) and a byte read feeding a table parameter
@@ -317,11 +333,19 @@ where the rolled ground truth needs two. Ingress uses 19 stages, egress 18, over
 - **Ingress is the scarce pipeline**, because the clock, bloom and triage tables sit ahead of the
   chain: it holds about 2 rounds per lap against egress's 4.
 
-**Open, and not understood: the bloom filter stops working in this build.** Everything else passes
-`tests/smartcookie.py` against it, including the full SYN to cookie to verified-ACK round trip and
-the hash-versus-reference check, so the unrolled twelve rounds are correct. But an ECE packet from
-the server no longer records its flow, and the bloom source is byte-identical to the version that
-works. The hash inputs of the set and read tables were checked in the `.bfa` and are consistent, and
-giving the two read bits their own metadata fields does not help. Whatever it is, it is a third case
-of placement alone changing behaviour with no compiler complaint. `sc_unrolled.p4` is kept as an
-experiment, deliberately not in `synthesized/`, because it is not a validated solution.
+**It passes `tests/smartcookie.py`.** The bloom filter did stop working at first, with source
+byte-identical to the version that works, and the cause turned out to be worth more than the
+experiment: **bf-p4c split a `Register` across two stages.** `Ingress.bf_row_0` was allocated SRAM
+in stages 4 *and* 5, with two stateful ALUs, `tbl_bf_add$salu` in one and `tbl_bf_query$st1$salu` in
+the other. The ECE packet set the bit in one copy and the client packet read the other. `bf_row_1`,
+placed in a single stage, was fine. 0 errors reported.
+
+The fix is an emission rule, and it is the one to give synapse: **put a register's read and its
+write in the same table**, as actions selected by a key, so they cannot be placed in different
+stages. Doing that put each row back in one stage and the test passes, three runs in a row.
+
+That change surfaced one more target rule: **an action that uses the hash distribution unit cannot
+be a table's `default_action`** ("Cannot specify bf_query_0 as the default action, as it requires
+the hash distribution unit"). Both bloom actions became `const entries` with a `nop` default. This
+is very likely the origin of the old, wrongly generalised note that a hash operation cannot sit in a
+keyless table.

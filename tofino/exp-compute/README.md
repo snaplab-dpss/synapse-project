@@ -156,9 +156,12 @@ It dispatches through synapse's existing pass identifier, `hdr.recirc.code_path`
 and egress, with no counter field of its own: the mechanism the synthesizer already emits for
 multi-pass solutions is enough for an unrolled loop.
 
-Caveat, recorded rather than solved: the bloom filter stops working in this build although its
-source is byte-identical to the working one, so `sc_unrolled.p4` passes every part of
-`tests/smartcookie.py` except the recorded-flow path. See `GROUND-TRUTH.md`.
+It passes `tests/smartcookie.py`. Getting there turned up the worst silent miscompile of the lot:
+**bf-p4c split a `Register` across two stages**, allocating `Ingress.bf_row_0` SRAM in stages 4 and
+5 with a stateful ALU in each, so the bloom's write and its read landed on different copies of the
+state and never saw each other. 0 errors reported. Putting each row's read and write in a single
+table, as actions chosen by a key, puts the register back in one stage and fixes it. Doing that also
+showed that **an action using the hash distribution unit cannot be a table's `default_action`**.
 
 ## A crash the nested-pass fix exposed
 
@@ -210,7 +213,12 @@ lives in it, and the unrolled chain has around 160 values against the loop's nin
   SIGSEGV instead of exiting. This is why the ground truth splits its final xor across two tables.
 - A hash operation **can** sit in a keyless table: the ground truth's round actions each hold an
   `@in_hash`, are called bare from the apply block, and compile to keyless `hash_action` tables.
-  (An earlier note here claimed the opposite.)
+  (An earlier note here claimed the opposite.) What it cannot be is a table's `default_action`:
+  "Cannot specify bf_query_0 as the default action, as it requires the hash distribution unit".
+- A `Register`'s read and write must live in **one table**. Left in separate keyless tables they can
+  be placed in different stages, and bf-p4c then duplicates the register rather than refusing:
+  `Ingress.bf_row_0` got SRAM in two stages with a stateful ALU in each, silently splitting the
+  state in two. 0 errors reported.
 - `@in_hash` is needed for a multi-operand expression that would otherwise span stages
   (`a ^ b ^ c ^ d` is one hash op but three ALU instructions, and an action cannot span stages).
   It is *not* needed for a slice-and-widen read of an intrinsic, nor for a byte read feeding a

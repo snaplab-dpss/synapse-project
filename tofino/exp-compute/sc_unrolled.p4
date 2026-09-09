@@ -127,6 +127,7 @@ struct synapse_ingress_metadata_t {
   bit<32> ctime;
   bit<1>  bf_estimate;
   bit<1>  bf_read_0;
+  bit<2>  bf_sel;
   bit<1>  bf_read_1;
   bit<1>  is_server;
 }
@@ -505,6 +506,23 @@ control Ingress(
   action bf_add_1()   { bf_row_1_set.execute(bf_hash_1.get({ 3w1, hdr.hdr1.data5, 3w1, hdr.hdr1.data6, 3w1, hdr.hdr2.ports })); }
   action bf_estimate()      { meta.bf_estimate = meta.bf_read_0 & meta.bf_read_1; }
   action bf_estimate_zero() { meta.bf_estimate = 0; meta.bf_read_0 = 0; meta.bf_read_1 = 0; }
+  action bf_nop() {}
+  action bf_sel_add()   { meta.bf_sel = 1; }
+  action bf_sel_query() { meta.bf_sel = 0; }
+  table bf_row_0_tbl {
+    key = { meta.bf_sel: exact; }
+    actions = { bf_add_0; bf_query_0; bf_nop; }
+    const default_action = bf_nop();
+    const entries = { 0 : bf_query_0(); 1 : bf_add_0(); }
+    size = 4;
+  }
+  table bf_row_1_tbl {
+    key = { meta.bf_sel: exact; }
+    actions = { bf_add_1; bf_query_1; bf_nop; }
+    const default_action = bf_nop();
+    const entries = { 0 : bf_query_1(); 1 : bf_add_1(); }
+    size = 4;
+  }
 
   // ---------------------------------------------------------------------
   // Forwarding
@@ -636,14 +654,10 @@ control Ingress(
 
         bf_estimate_zero();
         if (hdr.hdr2.isValid()) {
-          if (meta.is_server == 1 && hdr.hdr2.data4[6:6] == 1) {
-            bf_add_0();
-            bf_add_1();
-          } else {
-            bf_query_0();
-            bf_query_1();
-            bf_estimate();
-          }
+          if (meta.is_server == 1 && hdr.hdr2.data4[6:6] == 1) { bf_sel_add(); } else { bf_sel_query(); }
+          bf_row_0_tbl.apply();
+          bf_row_1_tbl.apply();
+          bf_estimate();
         }
 
         triage.apply();
@@ -653,7 +667,7 @@ control Ingress(
   i1_pre();
   i1_1a(); i1_1b(); i1_2a(); i1_3a(); i1_3b(); i1_4a(); i1_4b();
   i2_1a(); i2_1b(); i2_2a(); i2_3a(); i2_3b(); i2_4a(); i2_4b();
-        build_recirc_hdr(SIP_PASS_2);
+        build_recirc_hdr(SIP_PASS_1);
         recirculate();
       } else {
         ig_intr_tm_md.bypass_egress = 1;
