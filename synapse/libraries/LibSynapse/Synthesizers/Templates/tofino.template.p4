@@ -66,6 +66,7 @@ struct synapse_ingress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
   cuckoo_h cuckoo;
+/*@{INGRESS_EGRESS_STATE_FIELD}@*/
 /*@{INGRESS_HEADERS}@*/
 }
 
@@ -79,6 +80,7 @@ struct synapse_ingress_metadata_t {
 struct synapse_egress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
+/*@{EGRESS_EGRESS_STATE_FIELD}@*/
 /*@{EGRESS_HEADERS}@*/
 }
 

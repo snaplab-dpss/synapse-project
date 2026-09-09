@@ -34,6 +34,8 @@ constexpr const char *const MARKER_INGRESS_DEPARSER_APPLY       = "INGRESS_DEPAR
 constexpr const char *const MARKER_EGRESS_HEADERS               = "EGRESS_HEADERS";
 constexpr const char *const MARKER_EGRESS_METADATA              = "EGRESS_METADATA";
 constexpr const char *const MARKER_EGRESS_STATE_HEADER          = "EGRESS_STATE_HEADER";
+constexpr const char *const MARKER_INGRESS_EGRESS_STATE_FIELD   = "INGRESS_EGRESS_STATE_FIELD";
+constexpr const char *const MARKER_EGRESS_EGRESS_STATE_FIELD    = "EGRESS_EGRESS_STATE_FIELD";
 constexpr const char *const MARKER_INGRESS_EGRESS_DECISION      = "INGRESS_EGRESS_DECISION";
 constexpr const char *const MARKER_EGRESS_PARSER_START          = "EGRESS_PARSER_START";
 constexpr const char *const MARKER_EGRESS_PARSER                = "EGRESS_PARSER";
@@ -2115,6 +2117,8 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_EGRESS_HEADERS, 1},
                                              {MARKER_EGRESS_METADATA, 1},
                                              {MARKER_EGRESS_STATE_HEADER, 0},
+                                             {MARKER_INGRESS_EGRESS_STATE_FIELD, 1},
+                                             {MARKER_EGRESS_EGRESS_STATE_FIELD, 1},
                                              {MARKER_INGRESS_EGRESS_DECISION, 2},
                                              {MARKER_EGRESS_PARSER_START, 2},
                                              {MARKER_EGRESS_PARSER, 1},
@@ -2127,6 +2131,19 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
       target_ep(_ep), transpiler(this) {}
 
 coder_t &TofinoSynthesizer::get(const std::string &marker) {
+  // Past a SendToEgress the plan runs in the other pipeline. Redirecting here rather than at
+  // every call site means the existing emission code needs no changes to work in egress.
+  if (in_egress) {
+    if (marker == MARKER_INGRESS_CONTROL_APPLY) {
+      return code_template.get(MARKER_EGRESS_CONTROL_APPLY);
+    }
+    if (marker == MARKER_INGRESS_CONTROL) {
+      return code_template.get(MARKER_EGRESS_CONTROL);
+    }
+    if (marker == MARKER_INGRESS_METADATA) {
+      return code_template.get(MARKER_EGRESS_METADATA);
+    }
+  }
   if (marker == MARKER_INGRESS_CONTROL_APPLY && active_recirc_code_path) {
     return recirc_coders[*active_recirc_code_path];
   }
@@ -2190,9 +2207,7 @@ void TofinoSynthesizer::synthesize() {
       decision << "ig_tm_md.bypass_egress = 1;\n";
     }
 
-    coder_t &eg_parser_start = code_template.get(MARKER_EGRESS_PARSER_START);
-    eg_parser_start.indent();
-    eg_parser_start << "transition accept;\n";
+
   }
 
   // Transpile the parser after the whole EP has been visited so we have all the headers available.
@@ -2237,6 +2252,40 @@ void TofinoSynthesizer::synthesize() {
     }
 
     var.declare(recirc_hdr);
+  }
+
+  if (!uses_egress) {
+    coder_t &eg_parser_start = code_template.get(MARKER_EGRESS_PARSER_START);
+    eg_parser_start.indent();
+    eg_parser_start << "transition accept;\n";
+  }
+
+  if (uses_egress) {
+    coder_t &eg_state_hdr = code_template.get(MARKER_EGRESS_STATE_HEADER);
+    eg_state_hdr << "header egress_state_h {\n";
+    for (const var_t &var : egress_state_hdr_vars.get_all()) {
+      const bits_t pad = var.is_bool() ? 7 : (8 - var.expr->getWidth()) % 8;
+      if (pad > 0) {
+        eg_state_hdr << "  @padding bit<" << pad << "> pad_" << var.get_stem() << ";\n";
+      }
+      eg_state_hdr << "  ";
+      var.declare(eg_state_hdr);
+    }
+    eg_state_hdr << "}\n";
+
+    code_template.get(MARKER_INGRESS_EGRESS_STATE_FIELD) << "  egress_state_h egress_state;\n";
+    code_template.get(MARKER_EGRESS_EGRESS_STATE_FIELD) << "  egress_state_h egress_state;\n";
+    code_template.get(MARKER_INGRESS_METADATA) << "  bit<1> to_egress;\n";
+
+    coder_t &eg_parser = code_template.get(MARKER_EGRESS_PARSER_START);
+    eg_parser.indent();
+    eg_parser << "pkt.extract(hdr.egress_state);\n";
+    eg_parser.indent();
+    eg_parser << "transition accept;\n";
+
+    coder_t &eg_deparser = code_template.get(MARKER_EGRESS_DEPARSER_APPLY);
+    eg_deparser.indent();
+    eg_deparser << "hdr.egress_state.setInvalid();\n";
   }
 
   coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER_APPLY);
@@ -2631,6 +2680,109 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   // 5. Revert the state back to before the recirculation was made
   active_recirc_code_path = enclosing_recirc_code_path;
+  ingress_vars = stack_backup;
+
+  return EPVisitor::Action::skipChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToEgress *node) {
+  assert(ep_node->get_children().size() == 1);
+  const EPNode *next = ep_node->get_children()[0];
+
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  uses_egress = true;
+
+  ingress_apply.indent();
+  ingress_apply << "meta.to_egress = 1;\n";
+  ingress_apply.indent();
+  ingress_apply << "hdr.egress_state.setValid();\n";
+
+  Stacks stack_backup = ingress_vars;
+
+  Stack first_stack               = ingress_vars.get_first_stack();
+  std::vector<var_t> egress_vars  = first_stack.get_all();
+  std::unordered_map<code_t, var_t> local_egress_vars_by_name;
+
+  // Same liveness rule as a recirculation: only what a BDD node reachable from here still uses
+  // travels, or the header does not fit the PHV.
+  std::unordered_set<std::string> live_symbols;
+  const BDDNode *cut_node = ep->get_bdd()->get_node_by_id(node->get_node()->get_id());
+  cut_node->visit_nodes([&live_symbols](const BDDNode *future_node) {
+    for (const symbol_t &symbol : future_node->get_used_symbols().get()) {
+      live_symbols.insert(symbol.name);
+    }
+    return BDDNodeVisitAction::Continue;
+  });
+  const auto is_live = [&live_symbols](const var_t &var) {
+    if (var.expr.isNull()) {
+      return false;
+    }
+    for (const std::string &name : symbol_t::get_symbols_names(var.expr)) {
+      if (live_symbols.contains(name)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  for (const Stack &stack : ingress_vars.get_all()) {
+    for (const var_t &var : stack.get_all()) {
+      if (first_stack.get_exact(var.expr)) {
+        continue;
+      }
+
+      if (var.is_header_field) {
+        egress_vars.push_back(var);
+        continue;
+      }
+
+      if (!is_live(var)) {
+        continue;
+      }
+
+      var_t egress_var = var;
+      egress_var.name  = egress_var.flatten_name();
+
+      auto found_it = local_egress_vars_by_name.find(egress_var.name);
+      if (found_it != local_egress_vars_by_name.end()) {
+        var_t alias = found_it->second;
+        alias.expr  = var.expr;
+        alias.size  = var.size;
+        egress_vars.push_back(alias);
+        continue;
+      }
+
+      var_t local_egress_var         = egress_var;
+      local_egress_var.name          = "hdr.egress_state." + egress_var.name;
+      local_egress_var.original_name = local_egress_var.name;
+
+      egress_state_hdr_vars.push(egress_var);
+      egress_vars.push_back(local_egress_var);
+      local_egress_vars_by_name.insert({egress_var.name, local_egress_var});
+
+      ingress_apply.indent();
+      ingress_apply << local_egress_var.name;
+      ingress_apply << " = ";
+      ingress_apply << var.name;
+      ingress_apply << ";\n";
+    }
+  }
+
+  ingress_vars.clear();
+  ingress_vars.push();
+  for (const var_t &var : egress_vars) {
+    ingress_vars.insert_back(var, /*allow_duplicates=*/true);
+  }
+
+  const bool enclosing_in_egress = in_egress;
+  in_egress                      = true;
+
+  ingress_vars.push();
+  visit(ep, next);
+  ingress_vars.pop();
+
+  in_egress    = enclosing_in_egress;
   ingress_vars = stack_backup;
 
   return EPVisitor::Action::skipChildren;

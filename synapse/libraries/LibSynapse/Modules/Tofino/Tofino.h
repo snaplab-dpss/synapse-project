@@ -6,6 +6,7 @@
 
 #include <LibSynapse/Modules/Tofino/SendToController.h>
 #include <LibSynapse/Modules/Tofino/Recirculate.h>
+#include <LibSynapse/Modules/Tofino/SendToEgress.h>
 #include <LibSynapse/Modules/Tofino/Forward.h>
 #include <LibSynapse/Modules/Tofino/Drop.h>
 #include <LibSynapse/Modules/Tofino/Broadcast.h>
@@ -69,6 +70,7 @@ struct TofinoTarget : public Target {
             []() -> std::vector<std::unique_ptr<ModuleFactory>> {
               std::vector<std::unique_ptr<ModuleFactory>> f;
               f.push_back(std::make_unique<RecirculateFactory>());
+              f.push_back(std::make_unique<SendToEgressFactory>());
               f.push_back(std::make_unique<ForwardFactory>());
               f.push_back(std::make_unique<DropFactory>());
               f.push_back(std::make_unique<BroadcastFactory>());
