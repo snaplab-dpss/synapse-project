@@ -27,13 +27,20 @@ cookies minted back to back must agree; and a clock update announcing a known va
 cookie_time to a value this test can name.
 """
 
+from os import environ
+
 from util import *
 
 NF = "smartcookie-manual"
 
-SERVER_PORT = 3  # NF device 2
-CLIENT_PORT = 5
-OTHER_CLIENT_PORT = 7
+# Which front panel port the server sits on, and the NF device it is known by. The hand-written
+# solutions put it on port 3 / device 2; a synthesized solution follows configs/tofino2-smartcookie
+# .toml, which uses port 1 / device 0. Routing is by the destination's first octet, so the device
+# number also picks the address a client uses to reach the server.
+SERVER_PORT = int(environ.get("SC_SERVER_PORT", "3"))
+SERVER_DEV = int(environ.get("SC_SERVER_DEV", "2"))
+CLIENT_PORT = int(environ.get("SC_CLIENT_PORT", "5"))
+OTHER_CLIENT_PORT = int(environ.get("SC_OTHER_CLIENT_PORT", "7"))
 TIMESYNC_PORT = 5555
 
 SYN = 0x02
@@ -152,9 +159,9 @@ def timesync_packet(ticks: int) -> Packet:
     )
 
 
-def client_flow(dst_octet: int = 2) -> Flow:
-    """A client -> server flow. The first octet of the destination only matters for routing."""
-    return build_flow(dst_addr=f"{dst_octet}.1.1.1")
+def client_flow(dst_octet: Optional[int] = None) -> Flow:
+    """A client -> server flow. The first octet of the destination is the server's NF device."""
+    return build_flow(dst_addr=f"{SERVER_DEV if dst_octet is None else dst_octet}.1.1.1")
 
 
 # --- the test -----------------------------------------------------------------------------------
