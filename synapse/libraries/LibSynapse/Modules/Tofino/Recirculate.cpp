@@ -4,6 +4,26 @@
 namespace LibSynapse {
 namespace Tofino {
 
+namespace {
+// Past an egress crossing the plan is in the other pipeline, where there is no fwd_op, no
+// build_cpu_hdr and no way to choose a port.
+bool past_egress_crossing(const EPNode *node) {
+  for (const EPNode *prev = node; prev; prev = prev->get_prev()) {
+    const Module *module = prev->get_module();
+    if (!module || module->get_target() != TargetType::Tofino) {
+      return false;
+    }
+    if (module->get_type() == ModuleType::Tofino_SendToEgress) {
+      return true;
+    }
+    if (module->get_type() == ModuleType::Tofino_Recirculate) {
+      return false;
+    }
+  }
+  return false;
+}
+} // namespace
+
 std::optional<spec_impl_t> RecirculateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   // No reason to speculatively predict recirculations.
   return {};
@@ -19,6 +39,10 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode
 
   if (active_leaf.node->forwarding_decision_already_made()) {
     // We can't recirculate if a forwarding decision was already made.
+    return {};
+  }
+
+  if (past_egress_crossing(active_leaf.node)) {
     return {};
   }
 
