@@ -5,6 +5,7 @@
 #include <LibSynapse/Modules/Tofino/TNA/TNAProperties.h>
 #include <LibCore/Types.h>
 
+#include <cstdlib>
 #include <unordered_set>
 #include <vector>
 
@@ -98,6 +99,7 @@ struct PipelineResources {
   int used_compute_ops_ingress;
   int used_compute_ops_egress;
   bool building_egress;
+  int pass_compute_ops; // Debug scaffolding only, see pass_compute_op_fits().
 
   PipelineResources(const tna_properties_t &properties);
   PipelineResources(const PipelineResources &other);
@@ -156,10 +158,33 @@ struct Pipeline {
     PipelineResources &r = resources.mutate();
     (r.building_egress ? r.used_compute_ops_egress : r.used_compute_ops_ingress)++;
   }
-  void cross_to_egress() { resources.mutate().building_egress = true; }
+  void cross_to_egress() {
+    PipelineResources &r = resources.mutate();
+    r.building_egress    = true;
+    r.pass_compute_ops   = 0;
+  }
   // A recirculated packet re-enters through the ingress, so later laps are charged there again.
-  void back_to_ingress() { resources.mutate().building_egress = false; }
+  void back_to_ingress() {
+    PipelineResources &r = resources.mutate();
+    r.building_egress    = false;
+    r.pass_compute_ops   = 0;
+  }
   bool is_building_egress() const { return resources->building_egress; }
+
+  // DEBUG SCAFFOLDING, off unless SYNAPSE_FORCE_EGRESS_AFTER is set. Caps what one *pass* puts in
+  // a gress, which is not a real constraint -- a gress is laid out as a whole -- but it forces the
+  // shape the hand-written solution has (a little in ingress, the bulk in egress, every lap) so we
+  // can ask whether synapse can build a compiling program at all, separately from whether its
+  // search would ever choose to.
+  int get_pass_compute_ops() const { return resources->pass_compute_ops; }
+  void charge_pass_compute_op() { resources.mutate().pass_compute_ops++; }
+  bool pass_compute_op_fits() const {
+    static const char *limit = getenv("SYNAPSE_FORCE_EGRESS_AFTER");
+    if (!limit || resources->building_egress) {
+      return true;
+    }
+    return resources->pass_compute_ops < atoi(limit);
+  }
 
   bool detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   int get_soonest_stage_satisfying_all_dependencies(const std::unordered_set<DS_ID> &deps) const;
