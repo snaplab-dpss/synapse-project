@@ -237,6 +237,47 @@ point has many intermediates live. **The plan should prefer pass boundaries wher
 live, and nothing in the score expresses that today** -- "Memory Usage" in the score is data
 structure memory, not live state. That cost term is the next piece of work.
 
+#### The hand-edit loop on the generated file, and a scoring bug it exposed
+
+Taking the latest non-compiling output and editing it by hand, as the method says, located the
+blocker in one step. The split of work is lopsided:
+
+| | ingress | egress |
+|---|---|---|
+| actions | 88 | 7 |
+| 32-bit metadata | 219 | 4 |
+
+The crossing lands on the *last op of the chain* (BDD node 457) and carries two values, so the
+egress does the final xor and the two address/port swaps while the ingress still holds everything
+else. The precise failure follows from that: `meta.rotate_left_152_or_out` is allocated as four
+8-bit containers, so storing it needs four PHV sources where Tofino 2 allows two. It fragments
+because the ingress has nothing left to give.
+
+Ruled out by hand, each by measurement:
+
+- **`@pa_container_size` pins.** 45 pins, then 38, then exactly the 13 fields bf-p4c names: all
+  give "PHV allocation was not successful". The ingress is at its 32-bit container limit, so extra
+  constraints only make allocation fail sooner. Pinning is not available to us at this scale.
+- **Splitting the recirculation store across actions.** Still fails at two writes per action, so
+  the "too many sources" half of the message is not the operative half.
+- **Sharing recirculation header slots between passes** (kept: the passes are mutually exclusive
+  and self-identifying by code path). Header went from 23 fields to 16. A real gain, not enough.
+
+**A scoring bug found and fixed.** The crossing had been scoring *worse* than a recirculation
+(-5 against -2 recirculations), which is absurd for something that is free. The cause was in
+`crossed_this_pass`: it consulted the plan's own nodes before the speculated ones. The speculated
+steps come *later* in time, so asking the plan first answered "already crossed" for the whole
+lookahead once the plan contained one crossing, denying every pass after the first its free egress.
+With the walks in the right order the crossing beats a recirculation on throughput, 286 Mpps
+against 244, and wins 101 of the 212 comparisons where both are offered.
+
+**It is still not chosen.** The winning plan contains no crossing at all. The likely mechanism, not
+yet confirmed: `SendToEgress` consumes no BDD node, so it never advances BDD progress, which is the
+second metric. A compute module that keeps the throughput the same *and* advances progress
+therefore outranks it every time, and the crossing only competes when no compute step is available.
+Why a recirculation is preferred at those moments is the next thing to establish, and log inspection
+has gone as far as it can: the EP visualiser or a trace of the winner's decisions is the next tool.
+
 #### How the pipeline's resources actually spread across the two gresses
 
 Measured from `resources.json` and the assembly of the ground truth's own build, because the answer
