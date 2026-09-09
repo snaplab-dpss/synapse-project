@@ -1946,6 +1946,32 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::compose_hdr_fi
         break;
       }
     }
+    if (found) {
+      continue;
+    }
+
+    // No field starts here. Since fields are coalesced to their natural width, a read can begin or
+    // end inside one -- bytes 10..11 of a TCP header are the last byte of the acknowledgement
+    // number and the first of the offset -- so take the part of the containing field that the read
+    // needs. A P4 header field is network order, byte 0 at the top, so the slice counts down.
+    for (const var_t &var : frames) {
+      if (!var.is_header_field || var.expr.isNull() || var.is_slice()) {
+        continue;
+      }
+      const std::optional<LibCore::consecutive_bytes_t> bytes = LibCore::get_consecutive_bytes(var.expr);
+      if (!bytes || bytes->network_order || bytes->array != target->array || next < bytes->lo || next > bytes->hi) {
+        continue;
+      }
+      const u32 end     = std::min(bytes->hi, target->hi);
+      const bits_t width = (bytes->hi - bytes->lo + 1) * 8;
+      const bits_t high  = width - 1 - (next - bytes->lo) * 8;
+      const bits_t low   = width - (end - bytes->lo + 1) * 8;
+      field_names.push_back(var.name + "[" + std::to_string(high) + ":" + std::to_string(low) + "]");
+      next  = end + 1;
+      found = true;
+      break;
+    }
+
     if (!found) {
       return {};
     }
@@ -2816,8 +2842,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   Stacks stack_backup = ingress_vars;
 
-  Stack first_stack               = ingress_vars.get_first_stack();
-  std::vector<var_t> egress_vars  = first_stack.get_all();
+  // Unlike a recirculation, the values the ingress starts with (meta.time, meta.dev, the ingress
+  // port) are *not* in scope on the far side of a crossing: the egress control takes eg_md, and
+  // those fields belong to the ingress. So they travel like anything else the egress still needs,
+  // rather than being assumed available -- referring to them by their ingress names emitted
+  // `meta.time` inside control Egress, which does not compile.
+  Stack first_stack = ingress_vars.get_first_stack();
+  std::vector<var_t> egress_vars;
   std::unordered_map<code_t, var_t> local_egress_vars_by_name;
 
   // Same liveness rule as a recirculation: only what a BDD node reachable from here still uses
@@ -2830,6 +2861,27 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     }
     return BDDNodeVisitAction::Continue;
   });
+  // A hand-off to the controller past the cut ships the data-plane state it replays, so those
+  // symbols have to cross too. A recirculation already accounts for this; without it here, a
+  // controller hand-off reached in the egress looks for a value that never travelled.
+  {
+    std::vector<const EPNode *> pending{next};
+    while (!pending.empty()) {
+      const EPNode *future_ep_node = pending.back();
+      pending.pop_back();
+      if (const Module *future_module = future_ep_node->get_module()) {
+        if (future_module->get_type() == ModuleType::Tofino_SendToController) {
+          for (const symbol_t &symbol : dynamic_cast<const Tofino::SendToController *>(future_module)->get_symbols().get()) {
+            live_symbols.insert(symbol.name);
+          }
+        }
+      }
+      for (const EPNode *child : future_ep_node->get_children()) {
+        pending.push_back(child);
+      }
+    }
+  }
+
   const auto is_live = [&live_symbols](const var_t &var) {
     if (var.expr.isNull()) {
       return false;
@@ -2844,12 +2896,19 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   for (const Stack &stack : ingress_vars.get_all()) {
     for (const var_t &var : stack.get_all()) {
-      if (first_stack.get_exact(var.expr)) {
+      if (var.is_header_field) {
+        egress_vars.push_back(var);
         continue;
       }
 
-      if (var.is_header_field) {
-        egress_vars.push_back(var);
+      // The egress reads the clock itself (see the template), so the same expression resolves
+      // there without travelling -- and travelling would lose the [47:16] convention the backend
+      // rewrites shifts against.
+      if (var.original_name == "meta.time") {
+        var_t egress_time = var;
+        egress_time.name  = "eg_md.time";
+        egress_time.original_name = egress_time.name;
+        egress_vars.push_back(egress_time);
         continue;
       }
 
