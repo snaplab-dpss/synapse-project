@@ -2719,6 +2719,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     egress_parser_hdrs = hdrs;
   }
 
+  if (const klee::ref<klee::Expr> dst_device = node->get_dst_device(); !dst_device.isNull()) {
+    code_t dst_device_code                    = transpiler.transpile(dst_device);
+    const std::optional<var_t> dst_device_var = ingress_vars.get(dst_device);
+    if (dst_device_var.has_value() && dst_device_var->is_header_field) {
+      dst_device_code = transpiler.swap_endianness(dst_device_code, dst_device->getWidth());
+    }
+    ingress_apply.indent();
+    ingress_apply << "nf_dev[15:0] = " << dst_device_code << ";\n";
+  }
+
   ingress_apply.indent();
   ingress_apply << "meta.to_egress = 1;\n";
   ingress_apply.indent();
@@ -2985,6 +2995,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Else *node) { return EPVisitor::Action::doChildren; }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Forward *node) {
+  if (in_egress) {
+    // SendToEgress already wrote the port: the egress cannot choose one, which is why the cut
+    // was only allowed where every reachable route agreed.
+    return EPVisitor::Action::doChildren;
+  }
+
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
   coder_t &ingress                 = get(MARKER_INGRESS_CONTROL_APPLY);
 
@@ -3006,6 +3022,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress = get(MARKER_INGRESS_CONTROL_APPLY);
 
   ingress.indent();
+  if (in_egress) {
+    ingress << "ig_intr_dprs_md.drop_ctl = 1;\n";
+    return EPVisitor::Action::doChildren;
+  }
   ingress << "fwd_op = fwd_op_t.DROP;\n";
 
   return EPVisitor::Action::doChildren;

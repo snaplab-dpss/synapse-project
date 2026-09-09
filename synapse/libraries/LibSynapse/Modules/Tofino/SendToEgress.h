@@ -16,16 +16,20 @@ namespace Tofino {
 class SendToEgress : public TofinoModule {
 private:
   Symbols symbols;
+  // The device every reachable route agrees on, pulled back to the ingress. Null when the only
+  // thing left downstream is a drop, which the egress can do on its own.
+  klee::ref<klee::Expr> dst_device;
 
 public:
-  SendToEgress(const BDDNode *_node, Symbols _symbols)
-      : TofinoModule(ModuleType::Tofino_SendToEgress, "SendToEgress", _node), symbols(_symbols) {}
+  SendToEgress(const BDDNode *_node, Symbols _symbols, klee::ref<klee::Expr> _dst_device)
+      : TofinoModule(ModuleType::Tofino_SendToEgress, "SendToEgress", _node), symbols(_symbols), dst_device(_dst_device) {}
 
   virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
 
-  virtual Module *clone() const { return new SendToEgress(node, symbols); }
+  virtual Module *clone() const { return new SendToEgress(node, symbols, dst_device); }
 
   const Symbols &get_symbols() const { return symbols; }
+  klee::ref<klee::Expr> get_dst_device() const { return dst_device; }
 };
 
 class SendToEgressFactory : public TofinoModuleFactory {
