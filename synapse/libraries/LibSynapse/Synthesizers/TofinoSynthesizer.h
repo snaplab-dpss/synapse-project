@@ -200,6 +200,11 @@ private:
   Stack hdr_vars;
   Stack cpu_hdr_vars;
   Stack recirc_hdr_vars;
+  // Recirculation passes are mutually exclusive and self-identifying: build_recirc_hdr stamps the
+  // code path and the next pass dispatches on it, so the reader of a slot is always the writer's
+  // counterpart. That lets passes share slots instead of each contributing its own fields, which
+  // matters because every field of the header has to sit in PHV at once to be deparsed.
+  std::map<code_t, size_t> recirc_slots_used;
   Stack egress_state_hdr_vars;
 
   std::unordered_set<DS_ID> declared_ds;

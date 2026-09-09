@@ -329,6 +329,7 @@ control Egress(
   inout egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md,
   inout egress_intrinsic_metadata_for_output_port_t eg_intr_oport_md
 ) {
+/*@{EGRESS_CONTROL_HELPERS}@*/
 /*@{EGRESS_CONTROL}@*/
   apply {
 /*@{EGRESS_CONTROL_APPLY}@*/

@@ -40,6 +40,7 @@ constexpr const char *const MARKER_INGRESS_EGRESS_DECISION      = "INGRESS_EGRES
 constexpr const char *const MARKER_EGRESS_PARSER_START          = "EGRESS_PARSER_START";
 constexpr const char *const MARKER_EGRESS_PARSER                = "EGRESS_PARSER";
 constexpr const char *const MARKER_EGRESS_CONTROL               = "EGRESS_CONTROL";
+constexpr const char *const MARKER_EGRESS_CONTROL_HELPERS       = "EGRESS_CONTROL_HELPERS";
 constexpr const char *const MARKER_EGRESS_CONTROL_APPLY         = "EGRESS_CONTROL_APPLY";
 constexpr const char *const MARKER_EGRESS_DEPARSER              = "EGRESS_DEPARSER";
 constexpr const char *const MARKER_EGRESS_DEPARSER_APPLY        = "EGRESS_DEPARSER_APPLY";
@@ -2123,6 +2124,7 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_EGRESS_PARSER_START, 2},
                                              {MARKER_EGRESS_PARSER, 1},
                                              {MARKER_EGRESS_CONTROL, 1},
+                                             {MARKER_EGRESS_CONTROL_HELPERS, 1},
                                              {MARKER_EGRESS_CONTROL_APPLY, 2},
                                              {MARKER_EGRESS_DEPARSER, 1},
                                              {MARKER_EGRESS_DEPARSER_APPLY, 2},
@@ -2239,7 +2241,11 @@ void TofinoSynthesizer::synthesize() {
   }
 
   coder_t &recirc_hdr = get(MARKER_RECIRC_HEADER);
+  std::unordered_set<code_t> declared_recirc_slots;
   for (const var_t &var : recirc_hdr_vars.get_all()) {
+    if (!declared_recirc_slots.insert(var.get_stem()).second) {
+      continue;
+    }
     bits_t pad = var.is_bool() ? 7 : (8 - var.expr->getWidth()) % 8;
 
     if (pad > 0) {
@@ -2277,9 +2283,11 @@ void TofinoSynthesizer::synthesize() {
     }
     eg_state_hdr << "}\n";
 
-    // Helpers the ingress control has inline. Emitted only when the egress is used, so a
-    // solution that stays in ingress comes out byte-identical.
-    coder_t &eg_control = code_template.get(MARKER_EGRESS_CONTROL);
+    // Helpers the ingress control has inline. Emitted only when the egress is used, so a solution
+    // that stays in ingress comes out byte-identical. They go in their own marker ahead of the
+    // control's body: this runs after the plan has been walked, and P4 wants a declaration before
+    // its use, so appending to the body's coder would put them after the actions that call them.
+    coder_t &eg_control = code_template.get(MARKER_EGRESS_CONTROL_HELPERS);
     eg_control << "  action swap(inout bit<8> a, inout bit<8> b) {\n";
     eg_control << "    bit<8> tmp = a;\n";
     eg_control << "    a = b;\n";
@@ -2614,6 +2622,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // recirculation header field after the recirculation, so aliases are kept, not squashed.
   std::unordered_map<code_t, var_t> local_recirc_vars_by_name;
 
+  // Slot counters restart for every recirculation, so the fields this pass needs land on the same
+  // header slots another pass uses for its own values.
+  std::map<code_t, size_t> slot_next;
+
   // Only what the rest of the processing needs goes around: a chain of computations leaves
   // many dead temporaries behind, and a header holding them all doesn't fit the PHV. Live:
   // every symbol a BDD node reachable from here uses (from the final BDD, not the module's
@@ -2681,11 +2693,17 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       continue;
     }
 
+    const code_t slot_kind = recirc_var.is_bool() ? code_t("b") : std::to_string(recirc_var.expr->getWidth());
+    const size_t slot      = slot_next[slot_kind]++;
+    recirc_slots_used[slot_kind] = std::max(recirc_slots_used[slot_kind], slot + 1);
+
     var_t local_recirc_var         = recirc_var;
-    local_recirc_var.name          = "hdr.recirc." + recirc_var.name;
+    local_recirc_var.name          = "hdr.recirc.f" + slot_kind + "_" + std::to_string(slot);
     local_recirc_var.original_name = local_recirc_var.name;
 
-    recirc_hdr_vars.push(recirc_var);
+    var_t slot_var = recirc_var;
+    slot_var.name  = "f" + slot_kind + "_" + std::to_string(slot);
+    recirc_hdr_vars.push(slot_var);
     recirc_vars.push_back(local_recirc_var);
     local_recirc_vars_by_name.insert({recirc_var.name, local_recirc_var});
 
