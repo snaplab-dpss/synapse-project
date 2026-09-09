@@ -240,6 +240,27 @@ control Ingress(
     b = tmp;
   }
 
+  // Swapping two fields a byte at a time forces byte-granular PHV slicing on both of them, and a
+  // field sliced that way drags its neighbours into the same container group; bf-p4c then cannot
+  // satisfy the action constraints. Swap whole fields where the byte pairs make one up.
+  action swap16(inout bit<16> a, inout bit<16> b) {
+    bit<16> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
+  action swap24(inout bit<24> a, inout bit<24> b) {
+    bit<24> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
+  action swap32(inout bit<32> a, inout bit<32> b) {
+    bit<32> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
   bit<1> diff_sign_bit;
   action calculate_diff_32b(bit<32> a, bit<32> b) { diff_sign_bit = (a - b)[31:31]; }
   action calculate_diff_16b(bit<16> a, bit<16> b) { diff_sign_bit = (a - b)[15:15]; }

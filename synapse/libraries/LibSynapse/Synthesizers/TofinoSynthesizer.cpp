@@ -277,6 +277,24 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitConcat(const klee:
     return Action::skipChildren();
   }
 
+  // Header fields are cut at natural widths, not at whatever boundary the program happens to read
+  // (see guess_struct_fields_from_expr). So a read of part of a field arrives here as a concat of
+  // its bytes with no variable of its own: render it as a slice of the field that contains it.
+  for (const TofinoSynthesizer::var_t &hdr_var : synthesizer->hdr_vars.get_all()) {
+    if (hdr_var.expr.isNull() || hdr_var.expr->getWidth() < expr->getWidth()) {
+      continue;
+    }
+    for (unsigned lo = 0; lo + expr->getWidth() <= hdr_var.expr->getWidth(); lo += 8) {
+      klee::ref<klee::Expr> slice = solver_toolbox.exprBuilder->Extract(hdr_var.expr, lo, expr->getWidth());
+      if (!solver_toolbox.are_exprs_always_equal(expr, slice)) {
+        continue;
+      }
+      coder << hdr_var.name;
+      coder << "[" << (lo + expr->getWidth() - 1) << ":" << lo << "]";
+      return Action::skipChildren();
+    }
+  }
+
   std::cerr << expr_to_string(expr) << "\n";
   synthesizer->dbg_vars();
 
@@ -1932,15 +1950,23 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::compose_hdr_fi
       return {};
     }
   }
-  if (field_names.size() < 2) {
+  if (field_names.empty()) {
     return {};
   }
 
-  code_t name = "(";
-  for (size_t i = 0; i < field_names.size(); i++) {
-    name += (i > 0 ? " ++ " : "") + field_names[i];
+  // One field covering the whole range is the common case now that adjacent fields are coalesced
+  // at their natural width: a P4 header field holds its bytes in wire order, so the network-order
+  // read *is* that field, with no concatenation to build.
+  code_t name;
+  if (field_names.size() == 1) {
+    name = field_names[0];
+  } else {
+    name = "(";
+    for (size_t i = 0; i < field_names.size(); i++) {
+      name += (i > 0 ? " ++ " : "") + field_names[i];
+    }
+    name += ")";
   }
-  name += ")";
   return var_t(name, expr, expr->getWidth(), /*force_bool=*/false, /*is_header_field=*/true, /*is_buffer=*/false);
 }
 
@@ -2293,6 +2319,13 @@ void TofinoSynthesizer::synthesize() {
     eg_control << "    a = b;\n";
     eg_control << "    b = tmp;\n";
     eg_control << "  }\n\n";
+    for (const bits_t width : {16, 24, 32}) {
+      eg_control << "  action swap" << width << "(inout bit<" << width << "> a, inout bit<" << width << "> b) {\n";
+      eg_control << "    bit<" << width << "> tmp = a;\n";
+      eg_control << "    a = b;\n";
+      eg_control << "    b = tmp;\n";
+      eg_control << "  }\n\n";
+    }
     eg_control << "  bit<1> diff_sign_bit;\n";
     eg_control << "  action calculate_diff_32b(bit<32> a, bit<32> b) { diff_sign_bit = (a - b)[31:31]; }\n";
     eg_control << "  action calculate_diff_16b(bit<16> a, bit<16> b) { diff_sign_bit = (a - b)[15:15]; }\n";
@@ -3106,10 +3139,79 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   const code_t hdr_name = hdr.split_by_dot()[1];
 
+  // The field boundaries come from wherever the program happens to read the chunk, so a protocol
+  // field read whole in one place and by the octet in another arrives split: on SmartCookie the
+  // TCP sequence number and both IPv4 addresses came out as 24 + 8. A field split that way can
+  // never be written in one container operation -- a Tofino ALU writes whole containers -- and
+  // bf-p4c could not slice the resulting supercluster at all.
+  //
+  // Coalesce a run of adjacent fields back into one naturally-aligned 2 or 4 byte field. The
+  // merged field's expression is the concatenation of the parts, which is exactly what the
+  // program computes when it reads them together, so that read now resolves to the single field;
+  // each part stays reachable as a slice of it.
+  //
+  // Bit numbering flips here: klee keeps field 0 in the low bits, while a P4 header field is in
+  // network order with field 0 at the top, so a part's slice bounds count down from the width.
+  struct emitted_field_t {
+    std::vector<klee::ref<klee::Expr>> parts;
+    bits_t width;
+  };
+
+  std::vector<emitted_field_t> emitted;
+  {
+    bytes_t offset = 0;
+    size_t i       = 0;
+    while (i < hdr_fields_guess.size()) {
+      size_t best_len   = 1;
+      bits_t best_width = hdr_fields_guess[i]->getWidth();
+
+      for (const bytes_t target : {4u, 2u}) {
+        if (offset % target != 0) {
+          continue;
+        }
+        bits_t acc = 0;
+        for (size_t j = i; j < hdr_fields_guess.size() && acc < target * 8; j++) {
+          acc += hdr_fields_guess[j]->getWidth();
+          if (acc == target * 8) {
+            best_len   = j - i + 1;
+            best_width = acc;
+            break;
+          }
+        }
+        if (best_len > 1) {
+          break;
+        }
+      }
+
+      emitted_field_t field{{}, best_width};
+      for (size_t j = i; j < i + best_len; j++) {
+        field.parts.push_back(hdr_fields_guess[j]);
+      }
+      emitted.push_back(field);
+      offset += best_width / 8;
+      i += best_len;
+    }
+  }
+
   std::vector<var_t> hdr_data;
-  for (klee::ref<klee::Expr> field : hdr_fields_guess) {
-    const var_t var = alloc_var("hdr." + hdr_name + ".data" + std::to_string(hdr_data.size()), field, EXACT_NAME | HEADER_FIELD);
+  for (const emitted_field_t &field : emitted) {
+    const code_t field_name        = "hdr." + hdr_name + ".data" + std::to_string(hdr_data.size());
+    klee::ref<klee::Expr> full     = LibCore::concat_exprs(field.parts);
+    const var_t var                = alloc_var(field_name, full, EXACT_NAME | HEADER_FIELD);
     hdr_data.push_back(var);
+
+    if (field.parts.size() == 1) {
+      continue;
+    }
+
+    // Each part, as a slice of the field that now contains it.
+    bits_t high = field.width;
+    for (const klee::ref<klee::Expr> &part : field.parts) {
+      const bits_t low = high - part->getWidth();
+      const code_t slice_name = field_name + "[" + std::to_string(high - 1) + ":" + std::to_string(low) + "]";
+      alloc_var(slice_name, part, EXACT_NAME | HEADER_FIELD);
+      high = low;
+    }
   }
 
   if (!already_allocated) {
@@ -3162,27 +3264,71 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   std::unordered_set<bytes_t> bytes_already_dealt_with;
   std::vector<code_t> swap_assignments;
-  for (const expr_byte_swap_t &byte_swap : swaps) {
-    klee::ref<klee::Expr> byte0_expr = solver_toolbox.exprBuilder->Extract(hdr, byte_swap.byte0 * 8, 8);
-    klee::ref<klee::Expr> byte1_expr = solver_toolbox.exprBuilder->Extract(hdr, byte_swap.byte1 * 8, 8);
 
-    std::optional<var_t> byte0_var = ingress_vars.get_hdr(byte0_expr);
-    std::optional<var_t> byte1_var = ingress_vars.get_hdr(byte1_expr);
+  // The swaps arrive as byte pairs. Emitting one `swap()` per byte forces byte-granular PHV
+  // slicing on both fields, which drags their neighbours into the same container group until
+  // bf-p4c cannot satisfy the action constraints. Consecutive pairs that together make up two
+  // whole header fields are one field swap instead; the rest stay byte-wise.
+  std::vector<expr_byte_swap_t> ordered(swaps.begin(), swaps.end());
+  std::sort(ordered.begin(), ordered.end(), [](const expr_byte_swap_t &a, const expr_byte_swap_t &b) { return a.byte0 < b.byte0; });
 
-    assert(byte0_var.has_value() && "Byte0 not found");
-    assert(byte1_var.has_value() && "Byte1 not found");
+  for (size_t i = 0; i < ordered.size();) {
+    size_t run = 1;
+    while (i + run < ordered.size() && ordered[i + run].byte0 == ordered[i].byte0 + run && ordered[i + run].byte1 == ordered[i].byte1 + run) {
+      run++;
+    }
 
-    coder_t swap_assignment;
-    swap_assignment << "swap(";
-    swap_assignment << byte0_var->name;
-    swap_assignment << ", ";
-    swap_assignment << byte1_var->name;
-    swap_assignment << ");";
+    // Longest prefix of the run that names two whole fields.
+    size_t width = run;
+    for (; width > 1; width--) {
+      const klee::ref<klee::Expr> a = solver_toolbox.exprBuilder->Extract(hdr, ordered[i].byte0 * 8, width * 8);
+      const klee::ref<klee::Expr> b = solver_toolbox.exprBuilder->Extract(hdr, ordered[i].byte1 * 8, width * 8);
+      const std::optional<var_t> a_var = ingress_vars.get_hdr(a);
+      const std::optional<var_t> b_var = ingress_vars.get_hdr(b);
+      if (!a_var || !b_var || a_var->name.find('[') != code_t::npos || b_var->name.find('[') != code_t::npos) {
+        continue; // Not whole fields: a sliced name means we only caught part of one.
+      }
+      coder_t swap_assignment;
+      swap_assignment << "swap" << (width * 8) << "(" << a_var->name << ", " << b_var->name << ");";
+      swap_assignments.push_back(swap_assignment.dump());
+      break;
+    }
 
-    swap_assignments.push_back(swap_assignment.dump());
+    // Both halves inside one field (swapping the two ports of a TCP header, say) is not a swap of
+    // two fields but a rotation of one: writing it that way keeps the field whole.
+    if (width == 1 && ordered[i].byte1 == ordered[i].byte0 + run) {
+      const bits_t full                = 2 * run * 8;
+      const klee::ref<klee::Expr> both  = solver_toolbox.exprBuilder->Extract(hdr, ordered[i].byte0 * 8, full);
+      const std::optional<var_t> f      = ingress_vars.get_hdr(both);
+      if (f && f->name.find('[') == code_t::npos) {
+        coder_t swap_assignment;
+        swap_assignment << f->name << " = " << f->name << "[" << (full / 2 - 1) << ":0] ++ " << f->name << "[" << (full - 1) << ":"
+                        << (full / 2) << "];";
+        swap_assignments.push_back(swap_assignment.dump());
+        width = run;
+      }
+    }
 
-    bytes_already_dealt_with.insert(byte_swap.byte0);
-    bytes_already_dealt_with.insert(byte_swap.byte1);
+    if (width == 1) {
+      for (size_t k = 0; k < run; k++) {
+        const klee::ref<klee::Expr> byte0_expr = solver_toolbox.exprBuilder->Extract(hdr, ordered[i + k].byte0 * 8, 8);
+        const klee::ref<klee::Expr> byte1_expr = solver_toolbox.exprBuilder->Extract(hdr, ordered[i + k].byte1 * 8, 8);
+        const std::optional<var_t> byte0_var   = ingress_vars.get_hdr(byte0_expr);
+        const std::optional<var_t> byte1_var   = ingress_vars.get_hdr(byte1_expr);
+        assert(byte0_var.has_value() && "Byte0 not found");
+        assert(byte1_var.has_value() && "Byte1 not found");
+        coder_t swap_assignment;
+        swap_assignment << "swap(" << byte0_var->name << ", " << byte1_var->name << ");";
+        swap_assignments.push_back(swap_assignment.dump());
+      }
+      width = run;
+    }
+
+    for (size_t k = 0; k < width; k++) {
+      bytes_already_dealt_with.insert(ordered[i + k].byte0);
+      bytes_already_dealt_with.insert(ordered[i + k].byte1);
+    }
+    i += width;
   }
 
   const code_t swap_action_name = "swap_action_" + std::to_string(node->get_node()->get_id());
