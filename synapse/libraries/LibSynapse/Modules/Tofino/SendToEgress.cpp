@@ -1,5 +1,7 @@
 #include <LibSynapse/Modules/Tofino/SendToEgress.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <iostream>
+#include <cstdlib>
 #include <LibCore/Solver.h>
 
 namespace LibSynapse {
@@ -62,10 +64,20 @@ std::optional<spec_impl_t> SendToEgressFactory::speculate(const EP *ep, const BD
 }
 
 std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
+  // DEBUG SCAFFOLDING, off unless SYNAPSE_LOG_CROSSING is set: says which guard turned a crossing
+  // down, so the reason is read rather than inferred.
+  static const bool log_crossing = getenv("SYNAPSE_LOG_CROSSING") != nullptr;
+  const auto decline = [&](const char *why) -> std::vector<impl_t> {
+    if (log_crossing) {
+      std::cerr << "[crossing] node " << node->get_id() << ": declined (" << why << ")\n";
+    }
+    return {};
+  };
+
   const EPLeaf active_leaf = ep->get_active_leaf();
 
   if (!active_leaf.node) {
-    return {};
+    return decline("no active leaf");
   }
 
   // The egress cannot choose a port: ucast_egress_port is written in ingress. So the crossing is
@@ -102,6 +114,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
 
   bool legal        = true;
   bool work_remains = false;
+  const char *why_illegal = nullptr;
   std::vector<klee::ref<klee::Expr>> devices;
   std::vector<klee::ref<klee::Expr>> conditions;
 
@@ -114,10 +127,12 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
         break;
       case LibBDD::RouteOp::Broadcast:
         legal = false;
+        why_illegal = "broadcast ahead";
         break;
       case LibBDD::RouteOp::Forward:
         if (!computable_here(route->get_dst_device())) {
           legal = false;
+          why_illegal = "forward port not computable at the cut";
         } else {
           devices.push_back(route->get_dst_device());
         }
@@ -131,9 +146,6 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
       break;
     case BDDNodeType::Call:
       work_remains = true;
-      if (ds_backed_calls.contains(static_cast<const LibBDD::Call *>(future)->get_call().function_name)) {
-        legal = false;
-      }
       break;
     default:
       work_remains = true;
@@ -154,14 +166,60 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
       for (const klee::ref<klee::Expr> &condition : conditions) {
         if (!computable_here(condition)) {
           legal = false;
+          why_illegal = "branch selecting between different ports not computable at the cut";
           break;
         }
       }
     }
   }
 
-  if (!legal || !work_remains) {
-    return {};
+  if (!legal) {
+    return decline(why_illegal ? why_illegal : "subtree not implementable in egress");
+  }
+
+  // The egress holds no tables or registers, so crossing while data-structure work is still to
+  // come costs the packet a lap to get back. Only refuse when *every* way forward runs into one:
+  // if some path avoids them, that path is served fine and the others can recirculate.
+  //
+  // Judging it on the whole reachable subtree instead -- as this first did -- refuses far too
+  // much: measured, it was turning down 15 crossings against 8 accepted, including the ones
+  // partway down the SipHash chain that the hand-written solution takes, whose own path has no
+  // data structure ahead at all.
+  const auto unavoidable_ds_ahead = [](const BDDNode *from) {
+    std::vector<const BDDNode *> stack{from};
+    std::unordered_set<bdd_node_id_t> seen;
+    while (!stack.empty()) {
+      const BDDNode *n = stack.back();
+      stack.pop_back();
+      if (!n || !seen.insert(n->get_id()).second) {
+        continue;
+      }
+      if (n->get_type() == BDDNodeType::Call &&
+          ds_backed_calls.contains(static_cast<const LibBDD::Call *>(n)->get_call().function_name)) {
+        continue; // This way forward hits one; look at the others.
+      }
+      if (n->get_type() == BDDNodeType::Route) {
+        return false; // Reached a route without meeting one: a clean way forward exists.
+      }
+      if (n->get_type() == BDDNodeType::Branch) {
+        const LibBDD::Branch *branch = static_cast<const LibBDD::Branch *>(n);
+        stack.push_back(branch->get_on_true());
+        stack.push_back(branch->get_on_false());
+        continue;
+      }
+      if (!n->get_next()) {
+        return false; // Ran out of nodes without meeting one.
+      }
+      stack.push_back(n->get_next());
+    }
+    return true;
+  };
+
+  if (unavoidable_ds_ahead(node)) {
+    return decline("every way forward runs into a data structure");
+  }
+  if (!work_remains) {
+    return decline("nothing left to do past the cut");
   }
 
   const klee::ref<klee::Expr> dst_device = devices.empty() ? klee::ref<klee::Expr>() : devices[0];
@@ -178,7 +236,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
       break;
     }
     if (prev_module->get_type() == ModuleType::Tofino_SendToEgress) {
-        return {};
+      return decline("this pass already crossed");
     }
     if (prev_module->get_type() == ModuleType::Tofino_Recirculate) {
       break;
@@ -186,8 +244,19 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
     modules_this_pass++;
   }
 
-  if (modules_this_pass < MIN_MODULES_BEFORE_EGRESS_CROSSING) {
-    return {};
+  // The floor keeps the search from multiplying states by offering a crossing before the ingress
+  // holds any real work. It also deadlocks a plan whose gress has just filled: right after a
+  // recirculation there are no modules in the pass yet, so crossing is refused, and the only way
+  // to earn the modules is to place compute the exhausted gress cannot take. Overridable while
+  // that interaction is under investigation.
+  static const char *floor_override = getenv("SYNAPSE_MIN_MODULES_BEFORE_CROSSING");
+  const size_t floor                = floor_override ? atoi(floor_override) : MIN_MODULES_BEFORE_EGRESS_CROSSING;
+  if (modules_this_pass < floor) {
+    return decline("fewer modules in this pass than the floor");
+  }
+
+  if (log_crossing) {
+    std::cerr << "[crossing] node " << node->get_id() << ": ACCEPTED\n";
   }
 
 
