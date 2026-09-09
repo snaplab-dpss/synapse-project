@@ -405,6 +405,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
   pipeline_resources.used_compute_ops_ingress = pipeline.resources->used_compute_ops_ingress;
   pipeline_resources.used_compute_ops_egress  = pipeline.resources->used_compute_ops_egress;
   pipeline_resources.building_egress          = pipeline.resources->building_egress;
+  pipeline_resources.pass_compute_ops         = pipeline.resources->pass_compute_ops;
 
   for (int s = 0; s < TotalStages; s++) {
     pipeline_resources.stages[s].available_sram -= static_cast<bits_t>(sram_used_per_stage[s].getValue());
@@ -776,6 +777,7 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
   pipeline_resources.used_compute_ops_ingress = pipeline.resources->used_compute_ops_ingress;
   pipeline_resources.used_compute_ops_egress  = pipeline.resources->used_compute_ops_egress;
   pipeline_resources.building_egress          = pipeline.resources->building_egress;
+  pipeline_resources.pass_compute_ops         = pipeline.resources->pass_compute_ops;
 
   for (int s = 0; s < TotalStages; s++) {
     pipeline_resources.stages[s].available_sram -= model.eval(sram_used_per_stage[s]).get_numeral_int();

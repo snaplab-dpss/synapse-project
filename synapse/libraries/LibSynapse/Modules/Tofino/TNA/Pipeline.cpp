@@ -21,6 +21,7 @@ PipelineResources::PipelineResources(const tna_properties_t &properties) {
   used_compute_ops_ingress = 0;
   used_compute_ops_egress  = 0;
   building_egress          = false;
+  pass_compute_ops         = 0;
   for (int stage_id = 0; stage_id < properties.stages; stage_id++) {
     const Stage s{
         .stage_id                   = stage_id,
@@ -39,7 +40,7 @@ PipelineResources::PipelineResources(const tna_properties_t &properties) {
 
 PipelineResources::PipelineResources(const PipelineResources &other)
     : stages(other.stages), used_digests(other.used_digests), used_compute_ops_ingress(other.used_compute_ops_ingress),
-      used_compute_ops_egress(other.used_compute_ops_egress), building_egress(other.building_egress) {}
+      used_compute_ops_egress(other.used_compute_ops_egress), building_egress(other.building_egress), pass_compute_ops(other.pass_compute_ops) {}
 
 Pipeline::Pipeline(const tna_properties_t &_properties, const DataStructures &_data_structures)
     : properties(_properties), data_structures(_data_structures), resources(_properties) {}
