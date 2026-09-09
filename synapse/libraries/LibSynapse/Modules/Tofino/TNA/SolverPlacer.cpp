@@ -400,6 +400,10 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
   }
 
   pipeline_resources.used_digests = static_cast<u8>(digests_used.getValue());
+  // The solver re-derives the placement from scratch, so it rebuilds every stage counter. PHV
+  // is not one of its variables (nothing it places consumes it), so carry the pass's charge over
+  // untouched rather than letting the fresh PipelineResources zero it.
+  pipeline_resources.used_phv_bits = pipeline.resources->used_phv_bits;
 
   for (int s = 0; s < TotalStages; s++) {
     pipeline_resources.stages[s].available_sram -= static_cast<bits_t>(sram_used_per_stage[s].getValue());
@@ -766,6 +770,10 @@ PlacementResult find_placements(const Pipeline &pipeline, const DS *target_ds, c
 
   PipelineResources pipeline_resources(pipeline.properties);
   pipeline_resources.used_digests = model.eval(digests_used).get_numeral_int();
+  // The solver re-derives the placement from scratch, so it rebuilds every stage counter. PHV
+  // is not one of its variables (nothing it places consumes it), so carry the pass's charge over
+  // untouched rather than letting the fresh PipelineResources zero it.
+  pipeline_resources.used_phv_bits = pipeline.resources->used_phv_bits;
 
   for (int s = 0; s < TotalStages; s++) {
     pipeline_resources.stages[s].available_sram -= model.eval(sram_used_per_stage[s]).get_numeral_int();

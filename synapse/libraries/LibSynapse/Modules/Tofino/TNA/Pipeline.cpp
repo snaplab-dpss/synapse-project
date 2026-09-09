@@ -17,7 +17,8 @@ PlacementResult::PlacementResult(PlacementStatus _status) : status(_status) {
 PlacementResult::PlacementResult(const PipelineResources &_resources) : status(PlacementStatus::Success), resources(_resources) {}
 
 PipelineResources::PipelineResources(const tna_properties_t &properties) {
-  used_digests = 0;
+  used_digests  = 0;
+  used_phv_bits = 0;
   for (int stage_id = 0; stage_id < properties.stages; stage_id++) {
     const Stage s{
         .stage_id                   = stage_id,
@@ -34,7 +35,8 @@ PipelineResources::PipelineResources(const tna_properties_t &properties) {
   }
 }
 
-PipelineResources::PipelineResources(const PipelineResources &other) : stages(other.stages), used_digests(other.used_digests) {}
+PipelineResources::PipelineResources(const PipelineResources &other)
+    : stages(other.stages), used_digests(other.used_digests), used_phv_bits(other.used_phv_bits) {}
 
 Pipeline::Pipeline(const tna_properties_t &_properties, const DataStructures &_data_structures)
     : properties(_properties), data_structures(_data_structures), resources(_properties) {}

@@ -240,6 +240,8 @@ phv_size                                   = 5000          # bits
 phv_8bit_containers                        = 80
 phv_16bit_containers                       = 120
 phv_32bit_containers                       = 80
+# See the note in tofino2.toml: a coarse knob, not a physical quantity.
+phv_bits_per_pass_per_gress                = 2500          # bits, half of phv_size
 packet_buffer_size                         = 512000000     # 64e6 * 8 bits
 exact_match_xbar_per_stage                 = 1024          # 128 * 8 bits
 max_exact_match_keys                       = 16
