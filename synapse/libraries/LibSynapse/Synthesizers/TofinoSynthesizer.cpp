@@ -2736,7 +2736,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.indent();
   ingress_apply << "fwd_op = fwd_op_t.FORWARD_TO_CPU;\n";
   ingress_apply.indent();
-  ingress_apply << "build_cpu_hdr(" << ep_node->get_id() << ");\n";
+  ingress_apply << "build_cpu_hdr(" << ep->get_cpu_code_path(ep_node) << ");\n";
 
   for (const symbol_t &symbol : symbols.get()) {
     std::optional<var_t> var = ingress_vars.get(symbol.expr);
