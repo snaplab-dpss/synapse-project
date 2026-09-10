@@ -62,3 +62,7 @@ gurobi.lic
 
 # Nevermind this
 princeton-p4-projects
+
+# Left behind in synthesized/ by a model or hardware run, not by synapse
+synthesized/bf_drivers.log*
+synthesized/*.bak
