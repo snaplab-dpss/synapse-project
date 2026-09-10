@@ -2753,6 +2753,17 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
     var_t cpu_var = *var;
     cpu_var.name  = "hdr.cpu." + var->get_stem();
+
+    // The controller lays this header out from the BDD symbol's width, so the data plane has to
+    // declare the same width. A 64-bit symbol whose data plane value is 32 bits made the P4 header
+    // 48 bytes against the controller's 56, and every field past it was read at the wrong offset.
+    const bits_t symbol_width = symbol.expr->getWidth();
+    const bool widened        = symbol_width > cpu_var.size;
+
+    if (widened) {
+      cpu_var.size = cpu_var.original_size = symbol_width;
+    }
+
     cpu_hdr_vars.push(cpu_var);
 
     // A sliced write cannot go through the hash unit, so it stays a plain copy.
@@ -2762,7 +2773,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     // chain's supercluster, so an unwrapped one drags the whole group back into the ALU. The
     // egress-state and recirculation writes below are different: those are few and on the fast
     // path, and wrapping the uncut ones there only spends hash-distribution units.
-    const bool via_hash = !sliced && is_compute_value(var->name);
+    // A widened write carries the cast, and 64 bits do not fit the hash unit's 32-bit immediate.
+    const bool via_hash = !sliced && !widened && is_compute_value(var->name);
 
     ingress_apply.indent();
     if (via_hash) {
@@ -2773,6 +2785,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       ingress_apply << "[47:16]";
     }
     ingress_apply << " = ";
+    if (widened) {
+      ingress_apply << "(" << Transpiler::type_from_size(symbol_width) << ")";
+    }
     ingress_apply << var->name;
     ingress_apply << ";";
     ingress_apply << (via_hash ? " }\n" : "\n");
