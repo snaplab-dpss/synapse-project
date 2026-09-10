@@ -151,6 +151,7 @@ parser IngressParser(
 
   state parse_recirc {
     pkt.extract(hdr.recirc);
+/*@{PARSE_RECIRC}@*/
     transition select(hdr.recirc.code_path) {
       CUCKOO_CODE_PATH: parse_cuckoo;
       default: parser_init;
@@ -186,6 +187,7 @@ control Ingress(
   action fwd_to_cpu() {
     hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
+/*@{LEAVE_SWITCH}@*/
     fwd(CPU_PCIE_PORT);
   }
 
@@ -193,6 +195,7 @@ control Ingress(
     hdr.cpu.setInvalid();
     hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
+/*@{LEAVE_SWITCH}@*/
     fwd(port);
   }
 

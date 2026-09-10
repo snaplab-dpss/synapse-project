@@ -145,6 +145,8 @@ constexpr const char *const MARKER_EGRESS_CONTROL_APPLY         = "EGRESS_CONTRO
 constexpr const char *const MARKER_EGRESS_DEPARSER              = "EGRESS_DEPARSER";
 constexpr const char *const MARKER_EGRESS_DEPARSER_APPLY        = "EGRESS_DEPARSER_APPLY";
 constexpr const char *const MARKER_CONTROL_BLOCKS               = "CONTROL_BLOCKS";
+constexpr const char *const MARKER_PARSE_RECIRC                 = "PARSE_RECIRC";
+constexpr const char *const MARKER_LEAVE_SWITCH                 = "LEAVE_SWITCH";
 
 constexpr const char *const MARKER_CUCKOO_IDX_WIDTH       = "CUCKOO_IDX_WIDTH";
 constexpr const char *const MARKER_CUCKOO_ENTRIES         = "CUCKOO_ENTRIES";
@@ -2281,6 +2283,8 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_EGRESS_DEPARSER, 1},
                                              {MARKER_EGRESS_DEPARSER_APPLY, 2},
                                              {MARKER_CONTROL_BLOCKS, 0},
+                                             {MARKER_PARSE_RECIRC, 2},
+                                             {MARKER_LEAVE_SWITCH, 2},
                                          }),
       target_ep(_ep), transpiler(this) {}
 
@@ -2482,12 +2486,17 @@ void TofinoSynthesizer::synthesize() {
     eg_parser.indent();
     eg_parser << "transition accept;\n";
 
-    // Not in the deparser: "Assignment to a header field in the deparser is only allowed when the
-    // source is checksum update, mirror, resubmit or learning digest". The state header is dropped
-    // at the end of the egress control instead, which is where the hand-written reference does it.
-    coder_t &eg_apply = code_template.get(MARKER_EGRESS_CONTROL_APPLY);
-    eg_apply.indent();
-    eg_apply << "hdr.egress_state.setInvalid();\n";
+    // The state header has to live as long as the packet is going round. The ingress writes it
+    // before the crossing and reads it again on the pass after the lap, so dropping it in the
+    // egress -- or never extracting it on the way back in -- makes those reads return zero. It is
+    // dropped where the packet actually leaves, alongside the recirculation header.
+    coder_t &parse_recirc = code_template.get(MARKER_PARSE_RECIRC);
+    parse_recirc.indent();
+    parse_recirc << "pkt.extract(hdr.egress_state);\n";
+
+    coder_t &leave_switch = code_template.get(MARKER_LEAVE_SWITCH);
+    leave_switch.indent();
+    leave_switch << "hdr.egress_state.setInvalid();\n";
   }
 
   coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER_APPLY);
