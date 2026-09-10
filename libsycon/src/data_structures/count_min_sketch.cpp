@@ -17,6 +17,12 @@ CountMinSketch::CountMinSketch(const std::string &_name, const std::vector<std::
   assert(rows.size() == height);
   assert(hash_salts.size() == height);
 
+  // See BloomFilter: a zero interval means no periodic cleanup, and spawning the thread regardless
+  // spins on the configuration lock.
+  if (periodic_cleanup_interval == 0) {
+    return;
+  }
+
   std::thread([this]() {
     while (true) {
       std::this_thread::sleep_for(std::chrono::milliseconds(periodic_cleanup_interval));

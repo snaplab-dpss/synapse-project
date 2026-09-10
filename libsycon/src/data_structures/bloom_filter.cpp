@@ -17,6 +17,13 @@ BloomFilter::BloomFilter(const std::string &_name, const std::vector<std::string
   assert(rows.size() == height);
   assert(hash_salts.size() == height);
 
+  // No interval means no periodic cleanup. Starting the thread anyway makes it sleep for zero and
+  // take the configuration lock as fast as it can, which starves the PCIe receive thread: the
+  // controller then burns a core at idle and never gets to process a packet.
+  if (periodic_cleanup_interval == 0) {
+    return;
+  }
+
   std::thread([this]() {
     while (true) {
       std::this_thread::sleep_for(std::chrono::milliseconds(periodic_cleanup_interval));
