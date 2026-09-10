@@ -14,7 +14,9 @@ docker exec nostalgic_chaum bash -lc \
 docker exec nostalgic_chaum bash -lc "
   B=/home/user/bf-sde-9.13.4/build/p4-build/tofino2/$TAG/$TAG/tofino2
   L=/home/user/bf-sde-9.13.4/logs/p4-build/tofino2/$TAG/make.log
-  if [ -f \$B/bf-rt.json ]; then V=COMPILED; else V=FAILED; fi
+  # bf-rt.json is not proof: it is written while the compiler is still running, and a failed run
+  # leaves sctest.bfa behind at zero bytes. The assembly being non-empty is the real signal.
+  if [ -s \$B/pipe/$TAG.bfa ] && [ -s \$B/pipe/context.json ]; then V=COMPILED; else V=FAILED; fi
   printf '%-14s %-9s' '$TAG' \"\$V\"
   printf ' | stages i/e: '
   grep -m1 -A2 'Number of stages in table allocation' \$B/pipe/logs/table_summary.log 2>/dev/null \
