@@ -296,7 +296,7 @@ private:
   void transpile_map_table_decl(const Tofino::MapTable *map_table);
   void transpile_map_set_table_decl(const Tofino::MapSetTable *map_set_table);
   void transpile_guarded_map_table_decl(const Tofino::GuardedMapTable *guarded_map_table);
-  void transpile_vector_table_decl(const Tofino::VectorTable *vector_table);
+  void transpile_vector_table_decl(const EP *ep, const Tofino::VectorTable *vector_table);
   void transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table, time_ns_t expiration_time);
   void transpile_vector_register_decl(const Tofino::VectorRegister *vector_register);
   void transpile_hh_table_decl(const Tofino::HHTable *hh_table, time_ns_t expiration_time);
