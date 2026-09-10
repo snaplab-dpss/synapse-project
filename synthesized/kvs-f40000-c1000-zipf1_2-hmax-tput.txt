@@ -7,7 +7,7 @@ Args:
   Profile file:       kvs-f40000-c1000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (51 modules)
+    Tofino (52 modules)
     Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
@@ -31,12 +31,12 @@ Search Metadata:
   Elapsed time:       9 seconds
   Steps:              49
   Backtracks:         0
-  Search space size:  160
-  Unfinished EPs:     111
+  Search space size:  179
+  Unfinished EPs:     130
   Finished EPs:       1
   Avg BDD size:       50
-  Branching factor:   2
-  Total SS size est.: 63'363'355'379
+  Branching factor:   3
+  Total SS size est.: 711'703'415'568
   Avg children per node:
     Node 32: 0
     Node 31: 0
@@ -49,22 +49,22 @@ Search Metadata:
     Node 61: 2
     Node 54: 3
     Node 14: 4
-    Node 60: 3
+    Node 60: 4
     Node 53: 3
     Node 13: 23
-    Node 59: 3
+    Node 59: 4
     Node 12: 3
     Node 64: 2
     Node 5: 3
     Node 6: 3
     Node 65: 3
-    Node 58: 3
+    Node 58: 4
     Node 7: 3
     Node 66: 2
     Node 8: 3
     Node 38: 3
     Node 9: 3
-    Node 33: 3
+    Node 33: 4
     Node 4: 2
     Node 63: 3
     Node 62: 3
@@ -72,41 +72,41 @@ Search Metadata:
     Node 10: 3
     Node 11: 4
     Node 17: 0
-    Node 34: 3
+    Node 34: 4
     Node 40: 0
     Node 57: 2
-    Node 18: 3
+    Node 18: 4
     Node 23: 0
-    Node 35: 3
+    Node 35: 4
     Node 41: 0
     Node 47: 0
-    Node 19: 3
+    Node 19: 4
     Node 24: 0
-    Node 36: 3
-    Node 42: 3
-    Node 48: 3
-    Node 20: 3
+    Node 36: 4
+    Node 42: 4
+    Node 48: 4
+    Node 20: 4
     Node 25: 0
     Node 37: 2
-    Node 43: 3
-    Node 49: 3
-    Node 21: 3
+    Node 43: 4
+    Node 49: 4
+    Node 21: 4
     Node 26: 0
-    Node 44: 3
-    Node 50: 3
+    Node 44: 4
+    Node 50: 4
     Node 22: 2
     Node 27: 0
-    Node 45: 3
-    Node 51: 3
+    Node 45: 4
+    Node 51: 4
     Node 28: 0
     Node 46: 2
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 6'128 (100%)
-  Num phase 2 speculations: 82 (1.33812%)
-  Num speculated modules:   75'660
-  Num EPs generated:        160
+  Num phase 1 speculations: 6'516 (100%)
+  Num phase 2 speculations: 82 (1.25844%)
+  Num speculated modules:   79'853
+  Num EPs generated:        179
 
 Switch placement:
 
@@ -139,7 +139,7 @@ MapRAM: 573'444/786'432 B (72.9172%)
 Logical IDs: 7/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 37/128 B (28.9062%)
-Objs: [hh_table_1073923096_digest,hh_table_1073923096_threshold,hh_table_1073923096_cms_row_1,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_3,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_0]
+Objs: [hh_table_1073923096_threshold,hh_table_1073923096_cms_row_2,hh_table_1073923096_hash_calc_3,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_digest,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_0]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -149,7 +149,7 @@ MapRAM: 557'056/786'432 B (70.8333%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_2]
+Objs: [hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_1]
 -------------------------------------
 -------------------------------------
 Stage 4

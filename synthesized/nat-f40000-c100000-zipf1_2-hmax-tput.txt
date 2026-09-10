@@ -7,7 +7,7 @@ Args:
   Profile file:       nat-f40000-c100000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (51 modules)
+    Tofino (52 modules)
     Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
@@ -33,21 +33,21 @@ Search Metadata:
   Elapsed time:       15 seconds
   Steps:              69
   Backtracks:         0
-  Search space size:  209
-  Unfinished EPs:     140
+  Search space size:  224
+  Unfinished EPs:     155
   Finished EPs:       1
   Avg BDD size:       62
   Branching factor:   3
-  Total SS size est.: 861'038'305'078
+  Total SS size est.: 4'349'986'846'142
   Avg children per node:
     Node 180: 2
-    Node 179: 3
+    Node 179: 4
     Node 273: 0
     Node 146: 3
     Node 182: 3
     Node 145: 3
     Node 181: 4
-    Node 159: 3
+    Node 159: 4
     Node 271: 0
     Node 144: 6
     Node 270: 0
@@ -67,14 +67,14 @@ Search Metadata:
     Node 140: 5
     Node 166: 0
     Node 137: 4
-    Node 160: 3
+    Node 160: 4
     Node 189: 3
     Node 164: 0
     Node 135: 3
     Node 167: 0
     Node 265: 0
     Node 138: 5
-    Node 161: 3
+    Node 161: 4
     Node 190: 3
     Node 266: 0
     Node 139: 8
@@ -89,40 +89,40 @@ Search Metadata:
     Node 184: 3
     Node 275: 0
     Node 148: 3
-    Node 155: 3
+    Node 155: 4
     Node 169: 0
     Node 173: 4
-    Node 185: 3
+    Node 185: 4
     Node 276: 0
     Node 149: 4
-    Node 156: 3
+    Node 156: 4
     Node 170: 0
     Node 174: 3
-    Node 186: 3
+    Node 186: 4
     Node 277: 0
     Node 150: 3
-    Node 157: 3
+    Node 157: 4
     Node 175: 3
-    Node 187: 3
+    Node 187: 4
     Node 278: 0
-    Node 151: 3
+    Node 151: 4
     Node 158: 3
     Node 176: 3
     Node 188: 3
     Node 279: 0
-    Node 152: 3
-    Node 177: 3
+    Node 152: 4
+    Node 177: 4
     Node 280: 0
-    Node 153: 3
-    Node 178: 3
+    Node 153: 4
+    Node 178: 4
     Node 281: 2
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 13'985 (100%)
-  Num phase 2 speculations: 168 (1.20129%)
-  Num speculated modules:   167'126
-  Num EPs generated:        209
+  Num phase 1 speculations: 14'205 (100%)
+  Num phase 2 speculations: 168 (1.18268%)
+  Num speculated modules:   169'949
+  Num EPs generated:        224
 
 Switch placement:
 
@@ -155,7 +155,7 @@ MapRAM: 704'512/786'432 B (89.5833%)
 Logical IDs: 8/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 36/128 B (28.125%)
-Objs: [vector_register_1074066960_1,vector_register_1074066960_3,fcfs_ct_1074053136_hash_163,fcfs_ct_1074053136_reg_liveness,fcfs_ct_1074053136_hash_142]
+Objs: [vector_register_1074066960_1,fcfs_ct_1074053136_reg_liveness,vector_register_1074066960_3,fcfs_ct_1074053136_hash_163,fcfs_ct_1074053136_hash_142]
 -------------------------------------
 -------------------------------------
 Stage 3

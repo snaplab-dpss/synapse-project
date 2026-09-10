@@ -46,7 +46,10 @@ header recirc_h {
   bit<16> ingress_port;
   bit<32> dev;
 
+
 };
+
+
 
 header cuckoo_h {
   bit<8>  op;
@@ -59,13 +62,18 @@ header cuckoo_h {
 }
 
 header hdr0_h {
-  bit<48> data0;
-  bit<48> data1;
+  bit<32> data0;
+  bit<16> data1;
   bit<16> data2;
+  bit<32> data3;
+  bit<16> data4;
 }
 header hdr1_h {
-  bit<96> data0;
-  bit<64> data1;
+  bit<32> data0;
+  bit<32> data1;
+  bit<32> data2;
+  bit<32> data3;
+  bit<32> data4;
 }
 struct vector_register_1073917816_0_pair_t {
   bit<32> lo;
@@ -78,6 +86,7 @@ struct synapse_ingress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
   cuckoo_h cuckoo;
+
   hdr0_h hdr0;
   hdr1_h hdr1;
 
@@ -112,9 +121,14 @@ struct synapse_egress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
 
+
 }
 
 struct synapse_egress_metadata_t {
+  // The egress reads the clock itself rather than having it carried across the crossing: the
+  // ingress keeps time as ingress_mac_tstamp[47:16], and the backend rewrites shifts of it to
+  // match, a convention a value travelling in the state header would not carry with it.
+  bit<32> time;
 
 }
 
@@ -176,6 +190,7 @@ parser IngressParser(
 
   state parse_recirc {
     pkt.extract(hdr.recirc);
+
     transition select(hdr.recirc.code_path) {
       CUCKOO_CODE_PATH: parse_cuckoo;
       default: parser_init;
@@ -195,7 +210,7 @@ parser IngressParser(
     transition parser_4_0;
   }
   state parser_4_0 {
-    transition select (hdr.hdr0.data2) {
+    transition select (hdr.hdr0.data4) {
       16w0x0800: parser_5;
       default: parser_81;
     }
@@ -234,6 +249,7 @@ control Ingress(
   action fwd_to_cpu() {
     hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
+
     fwd(CPU_PCIE_PORT);
   }
 
@@ -241,6 +257,7 @@ control Ingress(
     hdr.cpu.setInvalid();
     hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
+
     fwd(port);
   }
 
@@ -292,6 +309,27 @@ control Ingress(
     b = tmp;
   }
 
+  // Swapping two fields a byte at a time forces byte-granular PHV slicing on both of them, and a
+  // field sliced that way drags its neighbours into the same container group; bf-p4c then cannot
+  // satisfy the action constraints. Swap whole fields where the byte pairs make one up.
+  action swap16(inout bit<16> a, inout bit<16> b) {
+    bit<16> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
+  action swap24(inout bit<24> a, inout bit<24> b) {
+    bit<24> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
+  action swap32(inout bit<32> a, inout bit<32> b) {
+    bit<32> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
   bit<1> diff_sign_bit;
   action calculate_diff_32b(bit<32> a, bit<32> b) { diff_sign_bit = (a - b)[31:31]; }
   action calculate_diff_16b(bit<16> a, bit<16> b) { diff_sign_bit = (a - b)[15:15]; }
@@ -322,7 +360,7 @@ control Ingress(
   bit<32> hash_6_value;
   action hash_6_calc() {
     hash_6_value = hash_6.get({
-      hdr.hdr1.data1
+      (hdr.hdr1.data4 ++ hdr.hdr1.data3)
       });
   }
   action find_first_set_bit_7_get_value(bit<32> v) {
@@ -732,18 +770,18 @@ control Ingress(
           // BDD node 15:vector_return
           meta.reg_incr0 = meta.op_sub_82_out;
           bit<32> reg_new0 = vector_register_1073935032_0_add_value_601.execute(32w0x00000000);
-          // EP node  668:ArithmeticOp
+          // EP node  685:ArithmeticOp
           // BDD node 83:op_add
-          // EP node  706:Divide
+          // EP node  741:Divide
           // BDD node 16:divide
           meta.divide_16_denom = (32w0x04000000) - (reg_new0);
           bit<32> quotient0 = divide_16_calc.execute(0);
-          // EP node  781:If
+          // EP node  835:If
           // BDD node 18:if
           if ((32w0x00000000) != (meta.vector_reg_shadow0)){
-            // EP node  782:Then
+            // EP node  836:Then
             // BDD node 18:if
-            // EP node  848:If
+            // EP node  924:If
             // BDD node 20:if
             bool cond0 = false;
             if ((24w0x000000) == (quotient0[31:8])){
@@ -752,53 +790,50 @@ control Ingress(
               }
             }
             if (cond0) {
-              // EP node  849:Then
+              // EP node  925:Then
               // BDD node 20:if
-              // EP node  1153:If
+              // EP node  1306:If
               // BDD node 21:if
               if ((meta.vector_reg_value0) <= (32w0x0000003f)){
-                // EP node  1154:Then
+                // EP node  1307:Then
                 // BDD node 21:if
-                // EP node  1355:ModifyHeader
+                // EP node  1568:ModifyHeader
                 // BDD node 24:packet_return_chunk
                 swap_action_24();
                 meta.hdr_val0 = (32w0x0000010a) - (meta.ln_22_out);
-                hdr.hdr0.data1[47:16] = meta.hdr_val0;
-                hdr.hdr0.data1[15:8] = 8w0x00;
-                hdr.hdr0.data1[7:0] = 8w0x00;
-                // EP node  1461:Forward
+                hdr.hdr0.data3 = meta.hdr_val0[23:16] ++ meta.hdr_val0[31:24] ++ 8w0x00 ++ 8w0x00;
+                hdr.hdr0.data2 = meta.hdr_val0[7:0] ++ meta.hdr_val0[15:8];
+                // EP node  1674:Forward
                 // BDD node 25:FORWARD
                 nf_dev[15:0] = meta.dev[15:0];
               } else {
-                // EP node  1155:Else
+                // EP node  1308:Else
                 // BDD node 21:if
-                // EP node  2930:ModifyHeader
+                // EP node  3493:ModifyHeader
                 // BDD node 27:packet_return_chunk
                 swap_action_27();
-                hdr.hdr0.data1[47:16] = quotient0;
-                hdr.hdr0.data1[15:8] = 8w0x00;
-                hdr.hdr0.data1[7:0] = 8w0x00;
-                // EP node  3223:Forward
+                hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00;
+                hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8];
+                // EP node  3830:Forward
                 // BDD node 28:FORWARD
                 nf_dev[15:0] = meta.dev[15:0];
               }
             } else {
-              // EP node  850:Else
+              // EP node  926:Else
               // BDD node 20:if
-              // EP node  1012:ModifyHeader
+              // EP node  1138:ModifyHeader
               // BDD node 30:packet_return_chunk
               swap_action_30();
-              hdr.hdr0.data1[47:16] = quotient0;
-              hdr.hdr0.data1[15:8] = 8w0x00;
-              hdr.hdr0.data1[7:0] = 8w0x00;
-              // EP node  1099:Forward
+              hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00;
+              hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8];
+              // EP node  1225:Forward
               // BDD node 31:FORWARD
               nf_dev[15:0] = meta.dev[15:0];
             }
           } else {
-            // EP node  783:Else
+            // EP node  837:Else
             // BDD node 18:if
-            // EP node  1525:If
+            // EP node  1770:If
             // BDD node 33:if
             bool cond1 = false;
             if ((24w0x000000) == (quotient0[31:8])){
@@ -807,9 +842,9 @@ control Ingress(
               }
             }
             if (cond1) {
-              // EP node  1526:Then
+              // EP node  1771:Then
               // BDD node 33:if
-              // EP node  1635:If
+              // EP node  1915:If
               // BDD node 34:if
               bool cond2 = false;
               if ((24w0x000000) == (meta.vector_reg_value0[31:8])){
@@ -818,41 +853,38 @@ control Ingress(
                 }
               }
               if (cond2) {
-                // EP node  1636:Then
+                // EP node  1916:Then
                 // BDD node 34:if
-                // EP node  1885:ModifyHeader
+                // EP node  2241:ModifyHeader
                 // BDD node 37:packet_return_chunk
                 swap_action_37();
                 meta.hdr_val1 = (32w0x0000010a) - (meta.ln_35_out);
-                hdr.hdr0.data1[47:16] = meta.hdr_val1;
-                hdr.hdr0.data1[15:8] = 8w0x00;
-                hdr.hdr0.data1[7:0] = 8w0x00;
-                // EP node  2015:Forward
+                hdr.hdr0.data3 = meta.hdr_val1[23:16] ++ meta.hdr_val1[31:24] ++ 8w0x00 ++ 8w0x00;
+                hdr.hdr0.data2 = meta.hdr_val1[7:0] ++ meta.hdr_val1[15:8];
+                // EP node  2371:Forward
                 // BDD node 38:FORWARD
                 nf_dev[15:0] = meta.dev[15:0];
               } else {
-                // EP node  1637:Else
+                // EP node  1917:Else
                 // BDD node 34:if
-                // EP node  3075:ModifyHeader
+                // EP node  3682:ModifyHeader
                 // BDD node 40:packet_return_chunk
                 swap_action_40();
-                hdr.hdr0.data1[47:16] = quotient0;
-                hdr.hdr0.data1[15:8] = 8w0x00;
-                hdr.hdr0.data1[7:0] = 8w0x00;
-                // EP node  3315:Forward
+                hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00;
+                hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8];
+                // EP node  3922:Forward
                 // BDD node 41:FORWARD
                 nf_dev[15:0] = meta.dev[15:0];
               }
             } else {
-              // EP node  1527:Else
+              // EP node  1772:Else
               // BDD node 33:if
-              // EP node  2224:ModifyHeader
+              // EP node  2660:ModifyHeader
               // BDD node 43:packet_return_chunk
               swap_action_43();
-              hdr.hdr0.data1[47:16] = quotient0;
-              hdr.hdr0.data1[15:8] = 8w0x00;
-              hdr.hdr0.data1[7:0] = 8w0x00;
-              // EP node  2356:Forward
+              hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00;
+              hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8];
+              // EP node  2792:Forward
               // BDD node 44:FORWARD
               nf_dev[15:0] = meta.dev[15:0];
             }
@@ -860,7 +892,7 @@ control Ingress(
         }
         // EP node  7:Else
         // BDD node 4:if
-        // EP node  2844:ParserReject
+        // EP node  3364:ParserReject
         // BDD node 81:DROP
       }
 
@@ -868,6 +900,7 @@ control Ingress(
 
     forwarding_tbl.apply();
     ig_tm_md.bypass_egress = 1;
+
   }
 }
 
@@ -905,7 +938,9 @@ parser EgressParser(
   state start {
     tofino_parser.apply(pkt, eg_intr_md);
     transition accept;
+
   }
+
 }
 
 control Egress(
@@ -916,7 +951,12 @@ control Egress(
   inout egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md,
   inout egress_intrinsic_metadata_for_output_port_t eg_intr_oport_md
 ) {
-  apply {}
+
+
+  apply {
+    eg_md.time = eg_intr_md_from_prsr.global_tstamp[47:16];
+
+  }
 }
 
 control EgressDeparser(
@@ -925,7 +965,9 @@ control EgressDeparser(
   in    synapse_egress_metadata_t eg_md,
   in    egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md
 ) {
+
   apply {
+
     pkt.emit(hdr);
   }
 }

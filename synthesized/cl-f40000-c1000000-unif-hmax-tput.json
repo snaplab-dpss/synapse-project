@@ -1,14 +1,14 @@
 {
   "bdd": "cl.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 178,
-    "num_phase1_speculations": 11397,
+    "num_execution_plans_generated": 185,
+    "num_phase1_speculations": 11510,
     "num_phase2_speculations": 179,
-    "num_speculated_modules": 120636,
-    "time_per_instantiation_us": 9138,
-    "time_per_speculation_us": 116,
-    "total_time_spent_generating_execution_plans_us": 1626659,
-    "total_time_spent_speculating_us": 14076870
+    "num_speculated_modules": 121786,
+    "time_per_instantiation_us": 5534,
+    "time_per_speculation_us": 109,
+    "total_time_spent_generating_execution_plans_us": 1023850,
+    "total_time_spent_speculating_us": 13340857
   },
   "heuristic": {
     "meta": [
@@ -98,11 +98,11 @@
         "node_id": 253
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 181
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 180
       },
       {
@@ -110,7 +110,7 @@
         "node_id": 147
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 179
       },
       {
@@ -234,7 +234,7 @@
         "node_id": 184
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 171
       },
       {
@@ -330,15 +330,15 @@
         "node_id": 156
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 162
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 163
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 164
       },
       {
@@ -351,13 +351,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.0727272727272728,
-    "elapsed_time_seconds": 43,
+    "branching_factor": 3.2,
+    "elapsed_time_seconds": 37,
     "finished_eps": 1,
-    "ss_size": 178,
+    "ss_size": 185,
     "steps": 61,
-    "total_ss_size_estimation": 7271680109098.331,
-    "unfinished_eps": 117
+    "total_ss_size_estimation": 20413521845420.53,
+    "unfinished_eps": 124
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
