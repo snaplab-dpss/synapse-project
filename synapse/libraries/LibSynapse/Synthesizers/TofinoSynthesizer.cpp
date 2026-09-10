@@ -6328,9 +6328,20 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     out_vars.insert({op_id, var});
     return var;
   };
+  // The right-hand side of each operand's definition, transpiled before its variable exists.
+  //
+  // out_var -> alloc_var registers the variable keyed on the very expression it computes, and the
+  // statements are emitted in a second pass over the steps, by which point the lookup finds that
+  // variable and the definition comes out as `X = X`. Measured on SmartCookie: 88 values -- every
+  // rotate operand, i.e. the whole SipHash chain -- were never computed, so the chain evaluated to
+  // zero and every cookie was zero. Transpiling here is also the correct scope: only earlier steps
+  // have been declared, and an operand can only depend on those.
+  std::unordered_map<std::string, code_t> out_var_rhs; // By op id.
+
   const auto computed_operands = [&](const std::vector<compute_operand_t> &operands) {
     for (const compute_operand_t &operand : operands) {
       if (!ingress_vars.get(operand.expr)) {
+        out_var_rhs[operand.op_id] = transpiler.transpile(operand.expr);
         out_var(operand.op_id, operand.expr);
       }
     }
@@ -6354,7 +6365,9 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       if (found_it == out_vars.end()) {
         continue; // Held elsewhere already.
       }
-      ops.push_back({operand.action_id, operand.op_id, found_it->second.name + " = " + transpiler.transpile(operand.expr) + ";", false});
+      const auto rhs_it = out_var_rhs.find(operand.op_id);
+      const code_t rhs  = rhs_it != out_var_rhs.end() ? rhs_it->second : transpiler.transpile(operand.expr);
+      ops.push_back({operand.action_id, operand.op_id, found_it->second.name + " = " + rhs + ";", false});
     }
   };
 
