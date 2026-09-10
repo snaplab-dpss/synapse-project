@@ -7,20 +7,20 @@ Args:
   Profile file:       nat-f40000-c100000-zipf0_6.json
   Seed:               0
   Targets:
-    Tofino (51 modules)
+    Tofino (52 modules)
     Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,500'000'000,69,-5,-32'427'712,-3>
+  Score: <0,500'000'000,69,-5,-32'425'984,-3>
   Tput: 352.26 Gbps (500.37 Mpps)
   Spec: 352.26 Gbps (500.37 Mpps)
   Recirculations: 3
   BDD Progress: 69 / 75
   Stages: 5
-  Memory Usage: 32427712 bits
+  Memory Usage: 32425984 bits
 
 Stateful Implementations:
   1074102760: Tofino::VectorTable
@@ -33,12 +33,12 @@ Search Metadata:
   Elapsed time:       16 seconds
   Steps:              72
   Backtracks:         0
-  Search space size:  219
-  Unfinished EPs:     147
+  Search space size:  230
+  Unfinished EPs:     158
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   3
-  Total SS size est.: 814'162'942'198
+  Total SS size est.: 2'707'278'651'526
   Avg children per node:
     Node 180: 2
     Node 179: 3
@@ -47,7 +47,7 @@ Search Metadata:
     Node 182: 3
     Node 145: 3
     Node 181: 4
-    Node 159: 3
+    Node 159: 4
     Node 271: 0
     Node 144: 6
     Node 270: 0
@@ -67,14 +67,14 @@ Search Metadata:
     Node 140: 5
     Node 166: 0
     Node 137: 4
-    Node 160: 3
+    Node 160: 4
     Node 189: 3
     Node 164: 0
     Node 135: 3
     Node 167: 0
     Node 265: 0
     Node 138: 5
-    Node 161: 3
+    Node 161: 4
     Node 190: 3
     Node 266: 0
     Node 139: 8
@@ -89,40 +89,40 @@ Search Metadata:
     Node 184: 3
     Node 275: 0
     Node 148: 3
-    Node 155: 3
+    Node 155: 4
     Node 169: 0
-    Node 173: 4
-    Node 185: 3
+    Node 173: 3.5
+    Node 185: 4
     Node 276: 0
     Node 149: 4
-    Node 156: 3
+    Node 156: 4
     Node 170: 0
     Node 174: 3
-    Node 186: 3
+    Node 186: 4
     Node 277: 0
     Node 150: 3
-    Node 157: 3
-    Node 175: 3.5
-    Node 187: 3
+    Node 157: 4
+    Node 175: 3
+    Node 187: 4
     Node 278: 0
-    Node 151: 3
+    Node 151: 4
     Node 158: 3
     Node 176: 3
     Node 188: 3
     Node 279: 0
-    Node 152: 3
+    Node 152: 4
     Node 177: 3
     Node 280: 0
-    Node 153: 3
+    Node 153: 4
     Node 178: 3
     Node 281: 2
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 14'373 (100%)
-  Num phase 2 speculations: 172 (1.19669%)
-  Num speculated modules:   171'571
-  Num EPs generated:        219
+  Num phase 1 speculations: 14'558 (100%)
+  Num phase 2 speculations: 172 (1.18148%)
+  Num speculated modules:   174'014
+  Num EPs generated:        230
 
 Switch placement:
 
@@ -169,12 +169,12 @@ Objs: [fcfs_ct_1074053136_reg_key_2,fcfs_ct_1074053136_reg_key_3,fcfs_ct_1074053
 -------------------------------------
 -------------------------------------
 Stage 4
-SRAM: 864/1'310'720 B (0.065918%)
+SRAM: 648/1'310'720 B (0.0494385%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
-Logical IDs: 4/16
+Logical IDs: 3/16
 Hash Dist Units: 0/6
-Exact Match Crossbar: 16/128 B (12.5%)
+Exact Match Crossbar: 12/128 B (9.375%)
 Objs: [vector_table_1074102760_175,vector_table_1074102760_149,vector_table_1074102760_183]
 -------------------------------------
 ==========================================================

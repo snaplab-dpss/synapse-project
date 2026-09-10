@@ -47,7 +47,10 @@ header recirc_h {
   bit<16> ingress_port;
   bit<32> dev;
 
+
 };
+
+
 
 header cuckoo_h {
   bit<8>  op;
@@ -60,14 +63,17 @@ header cuckoo_h {
 }
 
 header hdr0_h {
-  bit<96> data0;
-  bit<16> data1;
+  bit<32> data0;
+  bit<32> data1;
+  bit<32> data2;
+  bit<16> data3;
 }
 header hdr1_h {
-  bit<72> data0;
-  bit<8> data1;
-  bit<16> data2;
-  bit<64> data3;
+  bit<32> data0;
+  bit<32> data1;
+  bit<32> data2;
+  bit<32> data3;
+  bit<32> data4;
 }
 header hdr2_h {
   bit<32> data0;
@@ -78,6 +84,7 @@ struct synapse_ingress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
   cuckoo_h cuckoo;
+
   hdr0_h hdr0;
   hdr1_h hdr1;
   hdr2_h hdr2;
@@ -99,9 +106,14 @@ struct synapse_egress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
 
+
 }
 
 struct synapse_egress_metadata_t {
+  // The egress reads the clock itself rather than having it carried across the crossing: the
+  // ingress keeps time as ingress_mac_tstamp[47:16], and the backend rewrites shifts of it to
+  // match, a convention a value travelling in the state header would not carry with it.
+  bit<32> time;
 
 }
 
@@ -163,6 +175,7 @@ parser IngressParser(
 
   state parse_recirc {
     pkt.extract(hdr.recirc);
+
     transition select(hdr.recirc.code_path) {
       CUCKOO_CODE_PATH: parse_cuckoo;
       default: parser_init;
@@ -182,7 +195,7 @@ parser IngressParser(
     transition parser_137_0;
   }
   state parser_137_0 {
-    transition select (hdr.hdr0.data1) {
+    transition select (hdr.hdr0.data3) {
       16w0x0800: parser_138;
       default: parser_187;
     }
@@ -198,7 +211,7 @@ parser IngressParser(
     transition parser_139_0;
   }
   state parser_139_0 {
-    transition select (hdr.hdr1.data1) {
+    transition select (hdr.hdr1.data2[23:16]) {
       8w0x06: parser_140;
       8w0x11: parser_140;
       default: parser_185;
@@ -238,6 +251,7 @@ control Ingress(
   action fwd_to_cpu() {
     hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
+
     fwd(CPU_PCIE_PORT);
   }
 
@@ -245,6 +259,7 @@ control Ingress(
     hdr.cpu.setInvalid();
     hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
+
     fwd(port);
   }
 
@@ -292,6 +307,27 @@ control Ingress(
 
   action swap(inout bit<8> a, inout bit<8> b) {
     bit<8> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
+  // Swapping two fields a byte at a time forces byte-granular PHV slicing on both of them, and a
+  // field sliced that way drags its neighbours into the same container group; bf-p4c then cannot
+  // satisfy the action constraints. Swap whole fields where the byte pairs make one up.
+  action swap16(inout bit<16> a, inout bit<16> b) {
+    bit<16> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
+  action swap24(inout bit<24> a, inout bit<24> b) {
+    bit<24> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
+  action swap32(inout bit<32> a, inout bit<32> b) {
+    bit<32> tmp = a;
     a = b;
     b = tmp;
   }
@@ -492,31 +528,31 @@ control Ingress(
     cms_1074080384_row_3_read_value = cms_1074080384_row_3_read.execute(cms_1074080384_hash_3_value);
   }
 
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_0_1871;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_1_1871;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_2_1871;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_3_1871;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_0_2048;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_1_2048;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_2_2048;
+  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_3_2048;
 
-  action cms_1074080384_hash_0_1871_calc_1871() {
-    cms_1074080384_hash_0_value = cms_1074080384_hash_0_1871.get({
+  action cms_1074080384_hash_0_2048_calc_2048() {
+    cms_1074080384_hash_0_value = cms_1074080384_hash_0_2048.get({
       meta.key_64b_0,
       32w0xfbc31fc7
     });
   }
-  action cms_1074080384_hash_1_1871_calc_1871() {
-    cms_1074080384_hash_1_value = cms_1074080384_hash_1_1871.get({
+  action cms_1074080384_hash_1_2048_calc_2048() {
+    cms_1074080384_hash_1_value = cms_1074080384_hash_1_2048.get({
       meta.key_64b_0,
       32w0x2681580b
     });
   }
-  action cms_1074080384_hash_2_1871_calc_1871() {
-    cms_1074080384_hash_2_value = cms_1074080384_hash_2_1871.get({
+  action cms_1074080384_hash_2_2048_calc_2048() {
+    cms_1074080384_hash_2_value = cms_1074080384_hash_2_2048.get({
       meta.key_64b_0,
       32w0x486d7e2f
     });
   }
-  action cms_1074080384_hash_3_1871_calc_1871() {
-    cms_1074080384_hash_3_value = cms_1074080384_hash_3_1871.get({
+  action cms_1074080384_hash_3_2048_calc_2048() {
+    cms_1074080384_hash_3_value = cms_1074080384_hash_3_2048.get({
       meta.key_64b_0,
       32w0x1f3a2b4d
     });
@@ -583,8 +619,8 @@ control Ingress(
           if(hdr.hdr2.isValid()) {
             // EP node  162:MapSetTableLookup
             // BDD node 144:map_get
-            meta.key_32b_0 = hdr.hdr1.data3[63:32];
-            meta.key_32b_1 = hdr.hdr1.data3[31:0];
+            meta.key_32b_0 = hdr.hdr1.data3;
+            meta.key_32b_1 = hdr.hdr1.data4;
             meta.key_32b_2 = hdr.hdr2.data0;
             bool hit0 = map_set_table_1074047984_144.apply().hit;
             // EP node  551:VectorTableLookup
@@ -603,21 +639,21 @@ control Ingress(
               if (!hit0){
                 // EP node  711:Then
                 // BDD node 145:if
-                // EP node  1871:CMSIncrement
+                // EP node  2048:CMSIncrement
                 // BDD node 146:cms_increment
-                meta.key_64b_0 = hdr.hdr1.data3;
-                cms_1074080384_hash_0_1871_calc_1871();
-                cms_1074080384_hash_1_1871_calc_1871();
-                cms_1074080384_hash_2_1871_calc_1871();
-                cms_1074080384_hash_3_1871_calc_1871();
+                meta.key_64b_0 = (hdr.hdr1.data4 ++ hdr.hdr1.data3);
+                cms_1074080384_hash_0_2048_calc_2048();
+                cms_1074080384_hash_1_2048_calc_2048();
+                cms_1074080384_hash_2_2048_calc_2048();
+                cms_1074080384_hash_3_2048_calc_2048();
                 cms_1074080384_row_0_inc_execute();
                 cms_1074080384_row_1_inc_execute();
                 cms_1074080384_row_2_inc_execute();
                 cms_1074080384_row_3_inc_execute();
-                // EP node  2179:SendToController
+                // EP node  2385:SendToController
                 // BDD node 147:cms_count_min
                 fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                build_cpu_hdr(2179);
+                build_cpu_hdr(0);
                 hdr.cpu.dev = meta.dev;
               } else {
                 // EP node  712:Else
@@ -628,7 +664,7 @@ control Ingress(
                 vector_table_1074110176_171.apply();
                 // EP node  1011:Ignore
                 // BDD node 172:vector_return
-                // EP node  1680:Forward
+                // EP node  1830:Forward
                 // BDD node 176:FORWARD
                 nf_dev[15:0] = vector_table_1074110176_171_get_value_param0;
               }
@@ -641,19 +677,19 @@ control Ingress(
               vector_table_1074110176_177.apply();
               // EP node  933:Ignore
               // BDD node 178:vector_return
-              // EP node  1628:Forward
+              // EP node  1778:Forward
               // BDD node 182:FORWARD
               nf_dev[15:0] = vector_table_1074110176_177_get_value_param0;
             }
           }
           // EP node  71:Else
           // BDD node 139:if
-          // EP node  2265:ParserReject
+          // EP node  2471:ParserReject
           // BDD node 185:DROP
         }
         // EP node  26:Else
         // BDD node 137:if
-        // EP node  2020:ParserReject
+        // EP node  2197:ParserReject
         // BDD node 187:DROP
       }
 
@@ -661,6 +697,7 @@ control Ingress(
 
     forwarding_tbl.apply();
     ig_tm_md.bypass_egress = 1;
+
   }
 }
 
@@ -698,7 +735,9 @@ parser EgressParser(
   state start {
     tofino_parser.apply(pkt, eg_intr_md);
     transition accept;
+
   }
+
 }
 
 control Egress(
@@ -709,7 +748,12 @@ control Egress(
   inout egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md,
   inout egress_intrinsic_metadata_for_output_port_t eg_intr_oport_md
 ) {
-  apply {}
+
+
+  apply {
+    eg_md.time = eg_intr_md_from_prsr.global_tstamp[47:16];
+
+  }
 }
 
 control EgressDeparser(
@@ -718,7 +762,9 @@ control EgressDeparser(
   in    synapse_egress_metadata_t eg_md,
   in    egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md
 ) {
+
   apply {
+
     pkt.emit(hdr);
   }
 }

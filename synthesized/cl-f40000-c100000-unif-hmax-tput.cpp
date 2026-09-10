@@ -595,17 +595,17 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
 
 
-  if (bswap16(cpu_hdr->code_path) == 3211) {
-    // EP node  3190
+  if (bswap16(cpu_hdr->code_path) == 0) {
+    // EP node  3321
     // BDD node 266:tofino_force_send_to_controller()
     u8* hdr_0 = packet_consume(pkt, 14);
-    // EP node  3191
+    // EP node  3322
     // BDD node 266:tofino_force_send_to_controller()
     u8* hdr_1 = packet_consume(pkt, 20);
-    // EP node  3192
+    // EP node  3323
     // BDD node 266:tofino_force_send_to_controller()
     u8* hdr_2 = packet_consume(pkt, 4);
-    // EP node  3193
+    // EP node  3324
     // BDD node 266:tofino_force_send_to_controller()
     buffer_t fcfs_cs_1074047984_key_0(12);
     fcfs_cs_1074047984_key_0[0] = *(u8*)(hdr_1 + 12);
@@ -621,39 +621,39 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
     fcfs_cs_1074047984_key_0[10] = *(u8*)(hdr_2 + 2);
     fcfs_cs_1074047984_key_0[11] = *(u8*)(hdr_2 + 3);
     bool found_0 = state->fcfs_cs_1074047984.get(fcfs_cs_1074047984_key_0);
-    // EP node  3194
+    // EP node  3325
     // BDD node 266:tofino_force_send_to_controller()
     buffer_t value_0;
     state->vector_table_1074092960.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_0);
-    // EP node  3195
+    // EP node  3326
     // BDD node 266:tofino_force_send_to_controller()
     if ((0) == ((u32)value_0.get(0, 4))) {
-      // EP node  3196
+      // EP node  3327
       // BDD node 266:tofino_force_send_to_controller()
-      // EP node  3199
+      // EP node  3330
       // BDD node 266:tofino_force_send_to_controller()
       if ((0) == (found_0)) {
-        // EP node  3200
+        // EP node  3331
         // BDD node 266:tofino_force_send_to_controller()
-        // EP node  3203
+        // EP node  3334
         // BDD node 266:tofino_force_send_to_controller()
         if ((bswap32(cpu_hdr_extra->min_estimate__147)) <= (131071)) {
-          // EP node  3204
+          // EP node  3335
           // BDD node 266:tofino_force_send_to_controller()
-          // EP node  3207
+          // EP node  3338
           // BDD node 266:tofino_force_send_to_controller()
           if ((bswap32(cpu_hdr_extra->cached_insert_success)) != (0)) {
-            // EP node  3208
+            // EP node  3339
             // BDD node 266:tofino_force_send_to_controller()
-            // EP node  3210
+            // EP node  3341
             // BDD node 266:tofino_force_send_to_controller()
             result.abort_transaction = true;
             cpu_hdr->trigger_dataplane_execution = 1;
             return result;
           } else {
-            // EP node  3209
+            // EP node  3340
             // BDD node 266:tofino_force_send_to_controller()
-            // EP node  4792
+            // EP node  5115
             // BDD node 251:dchain_allocate_new_index(chain:(w64 1074079968), index_out:(w64 1074225880)[(w32 4294967295) -> (ReadLSB w32 (w32 0) new_index__251)], time:(ReadLSB w64 (w32 0) next_time))
             buffer_t fcfs_cs_1074047984_key_1(12);
             fcfs_cs_1074047984_key_1[0] = *(u8*)(hdr_1 + 12);
@@ -669,56 +669,56 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
             fcfs_cs_1074047984_key_1[10] = *(u8*)(hdr_2 + 2);
             fcfs_cs_1074047984_key_1[11] = *(u8*)(hdr_2 + 3);
             bool success_0 = state->fcfs_cs_1074047984.put(fcfs_cs_1074047984_key_1);
-            // EP node  4858
+            // EP node  5181
             // BDD node 252:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__251))
             if ((0) == (success_0)) {
-              // EP node  4859
+              // EP node  5182
               // BDD node 252:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__251))
-              // EP node  5353
+              // EP node  5676
               // BDD node 253:vector_borrow(vector:(w64 1074110176), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074226080)[ -> (w64 1074124072)])
               buffer_t value_1;
               state->vector_table_1074110176.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_1);
-              // EP node  5426
+              // EP node  5749
               // BDD node 254:vector_return(vector:(w64 1074110176), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074124072)[(ReadLSB w16 (w32 0) vector_data__151)])
-              // EP node  5796
+              // EP node  6119
               // BDD node 258:FORWARD
               cpu_hdr->egress_dev = bswap16((u16)value_1.get(0, 2));
             } else {
-              // EP node  4860
+              // EP node  5183
               // BDD node 252:if ((Eq (w32 0) (ReadLSB w32 (w32 0) not_out_of_space__251))
-              // EP node  4927
+              // EP node  5250
               // BDD node 260:vector_borrow(vector:(w64 1074110176), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074228240)[ -> (w64 1074124072)])
               buffer_t value_2;
               state->vector_table_1074110176.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 65535), value_2);
-              // EP node  4997
+              // EP node  5320
               // BDD node 261:vector_return(vector:(w64 1074110176), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074124072)[(ReadLSB w16 (w32 0) vector_data__160)])
-              // EP node  5352
+              // EP node  5675
               // BDD node 265:FORWARD
               cpu_hdr->egress_dev = bswap16((u16)value_2.get(0, 2));
             }
           }
         } else {
-          // EP node  3205
+          // EP node  3336
           // BDD node 266:tofino_force_send_to_controller()
-          // EP node  3206
+          // EP node  3337
           // BDD node 266:tofino_force_send_to_controller()
           result.abort_transaction = true;
           cpu_hdr->trigger_dataplane_execution = 1;
           return result;
         }
       } else {
-        // EP node  3201
+        // EP node  3332
         // BDD node 266:tofino_force_send_to_controller()
-        // EP node  3202
+        // EP node  3333
         // BDD node 266:tofino_force_send_to_controller()
         result.abort_transaction = true;
         cpu_hdr->trigger_dataplane_execution = 1;
         return result;
       }
     } else {
-      // EP node  3197
+      // EP node  3328
       // BDD node 266:tofino_force_send_to_controller()
-      // EP node  3198
+      // EP node  3329
       // BDD node 266:tofino_force_send_to_controller()
       result.abort_transaction = true;
       cpu_hdr->trigger_dataplane_execution = 1;

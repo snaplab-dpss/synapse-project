@@ -1,14 +1,14 @@
 {
   "bdd": "nat.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 212,
-    "num_phase1_speculations": 14578,
+    "num_execution_plans_generated": 226,
+    "num_phase1_speculations": 14775,
     "num_phase2_speculations": 176,
-    "num_speculated_modules": 174024,
-    "time_per_instantiation_us": 2809,
-    "time_per_speculation_us": 39,
-    "total_time_spent_generating_execution_plans_us": 595644,
-    "total_time_spent_speculating_us": 6823218
+    "num_speculated_modules": 176572,
+    "time_per_instantiation_us": 2683,
+    "time_per_speculation_us": 38,
+    "total_time_spent_generating_execution_plans_us": 606461,
+    "total_time_spent_speculating_us": 6828282
   },
   "heuristic": {
     "meta": [
@@ -78,7 +78,7 @@
         "node_id": 180
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 179
       },
       {
@@ -102,7 +102,7 @@
         "node_id": 181
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 159
       },
       {
@@ -182,7 +182,7 @@
         "node_id": 137
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 160
       },
       {
@@ -210,7 +210,7 @@
         "node_id": 138
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 161
       },
       {
@@ -270,7 +270,7 @@
         "node_id": 148
       },
       {
-        "avg": 2.5,
+        "avg": 3.0,
         "node_id": 155
       },
       {
@@ -282,7 +282,7 @@
         "node_id": 173
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 185
       },
       {
@@ -302,11 +302,11 @@
         "node_id": 170
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 174
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 186
       },
       {
@@ -326,7 +326,7 @@
         "node_id": 175
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 187
       },
       {
@@ -334,7 +334,7 @@
         "node_id": 278
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 151
       },
       {
@@ -354,11 +354,11 @@
         "node_id": 279
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 152
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 177
       },
       {
@@ -366,11 +366,11 @@
         "node_id": 280
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 153
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 178
       },
       {
@@ -383,13 +383,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.1370967741935485,
+    "branching_factor": 3.3548387096774195,
     "elapsed_time_seconds": 16,
     "finished_eps": 1,
-    "ss_size": 212,
+    "ss_size": 226,
     "steps": 73,
-    "total_ss_size_estimation": 517722536470.30646,
-    "unfinished_eps": 139
+    "total_ss_size_estimation": 2306422470790.0615,
+    "unfinished_eps": 153
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

@@ -7,7 +7,7 @@ Args:
   Profile file:       fw-f40000-c1000-zipf0_4.json
   Seed:               0
   Targets:
-    Tofino (51 modules)
+    Tofino (52 modules)
     Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
@@ -29,15 +29,15 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       35 seconds
+  Elapsed time:       36 seconds
   Steps:              49
   Backtracks:         0
-  Search space size:  180
-  Unfinished EPs:     131
+  Search space size:  189
+  Unfinished EPs:     140
   Finished EPs:       1
   Avg BDD size:       49
   Branching factor:   3
-  Total SS size est.: 1'136'552'300'406
+  Total SS size est.: 3'172'346'627'545
   Avg children per node:
     Node 173: 0
     Node 172: 0
@@ -48,18 +48,18 @@ Search Metadata:
     Node 169: 0
     Node 163: 0
     Node 154: 2
-    Node 179: 3
+    Node 179: 4
     Node 168: 0
     Node 162: 0
-    Node 153: 3
-    Node 178: 3
+    Node 153: 4
+    Node 178: 4
     Node 167: 0
     Node 161: 0
-    Node 152: 3
-    Node 177: 3
+    Node 152: 4
+    Node 177: 4
     Node 166: 0
     Node 160: 0
-    Node 151: 3
+    Node 151: 4
     Node 147: 2
     Node 176: 3
     Node 165: 0
@@ -81,23 +81,23 @@ Search Metadata:
     Node 141: 3
     Node 142: 62
     Node 143: 3
-    Node 144: 3
+    Node 144: 4
     Node 148: 0
     Node 157: 2
     Node 174: 0
-    Node 145: 3
+    Node 145: 4
     Node 149: 4
     Node 158: 0
     Node 175: 3
-    Node 146: 3
+    Node 146: 4
     Node 150: 3
     Node 159: 0
 
 Global Stats:
-  Num phase 1 speculations: 11'045 (100%)
-  Num phase 2 speculations: 229 (2.07334%)
-  Num speculated modules:   124'609
-  Num EPs generated:        180
+  Num phase 1 speculations: 11'115 (100%)
+  Num phase 2 speculations: 229 (2.06028%)
+  Num speculated modules:   125'462
+  Num EPs generated:        189
 
 Switch placement:
 

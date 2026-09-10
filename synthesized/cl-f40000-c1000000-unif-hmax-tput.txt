@@ -7,7 +7,7 @@ Args:
   Profile file:       cl-f40000-c1000000-unif.json
   Seed:               0
   Targets:
-    Tofino (51 modules)
+    Tofino (52 modules)
     Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
@@ -30,15 +30,15 @@ Stateful Implementations:
   1074047984: Tofino::FCFSCachedSet
 
 Search Metadata:
-  Elapsed time:       43 seconds
+  Elapsed time:       37 seconds
   Steps:              61
   Backtracks:         0
-  Search space size:  178
-  Unfinished EPs:     117
+  Search space size:  185
+  Unfinished EPs:     124
   Finished EPs:       1
   Avg BDD size:       52
   Branching factor:   3
-  Total SS size est.: 7'271'680'109'098
+  Total SS size est.: 20'413'521'845'420
   Avg children per node:
     Node 258: 0
     Node 257: 0
@@ -46,10 +46,10 @@ Search Metadata:
     Node 255: 0
     Node 254: 0
     Node 253: 0
-    Node 181: 3
-    Node 180: 3
+    Node 181: 4
+    Node 180: 4
     Node 147: 0
-    Node 179: 3
+    Node 179: 4
     Node 146: 4
     Node 149: 3
     Node 178: 3
@@ -80,7 +80,7 @@ Search Metadata:
     Node 170: 3
     Node 141: 4
     Node 184: 3
-    Node 171: 3
+    Node 171: 4
     Node 142: 3
     Node 260: 0
     Node 166: 3
@@ -104,17 +104,17 @@ Search Metadata:
     Node 155: 0
     Node 161: 3
     Node 156: 0
-    Node 162: 3
-    Node 163: 3
-    Node 164: 3
+    Node 162: 4
+    Node 163: 4
+    Node 164: 4
     Node 165: 2
     Node 251: 0
 
 Global Stats:
-  Num phase 1 speculations: 11'397 (100%)
-  Num phase 2 speculations: 179 (1.57059%)
-  Num speculated modules:   120'636
-  Num EPs generated:        178
+  Num phase 1 speculations: 11'510 (100%)
+  Num phase 2 speculations: 179 (1.55517%)
+  Num speculated modules:   121'786
+  Num EPs generated:        185
 
 Switch placement:
 
@@ -127,7 +127,7 @@ MapRAM: 783'712/786'432 B (99.6541%)
 Logical IDs: 10/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 40/128 B (31.25%)
-Objs: [cms_1074080384_hash_0,cms_1074080384_row_0,fcfs_cs_1074047984_table_144,cms_1074080384_hash_1,cms_1074080384_row_1,cms_1074080384_hash_2]
+Objs: [cms_1074080384_row_0,cms_1074080384_hash_0,cms_1074080384_row_1,fcfs_cs_1074047984_table_144,cms_1074080384_hash_1,cms_1074080384_hash_2]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -137,7 +137,7 @@ MapRAM: 786'424/786'432 B (99.999%)
 Logical IDs: 7/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 40/128 B (31.25%)
-Objs: [fcfs_cs_1074047984_reg_liveness,fcfs_cs_1074047984_hash_149,fcfs_cs_1074047984_reg_key_2,fcfs_cs_1074047984_hash_144,fcfs_cs_1074047984_table_144]
+Objs: [fcfs_cs_1074047984_hash_144,fcfs_cs_1074047984_reg_key_2,fcfs_cs_1074047984_reg_liveness,fcfs_cs_1074047984_hash_149,fcfs_cs_1074047984_table_144]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -147,7 +147,7 @@ MapRAM: 697'256/786'432 B (88.6607%)
 Logical IDs: 15/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 32/128 B (25%)
-Objs: [vector_table_1074092960_141,fcfs_cs_1074047984_reg_key_1,fcfs_cs_1074047984_reg_key_0,vector_table_1074110176_171,cms_1074080384_row_3,cms_1074080384_row_2,vector_table_1074110176_177,vector_table_1074110176_160,cms_1074080384_hash_3]
+Objs: [fcfs_cs_1074047984_reg_key_1,vector_table_1074092960_141,fcfs_cs_1074047984_reg_key_0,cms_1074080384_row_2,vector_table_1074110176_177,vector_table_1074110176_160,cms_1074080384_hash_3,vector_table_1074110176_171,cms_1074080384_row_3]
 -------------------------------------
 ==========================================================
 ========================================================

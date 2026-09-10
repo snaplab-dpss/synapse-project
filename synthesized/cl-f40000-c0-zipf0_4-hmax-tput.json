@@ -1,14 +1,14 @@
 {
   "bdd": "cl.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 141,
-    "num_phase1_speculations": 7025,
+    "num_execution_plans_generated": 149,
+    "num_phase1_speculations": 7081,
     "num_phase2_speculations": 173,
-    "num_speculated_modules": 84633,
-    "time_per_instantiation_us": 859,
-    "time_per_speculation_us": 6,
-    "total_time_spent_generating_execution_plans_us": 121258,
-    "total_time_spent_speculating_us": 560549
+    "num_speculated_modules": 85392,
+    "time_per_instantiation_us": 817,
+    "time_per_speculation_us": 7,
+    "total_time_spent_generating_execution_plans_us": 121854,
+    "total_time_spent_speculating_us": 609635
   },
   "heuristic": {
     "meta": [
@@ -134,7 +134,7 @@
         "node_id": 152
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 175
       },
       {
@@ -150,7 +150,7 @@
         "node_id": 151
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 174
       },
       {
@@ -166,7 +166,7 @@
         "node_id": 182
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 173
       },
       {
@@ -182,7 +182,7 @@
         "node_id": 171
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 184
       },
       {
@@ -194,7 +194,7 @@
         "node_id": 170
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 183
       },
       {
@@ -274,7 +274,7 @@
         "node_id": 146
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 179
       },
       {
@@ -282,22 +282,22 @@
         "node_id": 147
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 180
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 181
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.6666666666666665,
-    "elapsed_time_seconds": 3,
+    "branching_factor": 2.814814814814815,
+    "elapsed_time_seconds": 4,
     "finished_eps": 1,
-    "ss_size": 141,
+    "ss_size": 149,
     "steps": 51,
-    "total_ss_size_estimation": 200649778565.14038,
-    "unfinished_eps": 90
+    "total_ss_size_estimation": 786912547116.3042,
+    "unfinished_eps": 98
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

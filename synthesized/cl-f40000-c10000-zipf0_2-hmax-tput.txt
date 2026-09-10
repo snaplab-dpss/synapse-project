@@ -7,7 +7,7 @@ Args:
   Profile file:       cl-f40000-c10000-zipf0_2.json
   Seed:               0
   Targets:
-    Tofino (51 modules)
+    Tofino (52 modules)
     Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
@@ -30,15 +30,15 @@ Stateful Implementations:
   1074047984: Tofino::FCFSCachedSet
 
 Search Metadata:
-  Elapsed time:       44 seconds
+  Elapsed time:       46 seconds
   Steps:              59
   Backtracks:         0
-  Search space size:  175
-  Unfinished EPs:     116
+  Search space size:  185
+  Unfinished EPs:     126
   Finished EPs:       1
   Avg BDD size:       52
   Branching factor:   3
-  Total SS size est.: 8'448'029'516'852
+  Total SS size est.: 36'177'287'601'549
   Avg children per node:
     Node 258: 0
     Node 257: 0
@@ -46,10 +46,10 @@ Search Metadata:
     Node 255: 0
     Node 254: 0
     Node 253: 0
-    Node 181: 3
-    Node 180: 3
+    Node 181: 4
+    Node 180: 4
     Node 147: 0
-    Node 179: 3
+    Node 179: 4
     Node 146: 4
     Node 149: 2
     Node 178: 3
@@ -76,23 +76,23 @@ Search Metadata:
     Node 266: 2
     Node 139: 4
     Node 140: 4
-    Node 183: 3
+    Node 183: 4
     Node 170: 3
     Node 141: 4
-    Node 184: 3
-    Node 171: 4
+    Node 184: 4
+    Node 171: 3
     Node 142: 3
     Node 260: 0
-    Node 166: 3
-    Node 173: 3
+    Node 166: 4
+    Node 173: 4
     Node 182: 3
     Node 150: 0
-    Node 167: 3
-    Node 174: 3
+    Node 167: 4
+    Node 174: 4
     Node 151: 0
     Node 157: 0
-    Node 168: 3
-    Node 175: 3
+    Node 168: 4
+    Node 175: 4
     Node 152: 0
     Node 158: 0
     Node 169: 2
@@ -111,10 +111,10 @@ Search Metadata:
     Node 251: 0
 
 Global Stats:
-  Num phase 1 speculations: 10'834 (100%)
-  Num phase 2 speculations: 173 (1.59682%)
-  Num speculated modules:   115'938
-  Num EPs generated:        175
+  Num phase 1 speculations: 10'949 (100%)
+  Num phase 2 speculations: 173 (1.58005%)
+  Num speculated modules:   117'051
+  Num EPs generated:        185
 
 Switch placement:
 

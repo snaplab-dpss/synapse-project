@@ -7,7 +7,7 @@ Args:
   Profile file:       nat-f40000-c1000-zipf0_8.json
   Seed:               0
   Targets:
-    Tofino (51 modules)
+    Tofino (52 modules)
     Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
@@ -30,15 +30,15 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       30 seconds
+  Elapsed time:       32 seconds
   Steps:              62
   Backtracks:         0
-  Search space size:  198
-  Unfinished EPs:     136
+  Search space size:  210
+  Unfinished EPs:     148
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   3
-  Total SS size est.: 441'682'484'724
+  Total SS size est.: 1'725'805'546'038
   Avg children per node:
     Node 180: 0
     Node 179: 0
@@ -46,7 +46,7 @@ Search Metadata:
     Node 182: 3
     Node 145: 3
     Node 181: 4
-    Node 159: 3
+    Node 159: 4
     Node 144: 6
     Node 143: 3
     Node 142: 30
@@ -61,13 +61,13 @@ Search Metadata:
     Node 140: 3
     Node 166: 0
     Node 137: 4
-    Node 160: 3
+    Node 160: 4
     Node 189: 3
     Node 164: 4
     Node 135: 3
     Node 167: 0
     Node 138: 5
-    Node 161: 3
+    Node 161: 4
     Node 190: 3
     Node 139: 8
     Node 191: 2
@@ -79,34 +79,34 @@ Search Metadata:
     Node 172: 0
     Node 184: 3
     Node 148: 3
-    Node 155: 3
+    Node 155: 4
     Node 169: 0
     Node 173: 0
-    Node 185: 3
+    Node 185: 4
     Node 149: 4
-    Node 156: 3
+    Node 156: 4
     Node 170: 0
     Node 174: 0
-    Node 186: 3
+    Node 186: 4
     Node 150: 3
-    Node 157: 3
+    Node 157: 4
     Node 175: 0
-    Node 187: 3
-    Node 151: 3
+    Node 187: 4
+    Node 151: 4
     Node 158: 2
     Node 176: 0
     Node 188: 3
-    Node 152: 3
+    Node 152: 4
     Node 177: 0
-    Node 153: 3
+    Node 153: 4
     Node 178: 0
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 13'867 (100%)
-  Num phase 2 speculations: 223 (1.60813%)
-  Num speculated modules:   163'610
-  Num EPs generated:        198
+  Num phase 1 speculations: 13'982 (100%)
+  Num phase 2 speculations: 223 (1.59491%)
+  Num speculated modules:   164'966
+  Num EPs generated:        210
 
 Switch placement:
 

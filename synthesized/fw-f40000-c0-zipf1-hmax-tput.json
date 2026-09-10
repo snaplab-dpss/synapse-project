@@ -1,14 +1,14 @@
 {
   "bdd": "fw.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 180,
-    "num_phase1_speculations": 10829,
+    "num_execution_plans_generated": 189,
+    "num_phase1_speculations": 10893,
     "num_phase2_speculations": 229,
-    "num_speculated_modules": 123058,
-    "time_per_instantiation_us": 1907,
-    "time_per_speculation_us": 166,
-    "total_time_spent_generating_execution_plans_us": 343345,
-    "total_time_spent_speculating_us": 20479969
+    "num_speculated_modules": 123887,
+    "time_per_instantiation_us": 1680,
+    "time_per_speculation_us": 168,
+    "total_time_spent_generating_execution_plans_us": 317649,
+    "total_time_spent_speculating_us": 20888495
   },
   "heuristic": {
     "meta": [
@@ -106,7 +106,7 @@
         "node_id": 154
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 179
       },
       {
@@ -118,11 +118,11 @@
         "node_id": 162
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 153
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 178
       },
       {
@@ -134,11 +134,11 @@
         "node_id": 161
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 152
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 177
       },
       {
@@ -150,7 +150,7 @@
         "node_id": 160
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 151
       },
       {
@@ -238,7 +238,7 @@
         "node_id": 143
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 144
       },
       {
@@ -254,7 +254,7 @@
         "node_id": 174
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 145
       },
       {
@@ -270,7 +270,7 @@
         "node_id": 175
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 146
       },
       {
@@ -283,13 +283,13 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.4716981132075473,
+    "branching_factor": 3.641509433962264,
     "elapsed_time_seconds": 37,
     "finished_eps": 1,
-    "ss_size": 180,
+    "ss_size": 189,
     "steps": 49,
-    "total_ss_size_estimation": 1136552300406.202,
-    "unfinished_eps": 131
+    "total_ss_size_estimation": 3172346627545.165,
+    "unfinished_eps": 140
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
