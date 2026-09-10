@@ -7,7 +7,9 @@
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
 
+#include <algorithm>
 #include <chrono>
+#include <limits>
 
 namespace LibSynapse {
 
@@ -209,6 +211,22 @@ std::vector<const EPNode *> EP::get_nodes_by_type(const std::unordered_set<Modul
   });
 
   return found;
+}
+
+code_path_t EP::get_cpu_code_path(const EPNode *ep_node) const {
+  std::vector<const EPNode *> handoffs = get_nodes_by_type({ModuleType::Tofino_SendToController});
+
+  // By id rather than by visit order, so the number does not move if the walk ever changes.
+  std::sort(handoffs.begin(), handoffs.end(), [](const EPNode *a, const EPNode *b) { return a->get_id() < b->get_id(); });
+
+  for (size_t i = 0; i < handoffs.size(); i++) {
+    if (handoffs[i] == ep_node) {
+      assert(i <= std::numeric_limits<code_path_t>::max() && "More controller hand-offs than the cpu header can address");
+      return static_cast<code_path_t>(i);
+    }
+  }
+
+  panic("EP node %lu is not a controller hand-off", ep_node->get_id());
 }
 
 bool EP::has_target(TargetType type) const {

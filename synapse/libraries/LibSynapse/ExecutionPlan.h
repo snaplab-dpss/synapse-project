@@ -116,6 +116,15 @@ public:
   std::vector<const EPNode *> get_prev_nodes_of_current_target() const;
   std::vector<const EPNode *> get_nodes_by_type(const std::unordered_set<ModuleType> &types) const;
 
+  // Which controller hand-off this node is, counting from 0.
+  //
+  // The cpu header carries the code path in 16 bits (`cpu_hdr_t` in libsycon), but EP node ids are
+  // u64 and nothing bounds them by it: on SmartCookie the id is 237392, so the data plane wrote a
+  // truncated value and the controller's `code_path == <id>` test could never match. Numbering the
+  // hand-off sites keeps the field as it is. Both synthesizers derive the number from the plan, so
+  // they agree without sharing state.
+  code_path_t get_cpu_code_path(const EPNode *ep_node) const;
+
   bool has_target(TargetType type) const;
   const BDDNode *get_next_node() const;
   const EPNode *get_leaf_ep_node_from_bdd_node(const BDDNode *node) const;

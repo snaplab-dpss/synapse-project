@@ -989,7 +989,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   coder.indent();
   coder << ((code_paths.size() == 1) ? "if " : "else if ");
-  coder << "(bswap16(cpu_hdr->code_path) == " << ep_node->get_id() << ") {\n";
+  coder << "(bswap16(cpu_hdr->code_path) == " << ep->get_cpu_code_path(ep_node) << ") {\n";
 
   coder.inc();
   visit(ep, next_node);
