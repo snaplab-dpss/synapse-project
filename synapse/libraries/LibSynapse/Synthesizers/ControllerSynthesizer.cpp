@@ -2,6 +2,7 @@
 #include <LibSynapse/Modules/x86/x86.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
+#include <LibSynapse/Modules/Tofino/VectorTableLookup.h>
 
 namespace LibSynapse {
 namespace Controller {
@@ -1402,7 +1403,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const addr_t obj                        = node->get_obj();
   const Tofino::VectorTable *vector_table = get_unique_tofino_ds_from_obj<Tofino::VectorTable>(ep, obj);
 
-  transpile_vector_table_decl(vector_table);
+  transpile_vector_table_decl(ep, vector_table);
 
   return EPVisitor::Action::doChildren;
 }
@@ -2646,7 +2647,7 @@ void ControllerSynthesizer::transpile_guarded_map_table_decl(const Tofino::Guard
   state_member_init_list.push_back(member_init_list.dump());
 }
 
-void ControllerSynthesizer::transpile_vector_table_decl(const Tofino::VectorTable *vector_table) {
+void ControllerSynthesizer::transpile_vector_table_decl(const EP *ep, const Tofino::VectorTable *vector_table) {
   coder_t &state_fields = get(MARKER_STATE_FIELDS);
 
   const code_t name = assert_unique_name(vector_table->id);
@@ -2660,8 +2661,29 @@ void ControllerSynthesizer::transpile_vector_table_decl(const Tofino::VectorTabl
   member_init_list << name;
   member_init_list << "(";
   member_init_list << "\"" << name << "\",";
+  // Only the tables the data plane actually declares. A vector table holds one table per read
+  // site, but a site the search placed on the controller has none in the P4, and libsycon aborts
+  // in build_table when asked to bind a name that is not there. It matters twice over: VectorTable
+  // sums value_size across the list, so a name that is not backed also corrupts the layout.
+  //
+  // The map, map-set, guarded-map, dchain and hh declarations below list their tables the same way
+  // and have the same hole; no shipped solution triggers it today, so it is left as it is.
+  std::unordered_set<DS_ID> in_dataplane;
+  for (const EPNode *node : ep->get_nodes_by_type({ModuleType::Tofino_VectorTableLookup})) {
+    const Tofino::VectorTableLookup *lookup = dynamic_cast<const Tofino::VectorTableLookup *>(node->get_module());
+    if (!lookup || lookup->get_id() != vector_table->id) {
+      continue;
+    }
+    if (const Tofino::Table *table = vector_table->get_table(lookup->get_node()->get_id())) {
+      in_dataplane.insert(table->id);
+    }
+  }
+
   member_init_list << "{";
   for (const Tofino::Table &table : vector_table->tables) {
+    if (in_dataplane.find(table.id) == in_dataplane.end()) {
+      continue;
+    }
     member_init_list << "\"" << gress() << table.id << "\",";
   }
   member_init_list << "}";
