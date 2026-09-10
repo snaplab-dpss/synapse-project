@@ -17,6 +17,7 @@ PROJECT_DIR = (CURRENT_DIR / ".." / "..").resolve()
 SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
 NETCACHE_DIR = PROJECT_DIR / "tofino" / "netcache" / "p4"
 SWITCHAROO_DIR = PROJECT_DIR / "tofino" / "switcharoo" / "p4"
+HYPERLOGLOG_DIR = PROJECT_DIR / "tofino" / "hyperloglog" / "p4"
 
 TARGET_NFS = ["kvs", "fw", "nat", "psd", "cl", "hyperloglog"]
 
@@ -128,81 +129,51 @@ def build_stages_over_churn_latex_table(resources_per_nf_per_key: dict[str, dict
     return prefix + content + suffix
 
 
-def build_kvs_resources_latex_table(
-    netcache: Resources,
-    switcharoo: Resources,
-    gallium: Resources,
-    synapse: tuple[Resources, Resources],
-) -> str:
-    prefix = r"""
-\begin{tabular}{lcccc}
-\toprule
-& \textbf{Stages} & \textbf{SRAM} & \textbf{VLIW} & \begin{tabular}[c]{@{}l@{}}\textbf{Match}\\ \textbf{xbar}\end{tabular} \\
+# Columns of the manual-comparison tables, in the order they are printed.
+COMPARISON_RESOURCES = ["stages", "sram", "vliw", "match_xbar"]
+
+# One row is either a single design (a plain Resources) or synapse's average over the
+# synthesized solutions (an average/stdev pair, rendered with its deviation).
+ComparisonRow = tuple[str, Resources | tuple[Resources, Resources]]
+
+COMPARISON_HEADER = r"""& \textbf{Stages} & \textbf{SRAM} & \textbf{VLIW} & \begin{tabular}[c]{@{}l@{}}\textbf{Match}\\ \textbf{xbar}\end{tabular} \\
 \midrule
 """
 
-    rows = []
-
-    rows.append(
-        " & ".join(
-            [
-                "NetCache",
-                f"{100*netcache.stages:.1f}\\%",
-                f"{100*netcache.sram:.1f}\\%",
-                f"{100*netcache.vliw:.1f}\\%",
-                f"{100*netcache.match_xbar:.1f}\\%",
-            ]
-        )
-        + r" \\"
-    )
-
-    rows.append(
-        " & ".join(
-            [
-                "Switcharoo",
-                f"{100*switcharoo.stages:.1f}\\%",
-                f"{100*switcharoo.sram:.1f}\\%",
-                f"{100*switcharoo.vliw:.1f}\\%",
-                f"{100*switcharoo.match_xbar:.1f}\\%",
-            ]
-        )
-        + r" \\"
-    )
-
-    rows.append(
-        " & ".join(
-            [
-                "Gallium",
-                f"{100*gallium.stages:.1f}\\%",
-                f"{100*gallium.sram:.1f}\\%",
-                f"{100*gallium.vliw:.1f}\\%",
-                f"{100*gallium.match_xbar:.1f}\\%",
-            ]
-        )
-        + r" \\"
-    )
-
-    rows.append(
-        " & ".join(
-            [
-                "Tessera",
-                f"\\evalue{{{100*synapse[0].stages:.1f}\\%}}{{{100*synapse[1].stages:.1f}}}",
-                f"\\evalue{{{100*synapse[0].sram:.1f}\\%}}{{{100*synapse[1].sram:.1f}}}",
-                f"\\evalue{{{100*synapse[0].vliw:.1f}\\%}}{{{100*synapse[1].vliw:.1f}}}",
-                f"\\evalue{{{100*synapse[0].match_xbar:.1f}\\%}}{{{100*synapse[1].match_xbar:.1f}}}",
-            ]
-        )
-        + r" \\"
-    )
-
-    content = "\n".join(rows)
-
-    suffix = r"""
+COMPARISON_SUFFIX = r"""
 \bottomrule
 \end{tabular}
 """
 
-    return prefix + content + suffix
+
+def build_comparison_columns(resources: Resources | tuple[Resources, Resources]) -> list[str]:
+    if isinstance(resources, tuple):
+        avg_resources, stdev_resources = resources
+        return [f"\\evalue{{{100*getattr(avg_resources, r):.1f}\\%}}{{{100*getattr(stdev_resources, r):.1f}}}" for r in COMPARISON_RESOURCES]
+    return [f"{100*getattr(resources, r):.1f}\\%" for r in COMPARISON_RESOURCES]
+
+
+def build_manual_comparison_latex_table(rows: list[ComparisonRow]) -> str:
+    prefix = "\n" + r"\begin{tabular}{lcccc}" + "\n" + r"\toprule" + "\n" + COMPARISON_HEADER
+
+    latex_rows = [" & ".join([label] + build_comparison_columns(resources)) + r" \\" for label, resources in rows]
+
+    return prefix + "\n".join(latex_rows) + COMPARISON_SUFFIX
+
+
+def build_merged_comparison_latex_table(groups: list[tuple[str, list[ComparisonRow]]]) -> str:
+    prefix = "\n" + r"\begin{tabular}{llcccc}" + "\n" + r"\toprule" + "\n" + r"\textbf{NF} & \textbf{System} " + COMPARISON_HEADER
+
+    latex_groups = []
+
+    for nf, rows in groups:
+        # The NF spans the group, so it only labels the first of its rows.
+        latex_rows = [
+            " & ".join([nf if i == 0 else "", label] + build_comparison_columns(resources)) + r" \\" for i, (label, resources) in enumerate(rows)
+        ]
+        latex_groups.append("\n".join(latex_rows))
+
+    return prefix + "\n\\midrule\n".join(latex_groups) + COMPARISON_SUFFIX
 
 
 if __name__ == "__main__":
@@ -333,20 +304,39 @@ if __name__ == "__main__":
 
     netcache_resources_file = NETCACHE_DIR / "netcache-resources.txt"
     switcharoo_resources_file = SWITCHAROO_DIR / "switcharoo-resources.txt"
-    gallium_resources_file = SYNTHESIZED_DIR / "gallium-kvs-resources.txt"
+    hyperloglog_resources_file = HYPERLOGLOG_DIR / "hyperloglog-resources.txt"
+    gallium_kvs_resources_file = SYNTHESIZED_DIR / "gallium-kvs-resources.txt"
+    gallium_hyperloglog_resources_file = SYNTHESIZED_DIR / "gallium-hyperloglog-resources.txt"
 
-    assert netcache_resources_file.exists(), f"Synthesized resources file {netcache_resources_file} does not exist!"
-    assert switcharoo_resources_file.exists(), f"Synthesized resources file {switcharoo_resources_file} does not exist!"
-    assert gallium_resources_file.exists(), f"Synthesized resources file {gallium_resources_file} does not exist!"
+    comparison_groups: list[tuple[str, list[ComparisonRow]]] = []
 
-    netcache_resources = parse_tofino_resources_file(netcache_resources_file)
-    switcharoo_resources = parse_tofino_resources_file(switcharoo_resources_file)
-    gallium_resources = parse_tofino_resources_file(gallium_resources_file)
+    if "kvs" in args.nfs:
+        assert netcache_resources_file.exists(), f"Synthesized resources file {netcache_resources_file} does not exist!"
+        assert switcharoo_resources_file.exists(), f"Synthesized resources file {switcharoo_resources_file} does not exist!"
+        assert gallium_kvs_resources_file.exists(), f"Synthesized resources file {gallium_kvs_resources_file} does not exist!"
 
-    latex_table3 = build_kvs_resources_latex_table(
-        netcache=netcache_resources,
-        switcharoo=switcharoo_resources,
-        gallium=gallium_resources,
-        synapse=avg_resources_per_nf["kvs"],
-    )
-    print(latex_table3)
+        kvs_rows: list[ComparisonRow] = [
+            ("NetCache", parse_tofino_resources_file(netcache_resources_file)),
+            ("Switcharoo", parse_tofino_resources_file(switcharoo_resources_file)),
+            ("Gallium", parse_tofino_resources_file(gallium_kvs_resources_file)),
+            ("Tessera", avg_resources_per_nf["kvs"]),
+        ]
+
+        comparison_groups.append((NF_LABELS.get("kvs", "kvs".upper()), kvs_rows))
+        print(build_manual_comparison_latex_table(kvs_rows))
+
+    if "hyperloglog" in args.nfs:
+        assert hyperloglog_resources_file.exists(), f"Synthesized resources file {hyperloglog_resources_file} does not exist!"
+        assert gallium_hyperloglog_resources_file.exists(), f"Synthesized resources file {gallium_hyperloglog_resources_file} does not exist!"
+
+        hyperloglog_rows: list[ComparisonRow] = [
+            ("BeauCoup", parse_tofino_resources_file(hyperloglog_resources_file)),
+            ("Gallium", parse_tofino_resources_file(gallium_hyperloglog_resources_file)),
+            ("Tessera", avg_resources_per_nf["hyperloglog"]),
+        ]
+
+        comparison_groups.append((NF_LABELS.get("hyperloglog", "hyperloglog".upper()), hyperloglog_rows))
+        print(build_manual_comparison_latex_table(hyperloglog_rows))
+
+    if comparison_groups:
+        print(build_merged_comparison_latex_table(comparison_groups))
