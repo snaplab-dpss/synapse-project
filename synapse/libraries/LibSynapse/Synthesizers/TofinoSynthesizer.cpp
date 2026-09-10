@@ -3449,9 +3449,21 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
         if (acc <= target * 8 || j == i) {
           continue;
         }
+        // Never cut a guessed field that is already a width the target can hold. The guess comes
+        // from where the program reads, so such a field is a protocol field: kvs's 12-byte payload
+        // is guessed 1,4,4,1,2 -- an opcode then a key and a value -- and aligning to four bytes
+        // from the start of the header put the key and the value across two fields each. Reading
+        // one then needs a slice, and a stateful ALU cannot write its result to an unaligned one
+        // ("ATTACHED_OUTPUT_ILLEGAL_ALIGNMENT"). Leaving them whole costs only that the fields
+        // after the opcode are not four-byte aligned, which PHV allocation is free to do.
+        const bits_t victim = work[j - 1]->getWidth();
+        if (victim == 8 || victim == 16 || victim == 32) {
+          continue;
+        }
+
         // work[j - 1] overshoots: keep the bytes that complete this field and push the rest back.
         const bits_t overshoot = acc - target * 8;
-        const bits_t keep      = work[j - 1]->getWidth() - overshoot;
+        const bits_t keep      = victim - overshoot;
         if (keep == 0 || keep % 8 != 0) {
           continue;
         }
