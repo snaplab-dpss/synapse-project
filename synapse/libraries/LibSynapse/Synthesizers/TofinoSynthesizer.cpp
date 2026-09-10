@@ -2028,7 +2028,7 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::compose_hdr_fi
     return {};
   }
   const std::optional<LibCore::consecutive_bytes_t> target = LibCore::get_consecutive_bytes(expr);
-  if (!target || !target->network_order) {
+  if (!target) {
     return {};
   }
 
@@ -2064,10 +2064,20 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::compose_hdr_fi
       if (!bytes || bytes->network_order || bytes->array != target->array || next < bytes->lo || next > bytes->hi) {
         continue;
       }
-      const u32 end     = std::min(bytes->hi, target->hi);
+      const u32 end      = std::min(bytes->hi, target->hi);
       const bits_t width = (bytes->hi - bytes->lo + 1) * 8;
-      const bits_t high  = width - 1 - (next - bytes->lo) * 8;
-      const bits_t low   = width - (end - bytes->lo + 1) * 8;
+      // Where bytes `next..end` sit inside the field depends on how the field itself is read. A
+      // network-order field has byte `lo` at the top, so the run counts down from the width; a
+      // host-order one has byte `lo` at the bottom, so it counts up from it.
+      bits_t high;
+      bits_t low;
+      if (bytes->network_order) {
+        high = width - 1 - (next - bytes->lo) * 8;
+        low  = width - (end - bytes->lo + 1) * 8;
+      } else {
+        high = (end - bytes->lo + 1) * 8 - 1;
+        low  = (next - bytes->lo) * 8;
+      }
       field_names.push_back(var.name + "[" + std::to_string(high) + ":" + std::to_string(low) + "]");
       next  = end + 1;
       found = true;
@@ -2080,6 +2090,13 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::compose_hdr_fi
   }
   if (field_names.empty()) {
     return {};
+  }
+
+  // The pieces were gathered by increasing address. A network-order value wants them in that
+  // order, most significant first; a host-order one is the same bytes read the other way round, so
+  // its pieces -- each already a host-order run -- go most significant last.
+  if (!target->network_order) {
+    std::reverse(field_names.begin(), field_names.end());
   }
 
   // One field covering the whole range is the common case now that adjacent fields are coalesced
