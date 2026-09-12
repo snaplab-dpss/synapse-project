@@ -238,3 +238,44 @@ lives in it, and the unrolled chain has around 160 values against the loop's nin
 - Statements inside an action execute in order, so `a = b; b = a;` duplicates `b` instead of
   swapping; but a single write of a field in terms of itself
   (`ports = ports[15:0] ++ ports[31:16]`) is one operation and is correct.
+
+## Hash-distribution units across mutually exclusive branches (`hdu1.p4` .. `hdu4.p4`)
+
+Question: SmartCookie's BDD carries the SipHash chain twice, once on the SYN path and once on the
+cookie-check path, and the two copies are the same ops on the same packet bytes. Each 32-bit
+`@in_hash` rotate takes 2 of a stage's 6 hash-distribution units, so one chain (36 hash rotates)
+costs 72 units and two cost 144 of the 120 the pipeline has. Does bf-p4c let two copies in
+mutually exclusive branches share units? Three independent chains of 12 dependent rotates
+(3 rotates per stage, 6 of 6 units) stand in for the SipHash chain.
+
+| toy | shape | result |
+|---|---|---|
+| `hdu1` | one copy, unconditional | compiles, 12 stages |
+| `hdu2` | two copies in `if`/`else`, same ops on the same fields | compiles, 12 stages: both copies' tables sit in one stage and use the **same six units** (`hash_dist(0,1)`, `(2,3)`, `(4,5)` in both) |
+| `hdu3` | two copies, different rotate amounts | fails: "supports up to 20 stages, using 25" |
+| `hdu4` | two copies, same ops, each on its own fields (`a/b/c` vs `d/e/f`) | fails: "using 26" |
+
+Takeaways: a hash-distribution unit is shared between mutually exclusive tables only when the
+hash expression is the same (same function, same input field). The same computation on different
+fields is a different hash and gets its own units, and when a stage has none left the second copy
+is pushed past the first, into stages the chip does not have. So two copies of the chain fit only
+if they are emitted as one computation on one set of fields; synapse's per-path symbols
+(`rotated__16` vs `rotated__107`) make them `hdu4`.
+
+### Does the action matter, or the field it reads? (`hdu5.p4` .. `hdu8.p4`)
+
+Question: is a rotate shared because the two branches call the same *action*, or because they
+hash the same *field*? Same chains as above.
+
+| toy | shape | result |
+|---|---|---|
+| `hdu5` | the same no-argument actions called from both branches | compiles, 13 stages, units shared |
+| `hdu6` | one parameterized action `r5(in x, out y)`, each branch passing its own fields (`a/b/c` vs `d/e/f`) | fails, 26 stages, no sharing |
+| `hdu7` | the same parameterized action, both branches passing the same fields | compiles, 13 stages, units shared |
+| `hdu8` | each branch writes its own inputs into shared fields (`init_p` / `init_q`), then both call the one chain | compiles, 13 stages, units shared |
+
+Takeaways: the action is irrelevant; a direct call with field arguments is inlined and the hash
+unit is configured for the field it reads, so `hdu6` is `hdu4` with extra steps. What is shared
+is a hash *of a given field*. Two computations that differ in an input can still share the chain
+by selecting the input into one field first (`hdu8`), which costs no stage here and is what the
+ground truth's `msg3_sel` does.
