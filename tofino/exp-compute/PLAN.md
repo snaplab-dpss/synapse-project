@@ -225,7 +225,45 @@ from the second branch. Two things came out of the first replay:
 - Four other NFs (cl, fw, hyperloglog, psd) re-synthesize to byte-identical P4 and controller code
   with the change.
 
-**2b (proposed): a selector for the one input that differs.** A BDD pass over stateless ops:
+**2b is built as a rule of the placer, not a BDD pass (uncommitted, 2026-09-12 evening).** An op
+with no exact match looks for a placed op of the same shape on another path -- same function,
+operands equal but for one plain value -- and shares it once that value reads one field on both
+paths: unified by naming when both paths compute it, by a move into the other path's field when
+one reads it from the packet or as a constant (`hdu8`). The placed op's operand is rewritten to
+the shared field; the move is a keyless action placed ahead of the shared one and emitted at the
+start of the run that holds it. Speculation sees it through the same builder; it no longer
+registers what it places, which is what made each replay slower. Found on the way and fixed: the
+first cut matched ops on the *same* path (two live values cannot share a field), and a symbol
+that reached a path by an alias is the other path's, not a candidate for unifying.
+
+Result: **the walk replays to a finished plan of the target's shape** with no prompt
+(`smartcookie-walk.txt`, 456 decisions, the regression fixture). Path B's lap 2 places one action
+of its own (the `seq - 1`) plus the move on path A; rounds 7-12 share with 144, 403, 417 and their
+neighbours. Clock path to the controller, as allowed. `Tput 286.83 Mpps, Recirculations 2,
+Stages 20`. Four other NFs re-synthesize to byte-identical P4 and controller, but for
+hyperloglog's header-value actions (below).
+
+**Phase 3 has started with what compiling that plan found** (`tofino/exp-compute/sc-walk/`):
+- a value carried by a recirculation must keep its header slot on every path that carries it, or
+  a shared lap-2 action reads the wrong slot (slots are now remembered by variable name);
+- the emitter's own common-subexpression trick (a value already held elsewhere gets no statement)
+  must not apply to a shared action, which the other path calls for that very op;
+- after a recirculation from the egress the clock is `meta.time` again, and a shift of the clock
+  in the egress is `eg_md.time` (two pre-existing bugs, exposed by the target's shape);
+- a materialized header value written as a bare assignment in the apply block makes bf-p4c
+  synthesize an action and refuse the wide constant in it (`ack - 1`); it is now an action of its
+  own (`addc1..3.p4`).
+With those, the front end and instruction selection pass, and after fifteen minutes the back end
+stops on action constraints: a rotate output the hash unit cut six ways
+(`rotate_left_162_out[15:0]`, `[18:16]`, `[23:19]`, `[24]`, `[26:25]`, `[31:27]`) copied into
+`hdr.egress_state` at the crossing needs six PHV sources against a limit of two, and
+`build_recirc_hdr` packs `meta.dev[31:16]` with the two halves of `ingress_port`, three sources.
+The PHV work the hand-fixed version needed (`GROUND-TRUTH.md` rules 8-10, the hash-unit copy for
+cut values), which is this phase's subject.
+
+The original proposal, kept for the record:
+
+**2b (as first proposed): a selector for the one input that differs.** A BDD pass over stateless ops:
 value-number them, match the two chains in lockstep (they are the same unrolled function), and at
 the first op that differs in exactly one plain operand insert an `op_phi(k, x)` node on each path
 producing a fresh symbol -- on path A `x` is the sequence number, on path B the expression
