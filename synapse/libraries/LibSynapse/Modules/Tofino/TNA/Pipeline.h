@@ -170,6 +170,11 @@ struct Pipeline {
     (r.gress == Gress::Egress ? r.used_compute_ops_egress : r.used_compute_ops_ingress)++;
   }
   void cross_to_egress() { resources.mutate().gress = Gress::Egress; }
+  void set_gress(Gress gress) {
+    if (resources->gress != gress) {
+      resources.mutate().gress = gress;
+    }
+  }
   // A recirculated packet re-enters through the ingress, so later laps are charged there again.
   void back_to_ingress() { resources.mutate().gress = Gress::Ingress; }
   Gress get_gress() const { return resources->gress; }

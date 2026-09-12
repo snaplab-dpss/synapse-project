@@ -59,6 +59,11 @@ public:
   DS_ID find_compute_action(const std::string &op_id) const;
 
   void debug() const override;
+  // The pipeline's gress is where the active leaf is on its own path: past the last crossing
+  // since the last recirculation it is the egress, otherwise the ingress. The flag the modules
+  // set is the one the previous step's path left, which is another path's when the search moves
+  // to another leaf.
+  void sync_active_leaf(const EP *ep) override;
 
   // Every data structure placed since the last recirculation: the program-order dependencies
   // a stateful step must follow.
