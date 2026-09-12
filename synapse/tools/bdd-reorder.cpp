@@ -5,6 +5,7 @@
 #include <LibCore/Expr.h>
 
 #include <filesystem>
+#include <optional>
 #include <CLI/CLI.hpp>
 
 using namespace LibCore;
@@ -124,18 +125,44 @@ int main(int argc, char **argv) {
 
   app.add_option("--in", input_bdd_file, "Input file for BDD deserialization.")->required();
 
+  // The anchor is the node the candidate is moved to sit right after; for a branch anchor,
+  // --direction picks the side. With --candidate the single op is attempted and its status is
+  // reported, which says *why* when it is refused; without it every candidate is listed.
+  bdd_node_id_t anchor_id = 0;
+  bool direction          = true;
+  std::vector<bdd_node_id_t> candidate_ids;
+
+  app.add_option("--anchor", anchor_id, "Anchor node id.")->required();
+  app.add_option("--direction", direction, "Branch direction at the anchor (default true).");
+  app.add_option("--candidate", candidate_ids,
+                 "Move this node to right after the anchor. Given more than once, each further candidate is moved to "
+                 "right after the previous one, on the BDD the previous move produced.");
+
   CLI11_PARSE(app, argc, argv);
 
   SymbolManager symbol_manager;
   BDD bdd(input_bdd_file, &symbol_manager);
 
-  list_candidates(&bdd, {146, false});
-  // apply_reordering_ops(&bdd, {
-  //                                {{138, true}, 142},
-  //                                {{142, true}, 159},
-  //                            });
-  // test_reorder(&bdd, 3);
-  // estimate(&bdd);
+  anchor_info_t anchor_info{anchor_id, direction};
+
+  if (!candidate_ids.empty()) {
+    std::unique_ptr<BDD> current;
+    const BDD *view = &bdd;
+    for (bdd_node_id_t candidate_id : candidate_ids) {
+      reordered_bdd_t result = try_reorder(view, anchor_info, candidate_id);
+      std::cerr << "anchor=" << anchor_info.id << " direction=" << anchor_info.direction << " candidate=" << candidate_id
+                << " -> " << result.op.candidate_info.status << "\n";
+      if (result.op.candidate_info.status != ReorderingCandidateStatus::Valid) {
+        return 1;
+      }
+      current     = std::move(result.bdd);
+      view        = current.get();
+      anchor_info = {candidate_id, true}; // the next candidate goes right after this one
+    }
+    return 0;
+  }
+
+  list_candidates(&bdd, anchor_info);
 
   return 0;
 }
