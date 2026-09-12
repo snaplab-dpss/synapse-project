@@ -330,7 +330,14 @@ bool TofinoModuleFactory::place_operand_ops(ComputeStepBuilder &builder, const E
   for (compute_operand_t &operand : operands) {
     const std::unordered_set<DS_ID> deps = speculations ? TofinoContext::get_dataflow_deps(ep, node, operand.expr, *speculations)
                                                         : TofinoContext::get_dataflow_deps(ep, node, operand.expr);
-    const std::optional<DS_ID> action    = builder.place({.id = operand.op_id, .kind = ComputeOpKind::ALU, .width = operand.expr->getWidth()}, deps);
+    const std::optional<DS_ID> action    = builder.place({.id      = operand.op_id,
+                                                          .kind    = ComputeOpKind::ALU,
+                                                          .width   = operand.expr->getWidth(),
+                                                          .fn      = "operand",
+                                                          .args    = {operand.expr},
+                                                          .out     = nullptr,
+                                                          .in_hash = false},
+                                                         deps);
     if (!action) {
       return false;
     }
@@ -393,11 +400,26 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
     std::erase_if(deps, [this](const DS_ID &dep) { return std::find(actions.begin(), actions.end(), dep) == actions.end(); });
   }
 
+  // The same function of the same values, placed on a mutually exclusive path already: reuse
+  // that action, in this gress and no earlier than this op's producers, and pay nothing.
+  Pipeline &pipeline           = ctx->get_mutable_tna().pipeline;
+  const compute_op_t canonical = ctx->canonical_op(op);
+  if (const std::optional<compute_reuse_t> original = ctx->find_reusable_compute_op(canonical)) {
+    const std::optional<Gress> gress = pipeline.get_placed_gress(original->action);
+    const int stage                  = pipeline.get_placed_stage(original->action);
+    const int soonest                = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
+    if (gress && *gress == pipeline.get_gress() && soonest >= 0 && stage >= soonest) {
+      ctx->reuse_compute_op(canonical, *original);
+      placed_ops.insert({op.id, original->action});
+      GlobalStats::num_compute_ops_reused++;
+      return original->action;
+    }
+  }
+
   // A gress only takes so much of a long computation before bf-p4c can no longer lay it out --
   // measured, not a PHV capacity limit, which is barely touched when it gives up. Refusing here
   // sends the compute-run ladder to its next option: the egress, which is a second budget, and
   // only then another lap, which is not.
-  Pipeline &pipeline = ctx->get_mutable_tna().pipeline;
   if (!new_gress && !pipeline.compute_op_fits()) {
     why = "the " + std::string(to_string(pipeline.get_gress())) + " compute budget is used up (" + std::to_string(pipeline.get_used_compute_ops()) +
           " ops)";
@@ -411,7 +433,8 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   const std::optional<TofinoContext::compute_op_plan_t> plan = ctx->plan_compute_op(candidates, new_action_id, op, deps);
 
   if (plan && plan->append) {
-    ctx->append_compute_op(plan->action_id, op, deps);
+    ctx->append_compute_op(plan->action_id, canonical, deps);
+    ctx->register_compute_op(canonical, plan->action_id);
     pipeline.charge_compute_op();
     push_unique(actions, plan->action_id);
     placed_ops.insert({op.id, plan->action_id});
@@ -421,7 +444,7 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
     return plan->action_id;
   }
 
-  ComputeAction *action = new ComputeAction(new_action_id, node->get_id(), {op});
+  ComputeAction *action = new ComputeAction(new_action_id, node->get_id(), {canonical});
   const bool fits       = full_placer ? ctx->can_place(action, deps) : (plan.has_value() && !plan->append);
   if (!fits) {
     std::stringstream ss;
@@ -437,6 +460,7 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   }
 
   ctx->place(node->get_id(), action, deps);
+  ctx->register_compute_op(canonical, new_action_id);
   pipeline.charge_compute_op();
   actions.push_back(new_action_id);
   placed_ops.insert({op.id, new_action_id});

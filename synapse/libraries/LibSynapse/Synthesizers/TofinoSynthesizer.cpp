@@ -54,8 +54,7 @@ bool split_read(klee::ref<klee::Expr> expr, bytes_t keep, klee::ref<klee::Expr> 
     }
   }
 
-  const auto rebuild = [](std::vector<klee::ref<klee::Expr>>::const_iterator begin,
-                          std::vector<klee::ref<klee::Expr>>::const_iterator end) {
+  const auto rebuild = [](std::vector<klee::ref<klee::Expr>>::const_iterator begin, std::vector<klee::ref<klee::Expr>>::const_iterator end) {
     klee::ref<klee::Expr> out = *(end - 1);
     for (auto it = end - 1; it != begin;) {
       --it;
@@ -70,7 +69,6 @@ bool split_read(klee::ref<klee::Expr> expr, bytes_t keep, klee::ref<klee::Expr> 
   head = rebuild(leaves.end() - keep, leaves.end());
   return true;
 }
-
 
 // An operation on an N-bit value zero-extended to the BDD's 32-bit int width, against a constant
 // that fits in N bits, is really an N-bit operation. Emitted at 32 bits it needs a cast that
@@ -116,7 +114,6 @@ klee::ref<klee::Expr> narrow_widened_bitop(klee::ref<klee::Expr> e) {
     return LibCore::solver_toolbox.exprBuilder->Xor(inner, narrowed_const);
   }
 }
-
 
 constexpr const u16 CUCKOO_CODE_PATH = 0xffff;
 
@@ -517,13 +514,26 @@ klee::ExprVisitor::Action TofinoSynthesizer::Transpiler::visitNot(const klee::No
   // a logical/bitwise complement below.
   const char *flipped_op = nullptr;
   switch (arg->getKind()) {
-  case klee::Expr::Eq:  flipped_op = " != "; break;
-  case klee::Expr::Ne:  flipped_op = " == "; break;
-  case klee::Expr::Ult: flipped_op = " >= "; break;
-  case klee::Expr::Ule: flipped_op = " > ";  break;
-  case klee::Expr::Ugt: flipped_op = " <= "; break;
-  case klee::Expr::Uge: flipped_op = " < ";  break;
-  default: break;
+  case klee::Expr::Eq:
+    flipped_op = " != ";
+    break;
+  case klee::Expr::Ne:
+    flipped_op = " == ";
+    break;
+  case klee::Expr::Ult:
+    flipped_op = " >= ";
+    break;
+  case klee::Expr::Ule:
+    flipped_op = " > ";
+    break;
+  case klee::Expr::Ugt:
+    flipped_op = " <= ";
+    break;
+  case klee::Expr::Uge:
+    flipped_op = " < ";
+    break;
+  default:
+    break;
   }
 
   if (flipped_op) {
@@ -909,7 +919,7 @@ void TofinoSynthesizer::emit_register_execute(const code_t &lhs, const code_t &a
   // (meta.*) and header (hdr.*) references are visible inside actions and keep their exact P4 type,
   // so use them directly. An apply-block local (e.g. a vector-borrow index `bit<32> index0 = ...`)
   // is not visible in the action, so materialize it into ingress metadata first and reference that.
-  code_t action_index = index_code;
+  code_t action_index                = index_code;
   const bool index_visible_in_action = index_code.rfind("meta.", 0) == 0 || index_code.rfind("hdr.", 0) == 0;
   if (!index_visible_in_action) {
     // expr-based alloc_var (not the size-only one, whose null expr crashes the later is_bool pass);
@@ -1143,9 +1153,7 @@ void TofinoSynthesizer::transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr>
 // P4, such a register is a PAIR {lo = kept max, hi = returned shadow}, and the action
 // always returns `hi` (a single register source). See the ReadConditionalWriteReturnOther
 // case in transpile_register_action_decl.
-static bool register_is_shadow_pair(const Register *reg) {
-  return reg->actions.count(RegisterActionType::ReadConditionalWriteReturnOther) > 0;
-}
+static bool register_is_shadow_pair(const Register *reg) { return reg->actions.count(RegisterActionType::ReadConditionalWriteReturnOther) > 0; }
 
 static code_t register_pair_type(const Register *reg) { return reg->id + "_pair_t"; }
 
@@ -1438,7 +1446,7 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     // other -- incompatible outputs on one ALU), so use a {lo = kept max, hi = shadow}
     // pair and always return `hi`, exactly like the expert's swap_if_larger. The stored
     // value is read as `in_value.lo` (captured before the conditional writes).
-    const code_t pair_type = register_pair_type(reg);
+    const code_t pair_type                                        = register_pair_type(reg);
     std::map<klee::ref<klee::Expr>, code_t> paired_transpilations = extras->temporary_transpilations;
     for (auto &[expr, name] : paired_transpilations) {
       if (name == "value") {
@@ -2019,7 +2027,6 @@ bool TofinoSynthesizer::Stack::set_var_expr(const code_t &name, klee::ref<klee::
   return false;
 }
 
-
 // A network-order read spanning several consecutive header fields of this frame (an NF
 // byte-swapping its little-endian read of them, as for a hash input): their concatenation,
 // which holds exactly those bytes in that order, as a var of its own.
@@ -2381,8 +2388,6 @@ void TofinoSynthesizer::synthesize() {
     } else {
       decision << "ig_tm_md.bypass_egress = 1;\n";
     }
-
-
   }
 
   // Transpile the parser after the whole EP has been visited so we have all the headers available.
@@ -2641,15 +2646,15 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
         // Un-negated, the chain is an OR: selection i matches -> on_true, else try the next.
         // Negated it is the De Morgan dual, an AND of nots: a match settles it as false, and only
         // falling off the end of the chain reaches on_true.
-        const code_t on_match = selection.negated ? get_parser_state_name(select->on_false, false) : next_true;
-        const code_t on_default =
-            !selection.negated ? next_false
-            : (i < select->selections.size() - 1 ? get_selection_state_name(i + 1) : get_parser_state_name(select->on_true, false));
+        const code_t on_match   = selection.negated ? get_parser_state_name(select->on_false, false) : next_true;
+        const code_t on_default = !selection.negated ? next_false
+                                                     : (i < select->selections.size() - 1 ? get_selection_state_name(i + 1)
+                                                                                          : get_parser_state_name(select->on_true, false));
 
         // Labels take the selector's declared width, which can exceed the NF value's (the
         // 16-bit device selects on the 32-bit meta.dev).
         const std::optional<var_t> selector = ingress_vars.get(selection.target);
-        const bits_t selector_width         = selector ? (selector->name == "meta.dev" ? 32 : selector->size) : 0; // meta.dev: the template's bit<32>.
+        const bits_t selector_width = selector ? (selector->name == "meta.dev" ? 32 : selector->size) : 0; // meta.dev: the template's bit<32>.
         for (klee::ref<klee::Expr> value : selection.values) {
           klee::ref<klee::Expr> label = value;
           if (selector_width > value->getWidth() && is_constant(value)) {
@@ -2793,7 +2798,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     cpu_hdr_vars.push(cpu_var);
 
     // A sliced write cannot go through the hash unit, so it stays a plain copy.
-    const bool sliced   = symbol.name == "next_time";
+    const bool sliced = symbol.name == "next_time";
     // Every computed value, not just the ones a rotate cut directly. The controller header is
     // written on the slow path, all of its fields at once, and they all end up in the compute
     // chain's supercluster, so an unwrapped one drags the whole group back into the ALU. The
@@ -2898,57 +2903,57 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   };
 
   for (const Stack &stack : ingress_vars.get_all()) {
-  for (const var_t &var : stack.get_all()) {
-    if (first_stack.get_exact(var.expr)) {
-      continue;
+    for (const var_t &var : stack.get_all()) {
+      if (first_stack.get_exact(var.expr)) {
+        continue;
+      }
+
+      if (var.is_header_field) {
+        recirc_vars.push_back(var);
+        continue;
+      }
+
+      if (!is_live(var)) {
+        continue;
+      }
+
+      var_t recirc_var = var;
+      recirc_var.name  = recirc_var.flatten_name();
+
+      auto found_it = local_recirc_vars_by_name.find(recirc_var.name);
+      if (found_it != local_recirc_vars_by_name.end()) {
+        var_t alias = found_it->second;
+        alias.expr  = var.expr;
+        alias.size  = var.size;
+        recirc_vars.push_back(alias);
+        continue;
+      }
+
+      const code_t slot_kind       = recirc_var.is_bool() ? code_t("b") : std::to_string(recirc_var.expr->getWidth());
+      const size_t slot            = slot_next[slot_kind]++;
+      recirc_slots_used[slot_kind] = std::max(recirc_slots_used[slot_kind], slot + 1);
+
+      var_t local_recirc_var         = recirc_var;
+      local_recirc_var.name          = "hdr.recirc.f" + slot_kind + "_" + std::to_string(slot);
+      local_recirc_var.original_name = local_recirc_var.name;
+
+      var_t slot_var = recirc_var;
+      slot_var.name  = "f" + slot_kind + "_" + std::to_string(slot);
+      recirc_hdr_vars.push(slot_var);
+      recirc_vars.push_back(local_recirc_var);
+      local_recirc_vars_by_name.insert({recirc_var.name, local_recirc_var});
+
+      const bool via_hash = cut_values.count(var.name) > 0;
+      ingress_apply.indent();
+      if (via_hash) {
+        ingress_apply << "@in_hash { ";
+      }
+      ingress_apply << local_recirc_var.name;
+      ingress_apply << " = ";
+      ingress_apply << var.name;
+      ingress_apply << ";";
+      ingress_apply << (via_hash ? " }\n" : "\n");
     }
-
-    if (var.is_header_field) {
-      recirc_vars.push_back(var);
-      continue;
-    }
-
-    if (!is_live(var)) {
-      continue;
-    }
-
-    var_t recirc_var = var;
-    recirc_var.name  = recirc_var.flatten_name();
-
-    auto found_it = local_recirc_vars_by_name.find(recirc_var.name);
-    if (found_it != local_recirc_vars_by_name.end()) {
-      var_t alias = found_it->second;
-      alias.expr  = var.expr;
-      alias.size  = var.size;
-      recirc_vars.push_back(alias);
-      continue;
-    }
-
-    const code_t slot_kind = recirc_var.is_bool() ? code_t("b") : std::to_string(recirc_var.expr->getWidth());
-    const size_t slot      = slot_next[slot_kind]++;
-    recirc_slots_used[slot_kind] = std::max(recirc_slots_used[slot_kind], slot + 1);
-
-    var_t local_recirc_var         = recirc_var;
-    local_recirc_var.name          = "hdr.recirc.f" + slot_kind + "_" + std::to_string(slot);
-    local_recirc_var.original_name = local_recirc_var.name;
-
-    var_t slot_var = recirc_var;
-    slot_var.name  = "f" + slot_kind + "_" + std::to_string(slot);
-    recirc_hdr_vars.push(slot_var);
-    recirc_vars.push_back(local_recirc_var);
-    local_recirc_vars_by_name.insert({recirc_var.name, local_recirc_var});
-
-    const bool via_hash = cut_values.count(var.name) > 0;
-    ingress_apply.indent();
-    if (via_hash) {
-      ingress_apply << "@in_hash { ";
-    }
-    ingress_apply << local_recirc_var.name;
-    ingress_apply << " = ";
-    ingress_apply << var.name;
-    ingress_apply << ";";
-    ingress_apply << (via_hash ? " }\n" : "\n");
-  }
   }
 
   // 3. Replace the ingress apply coder with the recirc coder (restored below: a recirculation
@@ -2980,7 +2985,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   in_egress               = enclosing_in_egress;
   ingress_coder_at_cut    = enclosing_cut_coder;
   active_recirc_code_path = enclosing_recirc_code_path;
-  ingress_vars = stack_backup;
+  ingress_vars            = stack_backup;
 
   return EPVisitor::Action::skipChildren;
 }
@@ -3082,8 +3087,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       // there without travelling -- and travelling would lose the [47:16] convention the backend
       // rewrites shifts against.
       if (var.original_name == "meta.time") {
-        var_t egress_time = var;
-        egress_time.name  = "eg_md.time";
+        var_t egress_time         = var;
+        egress_time.name          = "eg_md.time";
         egress_time.original_name = egress_time.name;
         egress_vars.push_back(egress_time);
         continue;
@@ -3492,9 +3497,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   std::vector<var_t> hdr_data;
   for (const emitted_field_t &field : emitted) {
-    const code_t field_name        = "hdr." + hdr_name + ".data" + std::to_string(hdr_data.size());
-    klee::ref<klee::Expr> full     = LibCore::concat_exprs(field.parts);
-    const var_t var                = alloc_var(field_name, full, EXACT_NAME | HEADER_FIELD);
+    const code_t field_name    = "hdr." + hdr_name + ".data" + std::to_string(hdr_data.size());
+    klee::ref<klee::Expr> full = LibCore::concat_exprs(field.parts);
+    const var_t var            = alloc_var(field_name, full, EXACT_NAME | HEADER_FIELD);
     hdr_data.push_back(var);
 
     if (field.parts.size() == 1) {
@@ -3504,7 +3509,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     // Each part, as a slice of the field that now contains it.
     bits_t high = field.width;
     for (const klee::ref<klee::Expr> &part : field.parts) {
-      const bits_t low = high - part->getWidth();
+      const bits_t low        = high - part->getWidth();
       const code_t slice_name = field_name + "[" + std::to_string(high - 1) + ":" + std::to_string(low) + "]";
       alloc_var(slice_name, part, EXACT_NAME | HEADER_FIELD);
       high = low;
@@ -3578,8 +3583,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     // Longest prefix of the run that names two whole fields.
     size_t width = run;
     for (; width > 1; width--) {
-      const klee::ref<klee::Expr> a = solver_toolbox.exprBuilder->Extract(hdr, ordered[i].byte0 * 8, width * 8);
-      const klee::ref<klee::Expr> b = solver_toolbox.exprBuilder->Extract(hdr, ordered[i].byte1 * 8, width * 8);
+      const klee::ref<klee::Expr> a    = solver_toolbox.exprBuilder->Extract(hdr, ordered[i].byte0 * 8, width * 8);
+      const klee::ref<klee::Expr> b    = solver_toolbox.exprBuilder->Extract(hdr, ordered[i].byte1 * 8, width * 8);
       const std::optional<var_t> a_var = ingress_vars.get_hdr(a);
       const std::optional<var_t> b_var = ingress_vars.get_hdr(b);
       if (!a_var || !b_var || a_var->name.find('[') != code_t::npos || b_var->name.find('[') != code_t::npos) {
@@ -3595,12 +3600,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     // two fields but a rotation of one: writing it that way keeps the field whole.
     if (width == 1 && ordered[i].byte1 == ordered[i].byte0 + run) {
       const bits_t full                = 2 * run * 8;
-      const klee::ref<klee::Expr> both  = solver_toolbox.exprBuilder->Extract(hdr, ordered[i].byte0 * 8, full);
-      const std::optional<var_t> f      = ingress_vars.get_hdr(both);
+      const klee::ref<klee::Expr> both = solver_toolbox.exprBuilder->Extract(hdr, ordered[i].byte0 * 8, full);
+      const std::optional<var_t> f     = ingress_vars.get_hdr(both);
       if (f && f->name.find('[') == code_t::npos) {
         coder_t swap_assignment;
-        swap_assignment << f->name << " = " << f->name << "[" << (full / 2 - 1) << ":0] ++ " << f->name << "[" << (full - 1) << ":"
-                        << (full / 2) << "];";
+        swap_assignment << f->name << " = " << f->name << "[" << (full / 2 - 1) << ":0] ++ " << f->name << "[" << (full - 1) << ":" << (full / 2)
+                        << "];";
         swap_assignments.push_back(swap_assignment.dump());
         width = run;
       }
@@ -6352,34 +6357,68 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     ep_node = children[0];
   }
 
-  if (steps.empty()) {
-    return;
+  if (steps.empty() || emitted_compute_steps.contains(first)) {
+    return; // Emitted with an earlier step of this run.
   }
-  {
-    const TofinoModule *module = dynamic_cast<const TofinoModule *>(steps.front()->get_module());
-    for (const DS_ID &id : module->get_generated_ds()) {
-      if (declared_ds.contains(id)) {
-        return; // Emitted with an earlier step of this run.
-      }
-    }
-  }
+  emitted_compute_steps.insert(steps.begin(), steps.end());
+
+  // Ops that reuse another path's action (TofinoContext::reuse_compute_op): nothing to declare
+  // or compute here, their output is the original's variable, but the shared action is called
+  // from this branch too.
+  std::unordered_set<std::string> reused_op_ids;
+  std::vector<DS_ID> reused_actions;
 
   // 2. Every op gets its output variable first, so the statements can refer to each other's
   // results whatever the order.
   std::vector<op_emission_t> ops;
   std::unordered_map<std::string, var_t> out_vars; // By op id.
 
+  // Both idempotent by name: a shared op's variable is declared by whichever path is emitted
+  // first, and found by the other.
+  const auto existing_out_var = [&](const std::string &op_id) -> std::optional<var_t> {
+    return ingress_vars.get((in_egress ? "eg_md." : "meta.") + op_id + "_out");
+  };
   const auto out_var = [&](const std::string &op_id, klee::ref<klee::Expr> expr) -> var_t {
+    if (const std::optional<var_t> existing = existing_out_var(op_id)) {
+      out_vars.insert({op_id, *existing});
+      return *existing;
+    }
     const var_t var = alloc_var(op_id + "_out", expr, EXACT_NAME | IS_INGRESS_METADATA);
     declare_var_in_ingress_metadata(var);
     out_vars.insert({op_id, var});
     return var;
   };
   const auto out_var_sized = [&](const std::string &op_id, bits_t width) -> var_t {
+    if (const std::optional<var_t> existing = existing_out_var(op_id)) {
+      out_vars.insert({op_id, *existing});
+      return *existing;
+    }
     const var_t var = alloc_var(op_id + "_out", width, EXACT_NAME | IS_INGRESS_METADATA);
     declare_var_in_ingress_metadata(var);
     out_vars.insert({op_id, var});
     return var;
+  };
+  // A reused op: its variable is the original's (declared here if the original's path has not
+  // been emitted yet), and the module's own output symbol is another name for it.
+  const auto bind_reused = [&](const std::string &op_id, klee::ref<klee::Expr> module_out) -> bool {
+    const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(op_id);
+    if (!reuse) {
+      return false;
+    }
+    const compute_op_t &original = reuse->op;
+    var_t var                    = !original.out.isNull()     ? out_var(original.id, original.out)
+                                   : original.fn == "operand" ? out_var(original.id, original.args.at(0))
+                                                              : out_var_sized(original.id, original.width);
+    out_vars.insert({op_id, var});
+    if (!module_out.isNull()) {
+      const var_t alias(var.name, module_out, module_out->getWidth(), false, var.is_header_field, false);
+      ingress_vars.insert_back(alias, /*allow_duplicates=*/true);
+    }
+    reused_op_ids.insert(op_id);
+    if (std::find(reused_actions.begin(), reused_actions.end(), reuse->action) == reused_actions.end()) {
+      reused_actions.push_back(reuse->action);
+    }
+    return true;
   };
   // The right-hand side of each operand's definition, transpiled before its variable exists.
   //
@@ -6393,6 +6432,9 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
 
   const auto computed_operands = [&](const std::vector<compute_operand_t> &operands) {
     for (const compute_operand_t &operand : operands) {
+      if (bind_reused(operand.op_id, nullptr)) {
+        continue;
+      }
       if (!ingress_vars.get(operand.expr)) {
         out_var_rhs[operand.op_id] = transpiler.transpile(operand.expr);
         out_var(operand.op_id, operand.expr);
@@ -6415,7 +6457,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
   const auto computed_operand_statements = [&](const std::vector<compute_operand_t> &operands) {
     for (const compute_operand_t &operand : operands) {
       auto found_it = out_vars.find(operand.op_id);
-      if (found_it == out_vars.end()) {
+      if (found_it == out_vars.end() || reused_op_ids.contains(operand.op_id)) {
         continue; // Held elsewhere already.
       }
       const auto rhs_it = out_var_rhs.find(operand.op_id);
@@ -6430,6 +6472,9 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     case ModuleType::Tofino_ArithmeticOp: {
       const Tofino::ArithmeticOp *op = dynamic_cast<const Tofino::ArithmeticOp *>(module);
       computed_operands(op->get_operands());
+      if (bind_reused(op->get_op_id(), op->get_out())) {
+        break;
+      }
       if (time_shift(op->get_value())) {
         // The result is the 32-bit time the data plane keeps, shifted by the rest.
         const var_t var(op->get_op_id() + "_out", op->get_out(), 32, false, false, false);
@@ -6451,14 +6496,23 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     case ModuleType::Tofino_RotateLeft: {
       const Tofino::RotateLeft *rot = dynamic_cast<const Tofino::RotateLeft *>(module);
       computed_operands(rot->get_operands());
+      if (bind_reused(rot->get_op_id(), rot->get_out())) {
+        break;
+      }
       out_var(rot->get_op_id(), rot->get_out());
     } break;
     case ModuleType::Tofino_RotateLeftShifts: {
       const Tofino::RotateLeftShifts *rot = dynamic_cast<const Tofino::RotateLeftShifts *>(module);
       computed_operands(rot->get_operands());
-      out_var_sized(rot->get_shl_op_id(), rot->get_out()->getWidth());
-      out_var_sized(rot->get_shr_op_id(), rot->get_out()->getWidth());
-      out_var(rot->get_or_op_id(), rot->get_out());
+      if (!bind_reused(rot->get_shl_op_id(), nullptr)) {
+        out_var_sized(rot->get_shl_op_id(), rot->get_out()->getWidth());
+      }
+      if (!bind_reused(rot->get_shr_op_id(), nullptr)) {
+        out_var_sized(rot->get_shr_op_id(), rot->get_out()->getWidth());
+      }
+      if (!bind_reused(rot->get_or_op_id(), rot->get_out())) {
+        out_var(rot->get_or_op_id(), rot->get_out());
+      }
     } break;
     case ModuleType::Tofino_If: {
       computed_operands(dynamic_cast<const Tofino::If *>(module)->get_materialized_operands());
@@ -6476,8 +6530,8 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       const Tofino::ArithmeticOp *op = dynamic_cast<const Tofino::ArithmeticOp *>(module);
       computed_operand_statements(op->get_operands());
       auto found_it = out_vars.find(op->get_op_id());
-      if (found_it == out_vars.end()) {
-        continue; // Aliased.
+      if (found_it == out_vars.end() || reused_op_ids.contains(op->get_op_id())) {
+        continue; // Aliased, or computed by another path's action.
       }
       if (const std::optional<u64> shift = time_shift(op->get_value())) {
         const code_t rhs = *shift == 0 ? code_t("meta.time") : "meta.time >> " + std::to_string(*shift);
@@ -6493,6 +6547,9 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     case ModuleType::Tofino_RotateLeft: {
       const Tofino::RotateLeft *rot = dynamic_cast<const Tofino::RotateLeft *>(module);
       computed_operand_statements(rot->get_operands());
+      if (reused_op_ids.contains(rot->get_op_id())) {
+        continue; // Computed by another path's action.
+      }
       const var_t &out   = out_vars.at(rot->get_op_id());
       const bits_t width = rot->get_out()->getWidth();
       const u32 n        = rot->get_amount();
@@ -6521,9 +6578,15 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       const var_t &shl   = out_vars.at(rot->get_shl_op_id());
       const var_t &shr   = out_vars.at(rot->get_shr_op_id());
       const var_t &out   = out_vars.at(rot->get_or_op_id());
-      ops.push_back({rot->get_shl_action_id(), rot->get_shl_op_id(), shl.name + " = " + a + " << " + std::to_string(n) + ";", false});
-      ops.push_back({rot->get_shr_action_id(), rot->get_shr_op_id(), shr.name + " = " + a + " >> " + std::to_string(width - n) + ";", false});
-      ops.push_back({rot->get_or_action_id(), rot->get_or_op_id(), out.name + " = " + shl.name + " | " + shr.name + ";", false});
+      if (!reused_op_ids.contains(rot->get_shl_op_id())) {
+        ops.push_back({rot->get_shl_action_id(), rot->get_shl_op_id(), shl.name + " = " + a + " << " + std::to_string(n) + ";", false});
+      }
+      if (!reused_op_ids.contains(rot->get_shr_op_id())) {
+        ops.push_back({rot->get_shr_action_id(), rot->get_shr_op_id(), shr.name + " = " + a + " >> " + std::to_string(width - n) + ";", false});
+      }
+      if (!reused_op_ids.contains(rot->get_or_op_id())) {
+        ops.push_back({rot->get_or_action_id(), rot->get_or_op_id(), out.name + " = " + shl.name + " | " + shr.name + ";", false});
+      }
     } break;
     case ModuleType::Tofino_If: {
       computed_operand_statements(dynamic_cast<const Tofino::If *>(module)->get_materialized_operands());
@@ -6541,6 +6604,11 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       action_ids.push_back(op.action_id);
     }
   }
+  for (const DS_ID &action_id : reused_actions) {
+    if (std::find(action_ids.begin(), action_ids.end(), action_id) == action_ids.end()) {
+      action_ids.push_back(action_id);
+    }
+  }
   std::stable_sort(action_ids.begin(), action_ids.end(),
                    [&pipeline](const DS_ID &a, const DS_ID &b) { return pipeline.get_placed_stage(a) < pipeline.get_placed_stage(b); });
 
@@ -6548,10 +6616,27 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
   for (const DS_ID &action_id : action_ids) {
-    declared_ds.insert(action_id);
-
     const Tofino::ComputeAction *action = dynamic_cast<const Tofino::ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(action_id));
     assert(action && "Compute step placed outside a ComputeAction");
+
+    if (std::find(reused_actions.begin(), reused_actions.end(), action_id) != reused_actions.end()) {
+      // Another path's action, declared with that path (before or after this one: declarations
+      // and the apply block are separate sections). Called here with the same spill into
+      // one-@in_hash companions its declaration makes, derived from the action's ops.
+      size_t hash_ops = 0;
+      for (const compute_op_t &op : action->ops) {
+        hash_ops += op.in_hash ? 1 : 0;
+      }
+      ingress_apply.indent();
+      ingress_apply << action_id << "();\n";
+      for (size_t i = 1; i < hash_ops; i++) {
+        ingress_apply.indent();
+        ingress_apply << action_id << "_h" << i << "();\n";
+      }
+      continue;
+    }
+
+    declared_ds.insert(action_id);
 
     std::vector<const op_emission_t *> statements;
     for (const compute_op_t &op : action->ops) {
@@ -6616,10 +6701,10 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *node) {
-  const DS_ID reg_id         = node->get_reg_id();
+  const DS_ID reg_id          = node->get_reg_id();
   klee::ref<klee::Expr> denom = node->get_denominator();
-  const u64 numer            = node->get_numerator();
-  klee::ref<klee::Expr> quot = node->get_quotient();
+  const u64 numer             = node->get_numerator();
+  klee::ref<klee::Expr> quot  = node->get_quotient();
 
   const Register *reg = get_tofino_ds<Register>(ep, reg_id);
 

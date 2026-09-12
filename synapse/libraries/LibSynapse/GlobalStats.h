@@ -42,6 +42,7 @@ extern u64 num_spec_compute_appended;
 extern u64 num_spec_compute_new_action;
 extern u64 num_spec_compute_recirculated;
 extern u64 num_spec_compute_cap_declined;
+extern u64 num_compute_ops_reused;
 
 extern time_us_t total_time_spent_speculating;
 extern time_us_t total_time_spent_generating_execution_plans;

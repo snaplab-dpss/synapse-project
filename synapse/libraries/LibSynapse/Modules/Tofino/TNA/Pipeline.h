@@ -183,6 +183,15 @@ struct Pipeline {
   int get_soonest_stage_satisfying_all_dependencies(const std::unordered_set<DS_ID> &deps) const;
 
   int get_placed_stage(DS_ID ds_id) const;
+  // The gress that requested `ds_id`'s placement, if any did.
+  std::optional<Gress> get_placed_gress(DS_ID ds_id) const {
+    for (const PlacementRequest &request : *placement_requests) {
+      if (request.ds == ds_id) {
+        return request.gress;
+      }
+    }
+    return std::nullopt;
+  }
   bool already_requested(DS_ID ds_id) const;
   bool already_placed(DS_ID ds_id) const;
 

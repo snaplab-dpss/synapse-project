@@ -3,6 +3,8 @@
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Debug.h>
 
+#include <klee/util/ExprVisitor.h>
+
 #include <algorithm>
 #include <cassert>
 #include <functional>
@@ -235,6 +237,9 @@ std::optional<TofinoContext::compute_op_plan_t> TofinoContext::plan_compute_op(c
   int best_stage_id = -1;
   DS_ID best_action_id;
   for (const DS_ID &action_id : run_actions) {
+    if (is_shared_compute_action(action_id)) {
+      continue; // Called from another path too: an op appended here would run there as well.
+    }
     const ComputeAction *action = dynamic_cast<const ComputeAction *>(data_structures.get_ds_from_id(action_id));
     if (!action || !action->can_take(op)) {
       continue;
@@ -298,7 +303,121 @@ void TofinoContext::sync_active_leaf(const EP *ep) {
   tna.pipeline.set_gress(gress);
 }
 
+bool compute_key_t::operator<(const compute_key_t &other) const {
+  if (fn != other.fn) {
+    return fn < other.fn;
+  }
+  if (args.size() != other.args.size()) {
+    return args.size() < other.args.size();
+  }
+  for (size_t i = 0; i < args.size(); i++) {
+    const int cmp = args[i]->compare(*other.args[i]);
+    if (cmp != 0) {
+      return cmp < 0;
+    }
+  }
+  return false;
+}
+
+namespace {
+
+// Reads of an aliased symbol become reads of the original's array.
+class AliasApplier : public klee::ExprVisitor::ExprVisitor {
+private:
+  const std::unordered_map<std::string, const klee::Array *> &aliases;
+
+public:
+  AliasApplier(const std::unordered_map<std::string, const klee::Array *> &_aliases) : klee::ExprVisitor::ExprVisitor(true), aliases(_aliases) {}
+
+  Action visitRead(const klee::ReadExpr &e) override {
+    auto found_it = aliases.find(e.updates.root->name);
+    if (found_it == aliases.end()) {
+      return Action::doChildren();
+    }
+    klee::UpdateList ul(found_it->second, e.updates.head);
+    return Action::changeTo(solver_toolbox.exprBuilder->Read(ul, e.index));
+  }
+};
+
+// The array a symbol read reads.
+class ArrayFinder : public klee::ExprVisitor::ExprVisitor {
+public:
+  const klee::Array *array = nullptr;
+
+  ArrayFinder() : klee::ExprVisitor::ExprVisitor(true) {}
+
+  Action visitRead(const klee::ReadExpr &e) override {
+    if (!array) {
+      array = e.updates.root;
+    }
+    return Action::skipChildren();
+  }
+};
+
+compute_key_t key_of(const compute_op_t &op) { return compute_key_t{op.fn, op.args}; }
+
+} // namespace
+
+klee::ref<klee::Expr> TofinoContext::canonical_value(klee::ref<klee::Expr> value) const {
+  if (value.isNull() || compute_reuse->aliases.empty()) {
+    return value;
+  }
+  AliasApplier applier(compute_reuse->aliases);
+  return applier.visit(value);
+}
+
+compute_op_t TofinoContext::canonical_op(const compute_op_t &op) const {
+  compute_op_t canonical = op;
+  for (klee::ref<klee::Expr> &arg : canonical.args) {
+    arg = canonical_value(arg);
+  }
+  return canonical;
+}
+
+std::optional<compute_reuse_t> TofinoContext::find_reusable_compute_op(const compute_op_t &op) const {
+  if (op.fn.empty()) {
+    return {};
+  }
+  auto found_it = compute_reuse->by_key.find(key_of(op));
+  if (found_it == compute_reuse->by_key.end()) {
+    return {};
+  }
+  return found_it->second;
+}
+
+void TofinoContext::reuse_compute_op(const compute_op_t &op, const compute_reuse_t &original) {
+  compute_reuse_state_t &state = compute_reuse.mutate();
+  state.reused.insert({op.id, original});
+  state.shared.insert(original.action);
+
+  std::string symbol;
+  if (!op.out.isNull() && !original.op.out.isNull() && LibCore::is_readLSB(op.out, symbol)) {
+    ArrayFinder finder;
+    finder.visit(original.op.out);
+    assert_or_panic(finder.array, "The original op's output is not a symbol read");
+    state.aliases.insert({symbol, finder.array});
+  }
+}
+
+void TofinoContext::register_compute_op(const compute_op_t &op, DS_ID action) {
+  if (op.fn.empty()) {
+    return;
+  }
+  compute_reuse.mutate().by_key.insert({key_of(op), compute_reuse_t{action, op}});
+}
+
+std::optional<compute_reuse_t> TofinoContext::get_compute_reuse(const std::string &op_id) const {
+  auto found_it = compute_reuse->reused.find(op_id);
+  if (found_it == compute_reuse->reused.end()) {
+    return {};
+  }
+  return found_it->second;
+}
+
 DS_ID TofinoContext::find_compute_action(const std::string &op_id) const {
+  if (const std::optional<compute_reuse_t> reuse = get_compute_reuse(op_id)) {
+    return reuse->action;
+  }
   for (const auto &[id, ds] : data_structures.get_data_per_id()) {
     const ComputeAction *action = dynamic_cast<const ComputeAction *>(ds);
     if (!action) {
