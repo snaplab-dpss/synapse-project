@@ -2929,8 +2929,19 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
         continue;
       }
 
-      const code_t slot_kind       = recirc_var.is_bool() ? code_t("b") : std::to_string(recirc_var.expr->getWidth());
-      const size_t slot            = slot_next[slot_kind]++;
+      const code_t slot_kind = recirc_var.is_bool() ? code_t("b") : std::to_string(recirc_var.expr->getWidth());
+      size_t slot;
+      auto owned_it = recirc_slot_by_name.find(recirc_var.name);
+      if (owned_it != recirc_slot_by_name.end() && owned_it->second.first == slot_kind) {
+        slot = owned_it->second.second;
+      } else {
+        std::set<size_t> &owned = recirc_slots_owned[slot_kind];
+        do {
+          slot = slot_next[slot_kind]++;
+        } while (owned.contains(slot));
+        owned.insert(slot);
+        recirc_slot_by_name[recirc_var.name] = {slot_kind, slot};
+      }
       recirc_slots_used[slot_kind] = std::max(recirc_slots_used[slot_kind], slot + 1);
 
       var_t local_recirc_var         = recirc_var;
