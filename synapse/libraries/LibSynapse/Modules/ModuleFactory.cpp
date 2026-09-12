@@ -1,4 +1,5 @@
 #include <LibSynapse/Modules/ModuleFactory.h>
+#include <LibSynapse/Walk.h>
 #include <LibSynapse/Target.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibBDD/Reorder.h>
@@ -98,6 +99,13 @@ std::vector<std::unique_ptr<EP>> get_reordered(const EP *ep, bool assert_integri
   const steady_clock::time_point t_ops = steady_clock::now();
   std::vector<reordered_bdd_t> new_bdds = reorder(bdd, anchor_info, allow_shape_altering_ops);
   GlobalStats::time_reorder_ops += duration_cast<microseconds>(steady_clock::now() - t_ops).count();
+  if (Walk::enabled()) {
+    std::vector<bdd_node_id_t> candidates;
+    for (const reordered_bdd_t &new_bdd : new_bdds) {
+      candidates.push_back(new_bdd.op.candidate_info.id);
+    }
+    Walk::reorder_candidates(anchor_info.id, anchor_info.direction, candidates);
+  }
   GlobalStats::num_reorder_ops += new_bdds.size();
   const steady_clock::time_point t_eps = steady_clock::now();
   for (reordered_bdd_t &new_bdd : new_bdds) {
@@ -129,6 +137,11 @@ std::vector<std::unique_ptr<EP>> get_reordered(const EP *ep, bool assert_integri
 
 decision_t ModuleFactory::decide(const EP *ep, const BDDNode *node, std::unordered_map<std::string, i32> params) const {
   return decision_t(ep, node->get_id(), type, params);
+}
+
+std::vector<impl_t> ModuleFactory::decline(const std::string &reason) const {
+  Walk::declined(this, reason);
+  return {};
 }
 
 impl_t ModuleFactory::implement(const EP *ep, const BDDNode *node, std::unique_ptr<EP> result, std::unordered_map<std::string, i32> params) const {

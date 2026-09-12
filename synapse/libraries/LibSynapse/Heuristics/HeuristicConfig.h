@@ -64,6 +64,11 @@ public:
     forced_search_decisions = std::unordered_set<ep_id_t>(decisions.begin(), decisions.end());
   }
 
+  // Forces a plan chosen during the search (a walk, see Walk.h). Only sound *before* the plan is
+  // added to the heuristic: the score of a plan already in the ordered set must not change under
+  // it, and nothing already there descends from a plan that has not been added yet.
+  void add_forced_decision(ep_id_t decision) { forced_search_decisions.insert(decision); }
+
 protected:
   static heuristic_metadata_t build_meta_tput_estimate(const EP *ep);
   static heuristic_metadata_t build_meta_tput_speculation(const EP *ep);

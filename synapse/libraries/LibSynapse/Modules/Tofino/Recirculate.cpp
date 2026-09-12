@@ -16,21 +16,21 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode
 
   if (!active_leaf.node) {
     // Why would we recirculate if no decision was made yet?
-    return {};
+    return decline("no active leaf");
   }
 
   if (active_leaf.node->forwarding_decision_already_made()) {
     // We can't recirculate if a forwarding decision was already made.
-    return {};
+    return decline("a forwarding decision was already made on this pass");
   }
 
   if (active_leaf.node->count_past_recirculations() > MAX_PAST_RECIRCULATIONS) {
-    return {};
+    return decline("already recirculated " + std::to_string(active_leaf.node->count_past_recirculations()) + " times");
   }
 
   if (active_leaf.node->get_module()->get_type() == ModuleType::Tofino_Recirculate) {
     // Don't recirculate twice in a row.
-    return {};
+    return decline("the previous module already recirculates");
   }
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

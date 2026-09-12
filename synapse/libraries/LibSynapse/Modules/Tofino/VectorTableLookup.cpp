@@ -80,19 +80,19 @@ std::vector<impl_t> VectorTableLookupFactory::process_node(const EP *ep, const B
   }
 
   if (!call_node->is_vector_read()) {
-    return {};
+    return decline("the borrowed value is written back modified: not a read");
   }
 
   const vector_table_data_t data = get_vector_table_data(ep->get_ctx(), call_node);
 
   if (!ep->get_ctx().can_impl_ds(data.obj, DSImpl::Tofino_VectorTable)) {
-    return {};
+    return decline("the vector is already committed to another implementation (can_impl_ds refused Tofino_VectorTable)");
   }
 
   VectorTable *vector_table = build_or_reuse_vector_table(ep, node, data);
 
   if (!vector_table) {
-    return {};
+    return decline("build_or_reuse_vector_table failed: no table could be placed for this read");
   }
 
   Module *module  = new VectorTableLookup(node, vector_table->id, data.obj, data.key, data.value);
