@@ -2,6 +2,7 @@
 
 #include <LibSynapse/Modules/Tofino/DataStructures/DataStructure.h>
 #include <LibCore/Types.h>
+#include <LibCore/Expr.h>
 
 #include <vector>
 #include <string>
@@ -17,6 +18,15 @@ struct compute_op_t {
   std::string id; // Output symbol / BDD node this op computes.
   ComputeOpKind kind;
   bits_t width; // Output width.
+  // What the op computes, so an op on a mutually exclusive path that computes the same function
+  // of the same values reuses this one's action instead of placing a copy (see
+  // TofinoContext::find_reusable_compute_op): the function, its operands with every symbol a
+  // reused op produced replaced by the original's, and the symbol produced (null for an op with
+  // no symbol of its own: a materialized operand, a shift half of a rotate).
+  std::string fn;
+  std::vector<klee::ref<klee::Expr>> args;
+  klee::ref<klee::Expr> out;
+  bool in_hash; // Emitted inside @in_hash: every rotate, for container integrity, not only Hash-kind ops.
 };
 
 // One P4 action holding independent stateless computations, called bare from the apply block

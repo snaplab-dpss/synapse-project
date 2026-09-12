@@ -44,7 +44,15 @@ step_t build_step(const BDDNode *node) {
   step_t step;
   step.value = unrolled_op_value(call);
   step.out   = call.ret;
-  step.op    = compute_op_t{.id = build_op_id(node), .kind = ComputeOpKind::ALU, .width = call.ret->getWidth()};
+  step.op    = compute_op_t{
+         .id      = build_op_id(node),
+         .kind    = ComputeOpKind::ALU,
+         .width   = call.ret->getWidth(),
+         .fn      = call.function_name,
+         .args    = {step.value},
+         .out     = call.ret,
+         .in_hash = false,
+  };
 
   std::vector<std::pair<std::string, klee::ref<klee::Expr>>> kids;
   for (unsigned i = 0; i < step.value->getNumKids(); i++) {
@@ -94,8 +102,8 @@ std::vector<impl_t> ArithmeticOpFactory::process_node(const EP *ep, const BDDNod
 
   step_t step = build_step(node);
   std::string why;
-  std::optional<compute_step_t> impl_step =
-      implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return place_step(builder, ep, node, step, nullptr); }, &why);
+  std::optional<compute_step_t> impl_step = implement_compute_step(
+      ep, node, [&](ComputeStepBuilder &builder) { return place_step(builder, ep, node, step, nullptr); }, &why);
   if (!impl_step) {
     return decline(why);
   }

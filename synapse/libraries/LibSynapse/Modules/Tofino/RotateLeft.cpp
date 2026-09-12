@@ -44,7 +44,15 @@ std::optional<rotation_t> get_rotation(const BDDNode *node) {
   const u32 amount   = solver_toolbox.value_from_expr(n) % width;
 
   rotation_t rotation{x, amount, call.ret, {}, {}};
-  rotation.op       = compute_op_t{.id = build_op_id(node), .kind = (amount % 8 != 0) ? ComputeOpKind::Hash : ComputeOpKind::ALU, .width = width};
+  rotation.op = compute_op_t{
+      .id      = build_op_id(node),
+      .kind    = (amount % 8 != 0) ? ComputeOpKind::Hash : ComputeOpKind::ALU,
+      .width   = width,
+      .fn      = "rotate_left",
+      .args    = {x, solver_toolbox.exprBuilder->Constant(amount, 32)},
+      .out     = call.ret,
+      .in_hash = amount != 0,
+  };
   rotation.operands = TofinoModuleFactory::get_operands_to_compute(rotation.op.id, {{"_x", x}});
   return rotation;
 }
@@ -54,7 +62,8 @@ std::optional<DS_ID> place_rotation(TofinoModuleFactory::ComputeStepBuilder &bui
   if (!TofinoModuleFactory::place_operand_ops(builder, ep, node, rotation.operands, speculations)) {
     return {};
   }
-  const std::vector<klee::ref<klee::Expr>> plain = rotation.operands.empty() ? std::vector<klee::ref<klee::Expr>>{rotation.x} : std::vector<klee::ref<klee::Expr>>{};
+  const std::vector<klee::ref<klee::Expr>> plain =
+      rotation.operands.empty() ? std::vector<klee::ref<klee::Expr>>{rotation.x} : std::vector<klee::ref<klee::Expr>>{};
   return builder.place(rotation.op, TofinoModuleFactory::get_op_deps(ep, node, plain, rotation.operands, speculations));
 }
 
@@ -84,8 +93,8 @@ std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode 
   }
 
   std::string why;
-  std::optional<compute_step_t> step =
-      implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return place_rotation(builder, ep, node, *rotation, nullptr); }, &why);
+  std::optional<compute_step_t> step = implement_compute_step(
+      ep, node, [&](ComputeStepBuilder &builder) { return place_rotation(builder, ep, node, *rotation, nullptr); }, &why);
   if (!step) {
     return decline(why);
   }

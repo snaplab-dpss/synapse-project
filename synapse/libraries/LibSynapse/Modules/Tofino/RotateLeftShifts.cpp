@@ -63,17 +63,49 @@ std::optional<placed_t> place_ops(TofinoModuleFactory::ComputeStepBuilder &build
   if (!TofinoModuleFactory::place_operand_ops(builder, ep, node, rotation.operands, speculations)) {
     return {};
   }
-  const std::vector<klee::ref<klee::Expr>> plain = rotation.operands.empty() ? std::vector<klee::ref<klee::Expr>>{rotation.x} : std::vector<klee::ref<klee::Expr>>{};
-  const std::unordered_set<DS_ID> deps           = TofinoModuleFactory::get_op_deps(ep, node, plain, rotation.operands, speculations);
-  const bits_t width                             = rotation.out->getWidth();
+  const std::vector<klee::ref<klee::Expr>> plain =
+      rotation.operands.empty() ? std::vector<klee::ref<klee::Expr>>{rotation.x} : std::vector<klee::ref<klee::Expr>>{};
+  const std::unordered_set<DS_ID> deps = TofinoModuleFactory::get_op_deps(ep, node, plain, rotation.operands, speculations);
+  const bits_t width                   = rotation.out->getWidth();
 
-  const std::optional<DS_ID> shl = builder.place({.id = build_op_id(node, "_shl"), .kind = ComputeOpKind::ALU, .width = width}, deps);
-  const std::optional<DS_ID> shr = builder.place({.id = build_op_id(node, "_shr"), .kind = ComputeOpKind::ALU, .width = width}, deps);
+  klee::ref<klee::Expr> n_expr   = solver_toolbox.exprBuilder->Constant(rotation.amount, 32);
+  const std::optional<DS_ID> shl = builder.place(
+      {
+          .id      = build_op_id(node, "_shl"),
+          .kind    = ComputeOpKind::ALU,
+          .width   = width,
+          .fn      = "shl",
+          .args    = {rotation.x, n_expr},
+          .out     = nullptr,
+          .in_hash = false,
+      },
+      deps);
+  const std::optional<DS_ID> shr = builder.place(
+      {
+          .id      = build_op_id(node, "_shr"),
+          .kind    = ComputeOpKind::ALU,
+          .width   = width,
+          .fn      = "shr",
+          .args    = {rotation.x, n_expr},
+          .out     = nullptr,
+          .in_hash = false,
+      },
+      deps);
   if (!shl || !shr) {
     return {};
   }
 
-  const std::optional<DS_ID> out = builder.place({.id = build_op_id(node, "_or"), .kind = ComputeOpKind::ALU, .width = width}, {*shl, *shr});
+  const std::optional<DS_ID> out = builder.place(
+      {
+          .id      = build_op_id(node, "_or"),
+          .kind    = ComputeOpKind::ALU,
+          .width   = width,
+          .fn      = "rotl_or",
+          .args    = {rotation.x, n_expr},
+          .out     = rotation.out,
+          .in_hash = false,
+      },
+      {*shl, *shr});
   if (!out) {
     return {};
   }
@@ -83,7 +115,8 @@ std::optional<placed_t> place_ops(TofinoModuleFactory::ComputeStepBuilder &build
 
 } // namespace
 
-std::optional<DS_ID> RotateLeftShiftsFactory::place(ComputeStepBuilder &builder, const EP *ep, const BDDNode *node, const speculations_t *speculations) {
+std::optional<DS_ID> RotateLeftShiftsFactory::place(ComputeStepBuilder &builder, const EP *ep, const BDDNode *node,
+                                                    const speculations_t *speculations) {
   std::optional<rotation_t> rotation = get_rotation(node);
   if (!rotation) {
     return {};
@@ -148,10 +181,9 @@ std::unique_ptr<Module> RotateLeftShiftsFactory::create(const BDD *bdd, const Co
   for (compute_operand_t &operand : rotation->operands) {
     operand.action_id = tofino_ctx->find_compute_action(operand.op_id);
   }
-  return std::make_unique<RotateLeftShifts>(node, tofino_ctx->find_compute_action(build_op_id(node, "_shl")),
-                                            tofino_ctx->find_compute_action(build_op_id(node, "_shr")),
-                                            tofino_ctx->find_compute_action(build_op_id(node, "_or")), rotation->x, rotation->amount, rotation->out,
-                                            rotation->operands);
+  return std::make_unique<RotateLeftShifts>(
+      node, tofino_ctx->find_compute_action(build_op_id(node, "_shl")), tofino_ctx->find_compute_action(build_op_id(node, "_shr")),
+      tofino_ctx->find_compute_action(build_op_id(node, "_or")), rotation->x, rotation->amount, rotation->out, rotation->operands);
 }
 
 } // namespace Tofino

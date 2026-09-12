@@ -208,6 +208,7 @@ private:
   Stack egress_state_hdr_vars;
 
   std::unordered_set<DS_ID> declared_ds;
+  std::unordered_set<const EPNode *> emitted_compute_steps; // Steps emit_compute_run already emitted, as part of a run.
   std::unordered_map<bdd_node_id_t, Stack> parser_vars;
   // One coder per recirculation pass, assembled into an if / else-if chain at the end of
   // synthesis. A deque, not a vector: coder_t's copy constructor does not carry the stream
