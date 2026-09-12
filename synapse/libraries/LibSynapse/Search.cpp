@@ -297,13 +297,16 @@ search_report_t SearchEngine::search() {
       const std::filesystem::path bdd_path{"walk-bdd.dot"};
       const std::filesystem::path ep_path{"walk-ep.dot"};
       const std::filesystem::path ss_path{"walk-ss.dot"};
+      const std::filesystem::path targets_path{"walk-targets.txt"};
       ProfilerViz::dump_to_file(ep->get_bdd(), ep->get_ctx().get_profiler(), bdd_path);
       EPViz::dump_to_file(ep.get(), ep_path);
       SSViz::dump_to_file(search_space.get(), ep.get(), ss_path);
+      ep->get_ctx().dump_targets(targets_path);
       std::cerr << "[walk] stopped at plan " << ep->get_id() << ". Dumped:\n"
-                << "  BDD: " << std::filesystem::absolute(bdd_path).string() << "\n"
-                << "  EP:  " << std::filesystem::absolute(ep_path).string() << "\n"
-                << "  SS:  " << std::filesystem::absolute(ss_path).string() << "\n";
+                << "  BDD:     " << std::filesystem::absolute(bdd_path).string() << "\n"
+                << "  EP:      " << std::filesystem::absolute(ep_path).string() << "\n"
+                << "  SS:      " << std::filesystem::absolute(ss_path).string() << "\n"
+                << "  targets: " << std::filesystem::absolute(targets_path).string() << "\n";
       exit(2);
     }
     }

@@ -110,6 +110,7 @@ public:
   // set is the one the previous step's path left, which is another path's when the search moves
   // to another leaf.
   void sync_active_leaf(const EP *ep) override;
+  void dump(std::ostream &os) const override { tna.pipeline.dump(os); }
 
   // Every data structure placed since the last recirculation: the program-order dependencies
   // a stateful step must follow.
