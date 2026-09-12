@@ -25,7 +25,7 @@ struct offer_t {
   ep_id_t ep;
   std::string factory;
   std::string module;
-  bdd_node_id_t node;               // the BDD node this child processed
+  bdd_node_id_t node;                // the BDD node this child processed
   std::optional<bdd_node_id_t> next; // what the child's plan does next; none when it is finished
   bool reordered;
   std::string score;
@@ -54,8 +54,8 @@ std::map<bdd_node_id_t, std::deque<rule_t>> rules;
 size_t rules_read = 0;
 
 // The step in progress.
-const EP *step_ep         = nullptr;
-const BDDNode *step_node  = nullptr;
+const EP *step_ep        = nullptr;
+const BDDNode *step_node = nullptr;
 std::vector<offer_t> offers;
 std::vector<std::pair<std::string, std::string>> declines;
 std::vector<reorder_note_t> reorder_notes;
@@ -108,8 +108,8 @@ void load_rules() {
 
 void record(const offer_t &pick) {
   std::ofstream out(config.file, std::ios::app);
-  out << "node=" << pick.node << " module=" << pick.module << " next=" << next_to_string(pick.next) << "  # step " << step_count
-      << ", ep " << pick.ep << "\n";
+  out << "node=" << pick.node << " module=" << pick.module << " next=" << next_to_string(pick.next) << "  # step " << step_count << ", ep " << pick.ep
+      << "\n";
 }
 
 void show() {

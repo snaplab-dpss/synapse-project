@@ -96,7 +96,7 @@ std::vector<std::unique_ptr<EP>> get_reordered(const EP *ep, bool assert_integri
   const bool allow_shape_altering_ops = false;
 
   std::vector<std::unique_ptr<EP>> reordered;
-  const steady_clock::time_point t_ops = steady_clock::now();
+  const steady_clock::time_point t_ops  = steady_clock::now();
   std::vector<reordered_bdd_t> new_bdds = reorder(bdd, anchor_info, allow_shape_altering_ops);
   GlobalStats::time_reorder_ops += duration_cast<microseconds>(steady_clock::now() - t_ops).count();
   if (Walk::enabled()) {

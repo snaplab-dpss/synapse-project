@@ -33,8 +33,8 @@ struct impl_t;
 namespace Walk {
 
 struct config_t {
-  std::string file;      // decisions are read from here and appended to it; empty means the walk is off
-  bool interactive;      // prompt at steps the file does not cover; otherwise stop there
+  std::string file; // decisions are read from here and appended to it; empty means the walk is off
+  bool interactive; // prompt at steps the file does not cover; otherwise stop there
 };
 
 void configure(const config_t &cfg);

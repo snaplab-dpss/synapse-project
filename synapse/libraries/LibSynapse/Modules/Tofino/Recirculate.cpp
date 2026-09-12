@@ -5,7 +5,6 @@
 namespace LibSynapse {
 namespace Tofino {
 
-
 std::optional<spec_impl_t> RecirculateFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   // No reason to speculatively predict recirculations.
   return {};
@@ -43,7 +42,7 @@ std::vector<impl_t> RecirculateFactory::process_node(const EP *ep, const BDDNode
   // The packet comes back through the ingress, so what it computes on the next lap is charged
   // there -- and to the same budget as the first lap, since bf-p4c lays the gress out as a whole.
   new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>()->get_mutable_tna().pipeline.back_to_ingress();
-  const u32 code_path   = node->get_id();
+  const u32 code_path = node->get_id();
 
   Module *module  = new Recirculate(node, symbols, code_path);
   EPNode *ep_node = new EPNode(module);

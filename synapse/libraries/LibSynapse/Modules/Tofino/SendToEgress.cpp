@@ -102,8 +102,8 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
     return true;
   };
 
-  bool legal        = true;
-  bool work_remains = false;
+  bool legal              = true;
+  bool work_remains       = false;
   const char *why_illegal = nullptr;
   std::vector<klee::ref<klee::Expr>> devices;
   std::vector<klee::ref<klee::Expr>> conditions;
@@ -116,12 +116,12 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
       case LibBDD::RouteOp::Drop:
         break;
       case LibBDD::RouteOp::Broadcast:
-        legal = false;
+        legal       = false;
         why_illegal = "broadcast ahead";
         break;
       case LibBDD::RouteOp::Forward:
         if (!computable_here(route->get_dst_device())) {
-          legal = false;
+          legal       = false;
           why_illegal = "forward port not computable at the cut";
         } else {
           devices.push_back(route->get_dst_device());
@@ -155,7 +155,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
     if (!all_agree) {
       for (const klee::ref<klee::Expr> &condition : conditions) {
         if (!computable_here(condition)) {
-          legal = false;
+          legal       = false;
           why_illegal = "branch selecting between different ports not computable at the cut";
           break;
         }
@@ -184,8 +184,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
       if (!n || !seen.insert(n->get_id()).second) {
         continue;
       }
-      if (n->get_type() == BDDNodeType::Call &&
-          ds_backed_calls.contains(static_cast<const LibBDD::Call *>(n)->get_call().function_name)) {
+      if (n->get_type() == BDDNodeType::Call && ds_backed_calls.contains(static_cast<const LibBDD::Call *>(n)->get_call().function_name)) {
         continue; // This way forward hits one; look at the others.
       }
       if (n->get_type() == BDDNodeType::Route) {
@@ -240,7 +239,8 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   // to earn the modules is to place compute the exhausted gress cannot take. Overridable while
   // that interaction is under investigation.
   if (modules_this_pass < MIN_MODULES_BEFORE_EGRESS_CROSSING) {
-    return decline("fewer modules in this pass than the floor (" + std::to_string(modules_this_pass) + " < " + std::to_string(MIN_MODULES_BEFORE_EGRESS_CROSSING) + ")");
+    return decline("fewer modules in this pass than the floor (" + std::to_string(modules_this_pass) + " < " +
+                   std::to_string(MIN_MODULES_BEFORE_EGRESS_CROSSING) + ")");
   }
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

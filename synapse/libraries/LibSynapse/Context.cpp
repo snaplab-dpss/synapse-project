@@ -123,7 +123,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("map_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const map_config_t cfg    = get_map_config_from_bdd(*bdd, addr);
-      S().map_configs[addr]         = cfg;
+      S().map_configs[addr]     = cfg;
       continue;
     }
 
@@ -131,7 +131,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("vector_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const vector_config_t cfg = get_vector_config_from_bdd(*bdd, addr);
-      S().vector_configs[addr]      = cfg;
+      S().vector_configs[addr]  = cfg;
       continue;
     }
 
@@ -139,7 +139,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("chain_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const dchain_config_t cfg = get_dchain_config_from_bdd(*bdd, addr);
-      S().dchain_configs[addr]      = cfg;
+      S().dchain_configs[addr]  = cfg;
       continue;
     }
 
@@ -147,7 +147,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("cms_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const cms_config_t cfg    = get_cms_config_from_bdd(*bdd, addr);
-      S().cms_configs[addr]         = cfg;
+      S().cms_configs[addr]     = cfg;
       continue;
     }
 
@@ -155,7 +155,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("bf_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const bf_config_t cfg     = get_bf_config_from_bdd(*bdd, addr);
-      S().bf_configs[addr]          = cfg;
+      S().bf_configs[addr]      = cfg;
       continue;
     }
 
@@ -163,7 +163,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("cht").expr;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const cht_config_t cfg    = get_cht_config_from_bdd(*bdd, addr);
-      S().cht_configs[addr]         = cfg;
+      S().cht_configs[addr]     = cfg;
       continue;
     }
 
@@ -171,7 +171,7 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       klee::ref<klee::Expr> obj = call.args.at("tb_out").out;
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const tb_config_t cfg     = get_tb_config_from_bdd(*bdd, addr);
-      S().tb_configs[addr]          = cfg;
+      S().tb_configs[addr]      = cfg;
       continue;
     }
   }
@@ -429,7 +429,7 @@ Context &Context::operator=(const Context &other) {
     }
   }
 
-  profiler                                               = other.profiler;
+  profiler    = other.profiler;
   perf_oracle = other.perf_oracle;
   state       = other.state;
 
@@ -452,10 +452,10 @@ Context &Context::operator=(Context &&other) {
     }
   }
 
-  profiler                                               = std::move(other.profiler);
+  profiler    = std::move(other.profiler);
   perf_oracle = std::move(other.perf_oracle);
   state       = std::move(other.state);
-  target_ctxs                                            = std::move(other.target_ctxs);
+  target_ctxs = std::move(other.target_ctxs);
 
   return *this;
 }
