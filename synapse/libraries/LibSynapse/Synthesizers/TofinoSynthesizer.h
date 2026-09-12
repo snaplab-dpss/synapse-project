@@ -10,6 +10,7 @@
 
 #include <deque>
 #include <filesystem>
+#include <set>
 #include <stack>
 #include <optional>
 #include <unordered_set>
@@ -205,6 +206,13 @@ private:
   // counterpart. That lets passes share slots instead of each contributing its own fields, which
   // matters because every field of the header has to sit in PHV at once to be deparsed.
   std::map<code_t, size_t> recirc_slots_used;
+  // A value carried by a recirculation keeps its slot on every path that carries it: a shared
+  // action placed after the recirculation reads the slot the first path gave the value, and a
+  // second path sharing that action has to put its own copy of the value there. Slots are
+  // remembered by the carried variable's name, which is the same on both paths for a shared
+  // value; a name never seen before takes a slot no remembered name owns.
+  std::map<code_t, std::pair<code_t, size_t>> recirc_slot_by_name; // name -> (slot kind, slot)
+  std::map<code_t, std::set<size_t>> recirc_slots_owned;           // slot kind -> slots some name owns
   Stack egress_state_hdr_vars;
 
   std::unordered_set<DS_ID> declared_ds;
