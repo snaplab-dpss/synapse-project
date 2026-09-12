@@ -6,6 +6,8 @@
 #include <LibCore/Expr.h>
 #include <LibCore/Debug.h>
 
+#include <fstream>
+
 namespace LibSynapse {
 
 using LibBDD::bdd_node_id_t;
@@ -690,6 +692,13 @@ const std::map<std::pair<addr_t, DSImpl>, u32> &Context::get_ds_usage_counts() c
 void Context::sync_active_leaf(const EP *ep) {
   for (auto &[_, ctx_ptr] : target_ctxs) {
     ctx_ptr->sync_active_leaf(ep);
+  }
+}
+
+void Context::dump_targets(const std::filesystem::path &path) const {
+  std::ofstream out(path);
+  for (const auto &[_, ctx_ptr] : target_ctxs) {
+    ctx_ptr->dump(out);
   }
 }
 

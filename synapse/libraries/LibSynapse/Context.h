@@ -12,6 +12,7 @@
 #include <LibCore/Symbol.h>
 #include <LibCore/Types.h>
 
+#include <filesystem>
 #include <unordered_map>
 
 namespace LibSynapse {
@@ -97,6 +98,8 @@ public:
   // The search is about to process `ep`'s active leaf, which may sit on another path than the
   // module placed last: state that follows the leaf's position on its path is brought in line.
   virtual void sync_active_leaf(const EP *ep) {}
+  // The target's placement state, for a walk's stop dump.
+  virtual void dump(std::ostream &os) const {}
 };
 
 class Context {
@@ -168,6 +171,7 @@ public:
   template <class TCtx> const TCtx *get_target_ctx_if_available() const;
   template <class TCtx> TCtx *get_mutable_target_ctx();
   void sync_active_leaf(const EP *ep);
+  void dump_targets(const std::filesystem::path &path) const;
 
   const std::unordered_map<addr_t, DSImpl> &get_ds_impls() const;
   const std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> &get_ds_impls_decisions_per_bdd_node_and_obj() const;
