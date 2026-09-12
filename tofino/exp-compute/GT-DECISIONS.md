@@ -121,7 +121,7 @@ and the ground truth crosses only after two rounds anyway.
 | **after 27** | **`SendToEgress`** | **decision 1.** Every way forward now reaches 95 (forward to the server) or 99 (drop); drop downstream is allowed, so the routes agree on the server |
 | 28 .. 51 | compute in egress | rounds 3-6 |
 | **after 51** | **`Recirculate`** | **decision 2** |
-| 52 .. 75 | compute in ingress, lap 2 | rounds 7-10. **The walk stops at 58** (round 8): no hash-distribution unit left in any stage past 1, see below |
+| 52 .. 75 | compute in ingress, lap 2 | rounds 7-10. With lap 1 shared (PLAN.md 2a) **the walk stops at 72** (round 10): the two lap-2 copies fill stages 2-11 with hash rotates and path B's chain runs past stage 19; 2b is the fix |
 | **after 75** | **`SendToEgress`** | **decision 3** |
 | 76 .. 87 | compute in egress, lap 2 | rounds 11-12 |
 | 333 .. 345 | `ArithmeticOp` | ctime, cookie_val, age |
