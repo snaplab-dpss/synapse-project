@@ -189,6 +189,13 @@ places the chain once per pass and runs it for a SYN and a bloom-miss ACK alike 
 the same computation on the same fields (`tofino/exp-compute/hdu1..4.p4`), which synapse's
 per-node symbols are not. `PLAN.md` Phase 2, item 2a.
 
+## Reached (2026-09-12, evening)
+
+`smartcookie-walk.txt` replays, non-interactively, to a finished plan of the shape below: two
+crossings and one recirculation per client path, 2/4/4/2 rounds, the SYN path's chain shared by
+the cookie-check path in every round (PLAN.md 2a and 2b), the clock path to the controller. Its
+P4 is `sc-walk/sc-walk.p4`; making it compile is Phase 3.
+
 ## What success looks like
 
 A decision file that replays, non-interactively and under any heuristic, to a finished plan whose

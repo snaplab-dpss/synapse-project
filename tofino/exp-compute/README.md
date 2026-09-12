@@ -279,3 +279,19 @@ unit is configured for the field it reads, so `hdu6` is `hdu4` with extra steps.
 is a hash *of a given field*. Two computations that differ in an input can still share the chain
 by selecting the input into one field first (`hdu8`), which costs no stage here and is what the
 ground truth's `msg3_sel` does.
+
+## An add of a wide constant, bare and in an action (`addc1.p4` .. `addc3.p4`)
+
+Question: SmartCookie's cookie check computes `ack - 1`, which the BDD carries as an add of
+`0xffffffff`. Does that shape compile, in the ingress and in the egress?
+
+| toy | shape | result |
+|---|---|---|
+| `addc1` | ingress action: `meta = 32w0xffffffff + hdr.tcp.seq` | compiles |
+| `addc2` | egress action: the same | compiles |
+| `addc3` | egress action: `hdr.tcp.seq - 32w1` | compiles |
+
+Takeaway: the shape is fine inside a named action. The synthesized SmartCookie failed on it only
+where the emitter wrote it as a bare assignment in the apply block: bf-p4c synthesizes an action
+for a bare statement and then rejects the wide constant there as "multiple action data
+parameters". The emitter now puts every materialized header value in an action of its own.
