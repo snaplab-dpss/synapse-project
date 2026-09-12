@@ -67,7 +67,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   const EPLeaf active_leaf = ep->get_active_leaf();
 
   if (!active_leaf.node) {
-    return {}; // no active leaf
+    return decline("no active leaf");
   }
 
   // The egress cannot choose a port: ucast_egress_port is written in ingress. So the crossing is
@@ -164,7 +164,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   }
 
   if (!legal) {
-    return {}; // see why_illegal: broadcast, or a port not computable at the cut
+    return decline(why_illegal);
   }
 
   // The egress holds no tables or registers, so crossing while data-structure work is still to
@@ -206,10 +206,10 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   };
 
   if (unavoidable_ds_ahead(node)) {
-    return {}; // every way forward runs into a data structure
+    return decline("every way forward runs into a data-structure call before a route");
   }
   if (!work_remains) {
-    return {}; // nothing left to do past the cut
+    return decline("nothing left to do past the cut");
   }
 
   const klee::ref<klee::Expr> dst_device = devices.empty() ? klee::ref<klee::Expr>() : devices[0];
@@ -226,7 +226,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
       break;
     }
     if (prev_module->get_type() == ModuleType::Tofino_SendToEgress) {
-      return {}; // this pass already crossed
+      return decline("this pass already crossed");
     }
     if (prev_module->get_type() == ModuleType::Tofino_Recirculate) {
       break;
@@ -240,7 +240,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   // to earn the modules is to place compute the exhausted gress cannot take. Overridable while
   // that interaction is under investigation.
   if (modules_this_pass < MIN_MODULES_BEFORE_EGRESS_CROSSING) {
-    return {}; // fewer modules in this pass than the floor
+    return decline("fewer modules in this pass than the floor (" + std::to_string(modules_this_pass) + " < " + std::to_string(MIN_MODULES_BEFORE_EGRESS_CROSSING) + ")");
   }
 
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);

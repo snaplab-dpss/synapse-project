@@ -28,6 +28,7 @@ public:
   size_t unfinished_size() const;
   size_t finished_size() const;
   const HeuristicCfg *get_cfg() const;
+  HeuristicCfg *get_mutable_cfg() { return config.get(); }
   Score get_score(const EP *e) const;
 
 private:

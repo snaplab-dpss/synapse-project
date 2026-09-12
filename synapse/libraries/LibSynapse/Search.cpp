@@ -1,3 +1,4 @@
+#include <LibSynapse/Walk.h>
 #include <LibSynapse/Search.h>
 #include <LibSynapse/Visualizers/EPVisualizer.h>
 #include <LibSynapse/Visualizers/SSVisualizer.h>
@@ -190,6 +191,8 @@ search_report_t SearchEngine::search() {
     return BDDNodeVisitAction::Continue;
   });
 
+  Walk::configure({search_config.walk_file, search_config.walk_interactive});
+
   while (!heuristic->is_finished()) {
     meta.elapsed_time = duration_cast<seconds>(steady_clock::now() - start_search).count();
 
@@ -208,6 +211,7 @@ search_report_t SearchEngine::search() {
 
     const BDDNode *node = ep->get_next_node();
     search_step_report_t report(ep.get(), node);
+    Walk::begin_step(ep.get(), node);
 
     double &avg_node_children = meta.avg_children_per_node[node->get_id()];
     int &node_visits          = meta.visits_per_node[node->get_id()];
@@ -228,6 +232,7 @@ search_report_t SearchEngine::search() {
 
         search_space->add_to_active_leaf(ep.get(), node, factory.get(), implementations);
         report.save(factory.get(), implementations, heuristic.get());
+        Walk::offered(factory.get(), implementations, heuristic.get());
         new_implementations.insert(new_implementations.end(), std::make_move_iterator(implementations.begin()),
                                    std::make_move_iterator(implementations.end()));
       }
@@ -275,6 +280,29 @@ search_report_t SearchEngine::search() {
             "  SS:  %s",
             std::filesystem::absolute(bdd_path).string().c_str(), std::filesystem::absolute(ep_path).string().c_str(),
             std::filesystem::absolute(ss_path).string().c_str());
+    }
+
+    // A walk decides which child leads, before the children reach the heuristic (see Walk.h).
+    const Walk::choice_t choice = Walk::choose();
+    switch (choice.kind) {
+    case Walk::choice_t::Kind::None:
+      break;
+    case Walk::choice_t::Kind::Force:
+      heuristic->get_mutable_cfg()->add_forced_decision(choice.ep);
+      break;
+    case Walk::choice_t::Kind::Stop: {
+      const std::filesystem::path bdd_path{"walk-bdd.dot"};
+      const std::filesystem::path ep_path{"walk-ep.dot"};
+      const std::filesystem::path ss_path{"walk-ss.dot"};
+      ProfilerViz::dump_to_file(ep->get_bdd(), ep->get_ctx().get_profiler(), bdd_path);
+      EPViz::dump_to_file(ep.get(), ep_path);
+      SSViz::dump_to_file(search_space.get(), ep.get(), ss_path);
+      std::cerr << "[walk] stopped at plan " << ep->get_id() << ". Dumped:\n"
+                << "  BDD: " << std::filesystem::absolute(bdd_path).string() << "\n"
+                << "  EP:  " << std::filesystem::absolute(ep_path).string() << "\n"
+                << "  SS:  " << std::filesystem::absolute(ss_path).string() << "\n";
+      exit(2);
+    }
     }
 
     heuristic->add(std::move(new_implementations));

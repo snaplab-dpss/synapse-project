@@ -55,8 +55,12 @@ struct search_config_t {
   bool not_greedy;
   bool no_deadends;
   bool assert_integrity;
+  std::string walk_file;  // a walk (see Walk.h) is on when this is set
+  bool walk_interactive;
 
-  search_config_t() : no_reorder(false), pause_and_show_on_backtrack(false), not_greedy(false), no_deadends(true), assert_integrity(false) {}
+  search_config_t()
+      : no_reorder(false), pause_and_show_on_backtrack(false), not_greedy(false), no_deadends(true), assert_integrity(false),
+        walk_interactive(false) {}
 };
 
 class SearchEngine {

@@ -82,7 +82,7 @@ std::vector<impl_t> BloomFilterQueryFactory::process_node(const EP *ep, const BD
   const bf_data_t bf_data(ep->get_ctx(), call_node);
 
   if (!ep->get_ctx().can_impl_ds(bf_data.obj, DSImpl::Tofino_BloomFilter)) {
-    return {};
+    return decline("the bloom filter is already committed to another implementation (can_impl_ds refused Tofino_BloomFilter)");
   }
 
   const bf_config_t &cfg = ep->get_ctx().get_bf_config(bf_data.obj);
@@ -90,12 +90,12 @@ std::vector<impl_t> BloomFilterQueryFactory::process_node(const EP *ep, const BD
   BloomFilter *bf = build_or_reuse_bf(ep, node, bf_data.obj, bf_data.keys, cfg.width, cfg.height);
 
   if (!bf) {
-    return {};
+    return decline("build_or_reuse failed: no bloom filter could be placed");
   }
 
   const EPNode *ep_node_leaf = ep->get_active_leaf().node;
   if (ep_node_leaf && was_ds_already_used(ep_node_leaf, bf->id)) {
-    return {};
+    return decline("this bloom filter was already used on this pass");
   }
 
   Module *module  = new BloomFilterQuery(node, bf->id, bf_data.obj, bf_data.keys, bf_data.estimate);

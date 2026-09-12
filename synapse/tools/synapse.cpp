@@ -280,6 +280,12 @@ int main(int argc, char **argv) {
   app.add_flag("--show-bdd", args.show_bdd, "Show the BDD's solution.");
   app.add_flag("--assert-integrity", args.search_config.assert_integrity, "Assert integrity of EPs during search.");
   app.add_flag("--backtrack", args.search_config.pause_and_show_on_backtrack, "Pause on backtrack.");
+  std::string walk_file, walk_replay_file;
+  app.add_option("--walk", walk_file,
+                 "Walk the search by hand: at every step with more than one child, show them and take a pick. Decisions are read "
+                 "from this file if it exists and appended to it. Combine with --backtrack to stop where a pick dies.");
+  app.add_option("--walk-replay", walk_replay_file,
+                 "Replay a recorded walk without prompting; stop, with the offered set dumped, at the first step it does not cover.");
   app.add_flag("--not-greedy", args.search_config.not_greedy, "Don't stop on first solution.");
   app.add_flag("--allow-deadends{false}", args.search_config.no_deadends,
                "Backtrack past dead-ended EPs (pop the next-best) instead of failing on the first one. Needed for heuristics like "
@@ -289,6 +295,13 @@ int main(int argc, char **argv) {
   app.add_flag("--dry-run", args.dry_run, "Don't run search.");
 
   CLI11_PARSE(app, argc, argv);
+
+  if (!walk_file.empty() && !walk_replay_file.empty()) {
+    std::cerr << "--walk and --walk-replay are exclusive\n";
+    return 1;
+  }
+  args.search_config.walk_file        = walk_file.empty() ? walk_replay_file : walk_file;
+  args.search_config.walk_interactive = !walk_file.empty();
 
   if (args.name.empty()) {
     args.name = "synapse";

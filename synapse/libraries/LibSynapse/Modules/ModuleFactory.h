@@ -40,6 +40,11 @@ protected:
 
   decision_t decide(const EP *ep, const BDDNode *node, std::unordered_map<std::string, i32> params = {}) const;
   impl_t implement(const EP *ep, const BDDNode *node, std::unique_ptr<EP> result, std::unordered_map<std::string, i32> params = {}) const;
+
+  // For process_node to say why it produced nothing, where the reason is worth knowing. A factory
+  // that declines leaves no trace in the search space, so this is the only record of it; a walk
+  // (Walk.h) prints it. Free when no walk is on.
+  std::vector<impl_t> decline(const std::string &reason) const;
 };
 
 } // namespace LibSynapse

@@ -661,16 +661,16 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
 
   // We can't send to the controller if a forwarding decision was already made.
   if (active_leaf.node && past_egress_crossing_stc(active_leaf.node)) {
-    return {};
+    return decline("past an egress crossing");
   }
 
   if (active_leaf.node && active_leaf.node->forwarding_decision_already_made()) {
-    return {};
+    return decline("a forwarding decision was already made on this pass");
   }
 
   // Don't send to the controller if the node is already a route.
   if (node->get_type() == BDDNodeType::Route) {
-    return {};
+    return decline("a route node has nothing to hand off");
   }
 
   bool force_send_to_controller_bdd_node = false;
