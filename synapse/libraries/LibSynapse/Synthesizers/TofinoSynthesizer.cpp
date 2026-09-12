@@ -2852,6 +2852,14 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // Every other stack contains variables introduced by modules.
   Stack first_stack              = ingress_vars.get_first_stack();
   std::vector<var_t> recirc_vars = first_stack.get_all();
+  // A recirculation from the egress comes back through the ingress, where the clock is meta.time
+  // again, not the egress name a crossing gave it.
+  for (var_t &var : recirc_vars) {
+    if (var.name == "eg_md.time" || var.original_name == "eg_md.time") {
+      var.name          = "meta.time";
+      var.original_name = "meta.time";
+    }
+  }
 
   // A variable can be known under several expressions (an alias: the same value another
   // module computes, e.g. a register's returned value); each of them must resolve to the
@@ -3690,8 +3698,19 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     const code_t base_code = transpiler.transpile(emitted);
     const var_t base_var   = alloc_var("hdr_val", emitted, IS_INGRESS_METADATA);
     declare_var_in_ingress_metadata(base_var);
-    ingress_apply.indent();
-    ingress_apply << base_var.name << " = " << base_code << ";\n";
+    // In an action of its own: for a bare assignment in the apply block bf-p4c synthesizes the
+    // action itself and then refuses an add of a wide constant in it ("multiple action data
+    // parameters", the cookie check's ack - 1 in the egress); the same statement in a named
+    // action compiles (tofino/exp-compute/addc2.p4).
+    {
+      const code_t action_name = base_var.name.substr(base_var.name.rfind('.') + 1) + "_calc";
+      coder_t &control         = get(MARKER_INGRESS_CONTROL);
+      control.indent();
+      control << "action " << action_name << "() { " << base_var.name << " = " << base_code << "; }\n";
+      control << "\n";
+      ingress_apply.indent();
+      ingress_apply << action_name << "();\n";
+    }
 
     // The field assembly below looks the value up by the low bytes of the original wide
     // expression, so give those the narrowed variable's name too.
@@ -6335,7 +6354,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       return {};
     }
     const std::optional<var_t> var = ingress_vars.get(value->getKid(0));
-    if (!var || var->name != "meta.time") {
+    if (!var || (var->name != "meta.time" && var->name != "eg_md.time")) {
       return {};
     }
     const u64 shift = solver_toolbox.value_from_expr(value->getKid(1));
@@ -6574,12 +6593,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
         break;
       }
       if (time_shift(op->get_value())) {
-        // The result is the 32-bit time the data plane keeps, shifted by the rest.
-        const var_t var(op->get_op_id() + "_out", op->get_out(), 32, false, false, false);
-        const var_t meta_var("meta." + var.name, var.expr, var.size, false, false, false);
-        ingress_vars.insert_back(meta_var);
-        declare_var_in_ingress_metadata(meta_var);
-        out_vars.insert({op->get_op_id(), meta_var});
+        time_shift_out_var(op->get_op_id(), op->get_out());
         break;
       }
       // Another module may already hold this very value (e.g. a register's returned new
@@ -6633,7 +6647,8 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
         continue; // Aliased, or computed by another path's action.
       }
       if (const std::optional<u64> shift = time_shift(op->get_value())) {
-        const code_t rhs = *shift == 0 ? code_t("meta.time") : "meta.time >> " + std::to_string(*shift);
+        const code_t time = in_egress ? "eg_md.time" : "meta.time";
+        const code_t rhs  = *shift == 0 ? time : time + " >> " + std::to_string(*shift);
         ops.push_back({op->get_action_id(), op->get_op_id(), found_it->second.name + " = " + rhs + ";", false});
         break;
       }
