@@ -6379,6 +6379,45 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
   std::unordered_set<std::string> reused_op_ids;
   std::vector<DS_ID> reused_actions;
 
+  // The ops of this run, by id: a move (TofinoContext::get_compute_moves) anchored on one of
+  // them is this run's to emit, first.
+  std::unordered_set<std::string> run_op_ids;
+  for (const EPNode *step : steps) {
+    const Module *module = step->get_module();
+    switch (module->get_type()) {
+    case ModuleType::Tofino_ArithmeticOp: {
+      const Tofino::ArithmeticOp *op = dynamic_cast<const Tofino::ArithmeticOp *>(module);
+      run_op_ids.insert(op->get_op_id());
+      for (const compute_operand_t &operand : op->get_operands()) {
+        run_op_ids.insert(operand.op_id);
+      }
+    } break;
+    case ModuleType::Tofino_RotateLeft: {
+      const Tofino::RotateLeft *rot = dynamic_cast<const Tofino::RotateLeft *>(module);
+      run_op_ids.insert(rot->get_op_id());
+      for (const compute_operand_t &operand : rot->get_operands()) {
+        run_op_ids.insert(operand.op_id);
+      }
+    } break;
+    case ModuleType::Tofino_RotateLeftShifts: {
+      const Tofino::RotateLeftShifts *rot = dynamic_cast<const Tofino::RotateLeftShifts *>(module);
+      run_op_ids.insert(rot->get_shl_op_id());
+      run_op_ids.insert(rot->get_shr_op_id());
+      run_op_ids.insert(rot->get_or_op_id());
+      for (const compute_operand_t &operand : rot->get_operands()) {
+        run_op_ids.insert(operand.op_id);
+      }
+    } break;
+    case ModuleType::Tofino_If: {
+      for (const compute_operand_t &operand : dynamic_cast<const Tofino::If *>(module)->get_materialized_operands()) {
+        run_op_ids.insert(operand.op_id);
+      }
+    } break;
+    default:
+      break;
+    }
+  }
+
   // 2. Every op gets its output variable first, so the statements can refer to each other's
   // results whatever the order.
   std::vector<op_emission_t> ops;
@@ -6409,6 +6448,37 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     out_vars.insert({op_id, var});
     return var;
   };
+  // The variable of a shift of the clock: the 32-bit time the data plane keeps, shifted by the
+  // rest (see time_shift), whatever the width of the symbol. Idempotent by name, like out_var.
+  const auto time_shift_out_var = [&](const std::string &op_id, klee::ref<klee::Expr> out) -> var_t {
+    const code_t name = (in_egress ? "eg_md." : "meta.") + op_id + "_out";
+    if (const std::optional<var_t> existing = ingress_vars.get(name)) {
+      out_vars.insert({op_id, *existing});
+      return *existing;
+    }
+    const var_t var(name, out, 32, false, false, false);
+    ingress_vars.insert_back(var);
+    declare_var_in_ingress_metadata(var);
+    out_vars.insert({op_id, var});
+    return var;
+  };
+  // An op whose output was unified with another path's symbol writes that symbol's variable
+  // (declared here if that path has not been emitted yet); its own symbol is another name for it.
+  const auto bind_output_alias = [&](const std::string &op_id, klee::ref<klee::Expr> module_out) -> bool {
+    const std::optional<klee::ref<klee::Expr>> theirs = tofino_ctx->get_output_alias(op_id);
+    if (!theirs) {
+      return false;
+    }
+    const std::optional<std::string> producer = tofino_ctx->get_producer(*theirs);
+    assert(producer && "An output alias to a symbol no op produces");
+    const var_t var = out_var(*producer, *theirs);
+    out_vars.insert({op_id, var});
+    if (!module_out.isNull()) {
+      const var_t alias(var.name, module_out, module_out->getWidth(), false, var.is_header_field, false);
+      ingress_vars.insert_back(alias, /*allow_duplicates=*/true);
+    }
+    return true;
+  };
   // A reused op: its variable is the original's (declared here if the original's path has not
   // been emitted yet), and the module's own output symbol is another name for it.
   const auto bind_reused = [&](const std::string &op_id, klee::ref<klee::Expr> module_out) -> bool {
@@ -6417,7 +6487,9 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       return false;
     }
     const compute_op_t &original = reuse->op;
-    var_t var                    = !original.out.isNull()     ? out_var(original.id, original.out)
+    const bool shifts_time       = original.fn.rfind("op_", 0) == 0 && !original.args.empty() && time_shift(original.args.at(0)).has_value();
+    var_t var                    = shifts_time                ? time_shift_out_var(original.id, original.out)
+                                   : !original.out.isNull()   ? out_var(original.id, original.out)
                                    : original.fn == "operand" ? out_var(original.id, original.args.at(0))
                                                               : out_var_sized(original.id, original.width);
     out_vars.insert({op_id, var});
@@ -6441,13 +6513,16 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
   // have been declared, and an operand can only depend on those.
   std::unordered_map<std::string, code_t> out_var_rhs; // By op id.
 
+  // What the placed op `op_id` reads now: an operand a shape match rewrote to a shared field
+  // (TofinoContext::rewrite_compute_op) is transpiled as that field.
+  const auto rw                = [&](const std::string &op_id, klee::ref<klee::Expr> expr) { return tofino_ctx->apply_rewrites(op_id, expr); };
   const auto computed_operands = [&](const std::vector<compute_operand_t> &operands) {
     for (const compute_operand_t &operand : operands) {
       if (bind_reused(operand.op_id, nullptr)) {
         continue;
       }
       if (!ingress_vars.get(operand.expr)) {
-        out_var_rhs[operand.op_id] = transpiler.transpile(operand.expr);
+        out_var_rhs[operand.op_id] = transpiler.transpile(rw(operand.op_id, operand.expr));
         out_var(operand.op_id, operand.expr);
       }
     }
@@ -6456,7 +6531,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
   // plain value (a constant or a variable).
   const auto operand_code = [&](klee::ref<klee::Expr> expr, const std::vector<compute_operand_t> &operands) -> code_t {
     for (const compute_operand_t &operand : operands) {
-      if (solver_toolbox.are_exprs_always_equal(operand.expr, expr)) {
+      if (solver_toolbox.are_exprs_always_equal(operand.expr, expr) || solver_toolbox.are_exprs_always_equal(rw(operand.op_id, operand.expr), expr)) {
         auto found_it = out_vars.find(operand.op_id);
         if (found_it != out_vars.end()) {
           return found_it->second.name;
@@ -6472,10 +6547,22 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
         continue; // Held elsewhere already.
       }
       const auto rhs_it = out_var_rhs.find(operand.op_id);
-      const code_t rhs  = rhs_it != out_var_rhs.end() ? rhs_it->second : transpiler.transpile(operand.expr);
+      const code_t rhs  = rhs_it != out_var_rhs.end() ? rhs_it->second : transpiler.transpile(rw(operand.op_id, operand.expr));
       ops.push_back({operand.action_id, operand.op_id, found_it->second.name + " = " + rhs + ";", false});
     }
   };
+
+  // The moves this run owns: the shared field, declared here if its producer's path has not
+  // been emitted yet, takes the plain value, ahead of everything the run computes.
+  for (const compute_move_t &move : tofino_ctx->get_compute_moves()) {
+    if (!run_op_ids.contains(move.anchor)) {
+      continue;
+    }
+    const std::optional<std::string> producer = tofino_ctx->get_producer(move.to);
+    assert(producer && "A move into a field no op produces");
+    const var_t to_var = out_var(*producer, move.to);
+    ops.push_back({move.action, move.op_id, to_var.name + " = " + transpiler.transpile(move.from) + ";", false});
+  }
 
   for (const EPNode *step : steps) {
     const Module *module = step->get_module();
@@ -6483,7 +6570,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     case ModuleType::Tofino_ArithmeticOp: {
       const Tofino::ArithmeticOp *op = dynamic_cast<const Tofino::ArithmeticOp *>(module);
       computed_operands(op->get_operands());
-      if (bind_reused(op->get_op_id(), op->get_out())) {
+      if (bind_reused(op->get_op_id(), op->get_out()) || bind_output_alias(op->get_op_id(), op->get_out())) {
         break;
       }
       if (time_shift(op->get_value())) {
@@ -6496,8 +6583,9 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
         break;
       }
       // Another module may already hold this very value (e.g. a register's returned new
-      // value); the result is then just another name for it.
-      if (std::optional<var_t> held = ingress_vars.get(op->get_value())) {
+      // value); the result is then just another name for it. Unless the action is shared with
+      // another path, which calls it for this very op and reads its variable.
+      if (std::optional<var_t> held = tofino_ctx->is_shared_compute_action(op->get_action_id()) ? std::nullopt : ingress_vars.get(op->get_value())) {
         const var_t alias(held->name, op->get_out(), op->get_out()->getWidth(), false, held->is_header_field, false);
         ingress_vars.insert_back(alias, /*allow_duplicates=*/true);
         continue;
@@ -6507,7 +6595,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     case ModuleType::Tofino_RotateLeft: {
       const Tofino::RotateLeft *rot = dynamic_cast<const Tofino::RotateLeft *>(module);
       computed_operands(rot->get_operands());
-      if (bind_reused(rot->get_op_id(), rot->get_out())) {
+      if (bind_reused(rot->get_op_id(), rot->get_out()) || bind_output_alias(rot->get_op_id(), rot->get_out())) {
         break;
       }
       out_var(rot->get_op_id(), rot->get_out());
@@ -6521,7 +6609,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       if (!bind_reused(rot->get_shr_op_id(), nullptr)) {
         out_var_sized(rot->get_shr_op_id(), rot->get_out()->getWidth());
       }
-      if (!bind_reused(rot->get_or_op_id(), rot->get_out())) {
+      if (!bind_reused(rot->get_or_op_id(), rot->get_out()) && !bind_output_alias(rot->get_or_op_id(), rot->get_out())) {
         out_var(rot->get_or_op_id(), rot->get_out());
       }
     } break;
@@ -6551,7 +6639,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       }
       std::vector<code_t> operands;
       for (unsigned i = 0; i < op->get_value()->getNumKids(); i++) {
-        operands.push_back(operand_code(op->get_value()->getKid(i), op->get_operands()));
+        operands.push_back(operand_code(rw(op->get_op_id(), op->get_value()->getKid(i)), op->get_operands()));
       }
       ops.push_back({op->get_action_id(), op->get_op_id(), found_it->second.name + " = " + arithmetic_code(op->get_value(), operands) + ";", false});
     } break;
@@ -6561,18 +6649,19 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       if (reused_op_ids.contains(rot->get_op_id())) {
         continue; // Computed by another path's action.
       }
-      const var_t &out   = out_vars.at(rot->get_op_id());
-      const bits_t width = rot->get_out()->getWidth();
-      const u32 n        = rot->get_amount();
-      if (is_constant(rot->get_x())) {
+      const var_t &out          = out_vars.at(rot->get_op_id());
+      const bits_t width        = rot->get_out()->getWidth();
+      const u32 n               = rot->get_amount();
+      klee::ref<klee::Expr> x_r = rw(rot->get_op_id(), rot->get_x());
+      if (is_constant(x_r)) {
         // Rotating a constant is a constant.
-        const u64 x    = solver_toolbox.value_from_expr(rot->get_x());
+        const u64 x    = solver_toolbox.value_from_expr(x_r);
         const u64 mask = (width == 64) ? ~0ull : ((1ull << width) - 1);
         const u64 r    = n == 0 ? x : (((x << n) | (x >> (width - n))) & mask);
         ops.push_back({rot->get_action_id(), rot->get_op_id(), out.name + " = " + std::to_string(width) + "w" + std::to_string(r) + ";", false});
         break;
       }
-      const code_t a = operand_code(rot->get_x(), rot->get_operands());
+      const code_t a = operand_code(x_r, rot->get_operands());
       // A concat rotate cuts its operand's container. Remember which values that happens to, so a
       // later copy of one into a deparsed header field can be routed through the hash unit while
       // the uncut ones stay ordinary moves -- each @in_hash costs hash-distribution units, and
@@ -6585,7 +6674,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       computed_operand_statements(rot->get_operands());
       const bits_t width = rot->get_out()->getWidth();
       const u32 n        = rot->get_amount();
-      const code_t a     = operand_code(rot->get_x(), rot->get_operands());
+      const code_t a     = operand_code(rw(rot->get_or_op_id(), rot->get_x()), rot->get_operands());
       const var_t &shl   = out_vars.at(rot->get_shl_op_id());
       const var_t &shr   = out_vars.at(rot->get_shr_op_id());
       const var_t &out   = out_vars.at(rot->get_or_op_id());

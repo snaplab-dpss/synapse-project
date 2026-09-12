@@ -1,4 +1,5 @@
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
+#include <LibSynapse/Walk.h>
 #include <LibSynapse/GlobalStats.h>
 #include <LibSynapse/Modules/Tofino/ArithmeticOp.h>
 #include <LibSynapse/Modules/Tofino/RotateLeft.h>
@@ -312,7 +313,38 @@ void collect_ep_compute_run(const EP *ep, std::vector<DS_ID> &actions) {
 
 } // namespace
 
-bool TofinoModuleFactory::is_plain_operand(klee::ref<klee::Expr> expr) { return LibCore::is_constant(expr) || LibCore::is_readLSB(expr); }
+namespace {
+// The name of the symbol `symbol` reads, for ids.
+std::string to_string(klee::ref<klee::Expr> symbol) {
+  std::string name;
+  assert_or_panic(LibCore::is_readLSB(symbol, name), "Not a symbol read");
+  return name;
+}
+} // namespace
+
+// The compute actions on the plan's path to `ep`'s active leaf, every pass, plus the ones a
+// speculation placed so far: what an op on this path may not share by shape.
+std::unordered_set<DS_ID> path_compute_actions(const EP *ep, const speculations_t *speculations) {
+  std::unordered_set<DS_ID> actions;
+  for (const EPNode *ep_node = ep->has_active_leaf() ? ep->get_active_leaf().node : nullptr; ep_node; ep_node = ep_node->get_prev()) {
+    const Module *module = ep_node->get_module();
+    if (module && TofinoModuleFactory::is_compute_module(module)) {
+      for (const DS_ID &id : dynamic_cast<const TofinoModule *>(module)->get_generated_ds()) {
+        actions.insert(id);
+      }
+    }
+  }
+  if (speculations) {
+    for (const spec_impl_lite_t &spec : speculations->speculations_per_node) {
+      if (const speculations_t::node_info_t *info = speculations->find_node_info(spec.decision.node)) {
+        actions.insert(info->actions.begin(), info->actions.end());
+      }
+    }
+  }
+  return actions;
+}
+
+bool TofinoModuleFactory::is_plain_operand(klee::ref<klee::Expr> expr) { return LibCore::is_plain_value(expr); }
 
 std::vector<TofinoModuleFactory::compute_operand_t>
 TofinoModuleFactory::get_operands_to_compute(const std::string &op_id_base, const std::vector<std::pair<std::string, klee::ref<klee::Expr>>> &exprs) {
@@ -402,17 +434,111 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
 
   // The same function of the same values, placed on a mutually exclusive path already: reuse
   // that action, in this gress and no earlier than this op's producers, and pay nothing.
-  Pipeline &pipeline           = ctx->get_mutable_tna().pipeline;
-  const compute_op_t canonical = ctx->canonical_op(op);
+  Pipeline &pipeline     = ctx->get_mutable_tna().pipeline;
+  compute_op_t canonical = ctx->canonical_op(op);
+  const int soonest      = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
+  // The compute actions of this pass so far: the run's, this builder's, and what the op waits for.
+  const auto pass_actions = [&]() {
+    std::unordered_set<DS_ID> pass(run.begin(), run.end());
+    pass.insert(actions.begin(), actions.end());
+    pass.insert(deps.begin(), deps.end());
+    return pass;
+  };
+  const auto usable = [&](const compute_reuse_t &original) {
+    const std::optional<Gress> gress = pipeline.get_placed_gress(original.action);
+    const int stage                  = pipeline.get_placed_stage(original.action);
+    return gress && *gress == pipeline.get_gress() && soonest >= 0 && stage >= soonest;
+  };
+  const auto take = [&](const compute_reuse_t &original) -> DS_ID {
+    ctx->reuse_compute_op(canonical, original);
+    placed_ops.insert({op.id, original.action});
+    GlobalStats::num_compute_ops_reused++;
+    return original.action;
+  };
   if (const std::optional<compute_reuse_t> original = ctx->find_reusable_compute_op(canonical)) {
-    const std::optional<Gress> gress = pipeline.get_placed_gress(original->action);
-    const int stage                  = pipeline.get_placed_stage(original->action);
-    const int soonest                = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
-    if (gress && *gress == pipeline.get_gress() && soonest >= 0 && stage >= soonest) {
-      ctx->reuse_compute_op(canonical, *original);
-      placed_ops.insert({op.id, original->action});
-      GlobalStats::num_compute_ops_reused++;
-      return original->action;
+    if (usable(*original)) {
+      return take(*original);
+    }
+  }
+
+  // The same shape, differing in plain values: reuse it once each of those reads one field on
+  // both paths -- by naming when both paths compute the value, by a move placed ahead of the
+  // shared action on the path that reads it from the packet or as a constant.
+  // This builder's own actions and the run it extends are this path's too, and this pass's.
+  std::unordered_set<DS_ID> own_actions = path_actions;
+  own_actions.insert(actions.begin(), actions.end());
+  own_actions.insert(run.begin(), run.end());
+  for (const compute_shape_match_t &candidate : ctx->find_shape_matches(canonical, pass_actions(), own_actions)) {
+    const compute_shape_match_t *match = &candidate;
+    if (full_placer && Walk::enabled()) {
+      std::cerr << "[shape] " << op.id << " ~ " << match->original.op.id << (usable(match->original) ? " usable" : " not usable (gress/stage)")
+                << "\n";
+    }
+    if (usable(match->original)) {
+      const int shared_stage = pipeline.get_placed_stage(match->original.action);
+      // Every move needs a stage of its own before the shared action, with a logical id to spare.
+      const auto move_stage = [&](klee::ref<klee::Expr> to) -> int {
+        const compute_op_t move_op{
+            .id = "move_" + to_string(to), .kind = ComputeOpKind::ALU, .width = to->getWidth(), .fn = "", .args = {}, .out = to, .in_hash = false};
+        const ComputeAction probe("select_" + to_string(to), node->get_id(), {move_op});
+        const int stage = pipeline.find_stage_for_compute_action(&probe, {});
+        return (stage >= 0 && stage < shared_stage) ? stage : -1;
+      };
+      bool fits = true;
+      for (const auto &[theirs, ours] : match->moved_there) {
+        fits &= ctx->find_compute_move(ours).has_value() || move_stage(ours) >= 0;
+      }
+      for (const auto &[theirs, ours] : match->moved_here) {
+        fits &= move_stage(theirs) >= 0;
+      }
+      if (fits) {
+        const auto place_move = [&](klee::ref<klee::Expr> from, klee::ref<klee::Expr> to, const std::string &anchor) {
+          const std::string move_id = "move_" + to_string(to);
+          const compute_op_t move_op{
+              .id = move_id, .kind = ComputeOpKind::ALU, .width = to->getWidth(), .fn = "", .args = {from}, .out = to, .in_hash = false};
+          ComputeAction *action = new ComputeAction("select_" + to_string(to), node->get_id(), {move_op});
+          ctx->place(node->get_id(), action, {});
+          pipeline.charge_compute_op();
+          ctx->add_compute_move(compute_move_t{action->id, move_id, from, to, anchor});
+        };
+        for (const auto &[theirs, ours] : match->aliased) {
+          ctx->alias_symbol(ours, theirs);
+        }
+        for (const auto &[theirs, ours] : match->moved_there) {
+          if (!ctx->find_compute_move(ours)) {
+            place_move(theirs, ours, match->original.op.id);
+          }
+          ctx->rewrite_compute_op(match->original.op.id, theirs, ours);
+        }
+        for (const auto &[theirs, ours] : match->moved_here) {
+          place_move(ours, theirs, op.id);
+          for (klee::ref<klee::Expr> &arg : canonical.args) {
+            arg = LibCore::substitute_expr(arg, ours, theirs);
+          }
+        }
+        canonical                                     = ctx->canonical_op(canonical);
+        const std::optional<compute_reuse_t> original = ctx->find_reusable_compute_op(canonical);
+        if (!original) {
+          std::cerr << "[shape-dbg] op " << op.id << " fn=" << op.fn << " vs " << match->original.op.id << " (" << match->aliased.size()
+                    << " aliased, " << match->moved_there.size() << " moved there, " << match->moved_here.size() << " moved here)\n";
+          for (size_t i = 0; i < canonical.args.size(); i++) {
+            std::cerr << "  ours[" << i << "]   " << LibCore::expr_to_string(canonical.args[i], true) << "\n";
+            std::cerr << "  theirs[" << i << "] " << LibCore::expr_to_string(match->original.op.args[i], true) << "\n";
+          }
+          for (const auto &[t, o] : match->aliased) {
+            std::cerr << "  aliased: theirs " << LibCore::expr_to_string(t, true) << " ours " << LibCore::expr_to_string(o, true) << "\n";
+          }
+          for (const auto &[t, o] : match->moved_there) {
+            std::cerr << "  moved there: theirs " << LibCore::expr_to_string(t, true) << " ours " << LibCore::expr_to_string(o, true) << "\n";
+          }
+          for (const auto &[t, o] : match->moved_here) {
+            std::cerr << "  moved here: theirs " << LibCore::expr_to_string(t, true) << " ours " << LibCore::expr_to_string(o, true) << "\n";
+          }
+        }
+        assert_or_panic(original.has_value(), "A shape match did not turn into an exact one");
+        GlobalStats::num_compute_ops_shape_shared++;
+        return take(*original);
+      }
     }
   }
 
@@ -434,7 +560,10 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
 
   if (plan && plan->append) {
     ctx->append_compute_op(plan->action_id, canonical, deps);
-    ctx->register_compute_op(canonical, plan->action_id);
+    if (full_placer) {
+      ctx->register_compute_op(canonical, plan->action_id,
+                               pass_actions()); // Speculation only reads the registry: copying it per lookahead is what costs.
+    }
     pipeline.charge_compute_op();
     push_unique(actions, plan->action_id);
     placed_ops.insert({op.id, plan->action_id});
@@ -460,7 +589,9 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   }
 
   ctx->place(node->get_id(), action, deps);
-  ctx->register_compute_op(canonical, new_action_id);
+  if (full_placer) {
+    ctx->register_compute_op(canonical, new_action_id, pass_actions());
+  }
   pipeline.charge_compute_op();
   actions.push_back(new_action_id);
   placed_ops.insert({op.id, new_action_id});
@@ -531,15 +662,16 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
       // A new pass that is not a crossing is a recirculation: back through the ingress.
       tofino_ctx->get_mutable_tna().pipeline.back_to_ingress();
     }
-    ComputeStepBuilder builder{.node        = node,
-                               .ctx         = tofino_ctx,
-                               .run         = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, node, speculations),
-                               .full_placer = false,
-                               .new_pass    = new_pass,
-                               .new_gress   = new_gress,
-                               .actions     = {},
-                               .placed_ops  = {},
-                               .why         = {}};
+    ComputeStepBuilder builder{.node         = node,
+                               .ctx          = tofino_ctx,
+                               .run          = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, node, speculations),
+                               .full_placer  = false,
+                               .new_pass     = new_pass,
+                               .new_gress    = new_gress,
+                               .actions      = {},
+                               .placed_ops   = {},
+                               .path_actions = path_compute_actions(ep, &speculations),
+                               .why          = {}};
 
     // The steps of the run see the ones placed before them (run_specs notes each as it goes).
     speculations_t run_specs = speculations;
@@ -631,15 +763,16 @@ TofinoModuleFactory::implement_compute_step(const EP *ep, const BDDNode *node, c
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
   TofinoContext *tofino_ctx  = new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>();
 
-  ComputeStepBuilder builder{.node        = node,
-                             .ctx         = tofino_ctx,
-                             .run         = get_compute_run_actions(ep),
-                             .full_placer = true,
-                             .new_pass    = false,
-                             .new_gress   = false,
-                             .actions     = {},
-                             .placed_ops  = {},
-                             .why         = {}};
+  ComputeStepBuilder builder{.node         = node,
+                             .ctx          = tofino_ctx,
+                             .run          = get_compute_run_actions(ep),
+                             .full_placer  = true,
+                             .new_pass     = false,
+                             .new_gress    = false,
+                             .actions      = {},
+                             .placed_ops   = {},
+                             .path_actions = path_compute_actions(ep, nullptr),
+                             .why          = {}};
   const std::optional<DS_ID> out = build(builder);
   if (!out) {
     if (why) {
@@ -671,15 +804,16 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP 
       // A new pass that is not a crossing is a recirculation: back through the ingress.
       tofino_ctx->get_mutable_tna().pipeline.back_to_ingress();
     }
-    ComputeStepBuilder builder{.node        = node,
-                               .ctx         = tofino_ctx,
-                               .run         = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, node, speculations),
-                               .full_placer = false,
-                               .new_pass    = new_pass,
-                               .new_gress   = new_gress,
-                               .actions     = {},
-                               .placed_ops  = {},
-                               .why         = {}};
+    ComputeStepBuilder builder{.node         = node,
+                               .ctx          = tofino_ctx,
+                               .run          = new_pass ? std::vector<DS_ID>{} : get_compute_run_actions(ep, node, speculations),
+                               .full_placer  = false,
+                               .new_pass     = new_pass,
+                               .new_gress    = new_gress,
+                               .actions      = {},
+                               .placed_ops   = {},
+                               .path_actions = path_compute_actions(ep, &speculations),
+                               .why          = {}};
     const std::optional<DS_ID> out = build(builder);
     if (!out) {
       return {};
