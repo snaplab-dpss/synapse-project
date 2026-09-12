@@ -92,10 +92,12 @@ std::vector<impl_t> ArithmeticOpFactory::process_node(const EP *ep, const BDDNod
     return {};
   }
 
-  step_t step                              = build_step(node);
-  std::optional<compute_step_t> impl_step = implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return place_step(builder, ep, node, step, nullptr); });
+  step_t step = build_step(node);
+  std::string why;
+  std::optional<compute_step_t> impl_step =
+      implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return place_step(builder, ep, node, step, nullptr); }, &why);
   if (!impl_step) {
-    return {};
+    return decline(why);
   }
 
   Module *module  = new ArithmeticOp(node, impl_step->action_id, step.value, step.out, step.operands);

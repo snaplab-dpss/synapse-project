@@ -149,8 +149,9 @@ public:
     bool new_gress; // Crossing into the egress: a second pipeline, so a second compute budget.
     std::vector<DS_ID> actions;
     std::unordered_map<std::string, DS_ID> placed_ops; // By op id: placing an op twice is a no-op.
+    std::string why;                                    // Why the last place() produced nothing.
 
-    // The action holding `op`, or empty when no stage can take it.
+    // The action holding `op`, or empty when no stage can take it (`why` says why).
     std::optional<DS_ID> place(const compute_op_t &op, std::unordered_set<DS_ID> deps);
   };
 
@@ -174,8 +175,9 @@ public:
 
   // Implements the stateless compute step `node` on a copy of `ep`. Declines (empty) when no
   // stage can take one of its ops: the search then recirculates or hands the rest to the
-  // controller.
-  std::optional<compute_step_t> implement_compute_step(const EP *ep, const BDDNode *node, const compute_step_builder_fn_t &build) const;
+  // controller. `why`, when given, receives the builder's reason for declining.
+  std::optional<compute_step_t> implement_compute_step(const EP *ep, const BDDNode *node, const compute_step_builder_fn_t &build,
+                                                       std::string *why = nullptr) const;
 
   // Speculates the run of consecutive compute steps starting at `node` as one step: the estimate
   // assumes the greedy continuation the search would take anyway (append or new action, hash

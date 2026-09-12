@@ -248,6 +248,33 @@ int Pipeline::find_stage_for_compute_action(const ComputeAction *action, const s
   return -1;
 }
 
+std::string Pipeline::describe_compute_capacity(const std::unordered_set<DS_ID> &deps) const {
+  std::stringstream ss;
+  ss << "in the " << to_string(resources->gress) << "; deps:";
+  if (deps.empty()) {
+    ss << " none";
+  }
+  for (const DS_ID &dep : deps) {
+    ss << " " << dep << "@" << get_placed_stage(dep);
+    for (const PlacementRequest &request : *placement_requests) {
+      if (request.ds == dep) {
+        ss << "/" << to_string(request.gress);
+        break;
+      }
+    }
+  }
+  ss << "; soonest stage " << get_soonest_stage_satisfying_all_dependencies(deps);
+  ss << "; free logical ids by stage:";
+  for (const Stage &stage : resources->stages) {
+    ss << " " << stage.available_logical_ids;
+  }
+  ss << "; free hash-dist units by stage:";
+  for (const Stage &stage : resources->stages) {
+    ss << " " << stage.available_hash_dist_units;
+  }
+  return ss.str();
+}
+
 void Pipeline::append_to_compute_action(DS_ID action_id, int extra_hash_dist_units, const std::unordered_set<DS_ID> &extra_deps) {
   const int stage_id = get_placed_stage(action_id);
   assert_or_panic(stage_id >= 0, "Compute action %s is not placed", action_id.c_str());

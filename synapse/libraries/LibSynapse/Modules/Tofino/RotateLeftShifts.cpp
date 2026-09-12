@@ -112,15 +112,19 @@ std::vector<impl_t> RotateLeftShiftsFactory::process_node(const EP *ep, const BD
   }
 
   std::optional<placed_t> placed;
-  std::optional<compute_step_t> step = implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) -> std::optional<DS_ID> {
-    placed = place_ops(builder, ep, node, *rotation, nullptr);
-    if (!placed) {
-      return {};
-    }
-    return placed->out;
-  });
+  std::string why;
+  std::optional<compute_step_t> step = implement_compute_step(
+      ep, node,
+      [&](ComputeStepBuilder &builder) -> std::optional<DS_ID> {
+        placed = place_ops(builder, ep, node, *rotation, nullptr);
+        if (!placed) {
+          return {};
+        }
+        return placed->out;
+      },
+      &why);
   if (!step) {
-    return {};
+    return decline(why);
   }
 
   Module *module =

@@ -83,10 +83,11 @@ std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode 
     return {};
   }
 
+  std::string why;
   std::optional<compute_step_t> step =
-      implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return place_rotation(builder, ep, node, *rotation, nullptr); });
+      implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) { return place_rotation(builder, ep, node, *rotation, nullptr); }, &why);
   if (!step) {
-    return {};
+    return decline(why);
   }
 
   Module *module  = new RotateLeft(node, step->action_id, rotation->x, rotation->amount, rotation->out, rotation->operands);
