@@ -202,6 +202,41 @@ whole of this phase until a re-walk finds the next.
 - Then re-walk. Expected next: nothing before the tail of path B (333-345, 90, 92-95/99) has been
   reached yet, so its stops are still predictions.
 
+**2a is built (uncommitted, 2026-09-12).** The registry lives in the Tofino context, keyed by the
+op's function and operands with reused symbols substituted; the step builder queries it before
+asking for a stage and reuses an action placed in the same gress at or after the op's producers;
+the emitter binds a reused op's output to the original's variable and calls the shared action
+from the second branch. Two things came out of the first replay:
+
+- **The pipeline's gress was a global flag.** It is set by the last `SendToEgress` or
+  `Recirculate` placed, on whatever path that was, so when the search moved from path A's tail
+  (in the egress) to path B's first node (lap-1 ingress) it still said egress: reuse was refused
+  as a gress mismatch, compute ops were charged to the wrong gress, and dependencies in the ingress
+  counted as already satisfied. Fixed: the search syncs the gress to the active leaf's position on
+  its own path before every step (`Context::sync_active_leaf`).
+- **With that, lap 1 is shared** (155 ops reused on the walked path, hash units free again in most
+  stages) and the walk gets past node 58, to **node 72**: rotate 70 sits in stage 19 and 72 has no
+  stage. The reason is the lap-2 copies. Rounds 7-12 differ in one input (sequence number vs
+  sequence number minus one), so path B's lap 2 is placed fresh, and stages 2-11 now hold five
+  chains' hash rotates (shared lap 1 in both gresses, path A's lap 2 in both, path B's lap-2
+  ingress) where the ground truth holds four. Path B's lap-2 hash rotates find no unit in those
+  stages, land later, and the chain runs off the end. `hdu8` is the way out and the ground truth's:
+  make the one differing input a shared field.
+- Four other NFs (cl, fw, hyperloglog, psd) re-synthesize to byte-identical P4 and controller code
+  with the change.
+
+**2b (proposed): a selector for the one input that differs.** A BDD pass over stateless ops:
+value-number them, match the two chains in lockstep (they are the same unrolled function), and at
+the first op that differs in exactly one plain operand insert an `op_phi(k, x)` node on each path
+producing a fresh symbol -- on path A `x` is the sequence number, on path B the expression
+`seq - 1` that node 285 computes today, which the phi absorbs -- and rewrite the ops downstream to
+read the phi's symbol. The Tofino side places a phi as one ALU move and, seeing another phi with
+the same `k` already placed, aliases its output symbol to that one's instead of reusing the
+action: the two moves write one field, and everything after them matches by the existing
+registry. The phi reads only packet bytes, so it can be lifted ahead of the recirculation and
+carried in the recirculation header, which keeps lap 2's depth where it is (path A's lap 2 already
+ends in stage 19). The ground truth's `msg3_sel` table is this phi.
+
 Removes differences 1, 4, 5, 6, 7, 8 -- as a *reachable* plan, not yet a chosen one.
 
 ### Phase 3 -- emitter: the reachable plan has to compile and behave
