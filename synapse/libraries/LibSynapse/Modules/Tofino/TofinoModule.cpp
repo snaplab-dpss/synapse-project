@@ -94,7 +94,6 @@ public:
 
 } // namespace
 
-
 namespace {
 // Whether the pass this node belongs to has already crossed into the egress. Read off state that
 // already exists -- the plan's own nodes, and the module type each speculation records -- so the
@@ -331,8 +330,7 @@ bool TofinoModuleFactory::place_operand_ops(ComputeStepBuilder &builder, const E
   for (compute_operand_t &operand : operands) {
     const std::unordered_set<DS_ID> deps = speculations ? TofinoContext::get_dataflow_deps(ep, node, operand.expr, *speculations)
                                                         : TofinoContext::get_dataflow_deps(ep, node, operand.expr);
-    const std::optional<DS_ID> action =
-        builder.place({.id = operand.op_id, .kind = ComputeOpKind::ALU, .width = operand.expr->getWidth()}, deps);
+    const std::optional<DS_ID> action    = builder.place({.id = operand.op_id, .kind = ComputeOpKind::ALU, .width = operand.expr->getWidth()}, deps);
     if (!action) {
       return false;
     }
@@ -401,14 +399,15 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   // only then another lap, which is not.
   Pipeline &pipeline = ctx->get_mutable_tna().pipeline;
   if (!new_gress && !pipeline.compute_op_fits()) {
-    why = "the " + std::string(to_string(pipeline.get_gress())) + " compute budget is used up (" + std::to_string(pipeline.get_used_compute_ops()) + " ops)";
+    why = "the " + std::string(to_string(pipeline.get_gress())) + " compute budget is used up (" + std::to_string(pipeline.get_used_compute_ops()) +
+          " ops)";
     return {};
   }
 
   std::vector<DS_ID> candidates(actions.rbegin(), actions.rend());
   candidates.insert(candidates.end(), run.begin(), run.end());
 
-  const DS_ID new_action_id = "compute_" + op.id;
+  const DS_ID new_action_id                                  = "compute_" + op.id;
   const std::optional<TofinoContext::compute_op_plan_t> plan = ctx->plan_compute_op(candidates, new_action_id, op, deps);
 
   if (plan && plan->append) {
@@ -603,14 +602,20 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
   return spec_impl;
 }
 
-std::optional<TofinoModuleFactory::compute_step_t> TofinoModuleFactory::implement_compute_step(const EP *ep, const BDDNode *node,
-                                                                                               const compute_step_builder_fn_t &build,
-                                                                                               std::string *why) const {
+std::optional<TofinoModuleFactory::compute_step_t>
+TofinoModuleFactory::implement_compute_step(const EP *ep, const BDDNode *node, const compute_step_builder_fn_t &build, std::string *why) const {
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
   TofinoContext *tofino_ctx  = new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>();
 
-  ComputeStepBuilder builder{
-      .node = node, .ctx = tofino_ctx, .run = get_compute_run_actions(ep), .full_placer = true, .new_pass = false, .new_gress = false, .actions = {}, .placed_ops = {}, .why = {}};
+  ComputeStepBuilder builder{.node        = node,
+                             .ctx         = tofino_ctx,
+                             .run         = get_compute_run_actions(ep),
+                             .full_placer = true,
+                             .new_pass    = false,
+                             .new_gress   = false,
+                             .actions     = {},
+                             .placed_ops  = {},
+                             .why         = {}};
   const std::optional<DS_ID> out = build(builder);
   if (!out) {
     if (why) {

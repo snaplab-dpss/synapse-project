@@ -8,9 +8,7 @@
 #include <optional>
 
 namespace LibSynapse {
-namespace Tofino {
-
-} // namespace Tofino
+namespace Tofino {} // namespace Tofino
 struct speculations_t;
 namespace Tofino {
 

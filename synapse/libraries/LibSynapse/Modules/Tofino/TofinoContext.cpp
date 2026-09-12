@@ -218,10 +218,12 @@ void TofinoContext::place(addr_t obj, DS *ds, const std::unordered_set<DS_ID> &d
   tna.pipeline.place(ds, deps);
 }
 
-bool TofinoContext::can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const { return tna.pipeline.can_place(ds, deps) == PlacementStatus::Success; }
+bool TofinoContext::can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
+  return tna.pipeline.can_place(ds, deps) == PlacementStatus::Success;
+}
 
 std::optional<TofinoContext::compute_op_plan_t> TofinoContext::plan_compute_op(const std::vector<DS_ID> &run_actions, DS_ID new_action_id,
-                                                                                const compute_op_t &op, const std::unordered_set<DS_ID> &deps) const {
+                                                                               const compute_op_t &op, const std::unordered_set<DS_ID> &deps) const {
   const Pipeline &pipeline   = tna.pipeline;
   const int soonest_stage_id = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
   if (soonest_stage_id < 0) {
@@ -252,7 +254,6 @@ std::optional<TofinoContext::compute_op_plan_t> TofinoContext::plan_compute_op(c
 
   const ComputeAction fresh(new_action_id, 0, {op});
   const int new_stage_id = pipeline.find_stage_for_compute_action(&fresh, deps);
-
 
   if (best_stage_id >= 0 && (new_stage_id < 0 || best_stage_id <= new_stage_id)) {
     return compute_op_plan_t{.action_id = best_action_id, .append = true};

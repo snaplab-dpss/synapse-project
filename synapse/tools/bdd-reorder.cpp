@@ -150,8 +150,8 @@ int main(int argc, char **argv) {
     const BDD *view = &bdd;
     for (bdd_node_id_t candidate_id : candidate_ids) {
       reordered_bdd_t result = try_reorder(view, anchor_info, candidate_id);
-      std::cerr << "anchor=" << anchor_info.id << " direction=" << anchor_info.direction << " candidate=" << candidate_id
-                << " -> " << result.op.candidate_info.status << "\n";
+      std::cerr << "anchor=" << anchor_info.id << " direction=" << anchor_info.direction << " candidate=" << candidate_id << " -> "
+                << result.op.candidate_info.status << "\n";
       if (result.op.candidate_info.status != ReorderingCandidateStatus::Valid) {
         return 1;
       }
