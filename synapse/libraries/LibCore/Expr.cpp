@@ -822,6 +822,72 @@ bool is_constant(klee::ref<klee::Expr> expr) {
   return is_always_eq;
 }
 
+bool is_plain_value(klee::ref<klee::Expr> expr) { return is_constant(expr) || is_readLSB(expr); }
+
+klee::ref<klee::Expr> substitute_expr(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> from, klee::ref<klee::Expr> to) {
+  // By hand, not through klee's visitor, which never enters a constant: a constant may be what
+  // is replaced.
+  if (expr.isNull()) {
+    return expr;
+  }
+  if (expr->compare(*from) == 0) {
+    return to;
+  }
+  const unsigned n = expr->getNumKids();
+  if (n == 0) {
+    return expr;
+  }
+  klee::ref<klee::Expr> kids[8];
+  bool changed = false;
+  for (unsigned i = 0; i < n; i++) {
+    kids[i] = substitute_expr(expr->getKid(i), from, to);
+    changed |= kids[i].get() != expr->getKid(i).get();
+  }
+  return changed ? expr->rebuild(kids) : expr;
+}
+
+klee::ref<klee::Expr> blank_plain_leaves(klee::ref<klee::Expr> expr) {
+  if (is_plain_value(expr)) {
+    return solver_toolbox.exprBuilder->Constant(0, expr->getWidth());
+  }
+  const unsigned n = expr->getNumKids();
+  if (n == 0) {
+    return expr;
+  }
+  klee::ref<klee::Expr> kids[8];
+  for (unsigned i = 0; i < n; i++) {
+    kids[i] = blank_plain_leaves(expr->getKid(i));
+  }
+  return expr->rebuild(kids);
+}
+
+bool same_shape(klee::ref<klee::Expr> a, klee::ref<klee::Expr> b, std::vector<std::pair<klee::ref<klee::Expr>, klee::ref<klee::Expr>>> &pairs) {
+  if (a->compare(*b) == 0) {
+    return true;
+  }
+  if (a->getWidth() != b->getWidth()) {
+    return false;
+  }
+  if (is_plain_value(a) && is_plain_value(b)) {
+    pairs.emplace_back(a, b);
+    return true;
+  }
+  if (a->getKind() != b->getKind() || a->getNumKids() != b->getNumKids() || is_plain_value(a) || is_plain_value(b)) {
+    return false;
+  }
+  if (a->getKind() == klee::Expr::Extract) {
+    if (dyn_cast<klee::ExtractExpr>(a)->offset != dyn_cast<klee::ExtractExpr>(b)->offset) {
+      return false;
+    }
+  }
+  for (unsigned i = 0; i < a->getNumKids(); i++) {
+    if (!same_shape(a->getKid(i), b->getKid(i), pairs)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool is_constant_signed(klee::ref<klee::Expr> expr) {
   const bits_t size = expr->getWidth();
 

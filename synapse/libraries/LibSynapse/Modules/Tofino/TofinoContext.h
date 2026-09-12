@@ -30,15 +30,50 @@ struct compute_key_t {
 };
 
 struct compute_reuse_t {
-  DS_ID action;    // The action holding the original op.
-  compute_op_t op; // The original op, as placed.
+  DS_ID action;                           // The action holding the original op.
+  compute_op_t op;                        // The original op, as placed.
+  std::unordered_set<DS_ID> pass_actions; // The compute actions of its own pass when it was placed.
+};
+
+// Sharing goes further than equal values: bf-p4c shares the units for the same hash of the same
+// *field*, whatever value the field holds on each branch (hdu8.p4). So an op of the same shape
+// as a placed one -- same function, operands equal but for one plain value -- can reuse it once
+// that value reads one field on both paths. A value computed on both paths is unified by naming
+// its two producers' outputs alike; a value one path reads from the packet, or as a constant, is
+// moved into the other path's field on that path first (the ground truth's `msg3_sel`). The
+// placed op's operand is then rewritten to the shared field, and the move is emitted at the
+// start of the run holding the op it serves. One differing value, because a chain diverges in
+// one input at a time, and a move per input to share one op is never worth it.
+struct compute_move_t {
+  DS_ID action;               // The keyless action holding the move.
+  std::string op_id;          // The move's op id (the action's one op).
+  klee::ref<klee::Expr> from; // The plain value read.
+  klee::ref<klee::Expr> to;   // The shared symbol written.
+  std::string anchor;         // The op whose path and run the move belongs to.
 };
 
 struct compute_reuse_state_t {
   std::map<compute_key_t, compute_reuse_t> by_key;              // Every op placed, by what it computes.
+  std::map<compute_key_t, std::vector<compute_key_t>> by_shape; // The keys of every op of a shape (plain values blanked).
   std::unordered_map<std::string, compute_reuse_t> reused;      // By the id of the op that reused it.
   std::unordered_map<std::string, const klee::Array *> aliases; // Output symbol of a reused op -> the original's.
   std::unordered_set<DS_ID> shared;                             // Actions reused by another path: they take no more ops.
+  std::unordered_map<std::string, std::string> producers;       // Symbol -> the op that computes it.
+  // Placed ops whose operands were rewritten to a shared field, by op id: (read before, read now).
+  std::unordered_map<std::string, std::vector<std::pair<klee::ref<klee::Expr>, klee::ref<klee::Expr>>>> rewrites;
+  std::vector<compute_move_t> moves;
+  // Ops whose output symbol was unified with another path's: by op id, the symbol whose
+  // variable the op writes instead of its own.
+  std::unordered_map<std::string, klee::ref<klee::Expr>> output_aliases;
+};
+
+// What sharing an op with a placed one of the same shape takes.
+struct compute_shape_match_t {
+  compute_reuse_t original;
+  std::vector<std::pair<klee::ref<klee::Expr>, klee::ref<klee::Expr>>> aliased; // (original's symbol, ours): unified by naming.
+  std::vector<std::pair<klee::ref<klee::Expr>, klee::ref<klee::Expr>>>
+      moved_there; // (original's plain value, our symbol): a move on the original's path.
+  std::vector<std::pair<klee::ref<klee::Expr>, klee::ref<klee::Expr>>> moved_here; // (original's symbol, our plain value): a move on ours.
 };
 
 class TofinoContext : public TargetContext {
@@ -99,10 +134,31 @@ public:
   // `op` reuses `original`: its output symbol becomes another name for the original's, and the
   // original's action is shared from now on.
   void reuse_compute_op(const compute_op_t &op, const compute_reuse_t &original);
-  // A (canonical) op placed in `action`, for later ops to find.
-  void register_compute_op(const compute_op_t &op, DS_ID action);
+  // A (canonical) op placed in `action`, with the compute actions of its pass so far, for later
+  // ops to find.
+  void register_compute_op(const compute_op_t &op, DS_ID action, const std::unordered_set<DS_ID> &pass_actions);
   std::optional<compute_reuse_t> get_compute_reuse(const std::string &op_id) const;
   bool is_shared_compute_action(DS_ID action) const { return compute_reuse->shared.contains(action); }
+
+  // The placed ops of the same shape as the (canonical) `op`, on another path (their action not
+  // in `path_actions`, this path's own), differing in one plain value that one of the two paths
+  // computes in its current pass (`pass_actions` are ours), each with what unifying them takes;
+  // fewest moves first, then earliest stage.
+  std::vector<compute_shape_match_t> find_shape_matches(const compute_op_t &op, const std::unordered_set<DS_ID> &pass_actions,
+                                                        const std::unordered_set<DS_ID> &path_actions) const;
+  std::optional<klee::ref<klee::Expr>> get_output_alias(const std::string &op_id) const;
+  // `symbol` (ours) becomes another name for `original_symbol`'s field.
+  void alias_symbol(klee::ref<klee::Expr> symbol, klee::ref<klee::Expr> original_symbol);
+  // The placed op `op_id` reads `to` where it read `from`; its registry key follows.
+  void rewrite_compute_op(const std::string &op_id, klee::ref<klee::Expr> from, klee::ref<klee::Expr> to);
+  void add_compute_move(const compute_move_t &move);
+  const std::vector<compute_move_t> &get_compute_moves() const { return compute_reuse->moves; }
+  std::optional<compute_move_t> find_compute_move(klee::ref<klee::Expr> to) const;
+  // The id of the placed op that computes `symbol` (a whole read of a symbol), if one was
+  // registered: how the registry tells a value this plan computes from one it reads.
+  std::optional<std::string> get_producer(klee::ref<klee::Expr> symbol) const;
+  // `expr` as the placed op `op_id` reads it now.
+  klee::ref<klee::Expr> apply_rewrites(const std::string &op_id, klee::ref<klee::Expr> expr) const;
 
   void debug() const override;
   // The pipeline's gress is where the active leaf is on its own path: past the last crossing

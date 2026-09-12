@@ -51,7 +51,7 @@ std::optional<rotation_t> get_rotation(const BDDNode *node) {
       .fn      = "rotate_left",
       .args    = {x, solver_toolbox.exprBuilder->Constant(amount, 32)},
       .out     = call.ret,
-      .in_hash = amount != 0,
+      .in_hash = amount != 0 && !is_constant(x), // A rotated constant is emitted as a constant.
   };
   rotation.operands = TofinoModuleFactory::get_operands_to_compute(rotation.op.id, {{"_x", x}});
   return rotation;

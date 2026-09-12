@@ -24,6 +24,23 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, int &n_bytes
 bool is_bool(klee::ref<klee::Expr> expr);
 bool is_constant(klee::ref<klee::Expr> expr);
 bool is_constant_signed(klee::ref<klee::Expr> expr);
+// A constant or a whole read of one value: usable as an operand directly, a leaf of an expression.
+bool is_plain_value(klee::ref<klee::Expr> expr);
+// `expr` with every subexpression equal to `from` replaced by `to` (a null `expr` stays null).
+klee::ref<klee::Expr> substitute_expr(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> from, klee::ref<klee::Expr> to);
+
+// The *shape* of an expression is its tree of operators and widths, with the plain values at
+// the leaves (constants, whole reads of a symbol or of packet bytes) left out: `(a ^ 5) + b` and
+// `(x ^ 7) + y` have the same shape, `(a ^ 5) - b` does not, nor does `(a ^ 5) + (b ^ 6)`. Two
+// computations of the same shape are the same instructions on different inputs.
+//
+// `expr` with every plain leaf replaced by a zero of its width. Two expressions of the same
+// shape blank to equal expressions, so the result keys a table of expressions by shape.
+klee::ref<klee::Expr> blank_plain_leaves(klee::ref<klee::Expr> expr);
+// Whether `a` and `b` have the same shape. Every pair of plain leaves that differ between them
+// is appended to `pairs` as (`a`'s, `b`'s), in the order the leaves are met; an equal pair of
+// leaves is not. Equal expressions have the same shape and add nothing.
+bool same_shape(klee::ref<klee::Expr> a, klee::ref<klee::Expr> b, std::vector<std::pair<klee::ref<klee::Expr>, klee::ref<klee::Expr>>> &pairs);
 bool is_conditional(klee::ref<klee::Expr> expr);
 bool match_endian_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &target);
 

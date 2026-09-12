@@ -42,7 +42,13 @@ extern u64 num_spec_compute_appended;
 extern u64 num_spec_compute_new_action;
 extern u64 num_spec_compute_recirculated;
 extern u64 num_spec_compute_cap_declined;
+// Compute ops that reused an action placed on another path instead of placing their own
+// (TofinoContext, compute_reuse_state_t), by either route, in the search and in speculation alike.
 extern u64 num_compute_ops_reused;
+// The subset of num_compute_ops_reused that got there by a shape match: the same function of
+// operands equal but for one plain value, unified by naming or by a move before the op matched.
+// An op that matched exactly at the first lookup is counted in num_compute_ops_reused only.
+extern u64 num_compute_ops_shape_shared;
 
 extern time_us_t total_time_spent_speculating;
 extern time_us_t total_time_spent_generating_execution_plans;

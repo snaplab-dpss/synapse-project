@@ -123,7 +123,8 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
     std::cerr << "Compute actions:  " << actions << " (" << ops << " ops); speculated steps: " << int2hr(GlobalStats::num_spec_compute_appended)
               << " appended, " << int2hr(GlobalStats::num_spec_compute_new_action) << " new, " << int2hr(GlobalStats::num_spec_compute_recirculated)
               << " recirculated, " << int2hr(GlobalStats::num_spec_compute_cap_declined)
-              << " cap-declined; ops reused across paths: " << int2hr(GlobalStats::num_compute_ops_reused) << "\n";
+              << " cap-declined; ops reused across paths: " << int2hr(GlobalStats::num_compute_ops_reused) << " ("
+              << int2hr(GlobalStats::num_compute_ops_shape_shared) << " by shape)\n";
   }
   std::cerr << "Hot nodes -> ctrl:";
   for (const auto &[node_id, n] : GlobalStats::hot_nodes_speculated_to_controller) {

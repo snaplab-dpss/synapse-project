@@ -149,7 +149,8 @@ public:
     bool new_gress; // Crossing into the egress: a second pipeline, so a second compute budget.
     std::vector<DS_ID> actions;
     std::unordered_map<std::string, DS_ID> placed_ops; // By op id: placing an op twice is a no-op.
-    std::string why;                                    // Why the last place() produced nothing.
+    std::unordered_set<DS_ID> path_actions;            // Every compute action on this path, all passes: not shareable by shape.
+    std::string why;                                   // Why the last place() produced nothing.
 
     // The action holding `op`, or empty when no stage can take it (`why` says why).
     std::optional<DS_ID> place(const compute_op_t &op, std::unordered_set<DS_ID> deps);
