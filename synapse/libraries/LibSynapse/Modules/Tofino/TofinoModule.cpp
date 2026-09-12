@@ -401,6 +401,7 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   // only then another lap, which is not.
   Pipeline &pipeline = ctx->get_mutable_tna().pipeline;
   if (!new_gress && !pipeline.compute_op_fits()) {
+    why = "the " + std::string(to_string(pipeline.get_gress())) + " compute budget is used up (" + std::to_string(pipeline.get_used_compute_ops()) + " ops)";
     return {};
   }
 
@@ -424,6 +425,14 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   ComputeAction *action = new ComputeAction(new_action_id, node->get_id(), {op});
   const bool fits       = full_placer ? ctx->can_place(action, deps) : (plan.has_value() && !plan->append);
   if (!fits) {
+    std::stringstream ss;
+    ss << "no stage takes " << op.id << " (" << (op.kind == ComputeOpKind::Hash ? "hash" : "alu") << ", " << action->get_hash_dist_units()
+       << " hash-dist units, no run action can take it)";
+    if (full_placer) {
+      ss << ": " << placement_status_to_string(pipeline.can_place(action, deps));
+    }
+    ss << "; " << pipeline.describe_compute_capacity(deps);
+    why = ss.str();
     delete action;
     return {};
   }
@@ -506,7 +515,8 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
                                .new_pass    = new_pass,
                                .new_gress   = new_gress,
                                .actions     = {},
-                               .placed_ops  = {}};
+                               .placed_ops  = {},
+                               .why         = {}};
 
     // The steps of the run see the ones placed before them (run_specs notes each as it goes).
     speculations_t run_specs = speculations;
@@ -594,14 +604,18 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
 }
 
 std::optional<TofinoModuleFactory::compute_step_t> TofinoModuleFactory::implement_compute_step(const EP *ep, const BDDNode *node,
-                                                                                               const compute_step_builder_fn_t &build) const {
+                                                                                               const compute_step_builder_fn_t &build,
+                                                                                               std::string *why) const {
   std::unique_ptr<EP> new_ep = std::make_unique<EP>(*ep);
   TofinoContext *tofino_ctx  = new_ep->get_mutable_ctx().get_mutable_target_ctx<TofinoContext>();
 
   ComputeStepBuilder builder{
-      .node = node, .ctx = tofino_ctx, .run = get_compute_run_actions(ep), .full_placer = true, .new_pass = false, .new_gress = false, .actions = {}, .placed_ops = {}};
+      .node = node, .ctx = tofino_ctx, .run = get_compute_run_actions(ep), .full_placer = true, .new_pass = false, .new_gress = false, .actions = {}, .placed_ops = {}, .why = {}};
   const std::optional<DS_ID> out = build(builder);
   if (!out) {
+    if (why) {
+      *why = builder.why.empty() ? "the step's ops could not be placed" : builder.why;
+    }
     return {};
   }
 
@@ -635,7 +649,8 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP 
                                .new_pass    = new_pass,
                                .new_gress   = new_gress,
                                .actions     = {},
-                               .placed_ops  = {}};
+                               .placed_ops  = {},
+                               .why         = {}};
     const std::optional<DS_ID> out = build(builder);
     if (!out) {
       return {};

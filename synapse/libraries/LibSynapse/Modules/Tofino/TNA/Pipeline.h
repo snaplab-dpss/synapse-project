@@ -188,6 +188,9 @@ struct Pipeline {
   // the action's stage and extends the request's dependencies (for later re-placements).
   void append_to_compute_action(DS_ID action_id, int extra_hash_dist_units, const std::unordered_set<DS_ID> &extra_deps);
   PlacementStatus can_place(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
+  // For a walk's decline reason: where `deps` sit, the soonest stage after them, and what each
+  // stage has left of what a compute action consumes (a logical id, hash-distribution units).
+  std::string describe_compute_capacity(const std::unordered_set<DS_ID> &deps) const;
   // Simple placer only (no ILP fallback): cheap and conservative, for speculation.
   PlacementStatus can_place_fast(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
   PlacementResult find_placements(const DS *ds, const std::unordered_set<DS_ID> &deps) const;
