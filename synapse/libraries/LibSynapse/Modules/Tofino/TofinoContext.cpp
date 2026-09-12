@@ -278,6 +278,26 @@ void TofinoContext::append_compute_op(DS_ID action_id, const compute_op_t &op, c
   tna.pipeline.append_to_compute_action(action_id, extra_hash_dist_units, deps);
 }
 
+void TofinoContext::sync_active_leaf(const EP *ep) {
+  Gress gress = Gress::Ingress;
+  if (ep->has_active_leaf()) {
+    for (const EPNode *prev = ep->get_active_leaf().node; prev; prev = prev->get_prev()) {
+      const Module *module = prev->get_module();
+      if (!module || module->get_target() != TargetType::Tofino) {
+        break;
+      }
+      if (module->get_type() == ModuleType::Tofino_SendToEgress) {
+        gress = Gress::Egress;
+        break;
+      }
+      if (module->get_type() == ModuleType::Tofino_Recirculate) {
+        break;
+      }
+    }
+  }
+  tna.pipeline.set_gress(gress);
+}
+
 DS_ID TofinoContext::find_compute_action(const std::string &op_id) const {
   for (const auto &[id, ds] : data_structures.get_data_per_id()) {
     const ComputeAction *action = dynamic_cast<const ComputeAction *>(ds);

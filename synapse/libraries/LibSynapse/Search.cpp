@@ -210,6 +210,7 @@ search_report_t SearchEngine::search() {
     }
 
     const BDDNode *node = ep->get_next_node();
+    ep->get_mutable_ctx().sync_active_leaf(ep.get());
     search_step_report_t report(ep.get(), node);
     Walk::begin_step(ep.get(), node);
 

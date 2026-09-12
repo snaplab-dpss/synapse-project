@@ -687,4 +687,10 @@ const std::map<std::pair<bdd_node_id_t, addr_t>, DSImpl> &Context::get_ds_impls_
 
 const std::map<std::pair<addr_t, DSImpl>, u32> &Context::get_ds_usage_counts() const { return S().ds_usage_counts; }
 
+void Context::sync_active_leaf(const EP *ep) {
+  for (auto &[_, ctx_ptr] : target_ctxs) {
+    ctx_ptr->sync_active_leaf(ep);
+  }
+}
+
 } // namespace LibSynapse
