@@ -50,8 +50,11 @@ SYN = 0x02
 ACK = 0x10
 ECE = 0x40
 
-SIP_KEY_0 = 0x33323130
-SIP_KEY_1 = 0x42413938
+# The hand-written solutions use upstream's default key. A synthesized solution carries the key its
+# BDD was built with (dpdk-nfs/smartcookie/Makefile, NF_ARGS), which is what its cookies must be
+# checked against.
+SIP_KEY_0 = int(environ.get("SC_SIP_KEY0", "0x33323130"), 0)
+SIP_KEY_1 = int(environ.get("SC_SIP_KEY1", "0x42413938"), 0)
 
 M32 = 0xFFFFFFFF
 
