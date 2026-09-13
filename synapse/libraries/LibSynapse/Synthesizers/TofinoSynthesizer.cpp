@@ -7747,6 +7747,29 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     }
     return true;
   };
+  // Whether an op's value is computed by an action this run calls anyway: its output was unified
+  // with another path's value, and that value's op is in one of the actions reused here. The
+  // step would run twice (the hand ladder's path B ran its first round step next to the shared
+  // chain's), so its own statement is not emitted.
+  const auto computed_by_a_called_action = [&](const std::string &op_id) -> bool {
+    const std::optional<klee::ref<klee::Expr>> theirs = tofino_ctx->get_output_alias(op_id);
+    if (!theirs) {
+      return false;
+    }
+    const std::optional<std::string> producer = tofino_ctx->get_producer(*theirs);
+    if (!producer) {
+      return false;
+    }
+    for (const DS_ID &action_id : reused_actions) {
+      const Tofino::ComputeAction *action = dynamic_cast<const Tofino::ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(action_id));
+      for (const compute_op_t &op : action->ops) {
+        if (op.id == *producer) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
   // A reused op: its variable is the original's (declared here if the original's path has not
   // been emitted yet), and the module's own output symbol is another name for it.
   const auto bind_reused = [&](const std::string &op_id, klee::ref<klee::Expr> module_out) -> bool {
@@ -7947,7 +7970,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       const Tofino::ArithmeticOp *op = dynamic_cast<const Tofino::ArithmeticOp *>(module);
       computed_operand_statements(op->get_operands());
       auto found_it = out_vars.find(op->get_op_id());
-      if (found_it == out_vars.end() || reused_op_ids.contains(op->get_op_id())) {
+      if (found_it == out_vars.end() || reused_op_ids.contains(op->get_op_id()) || computed_by_a_called_action(op->get_op_id())) {
         continue; // Aliased, or computed by another path's action.
       }
       if (const std::optional<u64> shift = time_shift(op->get_value())) {
@@ -7969,7 +7992,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     case ModuleType::Tofino_RotateLeft: {
       const Tofino::RotateLeft *rot = dynamic_cast<const Tofino::RotateLeft *>(module);
       computed_operand_statements(rot->get_operands());
-      if (reused_op_ids.contains(rot->get_op_id())) {
+      if (reused_op_ids.contains(rot->get_op_id()) || computed_by_a_called_action(rot->get_op_id())) {
         continue; // Computed by another path's action.
       }
       const var_t &out          = out_vars.at(rot->get_op_id());
