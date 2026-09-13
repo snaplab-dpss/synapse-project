@@ -277,6 +277,72 @@ ends in stage 19). The ground truth's `msg3_sel` table is this phi.
 
 Removes differences 1, 4, 5, 6, 7, 8 -- as a *reachable* plan, not yet a chosen one.
 
+**Phase 3, second day (2026-09-13), what bf-p4c's PHV allocator turned out to enforce** (toys in
+`README.md`: `cut*`, `st*`, `stN*`, `stP*`, `stW10`, `stX*`, `scx-*`):
+- an ALU op that mixes a metadata value with a value the hash rotates sliced twelve ways is
+  rejected, one PHV source per slice, pragmas or not; only header fields are safe, hence the state
+  header `hdr.st` for every chain value, allocated per path by live range;
+- the fields an ALU ties to the sliced chain form one supercluster that must fit one PHV group:
+  twelve normal 32-bit containers, plus four mocha only for fields nothing but the parser writes
+  and only while the program's other 32-bit packet fields leave them free (synapse's data-chunked
+  headers take them all). Slots and every input the ALU reads count; the ground truth spends
+  eight slots and three inputs;
+- so every value that enters a chain from outside -- a packet field, a register's value, the
+  clock, an op off the chain -- is read by the hash unit: a chain xor taking it runs in `@in_hash`,
+  any other chain op has it loaded into a slot by `@in_hash` first, a header value that xors a
+  slot is computed in `@in_hash` (`TofinoModuleFactory::is_hash_chain_node`, the ground truth's
+  `time_read` and cookie xor generalized). The chain's *core* is what feeds a rotate; an xor
+  *after* the chain (`is_hash_chain_post`: it reads a core value and feeds no rotate) is computed
+  by the hash unit into metadata, and everything downstream of it -- the age subtraction, the
+  comparisons -- is ordinary metadata arithmetic, as in the ground truth. Ops off every chain
+  keep their metadata variables;
+- the emitted program had 64 duplicated statements: a rotate's materialized operand and the BDD's
+  own op node for the same expression. Materialized operands are now keyed like op nodes and the
+  exact-reuse registry merges them on the same path;
+- the hash-unit entries cost the ingress lap two stages, so the walk's lap-2 crossings moved a
+  round earlier (GT-DECISIONS.md, decision 3).
+- with all of that the cluster was 11 slots and nothing else per gress, under the budget, and
+  still failed; the ground truth's two kinds of words (metadata temporaries for adds and hash
+  rotates, header words for xors) looked like the missing discipline, and were not: the ground
+  truth compiles with its temporaries in the header, and strict alternation fails on the whole
+  lap. bf-p4c's own debug output (`README.md`, "One rotation per pair of words") names the rule:
+  a word written from another word must take it at one rotation, never both aligned (xor, add,
+  move) and byte-rotated (`++`), or the destination has no placeable container
+  (`OVERLAPPING_SLICES`); it bites depending on placement order, which is why a prefix of 14
+  actions compiles and 15 does not. `plan_value_homes` now refuses a slot that would take a
+  source at a second rotation; the skeleton's whole lap allocates in 9 words under that rule.
+
+**Phase 3, the model test, by hand (2026-09-13).** Regen 23's program was edited one resource at a
+time until it built (`sc-hand/sc-m9.p4`, 20 stages), then until it passed: **`sc-hand/sc-m15.p4`
+with `sc-m15.cpp` passes all 13 scenarios of `tests/smartcookie.py`** on the model, with the
+synthesized topology and the key the BDD was built with (`SC_SERVER_PORT=1 SC_SERVER_DEV=0
+SC_SIP_KEY0=0x33221130`). `sc-hand/README.md` has the ladder and fifteen takeaways; each is one
+synapse change with its evidence, in the order the test found them:
+
+1. one call site per shared chain, inside the exclusive code-path ladder (`m1b`);
+2. a shared action carries only statements both paths run -- three instances: a hash xor on a
+   live word (`m1d`), path B's egress tail (`m11`), path B's second lap (`m12`);
+3. packet words on the ALU only when nothing else reads them there; keys hashed from header
+   slices in `get`; the device id through the hash unit or a table (`m4`, `m7`);
+4. the bloom hash inside `execute` (`m4b`);
+5. hash statements touching no state word are ALU statements (`m7`);
+6. an op whose outputs alias a shared step the path runs anyway is not emitted (`m8`);
+7. a chain of exit xors is one hash op (`m9`);
+8. the deparser checksums, 3d as written, the checksum fields whole (`m10`);
+9. the hand-off sends every value the controller reads, header-slot homes included -- by
+   keeping the state header on the packet, since copying costs what the chain cannot spare
+   (`m11`, `m11b`, `m11c`);
+10. a value read by a later hash op keeps its word until that op runs (`m13`);
+11. parser conditions and extractions below a non-parser node still go into the parser (`m14`);
+12. `now` on the controller is the switch's timestamp of the packet, from the CPU header (`m15`);
+13. the controller transpiler's narrow read of a shifted symbol masks with the wrong width (`m15`);
+14. the BDD's key is the Makefile's decimal (fixed: 858927408); the test takes the key from
+    the environment for a synthesized solution.
+
+The synthesized topology's port map, the controller's `add_entry` calls and the JSON are regen
+23's, unchanged. The one thing the test needed outside the program: the container's libsycon
+must be reinstalled after a libsycon commit (its cleanup thread was spinning).
+
 ### Phase 3 -- emitter: the reachable plan has to compile and behave
 
 None of these changes the plan; they are what the replayed plan needs to pass the test.
@@ -334,9 +400,10 @@ all 218, run the NF tests that exist.
 
 ## Next step
 
-Phase 1 is built and has walked both client paths (`sc.txt`). Phase 2 starts with 2a, and 2a is a
-design decision: value numbering in the BDD, `ComputeAction` ids from it, and symbol aliasing in
-the emitter touch three layers. To agree before anything is written.
+Step 4 of the hand method: port the fifteen takeaways into synapse, one edit per hand change, in
+the order above, regenerating with the fixture (`smartcookie-walk.txt`) after each and diffing
+against the hand version it should now match; `sc-m15.p4` is the target and the test is the
+judge. Then Phase 4.
 
 ## Open questions
 

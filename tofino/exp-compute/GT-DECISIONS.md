@@ -104,7 +104,7 @@ and the ground truth crosses only after two rounds anyway.
 | 119 .. 142 | compute in egress | rounds 3-6 |
 | **after 142** | **`Recirculate`** | **decision 2.** From egress |
 | 143 .. 166 | compute in ingress, lap 2 | rounds 7-10 |
-| **after 166** | **`SendToEgress`** | **decision 3.** Offered at 166 in the search log; whether it is offered *after a recirculation* is what the walk checks |
+| **after 160** | **`SendToEgress`** | **decision 3**, at node 423 (the op after round 9's last rotate). The ground truth crosses after round 10; with the chain's outside values read through the hash unit (README, "Two laps on one state header") the ingress lap runs two stages longer and round 10 no longer fits, so the walk crosses a round earlier and the egress lap takes three rounds |
 | 167 .. 178 | compute in egress, lap 2 | rounds 11-12 |
 | 447 .. 457 | `ArithmeticOp` | the final xors: cookie = ctime ^ hash |
 | 179 | checksum | `Ignore` today. Has to become a deparser checksum (Phase 3c); the walk takes `Ignore` and notes it |
@@ -122,7 +122,7 @@ and the ground truth crosses only after two rounds anyway.
 | 28 .. 51 | compute in egress | rounds 3-6 |
 | **after 51** | **`Recirculate`** | **decision 2** |
 | 52 .. 75 | compute in ingress, lap 2 | rounds 7-10. With lap 1 shared (PLAN.md 2a) **the walk stops at 72** (round 10): the two lap-2 copies fill stages 2-11 with hash rotates and path B's chain runs past stage 19; 2b is the fix |
-| **after 75** | **`SendToEgress`** | **decision 3** |
+| **after 69** | **`SendToEgress`** | **decision 3**, at node 309, a round earlier than the ground truth for the same reason as on path A |
 | 76 .. 87 | compute in egress, lap 2 | rounds 11-12 |
 | 333 .. 345 | `ArithmeticOp` | ctime, cookie_val, age |
 | 90 | `If` | `age <= 2`: a 32-bit inequality against a constant. `If.cpp`'s wide-constant path should keep it out of a gateway; the ground truth uses `const entries`. Take `If`, not `SendToController` |
@@ -195,6 +195,31 @@ per-node symbols are not. `PLAN.md` Phase 2, item 2a.
 crossings and one recirculation per client path, 2/4/4/2 rounds, the SYN path's chain shared by
 the cookie-check path in every round (PLAN.md 2a and 2b), the clock path to the controller. Its
 P4 is `sc-walk/sc-walk.p4`; making it compile is Phase 3.
+
+## Reached (2026-09-13)
+
+The replay diverged from the file above once the chain's outside values went through the hash
+unit (README, "Two laps on one state header"): the ingress lap runs two stages longer, so both
+lap-2 crossings moved a round earlier (decision 3 above, nodes 423 and 309), and at each lap's
+tail the model has no hash-distribution units left -- 6 a stage, shared by every pass of both
+gresses, and this plan's three laps spend them all -- so the last rotates of a lap take their
+shift form (`RotateLeftShifts`, nodes 73..86), and path B, which no longer fits two laps, crosses
+and recirculates once more (nodes 69, 333, 338: a third lap). `smartcookie-walk.txt` now holds
+exactly the decisions that run took, one line per visit; the walk's driver that took them when
+the file could not (the single compute child, else the crossing, else the recirculation) is
+`scratchpad/walk/drive2.py`'s rule, not synapse's.
+
+The replayed plan, edited by hand (`sc-hand/`, fifteen rungs), passes the model test on 2026-09-13.
+Three of the edits touch this file's decisions: the controller hand-offs (nodes 211 and 338) carry
+the state header itself and the switch's timestamp, the clock update's parser condition (204) and
+extraction (210) are hoisted into the parser above the device check (203), and the BDD's key is
+0x33221130 (the Makefile's decimal was a typo of upstream's 0x33323130).
+
+The plan's P4 (`sc-walk/sc-walk.p4`) now passes bf-p4c's PHV allocation and action constraints:
+the state header holds 12 words in the ingress and 10 in the egress, no word taken from another
+at two rotations (README, "One rotation per pair of words"). What still stands between it and a
+binary is the stage count -- bf-p4c's own table placement needs more than 20 stages where the
+model fits each pass in 20 -- see PLAN.md, Phase 3.
 
 ## What success looks like
 
