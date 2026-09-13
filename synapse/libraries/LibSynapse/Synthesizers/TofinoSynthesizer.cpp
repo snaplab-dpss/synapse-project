@@ -4429,7 +4429,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // A device taken from a packet word next to a hash chain goes through the hash unit: an ALU op
   // reading the word would tie it to the chain's sliced cluster (the ground truth reads its device
   // from a table).
-  const bool via_hash = !state_slots_used.empty() && dst_device_code.find("hdr.") != code_t::npos;
+  const bool via_hash = !state_slots_used.empty() && dst_device_code.find("hdr.hdr") != code_t::npos;
   ingress.indent();
   if (via_hash) {
     ingress << "@in_hash { nf_dev[15:0] = " << dst_device_code << "; }\n";
