@@ -2317,7 +2317,7 @@ coder_t &TofinoSynthesizer::get(const std::string &marker) {
   // every call site means the existing emission code needs no changes to work in egress.
   if (in_egress) {
     if (marker == MARKER_INGRESS_CONTROL_APPLY) {
-      return code_template.get(MARKER_EGRESS_CONTROL_APPLY);
+      return active_egress_code_path ? egress_coders[*active_egress_code_path] : code_template.get(MARKER_EGRESS_CONTROL_APPLY);
     }
     if (marker == MARKER_INGRESS_CONTROL) {
       return code_template.get(MARKER_EGRESS_CONTROL);
@@ -2444,13 +2444,41 @@ void TofinoSynthesizer::synthesize() {
     eg_parser_start << "transition accept;\n";
   }
 
+  if (!state_slots_used.empty()) {
+    coder_t &state_hdr = code_template.get(MARKER_EGRESS_STATE_HEADER);
+    state_hdr << "// The computed values' home: slots reused by live range. A real header -- valid from the start,\n";
+    state_hdr << "// carried with the packet across every pass, dropped where it leaves -- so its fields are exact\n";
+    state_hdr << "// containers: the allocator then keeps each one's slices in one container, as it does for the\n";
+    state_hdr << "// ground truth's recirc_state, instead of spreading them and running out of PHV sources.\n";
+    state_hdr << "header state_h {\n";
+    for (const auto &[width, slots] : state_slots_used) {
+      for (size_t slot = 0; slot < slots; slot++) {
+        state_hdr << "  bit<" << width << "> s" << width << "_" << slot << ";\n";
+      }
+    }
+    state_hdr << "}\n\n";
+  }
+
+  // The crossings are mutually exclusive: the egress reads which one the packet took and runs
+  // that block only, as the recirculation passes do.
+  if (uses_egress) {
+    coder_t &egress_apply = code_template.get(MARKER_EGRESS_CONTROL_APPLY);
+    for (code_path_t code_path = 0; code_path < egress_coders.size(); code_path++) {
+      egress_apply.indent();
+      egress_apply << (code_path == 0 ? code_t("") : code_t("} else "));
+      egress_apply << "if (hdr.egress_state.code_path == " << (i64)code_path << ") {\n";
+      egress_apply << egress_coders[code_path].dump();
+    }
+    if (!egress_coders.empty()) {
+      egress_apply.indent();
+      egress_apply << "}\n";
+    }
+  }
+
   if (uses_egress) {
     coder_t &eg_state_hdr = code_template.get(MARKER_EGRESS_STATE_HEADER);
     eg_state_hdr << "header egress_state_h {\n";
-    if (egress_state_hdr_vars.get_all().empty()) {
-      // An empty header is not valid P4, and the crossing still needs one to mark the packet.
-      eg_state_hdr << "  @padding bit<8> pad;\n";
-    }
+    eg_state_hdr << "  bit<16> code_path;\n";
     for (const var_t &var : egress_state_hdr_vars.get_all()) {
       const bits_t pad = var.is_bool() ? 7 : (8 - var.expr->getWidth()) % 8;
       if (pad > 0) {
@@ -2760,6 +2788,12 @@ code_path_t TofinoSynthesizer::alloc_recirc_coder() {
   return size;
 }
 
+code_path_t TofinoSynthesizer::alloc_egress_coder() {
+  const size_t size = egress_coders.size();
+  egress_coders.emplace_back(code_template.get(MARKER_EGRESS_CONTROL_APPLY).lvl + 1);
+  return size;
+}
+
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
   const Symbols &symbols = node->get_symbols();
@@ -3036,10 +3070,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     egress_parser_hdrs = hdrs;
   }
 
+  const code_path_t egress_code_path = alloc_egress_coder();
   ingress_apply.indent();
   ingress_apply << "meta.to_egress = 1;\n";
   ingress_apply.indent();
   ingress_apply << "hdr.egress_state.setValid();\n";
+  ingress_apply.indent();
+  ingress_apply << "hdr.egress_state.code_path = " << (i64)egress_code_path << ";\n";
 
   Stacks stack_backup = ingress_vars;
 
@@ -3159,16 +3196,19 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t *const enclosing_cut_coder = ingress_coder_at_cut;
   ingress_coder_at_cut               = &ingress_apply;
 
-  const bool enclosing_in_egress = in_egress;
-  in_egress                      = true;
+  const bool enclosing_in_egress                              = in_egress;
+  const std::optional<code_path_t> enclosing_egress_code_path = active_egress_code_path;
+  in_egress                                                   = true;
+  active_egress_code_path                                     = egress_code_path;
 
   ingress_vars.push();
   visit(ep, next);
   ingress_vars.pop();
 
-  in_egress            = enclosing_in_egress;
-  ingress_coder_at_cut = enclosing_cut_coder;
-  ingress_vars         = stack_backup;
+  in_egress               = enclosing_in_egress;
+  active_egress_code_path = enclosing_egress_code_path;
+  ingress_coder_at_cut    = enclosing_cut_coder;
+  ingress_vars            = stack_backup;
 
   return EPVisitor::Action::skipChildren;
 }

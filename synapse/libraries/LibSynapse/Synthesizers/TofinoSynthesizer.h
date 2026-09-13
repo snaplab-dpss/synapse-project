@@ -9,6 +9,8 @@
 #include <klee/util/ExprVisitor.h>
 
 #include <deque>
+#include <map>
+#include <tuple>
 #include <filesystem>
 #include <set>
 #include <stack>
@@ -100,6 +102,7 @@ private:
     bool force_bool;
     bool is_header_field;
     bool is_buffer;
+    bool transient = false; // A step's own temporary (an operand, a shift half): never carried past a cut.
 
     var_t() = default;
     var_t(const code_t &_name, klee::ref<klee::Expr> _expr, bits_t _size, bool _force_bool, bool _is_header_field, bool _is_buffer)
@@ -213,6 +216,22 @@ private:
   // value; a name never seen before takes a slot no remembered name owns.
   std::map<code_t, std::pair<code_t, size_t>> recirc_slot_by_name; // name -> (slot kind, slot)
   std::map<code_t, std::set<size_t>> recirc_slots_owned;           // slot kind -> slots some name owns
+  std::map<code_t, size_t> recirc_slot_next;                       // slot kind -> next slot to try, per pass
+
+  // Every computed value of a byte width, by the canonical op id of its producer: a slot of the
+  // state header `hdr.st`, allocated per path by live range (plan_value_homes). A header field is
+  // an exact container, which the allocator cannot slice: in metadata, the rotates' odd-bit cuts
+  // spread through every value they touch until an action needs one PHV source per slice (the
+  // ground truth keeps its hash state in `recirc_state` for the same reason). Slots, reused once
+  // a value is dead, because header fields are not overlaid: one per op would not fit the PHV,
+  // and bf-p4c gives up on a cluster of a few dozen sliced fields long before the PHV is full.
+  // The header crosses every cut with the packet, so a value live past one keeps its slot.
+  std::unordered_map<std::string, var_t> slot_fields;
+  std::map<bits_t, size_t> state_slots_used;                           // width -> slots
+  std::map<std::tuple<bool, code_t, code_t>, unsigned> slot_rotations; // (egress, word, source word) -> the one rotation the word takes it at
+  std::unordered_map<std::string, std::vector<std::tuple<std::string, unsigned, bool>>> slot_readers; // op -> (reader op, rotation, in egress)
+  std::unordered_map<std::string, std::vector<code_t>> planned_sources; // op -> the words the planner expects its statement to read
+  std::set<std::pair<bool, code_t>> words_used;                         // (egress, word): the words each gress writes or reads, over every path
   Stack egress_state_hdr_vars;
 
   std::unordered_set<DS_ID> declared_ds;
@@ -224,6 +243,11 @@ private:
   // out by get() must survive later allocations.
   std::deque<coder_t> recirc_coders;
   std::optional<code_path_t> active_recirc_code_path;
+  // One code block per crossing, like the recirculation's: the egress reads which crossing the
+  // packet took from hdr.egress_state.code_path and runs only that block. Without it every
+  // packet in the egress ran every crossing's work in sequence.
+  std::deque<coder_t> egress_coders;
+  std::optional<code_path_t> active_egress_code_path;
 
   // Set once a SendToEgress is emitted. Until then the ingress bypasses the egress pipeline
   // exactly as it always has, so a solution that stays in ingress is emitted unchanged.
@@ -314,7 +338,19 @@ private:
   // A keyless table whose only action assigns `computation` to `out_var`: one stage, as the
   // placer charged for it. `in_hash` computes the assignment in the hash unit (@in_hash).
   // Emits the run of consecutive compute steps starting at `first` (see the definition).
+  code_path_t alloc_egress_coder();
   void emit_compute_run(const EP *ep, const EPNode *first);
+  // Before the plan is walked: every computed value of a byte width gets a slot of the state
+  // header, reused once the value is dead (slot_fields).
+  void plan_value_homes(const EP *ep);
+  // The symbols anything past the cut at `cut_node` still uses: what a BDD node reachable from it
+  // reads, plus what a later hand-off to the controller ships. `next` is the cut's continuation.
+  std::unordered_set<std::string> live_symbols_past(const EP *ep, const BDDNode *cut_node, const EPNode *next) const;
+  // The recirculation header slot for the carried variable `name`: the slot it had on another
+  // pass, or a fresh one no remembered name owns. The pass's slot counters restart at
+  // begin_recirc_slots.
+  size_t recirc_slot_for(const code_t &name, const code_t &slot_kind);
+  void begin_recirc_slots() { recirc_slot_next.clear(); }
 
   coder_t &get(const std::string &marker);
 
