@@ -3221,6 +3221,7 @@ void TofinoSynthesizer::synthesize() {
   plan_value_homes(target_ep);
   plan_shared_runs(target_ep);
   EPVisitor::visit(target_ep);
+  emit_action_variants(target_ep->get_ctx().get_target_ctx<TofinoContext>());
 
   // The recirculation passes are mutually exclusive: the code path is read from the header the
   // previous pass wrote and is never reassigned, so they belong in one if / else-if chain.
@@ -7267,23 +7268,108 @@ std::vector<const EPNode *> TofinoSynthesizer::compute_run_steps(const EPNode *f
   return steps;
 }
 
-std::vector<code_t> TofinoSynthesizer::compute_action_calls(const TofinoContext *tofino_ctx, const DS_ID &action_id) const {
-  const Tofino::ComputeAction *action = dynamic_cast<const Tofino::ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(action_id));
-  assert(action && "Compute step placed outside a ComputeAction");
+std::vector<code_t> TofinoSynthesizer::action_calls(const code_t &name, const std::vector<compute_op_t> &ops) const {
   size_t hash_ops  = 0;
   bool action_data = false;
-  for (const compute_op_t &op : action->ops) {
+  for (const compute_op_t &op : ops) {
     hash_ops += op.in_hash ? 1 : 0;
     action_data |= carries_action_data(op);
   }
-  std::vector<code_t> calls{action_id + "();"};
+  std::vector<code_t> calls{name + "();"};
   for (size_t i = 1; i < hash_ops; i++) {
-    calls.push_back(action_id + "_h" + std::to_string(i) + "();");
+    calls.push_back(name + "_h" + std::to_string(i) + "();");
   }
   if (hash_ops > 0 && action_data) {
-    calls.push_back(action_id + "_k();");
+    calls.push_back(name + "_k();");
   }
   return calls;
+}
+
+std::vector<code_t> TofinoSynthesizer::compute_action_calls(const TofinoContext *tofino_ctx, const DS_ID &action_id) const {
+  const Tofino::ComputeAction *action = dynamic_cast<const Tofino::ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(action_id));
+  assert(action && "Compute step placed outside a ComputeAction");
+  return action_calls(action_id, action->ops);
+}
+
+void TofinoSynthesizer::declare_compute_action(coder_t &coder, const code_t &name, const std::vector<compute_op_t> &ops,
+                                               const std::unordered_map<std::string, action_statement_t> &statements) const {
+  // bf-p4c allows 32 bits through a table's immediate pathway, which is one 32-bit @in_hash op; a
+  // second one in the same action is "the number of bits required to go through the immediate
+  // pathway 64 ... is greater than the available bits 32". The hand-written ground truth never has
+  // more than one per action. Keep the first here and give each of the rest an action of its own,
+  // invoked straight after: the statements in an action are independent by construction, so
+  // moving one to the next stage cannot change what it reads.
+  // Likewise, an action computing in the hash unit carries no action data (carries_action_data):
+  // its statements with a wide constant go to a `_k` companion.
+  // Split by the ops, not the statements there are, so the companions are the ones action_calls
+  // derives from the ops.
+  std::vector<const compute_op_t *> kept;
+  std::vector<const compute_op_t *> spilled;
+  std::vector<const compute_op_t *> constants;
+  bool hash_taken = false;
+  bool has_hash   = false;
+  for (const compute_op_t &op : ops) {
+    has_hash |= op.in_hash;
+  }
+  for (const compute_op_t &op : ops) {
+    if (op.in_hash && hash_taken) {
+      spilled.push_back(&op);
+    } else if (has_hash && !op.in_hash && carries_action_data(op)) {
+      constants.push_back(&op);
+    } else {
+      hash_taken |= op.in_hash;
+      kept.push_back(&op);
+    }
+  }
+  const auto declare = [&](const code_t &action_name, const std::vector<const compute_op_t *> &body) {
+    coder.indent();
+    coder << "action " << action_name << "() {\n";
+    coder.inc();
+    for (const compute_op_t *op : body) {
+      const auto statement_it = statements.find(op->id);
+      if (statement_it == statements.end()) {
+        continue; // A value held elsewhere already: nothing to compute.
+      }
+      coder.indent();
+      if (statement_it->second.in_hash) {
+        coder << "@in_hash { " << statement_it->second.statement << " }\n";
+      } else {
+        coder << statement_it->second.statement << "\n";
+      }
+    }
+    coder.dec();
+    coder.indent();
+    coder << "}\n";
+    coder << "\n";
+  };
+  declare(name, kept);
+  for (size_t i = 0; i < spilled.size(); i++) {
+    declare(name + "_h" + std::to_string(i + 1), {spilled[i]});
+  }
+  if (has_hash && !constants.empty()) {
+    declare(name + "_k", constants);
+  }
+}
+
+void TofinoSynthesizer::emit_action_variants(const TofinoContext *tofino_ctx) {
+  for (const auto &[action_id, parts] : action_variants) {
+    const Tofino::ComputeAction *action = dynamic_cast<const Tofino::ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(action_id));
+    assert(action && "Compute step placed outside a ComputeAction");
+    const auto statements_it = action_statements.find(action_id);
+    if (statements_it == action_statements.end()) {
+      panic("The action %s is called in part by a path, but no path declared it", action_id.c_str());
+    }
+    coder_t &control = code_template.get(action_in_egress.at(action_id) ? MARKER_EGRESS_CONTROL : MARKER_INGRESS_CONTROL);
+    for (size_t k = 0; k < parts.size(); k++) {
+      std::vector<compute_op_t> ops;
+      for (const compute_op_t &op : action->ops) {
+        if (std::find(parts[k].begin(), parts[k].end(), op.id) != parts[k].end()) {
+          ops.push_back(op);
+        }
+      }
+      declare_compute_action(control, action_id + "_v" + std::to_string(k), ops, statements_it->second);
+    }
+  }
 }
 
 void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
@@ -8126,7 +8212,35 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       // and the apply block are separate sections). Called here with the same spill into
       // one-@in_hash companions its declaration makes, derived from the action's ops.
       if (!hoist) {
-        for (const code_t &call : compute_action_calls(tofino_ctx, action_id)) {
+        // The part of the action this run runs: its reused ops, by the ids the original path gave
+        // them. The rest is the other path's, and does not run here.
+        std::unordered_set<std::string> canonical;
+        for (const std::string &op_id : reused_op_ids) {
+          if (const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(op_id)) {
+            canonical.insert(reuse->op.id);
+          }
+        }
+        std::vector<compute_op_t> part;
+        std::vector<std::string> part_ids;
+        for (const compute_op_t &op : action->ops) {
+          if (canonical.contains(op.id)) {
+            part.push_back(op);
+            part_ids.push_back(op.id);
+          }
+        }
+        code_t name = action_id;
+        if (!part.empty() && part.size() < action->ops.size()) {
+          std::vector<std::vector<std::string>> &parts = action_variants[action_id];
+          const auto part_it                           = std::find(parts.begin(), parts.end(), part_ids);
+          const size_t k                               = part_it - parts.begin();
+          if (part_it == parts.end()) {
+            parts.push_back(part_ids);
+          }
+          name = action_id + "_v" + std::to_string(k);
+        } else {
+          part = action->ops;
+        }
+        for (const code_t &call : action_calls(name, part)) {
           ingress_apply.indent();
           ingress_apply << call << "\n";
         }
@@ -8136,83 +8250,24 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
 
     declared_ds.insert(action_id);
 
-    std::vector<const op_emission_t *> statements;
-    for (const compute_op_t &op : action->ops) {
-      for (const op_emission_t &emission : ops) {
-        if (emission.action_id == action_id && emission.op_id == op.id && !emission.statement.empty()) {
-          statements.push_back(&emission);
-        }
+    // This path's action: its statements, kept for the variants other paths call in part
+    // (emit_action_variants), declared here and called unless a shared run calls it at its join.
+    std::unordered_map<std::string, action_statement_t> &statements = action_statements[action_id];
+    for (const op_emission_t &emission : ops) {
+      if (emission.action_id == action_id && !emission.statement.empty()) {
+        statements[emission.op_id] = {emission.statement, emission.in_hash};
       }
     }
+    action_in_egress[action_id] = in_egress;
     if (statements.empty()) {
       continue;
     }
-
-    // bf-p4c allows 32 bits through a table's immediate pathway, which is one 32-bit @in_hash op;
-    // a second one in the same action is "the number of bits required to go through the immediate
-    // pathway 64 ... is greater than the available bits 32". The hand-written ground truth never
-    // has more than one per action. Keep the first here and give each of the rest an action of its
-    // own, invoked straight after: the statements in an action are independent by construction, so
-    // moving one to the next stage cannot change what it reads.
-    // Likewise, an action computing in the hash unit carries no action data (carries_action_data):
-    // its statements with a wide constant go to a `_k` companion, declared whenever the action's
-    // ops call for one so that a call from another path, which sees only the ops, matches.
-    std::vector<const op_emission_t *> kept;
-    std::vector<const op_emission_t *> spilled;
-    std::vector<const op_emission_t *> constants;
-    bool hash_taken  = false;
-    bool has_hash    = false;
-    bool action_data = false;
-    std::unordered_set<std::string> constant_ops;
-    for (const compute_op_t &op : action->ops) {
-      has_hash |= op.in_hash;
-      if (carries_action_data(op)) {
-        action_data = true;
-        constant_ops.insert(op.id);
-      }
-    }
-    for (const op_emission_t *statement : statements) {
-      if (statement->in_hash && hash_taken) {
-        spilled.push_back(statement);
-        continue;
-      }
-      if (has_hash && !statement->in_hash && constant_ops.contains(statement->op_id)) {
-        constants.push_back(statement);
-        continue;
-      }
-      hash_taken |= statement->in_hash;
-      kept.push_back(statement);
-    }
-
-    const auto emit_action = [&](const code_t &name, const std::vector<const op_emission_t *> &body) {
-      ingress.indent();
-      ingress << "action " << name << "() {\n";
-      ingress.inc();
-      for (const op_emission_t *statement : body) {
-        ingress.indent();
-        if (statement->in_hash) {
-          ingress << "@in_hash { " << statement->statement << " }\n";
-        } else {
-          ingress << statement->statement << "\n";
-        }
-      }
-      ingress.dec();
-      ingress.indent();
-      ingress << "}\n";
-      ingress << "\n";
-
-      if (!hoist) {
+    declare_compute_action(ingress, action_id, action->ops, statements);
+    if (!hoist) {
+      for (const code_t &call : action_calls(action_id, action->ops)) {
         ingress_apply.indent();
-        ingress_apply << name << "();\n";
+        ingress_apply << call << "\n";
       }
-    };
-
-    emit_action(action_id, kept);
-    for (size_t i = 0; i < spilled.size(); i++) {
-      emit_action(action_id + "_h" + std::to_string(i + 1), {spilled[i]});
-    }
-    if (has_hash && action_data) {
-      emit_action(action_id + "_k", constants);
     }
   }
 
