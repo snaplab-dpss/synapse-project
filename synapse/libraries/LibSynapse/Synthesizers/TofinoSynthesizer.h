@@ -3,6 +3,7 @@
 #include <LibCore/Template.h>
 #include <LibCore/Coder.h>
 #include <LibBDD/BDD.h>
+#include <LibSynapse/Synthesizers/HandoffLayout.h>
 #include <LibSynapse/Visitor.h>
 #include <LibSynapse/Modules/Tofino/Tofino.h>
 
@@ -31,6 +32,7 @@ public:
   TofinoSynthesizer(const EP *ep, std::filesystem::path _out_file);
 
   void synthesize();
+  const handoff_layout_t &get_handoff_layout() const { return handoff_layout; }
 
   using transpiler_opt_t = u32;
 
@@ -254,6 +256,11 @@ private:
   std::unordered_map<const EPNode *, std::vector<size_t>> shared_runs_by_site;
   std::unordered_map<const EPNode *, std::vector<size_t>> shared_runs_by_join;
   std::unordered_map<const EPNode *, code_path_t> egress_code_path_of; // Crossing -> the egress block it opens.
+  // A hand-off to the controller sends the state header whole, after the cpu header: copying its
+  // words into cpu fields costs what the chain cannot spare (hash-distribution units, or the
+  // sliced cluster on the ALU). Which word holds which symbol at each hand-off, for the
+  // controller's synthesizer (HandoffLayout.h).
+  handoff_layout_t handoff_layout;
   // A path calls a shared action for the ops it reuses, and the action's other ops are another
   // path's: their statements must not run there. A site whose path runs a part of an action calls
   // a variant holding that part, declared once per part after the plan is walked

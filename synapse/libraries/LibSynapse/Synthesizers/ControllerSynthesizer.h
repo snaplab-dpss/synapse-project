@@ -1,5 +1,6 @@
 #pragma once
 
+#include <LibSynapse/Synthesizers/HandoffLayout.h>
 #include <LibCore/Template.h>
 #include <LibCore/Coder.h>
 #include <LibSynapse/Visitor.h>
@@ -25,7 +26,9 @@ using LibCore::Template;
 
 class ControllerSynthesizer : public EPVisitor {
 public:
-  ControllerSynthesizer(const EP *ep, std::filesystem::path out_file);
+  // `handoff_layout`: the state header the data plane sends along with every packet to the
+  // controller, and the symbols its words hold at each hand-off (HandoffLayout.h).
+  ControllerSynthesizer(const EP *ep, std::filesystem::path out_file, const handoff_layout_t &handoff_layout = {});
 
   void synthesize();
 
@@ -144,6 +147,7 @@ private:
   };
 
   const std::filesystem::path out_file;
+  const handoff_layout_t handoff_layout;
   Template code_template;
 
   Stacks vars;

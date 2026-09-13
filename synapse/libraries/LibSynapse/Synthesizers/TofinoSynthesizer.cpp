@@ -140,6 +140,8 @@ constexpr const char *const MARKER_EGRESS_DEPARSER              = "EGRESS_DEPARS
 constexpr const char *const MARKER_EGRESS_DEPARSER_APPLY        = "EGRESS_DEPARSER_APPLY";
 constexpr const char *const MARKER_CONTROL_BLOCKS               = "CONTROL_BLOCKS";
 constexpr const char *const MARKER_PARSE_RECIRC                 = "PARSE_RECIRC";
+constexpr const char *const MARKER_PARSE_CPU                    = "PARSE_CPU";
+constexpr const char *const MARKER_LEAVE_TO_CPU                 = "LEAVE_TO_CPU";
 constexpr const char *const MARKER_INGRESS_APPLY_START          = "INGRESS_APPLY_START";
 constexpr const char *const MARKER_LEAVE_SWITCH                 = "LEAVE_SWITCH";
 
@@ -2333,6 +2335,8 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_EGRESS_DEPARSER_APPLY, 2},
                                              {MARKER_CONTROL_BLOCKS, 0},
                                              {MARKER_PARSE_RECIRC, 2},
+                                             {MARKER_PARSE_CPU, 2},
+                                             {MARKER_LEAVE_TO_CPU, 2},
                                              {MARKER_INGRESS_APPLY_START, 2},
                                              {MARKER_LEAVE_SWITCH, 2},
                                          }),
@@ -3329,6 +3333,7 @@ void TofinoSynthesizer::synthesize() {
     for (const auto &[width, slots] : state_slots_used) {
       for (size_t slot = 0; slot < slots; slot++) {
         state_hdr << "  bit<" << width << "> s" << width << "_" << slot << ";\n";
+        handoff_layout.state_words.emplace_back("s" + std::to_string(width) + "_" + std::to_string(slot), width);
       }
     }
     state_hdr << "}\n\n";
@@ -3498,6 +3503,9 @@ void TofinoSynthesizer::synthesize() {
     coder_t &leave_switch = code_template.get(MARKER_LEAVE_SWITCH);
     leave_switch.indent();
     leave_switch << "hdr.egress_state.setInvalid();\n";
+    coder_t &leave_to_cpu = code_template.get(MARKER_LEAVE_TO_CPU);
+    leave_to_cpu.indent();
+    leave_to_cpu << "hdr.egress_state.setInvalid();\n";
   }
 
   if (!state_slots_used.empty()) {
@@ -3512,6 +3520,11 @@ void TofinoSynthesizer::synthesize() {
     coder_t &leave_switch = code_template.get(MARKER_LEAVE_SWITCH);
     leave_switch.indent();
     leave_switch << "hdr.st.setInvalid();\n";
+    // To the controller the state header goes along, after the cpu header, and comes back with
+    // it (handoff_layout); fwd_to_cpu keeps it.
+    coder_t &parse_cpu = code_template.get(MARKER_PARSE_CPU);
+    parse_cpu.indent();
+    parse_cpu << "pkt.extract(hdr.st);\n";
   }
 
   coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER_APPLY);
@@ -3777,7 +3790,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     }
 
     if (var->is_header_field) {
-      // Header fields are not sent to the controller, so we skip them.
+      // A packet header field the controller reads from the packet itself. A state word travels
+      // with the state header, whole: the controller reads it there (handoff_layout).
+      if (var->name.rfind("hdr.st.", 0) == 0) {
+        handoff_layout.symbol_word[ep_node->get_id()][symbol.name] = var->name.substr(std::string("hdr.st.").size());
+      }
       continue;
     }
 

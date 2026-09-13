@@ -146,6 +146,7 @@ parser IngressParser(
 
   state parse_cpu {
     pkt.extract(hdr.cpu);
+/*@{PARSE_CPU}@*/
     transition accept;
   }
 
@@ -187,7 +188,7 @@ control Ingress(
   action fwd_to_cpu() {
     hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
-/*@{LEAVE_SWITCH}@*/
+/*@{LEAVE_TO_CPU}@*/
     fwd(CPU_PCIE_PORT);
   }
 
