@@ -55,6 +55,9 @@ struct choice_t {
   ep_id_t ep; // for Force
 };
 
+// The step in progress, as choose() shows it: for a dead end the search reports.
+void dump_step();
+
 // After every factory has run for the step: decide. None when there was nothing to choose between.
 choice_t choose();
 

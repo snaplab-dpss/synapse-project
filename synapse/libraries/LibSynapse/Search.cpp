@@ -124,8 +124,8 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
               << " appended, " << int2hr(GlobalStats::num_spec_compute_new_action) << " new, " << int2hr(GlobalStats::num_spec_compute_recirculated)
               << " recirculated, " << int2hr(GlobalStats::num_spec_compute_cap_declined)
               << " cap-declined; ops reused across paths: " << int2hr(GlobalStats::num_compute_ops_reused) << " ("
-              << int2hr(GlobalStats::num_compute_ops_shape_shared) << " by shape); deduped on their own path: "
-              << int2hr(GlobalStats::num_compute_ops_deduped) << "\n";
+              << int2hr(GlobalStats::num_compute_ops_shape_shared)
+              << " by shape); deduped on their own path: " << int2hr(GlobalStats::num_compute_ops_deduped) << "\n";
   }
   std::cerr << "Hot nodes -> ctrl:";
   for (const auto &[node_id, n] : GlobalStats::hot_nodes_speculated_to_controller) {
@@ -268,6 +268,7 @@ search_report_t SearchEngine::search() {
     peek_search_space(new_implementations, search_config.peek, search_space.get());
 
     if (new_implementations.empty() && search_config.no_deadends) {
+      Walk::dump_step();
       ep->debug();
 
       const std::filesystem::path bdd_path{"deadend-bdd.dot"};
