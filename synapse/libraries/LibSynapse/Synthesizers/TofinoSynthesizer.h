@@ -236,6 +236,24 @@ private:
 
   std::unordered_set<DS_ID> declared_ds;
   std::unordered_set<const EPNode *> emitted_compute_steps; // Steps emit_compute_run already emitted, as part of a run.
+  // A chain of shared compute actions two paths call from two sites of one pass is called once:
+  // bf-p4c makes a table, with its own hash-distribution units, per call site (plan_shared_runs).
+  // Sites of one ingress pass set a flag where their calls were, and the calls follow the closing
+  // brace of the If the sites diverge at. Sites in different egress blocks leave a marker, and the
+  // blocks come out as one arm of the code-path ladder, each block's own statements nested under
+  // its code path around the one call sequence (synthesize).
+  struct shared_run_t {
+    std::vector<DS_ID> actions;               // In stage order.
+    std::unordered_set<const EPNode *> sites; // The runs' first steps.
+    const EPNode *join = nullptr;             // Ingress: the If whose closing brace the calls follow.
+    code_t flag;                              // Ingress: the metadata flag every site sets.
+    std::vector<const EPNode *> egress_cuts;  // Egress: the crossings whose blocks merge.
+    std::vector<code_t> calls;                // The call statements, companions included.
+  };
+  std::vector<shared_run_t> shared_runs;
+  std::unordered_map<const EPNode *, std::vector<size_t>> shared_runs_by_site;
+  std::unordered_map<const EPNode *, std::vector<size_t>> shared_runs_by_join;
+  std::unordered_map<const EPNode *, code_path_t> egress_code_path_of; // Crossing -> the egress block it opens.
   std::unordered_map<bdd_node_id_t, Stack> parser_vars;
   // One coder per recirculation pass, assembled into an if / else-if chain at the end of
   // synthesis. A deque, not a vector: coder_t's copy constructor does not carry the stream
@@ -343,6 +361,17 @@ private:
   // Before the plan is walked: every computed value of a byte width gets a slot of the state
   // header, reused once the value is dead (slot_fields).
   void plan_value_homes(const EP *ep);
+  // Before the plan is walked: the shared runs (shared_run_t), their sites, joins and calls.
+  void plan_shared_runs(const EP *ep);
+  // The steps of the compute run starting at `first`: consecutive compute modules (an ignored
+  // node between them is transparent) and an If whose condition operands had to be computed,
+  // which ends the run.
+  std::vector<const EPNode *> compute_run_steps(const EPNode *first) const;
+  // The statements calling a compute action: the action, its one-@in_hash companions and its
+  // action-data companion, as its declaration spills them (emit_compute_run).
+  std::vector<code_t> compute_action_calls(const TofinoContext *tofino_ctx, const DS_ID &action_id) const;
+  // The shared runs joining at `join`, an If just closed: their calls, each under its flag.
+  void emit_shared_runs_after(const EPNode *join);
   // The symbols anything past the cut at `cut_node` still uses: what a BDD node reachable from it
   // reads, plus what a later hand-off to the controller ships. `next` is the cut's continuation.
   std::unordered_set<std::string> live_symbols_past(const EP *ep, const BDDNode *cut_node, const EPNode *next) const;
