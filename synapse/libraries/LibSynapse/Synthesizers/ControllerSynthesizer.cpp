@@ -809,6 +809,19 @@ void ControllerSynthesizer::synthesize() {
   alloc_var("now", now.expr, {}, EXACT_NAME);
   alloc_var("size", pkt_len.expr, {}, EXACT_NAME);
 
+  // The packet's time is the switch's, shipped first after the cpu header (handoff_layout), not
+  // the host's. The ingress keeps it as ingress_mac_tstamp[47:16], so the low 16 bits are gone: a
+  // 65 us resolution, and 48 bits of nanoseconds wrap every three days, as the data plane's do.
+  if (handoff_layout.ships_time) {
+    coder_t &cpu_extra = get(MARKER_CPU_HDR_EXTRA);
+    cpu_extra.indent();
+    cpu_extra << "u32 time; // The switch's clock at the hand-off, ingress_mac_tstamp[47:16].\n";
+
+    coder_t &prologue = get(MARKER_NF_PROCESS_PROLOGUE);
+    prologue.indent();
+    prologue << "now = ((time_ns_t)bswap32(cpu_hdr_extra->time)) << 16;\n";
+  }
+
   synthesize_nf_process();
   synthesize_state_member_init_list();
 
