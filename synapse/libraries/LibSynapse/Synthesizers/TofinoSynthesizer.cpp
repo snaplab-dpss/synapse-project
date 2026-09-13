@@ -3352,8 +3352,13 @@ void TofinoSynthesizer::synthesize() {
     }
     const code_t arm_indent = code_t((egress_apply.lvl + 1) * 2, ' ');
     const auto nest         = [&](code_path_t code_path, const code_t &body) {
-      static const std::regex only_comments(R"(^(\s*(//[^\n]*)?\n?)*$)");
-      if (std::regex_match(body, only_comments)) {
+      bool only_comments = true;
+      std::stringstream scan(body);
+      for (code_t line; only_comments && std::getline(scan, line);) {
+        const size_t text = line.find_first_not_of(" \t");
+        only_comments     = text == code_t::npos || line.compare(text, 2, "//") == 0;
+      }
+      if (only_comments) {
         return; // Nothing but the plan's notes: no block for them.
       }
       egress_apply << arm_indent << "if (hdr.egress_state.code_path == " << (i64)code_path << ") {\n";
