@@ -33,8 +33,9 @@ walk towards: 40 hash statements, 8 state words, 42 hash tables, 76 hash-distrib
 
 The model test (`tests/smartcookie.py --up --nf smartcookie-walk`, with the synthesized topology
 `SC_SERVER_PORT=1 SC_SERVER_DEV=0` and the BDD's key `SC_SIP_KEY0=0x33221130`) is what found the edits
-after `m9`; `sc-m15.p4` with `sc-m15.cpp` passes all of it (2026-09-13); `synthesized/smartcookie-walk.*`
-is the file under test (regen 23's controller and JSON, the P4 of the hand version). What it found,
+after `m9`; `sc-m15.p4` with `sc-m15.cpp` passes all of it (2026-09-13). The harness reads
+`synthesized/<nf>.p4` and `.cpp`, so the rung under test is copied there as `smartcookie-walk.p4`
+and `.cpp` first; nothing under `synthesized/` is kept for it. What it found,
 in order: a container with a stale libsycon (no edit; the bloom cleanup thread never stopped and
 the port table stayed empty); the SYN-ACK carrying the SYN's TCP checksum (`m10`); the controller
 asserting on a 77-byte packet whose CPU header held 3 of the 10 values it reads (`m11`), and,
