@@ -223,6 +223,10 @@ private:
     code_t name;
   };
   std::unordered_map<code_t, std::vector<hdr_field_t>> hdr_fields_by_hdr;
+  // The bytes of each chunk (chunk_key) a header rewrite writes from a computed value, gathered
+  // before emission: a chain statement reading such a field on the ALU would tie the field, and
+  // then the rewrite's source, to the chain's sliced cluster (the SYN-ACK's sequence word).
+  std::unordered_map<code_t, std::vector<std::pair<bytes_t, bytes_t>>> rewritten_packet_bytes;
   // The headers a ChecksumUpdate covers, by its EP node, and per gress the pair whose checksums
   // the deparser recomputes when the path set the flag.
   struct checksum_site_t {

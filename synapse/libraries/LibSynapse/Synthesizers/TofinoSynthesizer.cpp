@@ -3246,6 +3246,20 @@ void TofinoSynthesizer::synthesize() {
       pending.insert(pending.end(), ep_node->get_children().begin(), ep_node->get_children().end());
 
       const Module *module = ep_node->get_module();
+      if (module && module->get_type() == ModuleType::Tofino_ModifyHeader) {
+        // The bytes a rewrite writes from a computed value (rewritten_packet_bytes): a constant or
+        // another packet field (a swap) ties nothing.
+        const Tofino::ModifyHeader *rewrite = dynamic_cast<const Tofino::ModifyHeader *>(module);
+        for (const expr_mod_t &change : rewrite->get_changes()) {
+          bool computed = false;
+          for (const std::string &name : symbol_t::get_symbols_names(change.expr)) {
+            computed |= name != "packet_chunks";
+          }
+          if (computed) {
+            rewritten_packet_bytes[chunk_key(rewrite->get_hdr())].emplace_back(change.offset / 8, (change.offset + change.width + 7) / 8);
+          }
+        }
+      }
       if (!module || module->get_type() != ModuleType::Tofino_ChecksumUpdate) {
         continue;
       }
@@ -7848,6 +7862,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     std::string op_id;
     code_t statement; // Empty for an aliased value (already held elsewhere).
     bool in_hash;
+    bool hash_rotate = false; // A rotate by a non-byte amount: only the hash unit can do it.
   };
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
   const Pipeline &pipeline        = tofino_ctx->get_tna().pipeline;
@@ -8284,7 +8299,8 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       // the uncut ones stay ordinary moves -- each @in_hash costs hash-distribution units, and
       // only three 32-bit ones fit per stage, so wrapping indiscriminately buys PHV with stages.
       cut_values.insert(a);
-      ops.push_back({rot->get_action_id(), rot->get_op_id(), out.name + " = " + rotation_code(a, n, width) + ";", rot->uses_hash_unit()});
+      ops.push_back({rot->get_action_id(), rot->get_op_id(), out.name + " = " + rotation_code(a, n, width) + ";", rot->uses_hash_unit(),
+                     rot->uses_hash_unit()});
     } break;
     case ModuleType::Tofino_RotateLeftShifts: {
       const Tofino::RotateLeftShifts *rot = dynamic_cast<const Tofino::RotateLeftShifts *>(module);
@@ -8516,11 +8532,56 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     // A statement touching no state word is an ALU statement, whatever the op's kind: the hash
     // unit's point is to keep an outside value or a hash-unit output off the chain's sliced
     // cluster, and a statement between metadata and carried fields touches that cluster nowhere.
+    // So is a statement whose outside operand is a packet header field, unless it is a rotate
+    // only the hash unit can do or it touches metadata too: a parsed field next to a chain value
+    // is an ALU operand the compiler takes (the ground truth reads the addresses and ports on the
+    // ALU), and reading it through the hash unit only spends hash-distribution units and stages.
+    // What does tie such a field to the cluster is an ALU copy of it into metadata, which the
+    // bloom keys (hashed in the register's execute) and the device (read through the hash unit)
+    // avoid. The plan still counts these as hash ops: the model is the search's, this the P4's.
+    // A field a rewrite writes from a computed value stays a hash-unit read (rewritten_packet_bytes):
+    // read on the ALU it would join the cluster, and the rewrite's source with it.
+    static const std::regex top_bits_cast(R"(\(bit<32>\)\((hdr\.[\w.]+)\[31:16\]\))");
+    static const std::regex packet_field_name(R"(hdr\.hdr\d+\.data\d+)");
+    const auto reads_a_rewritten_field = [&](const code_t &s) -> bool {
+      for (std::sregex_iterator it(s.begin(), s.end(), packet_field_name), end; it != end; ++it) {
+        const code_t name = it->str();
+        for (const auto &[chunk, fields] : hdr_fields_by_hdr) {
+          const auto ranges_it = rewritten_packet_bytes.find(chunk);
+          if (ranges_it == rewritten_packet_bytes.end()) {
+            continue;
+          }
+          for (const hdr_field_t &field : fields) {
+            if (field.name != name) {
+              continue;
+            }
+            for (const auto &[from, to] : ranges_it->second) {
+              if (from < field.offset + field.width / 8 && field.offset < to) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    };
     std::unordered_map<std::string, action_statement_t> &statements = action_statements[action_id];
     for (const op_emission_t &emission : ops) {
-      if (emission.action_id == action_id && !emission.statement.empty()) {
-        statements[emission.op_id] = {emission.statement, emission.in_hash && emission.statement.find("hdr.st.") != code_t::npos};
+      if (emission.action_id != action_id || emission.statement.empty()) {
+        continue;
       }
+      const code_t &s            = emission.statement;
+      const bool state_word      = s.find("hdr.st.") != code_t::npos;
+      const bool packet_field    = s.find("hdr.hdr") != code_t::npos;
+      const bool metadata        = s.find("meta.") != code_t::npos || s.find("eg_md.") != code_t::npos || s.find("_intr_md") != code_t::npos;
+      const bool alu_packet_read = packet_field && !metadata && !emission.hash_rotate && !reads_a_rewritten_field(s);
+      bool in_hash               = emission.in_hash && state_word && !alu_packet_read;
+      code_t statement           = s;
+      if (emission.in_hash && !in_hash) {
+        // On the ALU a cast of a field's top bits is a shift (operand_rhs), not a deposit.
+        statement = std::regex_replace(statement, top_bits_cast, "$1 >> 16");
+      }
+      statements[emission.op_id] = {statement, in_hash};
     }
     action_in_egress[action_id] = in_egress;
     if (statements.empty()) {
