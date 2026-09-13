@@ -6431,35 +6431,11 @@ std::vector<code_t> TofinoSynthesizer::cms_get_hashes_values(const CountMinSketc
   return hashes;
 }
 
-std::vector<code_t> TofinoSynthesizer::bf_get_hashes_values(const BloomFilter *bf) {
-  std::vector<code_t> hashes;
-
-  for (size_t i = 0; i < bf->height; i++) {
-    const code_t &hash      = bf->hashes[i].id;
-    const code_t hash_value = hash + "_value";
-    hashes.push_back(hash_value);
-  }
-
-  return hashes;
-}
-
 std::vector<code_t> TofinoSynthesizer::cms_get_hashes_calculators(const CountMinSketch *cms, const EPNode *ep_node) {
   std::vector<code_t> hash_calculators;
 
   for (size_t i = 0; i < cms->height; i++) {
     const code_t &hash           = cms->hashes[i].id + "_" + std::to_string(ep_node->get_id());
-    const code_t hash_calculator = hash + "_calc_" + std::to_string(ep_node->get_id());
-    hash_calculators.push_back(hash_calculator);
-  }
-
-  return hash_calculators;
-}
-
-std::vector<code_t> TofinoSynthesizer::bf_get_hashes_calculators(const BloomFilter *bf, const EPNode *ep_node) {
-  std::vector<code_t> hash_calculators;
-
-  for (size_t i = 0; i < bf->height; i++) {
-    const code_t &hash           = bf->hashes[i].id + "_" + std::to_string(ep_node->get_id());
     const code_t hash_calculator = hash + "_calc_" + std::to_string(ep_node->get_id());
     hash_calculators.push_back(hash_calculator);
   }
@@ -6482,39 +6458,6 @@ void TofinoSynthesizer::transpile_cms_hash_calculator_decl(const CountMinSketch 
 
     const bits_t hash_salt_size   = sizeof(CountMinSketch::HASH_SALTS[i]) * 8;
     const code_t &hash            = cms->hashes[i].id + "_" + std::to_string(ep_node->get_id());
-    const code_t &hash_calculator = hashes_calculators[i];
-    const code_t &hash_value      = hashes_values[i];
-
-    coder_t hash_calculation_body;
-
-    hash_calculation_body.indent();
-    hash_calculation_body << hash_value << " = " << hash << ".get({\n";
-
-    hash_calculation_body.inc();
-    for (const var_t &key_var : keys_vars) {
-      hash_calculation_body.indent();
-      hash_calculation_body << key_var.name << ",\n";
-    }
-    hash_calculation_body.indent();
-    hash_calculation_body << Transpiler::transpile_literal(HHTable::HASH_SALTS[i], hash_salt_size, true) << "\n";
-    hash_calculation_body.dec();
-
-    hash_calculation_body.indent();
-    hash_calculation_body << "});\n";
-
-    transpile_action_decl(hash_calculator, hash_calculation_body.split_lines());
-  }
-}
-
-void TofinoSynthesizer::transpile_bf_hash_calculator_decl(const BloomFilter *bf, const EPNode *ep_node, const std::vector<var_t> &keys_vars) {
-  const std::vector<code_t> hashes_calculators = bf_get_hashes_calculators(bf, ep_node);
-  const std::vector<code_t> hashes_values      = bf_get_hashes_values(bf);
-
-  for (size_t i = 0; i < bf->height; i++) {
-    assert(i < BloomFilter::HASH_SALTS.size());
-
-    const bits_t hash_salt_size   = sizeof(BloomFilter::HASH_SALTS[i]) * 8;
-    const code_t &hash            = bf->hashes[i].id + "_" + std::to_string(ep_node->get_id());
     const code_t &hash_calculator = hashes_calculators[i];
     const code_t &hash_value      = hashes_values[i];
 
@@ -6610,82 +6553,84 @@ void TofinoSynthesizer::transpile_cms_decl(const CountMinSketch *cms, const EPNo
   ingress << "\n";
 }
 
-void TofinoSynthesizer::transpile_bf_decl(const BloomFilter *bf, const EPNode *ep_node) {
+std::vector<code_t> TofinoSynthesizer::transpile_bf_decl(const BloomFilter *bf, const EPNode *ep_node, const std::vector<code_t> &key_inputs,
+                                                         RegisterActionType action_type) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> reg_actions = bf_get_rows_reg_actions(bf);
   const std::unordered_map<RegisterActionType, std::vector<code_t>> actions     = bf_get_rows_actions(bf);
   const std::unordered_map<RegisterActionType, std::vector<code_t>> values      = bf_get_rows_values(bf);
-  const std::vector<code_t> hashes_values                                       = bf_get_hashes_values(bf);
   const var_t estimate_value                                                    = bf_get_estimate_value(bf);
 
   if (!declared_ds.contains(bf->id)) {
     for (size_t i = 0; i < bf->height; i++) {
-      const Register &row = bf->rows[i];
-      transpile_register_decl(&row);
+      transpile_register_decl(&bf->rows[i]);
     }
-
     ingress << "\n";
-
-    for (size_t i = 0; i < bf->height; i++) {
-      const code_t &hash_value = hashes_values[i];
-      ingress.indent();
-      ingress << Transpiler::type_from_size(bf->hash_size) << " " << hash_value << ";\n";
-    }
-
-    ingress << "\n";
-
-    for (size_t i = 0; i < bf->height; i++) {
-      const Register &row = bf->rows[i];
-      const code_t &hash  = hashes_values[i];
-
-      for (const RegisterActionType &action_type : row.actions) {
-        assert(reg_actions.find(action_type) != reg_actions.end());
-        assert(actions.find(action_type) != actions.end());
-        assert(values.find(action_type) != values.end());
-
-        assert(i < reg_actions.at(action_type).size());
-        assert(i < actions.at(action_type).size());
-        assert(i < values.at(action_type).size());
-
-        const code_t &reg_action = reg_actions.at(action_type)[i];
-        const code_t &action     = actions.at(action_type)[i];
-        const code_t &value      = values.at(action_type)[i];
-
-        transpile_register_action_decl(&row, reg_action, action_type);
-
-        if (register_action_types_with_out_value.contains(action_type)) {
-          ingress.indent();
-          ingress << Transpiler::type_from_size(row.value_size) << " " << value << ";\n";
-        }
-
-        coder_t row_action_body;
-        row_action_body.indent();
-
-        if (register_action_types_with_out_value.contains(action_type)) {
-          row_action_body << value << " = ";
-        }
-        row_action_body << reg_action << ".execute(" << hash << ");\n";
-
-        if (register_action_types_with_out_value.contains(action_type)) {
-          row_action_body.indent();
-          row_action_body << estimate_value.get_slice(i, 1).name << " = " << value << "[0:0];\n";
-        }
-
-        transpile_action_decl(action, row_action_body.split_lines());
-        ingress << "\n";
-      }
-    }
-
     declared_ds.insert(bf->id);
   }
 
+  // The site's hash instances, ahead of the actions computing them.
+  std::vector<code_t> hash_ids;
   for (Hash hash : bf->hashes) {
     hash.id = hash.id + "_" + std::to_string(ep_node->get_id());
     transpile_hash_decl(&hash);
+    hash_ids.push_back(hash.id);
   }
-
   ingress << "\n";
+
+  assert(reg_actions.contains(action_type) && actions.contains(action_type) && values.contains(action_type));
+  std::vector<code_t> site_actions;
+  for (size_t i = 0; i < bf->height; i++) {
+    assert(i < BloomFilter::HASH_SALTS.size());
+    const Register &row      = bf->rows[i];
+    code_t reg_action        = reg_actions.at(action_type)[i];
+    code_t action            = actions.at(action_type)[i];
+    code_t value             = values.at(action_type)[i];
+    const bool returns_value = register_action_types_with_out_value.contains(action_type);
+
+    if (const auto inputs_it = bf_action_inputs.find(action); inputs_it != bf_action_inputs.end() && inputs_it->second != key_inputs) {
+      const code_t site = "_" + std::to_string(ep_node->get_id());
+      reg_action += site;
+      action += site;
+      value += site;
+    }
+    site_actions.push_back(action);
+    if (bf_action_inputs.contains(action)) {
+      continue; // Declared at an earlier site, hashing the same inputs.
+    }
+    bf_action_inputs[action] = key_inputs;
+
+    transpile_register_action_decl(&row, reg_action, action_type);
+    if (returns_value) {
+      ingress.indent();
+      ingress << Transpiler::type_from_size(row.value_size) << " " << value << ";\n";
+    }
+
+    coder_t body;
+    body.indent();
+    if (returns_value) {
+      body << value << " = ";
+    }
+    body << reg_action << ".execute(" << hash_ids[i] << ".get({\n";
+    body.inc();
+    for (const code_t &input : key_inputs) {
+      body.indent();
+      body << input << ",\n";
+    }
+    body.indent();
+    body << Transpiler::transpile_literal(HHTable::HASH_SALTS[i], sizeof(BloomFilter::HASH_SALTS[i]) * 8, true) << "\n";
+    body.dec();
+    body.indent();
+    body << "}));\n";
+    if (returns_value) {
+      body.indent();
+      body << estimate_value.get_slice(i, 1).name << " = " << value << "[0:0];\n";
+    }
+    transpile_action_decl(action, body.split_lines());
+    ingress << "\n";
+  }
+  return site_actions;
 }
 
 void TofinoSynthesizer::transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table) {
@@ -6769,34 +6714,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   const BloomFilter *bf = get_tofino_ds<BloomFilter>(ep, bf_id);
 
-  const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = bf_get_rows_actions(bf);
-  const std::vector<code_t> hashes_calculators                              = bf_get_hashes_calculators(bf, ep_node);
-
-  transpile_bf_decl(bf, ep_node);
-
-  std::vector<var_t> keys_vars;
-  for (size_t i = 0; i < keys.size(); i++) {
-    const std::string key_name = "key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
-    const var_t key_var        = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
-    keys_vars.push_back(key_var);
-
-    declare_var_in_ingress_metadata(key_var);
-
-    ingress_apply.indent();
-    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  std::vector<code_t> key_inputs;
+  for (const klee::ref<klee::Expr> &key : keys) {
+    key_inputs.push_back(transpiler.transpile(key));
   }
+  const std::vector<code_t> row_actions = transpile_bf_decl(bf, ep_node, key_inputs, RegisterActionType::SetToOne);
 
-  transpile_bf_hash_calculator_decl(bf, ep_node, keys_vars);
-
-  for (const code_t &hash_calc : hashes_calculators) {
-    ingress_apply.indent();
-    ingress_apply << hash_calc << "();\n";
-  }
-
-  assert(actions.find(RegisterActionType::SetToOne) != actions.end());
-  const std::vector<code_t> &set_to_one_actions = actions.at(RegisterActionType::SetToOne);
-
-  for (const code_t &action : set_to_one_actions) {
+  for (const code_t &action : row_actions) {
     ingress_apply.indent();
     ingress_apply << action << "();\n";
   }
@@ -6872,40 +6796,19 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
   const klee::ref<klee::Expr> estimate           = node->get_estimate();
 
-  const BloomFilter *bf                                                     = get_tofino_ds<BloomFilter>(ep, bf_id);
-  const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = bf_get_rows_actions(bf);
-  const std::unordered_map<RegisterActionType, std::vector<code_t>> values  = bf_get_rows_values(bf);
-  const std::vector<code_t> hashes_calculators                              = bf_get_hashes_calculators(bf, ep_node);
-  const var_t estimate_value                                                = bf_get_estimate_value(bf);
+  const BloomFilter *bf = get_tofino_ds<BloomFilter>(ep, bf_id);
 
-  transpile_bf_decl(bf, ep_node);
-
-  std::vector<var_t> keys_vars;
-  for (size_t i = 0; i < keys.size(); i++) {
-    const std::string key_name = "key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
-    const var_t key_var        = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
-    keys_vars.push_back(key_var);
-
-    declare_var_in_ingress_metadata(key_var);
-
-    ingress_apply.indent();
-    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  std::vector<code_t> key_inputs;
+  for (const klee::ref<klee::Expr> &key : keys) {
+    key_inputs.push_back(transpiler.transpile(key));
   }
+  const std::vector<code_t> row_actions = transpile_bf_decl(bf, ep_node, key_inputs, RegisterActionType::SetToOneAndReturnOldValue);
 
-  transpile_bf_hash_calculator_decl(bf, ep_node, keys_vars);
-
-  for (const code_t &hash_calc : hashes_calculators) {
-    ingress_apply.indent();
-    ingress_apply << hash_calc << "();\n";
-  }
-
+  const var_t estimate_value = bf_get_estimate_value(bf);
   ingress_apply.indent();
   ingress_apply << estimate_value.name << " = 0;\n";
 
-  assert(actions.find(RegisterActionType::SetToOneAndReturnOldValue) != actions.end());
-  const std::vector<code_t> &read_actions = actions.at(RegisterActionType::SetToOneAndReturnOldValue);
-
-  for (const code_t &action : read_actions) {
+  for (const code_t &action : row_actions) {
     ingress_apply.indent();
     ingress_apply << action << "();\n";
   }
@@ -6983,40 +6886,19 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
   const klee::ref<klee::Expr> estimate           = node->get_estimate();
 
-  const BloomFilter *bf                                                     = get_tofino_ds<BloomFilter>(ep, bf_id);
-  const std::unordered_map<RegisterActionType, std::vector<code_t>> actions = bf_get_rows_actions(bf);
-  const std::unordered_map<RegisterActionType, std::vector<code_t>> values  = bf_get_rows_values(bf);
-  const std::vector<code_t> hashes_calculators                              = bf_get_hashes_calculators(bf, ep_node);
-  const var_t estimate_value                                                = bf_get_estimate_value(bf);
+  const BloomFilter *bf = get_tofino_ds<BloomFilter>(ep, bf_id);
 
-  transpile_bf_decl(bf, ep_node);
-
-  std::vector<var_t> keys_vars;
-  for (size_t i = 0; i < keys.size(); i++) {
-    const std::string key_name = "key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
-    const var_t key_var        = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
-    keys_vars.push_back(key_var);
-
-    declare_var_in_ingress_metadata(key_var);
-
-    ingress_apply.indent();
-    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  std::vector<code_t> key_inputs;
+  for (const klee::ref<klee::Expr> &key : keys) {
+    key_inputs.push_back(transpiler.transpile(key));
   }
+  const std::vector<code_t> row_actions = transpile_bf_decl(bf, ep_node, key_inputs, RegisterActionType::Read);
 
-  transpile_bf_hash_calculator_decl(bf, ep_node, keys_vars);
-
-  for (const code_t &hash_calc : hashes_calculators) {
-    ingress_apply.indent();
-    ingress_apply << hash_calc << "();\n";
-  }
-
+  const var_t estimate_value = bf_get_estimate_value(bf);
   ingress_apply.indent();
   ingress_apply << estimate_value.name << " = 0;\n";
 
-  assert(actions.find(RegisterActionType::Read) != actions.end());
-  const std::vector<code_t> &read_actions = actions.at(RegisterActionType::Read);
-
-  for (const code_t &action : read_actions) {
+  for (const code_t &action : row_actions) {
     ingress_apply.indent();
     ingress_apply << action << "();\n";
   }
