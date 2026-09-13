@@ -3,6 +3,8 @@
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibBDD/Unroll.h>
 
+#include <algorithm>
+
 namespace LibSynapse {
 namespace Tofino {
 
@@ -39,7 +41,15 @@ struct step_t {
   std::vector<klee::ref<klee::Expr>> plain_operands;
 };
 
-step_t build_step(const BDDNode *node) {
+// The clock shifted right by 16: the 32 bits the data plane keeps of it (the synthesizer's
+// time_shift), copied out of the intrinsic's metadata field.
+bool copies_clock(const BDD *bdd, klee::ref<klee::Expr> value) {
+  std::string symbol;
+  return value->getKind() == klee::Expr::LShr && LibCore::is_constant(value->getKid(1)) && LibCore::solver_toolbox.value_from_expr(value->getKid(1)) == 16 &&
+         LibCore::is_readLSB(value->getKid(0), symbol) && symbol == bdd->get_time().name;
+}
+
+step_t build_step(const BDD *bdd, const BDDNode *node) {
   const call_t &call = dynamic_cast<const Call *>(node)->get_call();
   step_t step;
   step.value = unrolled_op_value(call);
@@ -53,14 +63,41 @@ step_t build_step(const BDDNode *node) {
          .out     = call.ret,
          .in_hash = false,
   };
+  const bool chain = TofinoModuleFactory::is_hash_chain_node(bdd, node);
+  if (copies_clock(bdd, step.value)) {
+    // The clock, read into the chain by the hash unit, as the ground truth's time_read does:
+    // 32 bits of hash output, no operand to load.
+    step.op.kind    = ComputeOpKind::Hash;
+    step.op.width   = 32;
+    step.op.in_hash = true;
+  }
 
   std::vector<std::pair<std::string, klee::ref<klee::Expr>>> kids;
   for (unsigned i = 0; i < step.value->getNumKids(); i++) {
     kids.emplace_back(i == 0 ? "_a" : "_b", step.value->getKid(i));
   }
-  step.operands = TofinoModuleFactory::get_operands_to_compute(step.op.id, kids);
+  // A chain xor reading an outside value is computed by the hash unit, operand and all; any
+  // other chain op has its outside operands loaded into slots by the hash unit first (see
+  // is_hash_chain_node). The clock's copy is that load already.
+  bool outside = false;
   for (const auto &[_, kid] : kids) {
-    if (TofinoModuleFactory::is_plain_operand(kid)) {
+    outside |= chain && !LibCore::is_constant(kid) && TofinoModuleFactory::reads_outside(bdd, kid);
+  }
+  // After a chain, an xor is computed by the hash unit too (is_hash_chain_post); what it reads
+  // -- slots, metadata -- the hash unit reads where it is.
+  const bool post_xor = TofinoModuleFactory::is_hash_chain_post(bdd, node) && step.value->getKind() == klee::Expr::Xor;
+  const bool hash_xor = ((chain && outside) || post_xor) && step.value->getKind() == klee::Expr::Xor && !step.op.in_hash;
+  if (hash_xor) {
+    step.op.kind    = ComputeOpKind::Hash;
+    step.op.in_hash = true;
+  }
+  const TofinoModuleFactory::OutsideOperands mode = step.op.in_hash ? TofinoModuleFactory::OutsideOperands::Inline
+                                                   : chain           ? TofinoModuleFactory::OutsideOperands::Load
+                                                                     : TofinoModuleFactory::OutsideOperands::Keep;
+  step.operands                                   = TofinoModuleFactory::get_operands_to_compute(step.op.id, kids, bdd, mode);
+  for (const auto &[_, kid] : kids) {
+    const bool computed = std::any_of(step.operands.begin(), step.operands.end(), [&](const auto &operand) { return operand.expr == kid; });
+    if (!computed && TofinoModuleFactory::is_plain_operand(kid)) {
       step.plain_operands.push_back(kid);
     }
   }
@@ -84,7 +121,7 @@ std::optional<DS_ID> ArithmeticOpFactory::place(ComputeStepBuilder &builder, con
   if (!matches(node)) {
     return {};
   }
-  step_t step = build_step(node);
+  step_t step = build_step(ep->get_bdd(), node);
   return place_step(builder, ep, node, step, speculations);
 }
 
@@ -100,7 +137,7 @@ std::vector<impl_t> ArithmeticOpFactory::process_node(const EP *ep, const BDDNod
     return {};
   }
 
-  step_t step = build_step(node);
+  step_t step = build_step(ep->get_bdd(), node);
   std::string why;
   std::optional<compute_step_t> impl_step = implement_compute_step(
       ep, node, [&](ComputeStepBuilder &builder) { return place_step(builder, ep, node, step, nullptr); }, &why);
@@ -123,7 +160,7 @@ std::unique_ptr<Module> ArithmeticOpFactory::create(const BDD *bdd, const Contex
   if (!matches(node)) {
     return {};
   }
-  step_t step                     = build_step(node);
+  step_t step                     = build_step(bdd, node);
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
   for (compute_operand_t &operand : step.operands) {
     operand.action_id = tofino_ctx->find_compute_action(operand.op_id);

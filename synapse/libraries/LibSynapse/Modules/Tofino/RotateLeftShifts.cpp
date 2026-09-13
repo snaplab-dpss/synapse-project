@@ -25,7 +25,7 @@ struct rotation_t {
 // is not a whole number of bytes (those are plain moves, RotateLeft's job), and an operand
 // readable here (a reordering can bring us before the register update that exposes a
 // borrowed value).
-std::optional<rotation_t> get_rotation(const BDDNode *node) {
+std::optional<rotation_t> get_rotation(const BDD *bdd, const BDDNode *node) {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -47,7 +47,7 @@ std::optional<rotation_t> get_rotation(const BDDNode *node) {
   }
 
   rotation_t rotation{x, amount, call.ret, {}};
-  rotation.operands = TofinoModuleFactory::get_operands_to_compute(build_op_id(node, ""), {{"_x", x}});
+  rotation.operands = TofinoModuleFactory::get_operands_to_compute(build_op_id(node, ""), {{"_x", x}}, bdd, TofinoModuleFactory::OutsideOperands::Load);
   return rotation;
 }
 
@@ -117,7 +117,7 @@ std::optional<placed_t> place_ops(TofinoModuleFactory::ComputeStepBuilder &build
 
 std::optional<DS_ID> RotateLeftShiftsFactory::place(ComputeStepBuilder &builder, const EP *ep, const BDDNode *node,
                                                     const speculations_t *speculations) {
-  std::optional<rotation_t> rotation = get_rotation(node);
+  std::optional<rotation_t> rotation = get_rotation(ep->get_bdd(), node);
   if (!rotation) {
     return {};
   }
@@ -139,7 +139,7 @@ std::optional<spec_impl_t> RotateLeftShiftsFactory::speculate(const EP *ep, cons
 }
 
 std::vector<impl_t> RotateLeftShiftsFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
-  std::optional<rotation_t> rotation = get_rotation(node);
+  std::optional<rotation_t> rotation = get_rotation(ep->get_bdd(), node);
   if (!rotation) {
     return {};
   }
@@ -173,7 +173,7 @@ std::vector<impl_t> RotateLeftShiftsFactory::process_node(const EP *ep, const BD
 }
 
 std::unique_ptr<Module> RotateLeftShiftsFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
-  std::optional<rotation_t> rotation = get_rotation(node);
+  std::optional<rotation_t> rotation = get_rotation(bdd, node);
   if (!rotation) {
     return {};
   }

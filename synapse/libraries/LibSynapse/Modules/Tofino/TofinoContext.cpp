@@ -1,4 +1,6 @@
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
+#include <LibSynapse/Walk.h>
+#include <iostream>
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Debug.h>
@@ -404,17 +406,34 @@ std::optional<compute_reuse_t> TofinoContext::find_reusable_compute_op(const com
   return found_it->second;
 }
 
-void TofinoContext::reuse_compute_op(const compute_op_t &op, const compute_reuse_t &original) {
+void TofinoContext::reuse_compute_op(const compute_op_t &op, const compute_reuse_t &original, bool same_path) {
   compute_reuse_state_t &state = compute_reuse.mutate();
-  state.reused.insert({op.id, original});
-  state.shared.insert(original.action);
+  compute_reuse_t entry        = original;
 
   std::string symbol;
-  if (!op.out.isNull() && !original.op.out.isNull() && LibCore::is_readLSB(op.out, symbol)) {
-    ArrayFinder finder;
-    finder.visit(original.op.out);
-    assert_or_panic(finder.array, "The original op's output is not a symbol read");
-    state.aliases.insert({symbol, finder.array});
+  if (!op.out.isNull() && LibCore::is_readLSB(op.out, symbol)) {
+    if (original.op.out.isNull()) {
+      // The original computed the value without naming it (a rotate's operand): it produces
+      // this op's symbol from here on, for every later lookup of the value by that name.
+      entry.op.out = op.out;
+      auto key_it  = state.by_key.find(key_of(original.op));
+      if (key_it != state.by_key.end()) {
+        key_it->second.op.out = op.out;
+      }
+      state.producers.insert({symbol, original.op.id});
+    } else {
+      ArrayFinder finder;
+      finder.visit(original.op.out);
+      assert_or_panic(finder.array, "The original op's output is not a symbol read");
+      state.aliases.insert({symbol, finder.array});
+    }
+  }
+
+  state.reused.insert({op.id, entry});
+  if (same_path) {
+    state.own_path_reuses.insert(op.id);
+  } else {
+    state.shared.insert(original.action);
   }
 }
 
@@ -585,13 +604,26 @@ void TofinoContext::alias_symbol(klee::ref<klee::Expr> symbol, klee::ref<klee::E
 }
 
 void TofinoContext::rewrite_compute_op(const std::string &op_id, klee::ref<klee::Expr> from, klee::ref<klee::Expr> to) {
+  if (Walk::enabled()) {
+    std::cerr << "[rewrite] " << op_id << ": " << LibCore::expr_to_string(from, true) << " -> " << LibCore::expr_to_string(to, true) << "\n";
+  }
   compute_reuse_state_t &state = compute_reuse.mutate();
-  for (auto it = state.by_key.begin(); it != state.by_key.end(); it++) {
-    if (it->second.op.id != op_id) {
+  // The op, and its materialized operands (ids `<op>_x`, `<op>_a`, ...): an op's key holds its
+  // whole value, operands included, so a match on it is a match on the operand computing the
+  // rewritten part, which has to read the shared field too.
+  const auto is_target = [&](const std::string &id) { return id == op_id || id.rfind(op_id + "_", 0) == 0; };
+  std::vector<compute_key_t> keys;
+  for (const auto &[key, entry] : state.by_key) {
+    if (is_target(entry.op.id)) {
+      keys.push_back(key);
+    }
+  }
+  for (const compute_key_t &old : keys) {
+    auto it = state.by_key.find(old);
+    if (it == state.by_key.end()) {
       continue;
     }
-    compute_reuse_t entry   = it->second;
-    const compute_key_t old = it->first;
+    compute_reuse_t entry = it->second;
     for (klee::ref<klee::Expr> &arg : entry.op.args) {
       arg = LibCore::substitute_expr(arg, from, to);
     }
@@ -608,15 +640,17 @@ void TofinoContext::rewrite_compute_op(const std::string &op_id, klee::ref<klee:
     assert_or_panic(action, "%s is not a compute action", entry.action.c_str());
     std::unique_ptr<ComputeAction> updated = std::make_unique<ComputeAction>(*action);
     for (compute_op_t &held : updated->ops) {
-      if (held.id == op_id) {
+      if (held.id == entry.op.id) {
         held = entry.op;
       }
     }
     const addr_t obj = action->obj;
     data_structures.save(obj, std::move(updated));
-    break;
+    state.rewrites[entry.op.id].emplace_back(from, to);
   }
-  state.rewrites[op_id].emplace_back(from, to);
+  if (keys.empty()) {
+    state.rewrites[op_id].emplace_back(from, to);
+  }
 }
 
 void TofinoContext::add_compute_move(const compute_move_t &move) { compute_reuse.mutate().moves.push_back(move); }

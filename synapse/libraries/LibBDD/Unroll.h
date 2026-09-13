@@ -2,6 +2,7 @@
 
 #include <LibBDD/BDD.h>
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -26,6 +27,9 @@ bool is_arithmetic_op(klee::ref<klee::Expr> expr);
 // Function names of the unrolled op nodes (op_add, op_xor, ...).
 const std::vector<std::string> &unrolled_op_function_names();
 bool is_unrolled_op(const call_t &call);
+// The name of the op node computing `expr`: op_xor for a xor, ...; none for a non-arithmetic
+// expression.
+std::optional<std::string> unrolled_op_name(klee::ref<klee::Expr> expr);
 
 // The value an unrolled op node computes, rebuilt from its call: a <kind> b.
 klee::ref<klee::Expr> unrolled_op_value(const call_t &call);

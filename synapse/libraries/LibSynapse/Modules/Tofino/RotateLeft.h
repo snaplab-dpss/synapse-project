@@ -41,7 +41,9 @@ public:
   // cut propagates along the dataflow (a = b ^ c forces b and c into compatible layouts) until a
   // 32-bit value needs one PHV source per piece, against a limit of two. Measured on SmartCookie:
   // wrapping the byte-aligned ones too took it from 116 unallocated slices to 84.
-  bool uses_hash_unit() const { return amount != 0; }
+  // A byte-aligned rotate is a byte swap the ALU does on a whole container, bare, as the ground
+  // truth writes it; the hash unit takes the others, whose output comes sliced at the amount.
+  bool uses_hash_unit() const { return amount % 8 != 0; }
   // Deliberately NOT mirrored in the op's ComputeOpKind, which stays Hash only for the
   // non-byte-aligned amounts. Charging every rotate against the per-action 32-bit hash budget and
   // the per-stage hash-distribution units makes the placer give up on the chain: measured, the

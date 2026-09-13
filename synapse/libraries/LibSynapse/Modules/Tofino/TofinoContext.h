@@ -56,6 +56,7 @@ struct compute_reuse_state_t {
   std::map<compute_key_t, compute_reuse_t> by_key;              // Every op placed, by what it computes.
   std::map<compute_key_t, std::vector<compute_key_t>> by_shape; // The keys of every op of a shape (plain values blanked).
   std::unordered_map<std::string, compute_reuse_t> reused;      // By the id of the op that reused it.
+  std::unordered_set<std::string> own_path_reuses;              // The ids in `reused` whose original is on their own path.
   std::unordered_map<std::string, const klee::Array *> aliases; // Output symbol of a reused op -> the original's.
   std::unordered_set<DS_ID> shared;                             // Actions reused by another path: they take no more ops.
   std::unordered_map<std::string, std::string> producers;       // Symbol -> the op that computes it.
@@ -131,13 +132,17 @@ public:
   compute_op_t canonical_op(const compute_op_t &op) const;
   // An op already placed that computes exactly what the (canonical) `op` computes.
   std::optional<compute_reuse_t> find_reusable_compute_op(const compute_op_t &op) const;
-  // `op` reuses `original`: its output symbol becomes another name for the original's, and the
-  // original's action is shared from now on.
-  void reuse_compute_op(const compute_op_t &op, const compute_reuse_t &original);
+  // `op` reuses `original`: its output symbol becomes another name for the original's (or the
+  // original's name, when it computed the value without naming one), and the original's action
+  // is shared from now on -- unless `same_path`: then the original is this very path's, and
+  // the op merely names what it computed.
+  void reuse_compute_op(const compute_op_t &op, const compute_reuse_t &original, bool same_path);
   // A (canonical) op placed in `action`, with the compute actions of its pass so far, for later
   // ops to find.
   void register_compute_op(const compute_op_t &op, DS_ID action, const std::unordered_set<DS_ID> &pass_actions);
   std::optional<compute_reuse_t> get_compute_reuse(const std::string &op_id) const;
+  // Whether `op_id` reused an op of its own path (the value was computed there already).
+  bool is_own_path_reuse(const std::string &op_id) const { return compute_reuse->own_path_reuses.contains(op_id); }
   bool is_shared_compute_action(DS_ID action) const { return compute_reuse->shared.contains(action); }
 
   // The placed ops of the same shape as the (canonical) `op`, on another path (their action not

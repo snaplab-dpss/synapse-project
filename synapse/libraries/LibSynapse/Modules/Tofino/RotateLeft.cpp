@@ -25,7 +25,7 @@ std::string build_op_id(const BDDNode *node) { return "rotate_left_" + std::to_s
 // The rotation `node` computes, if it is one the data plane can do: a constant amount, and
 // an operand readable here (a reordering can bring us before the register update that
 // exposes a borrowed value).
-std::optional<rotation_t> get_rotation(const BDDNode *node) {
+std::optional<rotation_t> get_rotation(const BDD *bdd, const BDDNode *node) {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
   }
@@ -51,9 +51,10 @@ std::optional<rotation_t> get_rotation(const BDDNode *node) {
       .fn      = "rotate_left",
       .args    = {x, solver_toolbox.exprBuilder->Constant(amount, 32)},
       .out     = call.ret,
-      .in_hash = amount != 0 && !is_constant(x), // A rotated constant is emitted as a constant.
+      .in_hash = amount % 8 != 0 && !is_constant(x), // A rotated constant is emitted as a constant; a byte-aligned rotate is a bare byte swap.
   };
-  rotation.operands = TofinoModuleFactory::get_operands_to_compute(rotation.op.id, {{"_x", x}});
+  rotation.operands = TofinoModuleFactory::get_operands_to_compute(
+      rotation.op.id, {{"_x", x}}, bdd, rotation.op.in_hash ? TofinoModuleFactory::OutsideOperands::Inline : TofinoModuleFactory::OutsideOperands::Load);
   return rotation;
 }
 
@@ -72,7 +73,7 @@ std::optional<DS_ID> place_rotation(TofinoModuleFactory::ComputeStepBuilder &bui
 std::string RotateLeft::get_op_id() const { return build_op_id(node); }
 
 std::optional<DS_ID> RotateLeftFactory::place(ComputeStepBuilder &builder, const EP *ep, const BDDNode *node, const speculations_t *speculations) {
-  std::optional<rotation_t> rotation = get_rotation(node);
+  std::optional<rotation_t> rotation = get_rotation(ep->get_bdd(), node);
   if (!rotation) {
     return {};
   }
@@ -80,14 +81,14 @@ std::optional<DS_ID> RotateLeftFactory::place(ComputeStepBuilder &builder, const
 }
 
 std::optional<spec_impl_t> RotateLeftFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
-  if (!get_rotation(node)) {
+  if (!get_rotation(ep->get_bdd(), node)) {
     return {};
   }
   return speculate_compute_run(ep, node, speculations);
 }
 
 std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
-  std::optional<rotation_t> rotation = get_rotation(node);
+  std::optional<rotation_t> rotation = get_rotation(ep->get_bdd(), node);
   if (!rotation) {
     return {};
   }
@@ -111,7 +112,7 @@ std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode 
 }
 
 std::unique_ptr<Module> RotateLeftFactory::create(const BDD *bdd, const Context &ctx, const BDDNode *node) const {
-  std::optional<rotation_t> rotation = get_rotation(node);
+  std::optional<rotation_t> rotation = get_rotation(bdd, node);
   if (!rotation) {
     return {};
   }
