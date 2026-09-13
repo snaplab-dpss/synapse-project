@@ -254,6 +254,17 @@ private:
   std::unordered_map<const EPNode *, std::vector<size_t>> shared_runs_by_site;
   std::unordered_map<const EPNode *, std::vector<size_t>> shared_runs_by_join;
   std::unordered_map<const EPNode *, code_path_t> egress_code_path_of; // Crossing -> the egress block it opens.
+  // A path calls a shared action for the ops it reuses, and the action's other ops are another
+  // path's: their statements must not run there. A site whose path runs a part of an action calls
+  // a variant holding that part, declared once per part after the plan is walked
+  // (emit_action_variants) from the statements the declaring path emitted (action_statements).
+  struct action_statement_t {
+    code_t statement;
+    bool in_hash;
+  };
+  std::unordered_map<DS_ID, std::unordered_map<std::string, action_statement_t>> action_statements; // Action -> op -> its statement.
+  std::unordered_map<DS_ID, bool> action_in_egress;                                                 // Action -> the control declaring it.
+  std::unordered_map<DS_ID, std::vector<std::vector<std::string>>> action_variants;                 // Action -> the parts called, in order.
   std::unordered_map<bdd_node_id_t, Stack> parser_vars;
   // One coder per recirculation pass, assembled into an if / else-if chain at the end of
   // synthesis. A deque, not a vector: coder_t's copy constructor does not carry the stream
@@ -370,6 +381,15 @@ private:
   // The statements calling a compute action: the action, its one-@in_hash companions and its
   // action-data companion, as its declaration spills them (emit_compute_run).
   std::vector<code_t> compute_action_calls(const TofinoContext *tofino_ctx, const DS_ID &action_id) const;
+  // The statements calling the action `name` holding `ops`, companions included.
+  std::vector<code_t> action_calls(const code_t &name, const std::vector<compute_op_t> &ops) const;
+  // Declares the action `name` holding `ops`, with the statements it has of them, spilling every
+  // @in_hash op past the first into a `_hN` companion and, next to a hash op, the statements
+  // carrying action data into a `_k` one; the companions are the ones action_calls calls.
+  void declare_compute_action(coder_t &coder, const code_t &name, const std::vector<compute_op_t> &ops,
+                              const std::unordered_map<std::string, action_statement_t> &statements) const;
+  // After the plan is walked: every variant a site called (action_variants), declared in its control.
+  void emit_action_variants(const TofinoContext *tofino_ctx);
   // The shared runs joining at `join`, an If just closed: their calls, each under its flag.
   void emit_shared_runs_after(const EPNode *join);
   // The symbols anything past the cut at `cut_node` still uses: what a BDD node reachable from it
