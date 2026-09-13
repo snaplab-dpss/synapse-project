@@ -295,3 +295,196 @@ Takeaway: the shape is fine inside a named action. The synthesized SmartCookie f
 where the emitter wrote it as a bare assignment in the apply block: bf-p4c synthesizes an action
 for a bare statement and then rejects the wide constant there as "multiple action data
 parameters". The emitter now puts every materialized header value in an action of its own.
+
+## Where a value next to a hash rotate may live (`cutA.p4` .. `cutF.p4`)
+
+Question: the synthesized SmartCookie's actions are rejected for "too many sources" wherever an
+ALU op mixes a metadata value with a value a hash-unit rotate has cut into slices. Which home
+makes a value safe next to a rotate? All are `phvW4` with the homes changed.
+
+| toy | shape | result |
+|---|---|---|
+| `cutA` | the two rotates' inputs as fields of a header that is never valid nor emitted | fails, `x` needs too many sources |
+| `cutB` | `@pa_container_size(32)` on the two rotates' inputs, left in metadata | fails the same way |
+| `cutC` | `cutA` with the header set valid at init | fails the same way |
+| `cutD` | every value of the chain, hash outputs included, in a header field (never valid, never emitted) | compiles |
+| `cutE` | every ALU result in a header field, only the hash outputs in metadata | compiles |
+| `cutF` | `cutD` plus an egress that writes and reads the same never-valid header | compiles |
+
+Takeaways: what an ALU op reads next to a sliced value must itself be one container, and only a
+header field is guaranteed one: the allocator packs a header's fields whole "because of the
+structure of the header", whether or not the header is ever valid, emitted or parsed. A metadata
+field, `no_split` by pragma or not, is still counted one source per slice. The hash unit's own
+inputs are read by the hash crossbar, not the ALU, so they may stay in metadata (`cutE`).
+
+## Rounds of HalfSipHash in a state header (`stA.p4`, `stB.p4`, `stA4.p4` .. `stD4.p4`, `L1.p4` .. `L4.p4`)
+
+Question: does a chain of rounds compile when every value lives in a slot of one state header,
+in each of the layouts the emitter could produce?
+
+| toy | shape | result |
+|---|---|---|
+| `stA` | three rounds in slots of a header that is never valid nor emitted | compiles |
+| `stB` | the same, the header set valid at the start, emitted, extracted by the egress parser, invalidated before the packet leaves | compiles |
+| `stB4` | four rounds (the ground truth's per-gress maximum), every value in a header slot, byte-aligned rotates in `@in_hash` | compiles |
+| `stA4` | `stB4` with the header never valid, never emitted, never extracted | compiles |
+| `stC4` | four rounds in the ground truth's exact discipline: adds and hash rotates write metadata temporaries, xors and bare byte-aligned rotates write the header state | compiles |
+| `stD4` | four rounds, every value in a header slot, byte-aligned rotates bare | compiles |
+| `L1` | `stC4` with the add results in header slots: a metadata hash output and a header value meet in each xor | compiles |
+| `L2` | `stC4` with the rounds called from both branches of an `if` | compiles |
+| `L3` | `stC4` with the slots' roles rotating every round (a slot holds a different state word each round) | compiles |
+| `L4` | `stC4` split: two rounds in the ingress, the state header carried to the egress, two rounds there | compiles |
+
+Takeaways: every layout compiles, including the one the synthesized program was rejected on
+(`L1`: a metadata hash output xored with a header slot). The toys never reproduce the synthesized
+program's failures because they carry a dozen sliced fields where the synthesized program carried
+32 to 39 per gress (`sc-walk/README.md`): with that many, bf-p4c rejects the action even after the
+metadata field is pinned to one container, and fails PHV allocation on the cluster once every
+field is a header field. The fix is on synapse's side: fewer distinct fields tied to the chain.
+
+## How many sliced fields fit (`stN9.p4` .. `stN32.p4`, `stX8.p4`)
+
+Question: the synthesized SmartCookie, with every computed value in a header slot, fails PHV
+allocation on one supercluster of 22 (egress) and 16 (ingress) 32-bit fields sliced twelve ways,
+while the ground truth's cluster of 11 allocates. Is it the number of fields alone?
+
+| toy | shape | result |
+|---|---|---|
+| `stN9`, `stN10` | `stD4` with every write to a fresh slot, round-robin over 9 / 10 header slots | compile |
+| `stN11`, `stN12`, `stN16`, `stN24`, `stN32` | the same over 11 or more slots | fail PHV allocation |
+| `stX8` | `stD4` (8 slots) plus a header of eight 32-bit fields xored once into the state | fails PHV allocation |
+
+Takeaways: the count is all that matters. The cluster of `stD4` holds the slots plus five other
+fields (`ipv4.src`, `ipv4.dst`, `tcp.seq`, `o.f0`, `o.f1`); 15 fields allocate, 16 do not, and
+`stX8` fails at 21 with no slot ever changing its role. A supercluster of 32-bit fields sliced by
+the hash rotates has to fit one PHV group of sixteen 32-bit containers, so the whole chain of a
+gress -- its state, its temporaries and every packet field or register value it reads -- may tie
+together at most 15 fields. The ground truth's 11 is the budget spent well: four state words,
+four temporaries, three inputs. Synapse's slot allocation and the fields it lets into the chain
+have to stay under that line.
+
+### Written fields against read-only inputs (`stW10.p4`, `stX2.p4`, `stX5.p4`, `stP12.p4` .. `stP14.p4`)
+
+Question: is the ceiling a count of fields, or of containers of a kind? bf-p4c's status at the
+failure shows Tofino 2's normal PHV as 48 W, 48 B and 72 H containers, four groups of 12, 12 and
+18, next to 16 mocha and 16 dark of each width, four per group.
+
+| toy | shape | result |
+|---|---|---|
+| `stP12` | 12 slots, the output header written from constants: 12 written fields, 3 read-only inputs | compiles |
+| `stP13`, `stP14` | 13 / 14 slots, the same | fail |
+| `stW10` | `stN10` with its three inputs also written by an ALU op: 15 written fields | fails |
+| `stX2` | `stD4` plus 2 read-only fields: 10 written, 5 read-only | compiles |
+| `stX5` | `stD4` plus 5 read-only fields: 10 written, 8 read-only | fails |
+
+Takeaways: a sliced supercluster lives in one PHV group. A field an ALU writes needs one of the
+group's 12 normal 32-bit containers; a field only the parser writes can take one of its 4 mocha
+containers, and spills into the normal ones past that. So per gress the chain may tie together
+at most 12 ALU-written 32-bit fields -- state slots, temporaries and every packet field the NF
+both feeds into the hash and rewrites -- plus four read-only inputs. The ground truth spends 8
+written (`v0..v3`, `a0..a3`) plus `data2` and `msg`, and reads the rest.
+
+## Two laps on one state header (`scx-*.p4`, `stM.p4`, `stH.p4`, `stQ.p4`, `stR12.p4`, `stR12u.p4`, `stK12.p4`, `stCS12.p4`)
+
+Question: the synthesized SmartCookie's ingress cluster has 11 slots and two read-only inputs,
+under the budget above, and still fails. What about it do the toys lack? The `scx-*` files lift
+the synthesized program's ingress compute actions verbatim into a bare skeleton, with each code
+path's call sequence as a branch of an `if` on the port.
+
+| toy | shape | result |
+|---|---|---|
+| `scx-lap2` | one second-lap sequence (23 actions) alone | compiles; 9 slots in normal containers, the two slots it only reads and `data1` in mocha |
+| `scx-2laps2` | both second-lap sequences, one per branch | compiles |
+| `scx-all`, `scx-lap12`, `scx-lap1a`, `scx-lap1b` | the first lap's sequence, whole or halved, next to a second-lap one | fail PHV allocation |
+| `scx-one-113` .. `scx-one-118` | one first-lap action next to the second-lap sequence | 115 and 118 fail, the others compile |
+| `scx-118-rot8`, `-hash`, `-move`, `-fromconst`, `-from8`, `-fromhdr`, `-late` | that action's statement with the op, source or stage changed, the destination `s32_5` kept | all fail |
+| `scx-118-fresh`, `-to1`, `-to8`, `-to10` | the same statement writing another slot | all compile |
+| `stM`, `stH`, `stQ` | two branches on the same slots and stages: sources rotated, hash and ALU writes swapped, add and xor swapped | compile |
+| `stR12`, `stR12u` | `stP12` with the state header also extracted on a recirculation port, 4-byte aligned or 2 bytes off | compile |
+| `stK12`, `stCS12` | `stC12` with state words set from constants alone, and with the wide constants applied to slots | compile |
+
+Takeaways: what breaks the skeleton is any write, of anything, in any stage, to a slot that the
+other branch reads before it first writes it (`s32_5`: read in stage 1, written from stage 2 in
+the second lap). Writing a slot the other branch writes first, never writes, or a fresh one is
+fine. The allocator uses a header field's container for something else until the field's first
+write, and the second-lap sequence alone only allocates because of that room; the extra write
+takes it away. The real program has no such room at all -- `parse_recirc` and the egress parser
+extract the state header, so every slot is live from the parser -- and its other 32-bit packet
+fields (`hdr0..hdr2` are cut into 32-bit chunks) take the mocha containers first. Its budget is
+therefore the twelve normal 32-bit containers of one group, for slots and inputs alike. None of
+the other suspected shapes (constants, two paths, recirculation parsing, alignment) matters.
+
+Consequence, now in synapse: the ALU cluster may hold nothing but the state slots. Every value
+that enters a hash chain from outside -- a packet field, a register's value, the clock -- is read
+by the hash unit, as the ground truth's `time_read` reads the clock: an xor that takes it is
+computed in `@in_hash`, any other op has it loaded into a slot by `@in_hash` first
+(`TofinoModuleFactory::is_hash_chain_node`).
+
+## One rotation per pair of words (`scy-*.p4`, `stHX.p4`, `stSame*.p4`, `stR10.p4`, `stP10.p4`, `stP11.p4`, `stC12.p4`, `st6P10.p4`)
+
+Question: with every outside value entering through the hash unit, the synthesized program's
+cluster is 11 slots and nothing else per gress, under the budget above, and PHV allocation still
+fails on all of it (264 slices). The `scy-*` files lift regen 13's ingress compute actions verbatim
+into the bare skeleton: `scy-all` with every code path, `scy-b0` .. `scy-b3` with one path's call
+sequence each, `scy-pN` with the first N actions of `scy-b1`, `scy-wN` with actions N..15 of it.
+The `-x` variants also extract the state header in the parser on a recirculation port, so no
+slot has room before its first write, as in the real program.
+
+| toy | shape | result |
+|---|---|---|
+| `scy-p6`, `scy-p10`, `scy-p14` | prefixes of the second-lap sequence | compile |
+| `scy-p15` .. `scy-p22`, `scy-b1` | longer prefixes, the whole sequence | fail PHV allocation, with or without `@pa_container_size` / `@pa_no_overlay` on the slots (`-csize`, `-noovl`, `-both`) and with the header parsed (`-x`) |
+| `scy-w5`, `scy-w12` / `scy-w9` | actions 5..15 and 12..15 / actions 9..15 | compile / fails: not monotonic in the statements |
+| `scy-15a_rot8`, `scy-15b_hash` | action 15 cut to its byte rotate, to its hash rotate | compile |
+| `scy-15c_add`, `scy-15d_alu`, `scy-15e_xor` | action 15 cut to the add `s32_6 = s32_0 + s32_2`, the add and the rotate, the add turned into an xor | fail |
+| `scy-15f_no0`, `scy-15h_no2`, `scy-15l_rot16` | the add with either operand replaced, or a byte rotate into `s32_6` instead | fail |
+| `scy-15g_fresh` | the same add writing a fresh slot | compiles |
+| `scy-15i_norot`, `scy-15j_noxor` | action 14's byte rotate, or its xor, reading another slot than `s32_6` | fail |
+| `scy-15k_prev10` | the previous value of `s32_6` (action 13's add, read by action 14) moved to a fresh slot | compiles |
+| `scy-gt` .. `scy-gt6` | `scy-p15` re-homed in the ground truth's discipline (adds and hash rotates into pinned metadata temporaries, xors into header words, copies where a value is needed as both) | `scy-gt6` compiles, also without the header pragmas (`-nohp`) and with the header parsed (`-x`, all 12 normal 32-bit containers of a group used) |
+| `scy-b1-gt` | the whole sequence re-homed the same way: 12 written words and 5 inputs | fails: past the budget |
+| `gt-ahdr` | the ground truth with `a0..a3` moved from metadata into `recirc_state` | compiles: metadata is not what its discipline needs |
+| `scy-p15-alt` .. `scy-p20-alt` / `scy-p21-alt`, `scy-p22-alt`, `scy-b1-alt*` | prefixes re-homed under strict alternation (every ALU statement reads one kind of word and writes the other; `-altp` pinned, `-altva` hash rotates v to a, `-altm` metadata a) | compile / fail |
+| `scy-p18-alt12`, `scy-p18-alt12r` | `scy-p18-alt` with a twelfth written word, or a packet word, joining the cluster | compile: the count is not what fails the longer ones |
+| `scy-p15-one`, `scy-p22-one`, `scy-b1-one` | one pool of 9 words by live range, a word never written from another word at two rotations | compile |
+| `scy-b1-onefree` | the same pool without that rule: 7 pairs at two rotations | fails |
+| `stHX`, `stSame`, `stSame2` | `stD4` with a message word xored in by the hash unit; with one action reading a state word both rotated and aligned | compile |
+| `stR10`, `stP10`, `stP11`, `stC12` | `stP12` parsed on a recirculation port, with 10 or 11 slots, with SipHash's wide initial constants | compile |
+| `st6P10` | `stP10` with six rounds | fails on stages, not PHV |
+
+Takeaways: every write, of anything, into `s32_6` after action 13 fails, a write into a fresh slot
+does not, and moving action 13's value out of `s32_6` makes the write fine again -- the same
+shape as the `scx-118` finding. bf-p4c's own debug output (`-Xp4c=-Tallocate_phv:5
+-Xp4c=-Taction_phv_constraints:5`) names it: "Packing failed because `s32_6[16:16]` and
+`s32_6[0:0]` would (conservatively) need to be aligned at the same position in the same
+container", error code `OVERLAPPING_SLICES` from
+`ActionPhvConstraints::check_and_generate_conditional_constraints`
+(p4c, `backends/tofino/bf-p4c/phv/action_phv_constraints.cpp`). The allocator places the words
+of a sliced cluster one at a time. When a destination is placed before one of its sources, it
+records where that source's slices will have to sit relative to the destination's container. A
+source that one op takes aligned (an xor, an add, a move) and another op takes byte-rotated (a
+`++` of two slices) into the same destination needs two positions at once; the check is
+conservative, the destination has no container that works, and the whole cluster fails. Whether
+it bites depends on the placement order: `scy-p14` carries eight such pairs and allocates, the
+ground truth four (`v0 = a0 ^ m` next to `v0 = a0[15:0] ++ a0[31:16]`), and one more statement
+anywhere reorders the placement (`scy-w9` against `scy-w5`). The ground truth's two kinds of
+words are not the point either: the same discipline fails on the whole sequence, and the ground
+truth still compiles with its temporaries in the header. What its discipline buys is few such
+pairs; a single pool by live range that refuses a slot where a source would be taken at a second
+rotation (`rehome3.py`, `scy-*-one`) compiles the whole sequence in 9 words.
+
+Consequence, now in synapse: `plan_value_homes` records, per gress, the rotation at which each
+state word is written from each other word, in both directions (a value planned after one of its
+readers, as a path that reuses another's op is), and never gives a value a slot that would take
+one of its sources, or be taken by one of its readers, at a second rotation. The rotation of an
+aligned op is 0, of a rotate or a left shift its amount, of a right shift or a cast of a field's
+top bits the width minus the amount; hash-unit ops read at no alignment and are exempt. The
+emitter, for its part, no longer sends a reader to another variable that happens to hold the same
+value once the planner gave the value a slot (the "held elsewhere" shortcuts), and in walk mode
+checks every statement's words against the plan. The pairs cost slots -- 14 in the egress where 10
+values were ever live at once, greedily -- so the slots are chosen by a depth-first search over
+each path's values that backtracks when a gress would touch more than 12 words (a few hundred
+nodes on this plan), with a shift rotate's `or` written over its `shl` half and a value written
+over an operand that dies at it; the regenerated program then touches 12 words in the ingress and
+10 in the egress; with the pairs right but 14 egress words (regen 19 of the walk) bf-p4c's
+failure had already narrowed from both gresses to the egress alone.

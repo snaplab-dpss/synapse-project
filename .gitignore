@@ -66,3 +66,5 @@ princeton-p4-projects
 # Left behind in synthesized/ by a model or hardware run, not by synapse
 synthesized/bf_drivers.log*
 synthesized/*.bak
+# bf-p4c build outputs of the compile experiments
+tofino/exp-compute/**/out*/
