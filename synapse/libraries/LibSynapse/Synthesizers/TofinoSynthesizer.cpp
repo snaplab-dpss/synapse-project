@@ -3045,10 +3045,11 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       }
       // Only a hash chain's values live in slots; a compute op off every chain (the clock and
       // delta arithmetic feeding the cookie) keeps its metadata variable, where nothing slices
-      // it, and reaches the chain through the hash unit like any other outside value.
-      if (TofinoModuleFactory::is_compute_module(module) && !TofinoModuleFactory::is_hash_chain_node(ep->get_bdd(), module->get_node())) {
-        continue; // Off the core of every chain: a metadata variable (a hash-unit output, after a chain).
-      }
+      // it, and reaches the chain through the hash unit like any other outside value. What it
+      // reads of the chain is read all the same: an exit xor holds its words to its own stage,
+      // or the next rotate takes one of them first.
+      const bool off_core =
+          TofinoModuleFactory::is_compute_module(module) && !TofinoModuleFactory::is_hash_chain_node(ep->get_bdd(), module->get_node());
       // A module that leaves its node to be processed again (a cut: the node's own module comes
       // next, on the far side) reads nothing itself; counting the node's reads here, at a module
       // with no placed data structure, would hold the values to the end of the path.
@@ -3108,6 +3109,9 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
           value.read_elsewhere = true;
         }
         value.to = std::max(value.to, use);
+      }
+      if (off_core) {
+        continue; // Its own values stay in metadata: no slot, no def here.
       }
       // A temporary is read by its own module's ops: it lives to the last of those that read it
       // (a shift rotate's operand to the halves, the halves to the or), or, for a hash op whose
