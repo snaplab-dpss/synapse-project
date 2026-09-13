@@ -49,6 +49,10 @@ extern u64 num_compute_ops_reused;
 // operands equal but for one plain value, unified by naming or by a move before the op matched.
 // An op that matched exactly at the first lookup is counted in num_compute_ops_reused only.
 extern u64 num_compute_ops_shape_shared;
+// Compute ops that found their exact computation placed on their own path already (a rotate's
+// operand and the op node of the same expression, which the BDD unrolls separately) and became
+// that placement. Not in num_compute_ops_reused: nothing is shared between paths.
+extern u64 num_compute_ops_deduped;
 
 extern time_us_t total_time_spent_speculating;
 extern time_us_t total_time_spent_generating_execution_plans;

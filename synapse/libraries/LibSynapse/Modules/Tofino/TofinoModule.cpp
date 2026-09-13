@@ -13,6 +13,7 @@
 #include <LibSynapse/ExecutionPlan.h>
 
 #include <unordered_set>
+#include <functional>
 #include <klee/util/ExprVisitor.h>
 
 namespace LibSynapse {
@@ -346,13 +347,160 @@ std::unordered_set<DS_ID> path_compute_actions(const EP *ep, const speculations_
 
 bool TofinoModuleFactory::is_plain_operand(klee::ref<klee::Expr> expr) { return LibCore::is_plain_value(expr); }
 
+namespace {
+
+// The compute nodes' data flow, computed once: node ids are stable across the BDD reorderings the
+// search tries, and the flow between op nodes is the program's, not the order's.
+struct chain_map_t {
+  bool computed = false;
+  std::unordered_set<std::string> produced;                // Symbols the slotted nodes produce.
+  std::unordered_set<LibBDD::bdd_node_id_t> slotted_nodes; // The core (rotates and what feeds them), plus what follows it short of an xor.
+  std::unordered_set<LibBDD::bdd_node_id_t> exit_nodes;    // The xors after the core: hash-unit ops into metadata.
+};
+
+chain_map_t &chain_map(const BDD *bdd) {
+  static chain_map_t map;
+  if (map.computed) {
+    return map;
+  }
+  map.computed = true;
+  struct node_info_t {
+    LibBDD::bdd_node_id_t id;
+    bool rotate;
+    bool xor_op;
+    std::string out;
+    std::unordered_set<std::string> reads;
+  };
+  std::vector<node_info_t> nodes;
+  bdd->get_root()->visit_nodes([&](const BDDNode *node) {
+    if (!TofinoModuleFactory::is_compute_node(node)) {
+      return BDDNodeVisitAction::Continue;
+    }
+    const LibBDD::call_t &call = dynamic_cast<const LibBDD::Call *>(node)->get_call();
+    node_info_t info{node->get_id(), call.function_name == "rotate_left", call.function_name == "op_xor", "", {}};
+    LibCore::is_readLSB(call.ret, info.out);
+    for (const symbol_t &symbol : node->get_used_symbols().get()) {
+      info.reads.insert(symbol.name);
+    }
+    nodes.push_back(info);
+    return BDDNodeVisitAction::Continue;
+  });
+  std::unordered_map<std::string, size_t> producer; // Symbol -> the node producing it.
+  std::unordered_map<std::string, std::vector<size_t>> readers;
+  for (size_t i = 0; i < nodes.size(); i++) {
+    if (!nodes[i].out.empty()) {
+      producer[nodes[i].out] = i;
+    }
+    for (const std::string &read : nodes[i].reads) {
+      readers[read].push_back(i);
+    }
+  }
+  // The core: the rotates and, backwards through what they read, everything that feeds one.
+  std::vector<bool> core(nodes.size(), false);
+  std::vector<size_t> worklist;
+  for (size_t i = 0; i < nodes.size(); i++) {
+    if (nodes[i].rotate) {
+      core[i] = true;
+      worklist.push_back(i);
+    }
+  }
+  while (!worklist.empty()) {
+    const size_t i = worklist.back();
+    worklist.pop_back();
+    for (const std::string &read : nodes[i].reads) {
+      auto producer_it = producer.find(read);
+      if (producer_it != producer.end() && !core[producer_it->second]) {
+        core[producer_it->second] = true;
+        worklist.push_back(producer_it->second);
+      }
+    }
+  }
+  // After the chain: forwards from the core's values through their readers.
+  std::vector<bool> post(nodes.size(), false);
+  for (size_t i = 0; i < nodes.size(); i++) {
+    if (core[i]) {
+      worklist.push_back(i);
+    }
+  }
+  while (!worklist.empty()) {
+    const size_t i = worklist.back();
+    worklist.pop_back();
+    if (nodes[i].out.empty()) {
+      continue;
+    }
+    for (size_t reader : readers[nodes[i].out]) {
+      if (!core[reader] && !post[reader]) {
+        post[reader] = true;
+        worklist.push_back(reader);
+      }
+    }
+  }
+  // After the core, an xor leaves the chain through the hash unit; anything else -- an add of
+  // two state words -- can only run on the ALU, so it stays in slots with the core.
+  for (size_t i = 0; i < nodes.size(); i++) {
+    if (core[i] || (post[i] && !nodes[i].xor_op)) {
+      map.slotted_nodes.insert(nodes[i].id);
+      if (!nodes[i].out.empty()) {
+        map.produced.insert(nodes[i].out);
+      }
+    } else if (post[i]) {
+      map.exit_nodes.insert(nodes[i].id);
+    }
+  }
+  if (Walk::enabled()) {
+    std::cerr << "[chain-map] " << nodes.size() << " compute nodes: " << map.slotted_nodes.size() << " in slots (core and what follows it), "
+              << map.exit_nodes.size() << " xors leaving through the hash unit; the rest:";
+    for (const node_info_t &info : nodes) {
+      if (!core[&info - &nodes[0]] && !post[&info - &nodes[0]]) {
+        std::cerr << " " << info.id;
+      }
+    }
+    std::cerr << "\n";
+  }
+  return map;
+}
+
+} // namespace
+
+bool TofinoModuleFactory::is_hash_chain_node(const BDD *bdd, const BDDNode *node) { return chain_map(bdd).slotted_nodes.contains(node->get_id()); }
+
+bool TofinoModuleFactory::is_hash_chain_post(const BDD *bdd, const BDDNode *node) { return chain_map(bdd).exit_nodes.contains(node->get_id()); }
+
+bool TofinoModuleFactory::reads_outside(const BDD *bdd, klee::ref<klee::Expr> expr) {
+  const chain_map_t &map = chain_map(bdd);
+  for (const std::string &name : symbol_t::get_symbols_names(expr)) {
+    if (!map.produced.contains(name)) {
+      return true; // A packet field (packet_chunks), another call's return value, or an op's off the core.
+    }
+  }
+  return false;
+}
+
 std::vector<TofinoModuleFactory::compute_operand_t>
-TofinoModuleFactory::get_operands_to_compute(const std::string &op_id_base, const std::vector<std::pair<std::string, klee::ref<klee::Expr>>> &exprs) {
+TofinoModuleFactory::get_operands_to_compute(const std::string &op_id_base, const std::vector<std::pair<std::string, klee::ref<klee::Expr>>> &exprs,
+                                             const BDD *bdd, OutsideOperands mode) {
   std::vector<compute_operand_t> operands;
   for (const auto &[suffix, expr] : exprs) {
-    if (!is_plain_operand(expr)) {
-      operands.push_back({expr, op_id_base + suffix, ""});
+    const bool plain   = is_plain_operand(expr);
+    const bool outside = mode != OutsideOperands::Keep && !LibCore::is_constant(expr) && reads_outside(bdd, expr);
+    if (outside && mode == OutsideOperands::Inline) {
+      continue;
     }
+    if (plain && !(outside && mode == OutsideOperands::Load)) {
+      continue;
+    }
+    bool via_hash = false;
+    if (outside && expr->getWidth() <= Tofino::ComputeAction::MAX_HASH_BITS_PER_ACTION) {
+      // Read from outside by the hash unit: a plain value or a layout of one (a load), or an
+      // xor of chain values with it. Anything else the hash unit cannot compute stays an ALU
+      // op, and its outside operand joins the cluster.
+      bool only_outside = true;
+      for (const std::string &name : symbol_t::get_symbols_names(expr)) {
+        only_outside &= !chain_map(bdd).produced.contains(name);
+      }
+      via_hash = only_outside || expr->getKind() == klee::Expr::Xor;
+    }
+    operands.push_back({expr, op_id_base + suffix, "", via_hash});
   }
   return operands;
 }
@@ -362,14 +510,17 @@ bool TofinoModuleFactory::place_operand_ops(ComputeStepBuilder &builder, const E
   for (compute_operand_t &operand : operands) {
     const std::unordered_set<DS_ID> deps = speculations ? TofinoContext::get_dataflow_deps(ep, node, operand.expr, *speculations)
                                                         : TofinoContext::get_dataflow_deps(ep, node, operand.expr);
-    const std::optional<DS_ID> action    = builder.place({.id      = operand.op_id,
-                                                          .kind    = ComputeOpKind::ALU,
-                                                          .width   = operand.expr->getWidth(),
-                                                          .fn      = "operand",
-                                                          .args    = {operand.expr},
-                                                          .out     = nullptr,
-                                                          .in_hash = false},
-                                                         deps);
+    // Keyed like the op node of the same expression (op_xor for a xor, ...): the BDD unrolls a
+    // rotate's argument and that expression's own op node separately, and the two are one
+    // placement on a path holding both.
+    const std::optional<DS_ID> action = builder.place({.id      = operand.op_id,
+                                                       .kind    = operand.via_hash ? ComputeOpKind::Hash : ComputeOpKind::ALU,
+                                                       .width   = operand.expr->getWidth(),
+                                                       .fn      = LibBDD::unrolled_op_name(operand.expr).value_or("operand"),
+                                                       .args    = {operand.expr},
+                                                       .out     = nullptr,
+                                                       .in_hash = operand.via_hash},
+                                                      deps);
     if (!action) {
       return false;
     }
@@ -432,8 +583,10 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
     std::erase_if(deps, [this](const DS_ID &dep) { return std::find(actions.begin(), actions.end(), dep) == actions.end(); });
   }
 
-  // The same function of the same values, placed on a mutually exclusive path already: reuse
-  // that action, in this gress and no earlier than this op's producers, and pay nothing.
+  // The same function of the same values, placed already: on a mutually exclusive path, reuse
+  // that action, in this gress and no earlier than this op's producers, and pay nothing; on this
+  // very path, the value is computed already (a rotate's operand and the op node of the same
+  // expression), so the op is that computation.
   Pipeline &pipeline     = ctx->get_mutable_tna().pipeline;
   compute_op_t canonical = ctx->canonical_op(op);
   const int soonest      = pipeline.get_soonest_stage_satisfying_all_dependencies(deps);
@@ -444,15 +597,20 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
     pass.insert(deps.begin(), deps.end());
     return pass;
   };
+  // This builder's own actions and the run it extends are this path's too, and this pass's.
+  std::unordered_set<DS_ID> own_actions = path_actions;
+  own_actions.insert(actions.begin(), actions.end());
+  own_actions.insert(run.begin(), run.end());
   const auto usable = [&](const compute_reuse_t &original) {
     const std::optional<Gress> gress = pipeline.get_placed_gress(original.action);
     const int stage                  = pipeline.get_placed_stage(original.action);
     return gress && *gress == pipeline.get_gress() && soonest >= 0 && stage >= soonest;
   };
   const auto take = [&](const compute_reuse_t &original) -> DS_ID {
-    ctx->reuse_compute_op(canonical, original);
+    const bool same_path = own_actions.contains(original.action) && !ctx->is_shared_compute_action(original.action);
+    ctx->reuse_compute_op(canonical, original, same_path);
     placed_ops.insert({op.id, original.action});
-    GlobalStats::num_compute_ops_reused++;
+    (same_path ? GlobalStats::num_compute_ops_deduped : GlobalStats::num_compute_ops_reused)++;
     return original.action;
   };
   if (const std::optional<compute_reuse_t> original = ctx->find_reusable_compute_op(canonical)) {
@@ -464,10 +622,6 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   // The same shape, differing in plain values: reuse it once each of those reads one field on
   // both paths -- by naming when both paths compute the value, by a move placed ahead of the
   // shared action on the path that reads it from the packet or as a constant.
-  // This builder's own actions and the run it extends are this path's too, and this pass's.
-  std::unordered_set<DS_ID> own_actions = path_actions;
-  own_actions.insert(actions.begin(), actions.end());
-  own_actions.insert(run.begin(), run.end());
   for (const compute_shape_match_t &candidate : ctx->find_shape_matches(canonical, pass_actions(), own_actions)) {
     const compute_shape_match_t *match = &candidate;
     if (full_placer && Walk::enabled()) {
@@ -477,25 +631,39 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
     if (usable(match->original)) {
       const int shared_stage = pipeline.get_placed_stage(match->original.action);
       // Every move needs a stage of its own before the shared action, with a logical id to spare.
-      const auto move_stage = [&](klee::ref<klee::Expr> to) -> int {
-        const compute_op_t move_op{
-            .id = "move_" + to_string(to), .kind = ComputeOpKind::ALU, .width = to->getWidth(), .fn = "", .args = {}, .out = to, .in_hash = false};
+      // A move copies a plain value into the shared field, a slot of the chain: by the hash unit
+      // when the value is a packet field or another call's (see is_hash_chain_node), by the ALU
+      // when it is a constant.
+      const auto move_kind = [&](klee::ref<klee::Expr> from) { return LibCore::is_constant(from) ? ComputeOpKind::ALU : ComputeOpKind::Hash; };
+      const auto move_stage = [&](klee::ref<klee::Expr> from, klee::ref<klee::Expr> to) -> int {
+        const compute_op_t move_op{.id      = "move_" + to_string(to),
+                                   .kind    = move_kind(from),
+                                   .width   = to->getWidth(),
+                                   .fn      = "",
+                                   .args    = {},
+                                   .out     = to,
+                                   .in_hash = move_kind(from) == ComputeOpKind::Hash};
         const ComputeAction probe("select_" + to_string(to), node->get_id(), {move_op});
         const int stage = pipeline.find_stage_for_compute_action(&probe, {});
         return (stage >= 0 && stage < shared_stage) ? stage : -1;
       };
       bool fits = true;
       for (const auto &[theirs, ours] : match->moved_there) {
-        fits &= ctx->find_compute_move(ours).has_value() || move_stage(ours) >= 0;
+        fits &= ctx->find_compute_move(ours).has_value() || move_stage(theirs, ours) >= 0;
       }
       for (const auto &[theirs, ours] : match->moved_here) {
-        fits &= move_stage(theirs) >= 0;
+        fits &= move_stage(ours, theirs) >= 0;
       }
       if (fits) {
         const auto place_move = [&](klee::ref<klee::Expr> from, klee::ref<klee::Expr> to, const std::string &anchor) {
           const std::string move_id = "move_" + to_string(to);
-          const compute_op_t move_op{
-              .id = move_id, .kind = ComputeOpKind::ALU, .width = to->getWidth(), .fn = "", .args = {from}, .out = to, .in_hash = false};
+          const compute_op_t move_op{.id      = move_id,
+                                     .kind    = move_kind(from),
+                                     .width   = to->getWidth(),
+                                     .fn      = "",
+                                     .args    = {from},
+                                     .out     = to,
+                                     .in_hash = move_kind(from) == ComputeOpKind::Hash};
           ComputeAction *action = new ComputeAction("select_" + to_string(to), node->get_id(), {move_op});
           ctx->place(node->get_id(), action, {});
           pipeline.charge_compute_op();

@@ -291,6 +291,17 @@ void check_invariant(const BDD &bdd) {
 
 } // namespace
 
+std::optional<std::string> unrolled_op_name(klee::ref<klee::Expr> expr) {
+  if (expr.isNull() || !is_arithmetic_op(expr)) {
+    return {};
+  }
+  const op_t *op = op_from_kind(expr->getKind());
+  if (!op) {
+    return {};
+  }
+  return op->name;
+}
+
 bool is_arithmetic_op(klee::ref<klee::Expr> expr) {
   switch (expr->getKind()) {
   case klee::Expr::Add:

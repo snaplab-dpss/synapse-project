@@ -116,19 +116,52 @@ public:
 
   // An operand of a compute op that the data plane can't read as is (an expression, not a
   // constant or a whole value): computed first as op `op_id` of the ComputeAction
-  // `action_id`, one stage ahead.
+  // `action_id`, one stage ahead. `via_hash`: computed by the hash unit (see
+  // is_hash_chain_node), not the ALU.
   struct compute_operand_t {
     klee::ref<klee::Expr> expr;
     std::string op_id;
     DS_ID action_id;
+    bool via_hash = false;
   };
 
   // A constant or a whole read of one value: usable as an action operand directly.
   static bool is_plain_operand(klee::ref<klee::Expr> expr);
 
-  // The operands among `exprs` (op id = base + suffix) that need computing first.
+  // Whether a compute node's value lives in a slot of the state header: the core of a hash
+  // chain -- a rotate_left, or an op whose value feeds one, through the symbols the op nodes
+  // produce and read -- and what follows the core short of an xor. A rotate through the hash
+  // unit cuts every value an ALU op ties to it into slices, and bf-p4c then packs the whole
+  // cluster of such values into one PHV group of twelve 32-bit containers. What enters the
+  // slots from outside -- a packet field, a register's value, the clock -- must not join the
+  // cluster, so it is read through the hash unit: an xor that takes it is computed by the hash
+  // unit, and any other op has it loaded into a slot by the hash unit first (the ground truth's
+  // time_read). Cached per node id: the classification does not depend on the BDD's order,
+  // which reorderings change.
+  static bool is_hash_chain_node(const BDD *bdd, const BDDNode *node);
+  // Whether a compute node is an xor after the core of a hash chain: it reads a slotted value,
+  // directly or through other such nodes, and feeds no rotate. It is computed by the hash unit
+  // into a metadata variable, as the ground truth computes its cookie value: a hash-unit output
+  // is not tied to the chain's cluster, so the ops after it are ordinary metadata arithmetic.
+  static bool is_hash_chain_post(const BDD *bdd, const BDDNode *node);
+  // Whether `expr` reads anything from outside the hash chains: a packet field, a symbol some
+  // other call returned, or the output of a compute op off every chain (kept in metadata).
+  static bool reads_outside(const BDD *bdd, klee::ref<klee::Expr> expr);
+
+  // What an op of a hash chain does with an operand that reads outside the chain.
+  enum class OutsideOperands {
+    Keep,   // Not a chain op: nothing special.
+    Load,   // The op runs on the ALU: the hash unit loads the value into a slot first.
+    Inline, // The op runs on the hash unit itself, which reads the value where it is.
+  };
+
+  // The operands among `exprs` (op id = base + suffix) that need computing first: every one
+  // that is not a plain value, plus, under `Load`, every plain outside value. An operand that
+  // reads only outside values, or that is an xor reading one, is computed by the hash unit
+  // (`via_hash`); under `Inline`, outside operands are left to the op.
   static std::vector<compute_operand_t> get_operands_to_compute(const std::string &op_id_base,
-                                                                const std::vector<std::pair<std::string, klee::ref<klee::Expr>>> &exprs);
+                                                                const std::vector<std::pair<std::string, klee::ref<klee::Expr>>> &exprs,
+                                                                const BDD *bdd = nullptr, OutsideOperands outside = OutsideOperands::Keep);
 
   // The compute actions of the run of consecutive compute steps ending at the active leaf
   // (nearest first). A step only shares an action with steps of its own run: no other module
