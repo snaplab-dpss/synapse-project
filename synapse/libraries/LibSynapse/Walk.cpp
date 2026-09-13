@@ -244,6 +244,12 @@ void reorder_candidates(bdd_node_id_t anchor, bool direction, const std::vector<
   reorder_notes.push_back({anchor, direction, candidates});
 }
 
+void dump_step() {
+  if (on) {
+    show();
+  }
+}
+
 choice_t choose() {
   if (!on || offers.size() < 2) {
     return {choice_t::Kind::None, 0};
