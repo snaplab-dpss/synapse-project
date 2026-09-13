@@ -22,6 +22,7 @@ class ParserExtraction;
 class ParserCondition;
 class ParserReject;
 class ModifyHeader;
+class ChecksumUpdate;
 class MapTableLookup;
 class MapSetTableLookup;
 class GuardedMapTableLookup;
@@ -233,6 +234,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserCondition *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserReject *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ChecksumUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapSetTableLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *m) { return Action::doChildren; }

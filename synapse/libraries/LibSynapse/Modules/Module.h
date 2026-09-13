@@ -38,6 +38,7 @@ enum class ModuleType {
   Tofino_ParserCondition,
   Tofino_ParserReject,
   Tofino_ModifyHeader,
+  Tofino_ChecksumUpdate,
   Tofino_MapTableLookup,
   Tofino_MapSetTableLookup,
   Tofino_GuardedMapTableLookup,
@@ -261,6 +262,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_ModifyHeader:
     os << "Tofino_ModifyHeader";
+    break;
+  case ModuleType::Tofino_ChecksumUpdate:
+    os << "Tofino_ChecksumUpdate";
     break;
   case ModuleType::Tofino_MapTableLookup:
     os << "Tofino_MapTableLookup";

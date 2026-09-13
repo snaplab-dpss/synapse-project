@@ -494,6 +494,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Tofino_ParserExtraction:
     case ModuleType::Tofino_ParserReject:
     case ModuleType::Tofino_ModifyHeader:
+    case ModuleType::Tofino_ChecksumUpdate:
     case ModuleType::Tofino_VectorRegisterLookup:
     case ModuleType::Tofino_VectorRegisterUpdate:
     case ModuleType::Tofino_VectorRegisterReadConditionalUpdate:
