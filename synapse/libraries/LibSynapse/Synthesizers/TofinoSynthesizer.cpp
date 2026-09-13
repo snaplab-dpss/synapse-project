@@ -8042,6 +8042,86 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     }
   }
 
+  // 3b. A chain of xors leaving the chain through the hash unit is one hash op: xor is
+  // associative, a hash-unit op reads as many words as it likes, and a chain of them costs a
+  // level and two hash-distribution units a link (the ground truth writes its cookie as one
+  // @in_hash xor of the whole state). An intermediate folds into its reader when nothing else
+  // reads it: no other statement here, no module after the run.
+  {
+    static const std::regex xor_chain(R"(^([\w.]+) = ([\w.\[\]:]+(?: \^ [\w.\[\]:]+)*);$)");
+    const auto symbols_of = [&](const std::string &op_id) -> std::vector<std::string> {
+      std::vector<std::string> names;
+      for (const EPNode *step : steps) {
+        const Module *module = step->get_module();
+        if (module->get_type() != ModuleType::Tofino_ArithmeticOp || dynamic_cast<const Tofino::ArithmeticOp *>(module)->get_op_id() != op_id) {
+          continue;
+        }
+        if (const LibBDD::Call *call = dynamic_cast<const LibBDD::Call *>(module->get_node())) {
+          for (const symbol_t &symbol : call->get_local_symbols().get()) {
+            names.push_back(symbol.name);
+          }
+        }
+      }
+      return names;
+    };
+    const auto read_after_the_run = [&](const std::vector<std::string> &names) -> bool {
+      std::vector<const EPNode *> pending(steps.back()->get_children().begin(), steps.back()->get_children().end());
+      while (!pending.empty()) {
+        const EPNode *ep_node = pending.back();
+        pending.pop_back();
+        if (const Module *module = ep_node->get_module()) {
+          Symbols used = module->get_node() ? module->get_node()->get_used_symbols() : Symbols();
+          if (module->get_type() == ModuleType::Tofino_SendToController) {
+            for (const symbol_t &symbol : dynamic_cast<const Tofino::SendToController *>(module)->get_symbols().get()) {
+              used.add(symbol);
+            }
+          }
+          for (const std::string &name : names) {
+            if (used.has(name)) {
+              return true;
+            }
+          }
+        }
+        pending.insert(pending.end(), ep_node->get_children().begin(), ep_node->get_children().end());
+      }
+      return false;
+    };
+    for (size_t i = 0; i < ops.size(); i++) {
+      std::smatch m;
+      if (!ops[i].in_hash || !std::regex_match(ops[i].statement, m, xor_chain) || m[2].str().find(" ^ ") == std::string::npos) {
+        continue;
+      }
+      const code_t out = m[1].str();
+      if (out.rfind("hdr.st.", 0) == 0) {
+        continue; // A state word: the chain reads it.
+      }
+      size_t reader = ops.size();
+      size_t reads  = 0;
+      for (size_t j = 0; j < ops.size(); j++) {
+        if (j == i) {
+          continue;
+        }
+        const code_t &s = ops[j].statement;
+        for (size_t at = s.find(out); at != std::string::npos; at = s.find(out, at + out.size())) {
+          const bool whole = (at == 0 || !(std::isalnum(s[at - 1]) || s[at - 1] == '_' || s[at - 1] == '.')) &&
+                             (at + out.size() >= s.size() || !(std::isalnum(s[at + out.size()]) || s[at + out.size()] == '_'));
+          if (whole) {
+            reads++;
+            reader = j;
+          }
+        }
+      }
+      if (reads != 1 || !ops[reader].in_hash || !std::regex_match(ops[reader].statement, xor_chain) || read_after_the_run(symbols_of(ops[i].op_id))) {
+        continue;
+      }
+      code_t &target  = ops[reader].statement;
+      const size_t at = target.find(out);
+      target.replace(at, out.size(), m[2].str());
+      ops.erase(ops.begin() + i);
+      i = (size_t)-1; // Start over: a folded reader may fold on.
+    }
+  }
+
   // 4. One bare action per ComputeAction, in stage order, its ops in the order they were
   // appended (the data structure's), called from the apply block in that same order.
   std::vector<DS_ID> action_ids;
