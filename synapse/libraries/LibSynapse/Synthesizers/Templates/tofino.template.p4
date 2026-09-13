@@ -128,7 +128,7 @@ parser IngressParser(
   state start {
     tofino_parser.apply(pkt, ig_intr_md);
 
-    meta.ingress_port[8:0] = ig_intr_md.ingress_port;
+    meta.ingress_port = (bit<16>)ig_intr_md.ingress_port;
     meta.dev = 0;
     meta.time = ig_intr_md.ingress_mac_tstamp[47:16];
 
@@ -296,6 +296,7 @@ control Ingress(
 
 /*@{INGRESS_CONTROL}@*/
   apply {
+/*@{INGRESS_APPLY_START}@*/
     ingress_port_to_nf_dev.apply();
 
     if (hdr.cpu.isValid() && hdr.cpu.trigger_dataplane_execution == 0) {
