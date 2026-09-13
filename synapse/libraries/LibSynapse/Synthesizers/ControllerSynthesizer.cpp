@@ -38,8 +38,8 @@ constexpr const char *const MARKER_NF_INIT                = "NF_INIT";
 constexpr const char *const MARKER_NF_EXIT                = "NF_EXIT";
 constexpr const char *const MARKER_NF_ARGS                = "NF_ARGS";
 constexpr const char *const MARKER_NF_USER_SIGNAL_HANDLER = "NF_USER_SIGNAL_HANDLER";
-constexpr const char *const MARKER_NF_PROCESS            = "NF_PROCESS";
-constexpr const char *const MARKER_NF_PROCESS_PROLOGUE   = "NF_PROCESS_PROLOGUE";
+constexpr const char *const MARKER_NF_PROCESS             = "NF_PROCESS";
+constexpr const char *const MARKER_NF_PROCESS_PROLOGUE    = "NF_PROCESS_PROLOGUE";
 constexpr const char *const MARKER_CPU_HDR_EXTRA          = "CPU_HDR_EXTRA";
 
 template <class T> std::unordered_set<const T *> get_tofino_ds_from_obj(const EP *ep, addr_t obj) {
@@ -772,19 +772,20 @@ void ControllerSynthesizer::Stacks::clear() { stacks.clear(); }
 
 std::vector<ControllerSynthesizer::Stack> ControllerSynthesizer::Stacks::get_all() const { return stacks; }
 
-ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::path _out_file)
-    : out_file(_out_file), code_template(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
-                                         {
-                                             {MARKER_STATE_FIELDS, 1},
-                                             {MARKER_STATE_MEMBER_INIT_LIST, 3},
-                                             {MARKER_NF_INIT, 1},
-                                             {MARKER_NF_EXIT, 1},
-                                             {MARKER_NF_ARGS, 1},
-                                             {MARKER_NF_USER_SIGNAL_HANDLER, 1},
-                                             {MARKER_NF_PROCESS, 1},
-                                             {MARKER_NF_PROCESS_PROLOGUE, 1},
-                                             {MARKER_CPU_HDR_EXTRA, 1},
-                                         }),
+ControllerSynthesizer::ControllerSynthesizer(const EP *_ep, std::filesystem::path _out_file, const handoff_layout_t &_handoff_layout)
+    : out_file(_out_file), handoff_layout(_handoff_layout),
+      code_template(std::filesystem::path(__FILE__).parent_path() / "Templates" / TEMPLATE_FILENAME,
+                    {
+                        {MARKER_STATE_FIELDS, 1},
+                        {MARKER_STATE_MEMBER_INIT_LIST, 3},
+                        {MARKER_NF_INIT, 1},
+                        {MARKER_NF_EXIT, 1},
+                        {MARKER_NF_ARGS, 1},
+                        {MARKER_NF_USER_SIGNAL_HANDLER, 1},
+                        {MARKER_NF_PROCESS, 1},
+                        {MARKER_NF_PROCESS_PROLOGUE, 1},
+                        {MARKER_CPU_HDR_EXTRA, 1},
+                    }),
       target_ep(_ep), transpiler(this) {}
 
 coder_t &ControllerSynthesizer::get_current_coder() { return in_nf_init ? get(MARKER_NF_INIT) : get(MARKER_NF_PROCESS); }
@@ -810,6 +811,21 @@ void ControllerSynthesizer::synthesize() {
 
   synthesize_nf_process();
   synthesize_state_member_init_list();
+
+  // The data plane's state header, whole, after the cpu header on every packet to the controller.
+  if (!handoff_layout.state_words.empty()) {
+    coder_t &cpu_extra = get(MARKER_CPU_HDR_EXTRA);
+    cpu_extra.indent();
+    cpu_extra << "// The data plane's state header, as it follows the cpu header on every packet.\n";
+    for (const auto &[word, width] : handoff_layout.state_words) {
+      cpu_extra.indent();
+      cpu_extra << (width == 8 ? "u8 " : width == 16 ? "u16 " : width == 32 ? "u32 " : width == 64 ? "u64 " : "u8 ") << "st_" << word;
+      if (width != 8 && width != 16 && width != 32 && width != 64) {
+        cpu_extra << "[" << width / 8 << "]";
+      }
+      cpu_extra << ";\n";
+    }
+  }
 
   std::ofstream ofs(out_file);
   ofs << code_template.dump();
@@ -947,12 +963,22 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   code_paths.push_back(code_path);
 
   const Symbols &symbols = node->get_symbols();
+  const auto site_it     = handoff_layout.symbol_word.find(ep_node->get_id());
   for (const symbol_t &symbol : symbols.get()) {
     if (vars.get(symbol.expr, TRANSPILER_OPT_NO_OPTION).has_value()) {
       continue;
     }
 
     const bits_t width = symbol.expr->getWidth();
+
+    // A value the data plane keeps in its state header: read from the header's word, which
+    // follows the cpu header on every packet (declared once, at the end of the struct).
+    if (site_it != handoff_layout.symbol_word.end()) {
+      if (const auto word_it = site_it->second.find(symbol.name); word_it != site_it->second.end()) {
+        alloc_var("st_" + word_it->second, symbol.expr, {}, EXACT_NAME | IS_CPU_HDR_EXTRA | (width > 64 ? IS_PTR : NO_OPTION));
+        continue;
+      }
+    }
 
     assert(width % 8 == 0 && "Unexpected width (not a multiple of 8)");
     assert(width >= 8 && "Unexpected width (less than 8)");
@@ -1538,9 +1564,9 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DchainAllocate *node) {
   const code_t name = "cpu_dchain_" + std::to_string(node->get_dchain_addr());
 
-  const Call *call_node               = dynamic_cast<const Call *>(node->get_node());
-  const call_t &call                  = call_node->get_call();
-  const klee::ref<klee::Expr> range   = call.args.at("index_range").expr;
+  const Call *call_node             = dynamic_cast<const Call *>(node->get_node());
+  const call_t &call                = call_node->get_call();
+  const klee::ref<klee::Expr> range = call.args.at("index_range").expr;
 
   coder_t &state_fields = get(MARKER_STATE_FIELDS);
   state_fields.indent();
@@ -1566,8 +1592,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
     const var_t ok_var = alloc_var("dchain_allocated", node->get_not_out_of_space()->expr, {}, NO_OPTION);
     coder << "int " << ok_var.name << " = ";
   }
-  coder << "libnf::dchain_allocate_new_index(state->" << name << ", &" << index_var.name << ", " << transpiler.transpile(node->get_time())
-        << ");\n";
+  coder << "libnf::dchain_allocate_new_index(state->" << name << ", &" << index_var.name << ", " << transpiler.transpile(node->get_time()) << ");\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1591,8 +1616,8 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const var_t is_allocated_var = alloc_var("is_allocated", node->get_is_allocated().expr, {}, NO_OPTION);
 
   coder.indent();
-  coder << "int " << is_allocated_var.name << " = libnf::dchain_is_index_allocated(state->" << name << ", "
-        << transpiler.transpile(node->get_index()) << ");\n";
+  coder << "int " << is_allocated_var.name << " = libnf::dchain_is_index_allocated(state->" << name << ", " << transpiler.transpile(node->get_index())
+        << ");\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -1794,41 +1819,41 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 // downstream nodes resolve to it. Semantics match the NF/switch exactly (same libnf).
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::FindFirstSetBit *node) {
-  coder_t &coder            = get_current_coder();
-  const code_t x_code       = transpiler.transpile(node->get_x());
+  coder_t &coder                  = get_current_coder();
+  const code_t x_code             = transpiler.transpile(node->get_x());
   const klee::ref<klee::Expr> out = node->get_out();
-  const var_t out_var       = alloc_var("first_set_bit", out, {}, NO_OPTION);
+  const var_t out_var             = alloc_var("first_set_bit", out, {}, NO_OPTION);
   coder.indent();
   coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::find_first_set_bit(" << x_code << ");\n";
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::CountTrailingZeros *node) {
-  coder_t &coder            = get_current_coder();
-  const code_t x_code       = transpiler.transpile(node->get_x());
+  coder_t &coder                  = get_current_coder();
+  const code_t x_code             = transpiler.transpile(node->get_x());
   const klee::ref<klee::Expr> out = node->get_out();
-  const var_t out_var       = alloc_var("trailing_zeros", out, {}, NO_OPTION);
+  const var_t out_var             = alloc_var("trailing_zeros", out, {}, NO_OPTION);
   coder.indent();
   coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::count_trailing_zeros(" << x_code << ");\n";
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Min *node) {
-  coder_t &coder            = get_current_coder();
-  const code_t a_code       = transpiler.transpile(node->get_a());
-  const code_t b_code       = transpiler.transpile(node->get_b());
+  coder_t &coder                  = get_current_coder();
+  const code_t a_code             = transpiler.transpile(node->get_a());
+  const code_t b_code             = transpiler.transpile(node->get_b());
   const klee::ref<klee::Expr> out = node->get_out();
-  const var_t out_var       = alloc_var("minimum", out, {}, NO_OPTION);
+  const var_t out_var             = alloc_var("minimum", out, {}, NO_OPTION);
   coder.indent();
   coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::min(" << a_code << ", " << b_code << ");\n";
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::PowerOfTwo *node) {
-  coder_t &coder            = get_current_coder();
-  const code_t exp_code     = transpiler.transpile(node->get_exponent());
+  coder_t &coder                  = get_current_coder();
+  const code_t exp_code           = transpiler.transpile(node->get_exponent());
   const klee::ref<klee::Expr> out = node->get_out();
-  const var_t out_var       = alloc_var("power", out, {}, NO_OPTION);
+  const var_t out_var             = alloc_var("power", out, {}, NO_OPTION);
   coder.indent();
   coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::power_of_two(" << exp_code << ");\n";
   return EPVisitor::Action::doChildren;
@@ -1873,22 +1898,22 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Divide *node) {
-  coder_t &coder            = get_current_coder();
-  const code_t num_code     = transpiler.transpile(node->get_numerator());
-  const code_t den_code     = transpiler.transpile(node->get_denominator());
+  coder_t &coder                  = get_current_coder();
+  const code_t num_code           = transpiler.transpile(node->get_numerator());
+  const code_t den_code           = transpiler.transpile(node->get_denominator());
   const klee::ref<klee::Expr> out = node->get_out();
-  const var_t out_var       = alloc_var("quotient", out, {}, NO_OPTION);
+  const var_t out_var             = alloc_var("quotient", out, {}, NO_OPTION);
   coder.indent();
   coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::divide(" << num_code << ", " << den_code << ");\n";
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Ln *node) {
-  coder_t &coder            = get_current_coder();
-  const code_t x_code       = transpiler.transpile(node->get_x());
-  const code_t scale_code   = transpiler.transpile(node->get_scale());
+  coder_t &coder                  = get_current_coder();
+  const code_t x_code             = transpiler.transpile(node->get_x());
+  const code_t scale_code         = transpiler.transpile(node->get_scale());
   const klee::ref<klee::Expr> out = node->get_out();
-  const var_t out_var       = alloc_var("logarithm", out, {}, NO_OPTION);
+  const var_t out_var             = alloc_var("logarithm", out, {}, NO_OPTION);
   coder.indent();
   coder << Transpiler::type_from_expr(out) << " " << out_var.name << " = libnf::ln(" << x_code << ", " << scale_code << ");\n";
   return EPVisitor::Action::doChildren;
@@ -2333,9 +2358,9 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::BloomFilterQuery *node) {
   coder_t &coder = get_current_coder();
 
-  const code_t name        = "cpu_bf_" + std::to_string(node->get_bf_addr());
-  const var_t key_var      = transpile_buffer_decl_and_set(coder, "bf_key", node->get_key(), true);
-  const var_t present_var  = alloc_var("bf_query", node->get_min_estimate(), {}, NO_OPTION);
+  const code_t name       = "cpu_bf_" + std::to_string(node->get_bf_addr());
+  const var_t key_var     = transpile_buffer_decl_and_set(coder, "bf_key", node->get_key(), true);
+  const var_t present_var = alloc_var("bf_query", node->get_min_estimate(), {}, NO_OPTION);
 
   coder.indent();
   coder << "int " << present_var.name << " = libnf::bf_query(state->" << name << ", " << key_var.name << ".data);\n";
