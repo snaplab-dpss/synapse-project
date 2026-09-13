@@ -3,6 +3,7 @@
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/Modules/Tofino/VectorTableLookup.h>
+#include <sstream>
 
 namespace LibSynapse {
 namespace Controller {
@@ -621,17 +622,21 @@ code_t ControllerSynthesizer::var_t::get_slice(bits_t offset, bits_t size, trans
     coder << size / 8;
     coder << ")";
   } else {
+    // The mask as an unsigned 64-bit literal: `(1 << size) - 1` overflowed at 32 bits, and a
+    // decimal literal past the signed range is ill-formed.
+    std::stringstream mask;
+    mask << "0x" << std::hex << (size >= 64 ? ~0ull : ((1ull << size) - 1)) << "ull";
     if (offset > 0) {
       coder << "(";
       coder << name;
       coder << ">>";
       coder << offset;
       coder << ") & ";
-      coder << ((1 << size) - 1);
+      coder << mask.str();
     } else {
       coder << name;
       coder << " & ";
-      coder << ((1ull << size) - 1);
+      coder << mask.str();
     }
   }
 
