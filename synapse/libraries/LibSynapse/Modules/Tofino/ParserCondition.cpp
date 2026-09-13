@@ -4,6 +4,7 @@
 #include <LibSynapse/Modules/Tofino/Then.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Expr.h>
+#include <LibCore/Net.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -15,6 +16,7 @@ using LibBDD::call_t;
 using LibCore::filter;
 using LibCore::is_constant;
 using LibCore::is_readLSB;
+using LibCore::is_readLSB_of_symbol;
 using LibCore::simplify_conditional;
 
 void add_selection(std::vector<parser_selection_t> &selections, const parser_selection_t &new_selection) {
@@ -35,13 +37,12 @@ void add_selections(std::vector<parser_selection_t> &selections, const std::vect
   }
 }
 
-std::vector<parser_selection_t> ParserConditionFactory::build_parser_select(klee::ref<klee::Expr> condition) {
-  condition = filter(condition, {"packet_chunks", "DEVICE"});
-  condition = simplify_conditional(condition);
+namespace {
 
-  // A condition that only checked the packet length (e.g. "enough bytes left for the next
-  // header") has nothing left to select on: the parser always takes the true branch, as
-  // minimum-size frames already satisfy such checks.
+// The selections of a condition on packet fields: a field's values from each comparison, an Or's
+// sides pooled by field.
+std::vector<parser_selection_t> build_selections(klee::ref<klee::Expr> condition) {
+  // A side of an Or with nothing left to select on selects nothing.
   if (is_constant(condition)) {
     assert_or_panic(solver_toolbox.is_expr_always_true(condition), "Parser condition is never true: %s", expr_to_string(condition).c_str());
     return {};
@@ -54,8 +55,8 @@ std::vector<parser_selection_t> ParserConditionFactory::build_parser_select(klee
     klee::ref<klee::Expr> lhs = condition->getKid(0);
     klee::ref<klee::Expr> rhs = condition->getKid(1);
 
-    const std::vector<parser_selection_t> lhs_sel = build_parser_select(lhs);
-    const std::vector<parser_selection_t> rhs_sel = build_parser_select(rhs);
+    const std::vector<parser_selection_t> lhs_sel = build_selections(lhs);
+    const std::vector<parser_selection_t> rhs_sel = build_selections(rhs);
 
     std::vector<parser_selection_t> selections;
     add_selections(selections, lhs_sel);
@@ -96,6 +97,57 @@ std::vector<parser_selection_t> ParserConditionFactory::build_parser_select(klee
   }
 
   return {selection};
+}
+
+// The whole read of a symbol inside an expression.
+klee::ref<klee::Expr> find_read(klee::ref<klee::Expr> expr, const std::string &symbol) {
+  if (is_readLSB_of_symbol(expr, symbol)) {
+    return expr;
+  }
+  for (unsigned i = 0; i < expr->getNumKids(); i++) {
+    klee::ref<klee::Expr> read = find_read(expr->getKid(i), symbol);
+    if (!read.isNull()) {
+      return read;
+    }
+  }
+  return klee::ref<klee::Expr>();
+}
+
+// The branch a condition on the packet length alone takes. Such a condition asks whether enough
+// bytes are left for the next header, and every frame the parser sees is at least a minimum-size
+// frame long (less the FCS the MAC strips), which settles the check one way for all of them:
+// SmartCookie's "8 bytes left for UDP" is always true, its "fewer than 4 bytes left for the
+// clock" always false. Taking the true branch of every such check, as before, skipped the clock.
+bool packet_length_branch(klee::ref<klee::Expr> condition) {
+  klee::ref<klee::Expr> pkt_len = find_read(condition, "pkt_len");
+  assert_or_panic(!pkt_len.isNull(), "Parser condition with nothing to select on: %s", expr_to_string(condition).c_str());
+
+  klee::ConstraintManager a_frame;
+  a_frame.addConstraint(
+      solver_toolbox.exprBuilder->Uge(pkt_len, solver_toolbox.exprBuilder->Constant(MIN_PKT_SIZE_BYTES - CRC_SIZE_BYTES, pkt_len->getWidth())));
+
+  if (solver_toolbox.is_expr_always_true(a_frame, condition)) {
+    return true;
+  }
+
+  assert_or_panic(solver_toolbox.is_expr_always_false(a_frame, condition),
+                  "Parser condition on the packet length not settled by the minimum frame: %s", expr_to_string(condition).c_str());
+  return false;
+}
+
+} // namespace
+
+parser_select_t ParserConditionFactory::build_parser_select(klee::ref<klee::Expr> condition) {
+  klee::ref<klee::Expr> on_fields = simplify_conditional(filter(condition, {"packet_chunks", "DEVICE"}));
+
+  parser_select_t select;
+  if (is_constant(on_fields)) {
+    // Nothing to select on: the condition checked the packet length alone.
+    select.constant_branch = packet_length_branch(condition);
+  } else {
+    select.selections = build_selections(on_fields);
+  }
+  return select;
 }
 
 std::optional<spec_impl_t> ParserConditionFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {

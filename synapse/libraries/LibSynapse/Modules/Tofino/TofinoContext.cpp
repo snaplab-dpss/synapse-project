@@ -65,18 +65,17 @@ const EPNode *get_ep_node_leaf_from_future_bdd_node(const EP *ep, const BDDNode 
 }
 } // namespace
 
-void TofinoContext::parser_select(const BDDNode *node, const std::vector<parser_selection_t> &selections, const BDDNode *last_parser_op,
-                                  std::optional<bool> direction) {
+void TofinoContext::parser_select(const BDDNode *node, const parser_select_t &select, const BDDNode *last_parser_op, std::optional<bool> direction) {
   const bdd_node_id_t id = node->get_id();
 
   if (!last_parser_op) {
     // No leaf node found, add the initial parser state.
-    tna.parser.mutate().add_select(id, selections);
+    tna.parser.mutate().add_select(id, select);
     return;
   }
 
   const bdd_node_id_t leaf_id = last_parser_op->get_id();
-  tna.parser.mutate().add_select(leaf_id, id, selections, direction);
+  tna.parser.mutate().add_select(leaf_id, id, select, direction);
 }
 
 void TofinoContext::parser_transition(const BDDNode *node, klee::ref<klee::Expr> hdr, const BDDNode *last_parser_op, std::optional<bool> direction) {

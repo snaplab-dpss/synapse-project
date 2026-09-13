@@ -33,6 +33,15 @@ struct parser_selection_t {
   parser_selection_t() : negated(false) {}
 };
 
+// What a parser condition selects on. With nothing to select on (a condition on the packet
+// length alone), `constant_branch` is the branch the parser takes.
+struct parser_select_t {
+  std::vector<parser_selection_t> selections;
+  bool constant_branch;
+
+  parser_select_t() : constant_branch(true) {}
+};
+
 struct ParserState {
   bdd_node_ids_t ids;
   ParserStateType type;
@@ -106,11 +115,13 @@ struct ParserStateTerminate : public ParserState {
 
 struct ParserStateSelect : public ParserState {
   std::vector<parser_selection_t> selections;
+  bool constant_branch; // The branch taken with no selections (parser_select_t).
   ParserState *on_true;
   ParserState *on_false;
 
-  ParserStateSelect(bdd_node_id_t _id, const std::vector<parser_selection_t> &_selections)
-      : ParserState(_id, ParserStateType::Select), selections(_selections), on_true(nullptr), on_false(nullptr) {}
+  ParserStateSelect(bdd_node_id_t _id, const parser_select_t &_select)
+      : ParserState(_id, ParserStateType::Select), selections(_select.selections), constant_branch(_select.constant_branch), on_true(nullptr),
+        on_false(nullptr) {}
 
   std::string dump(int lvl = 0) const override {
     std::stringstream ss;
@@ -131,6 +142,9 @@ struct ParserStateSelect : public ParserState {
       ss << "]";
       ss << ", negate=" << selection.negated;
       ss << "}";
+    }
+    if (selections.empty()) {
+      ss << "always " << (constant_branch ? "true" : "false");
     }
     ss << "])\n";
 
@@ -166,6 +180,10 @@ struct ParserStateSelect : public ParserState {
     const ParserStateSelect *other_select = dynamic_cast<const ParserStateSelect *>(other);
 
     if (selections.size() != other_select->selections.size()) {
+      return false;
+    }
+
+    if (selections.empty() && constant_branch != other_select->constant_branch) {
       return false;
     }
 
@@ -280,13 +298,13 @@ public:
     add_state(new_state);
   }
 
-  void add_select(bdd_node_id_t leaf_id, bdd_node_id_t id, const std::vector<parser_selection_t> &selections, std::optional<bool> direction) {
-    ParserStateSelect *new_state = new ParserStateSelect(id, selections);
+  void add_select(bdd_node_id_t leaf_id, bdd_node_id_t id, const parser_select_t &select, std::optional<bool> direction) {
+    ParserStateSelect *new_state = new ParserStateSelect(id, select);
     add_state(leaf_id, new_state, direction);
   }
 
-  void add_select(bdd_node_id_t id, const std::vector<parser_selection_t> &selections) {
-    ParserState *new_state = new ParserStateSelect(id, selections);
+  void add_select(bdd_node_id_t id, const parser_select_t &select) {
+    ParserState *new_state = new ParserStateSelect(id, select);
     add_state(new_state);
   }
 
@@ -409,6 +427,18 @@ private:
       return;
     }
 
+    // Two paths split by a branch the parser cannot take (on the device, say) can differ in how
+    // far they parse: one stops here, the other goes on. The parser goes on for both, and the
+    // branch, in the ingress, tells the paths apart. The BDD is visited breadth first, so the path
+    // that stops can come second (dropped here) or first (its accept is chained after the new
+    // state below, as the default of whatever the other path does not select).
+    if (next_state && next_state->type != ParserStateType::Terminate && new_state->type == ParserStateType::Terminate) {
+      assert(new_state->ids.size() == 1 && "Invalid parser");
+      states.erase(*new_state->ids.begin());
+      delete new_state;
+      return;
+    }
+
     ParserState *old_next_state = next_state;
     next_state                  = new_state;
 
@@ -416,8 +446,6 @@ private:
       return;
     }
 
-    // This can happen and it's not a big deal. It just means that on the same branch side we sometimes parse a header and other times send
-    // to the controller.
     if (old_next_state->type != ParserStateType::Terminate) {
       return;
     }
@@ -434,8 +462,8 @@ private:
       ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(new_state);
       assert(!condition->on_true && "Invalid parser");
       assert(!condition->on_false && "Invalid parser");
-      condition->on_true  = next_state;
-      condition->on_false = next_state;
+      condition->on_true  = old_next_state;
+      condition->on_false = old_next_state;
     } break;
     case ParserStateType::Terminate: {
       panic("Cannot add state to terminating state");
