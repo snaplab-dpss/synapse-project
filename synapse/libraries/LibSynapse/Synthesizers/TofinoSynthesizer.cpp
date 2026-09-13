@@ -3329,6 +3329,10 @@ void TofinoSynthesizer::synthesize() {
   transpile_parser(get_tofino_parser(target_ep));
 
   coder_t &cpu_hdr = get(MARKER_CPU_HEADER);
+  if (handoff_layout.ships_time) {
+    cpu_hdr.indent();
+    cpu_hdr << "bit<32> time; // The ingress clock at the hand-off, the controller's now for the packet.\n";
+  }
   for (const var_t &var : cpu_hdr_vars.get_all()) {
     const bits_t pad = var.is_bool() ? var.expr->getWidth() - 1 : (8 - var.expr->getWidth()) % 8;
 
@@ -3835,6 +3839,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << "fwd_op = fwd_op_t.FORWARD_TO_CPU;\n";
   ingress_apply.indent();
   ingress_apply << "build_cpu_hdr(" << ep->get_cpu_code_path(ep_node) << ");\n";
+
+  // The packet's time for the controller (handoff_layout).
+  ingress_apply.indent();
+  ingress_apply << "hdr.cpu.time = meta.time;\n";
+  handoff_layout.ships_time = true;
 
   for (const symbol_t &symbol : symbols.get()) {
     std::optional<var_t> var = ingress_vars.get(symbol.expr);
