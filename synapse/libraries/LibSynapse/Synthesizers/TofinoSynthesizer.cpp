@@ -1,7 +1,11 @@
 #include <LibSynapse/Synthesizers/TofinoSynthesizer.h>
 #include <LibSynapse/ExecutionPlan.h>
+#include <LibBDD/Unroll.h>
+#include <LibSynapse/Walk.h>
 #include <LibCore/Strings.h>
 #include <functional>
+#include <limits>
+#include <regex>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -143,6 +147,7 @@ constexpr const char *const MARKER_EGRESS_DEPARSER              = "EGRESS_DEPARS
 constexpr const char *const MARKER_EGRESS_DEPARSER_APPLY        = "EGRESS_DEPARSER_APPLY";
 constexpr const char *const MARKER_CONTROL_BLOCKS               = "CONTROL_BLOCKS";
 constexpr const char *const MARKER_PARSE_RECIRC                 = "PARSE_RECIRC";
+constexpr const char *const MARKER_INGRESS_APPLY_START          = "INGRESS_APPLY_START";
 constexpr const char *const MARKER_LEAVE_SWITCH                 = "LEAVE_SWITCH";
 
 constexpr const char *const MARKER_CUCKOO_IDX_WIDTH       = "CUCKOO_IDX_WIDTH";
@@ -2173,7 +2178,8 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get_hdr(klee::
   for (auto var_it = frames.rbegin(); var_it != frames.rend(); var_it++) {
     const var_t &var = *var_it;
 
-    if (!var.is_header_field) {
+    // A slot of the state header holding a temporary has no expression of its own.
+    if (!var.is_header_field || var.expr.isNull()) {
       continue;
     }
 
@@ -2308,6 +2314,7 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_EGRESS_DEPARSER_APPLY, 2},
                                              {MARKER_CONTROL_BLOCKS, 0},
                                              {MARKER_PARSE_RECIRC, 2},
+                                             {MARKER_INGRESS_APPLY_START, 2},
                                              {MARKER_LEAVE_SWITCH, 2},
                                          }),
       target_ep(_ep), transpiler(this) {}
@@ -2332,6 +2339,848 @@ coder_t &TofinoSynthesizer::get(const std::string &marker) {
   return code_template.get(marker);
 }
 
+size_t TofinoSynthesizer::recirc_slot_for(const code_t &name, const code_t &slot_kind) {
+  size_t slot;
+  auto owned_it = recirc_slot_by_name.find(name);
+  if (owned_it != recirc_slot_by_name.end() && owned_it->second.first == slot_kind) {
+    slot = owned_it->second.second;
+  } else {
+    std::set<size_t> &owned = recirc_slots_owned[slot_kind];
+    do {
+      slot = recirc_slot_next[slot_kind]++;
+    } while (owned.contains(slot));
+    owned.insert(slot);
+    recirc_slot_by_name[name] = {slot_kind, slot};
+  }
+  recirc_slots_used[slot_kind] = std::max(recirc_slots_used[slot_kind], slot + 1);
+  return slot;
+}
+
+std::unordered_set<std::string> TofinoSynthesizer::live_symbols_past(const EP *ep, const BDDNode *cut_node, const EPNode *next) const {
+  std::unordered_set<std::string> live_symbols;
+  const BDDNode *node = ep->get_bdd()->get_node_by_id(cut_node->get_id());
+  node->visit_nodes([&live_symbols](const BDDNode *future_node) {
+    for (const symbol_t &symbol : future_node->get_used_symbols().get()) {
+      live_symbols.insert(symbol.name);
+    }
+    return BDDNodeVisitAction::Continue;
+  });
+  std::vector<const EPNode *> pending;
+  if (next) {
+    pending.push_back(next);
+  }
+  while (!pending.empty()) {
+    const EPNode *future_ep_node = pending.back();
+    pending.pop_back();
+    if (const Module *future_module = future_ep_node->get_module()) {
+      if (future_module->get_type() == ModuleType::Tofino_SendToController) {
+        for (const symbol_t &symbol : dynamic_cast<const Tofino::SendToController *>(future_module)->get_symbols().get()) {
+          live_symbols.insert(symbol.name);
+        }
+      }
+    }
+    for (const EPNode *child : future_ep_node->get_children()) {
+      pending.push_back(child);
+    }
+  }
+  return live_symbols;
+}
+
+void TofinoSynthesizer::plan_value_homes(const EP *ep) {
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const Pipeline &pipeline        = tofino_ctx->get_tna().pipeline;
+  constexpr int INF               = 1 << 20;
+
+  // The op whose variable holds an op's value: the original's, for an op that reused or was
+  // unified with another path's.
+  const auto canonical = [&](const std::string &op_id) -> std::string {
+    if (const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(op_id)) {
+      return reuse->op.id;
+    }
+    if (const std::optional<klee::ref<klee::Expr>> theirs = tofino_ctx->get_output_alias(op_id)) {
+      const std::optional<std::string> producer = tofino_ctx->get_producer(*theirs);
+      assert(producer && "An output alias to a symbol no op produces");
+      return *producer;
+    }
+    return op_id;
+  };
+  const auto stage_of = [&](const std::string &op_id) -> int { return pipeline.get_placed_stage(tofino_ctx->find_compute_action(op_id)); };
+
+  // An input of an ALU op that some compute value may hold: a materialized operand of the module
+  // (by canonical op id) or a symbol, resolved to the op producing it on each path. `rotation` is
+  // where the input's bits land in the result: 0 for an aligned op, the amount for a rotate or a
+  // left shift, width - amount for a right shift or a cast of the top bits.
+  struct source_t {
+    std::string op_id;
+    std::string symbol;
+    unsigned rotation;
+  };
+  // What a compute module defines: its own op (with the symbol it produces) and its temporaries.
+  struct def_t {
+    std::string op_id;         // Canonical.
+    std::string symbol;        // The module's own output symbol; empty for a temporary.
+    klee::ref<klee::Expr> out; // The canonical op's output (null for a temporary).
+    bits_t width;
+    bool clock_shift;              // The clock shifted right: kept as the 32 bits the data plane has (time_shift).
+    std::vector<source_t> sources; // What an ALU op reads to write this one.
+    std::string in_place_of;       // A shift rotate's or: written over the slot of this half of it (canonical op id).
+  };
+  // Whether the placed op runs in the hash unit, which reads its inputs with no alignment to keep.
+  const auto in_hash_op = [&](const std::string &op_id) -> bool {
+    for (const auto &[id, ds] : tofino_ctx->get_data_structures().get_data_per_id()) {
+      const ComputeAction *action = dynamic_cast<const ComputeAction *>(ds);
+      if (!action) {
+        continue;
+      }
+      for (const compute_op_t &op : action->ops) {
+        if (op.id == op_id) {
+          return op.in_hash;
+        }
+      }
+    }
+    return false;
+  };
+  // The source an ALU op's input is, if it may be a compute value: a materialized operand of the
+  // module, or a symbol (whose producer is a matter of the path: a path that reuses another's op
+  // reads it by its own symbol).
+  const auto source_of = [&](const std::vector<TofinoModuleFactory::compute_operand_t> &operands, klee::ref<klee::Expr> input,
+                             unsigned rotation) -> std::optional<source_t> {
+    for (const TofinoModuleFactory::compute_operand_t &operand : operands) {
+      if (operand.expr->getWidth() != input->getWidth()) {
+        continue;
+      }
+      if (solver_toolbox.are_exprs_always_equal(operand.expr, input) ||
+          solver_toolbox.are_exprs_always_equal(tofino_ctx->apply_rewrites(operand.op_id, operand.expr), input)) {
+        return source_t{canonical(operand.op_id), "", rotation};
+      }
+    }
+    std::string symbol;
+    if (LibCore::is_readLSB(input, symbol)) {
+      return source_t{"", symbol, rotation};
+    }
+    return std::nullopt;
+  };
+  // The sources of an ALU expression: its inputs that may be compute values, each with the
+  // rotation the op applies to it.
+  const auto alu_sources = [&](const std::vector<TofinoModuleFactory::compute_operand_t> &operands,
+                               klee::ref<klee::Expr> expr) -> std::vector<source_t> {
+    std::vector<source_t> sources;
+    if (expr.isNull()) {
+      return sources;
+    }
+    const unsigned width = expr->getWidth();
+    const auto add       = [&](klee::ref<klee::Expr> input, unsigned rotation) {
+      // A cast of a field's top bits, (bit<w>)(f[hi:lo]), is emitted as f >> lo (operand_rhs).
+      if (input->getKind() == klee::Expr::ZExt && input->getKid(0)->getKind() == klee::Expr::Extract) {
+        const klee::ExtractExpr *extract = static_cast<const klee::ExtractExpr *>(input->getKid(0).get());
+        if (extract->expr->getWidth() == width) {
+          rotation = (rotation + width - extract->offset % width) % width;
+          input    = extract->expr;
+        }
+      }
+      if (const std::optional<source_t> source = source_of(operands, input, rotation)) {
+        sources.push_back(*source);
+      }
+    };
+    switch (expr->getKind()) {
+    case klee::Expr::Add:
+    case klee::Expr::Sub:
+    case klee::Expr::And:
+    case klee::Expr::Or:
+    case klee::Expr::Xor:
+      for (unsigned i = 0; i < expr->getNumKids(); i++) {
+        add(expr->getKid(i), 0);
+      }
+      break;
+    case klee::Expr::Shl:
+      if (is_constant(expr->getKid(1))) {
+        add(expr->getKid(0), solver_toolbox.value_from_expr(expr->getKid(1)) % width);
+      }
+      break;
+    case klee::Expr::LShr:
+      if (is_constant(expr->getKid(1))) {
+        add(expr->getKid(0), (width - solver_toolbox.value_from_expr(expr->getKid(1)) % width) % width);
+      }
+      break;
+    case klee::Expr::ZExt:
+      add(expr, 0);
+      break;
+    default:
+      break;
+    }
+    return sources;
+  };
+  std::unordered_map<const Module *, std::vector<def_t>> defs_cache; // defs_of asks the solver about operands; every path asks again.
+  const auto defs_of = [&](const Module *module) -> const std::vector<def_t> & {
+    auto cached_it = defs_cache.find(module);
+    if (cached_it != defs_cache.end()) {
+      return cached_it->second;
+    }
+    std::vector<def_t> defs;
+    const auto own = [&](const std::string &op_id, klee::ref<klee::Expr> out) {
+      std::string symbol;
+      if (!out.isNull() && LibCore::is_readLSB(out, symbol)) {
+        const std::string id                = canonical(op_id);
+        klee::ref<klee::Expr> canonical_out = out;
+        if (const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(op_id)) {
+          canonical_out = reuse->op.out.isNull() ? out : reuse->op.out;
+        } else if (const std::optional<klee::ref<klee::Expr>> theirs = tofino_ctx->get_output_alias(op_id)) {
+          canonical_out = *theirs;
+        }
+        defs.push_back({id, symbol, canonical_out, out->getWidth(), false, {}, ""});
+      }
+    };
+    const auto temporaries = [&](const std::vector<TofinoModuleFactory::compute_operand_t> &operands) {
+      for (const TofinoModuleFactory::compute_operand_t &operand : operands) {
+        const std::string id = canonical(operand.op_id);
+        defs.push_back({id, "", nullptr, operand.expr->getWidth(), false,
+                        in_hash_op(id) ? std::vector<source_t>{} : alu_sources(operands, tofino_ctx->apply_rewrites(operand.op_id, operand.expr)),
+                        ""});
+      }
+    };
+    switch (module->get_type()) {
+    case ModuleType::Tofino_ArithmeticOp: {
+      const Tofino::ArithmeticOp *op = dynamic_cast<const Tofino::ArithmeticOp *>(module);
+      temporaries(op->get_operands());
+      own(op->get_op_id(), op->get_out());
+      if (!defs.empty() && defs.back().op_id == canonical(op->get_op_id()) && !in_hash_op(defs.back().op_id)) {
+        defs.back().sources = alu_sources(op->get_operands(), tofino_ctx->apply_rewrites(op->get_op_id(), op->get_value()));
+      }
+      // A shift of the clock by 16 or more: the data plane keeps 32 bits of it (emit_compute_run's
+      // time_shift), so the slot is 32 bits wide whatever the symbol's width.
+      klee::ref<klee::Expr> value = op->get_value();
+      if (!defs.empty() && value->getKind() == klee::Expr::LShr && is_constant(value->getKid(1)) &&
+          solver_toolbox.value_from_expr(value->getKid(1)) >= 16 &&
+          symbol_t::get_symbols_names(value->getKid(0)) == std::unordered_set<std::string>{ep->get_bdd()->get_time().name}) {
+        defs.back().width       = 32;
+        defs.back().clock_shift = true;
+      }
+    } break;
+    case ModuleType::Tofino_RotateLeft: {
+      const Tofino::RotateLeft *rot = dynamic_cast<const Tofino::RotateLeft *>(module);
+      temporaries(rot->get_operands());
+      own(rot->get_op_id(), rot->get_out());
+      if (!defs.empty() && defs.back().op_id == canonical(rot->get_op_id()) && !in_hash_op(defs.back().op_id)) {
+        if (const auto source = source_of(rot->get_operands(), tofino_ctx->apply_rewrites(rot->get_op_id(), rot->get_x()), rot->get_amount())) {
+          defs.back().sources.push_back(*source);
+        }
+      }
+    } break;
+    case ModuleType::Tofino_RotateLeftShifts: {
+      const Tofino::RotateLeftShifts *rot = dynamic_cast<const Tofino::RotateLeftShifts *>(module);
+      temporaries(rot->get_operands());
+      // Both halves place the input's bits where the rotate does; the or reads the halves aligned.
+      std::vector<source_t> halves;
+      if (const auto source = source_of(rot->get_operands(), tofino_ctx->apply_rewrites(rot->get_or_op_id(), rot->get_x()), rot->get_amount())) {
+        halves.push_back(*source);
+      }
+      defs.push_back({canonical(rot->get_shl_op_id()), "", nullptr, rot->get_out()->getWidth(), false, halves, ""});
+      defs.push_back({canonical(rot->get_shr_op_id()), "", nullptr, rot->get_out()->getWidth(), false, halves, ""});
+      own(rot->get_or_op_id(), rot->get_out());
+      if (!defs.empty() && defs.back().op_id == canonical(rot->get_or_op_id())) {
+        defs.back().sources = {{canonical(rot->get_shl_op_id()), "", 0}, {canonical(rot->get_shr_op_id()), "", 0}};
+        // `x = x | y` reads x before it writes it, in one action: the or takes its shl half's
+        // slot, one word fewer at the stage where a shift rotate holds the most.
+        defs.back().in_place_of = canonical(rot->get_shl_op_id());
+      }
+    } break;
+    default:
+      break;
+    }
+    return defs_cache.emplace(module, std::move(defs)).first->second;
+  };
+  const auto reads_of = [&](const Module *module) -> std::unordered_set<std::string> {
+    std::unordered_set<std::string> reads;
+    for (const symbol_t &symbol : module->get_node()->get_used_symbols().get()) {
+      reads.insert(symbol.name);
+    }
+    if (module->get_type() == ModuleType::Tofino_SendToController) {
+      for (const symbol_t &symbol : dynamic_cast<const Tofino::SendToController *>(module)->get_symbols().get()) {
+        reads.insert(symbol.name);
+      }
+    }
+    return reads;
+  };
+
+  // Every root-to-leaf path, the ones that reuse the fewest ops first: a shared action's slots
+  // are fixed by the path that owns it, and the paths that call it work around them.
+  std::vector<std::vector<const EPNode *>> paths;
+  std::vector<const EPNode *> current;
+  std::function<void(const EPNode *)> collect = [&](const EPNode *ep_node) {
+    current.push_back(ep_node);
+    if (ep_node->get_children().empty()) {
+      paths.push_back(current);
+    }
+    for (const EPNode *child : ep_node->get_children()) {
+      collect(child);
+    }
+    current.pop_back();
+  };
+  collect(ep->get_root());
+  const auto reused_count = [&](const std::vector<const EPNode *> &path) {
+    size_t n = 0;
+    for (const EPNode *ep_node : path) {
+      for (const def_t &def : defs_of(ep_node->get_module())) {
+        n += tofino_ctx->get_compute_reuse(def.op_id).has_value() ? 1 : 0;
+      }
+    }
+    return n;
+  };
+  std::stable_sort(paths.begin(), paths.end(), [&](const auto &a, const auto &b) { return reused_count(a) < reused_count(b); });
+
+  // A value of one path, with its live range in the path's time: pass * STRIDE + stage. A cut
+  // starts a new pass, and the state header is extracted again on its far side, so a value live
+  // past a cut keeps its slot into the next pass.
+  constexpr int STRIDE = 64;
+  // The 32-bit words one gress may write or read in the chain: one PHV group's normal containers
+  // (tofino/exp-compute/README.md, "How many sliced fields fit").
+  constexpr size_t WORD_BUDGET = 12;
+  struct value_t {
+    def_t def;
+    int from;
+    int to;
+    bool fixed;                                            // Its slot was set by an earlier path.
+    bool egress;                                           // Defined in the egress: the pairs of words it writes and reads are the egress's.
+    std::vector<std::pair<std::string, unsigned>> sources; // The values an ALU op reads to write this one (canonical op id, rotation).
+    bool read_elsewhere = false;                           // A table, a gateway or a hand-off reads it too: no op writes over it in its last stage.
+  };
+
+  // Slot allocation for one path: linear scan by definition time, in the pool of the value's
+  // width, around the slots an earlier path fixed and the ones shared actions write on this
+  // path. A pool owns its slots; a new one takes the next index of its width.
+  const auto allocate = [&](std::vector<value_t> &values, const std::vector<std::pair<std::string, int>> &foreign_writes) {
+    std::stable_sort(values.begin(), values.end(), [](const value_t &a, const value_t &b) { return a.from < b.from; });
+    struct slot_t {
+      size_t index;
+      int busy_until = -1;
+      std::vector<std::pair<int, int>> fixed; // Ranges an earlier path's value or a shared action's write occupies.
+    };
+    // Every slot allocated so far, free at the start of this path: a path reuses the earlier
+    // paths' slots before taking new ones.
+    std::map<bits_t, std::vector<slot_t>> pools;
+    for (const auto &[width, count] : state_slots_used) {
+      for (size_t index = 0; index < count; index++) {
+        pools[width].push_back(slot_t{index, -1, {}});
+      }
+    }
+    const auto slot_index = [&](const std::string &op_id) -> std::optional<size_t> {
+      auto found_it = slot_fields.find(op_id);
+      if (found_it == slot_fields.end()) {
+        return {};
+      }
+      const code_t &name = found_it->second.name;
+      return std::stoul(name.substr(name.rfind('_') + 1));
+    };
+    const auto entry_of = [&](bits_t width, size_t index) -> slot_t & {
+      std::vector<slot_t> &pool = pools[width];
+      for (slot_t &slot : pool) {
+        if (slot.index == index) {
+          return slot;
+        }
+      }
+      pool.push_back(slot_t{index, -1, {}});
+      return pool.back();
+    };
+    // A word written from another word takes it at one rotation, always. bf-p4c places the words
+    // of a sliced cluster one at a time and, for a source not yet placed, records where its slices
+    // must sit relative to the destination; a source one op takes aligned (xor, add, move) and
+    // another byte-rotated, into the same destination, asks for two positions at once, and the
+    // destination becomes unplaceable ("would (conservatively) need to be aligned at the same
+    // position in the same container", ActionPhvConstraints::check_and_generate_conditional_
+    // constraints). Whether it bites depends on the placement order -- the ground truth carries
+    // four such pairs and allocates, the synthesized program did not -- so no such pair is made
+    // (tofino/exp-compute/README.md, scy-*-one.p4).
+    const auto slot_name = [](bits_t width, size_t index) { return "hdr.st.s" + std::to_string(width) + "_" + std::to_string(index); };
+    // The pairs a value's slot takes part in: its sources' slots as the ones it is written from,
+    // and, for a value allocated after one of its readers (a path that reuses another's op is
+    // planned before it), the readers' slots as the ones it is read into.
+    struct pair_t {
+      bool egress;
+      code_t word;   // Empty: the value's own slot, to be chosen.
+      code_t source; // Empty: the value's own slot.
+      unsigned rotation;
+    };
+    const auto pairs_of = [&](const value_t &value) {
+      std::vector<pair_t> pairs;
+      for (const auto &[op_id, rotation] : value.sources) {
+        auto found_it = slot_fields.find(op_id);
+        if (found_it != slot_fields.end()) {
+          pairs.push_back({value.egress, "", found_it->second.name, rotation});
+        }
+      }
+      auto readers_it = slot_readers.find(value.def.op_id);
+      if (readers_it != slot_readers.end()) {
+        for (const auto &[reader, rotation, egress] : readers_it->second) {
+          auto found_it = slot_fields.find(reader);
+          if (found_it != slot_fields.end()) {
+            pairs.push_back({egress, found_it->second.name, "", rotation});
+          }
+        }
+      }
+      return pairs;
+    };
+    const auto pair_key = [](const pair_t &pair, const code_t &own) {
+      return std::make_tuple(pair.egress, pair.word.empty() ? own : pair.word, pair.source.empty() ? own : pair.source);
+    };
+    const auto compatible = [&](const std::vector<pair_t> &pairs, const code_t &own) {
+      for (const pair_t &pair : pairs) {
+        auto rot_it = slot_rotations.find(pair_key(pair, own));
+        if (rot_it != slot_rotations.end() && rot_it->second != pair.rotation) {
+          return false;
+        }
+      }
+      return true;
+    };
+    const auto record_rotations = [&](const value_t &value, const code_t &name) {
+      for (const pair_t &pair : pairs_of(value)) {
+        slot_rotations[pair_key(pair, name)] = pair.rotation;
+      }
+      std::vector<code_t> &planned = planned_sources[value.def.op_id];
+      for (const auto &[op_id, rotation] : value.sources) {
+        auto found_it = slot_fields.find(op_id);
+        if (found_it != slot_fields.end()) {
+          planned.push_back(found_it->second.name);
+        }
+      }
+    };
+    for (const value_t &value : values) {
+      if (value.fixed) {
+        const code_t name = slot_fields.at(value.def.op_id).name;
+        entry_of(value.def.width, *slot_index(value.def.op_id)).fixed.emplace_back(value.from, value.to);
+        record_rotations(value, name);
+        words_used.insert({value.egress, name});
+        for (const auto &[op_id, rotation] : value.sources) {
+          auto found_it = slot_fields.find(op_id);
+          if (found_it != slot_fields.end()) {
+            words_used.insert({value.egress, found_it->second.name});
+          }
+        }
+      }
+    }
+    for (const auto &[op_id, time] : foreign_writes) {
+      if (const std::optional<size_t> slot = slot_index(op_id)) {
+        entry_of(slot_fields.at(op_id).size, *slot).fixed.emplace_back(time, time);
+      }
+    }
+    // The slots a value may take, best first: the slot of an operand dying at it, then the free
+    // slots that take every pair, fewest new pairs first, then a fresh one.
+    //
+    // `x = x op y` reads x before it writes it, in one statement: the value may take the slot of
+    // an operand whose last read is this very op, when no other op of the same stage reads that
+    // operand (a statement after this one in the stage would read the new value) and nothing
+    // but ops reads it at all; a shift rotate's or always may take its shl half's. Among the free
+    // slots, the one that adds the fewest new pairs: a round of a hash that lands on the slots
+    // the round before it used repeats its pairs instead of spending fresh ones, as the ground
+    // truth's fixed roles do, and later values find more slots still compatible.
+    std::unordered_map<std::string, size_t> by_op; // By canonical op id, into this path's slotted values.
+    for (size_t i = 0; i < values.size(); i++) {
+      by_op.insert({values[i].def.op_id, i});
+    }
+    struct candidate_t {
+      size_t index;
+      bool fresh;
+    };
+    const auto candidates = [&](const value_t &value, const std::vector<pair_t> &pairs) -> std::vector<candidate_t> {
+      std::vector<candidate_t> out;
+      std::set<size_t> in_place;
+      std::vector<std::string> dying;
+      if (!value.def.in_place_of.empty()) {
+        dying.push_back(value.def.in_place_of);
+      }
+      for (const auto &[source, rotation] : value.sources) {
+        auto source_it = by_op.find(source);
+        if (source_it == by_op.end()) {
+          continue;
+        }
+        const value_t &operand = values[source_it->second];
+        if (operand.to != value.from || operand.read_elsewhere || operand.def.width != value.def.width) {
+          continue;
+        }
+        size_t readers_now = 0;
+        auto readers_it    = slot_readers.find(source);
+        if (readers_it != slot_readers.end()) {
+          for (const auto &[reader, rot, eg] : readers_it->second) {
+            auto reader_it = by_op.find(reader);
+            readers_now += reader_it != by_op.end() && values[reader_it->second].from == value.from ? 1 : 0;
+          }
+        }
+        if (readers_now <= 1) {
+          dying.push_back(source);
+        }
+      }
+      for (const std::string &op_id : dying) {
+        auto slot_it = slot_fields.find(op_id);
+        if (slot_it == slot_fields.end() || slot_it->second.size != value.def.width || !compatible(pairs, slot_it->second.name)) {
+          continue;
+        }
+        const size_t index = *slot_index(op_id);
+        if (in_place.contains(index)) {
+          continue;
+        }
+        const slot_t &slot = entry_of(value.def.width, index);
+        bool free          = slot.busy_until <= value.from;
+        for (const auto &[from, to] : slot.fixed) {
+          free &= to <= value.from || value.to < from;
+        }
+        if (free) {
+          in_place.insert(index);
+          out.push_back({index, false});
+        }
+      }
+      std::vector<std::pair<size_t, size_t>> free_slots; // (new pairs, index)
+      for (const slot_t &candidate : pools[value.def.width]) {
+        if (in_place.contains(candidate.index)) {
+          continue;
+        }
+        // Strictly after the last read: a write in the stage of a read of the same slot would
+        // sit in one action with it, where P4 reads the written value.
+        bool free = candidate.busy_until < value.from;
+        for (const auto &[from, to] : candidate.fixed) {
+          free &= to < value.from || value.to < from;
+        }
+        const code_t name = slot_name(value.def.width, candidate.index);
+        if (!free || !compatible(pairs, name)) {
+          continue;
+        }
+        size_t new_pairs = 0;
+        for (const pair_t &pair : pairs) {
+          new_pairs += slot_rotations.contains(pair_key(pair, name)) ? 0 : 1;
+        }
+        free_slots.emplace_back(new_pairs, candidate.index);
+      }
+      std::sort(free_slots.begin(), free_slots.end());
+      for (const auto &[new_pairs, index] : free_slots) {
+        out.push_back({index, false});
+      }
+      out.push_back({state_slots_used[value.def.width], true});
+      return out;
+    };
+
+    // Taking a slot, and giving it back: everything a choice touches is logged, so a search can
+    // undo it.
+    struct undo_t {
+      bits_t width;
+      size_t index;
+      bool fresh;
+      int old_busy;
+      std::string op_id;
+      std::vector<std::tuple<bool, code_t, code_t>> new_rotations;
+      std::vector<std::pair<bool, code_t>> new_words;
+    };
+    const auto touched_words = [&](const value_t &value, const code_t &name) {
+      std::vector<code_t> names{name};
+      for (const auto &[op_id, rotation] : value.sources) {
+        auto found_it = slot_fields.find(op_id);
+        if (found_it != slot_fields.end()) {
+          names.push_back(found_it->second.name);
+        }
+      }
+      return names;
+    };
+    const auto take = [&](const value_t &value, const candidate_t &c) -> undo_t {
+      undo_t undo{value.def.width, c.index, c.fresh, 0, value.def.op_id, {}, {}};
+      if (c.fresh) {
+        state_slots_used[undo.width]++;
+        pools[undo.width].push_back(slot_t{c.index, -1, {}});
+      }
+      slot_t &slot      = entry_of(undo.width, c.index);
+      undo.old_busy     = slot.busy_until;
+      slot.busy_until   = value.to;
+      const code_t name = slot_name(undo.width, c.index);
+      slot_fields.insert({undo.op_id, var_t(name, value.def.out, undo.width, false, true, false)});
+      for (const pair_t &pair : pairs_of(value)) {
+        auto [it, inserted] = slot_rotations.emplace(pair_key(pair, name), pair.rotation);
+        if (inserted) {
+          undo.new_rotations.push_back(it->first);
+        }
+      }
+      for (const code_t &word : touched_words(value, name)) {
+        if (words_used.insert({value.egress, word}).second) {
+          undo.new_words.emplace_back(value.egress, word);
+        }
+      }
+      return undo;
+    };
+    const auto give_back = [&](const undo_t &undo) {
+      for (const auto &word : undo.new_words) {
+        words_used.erase(word);
+      }
+      for (const auto &key : undo.new_rotations) {
+        slot_rotations.erase(key);
+      }
+      slot_fields.erase(undo.op_id);
+      entry_of(undo.width, undo.index).busy_until = undo.old_busy;
+      if (undo.fresh) {
+        pools[undo.width].pop_back();
+        state_slots_used[undo.width]--;
+      }
+    };
+    const auto over_budget = [&](const value_t &value, const candidate_t &c) {
+      size_t count = 0;
+      for (const auto &[egress, word] : words_used) {
+        count += egress == value.egress ? 1 : 0;
+      }
+      for (const code_t &word : touched_words(value, slot_name(value.def.width, c.index))) {
+        count += words_used.contains({value.egress, word}) ? 0 : 1;
+      }
+      return count > WORD_BUDGET;
+    };
+
+    // A depth-first search over the path's values in their order, each taking its best slot
+    // first, that backtracks when a gress would touch more words than one PHV group holds; the
+    // greedy choice alone leaves words behind that the pairs then keep others out of (measured on
+    // the SmartCookie plan: 14 egress words greedily, 11 by search). Past the node limit the
+    // greedy choice stands.
+    std::vector<size_t> todo;
+    for (size_t i = 0; i < values.size(); i++) {
+      if (!values[i].fixed) {
+        todo.push_back(i);
+      }
+    }
+    size_t nodes                       = 0;
+    constexpr size_t NODE_LIMIT        = 200'000;
+    std::function<bool(size_t)> search = [&](size_t k) -> bool {
+      if (k == todo.size()) {
+        return true;
+      }
+      if (++nodes > NODE_LIMIT) {
+        return false;
+      }
+      const value_t &value = values[todo[k]];
+      for (const candidate_t &c : candidates(value, pairs_of(value))) {
+        if (over_budget(value, c)) {
+          continue;
+        }
+        const undo_t undo = take(value, c);
+        if (search(k + 1)) {
+          return true;
+        }
+        give_back(undo);
+        if (nodes > NODE_LIMIT) {
+          return false;
+        }
+      }
+      return false;
+    };
+    if (!search(0)) {
+      if (Walk::enabled()) {
+        std::cerr << "[homes] no assignment within " << WORD_BUDGET << " words per gress after " << nodes << " nodes; taking the greedy one\n";
+      }
+      for (size_t k : todo) {
+        const value_t &value = values[k];
+        take(value, candidates(value, pairs_of(value)).front());
+      }
+    } else if (Walk::enabled()) {
+      std::cerr << "[homes] assignment within " << WORD_BUDGET << " words per gress after " << nodes << " nodes\n";
+    }
+    for (const value_t &value : values) {
+      if (!value.fixed) {
+        std::vector<code_t> &planned = planned_sources[value.def.op_id];
+        planned.clear();
+        for (const auto &[op_id, rotation] : value.sources) {
+          auto found_it = slot_fields.find(op_id);
+          if (found_it != slot_fields.end()) {
+            planned.push_back(found_it->second.name);
+          }
+        }
+      }
+    }
+  };
+
+  for (const std::vector<const EPNode *> &path : paths) {
+    std::vector<value_t> values;
+    std::vector<std::pair<std::string, int>> foreign_writes;      // (op id, time): a shared action's other ops, at the call.
+    std::unordered_map<std::string, size_t> value_index;          // By canonical op id, into `values`.
+    std::unordered_map<std::string, std::string> symbol_producer; // A symbol -> the canonical op producing it, this path.
+    int pass           = 0;
+    bool egress_pass   = false;
+    const auto time_of = [&](const std::string &op_id) { return pass * STRIDE + stage_of(op_id); };
+    // A def's sources on this path: the operands as they are, the symbols by what produced them here.
+    const auto resolve_sources = [&](const def_t &def) {
+      std::vector<std::pair<std::string, unsigned>> sources;
+      for (const source_t &source : def.sources) {
+        std::string op_id = source.op_id;
+        if (op_id.empty()) {
+          auto producer_it = symbol_producer.find(source.symbol);
+          if (producer_it == symbol_producer.end()) {
+            continue; // Not a compute value on this path: a packet field, a register's value.
+          }
+          op_id = producer_it->second;
+        }
+        sources.emplace_back(op_id, source.rotation);
+      }
+      return sources;
+    };
+
+    for (size_t i = 0; i < path.size(); i++) {
+      const Module *module = path[i]->get_module();
+      if (!module) {
+        continue;
+      }
+      // Only a hash chain's values live in slots; a compute op off every chain (the clock and
+      // delta arithmetic feeding the cookie) keeps its metadata variable, where nothing slices
+      // it, and reaches the chain through the hash unit like any other outside value.
+      if (TofinoModuleFactory::is_compute_module(module) && !TofinoModuleFactory::is_hash_chain_node(ep->get_bdd(), module->get_node())) {
+        continue; // Off the core of every chain: a metadata variable (a hash-unit output, after a chain).
+      }
+      // A module that leaves its node to be processed again (a cut: the node's own module comes
+      // next, on the far side) reads nothing itself; counting the node's reads here, at a module
+      // with no placed data structure, would hold the values to the end of the path.
+      const Module *next  = i + 1 < path.size() ? path[i + 1]->get_module() : nullptr;
+      const bool cut_here = next && next->get_node() == module->get_node();
+      // Reads first: a value read here lives at least to this module's time.
+      const std::unordered_set<std::string> reads = cut_here ? std::unordered_set<std::string>{} : reads_of(module);
+      const bool is_compute                       = TofinoModuleFactory::is_compute_module(module);
+      for (const std::string &symbol : reads) {
+        auto producer_it = symbol_producer.find(symbol);
+        if (producer_it == symbol_producer.end()) {
+          continue;
+        }
+        value_t &value = values[value_index.at(producer_it->second)];
+        int use        = INF;
+        if (is_compute) {
+          // The value lives to the op that reads it: the def whose sources name it, not the
+          // module's earliest def (a materialized operand computed a stage earlier reads only its
+          // own inputs). An op whose reads are not tracked, in the hash unit, reads at its own time.
+          const std::vector<def_t> &reader_defs = defs_of(module);
+          for (const def_t &def : reader_defs) {
+            for (const auto &[source, rotation] : resolve_sources(def)) {
+              if (source == producer_it->second) {
+                use = std::min(use, time_of(def.op_id));
+              }
+            }
+          }
+          if (use >= INF) {
+            for (const def_t &def : reader_defs) {
+              if (def.sources.empty()) {
+                use = std::min(use, time_of(def.op_id));
+              }
+            }
+          }
+        }
+        // A compute module with no value of its own (its result is not a plain symbol) reads at
+        // its action's stage, like any other module with a placed data structure.
+        if (use >= INF) {
+          if (const TofinoModule *reader = dynamic_cast<const TofinoModule *>(module)) {
+            // A table or a register reads the value at its stage. A module that placed nothing (a
+            // gateway, a hand-off to the controller) reads it at a stage the pipeline does not
+            // know: the value lives to the end of the path.
+            const std::unordered_set<DS_ID> dss = reader->get_generated_ds();
+            int last                            = -1;
+            for (const DS_ID &ds : dss) {
+              last = std::max(last, pipeline.get_placed_stage(ds));
+            }
+            if (!dss.empty() && last >= 0) {
+              use = pass * STRIDE + last;
+            }
+          }
+        }
+        if (use >= INF && Walk::enabled()) {
+          std::cerr << "[homes] " << module->get_name() << " at node " << module->get_node()->get_id() << " holds " << symbol << " to the end\n";
+        }
+        if (!is_compute) {
+          value.read_elsewhere = true;
+        }
+        value.to = std::max(value.to, use);
+      }
+      // A temporary is read by its own module's ops: it lives to the last of those that read it
+      // (a shift rotate's operand to the halves, the halves to the or), or, for a hash op whose
+      // reads are not tracked, to the module's last op.
+      const std::vector<def_t> defs = defs_of(module);
+      int module_time               = -1;
+      std::unordered_map<std::string, int> read_within;
+      for (const def_t &def : defs) {
+        module_time = std::max(module_time, time_of(def.op_id));
+        for (const auto &[source, rotation] : resolve_sources(def)) {
+          read_within[source] = std::max(read_within.count(source) ? read_within.at(source) : -1, time_of(def.op_id));
+        }
+      }
+      for (const def_t &def : defs) {
+        const int time = time_of(def.op_id);
+        auto index_it  = value_index.find(def.op_id);
+        if (index_it != value_index.end()) {
+          // Defined already: a shared action holding several of this module's ops, or the op
+          // node of an expression a rotate's operand computed first, which names that value.
+          value_t &value = values[index_it->second];
+          if (value.def.symbol.empty() && !def.symbol.empty()) {
+            value.def.symbol            = def.symbol;
+            value.def.out               = def.out;
+            symbol_producer[def.symbol] = def.op_id;
+          }
+          for (const auto &source : resolve_sources(def)) {
+            if (std::find(value.sources.begin(), value.sources.end(), source) == value.sources.end()) {
+              value.sources.push_back(source);
+              slot_readers[source.first].emplace_back(def.op_id, source.second, egress_pass);
+            }
+          }
+          continue;
+        }
+        value_index.insert({def.op_id, values.size()});
+        values.push_back({def, time,
+                          def.symbol.empty() ? std::max(time, read_within.count(def.op_id) ? read_within.at(def.op_id) : module_time) : time,
+                          slot_fields.contains(def.op_id), egress_pass, resolve_sources(def)});
+        for (const auto &[source, rotation] : values.back().sources) {
+          slot_readers[source].emplace_back(def.op_id, rotation, egress_pass);
+        }
+        if (!def.symbol.empty()) {
+          symbol_producer[def.symbol] = def.op_id;
+        }
+      }
+      // The other ops of a shared action this module calls write their slots at the call.
+      for (const def_t &def : defs) {
+        if (const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(def.op_id)) {
+          const ComputeAction *action = dynamic_cast<const ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(reuse->action));
+          for (const compute_op_t &op : action->ops) {
+            if (op.id != reuse->op.id) {
+              foreign_writes.emplace_back(op.id, pass * STRIDE + pipeline.get_placed_stage(reuse->action));
+            }
+          }
+        }
+      }
+      if (module->get_type() == ModuleType::Tofino_SendToEgress || module->get_type() == ModuleType::Tofino_Recirculate) {
+        pass++;
+        egress_pass = module->get_type() == ModuleType::Tofino_SendToEgress;
+      }
+    }
+
+    std::vector<value_t> slotted;
+    for (const value_t &value : values) {
+      if (value.def.width % 8 == 0 && value.def.width <= 64) {
+        slotted.push_back(value);
+      }
+    }
+    allocate(slotted, foreign_writes);
+
+    if (Walk::enabled()) {
+      std::set<code_t> ingress_slots, egress_slots;
+      for (const value_t &value : slotted) {
+        (value.egress ? egress_slots : ingress_slots).insert(slot_fields.at(value.def.op_id).name);
+      }
+      std::cerr << "[homes] path of " << path.size() << " nodes: " << slotted.size() << " slotted values, " << (values.size() - slotted.size())
+                << " of other widths; slots: ingress " << ingress_slots.size() << ", egress " << egress_slots.size() << "\n";
+      for (const value_t &value : slotted) {
+        std::cerr << "  " << slot_fields.at(value.def.op_id).name << " <- " << value.def.op_id
+                  << (value.def.symbol.empty() ? "" : " (" + value.def.symbol + ")") << " [" << value.from << ", "
+                  << (value.to >= INF ? std::string("end") : std::to_string(value.to)) << "]" << (value.fixed ? " fixed" : "")
+                  << (value.egress ? " egress" : "");
+        for (const auto &[op_id, rotation] : value.sources) {
+          auto found_it = slot_fields.find(op_id);
+          std::cerr << " " << (found_it != slot_fields.end() ? found_it->second.name : op_id) << ":" << rotation;
+        }
+        std::cerr << "\n";
+      }
+    }
+  }
+  if (Walk::enabled()) {
+    size_t ingress_words = 0, egress_words = 0;
+    for (const auto &[egress, name] : words_used) {
+      (egress ? egress_words : ingress_words)++;
+    }
+    std::cerr << "[homes] words touched over every path: ingress " << ingress_words << ", egress " << egress_words << " (budget " << WORD_BUDGET
+              << " each)\n";
+  }
+}
+
 void TofinoSynthesizer::synthesize() {
   const BDD *bdd = target_ep->get_bdd();
 
@@ -2343,6 +3192,7 @@ void TofinoSynthesizer::synthesize() {
 
   ingress_vars.push();
 
+  plan_value_homes(target_ep);
   EPVisitor::visit(target_ep);
 
   // The recirculation passes are mutually exclusive: the code path is read from the header the
@@ -2526,6 +3376,10 @@ void TofinoSynthesizer::synthesize() {
     eg_parser << "pkt.extract(hdr.recirc);\n";
     eg_parser.indent();
     eg_parser << "pkt.extract(hdr.egress_state);\n";
+    if (!state_slots_used.empty()) {
+      eg_parser.indent();
+      eg_parser << "pkt.extract(hdr.st);\n"; // Travels after egress_state, in struct order.
+    }
     coder_t &eg_hdrs = code_template.get(MARKER_EGRESS_HEADERS);
     for (const code_t &hdr_name : egress_parser_hdrs) {
       eg_parser.indent();
@@ -2547,6 +3401,20 @@ void TofinoSynthesizer::synthesize() {
     coder_t &leave_switch = code_template.get(MARKER_LEAVE_SWITCH);
     leave_switch.indent();
     leave_switch << "hdr.egress_state.setInvalid();\n";
+  }
+
+  if (!state_slots_used.empty()) {
+    code_template.get(MARKER_INGRESS_EGRESS_STATE_FIELD) << "  state_h st;\n";
+    code_template.get(MARKER_EGRESS_EGRESS_STATE_FIELD) << "  state_h st;\n";
+    coder_t &apply_start = code_template.get(MARKER_INGRESS_APPLY_START);
+    apply_start.indent();
+    apply_start << "hdr.st.setValid();\n";
+    coder_t &parse_recirc = code_template.get(MARKER_PARSE_RECIRC);
+    parse_recirc.indent();
+    parse_recirc << "pkt.extract(hdr.st);\n";
+    coder_t &leave_switch = code_template.get(MARKER_LEAVE_SWITCH);
+    leave_switch.indent();
+    leave_switch << "hdr.st.setInvalid();\n";
   }
 
   coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER_APPLY);
@@ -2902,38 +3770,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   // Slot counters restart for every recirculation, so the fields this pass needs land on the same
   // header slots another pass uses for its own values.
-  std::map<code_t, size_t> slot_next;
+  begin_recirc_slots();
 
   // Only what the rest of the processing needs goes around: a chain of computations leaves
   // many dead temporaries behind, and a header holding them all doesn't fit the PHV. Live:
   // every symbol a BDD node reachable from here uses (from the final BDD, not the module's
   // symbols, which the search computed before later reorderings), plus everything a later
   // hand-off to the controller ships for its replay of the data-plane decisions.
-  std::unordered_set<std::string> live_symbols;
-  const BDDNode *recirc_node = ep->get_bdd()->get_node_by_id(node->get_node()->get_id());
-  recirc_node->visit_nodes([&live_symbols](const BDDNode *future_node) {
-    for (const symbol_t &symbol : future_node->get_used_symbols().get()) {
-      live_symbols.insert(symbol.name);
-    }
-    return BDDNodeVisitAction::Continue;
-  });
-  std::vector<const EPNode *> pending{next};
-  while (!pending.empty()) {
-    const EPNode *future_ep_node = pending.back();
-    pending.pop_back();
-    if (const Module *future_module = future_ep_node->get_module()) {
-      if (future_module->get_type() == ModuleType::Tofino_SendToController) {
-        for (const symbol_t &symbol : dynamic_cast<const Tofino::SendToController *>(future_module)->get_symbols().get()) {
-          live_symbols.insert(symbol.name);
-        }
-      }
-    }
-    for (const EPNode *child : future_ep_node->get_children()) {
-      pending.push_back(child);
-    }
-  }
-  const auto is_live = [&live_symbols](const var_t &var) {
-    if (var.expr.isNull()) {
+  const std::unordered_set<std::string> live_symbols = live_symbols_past(ep, node->get_node(), next);
+  const auto is_live                                 = [&live_symbols](const var_t &var) {
+    if (var.expr.isNull() || var.transient) {
       return false;
     }
     for (const std::string &name : symbol_t::get_symbols_names(var.expr)) {
@@ -2972,19 +3818,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       }
 
       const code_t slot_kind = recirc_var.is_bool() ? code_t("b") : std::to_string(recirc_var.expr->getWidth());
-      size_t slot;
-      auto owned_it = recirc_slot_by_name.find(recirc_var.name);
-      if (owned_it != recirc_slot_by_name.end() && owned_it->second.first == slot_kind) {
-        slot = owned_it->second.second;
-      } else {
-        std::set<size_t> &owned = recirc_slots_owned[slot_kind];
-        do {
-          slot = slot_next[slot_kind]++;
-        } while (owned.contains(slot));
-        owned.insert(slot);
-        recirc_slot_by_name[recirc_var.name] = {slot_kind, slot};
-      }
-      recirc_slots_used[slot_kind] = std::max(recirc_slots_used[slot_kind], slot + 1);
+      const size_t slot      = recirc_slot_for(recirc_var.name, slot_kind);
 
       var_t local_recirc_var         = recirc_var;
       local_recirc_var.name          = "hdr.recirc.f" + slot_kind + "_" + std::to_string(slot);
@@ -3091,37 +3925,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   // Same liveness rule as a recirculation: only what a BDD node reachable from here still uses
   // travels, or the header does not fit the PHV.
-  std::unordered_set<std::string> live_symbols;
-  const BDDNode *cut_node = ep->get_bdd()->get_node_by_id(node->get_node()->get_id());
-  cut_node->visit_nodes([&live_symbols](const BDDNode *future_node) {
-    for (const symbol_t &symbol : future_node->get_used_symbols().get()) {
-      live_symbols.insert(symbol.name);
-    }
-    return BDDNodeVisitAction::Continue;
-  });
   // A hand-off to the controller past the cut ships the data-plane state it replays, so those
-  // symbols have to cross too. A recirculation already accounts for this; without it here, a
-  // controller hand-off reached in the egress looks for a value that never travelled.
-  {
-    std::vector<const EPNode *> pending{next};
-    while (!pending.empty()) {
-      const EPNode *future_ep_node = pending.back();
-      pending.pop_back();
-      if (const Module *future_module = future_ep_node->get_module()) {
-        if (future_module->get_type() == ModuleType::Tofino_SendToController) {
-          for (const symbol_t &symbol : dynamic_cast<const Tofino::SendToController *>(future_module)->get_symbols().get()) {
-            live_symbols.insert(symbol.name);
-          }
-        }
-      }
-      for (const EPNode *child : future_ep_node->get_children()) {
-        pending.push_back(child);
-      }
-    }
-  }
-
-  const auto is_live = [&live_symbols](const var_t &var) {
-    if (var.expr.isNull()) {
+  // symbols have to cross too (live_symbols_past counts them).
+  const std::unordered_set<std::string> live_symbols = live_symbols_past(ep, node->get_node(), next);
+  const auto is_live                                 = [&live_symbols](const var_t &var) {
+    if (var.expr.isNull() || var.transient) {
       return false;
     }
     for (const std::string &name : symbol_t::get_symbols_names(var.expr)) {
@@ -3745,8 +4553,15 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     {
       const code_t action_name = base_var.name.substr(base_var.name.rfind('.') + 1) + "_calc";
       coder_t &control         = get(MARKER_INGRESS_CONTROL);
+      // A value that reads a slot of a hash chain is computed by the hash unit, as the ground
+      // truth computes its cookie (`data2 = ctime ^ v0 ^ ...` in @in_hash): an ALU op would tie
+      // this metadata field to the chain's sliced cluster. The hash unit takes an xor or a
+      // layout of fields; an add of a slot stays an ALU op.
+      const std::optional<std::string> op = LibBDD::unrolled_op_name(emitted);
+      const bool via_hash                 = base_code.find("hdr.st.") != std::string::npos && (!op || *op == "op_xor");
       control.indent();
-      control << "action " << action_name << "() { " << base_var.name << " = " << base_code << "; }\n";
+      control << "action " << action_name << "() { " << (via_hash ? "@in_hash { " : "") << base_var.name << " = " << base_code << ";"
+              << (via_hash ? " }" : "") << " }\n";
       control << "\n";
       ingress_apply.indent();
       ingress_apply << action_name << "();\n";
@@ -6382,6 +7197,31 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     code_t statement; // Empty for an aliased value (already held elsewhere).
     bool in_hash;
   };
+  // Whether an ALU op's statement carries a constant bf-p4c turns into action data: anything past
+  // the smallest immediates, shift amounts and read offsets aside. A keyless table whose action
+  // computes in the hash unit takes the hit pathway and cannot carry action data ("the driver can
+  // only currently program the miss pathway"), so such statements go to a companion action.
+  const auto carries_action_data = [](const compute_op_t &op) -> bool {
+    if (op.in_hash || op.kind != ComputeOpKind::ALU || op.args.empty()) {
+      return false;
+    }
+    bool found                                            = false;
+    std::function<void(klee::ref<klee::Expr>, bool)> scan = [&](klee::ref<klee::Expr> expr, bool amount) {
+      if (expr.isNull() || found || expr->getKind() == klee::Expr::Read) {
+        return;
+      }
+      if (is_constant(expr)) {
+        found = !amount && expr->getWidth() <= 64 && solver_toolbox.value_from_expr(expr) > 7;
+        return;
+      }
+      const bool shift = expr->getKind() == klee::Expr::Shl || expr->getKind() == klee::Expr::LShr || expr->getKind() == klee::Expr::AShr;
+      for (unsigned i = 0; i < expr->getNumKids(); i++) {
+        scan(expr->getKid(i), shift && i == 1);
+      }
+    };
+    scan(op.args.front(), false);
+    return found;
+  };
 
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
   const Pipeline &pipeline        = tofino_ctx->get_tna().pipeline;
@@ -6487,22 +7327,53 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
   const auto existing_out_var = [&](const std::string &op_id) -> std::optional<var_t> {
     return ingress_vars.get((in_egress ? "eg_md." : "meta.") + op_id + "_out");
   };
-  const auto out_var = [&](const std::string &op_id, klee::ref<klee::Expr> expr) -> var_t {
+  // A value's slot of the state header (plan_value_homes), declared on this path if not yet.
+  const auto slot_var = [&](const std::string &op_id, klee::ref<klee::Expr> expr) -> std::optional<var_t> {
+    auto found_it = slot_fields.find(op_id);
+    if (found_it == slot_fields.end()) {
+      return {};
+    }
+    var_t var         = found_it->second;
+    var.expr          = expr.isNull() ? var.expr : expr;
+    var.original_expr = var.expr; // Not a slice of anything: is_slice() compares the two, and a null one crashes.
+    if (!var.expr.isNull()) {
+      if (const std::optional<var_t> existing = ingress_vars.get(var.expr)) {
+        if (existing->name == var.name) {
+          out_vars.insert({op_id, *existing});
+          return *existing;
+        }
+      }
+    }
+    ingress_vars.insert_back(var, /*allow_duplicates=*/true);
+    out_vars.insert({op_id, var});
+    return var;
+  };
+  const auto out_var = [&](const std::string &op_id, klee::ref<klee::Expr> expr, bool transient = false) -> var_t {
+    if (const std::optional<var_t> slot = slot_var(op_id, expr)) {
+      return *slot;
+    }
     if (const std::optional<var_t> existing = existing_out_var(op_id)) {
       out_vars.insert({op_id, *existing});
       return *existing;
     }
-    const var_t var = alloc_var(op_id + "_out", expr, EXACT_NAME | IS_INGRESS_METADATA);
+    var_t var     = alloc_var(op_id + "_out", expr, EXACT_NAME | IS_INGRESS_METADATA | SKIP_STACK_ALLOC);
+    var.transient = transient;
+    ingress_vars.insert_back(var);
     declare_var_in_ingress_metadata(var);
     out_vars.insert({op_id, var});
     return var;
   };
   const auto out_var_sized = [&](const std::string &op_id, bits_t width) -> var_t {
+    if (const std::optional<var_t> slot = slot_var(op_id, nullptr)) {
+      return *slot;
+    }
     if (const std::optional<var_t> existing = existing_out_var(op_id)) {
       out_vars.insert({op_id, *existing});
       return *existing;
     }
-    const var_t var = alloc_var(op_id + "_out", width, EXACT_NAME | IS_INGRESS_METADATA);
+    var_t var     = alloc_var(op_id + "_out", width, EXACT_NAME | IS_INGRESS_METADATA | SKIP_STACK_ALLOC);
+    var.transient = true;
+    ingress_vars.insert_back(var);
     declare_var_in_ingress_metadata(var);
     out_vars.insert({op_id, var});
     return var;
@@ -6510,6 +7381,9 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
   // The variable of a shift of the clock: the 32-bit time the data plane keeps, shifted by the
   // rest (see time_shift), whatever the width of the symbol. Idempotent by name, like out_var.
   const auto time_shift_out_var = [&](const std::string &op_id, klee::ref<klee::Expr> out) -> var_t {
+    if (const std::optional<var_t> slot = slot_var(op_id, out)) {
+      return *slot;
+    }
     const code_t name = (in_egress ? "eg_md." : "meta.") + op_id + "_out";
     if (const std::optional<var_t> existing = ingress_vars.get(name)) {
       out_vars.insert({op_id, *existing});
@@ -6547,17 +7421,20 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     }
     const compute_op_t &original = reuse->op;
     const bool shifts_time       = original.fn.rfind("op_", 0) == 0 && !original.args.empty() && time_shift(original.args.at(0)).has_value();
-    var_t var                    = shifts_time                ? time_shift_out_var(original.id, original.out)
-                                   : !original.out.isNull()   ? out_var(original.id, original.out)
-                                   : original.fn == "operand" ? out_var(original.id, original.args.at(0))
-                                                              : out_var_sized(original.id, original.width);
+    const bool is_operand        = original.out.isNull() && original.fn != "shl" && original.fn != "shr";
+    var_t var                    = shifts_time              ? time_shift_out_var(original.id, original.out)
+                                   : !original.out.isNull() ? out_var(original.id, original.out)
+                                   : is_operand             ? out_var(original.id, original.args.at(0), /*transient=*/true)
+                                                            : out_var_sized(original.id, original.width);
     out_vars.insert({op_id, var});
     if (!module_out.isNull()) {
       const var_t alias(var.name, module_out, module_out->getWidth(), false, var.is_header_field, false);
       ingress_vars.insert_back(alias, /*allow_duplicates=*/true);
     }
     reused_op_ids.insert(op_id);
-    if (std::find(reused_actions.begin(), reused_actions.end(), reuse->action) == reused_actions.end()) {
+    // An action of another path is called here and declared with that path; one of this very
+    // path (the op named a value computed by a rotate's operand) is this run's own.
+    if (!tofino_ctx->is_own_path_reuse(op_id) && std::find(reused_actions.begin(), reused_actions.end(), reuse->action) == reused_actions.end()) {
       reused_actions.push_back(reuse->action);
     }
     return true;
@@ -6574,15 +7451,62 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
 
   // What the placed op `op_id` reads now: an operand a shape match rewrote to a shared field
   // (TofinoContext::rewrite_compute_op) is transpiled as that field.
-  const auto rw                = [&](const std::string &op_id, klee::ref<klee::Expr> expr) { return tofino_ctx->apply_rewrites(op_id, expr); };
+  const auto rw = [&](const std::string &op_id, klee::ref<klee::Expr> expr) { return tofino_ctx->apply_rewrites(op_id, expr); };
+  // The code computing an operand. A zero-extension of the top bits of a field as wide as the
+  // result, (bit<32>)(f[31:16]), comes out as f >> 16: the cast is a deposit of a rotated source
+  // with a constant fill, which Tofino 2 refuses once a hash-unit rotate has cut the destination
+  // into slices; the shift is one plain ALU op.
+  // Whether the placed op `op_id` of `action_id` is computed by the hash unit (emitted in @in_hash).
+  const auto op_in_hash = [&](const DS_ID &action_id, const std::string &op_id) -> bool {
+    const Tofino::ComputeAction *action = dynamic_cast<const Tofino::ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(action_id));
+    if (!action) {
+      return false;
+    }
+    for (const compute_op_t &op : action->ops) {
+      if (op.id == op_id) {
+        return op.in_hash;
+      }
+    }
+    return false;
+  };
+  const auto operand_rhs = [&](const compute_operand_t &operand) -> code_t {
+    klee::ref<klee::Expr> expr = rw(operand.op_id, operand.expr);
+    const code_t code          = transpiler.transpile(expr);
+    if (expr->getKind() != klee::Expr::ZExt || op_in_hash(operand.action_id, operand.op_id)) {
+      return code; // The hash unit takes the cast as it is.
+    }
+    static const std::regex top_slice(R"(^\(bit<(\d+)>\)\(([A-Za-z_][\w.]*)\[(\d+):(\d+)\]\)$)");
+    std::smatch m;
+    if (!std::regex_match(code, m, top_slice)) {
+      return code;
+    }
+    const bits_t width               = std::stoul(m[1]);
+    const bits_t hi                  = std::stoul(m[3]);
+    const bits_t lo                  = std::stoul(m[4]);
+    const std::optional<var_t> field = ingress_vars.get(m[2].str());
+    if (!field || field->size != width || hi + 1 != width || lo == 0) {
+      return code;
+    }
+    return m[2].str() + " >> " + std::to_string(lo);
+  };
   const auto computed_operands = [&](const std::vector<compute_operand_t> &operands) {
     for (const compute_operand_t &operand : operands) {
       if (bind_reused(operand.op_id, nullptr)) {
         continue;
       }
-      if (!ingress_vars.get(operand.expr)) {
-        out_var_rhs[operand.op_id] = transpiler.transpile(rw(operand.op_id, operand.expr));
-        out_var(operand.op_id, operand.expr);
+      // A value some field holds already needs no computing -- unless the operand is a load by
+      // the hash unit, whose whole point is the copy of that field into a slot of the chain. The
+      // slot is the chain's alone: it is not registered under the value's expression, or a
+      // header write or a condition elsewhere would find the slot for that value and tie its own
+      // metadata to the chain's cluster with an ALU op.
+      // An operand with a slot of its own is computed into it for the same reason as an op's
+      // value above: the planner's word pairs hold only if the statements read the words it chose.
+      if (op_in_hash(operand.action_id, operand.op_id)) {
+        out_var_rhs[operand.op_id] = operand_rhs(operand);
+        out_var_sized(operand.op_id, operand.expr->getWidth());
+      } else if (slot_fields.contains(operand.op_id) || !ingress_vars.get(operand.expr)) {
+        out_var_rhs[operand.op_id] = operand_rhs(operand);
+        out_var(operand.op_id, operand.expr, /*transient=*/true);
       }
     }
   };
@@ -6606,8 +7530,8 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
         continue; // Held elsewhere already.
       }
       const auto rhs_it = out_var_rhs.find(operand.op_id);
-      const code_t rhs  = rhs_it != out_var_rhs.end() ? rhs_it->second : transpiler.transpile(rw(operand.op_id, operand.expr));
-      ops.push_back({operand.action_id, operand.op_id, found_it->second.name + " = " + rhs + ";", false});
+      const code_t rhs  = rhs_it != out_var_rhs.end() ? rhs_it->second : operand_rhs(operand);
+      ops.push_back({operand.action_id, operand.op_id, found_it->second.name + " = " + rhs + ";", op_in_hash(operand.action_id, operand.op_id)});
     }
   };
 
@@ -6620,7 +7544,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     const std::optional<std::string> producer = tofino_ctx->get_producer(move.to);
     assert(producer && "A move into a field no op produces");
     const var_t to_var = out_var(*producer, move.to);
-    ops.push_back({move.action, move.op_id, to_var.name + " = " + transpiler.transpile(move.from) + ";", false});
+    ops.push_back({move.action, move.op_id, to_var.name + " = " + transpiler.transpile(move.from) + ";", op_in_hash(move.action, move.op_id)});
   }
 
   for (const EPNode *step : steps) {
@@ -6638,8 +7562,13 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       }
       // Another module may already hold this very value (e.g. a register's returned new
       // value); the result is then just another name for it. Unless the action is shared with
-      // another path, which calls it for this very op and reads its variable.
-      if (std::optional<var_t> held = tofino_ctx->is_shared_compute_action(op->get_action_id()) ? std::nullopt : ingress_vars.get(op->get_value())) {
+      // another path, which calls it for this very op and reads its variable -- or the value has
+      // a slot of the state header: the planner chose that slot knowing which words the op reads
+      // and which read it (plan_value_homes), and a reader sent to another word that happens to
+      // hold the same value would take it at a rotation the planner never saw.
+      const bool planned = slot_fields.contains(op->get_op_id());
+      if (std::optional<var_t> held =
+              tofino_ctx->is_shared_compute_action(op->get_action_id()) || planned ? std::nullopt : ingress_vars.get(op->get_value())) {
         const var_t alias(held->name, op->get_out(), op->get_out()->getWidth(), false, held->is_header_field, false);
         ingress_vars.insert_back(alias, /*allow_duplicates=*/true);
         continue;
@@ -6687,16 +7616,20 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
         continue; // Aliased, or computed by another path's action.
       }
       if (const std::optional<u64> shift = time_shift(op->get_value())) {
+        // The copy of the clock reads it through the hash unit, as the ground truth does: an ALU
+        // op reading the intrinsic's metadata field counts one PHV source per slice once the hash
+        // chain the clock feeds has cut its destination into slices (Tofino::copies_clock).
         const code_t time = in_egress ? "eg_md.time" : "meta.time";
         const code_t rhs  = *shift == 0 ? time : time + " >> " + std::to_string(*shift);
-        ops.push_back({op->get_action_id(), op->get_op_id(), found_it->second.name + " = " + rhs + ";", false});
+        ops.push_back({op->get_action_id(), op->get_op_id(), found_it->second.name + " = " + rhs + ";", *shift == 0});
         break;
       }
       std::vector<code_t> operands;
       for (unsigned i = 0; i < op->get_value()->getNumKids(); i++) {
         operands.push_back(operand_code(rw(op->get_op_id(), op->get_value()->getKid(i)), op->get_operands()));
       }
-      ops.push_back({op->get_action_id(), op->get_op_id(), found_it->second.name + " = " + arithmetic_code(op->get_value(), operands) + ";", false});
+      ops.push_back({op->get_action_id(), op->get_op_id(), found_it->second.name + " = " + arithmetic_code(op->get_value(), operands) + ";",
+                     op_in_hash(op->get_action_id(), op->get_op_id())});
     } break;
     case ModuleType::Tofino_RotateLeft: {
       const Tofino::RotateLeft *rot = dynamic_cast<const Tofino::RotateLeft *>(module);
@@ -6754,6 +7687,31 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
   // 4. One bare action per ComputeAction, in stage order, its ops in the order they were
   // appended (the data structure's), called from the apply block in that same order.
   std::vector<DS_ID> action_ids;
+  if (Walk::enabled()) {
+    // The words a statement reads must be the ones the planner chose for the op: its word pairs
+    // hold only then. A difference here is an emitter lookup the planner did not foresee.
+    static const std::regex word(R"(hdr\.st\.s\d+_\d+)");
+    for (const op_emission_t &op : ops) {
+      auto planned_it = planned_sources.find(op.op_id);
+      if (planned_it == planned_sources.end() || op.statement.empty() || op.in_hash) {
+        continue;
+      }
+      const size_t eq = op.statement.find(" = ");
+      std::set<code_t> emitted, planned(planned_it->second.begin(), planned_it->second.end());
+      for (std::sregex_iterator it(op.statement.begin() + (eq == std::string::npos ? 0 : eq), op.statement.end(), word), end; it != end; ++it) {
+        emitted.insert(it->str());
+      }
+      auto own_it      = slot_fields.find(op.op_id);
+      const code_t own = own_it != slot_fields.end() ? own_it->second.name : "";
+      if (emitted != planned || (eq != std::string::npos && !own.empty() && op.statement.substr(0, eq) != own)) {
+        std::cerr << "[homes] mismatch " << op.op_id << " planned " << own << " <-";
+        for (const code_t &name : planned) {
+          std::cerr << " " << name;
+        }
+        std::cerr << " | emitted: " << op.statement << "\n";
+      }
+    }
+  }
   for (const op_emission_t &op : ops) {
     if (std::find(action_ids.begin(), action_ids.end(), op.action_id) == action_ids.end()) {
       action_ids.push_back(op.action_id);
@@ -6778,15 +7736,21 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       // Another path's action, declared with that path (before or after this one: declarations
       // and the apply block are separate sections). Called here with the same spill into
       // one-@in_hash companions its declaration makes, derived from the action's ops.
-      size_t hash_ops = 0;
+      size_t hash_ops  = 0;
+      bool action_data = false;
       for (const compute_op_t &op : action->ops) {
         hash_ops += op.in_hash ? 1 : 0;
+        action_data |= carries_action_data(op);
       }
       ingress_apply.indent();
       ingress_apply << action_id << "();\n";
       for (size_t i = 1; i < hash_ops; i++) {
         ingress_apply.indent();
         ingress_apply << action_id << "_h" << i << "();\n";
+      }
+      if (hash_ops > 0 && action_data) {
+        ingress_apply.indent();
+        ingress_apply << action_id << "_k();\n";
       }
       continue;
     }
@@ -6811,12 +7775,30 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     // has more than one per action. Keep the first here and give each of the rest an action of its
     // own, invoked straight after: the statements in an action are independent by construction, so
     // moving one to the next stage cannot change what it reads.
+    // Likewise, an action computing in the hash unit carries no action data (carries_action_data):
+    // its statements with a wide constant go to a `_k` companion, declared whenever the action's
+    // ops call for one so that a call from another path, which sees only the ops, matches.
     std::vector<const op_emission_t *> kept;
     std::vector<const op_emission_t *> spilled;
-    bool hash_taken = false;
+    std::vector<const op_emission_t *> constants;
+    bool hash_taken  = false;
+    bool has_hash    = false;
+    bool action_data = false;
+    std::unordered_set<std::string> constant_ops;
+    for (const compute_op_t &op : action->ops) {
+      has_hash |= op.in_hash;
+      if (carries_action_data(op)) {
+        action_data = true;
+        constant_ops.insert(op.id);
+      }
+    }
     for (const op_emission_t *statement : statements) {
       if (statement->in_hash && hash_taken) {
         spilled.push_back(statement);
+        continue;
+      }
+      if (has_hash && !statement->in_hash && constant_ops.contains(statement->op_id)) {
+        constants.push_back(statement);
         continue;
       }
       hash_taken |= statement->in_hash;
@@ -6847,6 +7829,9 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     emit_action(action_id, kept);
     for (size_t i = 0; i < spilled.size(); i++) {
       emit_action(action_id + "_h" + std::to_string(i + 1), {spilled[i]});
+    }
+    if (has_hash && action_data) {
+      emit_action(action_id + "_k", constants);
     }
   }
 
