@@ -23,13 +23,6 @@ using LibCore::solver_toolbox;
 
 namespace {
 
-// Values the compute run produces, by variable name.
-bool is_compute_value(const std::string &name) {
-  const size_t dot       = name.rfind('.');
-  const std::string stem = dot == std::string::npos ? name : name.substr(dot + 1);
-  return stem.rfind("rotate_left", 0) == 0 || stem.rfind("op_", 0) == 0 || stem.rfind("bf_", 0) == 0;
-}
-
 // Split a canonical ReadLSB into its first `keep` bytes (in packet order) and the rest.
 //
 // Rebuilt from the expression's own Read leaves, because both halves have to stay in the ReadLSB
@@ -3811,7 +3804,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     // egress-state and recirculation writes below are different: those are few and on the fast
     // path, and wrapping the uncut ones there only spends hash-distribution units.
     // A widened write carries the cast, and 64 bits do not fit the hash unit's 32-bit immediate.
-    const bool via_hash = !sliced && !widened && is_compute_value(var->name);
+    const bool via_hash = !sliced && !widened && var->name.rfind("hdr.st.", 0) == 0;
 
     ingress_apply.indent();
     if (via_hash) {
@@ -3934,7 +3927,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       recirc_vars.push_back(local_recirc_var);
       local_recirc_vars_by_name.insert({recirc_var.name, local_recirc_var});
 
-      const bool via_hash = cut_values.count(var.name) > 0;
+      const bool via_hash = var.name.rfind("hdr.st.", 0) == 0; // A state word: the copy must not slice it on the ALU.
       ingress_apply.indent();
       if (via_hash) {
         ingress_apply << "@in_hash { ";
@@ -4087,7 +4080,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       egress_vars.push_back(local_egress_var);
       local_egress_vars_by_name.insert({egress_var.name, local_egress_var});
 
-      const bool via_hash = cut_values.count(var.name) > 0;
+      const bool via_hash = var.name.rfind("hdr.st.", 0) == 0; // A state word: the copy must not slice it on the ALU.
       ingress_apply.indent();
       if (via_hash) {
         ingress_apply << "@in_hash { ";
@@ -4778,11 +4771,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
         }
 
         // A packet header field is deparsed and `exact_containers`, so it cannot be split; copying
-        // a value the rotate chain has cut into one needs a PHV source per piece, against a limit
-        // of two. Route it through the hash unit, as the ground truth does
-        // (`@in_hash { hdr.hdr2.data2 = ctime ^ v0 ^ v1 ^ v2 ^ v3; }`). Only the materialized
-        // arithmetic temporaries carry such values; a plain header-to-header move does not.
-        const bool via_hash = whole_var.has_value() && whole_var->name.find("hdr_val") != std::string::npos;
+        // a state word into one needs a PHV source per slice the chain cut it into, against a
+        // limit of two. Route it through the hash unit, as the ground truth does
+        // (`@in_hash { hdr.hdr2.data2 = ctime ^ v0 ^ v1 ^ v2 ^ v3; }`). A metadata temporary or
+        // a carried field is whole, and a plain move of it is an ALU move.
+        const bool via_hash = whole_var.has_value() && whole_var->name.rfind("hdr.st.", 0) == 0;
 
         // Byte at klee offset p sits at the field's bits [width-1-p : width-8-p], so offset 0 is
         // the field's most significant byte and the bytes concatenate in their klee order.
@@ -8146,10 +8139,13 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
 
     // This path's action: its statements, kept for the variants other paths call in part
     // (emit_action_variants), declared here and called unless a shared run calls it at its join.
+    // A statement touching no state word is an ALU statement, whatever the op's kind: the hash
+    // unit's point is to keep an outside value or a hash-unit output off the chain's sliced
+    // cluster, and a statement between metadata and carried fields touches that cluster nowhere.
     std::unordered_map<std::string, action_statement_t> &statements = action_statements[action_id];
     for (const op_emission_t &emission : ops) {
       if (emission.action_id == action_id && !emission.statement.empty()) {
-        statements[emission.op_id] = {emission.statement, emission.in_hash};
+        statements[emission.op_id] = {emission.statement, emission.in_hash && emission.statement.find("hdr.st.") != code_t::npos};
       }
     }
     action_in_egress[action_id] = in_egress;
