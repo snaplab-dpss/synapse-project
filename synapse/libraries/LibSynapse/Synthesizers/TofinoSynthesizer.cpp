@@ -2181,10 +2181,25 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::get(klee::ref<
     for (bits_t offset = 0; offset + expr_size <= var_size; offset += 8) {
       klee::ref<klee::Expr> var_slice = solver_toolbox.exprBuilder->Extract(var.expr, offset, expr_size);
 
-      if (solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
-        var_t slice = var.get_slice(offset, expr_size, opt);
-        return slice;
+      if (!solver_toolbox.are_exprs_always_equal(var_slice, expr)) {
+        continue;
       }
+
+      // The clock's expression is the whole 64-bit next_time while its field holds the 32 bits
+      // [47:16] the parser keeps, and the BDD reads next_time[2:6] for next_time >> 16: a slice
+      // at offset 16 is the field, one above it the field's slice 16 lower, one below it nothing.
+      if (var.original_name == "meta.time" || var.original_name == EGRESS_TIME) {
+        if (offset < 16) {
+          continue;
+        }
+        const bits_t lo   = offset - 16;
+        const bits_t hi   = lo + expr_size - 1;
+        const code_t name = (lo == 0 && expr_size == 32) ? var.name : var.name + "[" + std::to_string(hi) + ":" + std::to_string(lo) + "]";
+        return var_t(var.original_name, var.original_expr, var.original_size, name, expr, expr_size, false, var.is_header_field, false);
+      }
+
+      var_t slice = var.get_slice(offset, expr_size, opt);
+      return slice;
     }
   }
 
