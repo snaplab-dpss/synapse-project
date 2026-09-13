@@ -114,12 +114,14 @@ klee::ref<klee::Expr> narrow_widened_bitop(klee::ref<klee::Expr> e) {
 
 constexpr const u16 CUCKOO_CODE_PATH = 0xffff;
 
-constexpr const char *const MARKER_CPU_HEADER                   = "CPU_HEADER";
-constexpr const char *const MARKER_RECIRC_HEADER                = "RECIRCULATION_HEADER";
-constexpr const char *const MARKER_CUSTOM_HEADERS               = "CUSTOM_HEADERS";
-constexpr const char *const MARKER_INGRESS_HEADERS              = "INGRESS_HEADERS";
-constexpr const char *const MARKER_INGRESS_METADATA             = "INGRESS_METADATA";
-constexpr const char *const MARKER_INGRESS_PARSER               = "INGRESS_PARSER";
+constexpr const char *const MARKER_CPU_HEADER       = "CPU_HEADER";
+constexpr const char *const MARKER_RECIRC_HEADER    = "RECIRCULATION_HEADER";
+constexpr const char *const MARKER_CUSTOM_HEADERS   = "CUSTOM_HEADERS";
+constexpr const char *const MARKER_INGRESS_HEADERS  = "INGRESS_HEADERS";
+constexpr const char *const MARKER_INGRESS_METADATA = "INGRESS_METADATA";
+constexpr const char *const MARKER_INGRESS_PARSER   = "INGRESS_PARSER";
+// The clock in the egress: the ingress's, carried in the egress-state header (see the crossing).
+constexpr const char *const EGRESS_TIME                         = "hdr.egress_state.time";
 constexpr const char *const MARKER_INGRESS_CONTROL              = "INGRESS_CONTROL";
 constexpr const char *const MARKER_INGRESS_CONTROL_APPLY        = "INGRESS_CONTROL_APPLY";
 constexpr const char *const MARKER_INGRESS_CONTROL_APPLY_RECIRC = "INGRESS_CONTROL_APPLY_RECIRC";
@@ -3482,6 +3484,7 @@ void TofinoSynthesizer::synthesize() {
     coder_t &eg_state_hdr = code_template.get(MARKER_EGRESS_STATE_HEADER);
     eg_state_hdr << "header egress_state_h {\n";
     eg_state_hdr << "  bit<16> code_path;\n";
+    eg_state_hdr << "  bit<32> time; // The ingress clock, ingress_mac_tstamp[47:16]: the packet's time in the egress too.\n";
     for (const var_t &var : egress_state_hdr_vars.get_all()) {
       const bits_t pad = var.is_bool() ? 7 : (8 - var.expr->getWidth()) % 8;
       if (pad > 0) {
@@ -3935,7 +3938,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // A recirculation from the egress comes back through the ingress, where the clock is meta.time
   // again, not the egress name a crossing gave it.
   for (var_t &var : recirc_vars) {
-    if (var.name == "eg_md.time" || var.original_name == "eg_md.time") {
+    if (var.name == EGRESS_TIME || var.original_name == EGRESS_TIME) {
       var.name          = "meta.time";
       var.original_name = "meta.time";
     }
@@ -4090,6 +4093,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << "hdr.egress_state.setValid();\n";
   ingress_apply.indent();
   ingress_apply << "hdr.egress_state.code_path = " << (i64)egress_code_path << ";\n";
+  ingress_apply.indent();
+  ingress_apply << "hdr.egress_state.time = meta.time;\n";
 
   Stacks stack_backup = ingress_vars;
 
@@ -4126,12 +4131,14 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
         continue;
       }
 
-      // The egress reads the clock itself (see the template), so the same expression resolves
-      // there without travelling -- and travelling would lose the [47:16] convention the backend
-      // rewrites shifts against.
+      // The clock travels in the egress-state header, as the 32 bits [47:16] the ingress keeps
+      // (so the shift convention holds on the far side), for two reasons: the egress reading its
+      // own timestamp gave the same packet two clocks, and reading it into metadata was a table
+      // at stage 0 that the first action of the ladder arm reading the clock waited on, which
+      // moved the gateway of every later arm, and so the whole chain after it, a stage down.
       if (var.original_name == "meta.time") {
         var_t egress_time         = var;
-        egress_time.name          = "eg_md.time";
+        egress_time.name          = EGRESS_TIME;
         egress_time.original_name = egress_time.name;
         egress_vars.push_back(egress_time);
         continue;
@@ -7838,7 +7845,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       return {};
     }
     const std::optional<var_t> var = ingress_vars.get(value->getKid(0));
-    if (!var || (var->name != "meta.time" && var->name != "eg_md.time")) {
+    if (!var || (var->name != "meta.time" && var->name != EGRESS_TIME)) {
       return {};
     }
     const u64 shift = solver_toolbox.value_from_expr(value->getKid(1));
@@ -8226,7 +8233,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
         // The copy of the clock reads it through the hash unit, as the ground truth does: an ALU
         // op reading the intrinsic's metadata field counts one PHV source per slice once the hash
         // chain the clock feeds has cut its destination into slices (Tofino::copies_clock).
-        const code_t time = in_egress ? "eg_md.time" : "meta.time";
+        const code_t time = in_egress ? EGRESS_TIME : "meta.time";
         const code_t rhs  = *shift == 0 ? time : time + " >> " + std::to_string(*shift);
         ops.push_back({op->get_action_id(), op->get_op_id(), found_it->second.name + " = " + rhs + ";", *shift == 0});
         break;
