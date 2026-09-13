@@ -173,6 +173,32 @@ const Parser &get_tofino_parser(const EP *ep) {
   return *tna.parser;
 }
 
+// Whether an ALU op's statement carries a constant bf-p4c turns into action data: anything past
+// the smallest immediates, shift amounts and read offsets aside. A keyless table whose action
+// computes in the hash unit takes the hit pathway and cannot carry action data ("the driver can
+// only currently program the miss pathway"), so such statements go to a companion action.
+bool carries_action_data(const compute_op_t &op) {
+  if (op.in_hash || op.kind != ComputeOpKind::ALU || op.args.empty()) {
+    return false;
+  }
+  bool found                                            = false;
+  std::function<void(klee::ref<klee::Expr>, bool)> scan = [&](klee::ref<klee::Expr> expr, bool amount) {
+    if (expr.isNull() || found || expr->getKind() == klee::Expr::Read) {
+      return;
+    }
+    if (is_constant(expr)) {
+      found = !amount && expr->getWidth() <= 64 && solver_toolbox.value_from_expr(expr) > 7;
+      return;
+    }
+    const bool shift = expr->getKind() == klee::Expr::Shl || expr->getKind() == klee::Expr::LShr || expr->getKind() == klee::Expr::AShr;
+    for (unsigned i = 0; i < expr->getNumKids(); i++) {
+      scan(expr->getKid(i), shift && i == 1);
+    }
+  };
+  scan(op.args.front(), false);
+  return found;
+}
+
 } // namespace
 
 TofinoSynthesizer::Transpiler::Transpiler(TofinoSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
@@ -3193,6 +3219,7 @@ void TofinoSynthesizer::synthesize() {
   ingress_vars.push();
 
   plan_value_homes(target_ep);
+  plan_shared_runs(target_ep);
   EPVisitor::visit(target_ep);
 
   // The recirculation passes are mutually exclusive: the code path is read from the header the
@@ -3313,11 +3340,78 @@ void TofinoSynthesizer::synthesize() {
   // that block only, as the recirculation passes do.
   if (uses_egress) {
     coder_t &egress_apply = code_template.get(MARKER_EGRESS_CONTROL_APPLY);
+    // Blocks calling one shared run are one arm (plan_shared_runs): what each does besides is
+    // nested under its own code path, before and after the calls, as the marker splits it.
+    std::unordered_map<code_path_t, size_t> run_of_block;
+    for (size_t r = 0; r < shared_runs.size(); r++) {
+      for (const EPNode *cut : shared_runs[r].egress_cuts) {
+        if (auto it = egress_code_path_of.find(cut); it != egress_code_path_of.end()) {
+          run_of_block[it->second] = r;
+        }
+      }
+    }
+    const code_t arm_indent = code_t((egress_apply.lvl + 1) * 2, ' ');
+    const auto nest         = [&](code_path_t code_path, const code_t &body) {
+      static const std::regex only_comments(R"(^(\s*(//[^\n]*)?\n?)*$)");
+      if (std::regex_match(body, only_comments)) {
+        return; // Nothing but the plan's notes: no block for them.
+      }
+      egress_apply << arm_indent << "if (hdr.egress_state.code_path == " << (i64)code_path << ") {\n";
+      std::stringstream lines(body);
+      code_t line;
+      while (std::getline(lines, line)) {
+        egress_apply << (line.empty() ? line : "  " + line) << "\n";
+      }
+      egress_apply << arm_indent << "}\n";
+    };
+    std::unordered_set<size_t> emitted_runs;
+    bool first_arm = true;
     for (code_path_t code_path = 0; code_path < egress_coders.size(); code_path++) {
+      const auto run_it = run_of_block.find(code_path);
+      if (run_it == run_of_block.end()) {
+        egress_apply.indent();
+        egress_apply << (first_arm ? code_t("") : code_t("} else "));
+        egress_apply << "if (hdr.egress_state.code_path == " << (i64)code_path << ") {\n";
+        egress_apply << egress_coders[code_path].dump();
+        first_arm = false;
+        continue;
+      }
+      if (emitted_runs.contains(run_it->second)) {
+        continue;
+      }
+      emitted_runs.insert(run_it->second);
+      const shared_run_t &run = shared_runs[run_it->second];
+      std::vector<code_path_t> arms;
+      for (code_path_t other = 0; other < egress_coders.size(); other++) {
+        if (auto it = run_of_block.find(other); it != run_of_block.end() && it->second == run_it->second) {
+          arms.push_back(other);
+        }
+      }
       egress_apply.indent();
-      egress_apply << (code_path == 0 ? code_t("") : code_t("} else "));
-      egress_apply << "if (hdr.egress_state.code_path == " << (i64)code_path << ") {\n";
-      egress_apply << egress_coders[code_path].dump();
+      egress_apply << (first_arm ? code_t("") : code_t("} else ")) << "if (";
+      for (size_t i = 0; i < arms.size(); i++) {
+        egress_apply << (i == 0 ? code_t("") : code_t(" || ")) << "hdr.egress_state.code_path == " << (i64)arms[i];
+      }
+      egress_apply << ") {\n";
+      first_arm           = false;
+      const code_t marker = "// @shared-run " + std::to_string(run_it->second);
+      std::vector<std::pair<code_t, code_t>> halves; // Each arm's block before and after the marker.
+      for (const code_path_t arm : arms) {
+        const code_t block = egress_coders[arm].dump();
+        const size_t at    = block.find(marker);
+        assert(at != code_t::npos && "A merged egress block without its shared run's marker");
+        const size_t line_end = block.find('\n', at);
+        halves.emplace_back(block.substr(0, block.rfind('\n', at) + 1), line_end == code_t::npos ? code_t("") : block.substr(line_end + 1));
+      }
+      for (size_t i = 0; i < arms.size(); i++) {
+        nest(arms[i], halves[i].first);
+      }
+      for (const code_t &call : run.calls) {
+        egress_apply << arm_indent << call << "\n";
+      }
+      for (size_t i = 0; i < arms.size(); i++) {
+        nest(arms[i], halves[i].second);
+      }
     }
     if (!egress_coders.empty()) {
       egress_apply.indent();
@@ -3905,6 +3999,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   const code_path_t egress_code_path = alloc_egress_coder();
+  egress_code_path_of[ep_node]       = egress_code_path;
   ingress_apply.indent();
   ingress_apply << "meta.to_egress = 1;\n";
   ingress_apply.indent();
@@ -4135,6 +4230,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress.indent();
     ingress << "}\n";
 
+    emit_shared_runs_after(ep_node);
+
     return EPVisitor::Action::skipChildren;
   }
 
@@ -4178,6 +4275,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   ingress.indent();
   ingress << "}\n";
+
+  emit_shared_runs_after(ep_node);
 
   return EPVisitor::Action::skipChildren;
 }
@@ -7140,6 +7239,310 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
+std::vector<const EPNode *> TofinoSynthesizer::compute_run_steps(const EPNode *first) const {
+  std::vector<const EPNode *> steps;
+  for (const EPNode *ep_node = first; ep_node && ep_node->get_module();) {
+    const Module *module = ep_node->get_module();
+    if (TofinoModuleFactory::is_compute_module(module)) {
+      steps.push_back(ep_node);
+    } else if (module->get_type() == ModuleType::Tofino_Ignore) {
+      // Transparent: nothing in the data plane, and no break in the run, as in the search.
+    } else if (module->get_type() == ModuleType::Tofino_If && !dynamic_cast<const Tofino::If *>(module)->get_materialized_operands().empty()) {
+      steps.push_back(ep_node);
+      break;
+    } else {
+      break;
+    }
+    const std::vector<EPNode *> &children = ep_node->get_children();
+    if (children.size() != 1) {
+      break;
+    }
+    ep_node = children[0];
+  }
+  return steps;
+}
+
+std::vector<code_t> TofinoSynthesizer::compute_action_calls(const TofinoContext *tofino_ctx, const DS_ID &action_id) const {
+  const Tofino::ComputeAction *action = dynamic_cast<const Tofino::ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(action_id));
+  assert(action && "Compute step placed outside a ComputeAction");
+  size_t hash_ops  = 0;
+  bool action_data = false;
+  for (const compute_op_t &op : action->ops) {
+    hash_ops += op.in_hash ? 1 : 0;
+    action_data |= carries_action_data(op);
+  }
+  std::vector<code_t> calls{action_id + "();"};
+  for (size_t i = 1; i < hash_ops; i++) {
+    calls.push_back(action_id + "_h" + std::to_string(i) + "();");
+  }
+  if (hash_ops > 0 && action_data) {
+    calls.push_back(action_id + "_k();");
+  }
+  return calls;
+}
+
+void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
+  using compute_operand_t         = TofinoModuleFactory::compute_operand_t;
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  const Pipeline &pipeline        = tofino_ctx->get_tna().pipeline;
+
+  // A site: a compute run, by its first step, with the actions of its own ops, the actions of
+  // other paths' ops it calls, and the pass it runs in (the cut it starts at; none for the first).
+  struct site_t {
+    const EPNode *first;
+    const EPNode *cut;
+    bool egress;
+    std::vector<DS_ID> own;
+    std::vector<DS_ID> reused;
+  };
+  std::vector<site_t> sites;
+  std::unordered_map<const EPNode *, size_t> site_of;
+  std::unordered_set<const EPNode *> in_a_run;
+  std::vector<std::vector<size_t>> paths; // The sites on each root-to-leaf path, in order.
+
+  const auto push_unique = [](std::vector<DS_ID> &ids, const DS_ID &id) {
+    if (std::find(ids.begin(), ids.end(), id) == ids.end()) {
+      ids.push_back(id);
+    }
+  };
+  const auto classify = [&](site_t &site, const std::string &op_id, const DS_ID &action) {
+    const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(op_id);
+    if (reuse && !tofino_ctx->is_own_path_reuse(op_id)) {
+      push_unique(site.reused, reuse->action);
+    } else {
+      push_unique(site.own, action);
+    }
+  };
+  const auto classify_operands = [&](site_t &site, const std::vector<compute_operand_t> &operands) {
+    for (const compute_operand_t &operand : operands) {
+      classify(site, operand.op_id, operand.action_id);
+    }
+  };
+  const auto new_site = [&](const EPNode *first, const EPNode *cut, bool egress) {
+    site_t site{first, cut, egress, {}, {}};
+    for (const EPNode *step : compute_run_steps(first)) {
+      in_a_run.insert(step);
+      const Module *module = step->get_module();
+      switch (module->get_type()) {
+      case ModuleType::Tofino_ArithmeticOp: {
+        const Tofino::ArithmeticOp *op = dynamic_cast<const Tofino::ArithmeticOp *>(module);
+        classify(site, op->get_op_id(), op->get_action_id());
+        classify_operands(site, op->get_operands());
+      } break;
+      case ModuleType::Tofino_RotateLeft: {
+        const Tofino::RotateLeft *rot = dynamic_cast<const Tofino::RotateLeft *>(module);
+        classify(site, rot->get_op_id(), rot->get_action_id());
+        classify_operands(site, rot->get_operands());
+      } break;
+      case ModuleType::Tofino_RotateLeftShifts: {
+        const Tofino::RotateLeftShifts *rot = dynamic_cast<const Tofino::RotateLeftShifts *>(module);
+        classify(site, rot->get_shl_op_id(), rot->get_shl_action_id());
+        classify(site, rot->get_shr_op_id(), rot->get_shr_action_id());
+        classify(site, rot->get_or_op_id(), rot->get_or_action_id());
+        classify_operands(site, rot->get_operands());
+      } break;
+      case ModuleType::Tofino_If: {
+        classify_operands(site, dynamic_cast<const Tofino::If *>(module)->get_materialized_operands());
+      } break;
+      default:
+        break;
+      }
+    }
+    site_of[first] = sites.size();
+    sites.push_back(site);
+  };
+
+  std::function<void(const EPNode *, const EPNode *, bool, std::vector<size_t>)> walk = [&](const EPNode *node, const EPNode *cut, bool egress,
+                                                                                            std::vector<size_t> on_path) {
+    while (node) {
+      if (const Module *module = node->get_module()) {
+        switch (module->get_type()) {
+        case ModuleType::Tofino_Recirculate:
+          cut    = node;
+          egress = false;
+          break;
+        case ModuleType::Tofino_SendToEgress:
+          cut    = node;
+          egress = true;
+          break;
+        default:
+          if (TofinoModuleFactory::is_compute_module(module) && !in_a_run.contains(node)) {
+            new_site(node, cut, egress);
+          }
+          if (auto it = site_of.find(node); it != site_of.end()) {
+            on_path.push_back(it->second);
+          }
+          break;
+        }
+      }
+      const std::vector<EPNode *> &children = node->get_children();
+      if (children.empty()) {
+        paths.push_back(on_path);
+        return;
+      }
+      if (children.size() > 1) {
+        for (const EPNode *child : children) {
+          walk(child, cut, egress, on_path);
+        }
+        return;
+      }
+      node = children[0];
+    }
+  };
+  walk(ep->get_root(), nullptr, false, {});
+
+  // A run: a site's own actions, every one of them called by another path of the same pass (the
+  // reused actions of that path's sites cover them). Grouped by the actions, so a chain several
+  // paths share is one run.
+  struct group_t {
+    std::vector<DS_ID> actions;
+    std::set<size_t> site_ids;
+  };
+  std::map<std::vector<DS_ID>, group_t> groups;
+  for (size_t x = 0; x < sites.size(); x++) {
+    const site_t &X = sites[x];
+    if (X.own.empty()) {
+      continue;
+    }
+    for (const std::vector<size_t> &path : paths) {
+      if (std::find(path.begin(), path.end(), x) != path.end()) {
+        continue;
+      }
+      std::unordered_set<DS_ID> covered;
+      std::vector<size_t> callers;
+      for (const size_t y : path) {
+        const site_t &Y = sites[y];
+        if (Y.egress != X.egress || (!X.egress && Y.cut != X.cut)) {
+          continue;
+        }
+        bool calls = false;
+        for (const DS_ID &action : Y.reused) {
+          if (std::find(X.own.begin(), X.own.end(), action) != X.own.end()) {
+            covered.insert(action);
+            calls = true;
+          }
+        }
+        if (calls) {
+          callers.push_back(y);
+        }
+      }
+      if (covered.size() != X.own.size()) {
+        continue;
+      }
+      std::vector<DS_ID> key = X.own;
+      std::sort(key.begin(), key.end());
+      group_t &group = groups[key];
+      group.actions  = X.own;
+      group.site_ids.insert(x);
+      group.site_ids.insert(callers.begin(), callers.end());
+    }
+  }
+
+  // The If the sites diverge at: the deepest ancestor they all have.
+  const auto join_of = [](const std::set<const EPNode *> &nodes) -> const EPNode * {
+    std::unordered_map<const EPNode *, size_t> shared;
+    for (const EPNode *node : nodes) {
+      for (const EPNode *ancestor = node->get_prev(); ancestor; ancestor = ancestor->get_prev()) {
+        shared[ancestor]++;
+      }
+    }
+    for (const EPNode *ancestor = (*nodes.begin())->get_prev(); ancestor; ancestor = ancestor->get_prev()) {
+      if (shared[ancestor] == nodes.size()) {
+        return ancestor;
+      }
+    }
+    return nullptr;
+  };
+  // Whether nothing branches between a site and the cut its block starts at.
+  const auto at_block_top = [](const site_t &site) -> bool {
+    for (const EPNode *ancestor = site.first->get_prev(); ancestor && ancestor != site.cut; ancestor = ancestor->get_prev()) {
+      const Module *module = ancestor->get_module();
+      if (module && (module->get_type() == ModuleType::Tofino_If || module->get_type() == ModuleType::Tofino_Then ||
+                     module->get_type() == ModuleType::Tofino_Else)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  for (auto &[key, group] : groups) {
+    shared_run_t run;
+    run.actions = group.actions;
+    std::stable_sort(run.actions.begin(), run.actions.end(),
+                     [&pipeline](const DS_ID &a, const DS_ID &b) { return pipeline.get_placed_stage(a) < pipeline.get_placed_stage(b); });
+    std::set<const EPNode *> firsts;
+    for (const size_t id : group.site_ids) {
+      firsts.insert(sites[id].first);
+    }
+    run.sites.insert(firsts.begin(), firsts.end());
+    if (!sites[*group.site_ids.begin()].egress) {
+      run.join = join_of(firsts);
+      if (!run.join || !run.join->get_module() || run.join->get_module()->get_type() != ModuleType::Tofino_If) {
+        continue;
+      }
+      const var_t flag = alloc_var("shared_run_" + std::to_string(shared_runs.size()), 1, EXACT_NAME | IS_INGRESS_METADATA | SKIP_STACK_ALLOC);
+      declare_var_in_ingress_metadata(flag);
+      run.flag             = flag.name;
+      coder_t &apply_start = code_template.get(MARKER_INGRESS_APPLY_START);
+      apply_start.indent();
+      apply_start << run.flag << " = 0;\n";
+    } else {
+      // Each site the whole of its block's top level, each block once: the ladder can then nest
+      // what else the block does under its own code path.
+      std::set<const EPNode *> cuts;
+      bool mergeable = true;
+      for (const size_t id : group.site_ids) {
+        const site_t &site = sites[id];
+        mergeable &= site.cut && !cuts.contains(site.cut) && at_block_top(site);
+        cuts.insert(site.cut);
+      }
+      if (!mergeable) {
+        continue;
+      }
+      run.egress_cuts.assign(cuts.begin(), cuts.end());
+    }
+    for (const DS_ID &action : run.actions) {
+      const std::vector<code_t> calls = compute_action_calls(tofino_ctx, action);
+      run.calls.insert(run.calls.end(), calls.begin(), calls.end());
+    }
+    const size_t index = shared_runs.size();
+    for (const EPNode *site : run.sites) {
+      shared_runs_by_site[site].push_back(index);
+    }
+    if (run.join) {
+      shared_runs_by_join[run.join].push_back(index);
+    }
+    shared_runs.push_back(run);
+  }
+  if (Walk::enabled()) {
+    for (size_t r = 0; r < shared_runs.size(); r++) {
+      std::cerr << "[runs] shared run " << r << ": " << shared_runs[r].actions.size() << " actions, " << shared_runs[r].sites.size() << " sites, "
+                << (shared_runs[r].join ? "joined under a flag" : "one egress arm") << "\n";
+    }
+  }
+}
+
+void TofinoSynthesizer::emit_shared_runs_after(const EPNode *join) {
+  const auto runs_it = shared_runs_by_join.find(join);
+  if (runs_it == shared_runs_by_join.end()) {
+    return;
+  }
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+  for (const size_t r : runs_it->second) {
+    const shared_run_t &run = shared_runs[r];
+    ingress_apply.indent();
+    ingress_apply << "if (" << run.flag << " == 1) {\n";
+    ingress_apply.inc();
+    for (const code_t &call : run.calls) {
+      ingress_apply.indent();
+      ingress_apply << call << "\n";
+    }
+    ingress_apply.dec();
+    ingress_apply.indent();
+    ingress_apply << "}\n";
+  }
+}
+
 namespace {
 
 code_t arithmetic_code(klee::ref<klee::Expr> value, const std::vector<code_t> &operands) {
@@ -7197,32 +7600,6 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     code_t statement; // Empty for an aliased value (already held elsewhere).
     bool in_hash;
   };
-  // Whether an ALU op's statement carries a constant bf-p4c turns into action data: anything past
-  // the smallest immediates, shift amounts and read offsets aside. A keyless table whose action
-  // computes in the hash unit takes the hit pathway and cannot carry action data ("the driver can
-  // only currently program the miss pathway"), so such statements go to a companion action.
-  const auto carries_action_data = [](const compute_op_t &op) -> bool {
-    if (op.in_hash || op.kind != ComputeOpKind::ALU || op.args.empty()) {
-      return false;
-    }
-    bool found                                            = false;
-    std::function<void(klee::ref<klee::Expr>, bool)> scan = [&](klee::ref<klee::Expr> expr, bool amount) {
-      if (expr.isNull() || found || expr->getKind() == klee::Expr::Read) {
-        return;
-      }
-      if (is_constant(expr)) {
-        found = !amount && expr->getWidth() <= 64 && solver_toolbox.value_from_expr(expr) > 7;
-        return;
-      }
-      const bool shift = expr->getKind() == klee::Expr::Shl || expr->getKind() == klee::Expr::LShr || expr->getKind() == klee::Expr::AShr;
-      for (unsigned i = 0; i < expr->getNumKids(); i++) {
-        scan(expr->getKid(i), shift && i == 1);
-      }
-    };
-    scan(op.args.front(), false);
-    return found;
-  };
-
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
   const Pipeline &pipeline        = tofino_ctx->get_tna().pipeline;
 
@@ -7244,28 +7621,8 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     return shift - 16;
   };
 
-  // 1. The steps of the run: consecutive compute modules (an ignored node between them does
-  // nothing in the data plane and doesn't break the run, as in the search), plus an If whose
-  // condition operands had to be computed (it ends the run).
-  std::vector<const EPNode *> steps;
-  for (const EPNode *ep_node = first; ep_node && ep_node->get_module();) {
-    const Module *module = ep_node->get_module();
-    if (TofinoModuleFactory::is_compute_module(module)) {
-      steps.push_back(ep_node);
-    } else if (module->get_type() == ModuleType::Tofino_Ignore) {
-      // Transparent.
-    } else if (module->get_type() == ModuleType::Tofino_If && !dynamic_cast<const Tofino::If *>(module)->get_materialized_operands().empty()) {
-      steps.push_back(ep_node);
-      break;
-    } else {
-      break;
-    }
-    const std::vector<EPNode *> &children = ep_node->get_children();
-    if (children.size() != 1) {
-      break;
-    }
-    ep_node = children[0];
-  }
+  // 1. The steps of the run.
+  const std::vector<const EPNode *> steps = compute_run_steps(first);
 
   if (steps.empty() || emitted_compute_steps.contains(first)) {
     return; // Emitted with an earlier step of this run.
@@ -7728,29 +8085,46 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
   coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
+  // A site of a shared run: the run's actions are declared here when they are this path's, but
+  // called once, at the run's join (plan_shared_runs). The chain's first action marks the site:
+  // the flag the join tests, or the marker the ladder splits the block at.
+  std::unordered_set<DS_ID> hoisted;
+  const auto site_runs_it = shared_runs_by_site.find(first);
+  if (site_runs_it != shared_runs_by_site.end()) {
+    for (const size_t r : site_runs_it->second) {
+      hoisted.insert(shared_runs[r].actions.begin(), shared_runs[r].actions.end());
+    }
+  }
+
   for (const DS_ID &action_id : action_ids) {
     const Tofino::ComputeAction *action = dynamic_cast<const Tofino::ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(action_id));
     assert(action && "Compute step placed outside a ComputeAction");
+
+    const bool hoist = hoisted.contains(action_id);
+    if (hoist) {
+      for (const size_t r : site_runs_it->second) {
+        const shared_run_t &run = shared_runs[r];
+        if (run.actions.front() != action_id) {
+          continue;
+        }
+        ingress_apply.indent();
+        if (run.join) {
+          ingress_apply << run.flag << " = 1;\n";
+        } else {
+          ingress_apply << "// @shared-run " << (i64)r << "\n";
+        }
+      }
+    }
 
     if (std::find(reused_actions.begin(), reused_actions.end(), action_id) != reused_actions.end()) {
       // Another path's action, declared with that path (before or after this one: declarations
       // and the apply block are separate sections). Called here with the same spill into
       // one-@in_hash companions its declaration makes, derived from the action's ops.
-      size_t hash_ops  = 0;
-      bool action_data = false;
-      for (const compute_op_t &op : action->ops) {
-        hash_ops += op.in_hash ? 1 : 0;
-        action_data |= carries_action_data(op);
-      }
-      ingress_apply.indent();
-      ingress_apply << action_id << "();\n";
-      for (size_t i = 1; i < hash_ops; i++) {
-        ingress_apply.indent();
-        ingress_apply << action_id << "_h" << i << "();\n";
-      }
-      if (hash_ops > 0 && action_data) {
-        ingress_apply.indent();
-        ingress_apply << action_id << "_k();\n";
+      if (!hoist) {
+        for (const code_t &call : compute_action_calls(tofino_ctx, action_id)) {
+          ingress_apply.indent();
+          ingress_apply << call << "\n";
+        }
       }
       continue;
     }
@@ -7822,8 +8196,10 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       ingress << "}\n";
       ingress << "\n";
 
-      ingress_apply.indent();
-      ingress_apply << name << "();\n";
+      if (!hoist) {
+        ingress_apply.indent();
+        ingress_apply << name << "();\n";
+      }
     };
 
     emit_action(action_id, kept);
