@@ -97,8 +97,7 @@ public:
   DataStructures &get_mutable_data_structures() { return data_structures; }
 
   void parser_transition(const BDDNode *_node, klee::ref<klee::Expr> hdr, const BDDNode *last_parser_op, std::optional<bool> direction);
-  void parser_select(const BDDNode *_node, const std::vector<parser_selection_t> &selections, const BDDNode *last_parser_op,
-                     std::optional<bool> direction);
+  void parser_select(const BDDNode *_node, const parser_select_t &select, const BDDNode *last_parser_op, std::optional<bool> direction);
   void parser_accept(const BDDNode *_node, const BDDNode *last_parser_op, std::optional<bool> direction);
   void parser_reject(const BDDNode *_node, const BDDNode *last_parser_op, std::optional<bool> direction);
 

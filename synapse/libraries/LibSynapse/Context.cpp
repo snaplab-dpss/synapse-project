@@ -291,12 +291,12 @@ void Context::bdd_pre_processing_build_tofino_parser(const BDD *bdd) {
           klee::ref<klee::Expr> condition = branch_node->get_condition();
 
           if (branch_node->is_parser_condition()) {
-            const std::vector<Tofino::parser_selection_t> selections = Tofino::ParserConditionFactory::build_parser_select(condition);
+            const Tofino::parser_select_t select = Tofino::ParserConditionFactory::build_parser_select(condition);
 
             std::optional<bool> direction;
             const BDDNode *last_parser_op = parser_ops->get_last_op(node, direction);
 
-            tofino_ctx->parser_select(node, selections, last_parser_op, direction);
+            tofino_ctx->parser_select(node, select, last_parser_op, direction);
             parser_ops->nodes.push_back(node);
           }
         } break;
