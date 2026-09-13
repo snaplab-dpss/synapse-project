@@ -3219,6 +3219,53 @@ void TofinoSynthesizer::synthesize() {
 
   ingress_vars.push();
 
+  // The chunks a ChecksumUpdate covers, for the extraction visitor's header layout: the headers
+  // the call names by address are the nearest extractions of those addresses above it on its path.
+  {
+    std::vector<const EPNode *> pending{target_ep->get_root()};
+    while (!pending.empty()) {
+      const EPNode *ep_node = pending.back();
+      pending.pop_back();
+      pending.insert(pending.end(), ep_node->get_children().begin(), ep_node->get_children().end());
+
+      const Module *module = ep_node->get_module();
+      if (!module || module->get_type() != ModuleType::Tofino_ChecksumUpdate) {
+        continue;
+      }
+      const Tofino::ChecksumUpdate *update = dynamic_cast<const Tofino::ChecksumUpdate *>(module);
+
+      const Tofino::ParserExtraction *ip = nullptr;
+      const Tofino::ParserExtraction *l4 = nullptr;
+      for (const EPNode *above = ep_node->get_prev(); above; above = above->get_prev()) {
+        const Module *above_module = above->get_module();
+        if (!above_module || above_module->get_type() != ModuleType::Tofino_ParserExtraction) {
+          continue;
+        }
+        const Tofino::ParserExtraction *extraction = dynamic_cast<const Tofino::ParserExtraction *>(above_module);
+        if (extraction->get_hdr_addr() == update->get_ip_hdr_addr() && !ip) {
+          ip = extraction;
+        } else if (extraction->get_hdr_addr() == update->get_l4_hdr_addr() && !l4) {
+          l4 = extraction;
+        }
+      }
+      assert_or_panic(ip && l4, "Checksum update without its headers extracted above it");
+
+      // The deparser checksum covers whole headers: an IPv4 header without options and a TCP or
+      // UDP header. A call over anything else (nat borrows the four port bytes as its L4 header,
+      // and carries a payload) is left as it was, the checksums untouched.
+      if (ip->get_length() != 20 || (l4->get_length() != 20 && l4->get_length() != 8)) {
+        std::cerr << "[checksum] BDD node " << module->get_node()->get_id() << ": L4 header of " << l4->get_length()
+                  << " bytes, not recomputed in the deparser\n";
+        continue;
+      }
+
+      const checksum_site_t site{chunk_key(ip->get_hdr()), chunk_key(l4->get_hdr())};
+      checksummed_chunks[site.ip_hdr]        = {true, ip->get_length()};
+      checksummed_chunks[site.l4_hdr]        = {false, l4->get_length()};
+      checksum_headers_of[ep_node->get_id()] = site;
+    }
+  }
+
   plan_value_homes(target_ep);
   plan_shared_runs(target_ep);
   EPVisitor::visit(target_ep);
@@ -3527,6 +3574,9 @@ void TofinoSynthesizer::synthesize() {
     parse_cpu << "pkt.extract(hdr.st);\n";
   }
 
+  emit_deparser_checksums(false);
+  emit_deparser_checksums(true);
+
   coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER_APPLY);
   ingress_deparser.indent();
   ingress_deparser << "pkt.emit(hdr);";
@@ -3776,6 +3826,8 @@ code_path_t TofinoSynthesizer::alloc_egress_coder() {
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::SendToController *node) {
+  flag_pending_checksum();
+
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
   const Symbols &symbols = node->get_symbols();
 
@@ -4314,6 +4366,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Else *node) { return EPVisitor::Action::doChildren; }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Forward *node) {
+  flag_pending_checksum();
+
   klee::ref<klee::Expr> dst_device = node->get_dst_device();
   // Past a crossing the port still has to be written in ingress. The crossing only happened where
   // this device was computable there, so the expression resolves.
@@ -4413,6 +4467,37 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     // contributing field to be split, carrying its remainder forward. On that header this yields
     // [32][32][32][16][48] -- the layout the hand-fixed solution needed.
     std::vector<klee::ref<klee::Expr>> work(hdr_fields_guess.begin(), hdr_fields_guess.end());
+
+    // A checksummed chunk's guessed fields are cut at the boundaries the deparser checksum needs
+    // (checksum_boundaries), and no merge below crosses one.
+    std::set<bytes_t> boundaries;
+    if (const auto chunk_it = checksummed_chunks.find(chunk_key(node->get_hdr())); chunk_it != checksummed_chunks.end()) {
+      boundaries = checksum_boundaries(chunk_it->second);
+      bytes_t at = 0;
+      for (size_t k = 0; k < work.size(); k++) {
+        const bytes_t width = work[k]->getWidth() / 8;
+        for (const bytes_t boundary : boundaries) {
+          if (boundary > at && boundary < at + width) {
+            klee::ref<klee::Expr> head;
+            klee::ref<klee::Expr> tail;
+            assert_or_panic(split_read(work[k], boundary - at, head, tail), "Cannot cut a guessed header field at a checksum boundary");
+            work[k] = head;
+            work.insert(work.begin() + k + 1, tail);
+            break; // The tail is next.
+          }
+        }
+        at += work[k]->getWidth() / 8;
+      }
+    }
+    const auto crosses_boundary = [&boundaries](bytes_t from, bytes_t width) -> bool {
+      for (const bytes_t boundary : boundaries) {
+        if (boundary > from && boundary < from + width) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     bytes_t offset = 0;
     size_t i       = 0;
     while (i < work.size()) {
@@ -4421,7 +4506,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       bool merged       = false;
 
       for (const bytes_t target : {4u, 2u}) {
-        if (offset % target != 0) {
+        if (offset % target != 0 || crosses_boundary(offset, target)) {
           continue;
         }
         bits_t acc = 0;
@@ -4440,7 +4525,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       }
 
       for (const bytes_t target : {4u, 2u}) {
-        if (merged || offset % target != 0) {
+        if (merged || offset % target != 0 || crosses_boundary(offset, target)) {
           continue;
         }
         bits_t acc = 0;
@@ -4493,11 +4578,15 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   std::vector<var_t> hdr_data;
+  hdr_fields_by_hdr[chunk_key(node->get_hdr())].clear();
+  bytes_t hdr_offset = 0;
   for (const emitted_field_t &field : emitted) {
     const code_t field_name    = "hdr." + hdr_name + ".data" + std::to_string(hdr_data.size());
     klee::ref<klee::Expr> full = LibCore::concat_exprs(field.parts);
     const var_t var            = alloc_var(field_name, full, EXACT_NAME | HEADER_FIELD);
     hdr_data.push_back(var);
+    hdr_fields_by_hdr[chunk_key(node->get_hdr())].push_back({hdr_offset, field.width, var.name});
+    hdr_offset += field.width / 8;
 
     if (field.parts.size() == 1) {
       continue;
@@ -4552,6 +4641,137 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_vars.pop();
 
   return EPVisitor::Action::skipChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ChecksumUpdate *node) {
+  // The deparser of the gress the packet leaves from recomputes both checksums when the flag is
+  // set (emit_deparser_checksums), and the flag is set where the packet leaves
+  // (flag_pending_checksum), since that can be another gress or pass: SmartCookie's SYN-ACK is
+  // checksummed in the egress and rewritten and forwarded on the recirculated pass in the ingress,
+  // whose deparser has to do the update, after the rewrite. The L4 checksum covers the header
+  // alone, the pseudo-header's length being the header's: right for a packet the data plane made
+  // itself, such as that SYN-ACK, not for one carrying a payload, which would need the incremental
+  // update from a parser residual.
+  const auto site_it = checksum_headers_of.find(ep_node->get_id());
+  if (site_it == checksum_headers_of.end()) {
+    return EPVisitor::Action::doChildren; // Not a header the deparser can checksum (synthesize).
+  }
+
+  assert(ep_node->get_children().size() == 1 && "ChecksumUpdate must have 1 child");
+  pending_checksum = site_it->second;
+  visit(ep, ep_node->get_children()[0]);
+  pending_checksum.reset();
+  return EPVisitor::Action::skipChildren;
+}
+
+void TofinoSynthesizer::flag_pending_checksum() {
+  if (!pending_checksum) {
+    return;
+  }
+
+  coder_t &apply  = get(MARKER_INGRESS_CONTROL_APPLY);
+  const code_t md = in_egress ? "eg_md." : "meta.";
+
+  apply.indent();
+  apply << md << "redo_checksum = 1;\n";
+  apply.indent();
+  apply << md << "l4_len = 16w" << checksummed_chunks.at(pending_checksum->l4_hdr).length << ";\n";
+
+  std::optional<checksum_site_t> &site = in_egress ? egress_checksum_site : ingress_checksum_site;
+  if (site) {
+    assert_or_panic(site->ip_hdr == pending_checksum->ip_hdr && site->l4_hdr == pending_checksum->l4_hdr,
+                    "Checksum updates of different headers in one gress");
+  } else {
+    site = pending_checksum;
+  }
+}
+
+// The byte offsets inside a checksummed chunk at which one field has to end and another start:
+// around the checksum, which the deparser writes whole, and in the IPv4 header around the
+// protocol, which the L4 pseudo-header reads whole (the ttl before it then comes out whole too).
+std::set<bytes_t> TofinoSynthesizer::checksum_boundaries(const checksummed_chunk_t &chunk) {
+  if (chunk.is_ip) {
+    return {8, 9, 10, 12};
+  }
+  switch (chunk.length) {
+  case 20:
+    return {16, 18}; // TCP
+  case 8:
+    return {6, 8}; // UDP
+  }
+  panic("Checksummed L4 header of %u bytes: neither TCP nor UDP", chunk.length);
+}
+
+void TofinoSynthesizer::emit_deparser_checksums(bool egress) {
+  const std::optional<checksum_site_t> &site = egress ? egress_checksum_site : ingress_checksum_site;
+  if (!site) {
+    return;
+  }
+
+  const code_t md                       = egress ? "eg_md." : "meta.";
+  const std::vector<hdr_field_t> &ip    = hdr_fields_by_hdr.at(site->ip_hdr);
+  const std::vector<hdr_field_t> &l4    = hdr_fields_by_hdr.at(site->l4_hdr);
+  const std::set<bytes_t> l4_boundaries = checksum_boundaries(checksummed_chunks.at(site->l4_hdr));
+  const bytes_t l4_csum                 = *l4_boundaries.begin();
+
+  // The fields covering the bytes [from, to), whole, in order.
+  const auto fields_between = [](const std::vector<hdr_field_t> &fields, bytes_t from, bytes_t to) -> std::vector<code_t> {
+    std::vector<code_t> names;
+    bytes_t at = from;
+    for (const hdr_field_t &field : fields) {
+      if (field.offset == at && field.offset + field.width / 8 <= to) {
+        names.push_back(field.name);
+        at = field.offset + field.width / 8;
+      }
+    }
+    assert_or_panic(at == to, "No whole header fields for bytes [%u, %u) of a checksummed header", from, to);
+    return names;
+  };
+  const auto list = [](const std::vector<code_t> &names) -> code_t {
+    code_t joined;
+    for (const code_t &name : names) {
+      joined += (joined.empty() ? "" : ", ") + name;
+    }
+    return joined;
+  };
+  const auto concat = [](std::vector<code_t> a, const std::vector<code_t> &b) {
+    a.insert(a.end(), b.begin(), b.end());
+    return a;
+  };
+
+  const std::vector<code_t> ip_csum       = fields_between(ip, 10, 12);
+  const std::vector<code_t> l4_csum_field = fields_between(l4, l4_csum, l4_csum + 2);
+  assert(ip_csum.size() == 1 && l4_csum_field.size() == 1 && "Checksum fields not whole");
+
+  coder_t &metadata = code_template.get(egress ? MARKER_EGRESS_METADATA : MARKER_INGRESS_METADATA);
+  metadata.indent();
+  metadata << "bit<1> redo_checksum;\n";
+  metadata.indent();
+  metadata << "bit<16> l4_len;\n";
+
+  coder_t &init = code_template.get(egress ? MARKER_EGRESS_PARSER_START : MARKER_INGRESS_APPLY_START);
+  init.indent();
+  init << md << "redo_checksum = 0;\n";
+
+  coder_t &decl = code_template.get(egress ? MARKER_EGRESS_DEPARSER : MARKER_INGRESS_DEPARSER);
+  decl.indent();
+  decl << "Checksum() ipv4_checksum;\n";
+  decl.indent();
+  decl << "Checksum() l4_checksum;\n";
+
+  coder_t &apply = code_template.get(egress ? MARKER_EGRESS_DEPARSER_APPLY : MARKER_INGRESS_DEPARSER_APPLY);
+  apply.indent();
+  apply << "if (" << md << "redo_checksum == 1) {\n";
+  apply.inc();
+  apply.indent();
+  apply << ip_csum[0] << " = ipv4_checksum.update({" << list(concat(fields_between(ip, 0, 10), fields_between(ip, 12, 20))) << "});\n";
+  apply.indent();
+  apply << l4_csum_field[0] << " = l4_checksum.update({" << list(fields_between(ip, 12, 20)) << ", 8w0, " << list(fields_between(ip, 9, 10)) << ", "
+        << md << "l4_len, " << list(concat(fields_between(l4, 0, l4_csum), fields_between(l4, l4_csum + 2, l4.back().offset + l4.back().width / 8)))
+        << "});\n";
+  apply.dec();
+  apply.indent();
+  apply << "}\n";
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) {

@@ -197,7 +197,7 @@ node=444 module=Tofino_ArithmeticOp next=177  # step 191, ep 1224
 node=177 module=Tofino_RotateLeft next=445  # step 192, ep 1229
 node=445 module=Tofino_ArithmeticOp next=178  # step 193, ep 1236
 node=178 module=Tofino_RotateLeft next=179  # step 194, ep 1241
-node=179 module=Tofino_Ignore next=446  # step 195, ep 1246
+node=179 module=Tofino_ChecksumUpdate next=446  # step 195, ep 1246
 node=446 module=Tofino_ArithmeticOp next=447  # step 196, ep 1250
 node=447 module=Tofino_ArithmeticOp next=448  # step 197, ep 1254
 node=448 module=Tofino_ArithmeticOp next=449  # step 198, ep 1258

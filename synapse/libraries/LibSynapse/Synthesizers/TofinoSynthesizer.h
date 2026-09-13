@@ -204,6 +204,40 @@ private:
 
   Stacks ingress_vars;
   Stack hdr_vars;
+
+  // The chunks nf_set_rte_ipv4_udptcp_checksum covers, gathered before emission: a deparser
+  // Checksum reads and writes whole fields only, so their headers are laid out with the checksum,
+  // and the fields the L4 pseudo-header reads, as fields of their own (checksum_boundaries). A
+  // chunk is known by its expression (chunk_key): the call names its headers by address, and the
+  // L4 address is the TCP header's on one path and the UDP header's on another.
+  struct checksummed_chunk_t {
+    bool is_ip;
+    bytes_t length;
+  };
+  static code_t chunk_key(klee::ref<klee::Expr> hdr) { return expr_to_string(hdr, true); }
+  std::unordered_map<code_t, checksummed_chunk_t> checksummed_chunks;
+  // The fields a chunk's header came out with, in header order.
+  struct hdr_field_t {
+    bytes_t offset;
+    bits_t width;
+    code_t name;
+  };
+  std::unordered_map<code_t, std::vector<hdr_field_t>> hdr_fields_by_hdr;
+  // The headers a ChecksumUpdate covers, by its EP node, and per gress the pair whose checksums
+  // the deparser recomputes when the path set the flag.
+  struct checksum_site_t {
+    code_t ip_hdr;
+    code_t l4_hdr;
+  };
+  std::unordered_map<ep_node_id_t, checksum_site_t> checksum_headers_of;
+  std::optional<checksum_site_t> ingress_checksum_site;
+  std::optional<checksum_site_t> egress_checksum_site;
+  // The headers a ChecksumUpdate above the node being visited covers: the flag is set where the
+  // packet leaves, which can be another gress or pass (flag_pending_checksum).
+  std::optional<checksum_site_t> pending_checksum;
+  static std::set<bytes_t> checksum_boundaries(const checksummed_chunk_t &chunk);
+  void flag_pending_checksum();
+  void emit_deparser_checksums(bool egress);
   Stack cpu_hdr_vars;
   Stack recirc_hdr_vars;
   // Recirculation passes are mutually exclusive and self-identifying: build_recirc_hdr stamps the
@@ -330,6 +364,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserExtraction *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserReject *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ChecksumUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapSetTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) override final;

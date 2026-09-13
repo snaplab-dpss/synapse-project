@@ -48,6 +48,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserCondition *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserReject *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ModifyHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ChecksumUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapSetTableLookup *node) override final;

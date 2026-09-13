@@ -50,6 +50,7 @@ SHOW_MODULE_NAME(Tofino::LPMLookup)
 SHOW_MODULE_NAME(Tofino::Drop)
 SHOW_MODULE_NAME(Tofino::Broadcast)
 SHOW_MODULE_NAME(Tofino::ModifyHeader)
+SHOW_MODULE_NAME(Tofino::ChecksumUpdate)
 SHOW_MODULE_NAME(Tofino::Then)
 SHOW_MODULE_NAME(Tofino::Else)
 

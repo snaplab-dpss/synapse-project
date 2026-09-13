@@ -18,6 +18,7 @@
 #include <LibSynapse/Modules/Tofino/ParserCondition.h>
 #include <LibSynapse/Modules/Tofino/ParserReject.h>
 #include <LibSynapse/Modules/Tofino/ModifyHeader.h>
+#include <LibSynapse/Modules/Tofino/ChecksumUpdate.h>
 #include <LibSynapse/Modules/Tofino/MapTableLookup.h>
 #include <LibSynapse/Modules/Tofino/MapSetTableLookup.h>
 #include <LibSynapse/Modules/Tofino/GuardedMapTableLookup.h>
@@ -82,6 +83,7 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<ParserConditionFactory>());
               f.push_back(std::make_unique<ParserRejectFactory>());
               f.push_back(std::make_unique<ModifyHeaderFactory>());
+              f.push_back(std::make_unique<ChecksumUpdateFactory>());
               f.push_back(std::make_unique<MapTableLookupFactory>());
               f.push_back(std::make_unique<MapSetTableLookupFactory>());
               f.push_back(std::make_unique<GuardedMapTableLookupFactory>());
