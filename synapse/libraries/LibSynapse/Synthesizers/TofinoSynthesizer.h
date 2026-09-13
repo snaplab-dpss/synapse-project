@@ -438,8 +438,6 @@ private:
   std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_reg_actions(const BloomFilter *bf);
   std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_actions(const BloomFilter *bf);
   std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_values(const BloomFilter *bf);
-  std::vector<code_t> bf_get_hashes_values(const BloomFilter *bf);
-  std::vector<code_t> bf_get_hashes_calculators(const BloomFilter *bf, const EPNode *ep_node);
   var_t bf_get_estimate_value(const BloomFilter *bf);
 
   void transpile_parser(const Parser &parser);
@@ -483,8 +481,14 @@ private:
   void transpile_cms_hash_calculator_decl(const CountMinSketch *cms, const EPNode *ep_node, const std::vector<var_t> &keys_vars);
   void transpile_cms_decl(const CountMinSketch *cms, const EPNode *ep_node);
 
-  void transpile_bf_hash_calculator_decl(const BloomFilter *bf, const EPNode *ep_node, const std::vector<var_t> &keys_vars);
-  void transpile_bf_decl(const BloomFilter *bf, const EPNode *ep_node);
+  // The bloom filter's rows, and the site's actions on them of `action_type`, one per row: each
+  // hashes the key inside the register's execute, from the key's fields as they are (an ALU copy
+  // into metadata would tie the fields to the chain's cluster), with the site's own Hash
+  // instances declared ahead. An action declared at an earlier site with the same inputs is
+  // reused; with other inputs the site gets its own. Returns the site's actions, in row order.
+  std::vector<code_t> transpile_bf_decl(const BloomFilter *bf, const EPNode *ep_node, const std::vector<code_t> &key_inputs,
+                                        RegisterActionType action_type);
+  std::unordered_map<code_t, std::vector<code_t>> bf_action_inputs; // A row action -> the key inputs it hashes.
   void transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table);
   void transpile_if_condition(const If::condition_t &condition);
   void transpile_digest(const Digest &digest, const std::vector<code_t> &fields);
