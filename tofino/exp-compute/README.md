@@ -451,6 +451,7 @@ slot has room before its first write, as in the real program.
 | `stHX`, `stSame`, `stSame2` | `stD4` with a message word xored in by the hash unit; with one action reading a state word both rotated and aligned | compile |
 | `stR10`, `stP10`, `stP11`, `stC12` | `stP12` parsed on a recirculation port, with 10 or 11 slots, with SipHash's wide initial constants | compile |
 | `st6P10` | `stP10` with six rounds | fails on stages, not PHV |
+| `devdep` | a table writing a device id, and work guarded by a test on that id | the guarded work is placed in the table's own stage (the gateway lands a stage later), so a test on a table's result does not, on its own, delay what it guards |
 
 Takeaways: every write, of anything, into `s32_6` after action 13 fails, a write into a fresh slot
 does not, and moving action 13's value out of `s32_6` makes the write fine again -- the same
