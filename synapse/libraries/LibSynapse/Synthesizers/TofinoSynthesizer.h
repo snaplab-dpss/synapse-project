@@ -288,7 +288,6 @@ private:
     const EPNode *join = nullptr;             // Ingress: the If whose closing brace the calls follow.
     code_t flag;                              // Ingress: the metadata flag every site sets.
     std::vector<const EPNode *> egress_cuts;  // Egress: the crossings whose blocks merge.
-    std::vector<code_t> calls;                // The call statements, companions included.
   };
   std::vector<shared_run_t> shared_runs;
   std::unordered_map<const EPNode *, std::vector<size_t>> shared_runs_by_site;
@@ -438,6 +437,10 @@ private:
   void emit_action_variants(const TofinoContext *tofino_ctx);
   // The shared runs joining at `join`, an If just closed: their calls, each under its flag.
   void emit_shared_runs_after(const EPNode *join);
+  // The calls of a shared run's actions, companions included, at the time the join is written:
+  // an action whose every statement folded into another (an exit xor into its reader) is not
+  // declared, so it is not called either.
+  std::vector<code_t> shared_run_calls(const shared_run_t &run) const;
   // The symbols anything past the cut at `cut_node` still uses: what a BDD node reachable from it
   // reads, plus what a later hand-off to the controller ships. `next` is the cut's continuation.
   std::unordered_set<std::string> live_symbols_past(const EP *ep, const BDDNode *cut_node, const EPNode *next) const;

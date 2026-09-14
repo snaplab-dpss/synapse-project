@@ -3502,7 +3502,7 @@ void TofinoSynthesizer::synthesize() {
       for (size_t i = 0; i < arms.size(); i++) {
         nest(arms[i], halves[i].first);
       }
-      for (const code_t &call : run.calls) {
+      for (const code_t &call : shared_run_calls(run)) {
         egress_apply << arm_indent << call << "\n";
       }
       for (size_t i = 0; i < arms.size(); i++) {
@@ -7767,10 +7767,6 @@ void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
       }
       run.egress_cuts.assign(cuts.begin(), cuts.end());
     }
-    for (const DS_ID &action : run.actions) {
-      const std::vector<code_t> calls = compute_action_calls(tofino_ctx, action);
-      run.calls.insert(run.calls.end(), calls.begin(), calls.end());
-    }
     const size_t index = shared_runs.size();
     for (const EPNode *site : run.sites) {
       shared_runs_by_site[site].push_back(index);
@@ -7799,7 +7795,7 @@ void TofinoSynthesizer::emit_shared_runs_after(const EPNode *join) {
     ingress_apply.indent();
     ingress_apply << "if (" << run.flag << " == 1) {\n";
     ingress_apply.inc();
-    for (const code_t &call : run.calls) {
+    for (const code_t &call : shared_run_calls(run)) {
       ingress_apply.indent();
       ingress_apply << call << "\n";
     }
@@ -7807,6 +7803,20 @@ void TofinoSynthesizer::emit_shared_runs_after(const EPNode *join) {
     ingress_apply.indent();
     ingress_apply << "}\n";
   }
+}
+
+std::vector<code_t> TofinoSynthesizer::shared_run_calls(const shared_run_t &run) const {
+  const TofinoContext *tofino_ctx = target_ep->get_ctx().get_target_ctx<TofinoContext>();
+  std::vector<code_t> calls;
+  for (const DS_ID &action : run.actions) {
+    const auto statements_it = action_statements.find(action);
+    if (statements_it == action_statements.end() || statements_it->second.empty()) {
+      continue; // Folded away: never declared (emit_compute_run).
+    }
+    const std::vector<code_t> action_calls = compute_action_calls(tofino_ctx, action);
+    calls.insert(calls.end(), action_calls.begin(), action_calls.end());
+  }
+  return calls;
 }
 
 namespace {
