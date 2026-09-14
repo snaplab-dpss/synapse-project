@@ -3399,6 +3399,12 @@ void TofinoSynthesizer::synthesize() {
     var.declare(recirc_hdr);
   }
 
+  // Before the egress parser's start state is written: the egress checksum flag's init goes into
+  // that state, ahead of its transition. The ingress deparser's block precedes its emit, which
+  // synthesize() writes last.
+  emit_deparser_checksums(false);
+  emit_deparser_checksums(true);
+
   if (!uses_egress) {
     coder_t &eg_parser_start = code_template.get(MARKER_EGRESS_PARSER_START);
     eg_parser_start.indent();
@@ -3609,9 +3615,6 @@ void TofinoSynthesizer::synthesize() {
     parse_cpu.indent();
     parse_cpu << "pkt.extract(hdr.st);\n";
   }
-
-  emit_deparser_checksums(false);
-  emit_deparser_checksums(true);
 
   coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER_APPLY);
   ingress_deparser.indent();
