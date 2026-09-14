@@ -2,6 +2,8 @@
 #include <LibSynapse/Walk.h>
 #include <iostream>
 #include <LibSynapse/Modules/Tofino/TofinoModule.h>
+#include <LibSynapse/Modules/Tofino/If.h>
+#include <LibSynapse/Modules/Tofino/DataStructures/Table.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Debug.h>
 
@@ -10,6 +12,7 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
+#include <limits>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -136,6 +139,23 @@ Symbols get_produced_symbols(const Module *module) {
 
 // Walks the EP back from `node` to the last recirculation or egress crossing (or the last
 // non-Tofino module), collecting the primitive data structures of every module `keep` accepts.
+// A module's data structures by their primitives, which is what the stages hold.
+void insert_primitive_ds(const TofinoContext *tofino_ctx, const TofinoModule *module, std::unordered_set<DS_ID> &deps) {
+  for (DS_ID ds_id : module->get_generated_ds()) {
+    const DS *ds = tofino_ctx->get_data_structures().get_ds_from_id(ds_id);
+    if (ds->primitive) {
+      deps.insert(ds_id);
+      continue;
+    }
+    for (const std::unordered_set<DS_ID> &data_structures : ds->get_internal_primitive_ids()) {
+      deps.insert(data_structures.begin(), data_structures.end());
+    }
+  }
+}
+
+// The port-to-device table is no BDD object: a reserved address stands for it in the registry.
+constexpr addr_t PORT_TO_NF_DEV_OBJ = std::numeric_limits<addr_t>::max();
+
 // Both boundaries start a fresh dependency chain: a recirculation because it is a new pass, an
 // egress crossing because the egress is a second 20-stage pipeline with its own depth budget.
 // Stage memory is deliberately not reset, because the two gresses share the physical stages.
@@ -160,18 +180,7 @@ std::unordered_set<DS_ID> collect_deps_from(const EP *ep, const EPNode *ep_node,
     const TofinoModule *tofino_module = dynamic_cast<const TofinoModule *>(module);
 
     if (keep(module)) {
-      for (DS_ID ds_id : tofino_module->get_generated_ds()) {
-        const DS *ds = tofino_ctx->get_data_structures().get_ds_from_id(ds_id);
-
-        if (ds->primitive) {
-          deps.insert(ds_id);
-          continue;
-        }
-
-        for (const std::unordered_set<DS_ID> &data_structures : ds->get_internal_primitive_ids()) {
-          deps.insert(data_structures.begin(), data_structures.end());
-        }
-      }
+      insert_primitive_ds(tofino_ctx, tofino_module, deps);
     }
 
     ep_node = ep_node->get_prev();
@@ -193,8 +202,84 @@ std::unordered_set<DS_ID> collect_deps(const EP *ep, const BDDNode *node, const 
 
 } // namespace
 
+void TofinoContext::place_port_to_nf_dev_table() {
+  // As the template declares it: 64 entries keyed by the 16-bit ingress port, a 32-bit device.
+  Table *table = new Table(INGRESS_PORT_TO_NF_DEV_TABLE, 64, {16}, {32});
+  place(PORT_TO_NF_DEV_OBJ, table, {});
+}
+
 std::unordered_set<DS_ID> TofinoContext::get_stateful_deps(const EP *ep, const BDDNode *node) {
-  return collect_deps(ep, node, [](const Module *) { return true; });
+  std::unordered_set<DS_ID> deps          = collect_deps(ep, node, [](const Module *) { return true; });
+  const std::unordered_set<DS_ID> control = get_control_deps(ep, node);
+  deps.insert(control.begin(), control.end());
+  return deps;
+}
+
+std::unordered_set<DS_ID> TofinoContext::get_control_deps(const EP *ep, const BDDNode *node, const speculations_t *speculations) {
+  const std::string device = ep->get_bdd()->get_device().name;
+  std::unordered_set<DS_ID> deps;
+  std::unordered_set<std::string> pending; // Read by a condition met so far, producer not met yet.
+  const auto guard = [&](klee::ref<klee::Expr> condition) {
+    for (const std::string &name : symbol_t::get_symbols_names(condition)) {
+      if (name == device) {
+        deps.insert(INGRESS_PORT_TO_NF_DEV_TABLE);
+      } else {
+        pending.insert(name);
+      }
+    }
+  };
+
+  if (speculations) {
+    for (const BDDNode *n = node->get_prev(); n; n = n->get_prev()) {
+      const speculations_t::node_info_t *info = speculations->find_node_info(n->get_id());
+      if (!info) {
+        break;
+      }
+      if (info->module == ModuleType::Tofino_If) {
+        guard(static_cast<const LibBDD::Branch *>(n)->get_condition());
+        deps.insert(info->actions.begin(), info->actions.end()); // Operands materialized ahead of the gateway.
+      }
+      for (const auto &[symbol, ds] : info->produced) {
+        if (pending.erase(symbol)) {
+          deps.insert(ds);
+        }
+      }
+      if (info->recirculated) {
+        return deps;
+      }
+    }
+  }
+
+  const EPNode *ep_node = speculations ? ep->get_leaf_ep_node_from_bdd_node(node) : get_ep_node_from_bdd_node(ep, node);
+  if (!ep_node && !speculations) {
+    ep_node = get_ep_node_leaf_from_future_bdd_node(ep, node);
+  }
+  const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
+  for (; ep_node; ep_node = ep_node->get_prev()) {
+    const Module *module = ep_node->get_module();
+    if (module->get_target() != TargetType::Tofino) {
+      break;
+    }
+    const ModuleType type = module->get_type();
+    if (type == ModuleType::Tofino_Recirculate || type == ModuleType::Tofino_SendToEgress) {
+      break;
+    }
+    if (type == ModuleType::Tofino_If) {
+      const If *if_module = static_cast<const If *>(module);
+      guard(if_module->get_original_condition());
+      for (const If::materialized_operand_t &operand : if_module->get_materialized_operands()) {
+        deps.insert(operand.action_id);
+      }
+    }
+    bool produces = false;
+    for (const symbol_t &symbol : get_produced_symbols(module).get()) {
+      produces |= pending.erase(symbol.name) > 0;
+    }
+    if (produces) {
+      insert_primitive_ds(tofino_ctx, dynamic_cast<const TofinoModule *>(module), deps);
+    }
+  }
+  return deps;
 }
 
 std::unordered_set<DS_ID> TofinoContext::get_dataflow_deps(const EP *ep, const BDDNode *node, klee::ref<klee::Expr> value) {

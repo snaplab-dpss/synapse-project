@@ -84,7 +84,9 @@ private:
   LibCore::Cow<compute_reuse_state_t> compute_reuse;
 
 public:
-  TofinoContext(const tna_config_t &tna_config) : data_structures(), tna(tna_config, data_structures), compute_reuse() {}
+  TofinoContext(const tna_config_t &tna_config) : data_structures(), tna(tna_config, data_structures), compute_reuse() {
+    place_port_to_nf_dev_table();
+  }
   TofinoContext(const TofinoContext &other)
       : data_structures(other.data_structures), tna(other.tna, data_structures), compute_reuse(other.compute_reuse) {}
 
@@ -172,9 +174,22 @@ public:
   void sync_active_leaf(const EP *ep) override;
   void dump(std::ostream &os) const override { tna.pipeline.dump(os); }
 
+private:
+  void place_port_to_nf_dev_table();
+
+public:
   // Every data structure placed since the last recirculation: the program-order dependencies
-  // a stateful step must follow.
+  // a stateful step must follow, with its control dependencies.
   static std::unordered_set<DS_ID> get_stateful_deps(const EP *ep, const BDDNode *node);
+  // The producers of every condition guarding `node` in its pass, and the port-to-device table
+  // for a condition on the device. A gateway that reads a table's result is a match dependency
+  // on that table, so what it guards starts the stage after -- a table, or a compute action,
+  // whose table bf-p4c fuses the gateway with. On data-flow dependencies alone SmartCookie's
+  // cookie chain sat at stage 0, where bf-p4c has it at 4: behind the device gateway, the
+  // bloom filter's rows and the gateway on their estimate. Same walk as get_dataflow_deps: with
+  // speculations the pass's speculated steps first, then the plan's from the leaf of the node's
+  // branch, until the pass's start.
+  static std::unordered_set<DS_ID> get_control_deps(const EP *ep, const BDDNode *node, const speculations_t *speculations = nullptr);
   // Only the data structures that produce the symbols `value` reads (since the last
   // recirculation): what a stateless computation of `value` actually has to wait for, so
   // independent steps can share a stage.

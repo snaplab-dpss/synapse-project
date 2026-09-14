@@ -508,8 +508,10 @@ TofinoModuleFactory::get_operands_to_compute(const std::string &op_id_base, cons
 bool TofinoModuleFactory::place_operand_ops(ComputeStepBuilder &builder, const EP *ep, const BDDNode *node, std::vector<compute_operand_t> &operands,
                                             const speculations_t *speculations) {
   for (compute_operand_t &operand : operands) {
-    const std::unordered_set<DS_ID> deps = speculations ? TofinoContext::get_dataflow_deps(ep, node, operand.expr, *speculations)
-                                                        : TofinoContext::get_dataflow_deps(ep, node, operand.expr);
+    std::unordered_set<DS_ID> deps          = speculations ? TofinoContext::get_dataflow_deps(ep, node, operand.expr, *speculations)
+                                                           : TofinoContext::get_dataflow_deps(ep, node, operand.expr);
+    const std::unordered_set<DS_ID> control = TofinoContext::get_control_deps(ep, node, speculations);
+    deps.insert(control.begin(), control.end());
     // Keyed like the op node of the same expression (op_xor for a xor, ...): the BDD unrolls a
     // rotate's argument and that expression's own op node separately, and the two are one
     // placement on a path holding both.
@@ -540,6 +542,8 @@ std::unordered_set<DS_ID> TofinoModuleFactory::get_op_deps(const EP *ep, const B
   for (const compute_operand_t &operand : computed) {
     deps.insert(operand.action_id);
   }
+  const std::unordered_set<DS_ID> control = TofinoContext::get_control_deps(ep, node, speculations);
+  deps.insert(control.begin(), control.end());
   return deps;
 }
 
