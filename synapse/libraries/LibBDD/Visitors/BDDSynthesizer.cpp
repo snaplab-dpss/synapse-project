@@ -83,6 +83,13 @@ bool BDDSynthesizer::Transpiler::is_primitive_type(bits_t size) { return size ==
 code_t BDDSynthesizer::Transpiler::type_from_size(bits_t size) {
   code_t type;
 
+  // A width C has no type for goes in the next one up: unrolled arithmetic produces values of
+  // widths the hardware has but C does not, such as the 48 bits of a clock in 2^16 ns ticks. The
+  // transpiler masks the value to its real width where it is read, so the wider storage is safe.
+  if (size > 1 && !is_primitive_type(size) && size < 64) {
+    size = size <= 8 ? 8 : size <= 16 ? 16 : size <= 32 ? 32 : 64;
+  }
+
   switch (size) {
   case 1:
     type = "bool";
