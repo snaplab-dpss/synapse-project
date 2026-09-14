@@ -75,6 +75,11 @@ struct synapse_ingress_metadata_t {
   bit<16> ingress_port;
   bit<32> dev;
   bit<32> time;
+  // What the forwarding table decided: 0 the packet stays on the switch (recirculated or
+  // dropped), 1 it leaves, 2 it goes to the controller. The headers carrying data-plane state are
+  // dropped on the strength of this, after the table and outside its actions, because a packet
+  // that still has the egress ahead of it must keep them: the egress parser extracts them.
+  bit<2> leaving;
 /*@{INGRESS_METADATA}@*/
 }
 
@@ -126,6 +131,7 @@ parser IngressParser(
 
     meta.ingress_port = (bit<16>)ig_intr_md.ingress_port;
     meta.dev = 0;
+    meta.leaving = 0;
     meta.time = ig_intr_md.ingress_mac_tstamp[47:16];
 
     transition select(ig_intr_md.ingress_port) {
@@ -182,17 +188,15 @@ control Ingress(
   }
 
   action fwd_to_cpu() {
-    hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
-/*@{LEAVE_TO_CPU}@*/
+    meta.leaving = 2;
     fwd(CPU_PCIE_PORT);
   }
 
   action fwd_nf_dev(bit<16> port) {
     hdr.cpu.setInvalid();
-    hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
-/*@{LEAVE_SWITCH}@*/
+    meta.leaving = 1;
     fwd(port);
   }
 
@@ -305,6 +309,7 @@ control Ingress(
     }
 
     forwarding_tbl.apply();
+/*@{INGRESS_LEAVE}@*/
 /*@{INGRESS_EGRESS_DECISION}@*/
   }
 }
