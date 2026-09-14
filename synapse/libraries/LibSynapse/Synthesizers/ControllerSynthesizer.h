@@ -148,6 +148,7 @@ private:
 
   const std::filesystem::path out_file;
   const handoff_layout_t handoff_layout;
+  std::unordered_set<code_t> cpu_hdr_extra_fields; // Declared in cpu_hdr_extra_t so far: a symbol two hand-offs ship is one field.
   Template code_template;
 
   Stacks vars;

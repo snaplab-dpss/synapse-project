@@ -980,6 +980,12 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const ep_node_id_t code_path = ep_node->get_id();
   code_paths.push_back(code_path);
 
+  // The hand-off's symbols live in this code path alone: another hand-off names its own values
+  // by the same cpu header fields (a state word holds a different value at each site), and its
+  // code must not resolve them to the values of this one. A frame's push drops a name it already
+  // holds, so the frame has to be this hand-off's own.
+  vars.push();
+
   const Symbols &symbols = node->get_symbols();
   const auto site_it     = handoff_layout.symbol_word.find(ep_node->get_id());
   for (const symbol_t &symbol : symbols.get()) {
@@ -1002,6 +1008,10 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
     assert(width >= 8 && "Unexpected width (less than 8)");
 
     const var_t var = alloc_var(symbol.name, symbol.expr, {}, EXACT_NAME | IS_CPU_HDR_EXTRA | (width > 64 ? IS_PTR : NO_OPTION));
+
+    if (!cpu_hdr_extra_fields.insert(var.name).second) {
+      continue; // An earlier hand-off ships it too: the data plane declares the field once, in that order.
+    }
 
     cpu_extra.indent();
     switch (width) {
@@ -1039,6 +1049,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder.inc();
   visit(ep, next_node);
   coder.dec();
+  vars.pop();
 
   coder.indent();
   coder << "}\n";
