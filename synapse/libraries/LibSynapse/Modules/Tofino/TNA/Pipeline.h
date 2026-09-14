@@ -75,6 +75,11 @@ inline std::string placement_status_to_string(const PlacementStatus &status) {
   return ss.str();
 }
 
+// The template's first table: the ingress port to the NF's device, applied ahead of everything
+// else in every program. Placed at stage 0 of the ingress when a context is created (see
+// TofinoContext), so that a condition on the device is a stage after it (get_control_deps).
+inline const DS_ID INGRESS_PORT_TO_NF_DEV_TABLE = "ingress_port_to_nf_dev";
+
 // Which half of the chip a placement belongs to. Memory is shared between them -- one physical
 // stage's SRAM, TCAM and logical IDs serve both -- but depth is not: the ingress runs to
 // completion before the egress starts.
