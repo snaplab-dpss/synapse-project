@@ -211,6 +211,10 @@ struct Pipeline {
 
   void debug() const;
   void dump(std::ostream &os) const;
+  // One line per placement request, in request order: its data structure, stage, gress and
+  // dependencies (each with its own stage). What the model believes about a program's layout,
+  // to line up against bf-p4c's table dependency summary.
+  void dump_placements(std::ostream &os) const;
 };
 
 } // namespace Tofino

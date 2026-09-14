@@ -3620,6 +3620,10 @@ void TofinoSynthesizer::synthesize() {
   ingress_deparser.indent();
   ingress_deparser << "pkt.emit(hdr);";
 
+  if (Walk::enabled()) {
+    target_ep->get_ctx().get_target_ctx<TofinoContext>()->get_tna().pipeline.dump_placements(std::cerr);
+  }
+
   std::ofstream ofs(out_file);
   ofs << code_template.dump();
   ofs.close();
