@@ -17,7 +17,7 @@ PlacementResult::PlacementResult(PlacementStatus _status) : status(_status) {
 PlacementResult::PlacementResult(const PipelineResources &_resources) : status(PlacementStatus::Success), resources(_resources) {}
 
 PipelineResources::PipelineResources(const tna_properties_t &properties) {
-  used_digests     = 0;
+  used_digests             = 0;
   used_compute_ops_ingress = 0;
   used_compute_ops_egress  = 0;
   gress                    = Gress::Ingress;
@@ -99,8 +99,8 @@ void Pipeline::dump(std::ostream &os) const {
 
     ss << "Logical IDs: " << (properties.max_logical_sram_and_tcam_tables_per_stage - stage.available_logical_ids) << "/"
        << properties.max_logical_sram_and_tcam_tables_per_stage << "\n";
-    ss << "Hash Dist Units: " << (properties.hash_dist_units_per_stage - stage.available_hash_dist_units) << "/" << properties.hash_dist_units_per_stage
-       << "\n";
+    ss << "Hash Dist Units: " << (properties.hash_dist_units_per_stage - stage.available_hash_dist_units) << "/"
+       << properties.hash_dist_units_per_stage << "\n";
 
     ss << "Exact Match Crossbar: ";
     ss << int2hr(xbar_consumed / 8);
@@ -132,6 +132,16 @@ void Pipeline::dump(std::ostream &os) const {
 
 void Pipeline::debug() const { dump(std::cerr); }
 
+void Pipeline::dump_placements(std::ostream &os) const {
+  for (const PlacementRequest &request : *placement_requests) {
+    os << "[placed] " << request.ds << " stage=" << get_placed_stage(request.ds) << " gress=" << to_string(request.gress) << " deps:";
+    for (const DS_ID &dep : *request.deps) {
+      os << " " << dep << "@" << get_placed_stage(dep);
+    }
+    os << "\n";
+  }
+}
+
 int Pipeline::get_placed_stage(DS_ID ds_id) const {
   auto it = std::find_if(resources->stages.begin(), resources->stages.end(),
                          [ds_id](const Stage &stage) { return stage.data_structures.find(ds_id) != stage.data_structures.end(); });
@@ -146,7 +156,8 @@ int Pipeline::get_placed_stage(DS_ID ds_id) const {
 bool Pipeline::already_placed(DS_ID ds_id) const { return get_placed_stage(ds_id) >= 0; }
 
 bool Pipeline::already_requested(DS_ID ds_id) const {
-  return std::any_of(placement_requests->begin(), placement_requests->end(), [ds_id](const PlacementRequest &request) { return request.ds == ds_id; });
+  return std::any_of(placement_requests->begin(), placement_requests->end(),
+                     [ds_id](const PlacementRequest &request) { return request.ds == ds_id; });
 }
 
 bool Pipeline::detect_changes_to_already_placed_data_structure(const DS *ds, const std::unordered_set<DS_ID> &deps) const {
