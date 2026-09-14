@@ -143,9 +143,8 @@ constexpr const char *const MARKER_EGRESS_DEPARSER_APPLY        = "EGRESS_DEPARS
 constexpr const char *const MARKER_CONTROL_BLOCKS               = "CONTROL_BLOCKS";
 constexpr const char *const MARKER_PARSE_RECIRC                 = "PARSE_RECIRC";
 constexpr const char *const MARKER_PARSE_CPU                    = "PARSE_CPU";
-constexpr const char *const MARKER_LEAVE_TO_CPU                 = "LEAVE_TO_CPU";
 constexpr const char *const MARKER_INGRESS_APPLY_START          = "INGRESS_APPLY_START";
-constexpr const char *const MARKER_LEAVE_SWITCH                 = "LEAVE_SWITCH";
+constexpr const char *const MARKER_INGRESS_LEAVE                = "INGRESS_LEAVE";
 
 constexpr const char *const MARKER_CUCKOO_IDX_WIDTH       = "CUCKOO_IDX_WIDTH";
 constexpr const char *const MARKER_CUCKOO_ENTRIES         = "CUCKOO_ENTRIES";
@@ -2353,9 +2352,8 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_CONTROL_BLOCKS, 0},
                                              {MARKER_PARSE_RECIRC, 2},
                                              {MARKER_PARSE_CPU, 2},
-                                             {MARKER_LEAVE_TO_CPU, 2},
                                              {MARKER_INGRESS_APPLY_START, 2},
-                                             {MARKER_LEAVE_SWITCH, 2},
+                                             {MARKER_INGRESS_LEAVE, 2},
                                          }),
       target_ep(_ep), transpiler(this) {}
 
@@ -3588,13 +3586,6 @@ void TofinoSynthesizer::synthesize() {
     coder_t &parse_recirc = code_template.get(MARKER_PARSE_RECIRC);
     parse_recirc.indent();
     parse_recirc << "pkt.extract(hdr.egress_state);\n";
-
-    coder_t &leave_switch = code_template.get(MARKER_LEAVE_SWITCH);
-    leave_switch.indent();
-    leave_switch << "hdr.egress_state.setInvalid();\n";
-    coder_t &leave_to_cpu = code_template.get(MARKER_LEAVE_TO_CPU);
-    leave_to_cpu.indent();
-    leave_to_cpu << "hdr.egress_state.setInvalid();\n";
   }
 
   if (!state_slots_used.empty()) {
@@ -3606,9 +3597,6 @@ void TofinoSynthesizer::synthesize() {
     coder_t &parse_recirc = code_template.get(MARKER_PARSE_RECIRC);
     parse_recirc.indent();
     parse_recirc << "pkt.extract(hdr.st);\n";
-    coder_t &leave_switch = code_template.get(MARKER_LEAVE_SWITCH);
-    leave_switch.indent();
-    leave_switch << "hdr.st.setInvalid();\n";
     // To the controller the state header goes along, after the cpu header, and comes back with
     // it (handoff_layout); fwd_to_cpu keeps it.
     coder_t &parse_cpu = code_template.get(MARKER_PARSE_CPU);
@@ -3619,6 +3607,39 @@ void TofinoSynthesizer::synthesize() {
   coder_t &ingress_deparser = get(MARKER_INGRESS_DEPARSER_APPLY);
   ingress_deparser.indent();
   ingress_deparser << "pkt.emit(hdr);";
+
+  {
+    // The headers carrying data-plane state are dropped after the forwarding table rather than
+    // inside its actions, because an action cannot ask whether the egress is still ahead. A
+    // packet still bound for the egress keeps them -- the egress parser extracts them
+    // unconditionally -- and the egress drops them itself where the packet leaves from there.
+    coder_t &leave       = code_template.get(MARKER_INGRESS_LEAVE);
+    const code_t not_yet = uses_egress ? " && meta.to_egress == 0" : "";
+    leave.indent();
+    leave << "if (meta.leaving != 0" << not_yet << ") {\n";
+    leave.inc();
+    leave.indent();
+    leave << "hdr.recirc.setInvalid();\n";
+    if (uses_egress) {
+      leave.indent();
+      leave << "hdr.egress_state.setInvalid();\n";
+    }
+    leave.dec();
+    leave.indent();
+    leave << "}\n";
+    if (!state_slots_used.empty()) {
+      // The state header travels to the controller behind the cpu header, so only a packet
+      // leaving the switch drops it.
+      leave.indent();
+      leave << "if (meta.leaving == 1" << not_yet << ") {\n";
+      leave.inc();
+      leave.indent();
+      leave << "hdr.st.setInvalid();\n";
+      leave.dec();
+      leave.indent();
+      leave << "}\n";
+    }
+  }
 
   if (Walk::enabled()) {
     target_ep->get_ctx().get_target_ctx<TofinoContext>()->get_tna().pipeline.dump_placements(std::cerr);
@@ -4442,6 +4463,21 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress << "@in_hash { nf_dev[15:0] = " << dst_device_code << "; }\n";
   } else {
     ingress << "nf_dev[15:0] = " << dst_device_code << ";\n";
+  }
+
+  if (in_egress) {
+    // The packet leaves from here, so the headers carrying data-plane state must not be
+    // deparsed. The ingress could not drop them: its own deparser still had to hand them to the
+    // egress parser, which extracts them unconditionally.
+    coder_t &egress = get(MARKER_INGRESS_CONTROL_APPLY);
+    egress.indent();
+    egress << "hdr.recirc.setInvalid();\n";
+    egress.indent();
+    egress << "hdr.egress_state.setInvalid();\n";
+    if (!state_slots_used.empty()) {
+      egress.indent();
+      egress << "hdr.st.setInvalid();\n";
+    }
   }
 
   return EPVisitor::Action::doChildren;
