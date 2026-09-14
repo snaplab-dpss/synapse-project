@@ -605,48 +605,20 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   std::unordered_set<DS_ID> own_actions = path_actions;
   own_actions.insert(actions.begin(), actions.end());
   own_actions.insert(run.begin(), run.end());
-  // On this very path the value is computed already, wherever that was; from another path it
-  // has to sit where this path's producers allow.
-  const auto same_path_of = [&](const compute_reuse_t &original) {
-    return own_actions.contains(original.action) && !ctx->is_shared_compute_action(original.action);
-  };
   const auto usable = [&](const compute_reuse_t &original) {
     const std::optional<Gress> gress = pipeline.get_placed_gress(original.action);
     const int stage                  = pipeline.get_placed_stage(original.action);
-    return gress && *gress == pipeline.get_gress() && soonest >= 0 && (same_path_of(original) || stage >= soonest);
-  };
-  // Another path's action placed earlier than this path reaches it: the emitter hoists a shared
-  // run to the join after both arms and bf-p4c lays it out after both, so move it down, and what
-  // depends on it with it -- when the pipeline still fits.
-  PlacementStatus move_status = PlacementStatus::Unknown;
-  const auto movable          = [&](const compute_reuse_t &original) {
-    const std::optional<Gress> gress = pipeline.get_placed_gress(original.action);
-    if (!gress || *gress != pipeline.get_gress() || soonest < 0 || same_path_of(original)) {
-      return false;
-    }
-    move_status = pipeline.delay(original.action, deps);
-    return move_status == PlacementStatus::Success;
+    return gress && *gress == pipeline.get_gress() && soonest >= 0 && stage >= soonest;
   };
   const auto take = [&](const compute_reuse_t &original) -> DS_ID {
-    const bool same_path = same_path_of(original);
+    const bool same_path = own_actions.contains(original.action) && !ctx->is_shared_compute_action(original.action);
     ctx->reuse_compute_op(canonical, original, same_path);
     placed_ops.insert({op.id, original.action});
     (same_path ? GlobalStats::num_compute_ops_deduped : GlobalStats::num_compute_ops_reused)++;
     return original.action;
   };
   if (const std::optional<compute_reuse_t> original = ctx->find_reusable_compute_op(canonical)) {
-    const int stage_before = pipeline.get_placed_stage(original->action);
-    const bool ok          = usable(*original) || movable(*original);
-    if (full_placer && Walk::enabled()) {
-      std::cerr << "[reuse] " << op.id << " ~ " << original->op.id << " in " << original->action << "@" << stage_before
-                << (same_path_of(*original) ? " (own path)" : "") << ": soonest " << soonest << " -> "
-                << (ok ? (pipeline.get_placed_stage(original->action) == stage_before
-                              ? "reused"
-                              : "moved to " + std::to_string(pipeline.get_placed_stage(original->action)))
-                       : "declined (" + placement_status_to_string(move_status) + ")")
-                << "\n";
-    }
-    if (ok) {
+    if (usable(*original)) {
       return take(*original);
     }
   }

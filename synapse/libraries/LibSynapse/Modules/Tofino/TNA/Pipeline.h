@@ -201,11 +201,6 @@ struct Pipeline {
   bool already_placed(DS_ID ds_id) const;
 
   void place(const DS *ds, const std::unordered_set<DS_ID> &deps);
-  // A placed compute action another path now reaches later than it sits: its dependencies grow
-  // by `extra_deps` and the layout is redone, so it moves down and what depends on it follows
-  // (the emitter hoists a shared run to the join after its arms, and bf-p4c lays it out after
-  // both). Why not, and nothing changed, when the pipeline no longer fits.
-  PlacementStatus delay(DS_ID action, const std::unordered_set<DS_ID> &extra_deps);
   // The stage a new compute action would take under the simple placer's rules, or -1.
   int find_stage_for_compute_action(const ComputeAction *action, const std::unordered_set<DS_ID> &deps) const;
   // An op appended to a placed compute action: charges its extra hash-distribution units in
