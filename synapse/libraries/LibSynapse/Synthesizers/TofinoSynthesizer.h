@@ -441,6 +441,9 @@ private:
   // an action whose every statement folded into another (an exit xor into its reader) is not
   // declared, so it is not called either.
   std::vector<code_t> shared_run_calls(const shared_run_t &run) const;
+  // Every op of this action emitted an empty statement, so emit_compute_run declared nothing:
+  // calling it would name a declaration the program does not have.
+  bool compute_action_folded(const DS_ID &action) const;
   // The symbols anything past the cut at `cut_node` still uses: what a BDD node reachable from it
   // reads, plus what a later hand-off to the controller ships. `next` is the cut's continuation.
   std::unordered_set<std::string> live_symbols_past(const EP *ep, const BDDNode *cut_node, const EPNode *next) const;
