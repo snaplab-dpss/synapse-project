@@ -2,6 +2,8 @@
 #include <LibSynapse/Modules/Tofino/TNA/SimplePlacer.h>
 #include <LibSynapse/Modules/Tofino/TNA/SolverPlacer.h>
 #include <LibCore/Debug.h>
+#include <LibSynapse/Walk.h>
+#include <iostream>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -364,6 +366,10 @@ PlacementResult Pipeline::find_placements(const DS *ds, const std::unordered_set
   result = SimplePlacer::find_placements(*this, ds, deps);
   if (result.status == PlacementStatus::Success) {
     return result;
+  }
+
+  if (Walk::enabled()) {
+    std::cerr << "[solver] the simple placer could not place " << ds->id << " (" << result.status << "); asking the solver\n";
   }
 
   // debug();

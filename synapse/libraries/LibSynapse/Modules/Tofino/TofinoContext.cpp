@@ -222,10 +222,13 @@ std::unordered_set<DS_ID> TofinoContext::get_control_deps(const EP *ep, const BD
   const auto guard = [&](klee::ref<klee::Expr> condition) {
     for (const std::string &name : symbol_t::get_symbols_names(condition)) {
       if (name == device) {
-        deps.insert(INGRESS_PORT_TO_NF_DEV_TABLE);
-      } else {
-        pending.insert(name);
+        // Nothing waits for the port-to-device table. bf-p4c puts the work a test on the device
+        // guards in that table's own stage, in the generated programs and in a toy that isolates
+        // the question (tofino/exp-compute/devdep.p4); charging a stage here cost one at the head
+        // of every hash chain, and every round after it inherited the shift.
+        continue;
       }
+      pending.insert(name);
     }
   };
 
