@@ -2489,7 +2489,14 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       }
       if (solver_toolbox.are_exprs_always_equal(operand.expr, input) ||
           solver_toolbox.are_exprs_always_equal(tofino_ctx->apply_rewrites(operand.op_id, operand.expr), input)) {
-        return source_t{canonical(operand.op_id), "", rotation};
+        // Both, when the input also has a name: this operand computes the value, but the op that
+        // names it may own a different slot, and the emitter reads the one that names it. Which
+        // of the two it is depends on what sharing rewrote, so the reader is recorded against
+        // both and the slot stays live for either. Over-reporting holds a slot longer than it
+        // must; under-reporting hands a live slot to something else.
+        std::string named;
+        LibCore::is_readLSB(input, named);
+        return source_t{canonical(operand.op_id), named, rotation};
       }
     }
     std::string symbol;
@@ -2775,6 +2782,7 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       }
       std::vector<code_t> &planned = planned_sources[value.def.op_id];
       for (const auto &[op_id, rotation] : value.sources) {
+        planned_source_ops[value.def.op_id].push_back(op_id);
         auto found_it = slot_fields.find(op_id);
         if (found_it != slot_fields.end()) {
           planned.push_back(found_it->second.name);
@@ -3037,15 +3045,16 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
     const auto resolve_sources = [&](const def_t &def) {
       std::vector<std::pair<std::string, unsigned>> sources;
       for (const source_t &source : def.sources) {
-        std::string op_id = source.op_id;
-        if (op_id.empty()) {
-          auto producer_it = symbol_producer.find(source.symbol);
-          if (producer_it == symbol_producer.end()) {
-            continue; // Not a compute value on this path: a packet field, a register's value.
-          }
-          op_id = producer_it->second;
+        if (!source.op_id.empty()) {
+          sources.emplace_back(source.op_id, source.rotation);
         }
-        sources.emplace_back(op_id, source.rotation);
+        if (!source.symbol.empty()) {
+          auto producer_it = symbol_producer.find(source.symbol);
+          // Not a compute value on this path (a packet field, a register's value) if unknown.
+          if (producer_it != symbol_producer.end() && producer_it->second != source.op_id) {
+            sources.emplace_back(producer_it->second, source.rotation);
+          }
+        }
       }
       return sources;
     };
@@ -8474,23 +8483,42 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     // hold only then. A difference here is an emitter lookup the planner did not foresee.
     static const std::regex word(R"(hdr\.st\.s\d+_\d+)");
     for (const op_emission_t &op : ops) {
-      auto planned_it = planned_sources.find(op.op_id);
-      if (planned_it == planned_sources.end() || op.statement.empty() || op.in_hash) {
+      auto planned_it = planned_source_ops.find(op.op_id);
+      if (planned_it == planned_source_ops.end() || op.statement.empty() || op.in_hash) {
         continue;
       }
       const size_t eq = op.statement.find(" = ");
-      std::set<code_t> emitted, planned(planned_it->second.begin(), planned_it->second.end());
+      // Resolved here rather than where the sources were recorded: slots are handed out as the
+      // walk proceeds, so a name taken at record time can name a slot the op no longer has.
+      std::set<code_t> emitted, planned;
+      for (const code_t &id : planned_it->second) {
+        auto slot_it = slot_fields.find(id);
+        if (slot_it != slot_fields.end()) {
+          planned.insert(slot_it->second.name);
+        }
+      }
       for (std::sregex_iterator it(op.statement.begin() + (eq == std::string::npos ? 0 : eq), op.statement.end(), word), end; it != end; ++it) {
         emitted.insert(it->str());
       }
       auto own_it      = slot_fields.find(op.op_id);
       const code_t own = own_it != slot_fields.end() ? own_it->second.name : "";
+      // A word the statement reads that the planner did not expect is the dangerous direction:
+      // the planner believes that word is free and may hand it to another value while this one
+      // still needs it. The other direction only holds a word longer than it must.
+      std::set<code_t> unexpected;
+      std::set_difference(emitted.begin(), emitted.end(), planned.begin(), planned.end(), std::inserter(unexpected, unexpected.begin()));
       if (emitted != planned || (eq != std::string::npos && !own.empty() && op.statement.substr(0, eq) != own)) {
-        std::cerr << "[homes] mismatch " << op.op_id << " planned " << own << " <-";
+        std::cerr << "[homes] " << (unexpected.empty() ? "conservative" : "mismatch") << " " << op.op_id << " planned " << own << " <-";
         for (const code_t &name : planned) {
           std::cerr << " " << name;
         }
-        std::cerr << " | emitted: " << op.statement << "\n";
+        std::cerr << " | emitted: " << op.statement;
+        std::cerr << " | the planner's sources:";
+        for (const code_t &id : planned_it->second) {
+          auto slot_it = slot_fields.find(id);
+          std::cerr << " " << id << "->" << (slot_it == slot_fields.end() ? code_t("(no slot)") : slot_it->second.name);
+        }
+        std::cerr << "\n";
       }
     }
   }
