@@ -99,6 +99,16 @@ std::string spec2str(const spec_impl_lite_t &speculation, const BDD *bdd) {
 
   ss << speculation.decision.module;
   ss << " ";
+  // The step's pass and target: a recirculated step began a lap, a fresh one a new placement
+  // context (the egress, or the lap), and a next target of another target sends the rest there.
+  if (speculation.recirculated) {
+    ss << "[recirc] ";
+  } else if (speculation.fresh_context) {
+    ss << "[fresh] ";
+  }
+  if (speculation.next_target.has_value()) {
+    ss << "-> " << speculation.next_target.value() << " ";
+  }
   if (!speculation.skip.empty()) {
     ss << "skip={";
     for (bdd_node_id_t skip : speculation.skip)
@@ -604,7 +614,6 @@ std::list<EP::speculation_target_t> EP::get_nodes_targeted_for_speculation() con
     }
   }
 
-
   // Breadth-first over the whole remaining BDD, whatever the leaves: the greedy speculation
   // packs stages in this order, and the estimate must not swing just because a branch got
   // implemented (which splits one leaf's interleaved subtrees into two sequential ones).
@@ -623,9 +632,8 @@ std::list<EP::speculation_target_t> EP::get_nodes_targeted_for_speculation() con
     }
   };
   walk(bdd->get_root(), 0);
-  speculation_targets.sort([&depth](const speculation_target_t &a, const speculation_target_t &b) {
-    return depth.at(a.node->get_id()) < depth.at(b.node->get_id());
-  });
+  speculation_targets.sort(
+      [&depth](const speculation_target_t &a, const speculation_target_t &b) { return depth.at(a.node->get_id()) < depth.at(b.node->get_id()); });
 
   GlobalStats::time_spec_targets += duration_cast<microseconds>(steady_clock::now() - begin).count();
   return speculation_targets;
@@ -1002,9 +1010,9 @@ speculations_t EP::speculate(const speculations_t &speculations, std::list<specu
 
 speculations_t EP::speculate(std::list<speculation_target_t> speculation_target_nodes, pps_t ingress, SpeculationStrategy strategy) const {
   speculations_t speculations = {
-      .speculations_per_node   = {},
-      .ctx                     = ctx,
-      .by_node                 = {},
+      .speculations_per_node = {},
+      .ctx                   = ctx,
+      .by_node               = {},
   };
   return speculate(speculations, speculation_target_nodes, ingress, strategy);
 }
@@ -1022,7 +1030,6 @@ speculations_t EP::speculate() const {
 
   return complete_speculation;
 }
-
 
 const speculations_t &EP::get_speculations() const {
   if (!cached_speculations.has_value()) {
