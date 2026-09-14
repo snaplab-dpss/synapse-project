@@ -270,8 +270,9 @@ private:
   std::map<bits_t, size_t> state_slots_used;                           // width -> slots
   std::map<std::tuple<bool, code_t, code_t>, unsigned> slot_rotations; // (egress, word, source word) -> the one rotation the word takes it at
   std::unordered_map<std::string, std::vector<std::tuple<std::string, unsigned, bool>>> slot_readers; // op -> (reader op, rotation, in egress)
-  std::unordered_map<std::string, std::vector<code_t>> planned_sources; // op -> the words the planner expects its statement to read
-  std::set<std::pair<bool, code_t>> words_used;                         // (egress, word): the words each gress writes or reads, over every path
+  std::unordered_map<std::string, std::vector<code_t>> planned_sources;    // op -> the words the planner expects its statement to read
+  std::unordered_map<std::string, std::vector<code_t>> planned_source_ops; // the same, by the op the planner credited
+  std::set<std::pair<bool, code_t>> words_used;                            // (egress, word): the words each gress writes or reads, over every path
   Stack egress_state_hdr_vars;
 
   std::unordered_set<DS_ID> declared_ds;
