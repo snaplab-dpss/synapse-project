@@ -860,7 +860,7 @@ bool nf_init() {
   node_pkt_counter.insert({214, 0});
   node_pkt_counter.insert({213, 0});
   node_pkt_counter.insert({212, 0});
-  node_pkt_counter.insert({458, 0});
+  node_pkt_counter.insert({457, 0});
   node_pkt_counter.insert({211, 0});
   node_pkt_counter.insert({210, 0});
   node_pkt_counter.insert({209, 0});
@@ -893,7 +893,6 @@ bool nf_init() {
   node_pkt_counter.insert({182, 0});
   node_pkt_counter.insert({181, 0});
   node_pkt_counter.insert({180, 0});
-  node_pkt_counter.insert({457, 0});
   node_pkt_counter.insert({456, 0});
   node_pkt_counter.insert({455, 0});
   node_pkt_counter.insert({454, 0});
@@ -904,143 +903,143 @@ bool nf_init() {
   node_pkt_counter.insert({449, 0});
   node_pkt_counter.insert({448, 0});
   node_pkt_counter.insert({447, 0});
+  node_pkt_counter.insert({446, 0});
   node_pkt_counter.insert({179, 0});
   node_pkt_counter.insert({178, 0});
-  node_pkt_counter.insert({446, 0});
-  node_pkt_counter.insert({177, 0});
   node_pkt_counter.insert({445, 0});
+  node_pkt_counter.insert({177, 0});
   node_pkt_counter.insert({444, 0});
-  node_pkt_counter.insert({176, 0});
   node_pkt_counter.insert({443, 0});
-  node_pkt_counter.insert({175, 0});
+  node_pkt_counter.insert({176, 0});
   node_pkt_counter.insert({442, 0});
-  node_pkt_counter.insert({174, 0});
+  node_pkt_counter.insert({175, 0});
   node_pkt_counter.insert({441, 0});
+  node_pkt_counter.insert({174, 0});
   node_pkt_counter.insert({440, 0});
-  node_pkt_counter.insert({173, 0});
   node_pkt_counter.insert({439, 0});
-  node_pkt_counter.insert({172, 0});
+  node_pkt_counter.insert({173, 0});
   node_pkt_counter.insert({438, 0});
-  node_pkt_counter.insert({171, 0});
+  node_pkt_counter.insert({172, 0});
   node_pkt_counter.insert({437, 0});
+  node_pkt_counter.insert({171, 0});
   node_pkt_counter.insert({436, 0});
-  node_pkt_counter.insert({170, 0});
   node_pkt_counter.insert({435, 0});
-  node_pkt_counter.insert({169, 0});
+  node_pkt_counter.insert({170, 0});
   node_pkt_counter.insert({434, 0});
-  node_pkt_counter.insert({168, 0});
+  node_pkt_counter.insert({169, 0});
   node_pkt_counter.insert({433, 0});
+  node_pkt_counter.insert({168, 0});
   node_pkt_counter.insert({432, 0});
-  node_pkt_counter.insert({167, 0});
   node_pkt_counter.insert({431, 0});
-  node_pkt_counter.insert({166, 0});
+  node_pkt_counter.insert({167, 0});
   node_pkt_counter.insert({430, 0});
-  node_pkt_counter.insert({165, 0});
+  node_pkt_counter.insert({166, 0});
   node_pkt_counter.insert({429, 0});
+  node_pkt_counter.insert({165, 0});
   node_pkt_counter.insert({428, 0});
-  node_pkt_counter.insert({164, 0});
   node_pkt_counter.insert({427, 0});
-  node_pkt_counter.insert({163, 0});
+  node_pkt_counter.insert({164, 0});
   node_pkt_counter.insert({426, 0});
-  node_pkt_counter.insert({162, 0});
+  node_pkt_counter.insert({163, 0});
   node_pkt_counter.insert({425, 0});
+  node_pkt_counter.insert({162, 0});
   node_pkt_counter.insert({424, 0});
-  node_pkt_counter.insert({161, 0});
   node_pkt_counter.insert({423, 0});
-  node_pkt_counter.insert({160, 0});
+  node_pkt_counter.insert({161, 0});
   node_pkt_counter.insert({422, 0});
-  node_pkt_counter.insert({159, 0});
+  node_pkt_counter.insert({160, 0});
   node_pkt_counter.insert({421, 0});
+  node_pkt_counter.insert({159, 0});
   node_pkt_counter.insert({420, 0});
-  node_pkt_counter.insert({158, 0});
   node_pkt_counter.insert({419, 0});
-  node_pkt_counter.insert({157, 0});
+  node_pkt_counter.insert({158, 0});
   node_pkt_counter.insert({418, 0});
+  node_pkt_counter.insert({157, 0});
   node_pkt_counter.insert({417, 0});
-  node_pkt_counter.insert({156, 0});
   node_pkt_counter.insert({416, 0});
+  node_pkt_counter.insert({156, 0});
   node_pkt_counter.insert({415, 0});
-  node_pkt_counter.insert({155, 0});
   node_pkt_counter.insert({414, 0});
-  node_pkt_counter.insert({154, 0});
+  node_pkt_counter.insert({155, 0});
   node_pkt_counter.insert({413, 0});
-  node_pkt_counter.insert({153, 0});
+  node_pkt_counter.insert({154, 0});
   node_pkt_counter.insert({412, 0});
+  node_pkt_counter.insert({153, 0});
   node_pkt_counter.insert({411, 0});
-  node_pkt_counter.insert({152, 0});
   node_pkt_counter.insert({410, 0});
-  node_pkt_counter.insert({151, 0});
+  node_pkt_counter.insert({152, 0});
   node_pkt_counter.insert({409, 0});
-  node_pkt_counter.insert({150, 0});
+  node_pkt_counter.insert({151, 0});
   node_pkt_counter.insert({408, 0});
+  node_pkt_counter.insert({150, 0});
   node_pkt_counter.insert({407, 0});
-  node_pkt_counter.insert({149, 0});
   node_pkt_counter.insert({406, 0});
-  node_pkt_counter.insert({148, 0});
+  node_pkt_counter.insert({149, 0});
   node_pkt_counter.insert({405, 0});
-  node_pkt_counter.insert({147, 0});
+  node_pkt_counter.insert({148, 0});
   node_pkt_counter.insert({404, 0});
+  node_pkt_counter.insert({147, 0});
   node_pkt_counter.insert({403, 0});
-  node_pkt_counter.insert({146, 0});
   node_pkt_counter.insert({402, 0});
-  node_pkt_counter.insert({145, 0});
+  node_pkt_counter.insert({146, 0});
   node_pkt_counter.insert({401, 0});
+  node_pkt_counter.insert({145, 0});
   node_pkt_counter.insert({400, 0});
-  node_pkt_counter.insert({144, 0});
   node_pkt_counter.insert({399, 0});
+  node_pkt_counter.insert({144, 0});
   node_pkt_counter.insert({398, 0});
   node_pkt_counter.insert({397, 0});
-  node_pkt_counter.insert({143, 0});
   node_pkt_counter.insert({396, 0});
-  node_pkt_counter.insert({142, 0});
+  node_pkt_counter.insert({143, 0});
   node_pkt_counter.insert({395, 0});
-  node_pkt_counter.insert({141, 0});
+  node_pkt_counter.insert({142, 0});
   node_pkt_counter.insert({394, 0});
+  node_pkt_counter.insert({141, 0});
   node_pkt_counter.insert({393, 0});
-  node_pkt_counter.insert({140, 0});
   node_pkt_counter.insert({392, 0});
-  node_pkt_counter.insert({139, 0});
+  node_pkt_counter.insert({140, 0});
   node_pkt_counter.insert({391, 0});
-  node_pkt_counter.insert({138, 0});
+  node_pkt_counter.insert({139, 0});
   node_pkt_counter.insert({390, 0});
+  node_pkt_counter.insert({138, 0});
   node_pkt_counter.insert({389, 0});
-  node_pkt_counter.insert({137, 0});
   node_pkt_counter.insert({388, 0});
-  node_pkt_counter.insert({136, 0});
+  node_pkt_counter.insert({137, 0});
   node_pkt_counter.insert({387, 0});
-  node_pkt_counter.insert({135, 0});
+  node_pkt_counter.insert({136, 0});
   node_pkt_counter.insert({386, 0});
+  node_pkt_counter.insert({135, 0});
   node_pkt_counter.insert({385, 0});
-  node_pkt_counter.insert({134, 0});
   node_pkt_counter.insert({384, 0});
-  node_pkt_counter.insert({133, 0});
+  node_pkt_counter.insert({134, 0});
   node_pkt_counter.insert({383, 0});
+  node_pkt_counter.insert({133, 0});
   node_pkt_counter.insert({382, 0});
-  node_pkt_counter.insert({132, 0});
   node_pkt_counter.insert({381, 0});
+  node_pkt_counter.insert({132, 0});
   node_pkt_counter.insert({380, 0});
   node_pkt_counter.insert({379, 0});
   node_pkt_counter.insert({378, 0});
   node_pkt_counter.insert({377, 0});
-  node_pkt_counter.insert({131, 0});
   node_pkt_counter.insert({376, 0});
-  node_pkt_counter.insert({130, 0});
+  node_pkt_counter.insert({131, 0});
   node_pkt_counter.insert({375, 0});
-  node_pkt_counter.insert({129, 0});
+  node_pkt_counter.insert({130, 0});
   node_pkt_counter.insert({374, 0});
+  node_pkt_counter.insert({129, 0});
   node_pkt_counter.insert({373, 0});
-  node_pkt_counter.insert({128, 0});
   node_pkt_counter.insert({372, 0});
-  node_pkt_counter.insert({127, 0});
+  node_pkt_counter.insert({128, 0});
   node_pkt_counter.insert({371, 0});
-  node_pkt_counter.insert({126, 0});
+  node_pkt_counter.insert({127, 0});
   node_pkt_counter.insert({370, 0});
+  node_pkt_counter.insert({126, 0});
   node_pkt_counter.insert({369, 0});
-  node_pkt_counter.insert({125, 0});
   node_pkt_counter.insert({368, 0});
-  node_pkt_counter.insert({124, 0});
+  node_pkt_counter.insert({125, 0});
   node_pkt_counter.insert({367, 0});
-  node_pkt_counter.insert({123, 0});
+  node_pkt_counter.insert({124, 0});
+  node_pkt_counter.insert({366, 0});
   node_pkt_counter.insert({61, 0});
   node_pkt_counter.insert({318, 0});
   node_pkt_counter.insert({60, 0});
@@ -1284,7 +1283,6 @@ bool nf_init() {
   node_pkt_counter.insert({108, 0});
   node_pkt_counter.insert({365, 0});
   node_pkt_counter.insert({109, 0});
-  node_pkt_counter.insert({366, 0});
   node_pkt_counter.insert({110, 0});
   node_pkt_counter.insert({111, 0});
   node_pkt_counter.insert({112, 0});
@@ -1298,6 +1296,7 @@ bool nf_init() {
   node_pkt_counter.insert({120, 0});
   node_pkt_counter.insert({121, 0});
   node_pkt_counter.insert({122, 0});
+  node_pkt_counter.insert({123, 0});
   return true;
 }
 
@@ -1328,8 +1327,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         packet_return_chunk(buffer, hdr);
         // BDDNode 9
         inc_path_counter(9);
-        forwarding_stats_per_route_op[9].inc_fwd((uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24)));
-        return (uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24));
+        forwarding_stats_per_route_op[9].inc_fwd((uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24)));
+        return (uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24));
       } else {
         // BDDNode 10
         inc_path_counter(10);
@@ -1371,31 +1370,31 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 uint32_t rotated2 = rotate_left((993352779) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(key+0)) << 8 | (uint16_t)(*(key+1)))) << 8 | (uint32_t)(*(key+2)))) << 8 | (uint32_t)(*(key+3)))), 8);
                 // BDDNode 18
                 inc_path_counter(18);
-                uint32_t rotated3 = rotate_left(1870056090, 16);
+                uint32_t rotated3 = rotate_left(1868999322, 16);
                 // BDDNode 19
                 inc_path_counter(19);
-                uint32_t rotated4 = rotate_left((1870056090) ^ (rotated), 13);
+                uint32_t rotated4 = rotate_left((1868999322) ^ (rotated), 13);
                 // BDDNode 231
                 inc_path_counter(231);
                 uint32_t unrolled = (993352779) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(key+0)) << 8 | (uint16_t)(*(key+1)))) << 8 | (uint32_t)(*(key+2)))) << 8 | (uint32_t)(*(key+3))));
                 // BDDNode 232
                 inc_path_counter(232);
-                uint32_t unrolled2 = (1564959569) + (unrolled);
+                uint32_t unrolled2 = (1565999953) + (unrolled);
                 // BDDNode 20
                 inc_path_counter(20);
                 uint32_t rotated5 = rotate_left((rotated2) ^ (unrolled2), 7);
                 // BDDNode 233
                 inc_path_counter(233);
-                uint32_t unrolled3 = (1870056090) ^ (rotated);
+                uint32_t unrolled3 = (1868999322) ^ (rotated);
                 // BDDNode 234
                 inc_path_counter(234);
                 uint32_t unrolled4 = (unrolled) + (unrolled3);
                 // BDDNode 21
                 inc_path_counter(21);
-                uint32_t rotated6 = rotate_left((1564959569) + (unrolled4), 16);
+                uint32_t rotated6 = rotate_left((1565999953) + (unrolled4), 16);
                 // BDDNode 235
                 inc_path_counter(235);
-                uint32_t unrolled5 = (1564959569) + (unrolled4);
+                uint32_t unrolled5 = (1565999953) + (unrolled4);
                 // BDDNode 22
                 inc_path_counter(22);
                 uint32_t rotated7 = rotate_left((rotated4) ^ (unrolled5), 5);
@@ -1894,46 +1893,43 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 inc_path_counter(89);
                 // BDDNode 333
                 inc_path_counter(333);
-                uint64_t unrolled103 = (now) >> (16ULL);
+                uint32_t unrolled103 = ((now>>16) & 0) - (vector_value_out);
                 // BDDNode 334
                 inc_path_counter(334);
-                uint32_t unrolled104 = (unrolled103 & 4294967295) - (vector_value_out);
+                uint32_t unrolled104 = (unrolled103) >> (12);
                 // BDDNode 335
                 inc_path_counter(335);
-                uint32_t unrolled105 = (unrolled104) >> (12);
+                uint32_t unrolled105 = (4294967295) + (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+8)) << 8 | (uint16_t)(*(hdr3+9)))) << 8 | (uint32_t)(*(hdr3+10)))) << 8 | (uint32_t)(*(hdr3+11))));
                 // BDDNode 336
                 inc_path_counter(336);
-                uint32_t unrolled106 = (4294967295) + (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+8)) << 8 | (uint16_t)(*(hdr3+9)))) << 8 | (uint32_t)(*(hdr3+10)))) << 8 | (uint32_t)(*(hdr3+11))));
+                uint32_t unrolled106 = (rotated68) ^ (unrolled101);
                 // BDDNode 337
                 inc_path_counter(337);
-                uint32_t unrolled107 = (rotated68) ^ (unrolled101);
+                uint32_t unrolled107 = (rotated69) + (unrolled106);
                 // BDDNode 338
                 inc_path_counter(338);
-                uint32_t unrolled108 = (rotated69) + (unrolled107);
+                uint32_t unrolled108 = (unrolled101) + (unrolled102);
                 // BDDNode 339
                 inc_path_counter(339);
-                uint32_t unrolled109 = (unrolled101) + (unrolled102);
+                uint32_t unrolled109 = (rotated70) ^ (unrolled108);
                 // BDDNode 340
                 inc_path_counter(340);
-                uint32_t unrolled110 = (rotated70) ^ (unrolled109);
+                uint32_t unrolled110 = (unrolled107) ^ (unrolled109);
                 // BDDNode 341
                 inc_path_counter(341);
-                uint32_t unrolled111 = (unrolled108) ^ (unrolled110);
+                uint32_t unrolled111 = (unrolled110) ^ (rotated72);
                 // BDDNode 342
                 inc_path_counter(342);
-                uint32_t unrolled112 = (unrolled111) ^ (rotated72);
+                uint32_t unrolled112 = (rotated71) ^ (unrolled107);
                 // BDDNode 343
                 inc_path_counter(343);
-                uint32_t unrolled113 = (rotated71) ^ (unrolled108);
+                uint32_t unrolled113 = (unrolled111) ^ (unrolled112);
                 // BDDNode 344
                 inc_path_counter(344);
-                uint32_t unrolled114 = (unrolled112) ^ (unrolled113);
-                // BDDNode 345
-                inc_path_counter(345);
-                uint32_t unrolled115 = (unrolled106) ^ (unrolled114);
+                uint32_t unrolled114 = (unrolled105) ^ (unrolled113);
                 // BDDNode 90
                 inc_path_counter(90);
-                if (((unrolled105) - (unrolled115)) <= (2)) {
+                if (((unrolled104) - (unrolled114)) <= (2)) {
                   // BDDNode 91
                   inc_path_counter(91);
                   int checksum = rte_ipv4_udptcp_cksum((struct rte_ipv4_hdr*)hdr2, (void*)hdr3);
@@ -1975,7 +1971,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                   inc_path_counter(99);
                   forwarding_stats_per_route_op[99].inc_drop();
                   return DROP;
-                } // ((unrolled105) - (unrolled115)) <= (2)
+                } // ((unrolled104) - (unrolled114)) <= (2)
               } else {
                 // BDDNode 100
                 inc_path_counter(100);
@@ -2010,563 +2006,563 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                 uint32_t rotated74 = rotate_left((993352779) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+12)) << 8 | (uint16_t)(*(hdr2+13)))) << 8 | (uint32_t)(*(hdr2+14)))) << 8 | (uint32_t)(*(hdr2+15)))), 8);
                 // BDDNode 109
                 inc_path_counter(109);
-                uint32_t rotated75 = rotate_left(1870056090, 16);
+                uint32_t rotated75 = rotate_left(1868999322, 16);
                 // BDDNode 110
                 inc_path_counter(110);
-                uint32_t rotated76 = rotate_left((1870056090) ^ (rotated73), 13);
+                uint32_t rotated76 = rotate_left((1868999322) ^ (rotated73), 13);
+                // BDDNode 345
+                inc_path_counter(345);
+                uint32_t unrolled115 = (993352779) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+12)) << 8 | (uint16_t)(*(hdr2+13)))) << 8 | (uint32_t)(*(hdr2+14)))) << 8 | (uint32_t)(*(hdr2+15))));
                 // BDDNode 346
                 inc_path_counter(346);
-                uint32_t unrolled116 = (993352779) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+12)) << 8 | (uint16_t)(*(hdr2+13)))) << 8 | (uint32_t)(*(hdr2+14)))) << 8 | (uint32_t)(*(hdr2+15))));
-                // BDDNode 347
-                inc_path_counter(347);
-                uint32_t unrolled117 = (1564959569) + (unrolled116);
+                uint32_t unrolled116 = (1565999953) + (unrolled115);
                 // BDDNode 111
                 inc_path_counter(111);
-                uint32_t rotated77 = rotate_left((rotated74) ^ (unrolled117), 7);
+                uint32_t rotated77 = rotate_left((rotated74) ^ (unrolled116), 7);
+                // BDDNode 347
+                inc_path_counter(347);
+                uint32_t unrolled117 = (1868999322) ^ (rotated73);
                 // BDDNode 348
                 inc_path_counter(348);
-                uint32_t unrolled118 = (1870056090) ^ (rotated73);
-                // BDDNode 349
-                inc_path_counter(349);
-                uint32_t unrolled119 = (unrolled116) + (unrolled118);
+                uint32_t unrolled118 = (unrolled115) + (unrolled117);
                 // BDDNode 112
                 inc_path_counter(112);
-                uint32_t rotated78 = rotate_left((1564959569) + (unrolled119), 16);
-                // BDDNode 350
-                inc_path_counter(350);
-                uint32_t unrolled120 = (1564959569) + (unrolled119);
+                uint32_t rotated78 = rotate_left((1565999953) + (unrolled118), 16);
+                // BDDNode 349
+                inc_path_counter(349);
+                uint32_t unrolled119 = (1565999953) + (unrolled118);
                 // BDDNode 113
                 inc_path_counter(113);
-                uint32_t rotated79 = rotate_left((rotated76) ^ (unrolled120), 5);
+                uint32_t rotated79 = rotate_left((rotated76) ^ (unrolled119), 5);
+                // BDDNode 350
+                inc_path_counter(350);
+                uint32_t unrolled120 = (rotated74) ^ (unrolled116);
                 // BDDNode 351
                 inc_path_counter(351);
-                uint32_t unrolled121 = (rotated74) ^ (unrolled117);
-                // BDDNode 352
-                inc_path_counter(352);
-                uint32_t unrolled122 = (rotated75) + (unrolled121);
+                uint32_t unrolled121 = (rotated75) + (unrolled120);
                 // BDDNode 114
                 inc_path_counter(114);
-                uint32_t rotated80 = rotate_left((rotated77) ^ (unrolled122), 8);
-                // BDDNode 353
-                inc_path_counter(353);
-                uint32_t unrolled123 = (rotated76) ^ (unrolled120);
+                uint32_t rotated80 = rotate_left((rotated77) ^ (unrolled121), 8);
+                // BDDNode 352
+                inc_path_counter(352);
+                uint32_t unrolled122 = (rotated76) ^ (unrolled119);
                 // BDDNode 115
                 inc_path_counter(115);
-                uint32_t rotated81 = rotate_left((unrolled122) + (unrolled123), 16);
-                // BDDNode 354
-                inc_path_counter(354);
-                uint32_t unrolled124 = (unrolled122) + (unrolled123);
+                uint32_t rotated81 = rotate_left((unrolled121) + (unrolled122), 16);
+                // BDDNode 353
+                inc_path_counter(353);
+                uint32_t unrolled123 = (unrolled121) + (unrolled122);
                 // BDDNode 116
                 inc_path_counter(116);
-                uint32_t rotated82 = rotate_left((rotated79) ^ (unrolled124), 13);
+                uint32_t rotated82 = rotate_left((rotated79) ^ (unrolled123), 13);
+                // BDDNode 354
+                inc_path_counter(354);
+                uint32_t unrolled124 = (rotated77) ^ (unrolled121);
                 // BDDNode 355
                 inc_path_counter(355);
-                uint32_t unrolled125 = (rotated77) ^ (unrolled122);
-                // BDDNode 356
-                inc_path_counter(356);
-                uint32_t unrolled126 = (rotated78) + (unrolled125);
+                uint32_t unrolled125 = (rotated78) + (unrolled124);
                 // BDDNode 117
                 inc_path_counter(117);
-                uint32_t rotated83 = rotate_left((rotated80) ^ (unrolled126), 7);
-                // BDDNode 357
-                inc_path_counter(357);
-                uint32_t unrolled127 = (rotated79) ^ (unrolled124);
+                uint32_t rotated83 = rotate_left((rotated80) ^ (unrolled125), 7);
+                // BDDNode 356
+                inc_path_counter(356);
+                uint32_t unrolled126 = (rotated79) ^ (unrolled123);
                 // BDDNode 118
                 inc_path_counter(118);
-                uint32_t rotated84 = rotate_left((unrolled126) + (unrolled127), 16);
-                // BDDNode 358
-                inc_path_counter(358);
-                uint32_t unrolled128 = (unrolled126) + (unrolled127);
+                uint32_t rotated84 = rotate_left((unrolled125) + (unrolled126), 16);
+                // BDDNode 357
+                inc_path_counter(357);
+                uint32_t unrolled127 = (unrolled125) + (unrolled126);
                 // BDDNode 119
                 inc_path_counter(119);
-                uint32_t rotated85 = rotate_left((rotated82) ^ (unrolled128), 5);
+                uint32_t rotated85 = rotate_left((rotated82) ^ (unrolled127), 5);
+                // BDDNode 358
+                inc_path_counter(358);
+                uint32_t unrolled128 = (rotated80) ^ (unrolled125);
                 // BDDNode 359
                 inc_path_counter(359);
-                uint32_t unrolled129 = (rotated80) ^ (unrolled126);
+                uint32_t unrolled129 = (rotated81) + (unrolled128);
                 // BDDNode 360
                 inc_path_counter(360);
-                uint32_t unrolled130 = (rotated81) + (unrolled129);
-                // BDDNode 361
-                inc_path_counter(361);
-                uint32_t unrolled131 = (rotated83) ^ (unrolled130);
+                uint32_t unrolled130 = (rotated83) ^ (unrolled129);
                 // BDDNode 120
                 inc_path_counter(120);
-                uint32_t rotated86 = rotate_left((unrolled131) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))), 8);
+                uint32_t rotated86 = rotate_left((unrolled130) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))), 8);
+                // BDDNode 361
+                inc_path_counter(361);
+                uint32_t unrolled131 = (unrolled129) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+12)) << 8 | (uint16_t)(*(hdr2+13)))) << 8 | (uint32_t)(*(hdr2+14)))) << 8 | (uint32_t)(*(hdr2+15))));
                 // BDDNode 362
                 inc_path_counter(362);
-                uint32_t unrolled132 = (unrolled130) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+12)) << 8 | (uint16_t)(*(hdr2+13)))) << 8 | (uint32_t)(*(hdr2+14)))) << 8 | (uint32_t)(*(hdr2+15))));
-                // BDDNode 363
-                inc_path_counter(363);
-                uint32_t unrolled133 = (rotated82) ^ (unrolled128);
+                uint32_t unrolled132 = (rotated82) ^ (unrolled127);
                 // BDDNode 121
                 inc_path_counter(121);
-                uint32_t rotated87 = rotate_left((unrolled132) + (unrolled133), 16);
-                // BDDNode 364
-                inc_path_counter(364);
-                uint32_t unrolled134 = (unrolled132) + (unrolled133);
+                uint32_t rotated87 = rotate_left((unrolled131) + (unrolled132), 16);
+                // BDDNode 363
+                inc_path_counter(363);
+                uint32_t unrolled133 = (unrolled131) + (unrolled132);
                 // BDDNode 122
                 inc_path_counter(122);
-                uint32_t rotated88 = rotate_left((rotated85) ^ (unrolled134), 13);
+                uint32_t rotated88 = rotate_left((rotated85) ^ (unrolled133), 13);
+                // BDDNode 364
+                inc_path_counter(364);
+                uint32_t unrolled134 = (unrolled130) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19))));
                 // BDDNode 365
                 inc_path_counter(365);
-                uint32_t unrolled135 = (unrolled131) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19))));
-                // BDDNode 366
-                inc_path_counter(366);
-                uint32_t unrolled136 = (rotated84) + (unrolled135);
+                uint32_t unrolled135 = (rotated84) + (unrolled134);
                 // BDDNode 123
                 inc_path_counter(123);
-                uint32_t rotated89 = rotate_left((rotated86) ^ (unrolled136), 7);
-                // BDDNode 367
-                inc_path_counter(367);
-                uint32_t unrolled137 = (rotated85) ^ (unrolled134);
+                uint32_t rotated89 = rotate_left((rotated86) ^ (unrolled135), 7);
+                // BDDNode 366
+                inc_path_counter(366);
+                uint32_t unrolled136 = (rotated85) ^ (unrolled133);
                 // BDDNode 124
                 inc_path_counter(124);
-                uint32_t rotated90 = rotate_left((unrolled136) + (unrolled137), 16);
-                // BDDNode 368
-                inc_path_counter(368);
-                uint32_t unrolled138 = (unrolled136) + (unrolled137);
+                uint32_t rotated90 = rotate_left((unrolled135) + (unrolled136), 16);
+                // BDDNode 367
+                inc_path_counter(367);
+                uint32_t unrolled137 = (unrolled135) + (unrolled136);
                 // BDDNode 125
                 inc_path_counter(125);
-                uint32_t rotated91 = rotate_left((rotated88) ^ (unrolled138), 5);
+                uint32_t rotated91 = rotate_left((rotated88) ^ (unrolled137), 5);
+                // BDDNode 368
+                inc_path_counter(368);
+                uint32_t unrolled138 = (rotated86) ^ (unrolled135);
                 // BDDNode 369
                 inc_path_counter(369);
-                uint32_t unrolled139 = (rotated86) ^ (unrolled136);
-                // BDDNode 370
-                inc_path_counter(370);
-                uint32_t unrolled140 = (rotated87) + (unrolled139);
+                uint32_t unrolled139 = (rotated87) + (unrolled138);
                 // BDDNode 126
                 inc_path_counter(126);
-                uint32_t rotated92 = rotate_left((rotated89) ^ (unrolled140), 8);
-                // BDDNode 371
-                inc_path_counter(371);
-                uint32_t unrolled141 = (rotated88) ^ (unrolled138);
+                uint32_t rotated92 = rotate_left((rotated89) ^ (unrolled139), 8);
+                // BDDNode 370
+                inc_path_counter(370);
+                uint32_t unrolled140 = (rotated88) ^ (unrolled137);
                 // BDDNode 127
                 inc_path_counter(127);
-                uint32_t rotated93 = rotate_left((unrolled140) + (unrolled141), 16);
-                // BDDNode 372
-                inc_path_counter(372);
-                uint32_t unrolled142 = (unrolled140) + (unrolled141);
+                uint32_t rotated93 = rotate_left((unrolled139) + (unrolled140), 16);
+                // BDDNode 371
+                inc_path_counter(371);
+                uint32_t unrolled141 = (unrolled139) + (unrolled140);
                 // BDDNode 128
                 inc_path_counter(128);
-                uint32_t rotated94 = rotate_left((rotated91) ^ (unrolled142), 13);
+                uint32_t rotated94 = rotate_left((rotated91) ^ (unrolled141), 13);
+                // BDDNode 372
+                inc_path_counter(372);
+                uint32_t unrolled142 = (rotated89) ^ (unrolled139);
                 // BDDNode 373
                 inc_path_counter(373);
-                uint32_t unrolled143 = (rotated89) ^ (unrolled140);
-                // BDDNode 374
-                inc_path_counter(374);
-                uint32_t unrolled144 = (rotated90) + (unrolled143);
+                uint32_t unrolled143 = (rotated90) + (unrolled142);
                 // BDDNode 129
                 inc_path_counter(129);
-                uint32_t rotated95 = rotate_left((rotated92) ^ (unrolled144), 7);
-                // BDDNode 375
-                inc_path_counter(375);
-                uint32_t unrolled145 = (rotated91) ^ (unrolled142);
+                uint32_t rotated95 = rotate_left((rotated92) ^ (unrolled143), 7);
+                // BDDNode 374
+                inc_path_counter(374);
+                uint32_t unrolled144 = (rotated91) ^ (unrolled141);
                 // BDDNode 130
                 inc_path_counter(130);
-                uint32_t rotated96 = rotate_left((unrolled144) + (unrolled145), 16);
-                // BDDNode 376
-                inc_path_counter(376);
-                uint32_t unrolled146 = (unrolled144) + (unrolled145);
+                uint32_t rotated96 = rotate_left((unrolled143) + (unrolled144), 16);
+                // BDDNode 375
+                inc_path_counter(375);
+                uint32_t unrolled145 = (unrolled143) + (unrolled144);
                 // BDDNode 131
                 inc_path_counter(131);
-                uint32_t rotated97 = rotate_left((rotated94) ^ (unrolled146), 5);
+                uint32_t rotated97 = rotate_left((rotated94) ^ (unrolled145), 5);
+                // BDDNode 376
+                inc_path_counter(376);
+                uint32_t unrolled146 = (rotated92) ^ (unrolled143);
                 // BDDNode 377
                 inc_path_counter(377);
-                uint32_t unrolled147 = (rotated92) ^ (unrolled144);
+                uint32_t unrolled147 = (rotated93) + (unrolled146);
                 // BDDNode 378
                 inc_path_counter(378);
-                uint32_t unrolled148 = (rotated93) + (unrolled147);
+                uint32_t unrolled148 = (rotated95) ^ (unrolled147);
                 // BDDNode 379
                 inc_path_counter(379);
-                uint32_t unrolled149 = (rotated95) ^ (unrolled148);
+                uint32_t unrolled149 = ((uint16_t)(((uint16_t)(*(hdr3+0)) << 8 | (uint16_t)(*(hdr3+1))))) << (16);
                 // BDDNode 380
                 inc_path_counter(380);
-                uint32_t unrolled150 = ((uint16_t)(((uint16_t)(*(hdr3+0)) << 8 | (uint16_t)(*(hdr3+1))))) << (16);
-                // BDDNode 381
-                inc_path_counter(381);
-                uint32_t unrolled151 = (unrolled150) | ((uint16_t)(((uint16_t)(*(hdr3+2)) << 8 | (uint16_t)(*(hdr3+3)))));
+                uint32_t unrolled150 = (unrolled149) | ((uint16_t)(((uint16_t)(*(hdr3+2)) << 8 | (uint16_t)(*(hdr3+3)))));
                 // BDDNode 132
                 inc_path_counter(132);
-                uint32_t rotated98 = rotate_left((unrolled149) ^ (unrolled151), 8);
+                uint32_t rotated98 = rotate_left((unrolled148) ^ (unrolled150), 8);
+                // BDDNode 381
+                inc_path_counter(381);
+                uint32_t unrolled151 = (unrolled147) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19))));
                 // BDDNode 382
                 inc_path_counter(382);
-                uint32_t unrolled152 = (unrolled148) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19))));
-                // BDDNode 383
-                inc_path_counter(383);
-                uint32_t unrolled153 = (rotated94) ^ (unrolled146);
+                uint32_t unrolled152 = (rotated94) ^ (unrolled145);
                 // BDDNode 133
                 inc_path_counter(133);
-                uint32_t rotated99 = rotate_left((unrolled152) + (unrolled153), 16);
-                // BDDNode 384
-                inc_path_counter(384);
-                uint32_t unrolled154 = (unrolled152) + (unrolled153);
+                uint32_t rotated99 = rotate_left((unrolled151) + (unrolled152), 16);
+                // BDDNode 383
+                inc_path_counter(383);
+                uint32_t unrolled153 = (unrolled151) + (unrolled152);
                 // BDDNode 134
                 inc_path_counter(134);
-                uint32_t rotated100 = rotate_left((rotated97) ^ (unrolled154), 13);
+                uint32_t rotated100 = rotate_left((rotated97) ^ (unrolled153), 13);
+                // BDDNode 384
+                inc_path_counter(384);
+                uint32_t unrolled154 = (unrolled148) ^ (unrolled150);
                 // BDDNode 385
                 inc_path_counter(385);
-                uint32_t unrolled155 = (unrolled149) ^ (unrolled151);
-                // BDDNode 386
-                inc_path_counter(386);
-                uint32_t unrolled156 = (rotated96) + (unrolled155);
+                uint32_t unrolled155 = (rotated96) + (unrolled154);
                 // BDDNode 135
                 inc_path_counter(135);
-                uint32_t rotated101 = rotate_left((rotated98) ^ (unrolled156), 7);
-                // BDDNode 387
-                inc_path_counter(387);
-                uint32_t unrolled157 = (rotated97) ^ (unrolled154);
+                uint32_t rotated101 = rotate_left((rotated98) ^ (unrolled155), 7);
+                // BDDNode 386
+                inc_path_counter(386);
+                uint32_t unrolled156 = (rotated97) ^ (unrolled153);
                 // BDDNode 136
                 inc_path_counter(136);
-                uint32_t rotated102 = rotate_left((unrolled156) + (unrolled157), 16);
-                // BDDNode 388
-                inc_path_counter(388);
-                uint32_t unrolled158 = (unrolled156) + (unrolled157);
+                uint32_t rotated102 = rotate_left((unrolled155) + (unrolled156), 16);
+                // BDDNode 387
+                inc_path_counter(387);
+                uint32_t unrolled157 = (unrolled155) + (unrolled156);
                 // BDDNode 137
                 inc_path_counter(137);
-                uint32_t rotated103 = rotate_left((rotated100) ^ (unrolled158), 5);
+                uint32_t rotated103 = rotate_left((rotated100) ^ (unrolled157), 5);
+                // BDDNode 388
+                inc_path_counter(388);
+                uint32_t unrolled158 = (rotated98) ^ (unrolled155);
                 // BDDNode 389
                 inc_path_counter(389);
-                uint32_t unrolled159 = (rotated98) ^ (unrolled156);
-                // BDDNode 390
-                inc_path_counter(390);
-                uint32_t unrolled160 = (rotated99) + (unrolled159);
+                uint32_t unrolled159 = (rotated99) + (unrolled158);
                 // BDDNode 138
                 inc_path_counter(138);
-                uint32_t rotated104 = rotate_left((rotated101) ^ (unrolled160), 8);
-                // BDDNode 391
-                inc_path_counter(391);
-                uint32_t unrolled161 = (rotated100) ^ (unrolled158);
+                uint32_t rotated104 = rotate_left((rotated101) ^ (unrolled159), 8);
+                // BDDNode 390
+                inc_path_counter(390);
+                uint32_t unrolled160 = (rotated100) ^ (unrolled157);
                 // BDDNode 139
                 inc_path_counter(139);
-                uint32_t rotated105 = rotate_left((unrolled160) + (unrolled161), 16);
-                // BDDNode 392
-                inc_path_counter(392);
-                uint32_t unrolled162 = (unrolled160) + (unrolled161);
+                uint32_t rotated105 = rotate_left((unrolled159) + (unrolled160), 16);
+                // BDDNode 391
+                inc_path_counter(391);
+                uint32_t unrolled161 = (unrolled159) + (unrolled160);
                 // BDDNode 140
                 inc_path_counter(140);
-                uint32_t rotated106 = rotate_left((rotated103) ^ (unrolled162), 13);
+                uint32_t rotated106 = rotate_left((rotated103) ^ (unrolled161), 13);
+                // BDDNode 392
+                inc_path_counter(392);
+                uint32_t unrolled162 = (rotated101) ^ (unrolled159);
                 // BDDNode 393
                 inc_path_counter(393);
-                uint32_t unrolled163 = (rotated101) ^ (unrolled160);
-                // BDDNode 394
-                inc_path_counter(394);
-                uint32_t unrolled164 = (rotated102) + (unrolled163);
+                uint32_t unrolled163 = (rotated102) + (unrolled162);
                 // BDDNode 141
                 inc_path_counter(141);
-                uint32_t rotated107 = rotate_left((rotated104) ^ (unrolled164), 7);
-                // BDDNode 395
-                inc_path_counter(395);
-                uint32_t unrolled165 = (rotated103) ^ (unrolled162);
+                uint32_t rotated107 = rotate_left((rotated104) ^ (unrolled163), 7);
+                // BDDNode 394
+                inc_path_counter(394);
+                uint32_t unrolled164 = (rotated103) ^ (unrolled161);
                 // BDDNode 142
                 inc_path_counter(142);
-                uint32_t rotated108 = rotate_left((unrolled164) + (unrolled165), 16);
-                // BDDNode 396
-                inc_path_counter(396);
-                uint32_t unrolled166 = (unrolled164) + (unrolled165);
+                uint32_t rotated108 = rotate_left((unrolled163) + (unrolled164), 16);
+                // BDDNode 395
+                inc_path_counter(395);
+                uint32_t unrolled165 = (unrolled163) + (unrolled164);
                 // BDDNode 143
                 inc_path_counter(143);
-                uint32_t rotated109 = rotate_left((rotated106) ^ (unrolled166), 5);
+                uint32_t rotated109 = rotate_left((rotated106) ^ (unrolled165), 5);
+                // BDDNode 396
+                inc_path_counter(396);
+                uint32_t unrolled166 = (rotated104) ^ (unrolled163);
                 // BDDNode 397
                 inc_path_counter(397);
-                uint32_t unrolled167 = (rotated104) ^ (unrolled164);
+                uint32_t unrolled167 = (rotated105) + (unrolled166);
                 // BDDNode 398
                 inc_path_counter(398);
-                uint32_t unrolled168 = (rotated105) + (unrolled167);
-                // BDDNode 399
-                inc_path_counter(399);
-                uint32_t unrolled169 = (rotated107) ^ (unrolled168);
+                uint32_t unrolled168 = (rotated107) ^ (unrolled167);
                 // BDDNode 144
                 inc_path_counter(144);
-                uint32_t rotated110 = rotate_left((unrolled169) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+4)) << 8 | (uint16_t)(*(hdr3+5)))) << 8 | (uint32_t)(*(hdr3+6)))) << 8 | (uint32_t)(*(hdr3+7)))), 8);
+                uint32_t rotated110 = rotate_left((unrolled168) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+4)) << 8 | (uint16_t)(*(hdr3+5)))) << 8 | (uint32_t)(*(hdr3+6)))) << 8 | (uint32_t)(*(hdr3+7)))), 8);
+                // BDDNode 399
+                inc_path_counter(399);
+                uint32_t unrolled169 = (unrolled167) ^ (unrolled150);
                 // BDDNode 400
                 inc_path_counter(400);
-                uint32_t unrolled170 = (unrolled168) ^ (unrolled151);
-                // BDDNode 401
-                inc_path_counter(401);
-                uint32_t unrolled171 = (rotated106) ^ (unrolled166);
+                uint32_t unrolled170 = (rotated106) ^ (unrolled165);
                 // BDDNode 145
                 inc_path_counter(145);
-                uint32_t rotated111 = rotate_left((unrolled170) + (unrolled171), 16);
-                // BDDNode 402
-                inc_path_counter(402);
-                uint32_t unrolled172 = (unrolled170) + (unrolled171);
+                uint32_t rotated111 = rotate_left((unrolled169) + (unrolled170), 16);
+                // BDDNode 401
+                inc_path_counter(401);
+                uint32_t unrolled171 = (unrolled169) + (unrolled170);
                 // BDDNode 146
                 inc_path_counter(146);
-                uint32_t rotated112 = rotate_left((rotated109) ^ (unrolled172), 13);
+                uint32_t rotated112 = rotate_left((rotated109) ^ (unrolled171), 13);
+                // BDDNode 402
+                inc_path_counter(402);
+                uint32_t unrolled172 = (unrolled168) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+4)) << 8 | (uint16_t)(*(hdr3+5)))) << 8 | (uint32_t)(*(hdr3+6)))) << 8 | (uint32_t)(*(hdr3+7))));
                 // BDDNode 403
                 inc_path_counter(403);
-                uint32_t unrolled173 = (unrolled169) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+4)) << 8 | (uint16_t)(*(hdr3+5)))) << 8 | (uint32_t)(*(hdr3+6)))) << 8 | (uint32_t)(*(hdr3+7))));
-                // BDDNode 404
-                inc_path_counter(404);
-                uint32_t unrolled174 = (rotated108) + (unrolled173);
+                uint32_t unrolled173 = (rotated108) + (unrolled172);
                 // BDDNode 147
                 inc_path_counter(147);
-                uint32_t rotated113 = rotate_left((rotated110) ^ (unrolled174), 7);
-                // BDDNode 405
-                inc_path_counter(405);
-                uint32_t unrolled175 = (rotated109) ^ (unrolled172);
+                uint32_t rotated113 = rotate_left((rotated110) ^ (unrolled173), 7);
+                // BDDNode 404
+                inc_path_counter(404);
+                uint32_t unrolled174 = (rotated109) ^ (unrolled171);
                 // BDDNode 148
                 inc_path_counter(148);
-                uint32_t rotated114 = rotate_left((unrolled174) + (unrolled175), 16);
-                // BDDNode 406
-                inc_path_counter(406);
-                uint32_t unrolled176 = (unrolled174) + (unrolled175);
+                uint32_t rotated114 = rotate_left((unrolled173) + (unrolled174), 16);
+                // BDDNode 405
+                inc_path_counter(405);
+                uint32_t unrolled175 = (unrolled173) + (unrolled174);
                 // BDDNode 149
                 inc_path_counter(149);
-                uint32_t rotated115 = rotate_left((rotated112) ^ (unrolled176), 5);
+                uint32_t rotated115 = rotate_left((rotated112) ^ (unrolled175), 5);
+                // BDDNode 406
+                inc_path_counter(406);
+                uint32_t unrolled176 = (rotated110) ^ (unrolled173);
                 // BDDNode 407
                 inc_path_counter(407);
-                uint32_t unrolled177 = (rotated110) ^ (unrolled174);
-                // BDDNode 408
-                inc_path_counter(408);
-                uint32_t unrolled178 = (rotated111) + (unrolled177);
+                uint32_t unrolled177 = (rotated111) + (unrolled176);
                 // BDDNode 150
                 inc_path_counter(150);
-                uint32_t rotated116 = rotate_left((rotated113) ^ (unrolled178), 8);
-                // BDDNode 409
-                inc_path_counter(409);
-                uint32_t unrolled179 = (rotated112) ^ (unrolled176);
+                uint32_t rotated116 = rotate_left((rotated113) ^ (unrolled177), 8);
+                // BDDNode 408
+                inc_path_counter(408);
+                uint32_t unrolled178 = (rotated112) ^ (unrolled175);
                 // BDDNode 151
                 inc_path_counter(151);
-                uint32_t rotated117 = rotate_left((unrolled178) + (unrolled179), 16);
-                // BDDNode 410
-                inc_path_counter(410);
-                uint32_t unrolled180 = (unrolled178) + (unrolled179);
+                uint32_t rotated117 = rotate_left((unrolled177) + (unrolled178), 16);
+                // BDDNode 409
+                inc_path_counter(409);
+                uint32_t unrolled179 = (unrolled177) + (unrolled178);
                 // BDDNode 152
                 inc_path_counter(152);
-                uint32_t rotated118 = rotate_left((rotated115) ^ (unrolled180), 13);
+                uint32_t rotated118 = rotate_left((rotated115) ^ (unrolled179), 13);
+                // BDDNode 410
+                inc_path_counter(410);
+                uint32_t unrolled180 = (rotated113) ^ (unrolled177);
                 // BDDNode 411
                 inc_path_counter(411);
-                uint32_t unrolled181 = (rotated113) ^ (unrolled178);
-                // BDDNode 412
-                inc_path_counter(412);
-                uint32_t unrolled182 = (rotated114) + (unrolled181);
+                uint32_t unrolled181 = (rotated114) + (unrolled180);
                 // BDDNode 153
                 inc_path_counter(153);
-                uint32_t rotated119 = rotate_left((rotated116) ^ (unrolled182), 7);
-                // BDDNode 413
-                inc_path_counter(413);
-                uint32_t unrolled183 = (rotated115) ^ (unrolled180);
+                uint32_t rotated119 = rotate_left((rotated116) ^ (unrolled181), 7);
+                // BDDNode 412
+                inc_path_counter(412);
+                uint32_t unrolled182 = (rotated115) ^ (unrolled179);
                 // BDDNode 154
                 inc_path_counter(154);
-                uint32_t rotated120 = rotate_left((unrolled182) + (unrolled183), 16);
-                // BDDNode 414
-                inc_path_counter(414);
-                uint32_t unrolled184 = (unrolled182) + (unrolled183);
+                uint32_t rotated120 = rotate_left((unrolled181) + (unrolled182), 16);
+                // BDDNode 413
+                inc_path_counter(413);
+                uint32_t unrolled183 = (unrolled181) + (unrolled182);
                 // BDDNode 155
                 inc_path_counter(155);
-                uint32_t rotated121 = rotate_left((rotated118) ^ (unrolled184), 5);
+                uint32_t rotated121 = rotate_left((rotated118) ^ (unrolled183), 5);
+                // BDDNode 414
+                inc_path_counter(414);
+                uint32_t unrolled184 = (rotated116) ^ (unrolled181);
                 // BDDNode 415
                 inc_path_counter(415);
-                uint32_t unrolled185 = (rotated116) ^ (unrolled182);
-                // BDDNode 416
-                inc_path_counter(416);
-                uint32_t unrolled186 = (rotated117) + (unrolled185);
+                uint32_t unrolled185 = (rotated117) + (unrolled184);
                 // BDDNode 156
                 inc_path_counter(156);
-                uint32_t rotated122 = rotate_left((rotated119) ^ (unrolled186), 8);
+                uint32_t rotated122 = rotate_left((rotated119) ^ (unrolled185), 8);
+                // BDDNode 416
+                inc_path_counter(416);
+                uint32_t unrolled186 = (unrolled185) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+4)) << 8 | (uint16_t)(*(hdr3+5)))) << 8 | (uint32_t)(*(hdr3+6)))) << 8 | (uint32_t)(*(hdr3+7))));
                 // BDDNode 417
                 inc_path_counter(417);
-                uint32_t unrolled187 = (unrolled186) ^ (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+4)) << 8 | (uint16_t)(*(hdr3+5)))) << 8 | (uint32_t)(*(hdr3+6)))) << 8 | (uint32_t)(*(hdr3+7))));
-                // BDDNode 418
-                inc_path_counter(418);
-                uint32_t unrolled188 = (rotated118) ^ (unrolled184);
+                uint32_t unrolled187 = (rotated118) ^ (unrolled183);
                 // BDDNode 157
                 inc_path_counter(157);
-                uint32_t rotated123 = rotate_left((unrolled187) + (unrolled188), 16);
-                // BDDNode 419
-                inc_path_counter(419);
-                uint32_t unrolled189 = (unrolled187) + (unrolled188);
+                uint32_t rotated123 = rotate_left((unrolled186) + (unrolled187), 16);
+                // BDDNode 418
+                inc_path_counter(418);
+                uint32_t unrolled188 = (unrolled186) + (unrolled187);
                 // BDDNode 158
                 inc_path_counter(158);
-                uint32_t rotated124 = rotate_left((rotated121) ^ (unrolled189), 13);
+                uint32_t rotated124 = rotate_left((rotated121) ^ (unrolled188), 13);
+                // BDDNode 419
+                inc_path_counter(419);
+                uint32_t unrolled189 = (rotated119) ^ (unrolled185);
                 // BDDNode 420
                 inc_path_counter(420);
-                uint32_t unrolled190 = (rotated119) ^ (unrolled186);
-                // BDDNode 421
-                inc_path_counter(421);
-                uint32_t unrolled191 = (rotated120) + (unrolled190);
+                uint32_t unrolled190 = (rotated120) + (unrolled189);
                 // BDDNode 159
                 inc_path_counter(159);
-                uint32_t rotated125 = rotate_left((rotated122) ^ (unrolled191), 7);
-                // BDDNode 422
-                inc_path_counter(422);
-                uint32_t unrolled192 = (rotated121) ^ (unrolled189);
+                uint32_t rotated125 = rotate_left((rotated122) ^ (unrolled190), 7);
+                // BDDNode 421
+                inc_path_counter(421);
+                uint32_t unrolled191 = (rotated121) ^ (unrolled188);
                 // BDDNode 160
                 inc_path_counter(160);
-                uint32_t rotated126 = rotate_left((unrolled191) + (unrolled192), 16);
-                // BDDNode 423
-                inc_path_counter(423);
-                uint32_t unrolled193 = (unrolled191) + (unrolled192);
+                uint32_t rotated126 = rotate_left((unrolled190) + (unrolled191), 16);
+                // BDDNode 422
+                inc_path_counter(422);
+                uint32_t unrolled192 = (unrolled190) + (unrolled191);
                 // BDDNode 161
                 inc_path_counter(161);
-                uint32_t rotated127 = rotate_left((rotated124) ^ (unrolled193), 5);
+                uint32_t rotated127 = rotate_left((rotated124) ^ (unrolled192), 5);
+                // BDDNode 423
+                inc_path_counter(423);
+                uint32_t unrolled193 = (rotated122) ^ (unrolled190);
                 // BDDNode 424
                 inc_path_counter(424);
-                uint32_t unrolled194 = (rotated122) ^ (unrolled191);
-                // BDDNode 425
-                inc_path_counter(425);
-                uint32_t unrolled195 = (rotated123) + (unrolled194);
+                uint32_t unrolled194 = (rotated123) + (unrolled193);
                 // BDDNode 162
                 inc_path_counter(162);
-                uint32_t rotated128 = rotate_left((rotated125) ^ (unrolled195), 8);
-                // BDDNode 426
-                inc_path_counter(426);
-                uint32_t unrolled196 = (rotated124) ^ (unrolled193);
+                uint32_t rotated128 = rotate_left((rotated125) ^ (unrolled194), 8);
+                // BDDNode 425
+                inc_path_counter(425);
+                uint32_t unrolled195 = (rotated124) ^ (unrolled192);
                 // BDDNode 163
                 inc_path_counter(163);
-                uint32_t rotated129 = rotate_left((unrolled195) + (unrolled196), 16);
-                // BDDNode 427
-                inc_path_counter(427);
-                uint32_t unrolled197 = (unrolled195) + (unrolled196);
+                uint32_t rotated129 = rotate_left((unrolled194) + (unrolled195), 16);
+                // BDDNode 426
+                inc_path_counter(426);
+                uint32_t unrolled196 = (unrolled194) + (unrolled195);
                 // BDDNode 164
                 inc_path_counter(164);
-                uint32_t rotated130 = rotate_left((rotated127) ^ (unrolled197), 13);
+                uint32_t rotated130 = rotate_left((rotated127) ^ (unrolled196), 13);
+                // BDDNode 427
+                inc_path_counter(427);
+                uint32_t unrolled197 = (rotated125) ^ (unrolled194);
                 // BDDNode 428
                 inc_path_counter(428);
-                uint32_t unrolled198 = (rotated125) ^ (unrolled195);
-                // BDDNode 429
-                inc_path_counter(429);
-                uint32_t unrolled199 = (rotated126) + (unrolled198);
+                uint32_t unrolled198 = (rotated126) + (unrolled197);
                 // BDDNode 165
                 inc_path_counter(165);
-                uint32_t rotated131 = rotate_left((rotated128) ^ (unrolled199), 7);
-                // BDDNode 430
-                inc_path_counter(430);
-                uint32_t unrolled200 = (rotated127) ^ (unrolled197);
+                uint32_t rotated131 = rotate_left((rotated128) ^ (unrolled198), 7);
+                // BDDNode 429
+                inc_path_counter(429);
+                uint32_t unrolled199 = (rotated127) ^ (unrolled196);
                 // BDDNode 166
                 inc_path_counter(166);
-                uint32_t rotated132 = rotate_left((unrolled199) + (unrolled200), 16);
-                // BDDNode 431
-                inc_path_counter(431);
-                uint32_t unrolled201 = (unrolled199) + (unrolled200);
+                uint32_t rotated132 = rotate_left((unrolled198) + (unrolled199), 16);
+                // BDDNode 430
+                inc_path_counter(430);
+                uint32_t unrolled200 = (unrolled198) + (unrolled199);
                 // BDDNode 167
                 inc_path_counter(167);
-                uint32_t rotated133 = rotate_left((rotated130) ^ (unrolled201), 5);
+                uint32_t rotated133 = rotate_left((rotated130) ^ (unrolled200), 5);
+                // BDDNode 431
+                inc_path_counter(431);
+                uint32_t unrolled201 = (rotated128) ^ (unrolled198);
                 // BDDNode 432
                 inc_path_counter(432);
-                uint32_t unrolled202 = (rotated128) ^ (unrolled199);
-                // BDDNode 433
-                inc_path_counter(433);
-                uint32_t unrolled203 = (rotated129) + (unrolled202);
+                uint32_t unrolled202 = (rotated129) + (unrolled201);
                 // BDDNode 168
                 inc_path_counter(168);
-                uint32_t rotated134 = rotate_left((rotated131) ^ (unrolled203), 8);
-                // BDDNode 434
-                inc_path_counter(434);
-                uint32_t unrolled204 = (rotated130) ^ (unrolled201);
+                uint32_t rotated134 = rotate_left((rotated131) ^ (unrolled202), 8);
+                // BDDNode 433
+                inc_path_counter(433);
+                uint32_t unrolled203 = (rotated130) ^ (unrolled200);
                 // BDDNode 169
                 inc_path_counter(169);
-                uint32_t rotated135 = rotate_left((unrolled203) + (unrolled204), 16);
-                // BDDNode 435
-                inc_path_counter(435);
-                uint32_t unrolled205 = (unrolled203) + (unrolled204);
+                uint32_t rotated135 = rotate_left((unrolled202) + (unrolled203), 16);
+                // BDDNode 434
+                inc_path_counter(434);
+                uint32_t unrolled204 = (unrolled202) + (unrolled203);
                 // BDDNode 170
                 inc_path_counter(170);
-                uint32_t rotated136 = rotate_left((rotated133) ^ (unrolled205), 13);
+                uint32_t rotated136 = rotate_left((rotated133) ^ (unrolled204), 13);
+                // BDDNode 435
+                inc_path_counter(435);
+                uint32_t unrolled205 = (rotated131) ^ (unrolled202);
                 // BDDNode 436
                 inc_path_counter(436);
-                uint32_t unrolled206 = (rotated131) ^ (unrolled203);
-                // BDDNode 437
-                inc_path_counter(437);
-                uint32_t unrolled207 = (rotated132) + (unrolled206);
+                uint32_t unrolled206 = (rotated132) + (unrolled205);
                 // BDDNode 171
                 inc_path_counter(171);
-                uint32_t rotated137 = rotate_left((rotated134) ^ (unrolled207), 7);
-                // BDDNode 438
-                inc_path_counter(438);
-                uint32_t unrolled208 = (rotated133) ^ (unrolled205);
+                uint32_t rotated137 = rotate_left((rotated134) ^ (unrolled206), 7);
+                // BDDNode 437
+                inc_path_counter(437);
+                uint32_t unrolled207 = (rotated133) ^ (unrolled204);
                 // BDDNode 172
                 inc_path_counter(172);
-                uint32_t rotated138 = rotate_left((unrolled207) + (unrolled208), 16);
-                // BDDNode 439
-                inc_path_counter(439);
-                uint32_t unrolled209 = (unrolled207) + (unrolled208);
+                uint32_t rotated138 = rotate_left((unrolled206) + (unrolled207), 16);
+                // BDDNode 438
+                inc_path_counter(438);
+                uint32_t unrolled208 = (unrolled206) + (unrolled207);
                 // BDDNode 173
                 inc_path_counter(173);
-                uint32_t rotated139 = rotate_left((rotated136) ^ (unrolled209), 5);
+                uint32_t rotated139 = rotate_left((rotated136) ^ (unrolled208), 5);
+                // BDDNode 439
+                inc_path_counter(439);
+                uint32_t unrolled209 = (rotated134) ^ (unrolled206);
                 // BDDNode 440
                 inc_path_counter(440);
-                uint32_t unrolled210 = (rotated134) ^ (unrolled207);
-                // BDDNode 441
-                inc_path_counter(441);
-                uint32_t unrolled211 = (rotated135) + (unrolled210);
+                uint32_t unrolled210 = (rotated135) + (unrolled209);
                 // BDDNode 174
                 inc_path_counter(174);
-                uint32_t rotated140 = rotate_left((rotated137) ^ (unrolled211), 8);
-                // BDDNode 442
-                inc_path_counter(442);
-                uint32_t unrolled212 = (rotated136) ^ (unrolled209);
+                uint32_t rotated140 = rotate_left((rotated137) ^ (unrolled210), 8);
+                // BDDNode 441
+                inc_path_counter(441);
+                uint32_t unrolled211 = (rotated136) ^ (unrolled208);
                 // BDDNode 175
                 inc_path_counter(175);
-                uint32_t rotated141 = rotate_left((unrolled211) + (unrolled212), 16);
-                // BDDNode 443
-                inc_path_counter(443);
-                uint32_t unrolled213 = (unrolled211) + (unrolled212);
+                uint32_t rotated141 = rotate_left((unrolled210) + (unrolled211), 16);
+                // BDDNode 442
+                inc_path_counter(442);
+                uint32_t unrolled212 = (unrolled210) + (unrolled211);
                 // BDDNode 176
                 inc_path_counter(176);
-                uint32_t rotated142 = rotate_left((rotated139) ^ (unrolled213), 13);
+                uint32_t rotated142 = rotate_left((rotated139) ^ (unrolled212), 13);
+                // BDDNode 443
+                inc_path_counter(443);
+                uint32_t unrolled213 = (rotated137) ^ (unrolled210);
                 // BDDNode 444
                 inc_path_counter(444);
-                uint32_t unrolled214 = (rotated137) ^ (unrolled211);
-                // BDDNode 445
-                inc_path_counter(445);
-                uint32_t unrolled215 = (rotated138) + (unrolled214);
+                uint32_t unrolled214 = (rotated138) + (unrolled213);
                 // BDDNode 177
                 inc_path_counter(177);
-                uint32_t rotated143 = rotate_left((rotated140) ^ (unrolled215), 7);
-                // BDDNode 446
-                inc_path_counter(446);
-                uint32_t unrolled216 = (rotated139) ^ (unrolled213);
+                uint32_t rotated143 = rotate_left((rotated140) ^ (unrolled214), 7);
+                // BDDNode 445
+                inc_path_counter(445);
+                uint32_t unrolled215 = (rotated139) ^ (unrolled212);
                 // BDDNode 178
                 inc_path_counter(178);
-                uint32_t rotated144 = rotate_left((unrolled215) + (unrolled216), 16);
+                uint32_t rotated144 = rotate_left((unrolled214) + (unrolled215), 16);
                 // BDDNode 179
                 inc_path_counter(179);
                 int checksum2 = rte_ipv4_udptcp_cksum((struct rte_ipv4_hdr*)hdr2, (void*)hdr3);
+                // BDDNode 446
+                inc_path_counter(446);
+                uint64_t unrolled216 = (uint64_t)((now>>16) & 65535);
                 // BDDNode 447
                 inc_path_counter(447);
-                uint64_t unrolled217 = (now) >> (16ULL);
+                uint32_t unrolled217 = (unrolled216 & 4294967295) - (vector_value_out2);
                 // BDDNode 448
                 inc_path_counter(448);
-                uint32_t unrolled218 = (unrolled217 & 4294967295) - (vector_value_out2);
+                uint32_t unrolled218 = (unrolled217) >> (12);
                 // BDDNode 449
                 inc_path_counter(449);
-                uint32_t unrolled219 = (unrolled218) >> (12);
+                uint32_t unrolled219 = (rotated140) ^ (unrolled214);
                 // BDDNode 450
                 inc_path_counter(450);
-                uint32_t unrolled220 = (rotated140) ^ (unrolled215);
+                uint32_t unrolled220 = (rotated141) + (unrolled219);
                 // BDDNode 451
                 inc_path_counter(451);
-                uint32_t unrolled221 = (rotated141) + (unrolled220);
+                uint32_t unrolled221 = (unrolled214) + (unrolled215);
                 // BDDNode 452
                 inc_path_counter(452);
-                uint32_t unrolled222 = (unrolled215) + (unrolled216);
+                uint32_t unrolled222 = (rotated142) ^ (unrolled221);
                 // BDDNode 453
                 inc_path_counter(453);
-                uint32_t unrolled223 = (rotated142) ^ (unrolled222);
+                uint32_t unrolled223 = (unrolled220) ^ (unrolled222);
                 // BDDNode 454
                 inc_path_counter(454);
-                uint32_t unrolled224 = (unrolled221) ^ (unrolled223);
+                uint32_t unrolled224 = (unrolled223) ^ (rotated144);
                 // BDDNode 455
                 inc_path_counter(455);
-                uint32_t unrolled225 = (unrolled224) ^ (rotated144);
+                uint32_t unrolled225 = (rotated143) ^ (unrolled220);
                 // BDDNode 456
                 inc_path_counter(456);
-                uint32_t unrolled226 = (rotated143) ^ (unrolled221);
-                // BDDNode 457
-                inc_path_counter(457);
-                uint32_t unrolled227 = (unrolled225) ^ (unrolled226);
+                uint32_t unrolled226 = (unrolled224) ^ (unrolled225);
                 // BDDNode 180
                 inc_path_counter(180);
                 hdr3[0] = *(hdr3+2);
                 hdr3[1] = *(hdr3+3);
                 hdr3[2] = *(hdr3+0);
                 hdr3[3] = *(hdr3+1);
-                hdr3[4] = (uint32_t)((unrolled219) ^ (unrolled227)>>24);
-                hdr3[5] = (uint32_t)((unrolled219) ^ (unrolled227)>>16);
-                hdr3[6] = (uint32_t)((unrolled219) ^ (unrolled227)>>8);
-                hdr3[7] = (uint32_t)((unrolled219) ^ (unrolled227));
+                hdr3[4] = (uint32_t)((unrolled218) ^ (unrolled226)>>24);
+                hdr3[5] = (uint32_t)((unrolled218) ^ (unrolled226)>>16);
+                hdr3[6] = (uint32_t)((unrolled218) ^ (unrolled226)>>8);
+                hdr3[7] = (uint32_t)((unrolled218) ^ (unrolled226));
                 hdr3[8] = (uint32_t)((1) + (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+4)) << 8 | (uint16_t)(*(hdr3+5)))) << 8 | (uint32_t)(*(hdr3+6)))) << 8 | (uint32_t)(*(hdr3+7))))>>24);
                 hdr3[9] = (uint32_t)((1) + (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+4)) << 8 | (uint16_t)(*(hdr3+5)))) << 8 | (uint32_t)(*(hdr3+6)))) << 8 | (uint32_t)(*(hdr3+7))))>>16);
                 hdr3[10] = (uint32_t)((1) + (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr3+4)) << 8 | (uint16_t)(*(hdr3+5)))) << 8 | (uint32_t)(*(hdr3+6)))) << 8 | (uint32_t)(*(hdr3+7))))>>8);
@@ -2628,8 +2624,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               packet_return_chunk(buffer, hdr);
               // BDDNode 192
               inc_path_counter(192);
-              forwarding_stats_per_route_op[192].inc_fwd((uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24)));
-              return (uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24));
+              forwarding_stats_per_route_op[192].inc_fwd((uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24)));
+              return (uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24));
             } else {
               // BDDNode 193
               inc_path_counter(193);
@@ -2703,8 +2699,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               packet_return_chunk(buffer, hdr);
               // BDDNode 209
               inc_path_counter(209);
-              forwarding_stats_per_route_op[209].inc_fwd((uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24)));
-              return (uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24));
+              forwarding_stats_per_route_op[209].inc_fwd((uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24)));
+              return (uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24));
             } else {
               // BDDNode 210
               inc_path_counter(210);
@@ -2715,12 +2711,12 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               uint8_t* vector_cell3 = 0;
               vector_borrow(vector, 0, (void**)&vector_cell3);
               uint32_t vector_value_out3 = *(uint32_t*)vector_cell3;
-              // BDDNode 458
-              inc_path_counter(458);
-              uint64_t unrolled228 = (now) >> (16ULL);
+              // BDDNode 457
+              inc_path_counter(457);
+              uint64_t unrolled227 = (uint64_t)((now>>16) & 65535);
               // BDDNode 212
               inc_path_counter(212);
-              *(uint32_t*)vector_cell3 = (unrolled228 & 4294967295) - (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr5+0)) << 8 | (uint16_t)(*(hdr5+1)))) << 8 | (uint32_t)(*(hdr5+2)))) << 8 | (uint32_t)(*(hdr5+3))));
+              *(uint32_t*)vector_cell3 = (unrolled227 & 4294967295) - (((uint32_t)(((uint32_t)(((uint16_t)(*(hdr5+0)) << 8 | (uint16_t)(*(hdr5+1)))) << 8 | (uint32_t)(*(hdr5+2)))) << 8 | (uint32_t)(*(hdr5+3))));
               // BDDNode 213
               inc_path_counter(213);
               packet_return_chunk(buffer, hdr5);
@@ -2750,8 +2746,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             packet_return_chunk(buffer, hdr);
             // BDDNode 221
             inc_path_counter(221);
-            forwarding_stats_per_route_op[221].inc_fwd((uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24)));
-            return (uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24));
+            forwarding_stats_per_route_op[221].inc_fwd((uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24)));
+            return (uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24));
           } // (45845) == (*(uint16_t*)(uint16_t*)(hdr4+2))
         } else {
           // BDDNode 222
@@ -2765,8 +2761,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
           packet_return_chunk(buffer, hdr);
           // BDDNode 225
           inc_path_counter(225);
-          forwarding_stats_per_route_op[225].inc_fwd((uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24)));
-          return (uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24));
+          forwarding_stats_per_route_op[225].inc_fwd((uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24)));
+          return (uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24));
         } // (0) == (device & 65535)
       } else {
         // BDDNode 226
@@ -2777,8 +2773,8 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         packet_return_chunk(buffer, hdr);
         // BDDNode 228
         inc_path_counter(228);
-        forwarding_stats_per_route_op[228].inc_fwd((uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24)));
-        return (uint32_t)((((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))) >> (24));
+        forwarding_stats_per_route_op[228].inc_fwd((uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24)));
+        return (uint8_t)((uint32_t)(((uint32_t)(((uint32_t)(((uint16_t)(*(hdr2+16)) << 8 | (uint16_t)(*(hdr2+17)))) << 8 | (uint32_t)(*(hdr2+18)))) << 8 | (uint32_t)(*(hdr2+19)))>>24));
       } // (8ULL) <= ((uint32_t)((4294967262) + ((uint16_t)(packet_length & 65535))))
     } // (17) != (*(hdr2+9))
   } else {

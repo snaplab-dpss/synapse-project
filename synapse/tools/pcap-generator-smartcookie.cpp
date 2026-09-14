@@ -25,13 +25,61 @@ using TrafficType = TrafficGenerator::TrafficType;
 //   unconfirmed - the client sends data the server never confirmed: bloom miss, cookie
 //                 verification fails, dropped
 // The server also sends a time-sync UDP datagram (port 5555) about once per second.
+//
+// A connected flow completes the handshake the way a real client does: a SYN, then an ACK
+// carrying the cookie the switch would have minted for that SYN, which the agent verifies and
+// admits. Without that ACK no capture ever exercises the accepted-cookie path, the verification
+// looks like pure overhead, and a profile built from the capture rewards handing the whole check
+// to the controller.
 
-constexpr u16 TIMESYNC_PORT              = 5555;
-constexpr time_ns_t TIMESYNC_PERIOD_NS   = 1'000'000'000;
-constexpr u8 TCP_SYN                     = 0x02;
-constexpr u8 TCP_ACK                     = 0x10;
-constexpr u8 TCP_ECE                     = 0x40;
-constexpr u8 TCP_DATA_OFFSET_NO_OPTIONS  = 5 << 4;
+constexpr u16 TIMESYNC_PORT             = 5555;
+constexpr time_ns_t TIMESYNC_PERIOD_NS  = 1'000'000'000;
+constexpr u8 TCP_SYN                    = 0x02;
+constexpr u8 TCP_ACK                    = 0x10;
+constexpr u8 TCP_ECE                    = 0x40;
+constexpr u8 TCP_DATA_OFFSET_NO_OPTIONS = 5 << 4;
+
+// The cookie, as dpdk-nfs/smartcookie computes it: HalfSipHash-2-4 over the flow and the client's
+// sequence number, xored with the current epoch. Kept here rather than included because the NF's
+// header is DPDK-flavoured; the constants, the key and the missing finalization step (the switch
+// agent omits v[2] ^= 0xff) all follow dpdk-nfs/smartcookie/halfsiphash.h, which is the source of
+// truth.
+constexpr u32 SIP_KEY_0 = 0x33323130;
+constexpr u32 SIP_KEY_1 = 0x42413938;
+
+static inline u32 rotl32(u32 x, unsigned n) { return n == 0 ? x : ((x << n) | (x >> (32 - n))); }
+
+static inline void sipround(u32 v[4]) {
+  v[0] += v[1];
+  v[2] += v[3];
+  v[1] = rotl32(v[1], 5);
+  v[3] = rotl32(v[3], 8);
+  v[1] ^= v[0];
+  v[3] ^= v[2];
+  v[0] = rotl32(v[0], 16);
+  v[2] += v[1];
+  v[0] += v[3];
+  v[1] = rotl32(v[1], 13);
+  v[3] = rotl32(v[3], 7);
+  v[1] ^= v[2];
+  v[3] ^= v[0];
+  v[2] = rotl32(v[2], 16);
+}
+
+static u32 halfsiphash(u32 w0, u32 w1, u32 w2, u32 w3) {
+  u32 v[4]       = {SIP_KEY_0 ^ 0x70736575u, SIP_KEY_1 ^ 0x6e646f6du, SIP_KEY_0 ^ 0x6e657261u, SIP_KEY_1 ^ 0x79746573u};
+  const u32 m[4] = {w0, w1, w2, w3};
+  for (int i = 0; i < 4; i++) {
+    v[3] ^= m[i];
+    sipround(v);
+    sipround(v);
+    v[0] ^= m[i];
+  }
+  for (int i = 0; i < 4; i++) {
+    sipround(v);
+  }
+  return v[0] ^ v[1] ^ v[2] ^ v[3];
+}
 
 enum class FlowClass { Attack, Connected, Unconfirmed };
 
@@ -39,7 +87,9 @@ struct sc_flow_t {
   flow_t flow;
   FlowClass cls;
   u32 isn;
-  bool confirmed;
+  bool confirmed;   // The server has tagged the flow with ECE, so the bloom filter holds it.
+  bool syn_sent;    // The client has opened with a SYN, so a cookie exists to return.
+  bool cookie_sent; // The client has returned that cookie and been admitted.
 };
 
 struct sc_config_t {
@@ -70,36 +120,49 @@ private:
     // The switch routes server->client traffic by the first octet of the client's IP (the
     // expert's naive_routing), so client IPs start with a client device number, as the
     // testbed assigns them.
-    flow_t flow                    = random_flow();
-    const device_t client_dev      = client_devs[rng() % client_devs.size()];
-    flow.five_tuple.src_ip         = (flow.five_tuple.src_ip & 0xffffff00) | client_dev;
+    flow_t flow               = random_flow();
+    const device_t client_dev = client_devs[rng() % client_devs.size()];
+    flow.five_tuple.src_ip    = (flow.five_tuple.src_ip & 0xffffff00) | client_dev;
 
-    return {flow, cls, static_cast<u32>(rng()), false};
+    return {flow, cls, static_cast<u32>(rng()), false, false, false};
   }
 
   // Writes a TCP header over the template's UDP header + payload bytes.
   pkt_t tcp_packet(const flow_t &flow, bool client_to_server, u32 seq, u32 ack, u8 flags) {
-    pkt_t pkt                  = template_packet;
-    pkt.ip_hdr.next_proto_id   = IPPROTO_TCP;
-    pkt.ip_hdr.src_addr        = client_to_server ? flow.five_tuple.src_ip : flow.five_tuple.dst_ip;
-    pkt.ip_hdr.dst_addr        = client_to_server ? flow.five_tuple.dst_ip : flow.five_tuple.src_ip;
-    tcp_hdr_t *tcp             = reinterpret_cast<tcp_hdr_t *>(&pkt.udp_hdr);
+    pkt_t pkt                = template_packet;
+    pkt.ip_hdr.next_proto_id = IPPROTO_TCP;
+    pkt.ip_hdr.src_addr      = client_to_server ? flow.five_tuple.src_ip : flow.five_tuple.dst_ip;
+    pkt.ip_hdr.dst_addr      = client_to_server ? flow.five_tuple.dst_ip : flow.five_tuple.src_ip;
+    tcp_hdr_t *tcp           = reinterpret_cast<tcp_hdr_t *>(&pkt.udp_hdr);
     std::memset(tcp, 0, sizeof(tcp_hdr_t));
-    tcp->src_port = client_to_server ? flow.five_tuple.src_port : flow.five_tuple.dst_port;
-    tcp->dst_port = client_to_server ? flow.five_tuple.dst_port : flow.five_tuple.src_port;
-    tcp->sent_seq = htonl(seq);
-    tcp->recv_ack = htonl(ack);
-    tcp->data_off = TCP_DATA_OFFSET_NO_OPTIONS;
+    tcp->src_port  = client_to_server ? flow.five_tuple.src_port : flow.five_tuple.dst_port;
+    tcp->dst_port  = client_to_server ? flow.five_tuple.dst_port : flow.five_tuple.src_port;
+    tcp->sent_seq  = htonl(seq);
+    tcp->recv_ack  = htonl(ack);
+    tcp->data_off  = TCP_DATA_OFFSET_NO_OPTIONS;
     tcp->tcp_flags = flags;
     tcp->rx_win    = htons(0xffff);
     return pkt;
   }
 
+  // The epoch the agent is in: (ticks(now) - delta) >> 12, with ticks of 2^16 ns. The time-sync
+  // datagrams below carry this generator's own clock, so the agent's delta settles at zero and
+  // the epoch is just the clock shifted. An epoch lasts 2^28 ns and the agent accepts the
+  // current one and the two before it, so a client answering within about a second is admitted.
+  u32 cookie_epoch() const { return static_cast<u32>(current_time >> 28); }
+
+  // What the agent's SYN-ACK would carry for this flow's SYN. The agent hashes the addresses,
+  // the ports and the sequence number in host order, so undo the header's byte order here.
+  u32 cookie_for(const flow_t &flow, u32 seq) const {
+    const u32 ports = (static_cast<u32>(ntohs(flow.five_tuple.src_port)) << 16) | ntohs(flow.five_tuple.dst_port);
+    return cookie_epoch() ^ halfsiphash(ntohl(flow.five_tuple.src_ip), ntohl(flow.five_tuple.dst_ip), ports, seq);
+  }
+
   pkt_t timesync_packet() {
-    pkt_t pkt                = template_packet;
-    pkt.udp_hdr.dst_port     = htons(TIMESYNC_PORT);
-    const u32 ticks          = static_cast<u32>(current_time >> 16);
-    const u32 ticks_be       = htonl(ticks);
+    pkt_t pkt            = template_packet;
+    pkt.udp_hdr.dst_port = htons(TIMESYNC_PORT);
+    const u32 ticks      = static_cast<u32>(current_time >> 16);
+    const u32 ticks_be   = htonl(ticks);
     std::memcpy(pkt.payload, &ticks_be, sizeof(ticks_be));
     return pkt;
   }
@@ -141,6 +204,13 @@ public:
       if (f.cls != FlowClass::Connected) {
         return {};
       }
+      if (!f.cookie_sent) {
+        // The server has not seen this flow yet: the switch only passes it on once the client
+        // has returned a valid cookie. Confirming earlier would put the flow in the bloom filter
+        // before its ACK arrives, and the ACK would take the bloom-hit path instead of the
+        // verification the capture is meant to exercise.
+        return {};
+      }
       if (!f.confirmed) {
         f.confirmed = true;
         return tcp_packet(f.flow, true, f.isn + 1, 0, TCP_ACK | TCP_ECE);
@@ -152,7 +222,20 @@ public:
     case FlowClass::Attack:
       return tcp_packet(f.flow, true, f.isn, 0, TCP_SYN);
     case FlowClass::Connected:
+      // The handshake a real client completes: the SYN the agent answers with a cookie, then the
+      // ACK returning it (ack = cookie + 1, seq = the SYN's + 1), which the agent verifies and
+      // passes to the server. Afterwards the flow is in the bloom filter and the data flows.
+      if (!f.syn_sent) {
+        f.syn_sent = true;
+        return tcp_packet(f.flow, true, f.isn, 0, TCP_SYN);
+      }
+      if (!f.cookie_sent) {
+        f.cookie_sent = true;
+        return tcp_packet(f.flow, true, f.isn + 1, cookie_for(f.flow, f.isn) + 1, TCP_ACK);
+      }
+      return tcp_packet(f.flow, true, f.isn + 1, static_cast<u32>(rng()), TCP_ACK);
     case FlowClass::Unconfirmed:
+      // A cookie that does not verify: the spoofed case the agent has to reject.
       return tcp_packet(f.flow, true, f.isn + 1, static_cast<u32>(rng()), TCP_ACK);
     }
 
