@@ -7809,13 +7809,17 @@ void TofinoSynthesizer::emit_shared_runs_after(const EPNode *join) {
   }
 }
 
+bool TofinoSynthesizer::compute_action_folded(const DS_ID &action) const {
+  const auto statements_it = action_statements.find(action);
+  return statements_it == action_statements.end() || statements_it->second.empty();
+}
+
 std::vector<code_t> TofinoSynthesizer::shared_run_calls(const shared_run_t &run) const {
   const TofinoContext *tofino_ctx = target_ep->get_ctx().get_target_ctx<TofinoContext>();
   std::vector<code_t> calls;
   for (const DS_ID &action : run.actions) {
-    const auto statements_it = action_statements.find(action);
-    if (statements_it == action_statements.end() || statements_it->second.empty()) {
-      continue; // Folded away: never declared (emit_compute_run).
+    if (compute_action_folded(action)) {
+      continue;
     }
     const std::vector<code_t> action_calls = compute_action_calls(tofino_ctx, action);
     calls.insert(calls.end(), action_calls.begin(), action_calls.end());
@@ -8505,7 +8509,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       // Another path's action, declared with that path (before or after this one: declarations
       // and the apply block are separate sections). Called here with the same spill into
       // one-@in_hash companions its declaration makes, derived from the action's ops.
-      if (!hoist) {
+      if (!hoist && !compute_action_folded(action_id)) {
         // The part of the action this run runs: its reused ops, by the ids the original path gave
         // them. The rest is the other path's, and does not run here.
         std::unordered_set<std::string> canonical;
