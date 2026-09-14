@@ -245,6 +245,26 @@ void Pipeline::place(const DS *ds, const std::unordered_set<DS_ID> &deps) {
   }
 }
 
+PlacementStatus Pipeline::delay(DS_ID action, const std::unordered_set<DS_ID> &extra_deps) {
+  std::vector<PlacementRequest> requests = *placement_requests;
+  auto request_it = std::find_if(requests.begin(), requests.end(), [&action](const PlacementRequest &request) { return request.ds == action; });
+  assert_or_panic(request_it != requests.end(), "Compute action %s is not placed", action.c_str());
+  if (std::all_of(extra_deps.begin(), extra_deps.end(), [&request_it](const DS_ID &dep) { return request_it->deps->contains(dep); })) {
+    return PlacementStatus::Success;
+  }
+  std::unordered_set<DS_ID> deps = *request_it->deps;
+  deps.insert(extra_deps.begin(), extra_deps.end());
+  request_it->deps = std::make_shared<const std::unordered_set<DS_ID>>(deps);
+
+  const PlacementResult result = SimplePlacer::replay_requests(*this, requests);
+  if (result.status != PlacementStatus::Success) {
+    return result.status;
+  }
+  resources.set(*result.resources);
+  placement_requests.set(requests);
+  return PlacementStatus::Success;
+}
+
 int Pipeline::find_stage_for_compute_action(const ComputeAction *action, const std::unordered_set<DS_ID> &deps) const {
   const int soonest_stage_id = get_soonest_stage_satisfying_all_dependencies(deps);
   if (soonest_stage_id < 0) {

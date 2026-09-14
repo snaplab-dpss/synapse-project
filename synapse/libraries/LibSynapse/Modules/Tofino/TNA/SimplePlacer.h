@@ -11,6 +11,11 @@ namespace Tofino {
 namespace SimplePlacer {
 
 PlacementResult find_placements(const Pipeline &pipeline, const DS *ds, const std::unordered_set<DS_ID> &deps);
+// Every request placed again, in order, from an empty pipeline. `requests` stands in for the
+// pipeline's own list: one of them may carry more dependencies than when it was placed (a
+// composite with primitives placed since, a shared action another path reached later), and
+// whatever depends on it follows it down.
+PlacementResult replay_requests(const Pipeline &pipeline, const std::vector<PlacementRequest> &requests);
 
 PlacementResult find_placements_table(const Pipeline &pipeline, const Table *table, const std::unordered_set<DS_ID> &deps);
 PlacementResult find_placements_reg(const Pipeline &pipeline, const Register *reg, const std::unordered_set<DS_ID> &deps);

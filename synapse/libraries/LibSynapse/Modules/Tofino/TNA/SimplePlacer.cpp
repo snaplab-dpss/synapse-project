@@ -66,16 +66,30 @@ PlacementResult concretize_placements(const Pipeline &pipeline, const PlacementR
   return resources;
 }
 
-PlacementResult clean_slate_placement(const Pipeline &pipeline, const DS *ds, const std::unordered_set<DS_ID> &deps) {
+PlacementResult replay_requests(const Pipeline &pipeline, const std::vector<PlacementRequest> &requests) {
   Pipeline clean_slate_pipeline(pipeline.properties, pipeline.data_structures);
 
-  for (const PlacementRequest &req : *pipeline.placement_requests) {
-    const DS *requested_ds = clean_slate_pipeline.data_structures.get_ds_from_id(req.ds);
-
-    std::unordered_set<DS_ID> req_deps = *req.deps;
-    if (requested_ds->id == ds->id) {
-      req_deps.insert(deps.begin(), deps.end());
+  // In dependency order, not request order: an op appended to an action later adds that op's
+  // dependencies to the action's request, and those may be requests made after it. Each round
+  // replays the first pending request whose dependencies are all placed; when none is, the first
+  // pending one goes anyway, and reports what it cannot satisfy.
+  std::vector<const PlacementRequest *> pending;
+  for (const PlacementRequest &req : requests) {
+    pending.push_back(&req);
+  }
+  while (!pending.empty()) {
+    auto ready_it = std::find_if(pending.begin(), pending.end(), [&clean_slate_pipeline](const PlacementRequest *req) {
+      return std::all_of(req->deps->begin(), req->deps->end(),
+                         [&clean_slate_pipeline](const DS_ID &dep) { return clean_slate_pipeline.already_placed(dep); });
+    });
+    if (ready_it == pending.end()) {
+      ready_it = pending.begin();
     }
+    const PlacementRequest &req = **ready_it;
+    pending.erase(ready_it);
+
+    const DS *requested_ds                   = clean_slate_pipeline.data_structures.get_ds_from_id(req.ds);
+    const std::unordered_set<DS_ID> req_deps = *req.deps;
 
     // Replay into the gress the request was placed in, and record it, so that the ordering rule
     // in get_soonest_stage_satisfying_all_dependencies can tell the two apart. Without the record
@@ -107,6 +121,18 @@ PlacementResult clean_slate_placement(const Pipeline &pipeline, const DS *ds, co
   }
 
   return *clean_slate_pipeline.resources;
+}
+
+PlacementResult clean_slate_placement(const Pipeline &pipeline, const DS *ds, const std::unordered_set<DS_ID> &deps) {
+  std::vector<PlacementRequest> requests = *pipeline.placement_requests;
+  for (PlacementRequest &req : requests) {
+    if (req.ds == ds->id) {
+      std::unordered_set<DS_ID> req_deps = *req.deps;
+      req_deps.insert(deps.begin(), deps.end());
+      req.deps = std::make_shared<const std::unordered_set<DS_ID>>(req_deps);
+    }
+  }
+  return replay_requests(pipeline, requests);
 }
 
 PlacementResult find_placements(const Pipeline &pipeline, const DS *ds, const std::unordered_set<DS_ID> &deps) {
