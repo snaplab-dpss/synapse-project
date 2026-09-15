@@ -2433,11 +2433,17 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
   // unified with another path's.
   const auto canonical = [&](const std::string &op_id) -> std::string {
     if (const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(op_id)) {
+      if (Walk::enabled() && reuse->op.id != op_id) {
+        std::cerr << "[canon] " << op_id << " -> " << reuse->op.id << " (a recorded reuse)\n";
+      }
       return reuse->op.id;
     }
     if (const std::optional<klee::ref<klee::Expr>> theirs = tofino_ctx->get_output_alias(op_id)) {
       const std::optional<std::string> producer = tofino_ctx->get_producer(*theirs);
       assert(producer && "An output alias to a symbol no op produces");
+      if (Walk::enabled() && *producer != op_id) {
+        std::cerr << "[canon] " << op_id << " -> " << *producer << " (an output alias)\n";
+      }
       return *producer;
     }
     return op_id;
