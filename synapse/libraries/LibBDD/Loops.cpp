@@ -9,6 +9,7 @@
 #include <numeric>
 #include <optional>
 #include <ostream>
+#include <queue>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -745,8 +746,8 @@ std::optional<loop_t> build_loop(const graph_t &graph, const matcher_t &matcher,
       }
     }
   }
-  loop.entry.assign(entry.begin(), entry.end());
-  std::sort(loop.entry.begin(), loop.entry.end());
+  loop.prefix.assign(entry.begin(), entry.end());
+  std::sort(loop.prefix.begin(), loop.prefix.end());
 
   // The body as the last iteration computes it: the one no folding touched.
   std::unordered_set<size_t> state;
@@ -793,6 +794,40 @@ std::optional<loop_t> build_loop(const graph_t &graph, const matcher_t &matcher,
             [](const loop_step_t &a, const loop_step_t &b) { return std::tie(a.after_iteration, a.node) < std::tie(b.after_iteration, b.node); });
 
   return loop;
+}
+
+// The first iterations symbolic execution left irregular -- body ops folded into constants, the
+// rest rearranged around them -- belong to the prefix, with the steps before the first full
+// iteration: the iterations proper start at the first one computing every body op.
+void move_irregular_iterations_to_prefix(loop_t &loop) {
+  size_t first_full = 0;
+  while (first_full < loop.iterations.size() && std::any_of(loop.iterations[first_full].begin(), loop.iterations[first_full].end(),
+                                                            [](const std::optional<bdd_node_id_t> &node) { return !node.has_value(); })) {
+    first_full++;
+  }
+  if (first_full == 0 || first_full == loop.iterations.size()) {
+    return;
+  }
+  for (size_t k = 0; k < first_full; k++) {
+    for (const std::optional<bdd_node_id_t> &node : loop.iterations[k]) {
+      if (node) {
+        loop.prefix.push_back(*node);
+      }
+    }
+  }
+  loop.iterations.erase(loop.iterations.begin(), loop.iterations.begin() + first_full);
+  std::vector<loop_step_t> steps;
+  for (loop_step_t step : loop.steps) {
+    if (step.after_iteration < first_full) {
+      loop.prefix.push_back(step.node);
+    } else {
+      step.after_iteration -= first_full;
+      steps.push_back(step);
+    }
+  }
+  loop.steps = std::move(steps);
+  std::sort(loop.prefix.begin(), loop.prefix.end());
+  loop.prefix.erase(std::unique(loop.prefix.begin(), loop.prefix.end()), loop.prefix.end());
 }
 
 size_t count_ops(const loop_t &loop) {
@@ -906,11 +941,229 @@ std::vector<loop_t> BDD::detect_loops(std::ostream *trace) const {
     }
 
     if (best) {
+      move_irregular_iterations_to_prefix(*best);
       loops.push_back(std::move(*best));
     }
   }
 
   return loops;
+}
+
+namespace {
+
+bool is_compute_call(const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Call) {
+    return false;
+  }
+  const call_t &call = dynamic_cast<const Call *>(node)->get_call();
+  return is_unrolled_op(call) || call.function_name == "rotate_left";
+}
+
+std::unordered_set<std::string> produced_names(const BDDNode *node) {
+  std::unordered_set<std::string> names;
+  if (node->get_type() == BDDNodeType::Call) {
+    for (const symbol_t &symbol : dynamic_cast<const Call *>(node)->get_local_symbols().get()) {
+      names.insert(symbol.name);
+    }
+  }
+  return names;
+}
+
+// The straight run of calls `node` belongs to: from the node after the closest branch above it
+// (or the root) down to the node before the next branch or route.
+std::vector<BDDNode *> straight_run(BDDNode *node) {
+  BDDNode *start = node;
+  while (start->get_mutable_prev() && start->get_mutable_prev()->get_type() == BDDNodeType::Call) {
+    start = start->get_mutable_prev();
+  }
+  std::vector<BDDNode *> run;
+  for (BDDNode *n = start; n && n->get_type() == BDDNodeType::Call; n = n->get_mutable_next()) {
+    run.push_back(n);
+  }
+  return run;
+}
+
+// Rearranges `span`, contiguous calls, into the order ready nodes are taken by (rank, position),
+// under data flow and the original order of the calls that are not computations; then relinks.
+void sort_span(BDD &bdd, const std::vector<BDDNode *> &span, const std::unordered_map<bdd_node_id_t, size_t> &ranks) {
+  const size_t n = span.size();
+  if (n < 2) {
+    return;
+  }
+
+  std::unordered_map<std::string, size_t> producer;
+  for (size_t i = 0; i < n; i++) {
+    for (const std::string &name : produced_names(span[i])) {
+      producer[name] = i;
+    }
+  }
+  std::vector<std::vector<size_t>> successors(n);
+  std::vector<size_t> n_predecessors(n, 0);
+  const auto add_edge = [&](size_t from, size_t to) {
+    successors[from].push_back(to);
+    n_predecessors[to]++;
+  };
+  std::vector<std::vector<size_t>> readers(n);
+  for (size_t i = 0; i < n; i++) {
+    std::unordered_set<size_t> from;
+    for (const symbol_t &symbol : span[i]->get_used_symbols().get()) {
+      auto found_it = producer.find(symbol.name);
+      if (found_it != producer.end() && found_it->second != i) {
+        from.insert(found_it->second);
+      }
+    }
+    for (size_t j : from) {
+      add_edge(j, i);
+      readers[j].push_back(i);
+    }
+  }
+  // Calls that are not computations may do more than return values: they keep their order.
+  std::optional<size_t> previous_call;
+  for (size_t i = 0; i < n; i++) {
+    if (!is_compute_call(span[i])) {
+      if (previous_call) {
+        add_edge(*previous_call, i);
+      }
+      previous_call = i;
+    }
+  }
+
+  // A node of no loop goes just before its first reader that has a rank; one read by none stays
+  // with the loop node it followed.
+  std::vector<size_t> rank(n, 0);
+  std::vector<bool> ranked(n, false);
+  for (size_t i = 0; i < n; i++) {
+    auto found_it = ranks.find(span[i]->get_id());
+    if (found_it != ranks.end()) {
+      rank[i]   = found_it->second;
+      ranked[i] = true;
+    }
+  }
+  std::vector<size_t> following(n, 0);
+  size_t last_rank = 0;
+  for (size_t i = 0; i < n; i++) {
+    last_rank    = ranked[i] ? rank[i] : last_rank;
+    following[i] = last_rank;
+  }
+  std::vector<bool> by_readers(n, false);
+  for (size_t i = n; i-- > 0;) {
+    if (ranked[i]) {
+      continue;
+    }
+    for (size_t r : readers[i]) {
+      if (ranked[r] || by_readers[r]) {
+        rank[i]       = by_readers[i] ? std::min(rank[i], rank[r]) : rank[r];
+        by_readers[i] = true;
+      }
+    }
+    if (!by_readers[i]) {
+      rank[i] = following[i];
+    }
+  }
+
+  using entry_t = std::pair<std::pair<size_t, size_t>, size_t>;
+  std::priority_queue<entry_t, std::vector<entry_t>, std::greater<entry_t>> ready;
+  for (size_t i = 0; i < n; i++) {
+    if (n_predecessors[i] == 0) {
+      ready.push({{rank[i], i}, i});
+    }
+  }
+  std::vector<BDDNode *> order;
+  while (!ready.empty()) {
+    const size_t i = ready.top().second;
+    ready.pop();
+    order.push_back(span[i]);
+    for (size_t s : successors[i]) {
+      if (--n_predecessors[s] == 0) {
+        ready.push({{rank[s], s}, s});
+      }
+    }
+  }
+  assert_or_panic(order.size() == n, "The nodes around a loop have a cyclic data flow");
+  if (order == span) {
+    return;
+  }
+
+  BDDNode *before = span.front()->get_mutable_prev();
+  BDDNode *after  = span.back()->get_mutable_next();
+  for (size_t i = 0; i < n; i++) {
+    order[i]->set_prev(i ? order[i - 1] : before);
+    order[i]->set_next(i + 1 < n ? order[i + 1] : after);
+  }
+  if (!before) {
+    bdd.set_root(order.front());
+  } else if (before->get_type() == BDDNodeType::Branch) {
+    Branch *branch = dynamic_cast<Branch *>(before);
+    if (branch->get_on_true() == span.front()) {
+      branch->set_on_true(order.front());
+    } else {
+      branch->set_on_false(order.front());
+    }
+  } else {
+    before->set_next(order.front());
+  }
+  if (after) {
+    after->set_prev(order.back());
+  }
+}
+
+} // namespace
+
+void BDD::group_loop_iterations(const std::vector<loop_t> &loops) {
+  // Looked up, not created: get_reordering_barrier_symbol() would add it to a BDD that has none.
+  const std::string barrier_name = "__BDD_REORDERING_BARRIER__";
+  const std::string barrier      = symbol_manager->has_symbol(barrier_name) ? barrier_name : "";
+
+  for (const loop_t &loop : loops) {
+    // The prefix ranks 0, iteration k 2k + 2, a step after it 2k + 3.
+    std::unordered_map<bdd_node_id_t, size_t> ranks;
+    for (bdd_node_id_t node : loop.prefix) {
+      ranks[node] = 0;
+    }
+    for (size_t k = 0; k < loop.iterations.size(); k++) {
+      for (const std::optional<bdd_node_id_t> &node : loop.iterations[k]) {
+        if (node) {
+          ranks[*node] = 2 * k + 2;
+        }
+      }
+    }
+    for (const loop_step_t &step : loop.steps) {
+      ranks[step.node] = 2 * step.after_iteration + 3;
+    }
+    std::unordered_set<bdd_node_id_t> touched;
+    for (const auto &[node, rank] : ranks) {
+      touched.insert(node);
+    }
+
+    // Each straight run holding nodes of the loop, from the first such node to the last, split
+    // where a node generates the reordering barrier.
+    std::unordered_set<bdd_node_id_t> done;
+    for (bdd_node_id_t touched_id : touched) {
+      if (done.contains(touched_id)) {
+        continue;
+      }
+      const std::vector<BDDNode *> run = straight_run(get_mutable_node_by_id(touched_id));
+      size_t first                     = run.size();
+      size_t last                      = 0;
+      for (size_t i = 0; i < run.size(); i++) {
+        if (touched.contains(run[i]->get_id())) {
+          done.insert(run[i]->get_id());
+          first = std::min(first, i);
+          last  = i;
+        }
+      }
+      std::vector<BDDNode *> span;
+      for (size_t i = first; i <= last; i++) {
+        if (produced_names(run[i]).contains(barrier)) {
+          sort_span(*this, span, ranks);
+          span.clear();
+          continue;
+        }
+        span.push_back(run[i]);
+      }
+      sort_span(*this, span, ranks);
+    }
+  }
 }
 
 } // namespace LibBDD

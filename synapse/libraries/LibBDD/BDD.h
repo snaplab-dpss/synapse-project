@@ -133,6 +133,14 @@ public:
   // the detection tried and why each attempt failed.
   std::vector<loop_t> detect_loops(std::ostream *trace = nullptr) const;
 
+  // Puts each loop's iterations one after the other: arithmetic unrolling places an operation
+  // before its first nested use, which is often a later iteration, so iterations interleave.
+  // Nodes move only within a straight run between branches, never across a branch or a node
+  // generating the reordering barrier symbol; the calls that are not computations keep their
+  // relative order; data flow is respected. Node ids are unchanged.
+  void group_loop_iterations(const std::vector<loop_t> &loops);
+  void group_loop_iterations() { group_loop_iterations(detect_loops()); }
+
   struct vector_values_t {
     klee::ref<klee::Expr> borrowed;
     klee::ref<klee::Expr> returned;

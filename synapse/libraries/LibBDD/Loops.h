@@ -18,8 +18,10 @@ namespace LibBDD {
 // Ops that change the state between two iterations without being part of the body (SipHash's
 // message words, mixed in between rounds) are steps, not body ops. An iteration symbolic
 // execution evaluated on constants lacks the ops it folded away; those are missing from that
-// iteration, the body still has them. What the first iteration reads that no iteration computes
-// -- values computed from constants and packet fields before the loop -- is its entry.
+// iteration, the body still has them. Where that leaves the first iterations irregular -- missing
+// body ops, and computing the rest in shapes the body does not have -- they are not iterations but
+// the loop's prefix, together with what the loop reads from before it: the iterations proper
+// start at the first one computing every body op.
 
 enum class LoopOperandKind {
   Body,    // A value the same iteration computed earlier: `index` is the body op computing it.
@@ -52,7 +54,9 @@ struct loop_t {
   // folded it away. An op a rotate holds inline has the rotate's node.
   std::vector<std::vector<std::optional<bdd_node_id_t>>> iterations;
   std::vector<loop_step_t> steps;
-  std::vector<bdd_node_id_t> entry; // Ops outside the loop whose values the first iteration reads.
+  // The ops of the irregular first iterations and of the steps around them, and the ops before
+  // the loop whose values those read: what computes the state the first iteration starts from.
+  std::vector<bdd_node_id_t> prefix;
 };
 
 } // namespace LibBDD

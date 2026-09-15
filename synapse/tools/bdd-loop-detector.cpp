@@ -111,8 +111,8 @@ int main(int argc, char **argv) {
       std::cout << "    after iteration " << step.after_iteration << ": node " << step.node << " changes b" << step.state << "\n";
     }
 
-    std::cout << "  entry:";
-    for (bdd_node_id_t node : loop.entry) {
+    std::cout << "  prefix:";
+    for (bdd_node_id_t node : loop.prefix) {
       std::cout << " " << node;
     }
     std::cout << "\n";
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
 
   if (!dot_file.empty()) {
     // Consecutive iterations alternate between two colours, so their boundary shows; steps and the
-    // entry have one colour each. A node carrying several body ops (a rotate and the operation it
+    // prefix have one colour each. A node carrying several body ops (a rotate and the operation it
     // holds inline) lists them all.
     const Color even_iteration(173, 216, 230);
     const Color odd_iteration(144, 238, 144);
@@ -146,9 +146,9 @@ int main(int argc, char **argv) {
         annotate(step.node,
                  "loop " + std::to_string(l) + " step after it " + std::to_string(step.after_iteration) + " into b" + std::to_string(step.state));
       }
-      for (bdd_node_id_t node : loop.entry) {
+      for (bdd_node_id_t node : loop.prefix) {
         opts.colors_per_node[node] = Color(Color::Literal::Yellow);
-        annotate(node, "loop " + std::to_string(l) + " entry");
+        annotate(node, "loop " + std::to_string(l) + " prefix");
       }
     }
     BDDViz::dump_to_file(&bdd, opts);
