@@ -8,6 +8,7 @@ u64 num_phase2_speculations = 0;
 
 u64 num_speculated_modules  = 0;
 u64 num_context_copies      = 0;
+u64 num_loop_detections     = 0;
 time_us_t total_time_phase1 = 0;
 time_us_t total_time_phase2 = 0;
 std::map<u64, u64> hot_nodes_speculated_to_controller;

@@ -59,4 +59,7 @@ struct loop_t {
   std::vector<bdd_node_id_t> prefix;
 };
 
+// Whether two loops repeat the same computation: the same body ops, operands and state.
+bool same_body(const loop_t &a, const loop_t &b);
+
 } // namespace LibBDD

@@ -125,7 +125,8 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
               << " recirculated, " << int2hr(GlobalStats::num_spec_compute_cap_declined)
               << " cap-declined; ops reused across paths: " << int2hr(GlobalStats::num_compute_ops_reused) << " ("
               << int2hr(GlobalStats::num_compute_ops_shape_shared)
-              << " by shape); deduped on their own path: " << int2hr(GlobalStats::num_compute_ops_deduped) << "\n";
+              << " by shape); deduped on their own path: " << int2hr(GlobalStats::num_compute_ops_deduped)
+              << "; loop detections: " << int2hr(GlobalStats::num_loop_detections) << "\n";
   }
   std::cerr << "Hot nodes -> ctrl:";
   for (const auto &[node_id, n] : GlobalStats::hot_nodes_speculated_to_controller) {

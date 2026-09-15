@@ -87,6 +87,22 @@ struct expiration_data_t {
   symbol_t number_of_freed_flows;
 };
 
+// Where a BDD node sits in the loops symbolic execution unrolled (LibBDD::BDD::detect_loops).
+enum class LoopNodeRole { Iteration, Step, Prefix };
+
+struct loop_node_t {
+  size_t loop; // Index into loops_t::loops.
+  LoopNodeRole role;
+  size_t iteration; // Iteration: its iteration; Step: the iteration it follows; Prefix: 0.
+  size_t body_op;   // Iteration: its body op; Step: the body op whose value it changes; Prefix: 0.
+};
+
+struct loops_t {
+  std::vector<LibBDD::loop_t> loops;
+  std::vector<size_t> body_of;                                       // By loop: the first loop with the same body (itself when none before it has).
+  std::unordered_map<bdd_node_id_t, std::vector<loop_node_t>> nodes; // A node may carry two body ops (a rotate and its inline operation).
+};
+
 class TargetContext {
 public:
   TargetContext() {}
@@ -129,6 +145,9 @@ private:
 
   LibCore::Cow<PerfOracle> perf_oracle;
   LibCore::Cow<State> state;
+  // The loops of the plan's BDD, empty once a reordering replaced it (invalidate_loops) until
+  // something asks for them again. Apart from State so marking them stale copies nothing else.
+  mutable LibCore::Cow<std::optional<loops_t>> loops;
 
   // The shared state: read-only from const members, detached on first write otherwise.
   const State &S() const { return *state; }
@@ -166,6 +185,12 @@ public:
   const std::vector<hit_rate_t> &get_failing_to_allocate_new_index_hit_rates(addr_t dchain) const;
   const std::optional<expiration_data_t> &get_expiration_data() const;
   const std::vector<expr_struct_t> &get_expr_structs() const;
+
+  // The loops of `bdd`, the BDD of the plan this context belongs to: detected when the context is
+  // built, and again the first time they are asked for after the plan's BDD was replaced.
+  const loops_t &get_loops(const BDD *bdd) const;
+  // The plan's BDD was replaced: nodes moved, some renamed, so the loops found are no longer known.
+  void invalidate_loops();
 
   template <class TCtx> const TCtx *get_target_ctx() const;
   template <class TCtx> const TCtx *get_target_ctx_if_available() const;

@@ -53,6 +53,9 @@ extern u64 num_compute_ops_shape_shared;
 // operand and the op node of the same expression, which the BDD unrolls separately) and became
 // that placement. Not in num_compute_ops_reused: nothing is shared between paths.
 extern u64 num_compute_ops_deduped;
+// Times loops were detected in a plan's BDD: once for the BDD the search starts from, and once more
+// for every plan whose BDD was replaced and that then asked for its loops.
+extern u64 num_loop_detections;
 
 extern time_us_t total_time_spent_speculating;
 extern time_us_t total_time_spent_generating_execution_plans;
