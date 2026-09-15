@@ -675,6 +675,18 @@ std::vector<compute_shape_match_t> TofinoContext::find_shape_matches(const compu
   return matches;
 }
 
+bool TofinoContext::can_alias_symbol(klee::ref<klee::Expr> symbol, const DS_ID &shared_action, const std::string &placing) const {
+  std::string name;
+  if (!LibCore::is_readLSB(symbol, name)) {
+    return true; // Not a named value: nothing is claimed about a field.
+  }
+  const std::optional<std::string> producer = get_producer(symbol);
+  if (!producer) {
+    return true;
+  }
+  return *producer == placing || find_compute_action(*producer) == shared_action;
+}
+
 void TofinoContext::alias_symbol(klee::ref<klee::Expr> symbol, klee::ref<klee::Expr> original_symbol) {
   std::string name;
   if (!LibCore::is_readLSB(symbol, name)) {
