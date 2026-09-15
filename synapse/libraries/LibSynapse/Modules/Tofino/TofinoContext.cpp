@@ -549,6 +549,56 @@ std::optional<std::string> TofinoContext::get_producer(klee::ref<klee::Expr> sym
   return found_it->second;
 }
 
+std::vector<compute_reuse_t> TofinoContext::find_loop_originals(const loop_key_t &key) const {
+  auto found_it = compute_reuse->by_loop_key.find(key);
+  if (found_it == compute_reuse->by_loop_key.end()) {
+    return {};
+  }
+  // As the registry knows them now: an op placed with no symbol of its own (a rotate's operand)
+  // gets one when an op node reuses it, and a later reuse must alias to that name.
+  std::vector<compute_reuse_t> originals = found_it->second;
+  for (compute_reuse_t &original : originals) {
+    if (auto key_it = compute_reuse->by_key.find(key_of(original.op));
+        key_it != compute_reuse->by_key.end() && key_it->second.action == original.action) {
+      original.op.out = key_it->second.op.out;
+    }
+  }
+  return originals;
+}
+
+void TofinoContext::register_loop_op(const loop_key_t &key, const compute_op_t &op, DS_ID action) {
+  compute_reuse.mutate().by_loop_key[key].push_back(compute_reuse_t{action, op, {}});
+}
+
+void TofinoContext::share_loop_field(klee::ref<klee::Expr> ours, klee::ref<klee::Expr> theirs) {
+  compute_reuse.mutate().loop_field_shares.emplace_back(ours, theirs);
+}
+
+std::optional<size_t> TofinoContext::get_loop_role(const std::string &symbol) const {
+  auto found_it = compute_reuse->loop_roles.find(symbol);
+  if (found_it == compute_reuse->loop_roles.end()) {
+    return {};
+  }
+  return found_it->second;
+}
+
+void TofinoContext::set_loop_role(const std::string &symbol, size_t role) { compute_reuse.mutate().loop_roles[symbol] = role; }
+
+void TofinoContext::mark_loop_action(DS_ID action, const loop_key_t &key) {
+  if (!compute_reuse->loop_actions.contains(action)) {
+    compute_reuse.mutate().loop_actions.insert({action, key});
+  }
+}
+
+bool TofinoContext::takes_loop_op(DS_ID action, const loop_key_t *key) const {
+  auto found_it = compute_reuse->loop_actions.find(action);
+  if (!key) {
+    return found_it == compute_reuse->loop_actions.end();
+  }
+  return found_it != compute_reuse->loop_actions.end() && found_it->second.body == key->body && found_it->second.egress == key->egress &&
+         found_it->second.offset == key->offset;
+}
+
 std::optional<klee::ref<klee::Expr>> TofinoContext::get_output_alias(const std::string &op_id) const {
   auto found_it = compute_reuse->output_aliases.find(op_id);
   if (found_it == compute_reuse->output_aliases.end()) {

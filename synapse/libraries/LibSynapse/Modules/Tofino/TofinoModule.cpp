@@ -14,6 +14,7 @@
 
 #include <unordered_set>
 #include <functional>
+#include <regex>
 #include <klee/util/ExprVisitor.h>
 
 namespace LibSynapse {
@@ -585,6 +586,229 @@ std::vector<DS_ID> TofinoModuleFactory::get_compute_run_actions(const EP *ep, co
   return actions;
 }
 
+namespace {
+
+// Where an op computing a body op of an unrolled loop's iteration sits (loop_key_t).
+struct loop_place_t {
+  loop_key_t key;
+  size_t loop;
+  size_t iteration;
+};
+
+// The iteration of `loop` a node computes, the latest of those it carries (a rotate holds an op
+// of its own iteration inline).
+std::optional<size_t> node_iteration(const loops_t &loops, bdd_node_id_t id, size_t loop) {
+  auto found_it = loops.nodes.find(id);
+  if (found_it == loops.nodes.end()) {
+    return {};
+  }
+  std::optional<size_t> iteration;
+  for (const loop_node_t &entry : found_it->second) {
+    if (entry.loop == loop && entry.role == LoopNodeRole::Iteration) {
+      iteration = std::max(iteration.value_or(0), entry.iteration);
+    }
+  }
+  return iteration;
+}
+
+// `op`, placed for `node` in the pass `ep`'s active leaf is in: the body op of an iteration, at
+// its position among the loop's iterations this pass has placed so far.
+std::optional<loop_place_t> find_loop_place(const EP *ep, const BDDNode *node, const compute_op_t &op, bool egress) {
+  const loops_t &loops = ep->get_ctx().get_loops(ep->get_bdd());
+  auto found_it        = loops.nodes.find(node->get_id());
+  if (found_it == loops.nodes.end()) {
+    return {};
+  }
+  std::optional<loop_node_t> own;
+  const auto pick = [&](const std::vector<loop_node_t> &entries) {
+    for (const loop_node_t &entry : entries) {
+      if (entry.role == LoopNodeRole::Iteration && loops.loops[entry.loop].body[entry.body_op].fn == op.fn &&
+          (!own || entry.iteration > own->iteration)) {
+        own = entry;
+      }
+    }
+  };
+  pick(found_it->second);
+  // An operation a rotate holds inline that an op node of its own also computes: that node's.
+  if (!own && op.args.size() == 1) {
+    if (const auto value_it = loops.values.find(LibCore::expr_to_string(op.args[0], true)); value_it != loops.values.end()) {
+      if (const auto entries_it = loops.nodes.find(value_it->second); entries_it != loops.nodes.end()) {
+        pick(entries_it->second);
+      }
+    }
+  }
+  if (!own) {
+    return {};
+  }
+  // The pass reaches back no further than the node's own iteration: an op of an earlier iteration a
+  // rotate holds inline is that iteration's value, computed with that iteration, not at this pass's key.
+  size_t first = node_iteration(loops, node->get_id(), own->loop).value_or(own->iteration);
+  for (const EPNode *ep_node = ep->get_leaf_ep_node_from_bdd_node(node); ep_node; ep_node = ep_node->get_prev()) {
+    const Module *module = ep_node->get_module();
+    if (!module) {
+      continue;
+    }
+    if (module->get_type() == ModuleType::Tofino_Recirculate || module->get_type() == ModuleType::Tofino_SendToEgress) {
+      break;
+    }
+    if (!module->get_node()) {
+      continue;
+    }
+    if (const std::optional<size_t> iteration = node_iteration(loops, module->get_node()->get_id(), own->loop)) {
+      first = std::min(first, *iteration);
+    }
+  }
+  if (own->iteration < first) {
+    return {}; // Computed in an earlier pass: the value is named there, not placed again at this pass's key.
+  }
+  return loop_place_t{{loops.body_of[own->loop], own->body_op, egress, own->iteration - first}, own->loop, own->iteration};
+}
+
+// A value an iteration of a loop with body `body` takes from the iteration before it: an
+// iteration's state op, a step, or the prefix. With the body op it stands for, when known: a
+// prefix value's only once a match lined it up with one (TofinoContext::set_loop_role).
+struct loop_state_value_t {
+  std::string symbol;
+  std::optional<size_t> role;
+};
+
+std::optional<loop_state_value_t> loop_state_value(const loops_t &loops, const BDD *bdd, const TofinoContext *ctx, size_t body,
+                                                   klee::ref<klee::Expr> expr) {
+  std::string name;
+  if (!LibCore::is_readLSB(expr, name)) {
+    return {};
+  }
+  auto producer_it = loops.producers.find(name);
+  if (producer_it == loops.producers.end()) {
+    return {};
+  }
+  const LibBDD::Call *call = dynamic_cast<const LibBDD::Call *>(bdd->get_node_by_id(producer_it->second));
+  for (const loop_node_t &entry : loops.nodes.at(producer_it->second)) {
+    if (loops.body_of[entry.loop] != body) {
+      continue;
+    }
+    const LibBDD::loop_t &loop = loops.loops[entry.loop];
+    switch (entry.role) {
+    case LoopNodeRole::Iteration:
+      // The node's own call, not an op it holds inline: that one has no symbol.
+      if (call && loop.body[entry.body_op].fn == call->get_call().function_name) {
+        return loop_state_value_t{name, entry.body_op};
+      }
+      break;
+    case LoopNodeRole::Step:
+      return loop_state_value_t{name, entry.body_op};
+    case LoopNodeRole::Prefix: {
+      const auto role_it = loops.roles.find(name);
+      return loop_state_value_t{name, role_it != loops.roles.end() ? std::optional<size_t>(role_it->second) : ctx->get_loop_role(name)};
+    }
+    }
+  }
+  return {};
+}
+
+struct loop_share_t {
+  loop_state_value_t ours;
+  loop_state_value_t theirs;
+  klee::ref<klee::Expr> ours_expr;
+  klee::ref<klee::Expr> theirs_expr;
+};
+
+// Whether `ours`, read by an iteration op, is what `theirs` is to the op placed at its key, but
+// for the values the two take from the iterations before them, which `shares` collects: those
+// must stand for the same body op, where that is known. A commutative op may hold its operands
+// in either order; when both orders line up and nothing tells them apart, there is no match.
+bool match_loop_operand(const loops_t &loops, const BDD *bdd, const TofinoContext *ctx, size_t body, klee::ref<klee::Expr> ours,
+                        klee::ref<klee::Expr> theirs, std::vector<loop_share_t> &shares) {
+  if (ours == theirs) {
+    return true;
+  }
+  // A rotate holds the op before it inline (the previous iteration's last op, a step): the value
+  // is the one that op's node computes, placed already, and read by its symbol.
+  const auto named = [&](klee::ref<klee::Expr> expr) -> klee::ref<klee::Expr> {
+    std::string symbol;
+    const std::optional<std::string> fn = LibBDD::unrolled_op_name(expr);
+    if (LibCore::is_readLSB(expr, symbol) || !fn) {
+      return expr;
+    }
+    const std::optional<compute_reuse_t> producer = ctx->find_reusable_compute_op(
+        compute_op_t{.id = "", .kind = ComputeOpKind::ALU, .width = expr->getWidth(), .fn = *fn, .args = {expr}, .out = nullptr, .in_hash = false});
+    return producer && !producer->op.out.isNull() ? ctx->canonical_value(producer->op.out) : expr;
+  };
+  if (klee::ref<klee::Expr> ours_named = named(ours), theirs_named = named(theirs); ours_named != ours || theirs_named != theirs) {
+    std::vector<loop_share_t> by_name = shares;
+    if (match_loop_operand(loops, bdd, ctx, body, ours_named, theirs_named, by_name)) {
+      shares = std::move(by_name);
+      return true;
+    }
+  }
+  const std::optional<loop_state_value_t> a = loop_state_value(loops, bdd, ctx, body, ours);
+  const std::optional<loop_state_value_t> b = loop_state_value(loops, bdd, ctx, body, theirs);
+  if (a || b) {
+    if (!a || !b || ours->getWidth() != theirs->getWidth() || (a->role && b->role && *a->role != *b->role)) {
+      return false;
+    }
+    shares.push_back({*a, *b, ours, theirs});
+    return true;
+  }
+  // A read of another symbol, or of a symbol as no loop value, is another value: the kids of a
+  // read are only its index.
+  if (ours->getKind() != theirs->getKind() || ours->getWidth() != theirs->getWidth() || ours->getNumKids() != theirs->getNumKids() ||
+      ours->getNumKids() == 0 || ours->getKind() == klee::Expr::Read) {
+    return false;
+  }
+  if (ours->getKind() == klee::Expr::Extract &&
+      static_cast<const klee::ExtractExpr *>(ours.get())->offset != static_cast<const klee::ExtractExpr *>(theirs.get())->offset) {
+    return false;
+  }
+  const auto match_kids = [&](bool swap, std::vector<loop_share_t> &into) {
+    for (unsigned i = 0; i < ours->getNumKids(); i++) {
+      if (!match_loop_operand(loops, bdd, ctx, body, ours->getKid(i), theirs->getKid(swap ? ours->getNumKids() - 1 - i : i), into)) {
+        return false;
+      }
+    }
+    return true;
+  };
+  std::vector<loop_share_t> in_order = shares;
+  const bool straight                = match_kids(false, in_order);
+  const bool commutative =
+      ours->getNumKids() == 2 && (ours->getKind() == klee::Expr::Add || ours->getKind() == klee::Expr::Xor || ours->getKind() == klee::Expr::And ||
+                                  ours->getKind() == klee::Expr::Or || ours->getKind() == klee::Expr::Mul);
+  std::vector<loop_share_t> swapped = shares;
+  const bool crossed                = commutative && match_kids(true, swapped);
+  if (straight && crossed) {
+    const auto unknown = [&](const std::vector<loop_share_t> &candidate) {
+      size_t n = 0;
+      for (size_t i = shares.size(); i < candidate.size(); i++) {
+        n += (!candidate[i].ours.role || !candidate[i].theirs.role) ? 1 : 0;
+      }
+      return n;
+    };
+    const auto same = [&]() {
+      if (in_order.size() != swapped.size()) {
+        return false;
+      }
+      for (size_t i = shares.size(); i < in_order.size(); i++) {
+        if (in_order[i].ours.symbol != swapped[i].ours.symbol || in_order[i].theirs.symbol != swapped[i].theirs.symbol) {
+          return false;
+        }
+      }
+      return true;
+    };
+    if (!same() && unknown(in_order) == unknown(swapped)) {
+      return false;
+    }
+    shares = unknown(in_order) <= unknown(swapped) ? in_order : swapped;
+    return true;
+  }
+  if (straight || crossed) {
+    shares = straight ? in_order : swapped;
+    return true;
+  }
+  return false;
+}
+
+} // namespace
+
 std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const compute_op_t &op, std::unordered_set<DS_ID> deps) {
   auto placed_it = placed_ops.find(op.id);
   if (placed_it != placed_ops.end()) {
@@ -618,6 +842,26 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   const auto same_path_of = [&](const compute_reuse_t &original) {
     return own_actions.contains(original.action) && !ctx->is_shared_compute_action(original.action);
   };
+  // On this very path the op names a value computed already, in whichever gress that was (a rotate
+  // past a cut holding the op before the cut inline); from another path it has to sit where this
+  // path's producers allow.
+  // Whether this path computed the action already, in any pass: a lap before this one included,
+  // since every value of the chain travels in the state header.
+  const auto computed_on_this_path = [&](const DS_ID &action) {
+    if (own_actions.contains(action)) {
+      return true;
+    }
+    for (const EPNode *ep_node = (ep && ep->has_active_leaf()) ? ep->get_active_leaf().node : nullptr; ep_node; ep_node = ep_node->get_prev()) {
+      const Module *module = ep_node->get_module();
+      if (module && is_compute_module(module) && dynamic_cast<const TofinoModule *>(module)->get_generated_ds().contains(action)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  // Only in this gress: an equal key is no equal value once loop iterations share fields (a later
+  // iteration's op reads the same canonical symbols as an earlier one's), so a value carried from
+  // the other gress is named by the BDD node computing it instead, before the registry is asked.
   const auto usable = [&](const compute_reuse_t &original) {
     const std::optional<Gress> gress = pipeline.get_placed_gress(original.action);
     const int stage                  = pipeline.get_placed_stage(original.action);
@@ -642,20 +886,166 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
     (same_path ? GlobalStats::num_compute_ops_deduped : GlobalStats::num_compute_ops_reused)++;
     return original.action;
   };
-  if (const std::optional<compute_reuse_t> original = ctx->find_reusable_compute_op(canonical)) {
+  // A loop op node this path placed already computes exactly this expression (a rotate past a cut
+  // holding the op before the cut inline): the BDD names the node, so the op is that node's value,
+  // whatever the registry's keys have become since it was placed.
+  if (ep && op.args.size() == 1) {
+    const loops_t &loops = ep->get_ctx().get_loops(ep->get_bdd());
+    const auto value_it  = loops.values.find(LibCore::expr_to_string(op.args[0], true));
+    if (value_it != loops.values.end() && value_it->second != node->get_id()) {
+      for (const EPNode *ep_node = ep->has_active_leaf() ? ep->get_active_leaf().node : nullptr; ep_node; ep_node = ep_node->get_prev()) {
+        const Module *module = ep_node->get_module();
+        if (!module || module->get_type() != ModuleType::Tofino_ArithmeticOp || !module->get_node() ||
+            module->get_node()->get_id() != value_it->second) {
+          continue;
+        }
+        const ArithmeticOp *producer            = dynamic_cast<const ArithmeticOp *>(module);
+        std::optional<compute_reuse_t> original = ctx->get_compute_reuse(producer->get_op_id());
+        if (!original) {
+          const ComputeAction *action = dynamic_cast<const ComputeAction *>(ctx->get_data_structures().get_ds_from_id(producer->get_action_id()));
+          for (const compute_op_t &placed : action ? action->ops : std::vector<compute_op_t>{}) {
+            if (placed.id == producer->get_op_id()) {
+              original = compute_reuse_t{producer->get_action_id(), placed, {}};
+            }
+          }
+        }
+        if (original) {
+          if (full_placer && Walk::enabled()) {
+            std::cerr << "[named] " << op.id << " is node " << value_it->second << "'s value: " << original->op.id << " in " << original->action
+                      << "\n";
+          }
+          ctx->reuse_compute_op(canonical, *original, /*same_path=*/true);
+          placed_ops.insert({op.id, original->action});
+          GlobalStats::num_compute_ops_deduped++;
+          return original->action;
+        }
+        break;
+      }
+    }
+  }
+
+  // An equal key is no equal value between two iterations of one loop: once they share fields, a
+  // later iteration's op reads the same canonical symbols as an earlier one's. Such a match is the
+  // loop's to make (below), as a call of the earlier iteration's action, never a naming of its value.
+  const auto loop_iterations_of = [&](const std::string &op_id) {
+    std::set<std::pair<size_t, size_t>> iterations; // (loop, iteration)
+    static const std::regex node_of(R"(_(\d+)(?:_[abx])?$)");
+    std::smatch m;
+    if (!ep || !std::regex_search(op_id, m, node_of)) {
+      return iterations;
+    }
+    const loops_t &loops = ep->get_ctx().get_loops(ep->get_bdd());
+    if (const auto entries_it = loops.nodes.find(std::stoull(m[1].str())); entries_it != loops.nodes.end()) {
+      for (const loop_node_t &entry : entries_it->second) {
+        if (entry.role == LoopNodeRole::Iteration) {
+          iterations.insert({entry.loop, entry.iteration});
+        }
+      }
+    }
+    return iterations;
+  };
+  const auto another_iteration = [&](const compute_reuse_t &original) {
+    const std::set<std::pair<size_t, size_t>> ours   = loop_iterations_of(op.id);
+    const std::set<std::pair<size_t, size_t>> theirs = loop_iterations_of(original.op.id);
+    bool same_loop                                   = false;
+    for (const auto &[loop, iteration] : ours) {
+      for (const auto &[their_loop, their_iteration] : theirs) {
+        if (loop == their_loop) {
+          same_loop = true;
+          if (iteration == their_iteration) {
+            return false;
+          }
+        }
+      }
+    }
+    return same_loop;
+  };
+  if (const std::optional<compute_reuse_t> original = ctx->find_reusable_compute_op(canonical); original && !another_iteration(*original)) {
     const int stage_before = pipeline.get_placed_stage(original->action);
-    const bool ok          = usable(*original) || movable(*original);
+    // Another path's action later than a fresh op of this path would sit: reusing it would start
+    // everything after this op later too (a pass's first ops waiting on another pass's last ones).
+    int fresh_stage = -1;
+    if (!same_path_of(*original) && !computed_on_this_path(original->action)) {
+      const ComputeAction probe("probe_" + op.id, node->get_id(), {canonical});
+      fresh_stage = pipeline.find_stage_for_compute_action(&probe, deps);
+    }
+    const bool later_than_fresh = fresh_stage >= 0 && fresh_stage < stage_before;
+    const bool ok               = !later_than_fresh && (usable(*original) || movable(*original));
     if (full_placer && Walk::enabled()) {
       std::cerr << "[reuse] " << op.id << " ~ " << original->op.id << " in " << original->action << "@" << stage_before
                 << (same_path_of(*original) ? " (own path)" : "") << ": soonest " << soonest << " -> "
-                << (ok ? (pipeline.get_placed_stage(original->action) == stage_before
-                              ? "reused"
-                              : "moved to " + std::to_string(pipeline.get_placed_stage(original->action)))
-                       : "declined (" + placement_status_to_string(move_status) + ")")
+                << (ok                 ? (pipeline.get_placed_stage(original->action) == stage_before
+                                              ? "reused"
+                                              : "moved to " + std::to_string(pipeline.get_placed_stage(original->action)))
+                    : later_than_fresh ? "declined (a fresh op fits at stage " + std::to_string(fresh_stage) + ")"
+                                       : "declined (" + placement_status_to_string(move_status) + ")")
                 << "\n";
     }
     if (ok) {
       return take(*original);
+    }
+  }
+
+  // An iteration of an unrolled loop where one placed in another pass, or in another loop with the
+  // same body, sits at the same key (loop_key_t): its action, when the operands line up.
+  const std::optional<loop_place_t> loop_place =
+      ep ? find_loop_place(ep, node, op, pipeline.get_gress() == Gress::Egress) : std::optional<loop_place_t>();
+  if (loop_place) {
+    const loops_t &loops = ep->get_ctx().get_loops(ep->get_bdd());
+    for (const compute_reuse_t &candidate : ctx->find_loop_originals(loop_place->key)) {
+      const compute_reuse_t *original = &candidate;
+      const compute_op_t theirs       = ctx->canonical_op(original->op);
+      std::vector<loop_share_t> shares;
+      bool lined_up = theirs.fn == canonical.fn && theirs.args.size() == canonical.args.size();
+      for (size_t i = 0; lined_up && i < canonical.args.size(); i++) {
+        lined_up = match_loop_operand(loops, ep->get_bdd(), ctx, loop_place->key.body, canonical.args[i], theirs.args[i], shares);
+      }
+      const std::optional<Gress> gress = pipeline.get_placed_gress(original->action);
+      const int stage_before           = pipeline.get_placed_stage(original->action);
+      bool ok                          = lined_up && gress && *gress == pipeline.get_gress() && soonest >= 0;
+      std::string reason               = !lined_up                        ? "operands differ"
+                                         : !gress                         ? "the original is not placed"
+                                         : *gress != pipeline.get_gress() ? "the original is in the other gress"
+                                         : soonest < 0                    ? "no stage satisfies the op's dependencies"
+                                                                          : "";
+      if (ok && stage_before < soonest) {
+        move_status = pipeline.delay(original->action, deps);
+        ok          = move_status == PlacementStatus::Success;
+        if (!ok) {
+          reason =
+              "the op is ready at stage " + std::to_string(soonest) + ", and moving the original there: " + placement_status_to_string(move_status);
+        }
+      }
+      if (full_placer && Walk::enabled()) {
+        std::cerr << "[loop-reuse] " << op.id << " (loop " << loop_place->loop << " iteration " << loop_place->iteration << ", body op "
+                  << loop_place->key.body_op << ", offset " << loop_place->key.offset << ") ~ " << original->op.id << " in " << original->action
+                  << "@" << stage_before << ": "
+                  << (ok ? "shared, " + std::to_string(shares.size()) + " field(s) shared" : "declined (" + reason + ")") << "\n";
+        if (!lined_up) {
+          for (size_t i = 0; i < canonical.args.size() && i < theirs.args.size(); i++) {
+            std::cerr << "  ours   " << LibCore::expr_to_string(canonical.args[i], true) << "\n";
+            std::cerr << "  theirs " << LibCore::expr_to_string(theirs.args[i], true) << "\n";
+          }
+        }
+      }
+      if (ok) {
+        for (const loop_share_t &share : shares) {
+          if (share.ours.symbol == share.theirs.symbol) {
+            continue;
+          }
+          if (share.ours.role && !share.theirs.role) {
+            ctx->set_loop_role(share.theirs.symbol, *share.ours.role);
+          } else if (share.theirs.role && !share.ours.role) {
+            ctx->set_loop_role(share.ours.symbol, *share.theirs.role);
+          }
+          ctx->share_loop_field(share.ours_expr, share.theirs_expr);
+        }
+        ctx->reuse_compute_op(canonical, *original, /*same_path=*/false);
+        placed_ops.insert({op.id, original->action});
+        GlobalStats::num_compute_ops_reused++;
+        GlobalStats::num_compute_ops_loop_shared++;
+        return original->action;
+      }
     }
   }
 
@@ -667,6 +1057,19 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
     if (full_placer && Walk::enabled()) {
       std::cerr << "[shape] " << op.id << " ~ " << match->original.op.id << (usable(match->original) ? " usable" : " not usable (gress/stage)")
                 << "\n";
+    }
+    // As for an exact match: another path's action later than a fresh op would sit starts this
+    // path's later ops late too.
+    int fresh_stage = -1;
+    if (!computed_on_this_path(match->original.action)) {
+      const ComputeAction probe("probe_" + op.id, node->get_id(), {canonical});
+      fresh_stage = pipeline.find_stage_for_compute_action(&probe, deps);
+    }
+    if (fresh_stage >= 0 && fresh_stage < pipeline.get_placed_stage(match->original.action)) {
+      if (full_placer && Walk::enabled()) {
+        std::cerr << "[shape] " << op.id << " ~ " << match->original.op.id << " declined (a fresh op fits at stage " << fresh_stage << ")\n";
+      }
+      continue;
     }
     if (usable(match->original)) {
       const int shared_stage = pipeline.get_placed_stage(match->original.action);
@@ -768,6 +1171,7 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
 
   std::vector<DS_ID> candidates(actions.rbegin(), actions.rend());
   candidates.insert(candidates.end(), run.begin(), run.end());
+  std::erase_if(candidates, [&](const DS_ID &candidate) { return !ctx->takes_loop_op(candidate, loop_place ? &loop_place->key : nullptr); });
 
   const DS_ID new_action_id                                  = "compute_" + op.id;
   const std::optional<TofinoContext::compute_op_plan_t> plan = ctx->plan_compute_op(candidates, new_action_id, op, deps);
@@ -777,6 +1181,10 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
     if (full_placer) {
       ctx->register_compute_op(canonical, plan->action_id,
                                pass_actions()); // Speculation only reads the registry: copying it per lookahead is what costs.
+    }
+    if (loop_place) {
+      ctx->register_loop_op(loop_place->key, canonical, plan->action_id);
+      ctx->mark_loop_action(plan->action_id, loop_place->key);
     }
     pipeline.charge_compute_op();
     push_unique(actions, plan->action_id);
@@ -805,6 +1213,10 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   ctx->place(node->get_id(), action, deps);
   if (full_placer) {
     ctx->register_compute_op(canonical, new_action_id, pass_actions());
+  }
+  if (loop_place) {
+    ctx->register_loop_op(loop_place->key, canonical, new_action_id);
+    ctx->mark_loop_action(new_action_id, loop_place->key);
   }
   pipeline.charge_compute_op();
   actions.push_back(new_action_id);
@@ -986,7 +1398,8 @@ TofinoModuleFactory::implement_compute_step(const EP *ep, const BDDNode *node, c
                              .actions      = {},
                              .placed_ops   = {},
                              .path_actions = path_compute_actions(ep, nullptr),
-                             .why          = {}};
+                             .why          = {},
+                             .ep           = ep};
   const std::optional<DS_ID> out = build(builder);
   if (!out) {
     if (why) {

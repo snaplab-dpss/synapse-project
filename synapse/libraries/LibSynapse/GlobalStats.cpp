@@ -35,6 +35,7 @@ u64 num_spec_compute_recirculated   = 0;
 u64 num_spec_compute_cap_declined   = 0;
 u64 num_compute_ops_reused          = 0;
 u64 num_compute_ops_shape_shared    = 0;
+u64 num_compute_ops_loop_shared     = 0;
 u64 num_compute_ops_deduped         = 0;
 u64 num_execution_plans_generated   = 0;
 
