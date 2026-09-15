@@ -3568,6 +3568,11 @@ void TofinoSynthesizer::synthesize() {
     code_template.get(MARKER_INGRESS_EGRESS_STATE_FIELD) << "  egress_state_h egress_state;\n";
     code_template.get(MARKER_EGRESS_EGRESS_STATE_FIELD) << "  egress_state_h egress_state;\n";
     code_template.get(MARKER_INGRESS_METADATA) << "  bit<1> to_egress;\n";
+    // Metadata is not zeroed on Tofino: without this a packet that never sets it can inherit a 1
+    // from an earlier one and run through an egress chain meant for another path.
+    coder_t &to_egress_init = code_template.get(MARKER_INGRESS_APPLY_START);
+    to_egress_init.indent();
+    to_egress_init << "meta.to_egress = 0;\n";
 
     coder_t &eg_parser = code_template.get(MARKER_EGRESS_PARSER_START);
     // The crossing always recirculates -- the egress cannot choose a port -- so the ingress runs
