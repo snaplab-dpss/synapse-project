@@ -7,6 +7,7 @@
 #include <LibBDD/Nodes/Nodes.h>
 #include <LibBDD/Nodes/NodeManager.h>
 #include <LibBDD/Config.h>
+#include <LibBDD/Loops.h>
 #include <LibBDD/Visitors/BDDVisualizer.h>
 
 namespace LibBDD {
@@ -127,6 +128,10 @@ public:
   bool is_map_get_and_branch_checking_success(const Call *map_get, const BDDNode *branch_checking_map_get_success,
                                               branch_direction_t &branch_direction) const;
   bool are_subtrees_equal(const BDDNode *n0, const BDDNode *n1) const;
+
+  // The loops symbolic execution unrolled into the compute nodes (see Loops.h). With `trace`, what
+  // the detection tried and why each attempt failed.
+  std::vector<loop_t> detect_loops(std::ostream *trace = nullptr) const;
 
   struct vector_values_t {
     klee::ref<klee::Expr> borrowed;
