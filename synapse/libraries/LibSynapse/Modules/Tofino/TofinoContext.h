@@ -154,7 +154,18 @@ public:
                                                         const std::unordered_set<DS_ID> &path_actions) const;
   std::optional<klee::ref<klee::Expr>> get_output_alias(const std::string &op_id) const;
   // `symbol` (ours) becomes another name for `original_symbol`'s field.
+  // Record that `symbol` and `original_symbol` name one value, and so one field. Only true when
+  // the op producing `symbol` really runs in `shared_action`: either it is `placing`, the op this
+  // share is about to put there, or it was shared into that action earlier. A match lines up the
+  // operands of the ops it matches as well as their results, and those operands belong to ops of
+  // their own, which this share does not move; claiming they share a field would leave the word
+  // assignment looking for a value in a field its path never writes.
   void alias_symbol(klee::ref<klee::Expr> symbol, klee::ref<klee::Expr> original_symbol);
+  // Whether that claim would be true: the op producing `symbol` has to run in `shared_action`,
+  // either because it is `placing`, the op this share is about to put there, or because an
+  // earlier share already moved it. A match lines up the operands of the ops it matches as well
+  // as their results, and an operand belongs to an op of its own which this share does not move.
+  bool can_alias_symbol(klee::ref<klee::Expr> symbol, const DS_ID &shared_action, const std::string &placing) const;
   // The placed op `op_id` reads `to` where it read `from`; its registry key follows.
   void rewrite_compute_op(const std::string &op_id, klee::ref<klee::Expr> from, klee::ref<klee::Expr> to);
   void add_compute_move(const compute_move_t &move);
