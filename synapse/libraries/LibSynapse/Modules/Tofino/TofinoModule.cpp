@@ -327,8 +327,16 @@ std::string to_string(klee::ref<klee::Expr> symbol) {
 // speculation placed so far: what an op on this path may not share by shape.
 std::unordered_set<DS_ID> path_compute_actions(const EP *ep, const speculations_t *speculations) {
   std::unordered_set<DS_ID> actions;
+  // This pass only. Two values of one pass cannot share a field, because both are live at once,
+  // which is what this set is for. A lap before this one is a different matter: the packet came
+  // back round, and what it computed then is gone unless it travels in the state header, so the
+  // same action can run again on this lap's values -- which is how the hand-written ground truth
+  // fits twelve rounds into two bodies.
   for (const EPNode *ep_node = ep->has_active_leaf() ? ep->get_active_leaf().node : nullptr; ep_node; ep_node = ep_node->get_prev()) {
     const Module *module = ep_node->get_module();
+    if (module && module->get_type() == ModuleType::Tofino_Recirculate) {
+      break;
+    }
     if (module && TofinoModuleFactory::is_compute_module(module)) {
       for (const DS_ID &id : dynamic_cast<const TofinoModule *>(module)->get_generated_ds()) {
         actions.insert(id);
