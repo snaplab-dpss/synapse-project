@@ -3,6 +3,7 @@
 #include <LibSynapse/Walk.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/Modules/Tofino/ParserCondition.h>
+#include <LibBDD/Unroll.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Expr.h>
 #include <LibCore/Debug.h>
@@ -563,8 +564,42 @@ loops_t build_loops(const BDD *bdd) {
     for (const LibBDD::loop_step_t &step : loop.steps) {
       result.nodes[step.node].push_back({l, LoopNodeRole::Step, step.after_iteration, step.state});
     }
+    for (const std::vector<std::optional<bdd_node_id_t>> &iteration : loop.iterations) {
+      for (size_t b = 0; b < iteration.size(); b++) {
+        const LibBDD::Call *call = iteration[b] ? dynamic_cast<const LibBDD::Call *>(bdd->get_node_by_id(*iteration[b])) : nullptr;
+        if (!call || call->get_call().function_name != loop.body[b].fn) {
+          continue; // Folded away, or held inline by a rotate.
+        }
+        const LibBDD::call_t &op = call->get_call();
+        std::vector<klee::ref<klee::Expr>> args;
+        if (op.function_name == "rotate_left") {
+          args.push_back(op.args.at("x").expr);
+        } else {
+          args.push_back(op.args.at("a").expr);
+          if (op.args.count("b")) {
+            args.push_back(op.args.at("b").expr);
+          }
+        }
+        for (size_t i = 0; i < args.size() && i < loop.body[b].operands.size(); i++) {
+          std::string symbol;
+          if (loop.body[b].operands[i].kind != LibBDD::LoopOperandKind::Outside && LibCore::is_readLSB(args[i], symbol)) {
+            result.roles.insert({symbol, loop.body[b].operands[i].index});
+          }
+        }
+      }
+    }
     for (bdd_node_id_t node : loop.prefix) {
       result.nodes[node].push_back({l, LoopNodeRole::Prefix, 0, 0});
+    }
+  }
+  for (const auto &[id, entries] : result.nodes) {
+    if (const LibBDD::Call *call = dynamic_cast<const LibBDD::Call *>(bdd->get_node_by_id(id))) {
+      for (const symbol_t &symbol : call->get_local_symbols().get()) {
+        result.producers.insert({symbol.name, id});
+      }
+      if (LibBDD::is_unrolled_op(call->get_call())) {
+        result.values.insert({LibCore::expr_to_string(LibBDD::unrolled_op_value(call->get_call()), true), id});
+      }
     }
   }
   if (Walk::enabled()) {

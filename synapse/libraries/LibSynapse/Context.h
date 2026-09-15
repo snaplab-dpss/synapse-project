@@ -101,6 +101,13 @@ struct loops_t {
   std::vector<LibBDD::loop_t> loops;
   std::vector<size_t> body_of;                                       // By loop: the first loop with the same body (itself when none before it has).
   std::unordered_map<bdd_node_id_t, std::vector<loop_node_t>> nodes; // A node may carry two body ops (a rotate and its inline operation).
+  std::unordered_map<std::string, bdd_node_id_t> producers;          // The symbol each node above produces -> that node.
+  // A value an iteration's op node reads by name -> the body op computing it, by the operand's
+  // place among the call's arguments: what a prefix value stands for.
+  std::unordered_map<std::string, size_t> roles;
+  // The value each op node above computes, as an expression string -> that node: a rotate holding
+  // the same operation inline computes that node's body op.
+  std::unordered_map<std::string, bdd_node_id_t> values;
 };
 
 class TargetContext {

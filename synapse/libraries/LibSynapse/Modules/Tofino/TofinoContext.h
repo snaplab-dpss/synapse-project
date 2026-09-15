@@ -52,7 +52,29 @@ struct compute_move_t {
   std::string anchor;         // The op whose path and run the move belongs to.
 };
 
+// An unrolled loop (Context::get_loops) computes the same body op in every iteration, on other
+// values each time: no two iterations share a key above. An iteration placed in a later pass, or
+// in another loop with the same body, runs where an earlier one ran instead, when both sit at the
+// same offset of their pass in the same gress: the op then reads the fields that iteration read.
+// The values the two read from the iteration before differ; each such pair of values is kept in
+// one field (plan_value_homes), so the action reads the right one whichever pass calls it.
+struct loop_key_t {
+  size_t body;    // The first loop with this body (loops_t::body_of).
+  size_t body_op; // The body op.
+  bool egress;
+  size_t offset; // The iteration's position among the loop's iterations in its pass.
+  bool operator<(const loop_key_t &other) const {
+    return std::tie(body, body_op, egress, offset) < std::tie(other.body, other.body_op, other.egress, other.offset);
+  }
+};
+
 struct compute_reuse_state_t {
+  std::map<loop_key_t, std::vector<compute_reuse_t>> by_loop_key;                         // Every iteration op placed at each key, the first first.
+  std::vector<std::pair<klee::ref<klee::Expr>, klee::ref<klee::Expr>>> loop_field_shares; // Values one field holds (loop_key_t).
+  std::unordered_map<std::string, size_t> loop_roles; // A loop state value -> the body op whose value it stands for.
+  // Actions holding iteration ops, with the key of the first (its body op aside): an action takes
+  // ops of one offset of one loop body only, so a later pass calls it whole.
+  std::unordered_map<DS_ID, loop_key_t> loop_actions;
   std::map<compute_key_t, compute_reuse_t> by_key;              // Every op placed, by what it computes.
   std::map<compute_key_t, std::vector<compute_key_t>> by_shape; // The keys of every op of a shape (plain values blanked).
   std::unordered_map<std::string, compute_reuse_t> reused;      // By the id of the op that reused it.
@@ -142,6 +164,21 @@ public:
   // ops to find.
   void register_compute_op(const compute_op_t &op, DS_ID action, const std::unordered_set<DS_ID> &pass_actions);
   std::optional<compute_reuse_t> get_compute_reuse(const std::string &op_id) const;
+  // Loop iterations sharing actions (loop_key_t).
+  // Every op placed at `key`, the first first.
+  std::vector<compute_reuse_t> find_loop_originals(const loop_key_t &key) const;
+  void register_loop_op(const loop_key_t &key, const compute_op_t &op, DS_ID action);
+  // `ours` and `theirs` are kept in one field.
+  void share_loop_field(klee::ref<klee::Expr> ours, klee::ref<klee::Expr> theirs);
+  const std::vector<std::pair<klee::ref<klee::Expr>, klee::ref<klee::Expr>>> &get_loop_field_shares() const {
+    return compute_reuse->loop_field_shares;
+  }
+  std::optional<size_t> get_loop_role(const std::string &symbol) const;
+  void set_loop_role(const std::string &symbol, size_t role);
+  // `action` holds an iteration op placed at `key`, unless it held one already.
+  void mark_loop_action(DS_ID action, const loop_key_t &key);
+  // Whether `action` may take an op at `key` (an iteration op), or an op of no loop (null).
+  bool takes_loop_op(DS_ID action, const loop_key_t *key) const;
   // Whether `op_id` reused an op of its own path (the value was computed there already).
   bool is_own_path_reuse(const std::string &op_id) const { return compute_reuse->own_path_reuses.contains(op_id); }
   bool is_shared_compute_action(DS_ID action) const { return compute_reuse->shared.contains(action); }
