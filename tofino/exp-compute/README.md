@@ -489,3 +489,12 @@ nodes on this plan), with a shift rotate's `or` written over its `shl` half and 
 over an operand that dies at it; the regenerated program then touches 12 words in the ingress and
 10 in the egress; with the pairs right but 14 egress words (regen 19 of the walk) bf-p4c's
 failure had already narrowed from both gresses to the egress alone.
+
+## Separate ifs on one field versus an if / else-if chain (`mx_else.p4`, `mx_sep.p4`)
+
+Does bf-p4c treat `if (x == 80) { A } if (x == 81) { B }` as mutually exclusive, the way it treats
+`if (x == 80) { A } else if (x == 81) { B }`? Each branch runs a chain of twelve dependent ALU ops
+writing the same thirteen fields. Yes: the else-if chain takes 13 ingress stages, the separate ifs
+14 -- one stage for the second gateway, not a second chain. So a merged ladder arm may guard each
+block's code with its own `if` on the code path. What costs stages there is where each branch
+starts (see above): code emitted after another branch's later tables cannot use earlier stages.
