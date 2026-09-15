@@ -289,6 +289,12 @@ private:
     const EPNode *join = nullptr;             // Ingress: the If whose closing brace the calls follow.
     code_t flag;                              // Ingress: the metadata flag every site sets.
     std::vector<const EPNode *> egress_cuts;  // Egress: the crossings whose blocks merge.
+    // Ingress, sites in several passes (a loop's iterations, loop_key_t): the calls follow the
+    // passes' whole if / else chain, under the flag.
+    bool after_passes = false;
+    // Egress, blocks calling different parts of the run: by action, the crossings of the blocks
+    // calling it (every block when absent).
+    std::unordered_map<DS_ID, std::vector<const EPNode *>> callers;
   };
   std::vector<shared_run_t> shared_runs;
   std::unordered_map<const EPNode *, std::vector<size_t>> shared_runs_by_site;
@@ -310,6 +316,9 @@ private:
   std::unordered_map<DS_ID, std::unordered_map<std::string, action_statement_t>> action_statements; // Action -> op -> its statement.
   std::unordered_map<DS_ID, bool> action_in_egress;                                                 // Action -> the control declaring it.
   std::unordered_map<DS_ID, std::vector<std::vector<std::string>>> action_variants;                 // Action -> the parts called, in order.
+  // Actions called before their declaring path was emitted: whether they fold away is only known
+  // once every path is, so their calls go out and the folded ones are dropped at the end.
+  std::unordered_set<DS_ID> calls_before_declaration;
   std::unordered_map<bdd_node_id_t, Stack> parser_vars;
   // One coder per recirculation pass, assembled into an if / else-if chain at the end of
   // synthesis. A deque, not a vector: coder_t's copy constructor does not carry the stream
