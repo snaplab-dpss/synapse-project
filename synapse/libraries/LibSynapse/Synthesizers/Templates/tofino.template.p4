@@ -307,7 +307,7 @@ control Ingress(
     } else {
 /*@{INGRESS_CONTROL_APPLY}@*/
     }
-
+/*@{INGRESS_APPLY_AFTER_PASSES}@*/
     forwarding_tbl.apply();
 /*@{INGRESS_LEAVE}@*/
 /*@{INGRESS_EGRESS_DECISION}@*/

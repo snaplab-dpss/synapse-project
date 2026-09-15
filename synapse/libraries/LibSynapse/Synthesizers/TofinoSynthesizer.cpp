@@ -145,6 +145,7 @@ constexpr const char *const MARKER_PARSE_RECIRC                 = "PARSE_RECIRC"
 constexpr const char *const MARKER_PARSE_CPU                    = "PARSE_CPU";
 constexpr const char *const MARKER_INGRESS_APPLY_START          = "INGRESS_APPLY_START";
 constexpr const char *const MARKER_INGRESS_LEAVE                = "INGRESS_LEAVE";
+constexpr const char *const MARKER_INGRESS_APPLY_AFTER_PASSES   = "INGRESS_APPLY_AFTER_PASSES";
 
 constexpr const char *const MARKER_CUCKOO_IDX_WIDTH       = "CUCKOO_IDX_WIDTH";
 constexpr const char *const MARKER_CUCKOO_ENTRIES         = "CUCKOO_ENTRIES";
@@ -2354,6 +2355,7 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_PARSE_CPU, 2},
                                              {MARKER_INGRESS_APPLY_START, 2},
                                              {MARKER_INGRESS_LEAVE, 2},
+                                             {MARKER_INGRESS_APPLY_AFTER_PASSES, 2},
                                          }),
       target_ep(_ep), transpiler(this) {}
 
@@ -2583,6 +2585,11 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
     };
     const auto temporaries = [&](const std::vector<TofinoModuleFactory::compute_operand_t> &operands) {
       for (const TofinoModuleFactory::compute_operand_t &operand : operands) {
+        // An operand naming a value its path computed already (a rotate past a cut holding the op
+        // before it inline) computes nothing: its reader reads that value, which lives to the read.
+        if (tofino_ctx->is_own_path_reuse(operand.op_id)) {
+          continue;
+        }
         const std::string id = canonical(operand.op_id);
         defs.push_back({id, "", nullptr, operand.expr->getWidth(), false,
                         in_hash_op(id) ? std::vector<source_t>{} : alu_sources(operands, tofino_ctx->apply_rewrites(operand.op_id, operand.expr)),
@@ -2694,7 +2701,259 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
     bool egress;                                           // Defined in the egress: the pairs of words it writes and reads are the egress's.
     std::vector<std::pair<std::string, unsigned>> sources; // The values an ALU op reads to write this one (canonical op id, rotation).
     bool read_elsewhere = false;                           // A table, a gateway or a hand-off reads it too: no op writes over it in its last stage.
+    int pass            = 0;                               // The pass defining it.
   };
+
+  // The values a loop's iterations keep in one field (loop_key_t), by the ops producing them: one
+  // slot for all of them. A field is named by its root op.
+  std::unordered_map<std::string, std::string> field_parent;
+  const std::function<std::string(const std::string &)> field_root = [&](const std::string &op_id) -> std::string {
+    auto parent_it = field_parent.find(op_id);
+    if (parent_it == field_parent.end() || parent_it->second == op_id) {
+      return op_id;
+    }
+    const std::string root = field_root(parent_it->second);
+    field_parent[op_id]    = root;
+    return root;
+  };
+  std::unordered_map<std::string, std::vector<std::string>> field_members; // By root.
+  {
+    const auto producer_of = [&](klee::ref<klee::Expr> value) -> std::optional<std::string> {
+      const std::optional<std::string> producer = tofino_ctx->get_producer(tofino_ctx->canonical_value(value));
+      if (!producer) {
+        std::cerr << "[homes] a value kept in a loop's shared field has no producer: " << expr_to_string(value, true) << "\n";
+        return {};
+      }
+      return canonical(*producer);
+    };
+    for (const auto &[ours, theirs] : tofino_ctx->get_loop_field_shares()) {
+      const std::optional<std::string> a = producer_of(ours);
+      const std::optional<std::string> b = producer_of(theirs);
+      if (!a || !b) {
+        continue;
+      }
+      field_parent.try_emplace(*a, *a);
+      field_parent.try_emplace(*b, *b);
+      const std::string root_a = field_root(*a);
+      const std::string root_b = field_root(*b);
+      if (root_a != root_b) {
+        field_parent[root_a] = root_b;
+      }
+    }
+    // Words by role: every iteration of a loop keeps its values in the same words, as the ground
+    // truth's SipRound keeps v0..v3 in four home words and its intermediates in four scratch ones.
+    // A body op's word is a color of the body's values by live range within an iteration -- a state
+    // value lives into the next iteration, up to its last read there -- so no two values sharing a
+    // word are live at once in any iteration. A step writes the word of the state it changes; the
+    // prefix leaves each state value in the word of its role.
+    const loops_t &loops    = ep->get_ctx().get_loops(ep->get_bdd());
+    const auto unite_fields = [&](const std::string &a, const std::string &b) {
+      field_parent.try_emplace(a, a);
+      field_parent.try_emplace(b, b);
+      const std::string root_a = field_root(a);
+      const std::string root_b = field_root(b);
+      if (root_a != root_b) {
+        field_parent[root_a] = root_b;
+      }
+    };
+    std::map<std::pair<size_t, size_t>, std::string> role_word_op; // (body, color) -> an op of that word.
+    const auto join_role = [&](size_t body, size_t color, const std::string &op_id) {
+      const std::string id                = canonical(op_id);
+      const auto [role_it, first_of_word] = role_word_op.try_emplace({body, color}, id);
+      if (!first_of_word) {
+        unite_fields(role_it->second, id);
+      }
+    };
+    // Live ranges are the plan's: an op's value is written at its action's stage in its pass and
+    // read at its readers' (the same iteration's, or the next one's for a state value). Ops
+    // consecutive in the body often share a stage, so the body's order alone would put a value in
+    // the word its reader has not read yet.
+    constexpr int ROLE_STRIDE = 64;
+    std::unordered_map<bdd_node_id_t, int> node_pass; // A crossing or a recirculation starts the next pass; the cut's node is the far side's.
+    const std::function<void(const EPNode *, int)> number_passes = [&](const EPNode *ep_node, int pass) {
+      const Module *module = ep_node->get_module();
+      const bool cut = module && (module->get_type() == ModuleType::Tofino_Recirculate || module->get_type() == ModuleType::Tofino_SendToEgress);
+      if (module && module->get_node() && !cut) {
+        node_pass.try_emplace(module->get_node()->get_id(), pass);
+      }
+      for (const EPNode *child : ep_node->get_children()) {
+        number_passes(child, cut ? pass + 1 : pass);
+      }
+    };
+    number_passes(ep->get_root(), 0);
+    std::unordered_map<std::string, DS_ID> action_of_op;
+    for (const auto &[id, ds] : tofino_ctx->get_data_structures().get_data_per_id()) {
+      if (const ComputeAction *action = dynamic_cast<const ComputeAction *>(ds)) {
+        for (const compute_op_t &placed : action->ops) {
+          action_of_op.try_emplace(placed.id, id);
+        }
+      }
+    }
+    // The time an iteration's body op is computed at, if the plan computes it.
+    const auto op_time = [&](const LibBDD::loop_t &loop, size_t b, bdd_node_id_t node) -> std::optional<int> {
+      const LibBDD::Call *call = dynamic_cast<const LibBDD::Call *>(ep->get_bdd()->get_node_by_id(node));
+      const auto pass_it       = node_pass.find(node);
+      if (!call || pass_it == node_pass.end()) {
+        return {};
+      }
+      const std::string fn    = call->get_call().function_name;
+      const std::string op_id = fn == loop.body[b].fn ? fn + "_" + std::to_string(node) : fn + "_" + std::to_string(node) + "_x";
+      std::optional<DS_ID> action;
+      if (const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(op_id)) {
+        action = reuse->action;
+      } else if (const auto action_it = action_of_op.find(op_id); action_it != action_of_op.end()) {
+        action = action_it->second;
+      }
+      const int stage = action ? pipeline.get_placed_stage(*action) : -1;
+      if (stage < 0) {
+        return {};
+      }
+      return pass_it->second * ROLE_STRIDE + stage;
+    };
+    // Two body ops conflict when a value of one is live while one of the other is, in any loop
+    // with that body (each loop on its own path). A word is free again only past its last read.
+    std::vector<std::set<std::pair<size_t, size_t>>> conflicts(loops.loops.size()); // By body.
+    for (size_t l = 0; l < loops.loops.size(); l++) {
+      const LibBDD::loop_t &loop = loops.loops[l];
+      const size_t n             = loop.body.size();
+      std::vector<std::vector<std::pair<int, int>>> live(n);
+      for (size_t k = 0; k < loop.iterations.size(); k++) {
+        for (size_t b = 0; b < n; b++) {
+          const std::optional<int> written = loop.iterations[k][b] ? op_time(loop, b, *loop.iterations[k][b]) : std::nullopt;
+          if (!written) {
+            continue;
+          }
+          int last_read = *written;
+          for (size_t j = 0; j < n; j++) {
+            for (const LibBDD::loop_operand_t &operand : loop.body[j].operands) {
+              if (operand.index != b) {
+                continue;
+              }
+              size_t reader_iteration = k;
+              switch (operand.kind) {
+              case LibBDD::LoopOperandKind::Body:
+                break;
+              case LibBDD::LoopOperandKind::State:
+                reader_iteration = k + 1;
+                break;
+              case LibBDD::LoopOperandKind::Outside:
+                continue;
+              }
+              if (reader_iteration >= loop.iterations.size() || !loop.iterations[reader_iteration][j]) {
+                continue;
+              }
+              if (const std::optional<int> read = op_time(loop, j, *loop.iterations[reader_iteration][j])) {
+                last_read = std::max(last_read, *read);
+              }
+            }
+          }
+          live[b].emplace_back(*written, last_read);
+        }
+      }
+      for (size_t i = 0; i < n; i++) {
+        for (size_t j = i + 1; j < n; j++) {
+          bool overlap = false;
+          for (const auto &[from_i, to_i] : live[i]) {
+            for (const auto &[from_j, to_j] : live[j]) {
+              overlap |= from_i <= to_j && from_j <= to_i;
+            }
+          }
+          if (overlap) {
+            conflicts[loops.body_of[l]].insert({i, j});
+          }
+        }
+      }
+    }
+    std::vector<std::vector<size_t>> colors(loops.loops.size());
+    for (size_t l = 0; l < loops.loops.size(); l++) {
+      if (loops.body_of[l] != l) {
+        continue;
+      }
+      const size_t n = loops.loops[l].body.size();
+      std::vector<size_t> degree(n, 0);
+      for (const auto &[i, j] : conflicts[l]) {
+        degree[i]++;
+        degree[j]++;
+      }
+      std::vector<size_t> order(n);
+      std::iota(order.begin(), order.end(), 0);
+      std::stable_sort(order.begin(), order.end(), [&](size_t a, size_t b) { return degree[a] > degree[b]; });
+      colors[l].assign(n, std::numeric_limits<size_t>::max());
+      for (const size_t i : order) {
+        std::set<size_t> taken;
+        for (const auto &[a, b] : conflicts[l]) {
+          if (a == i && colors[l][b] != std::numeric_limits<size_t>::max()) {
+            taken.insert(colors[l][b]);
+          } else if (b == i && colors[l][a] != std::numeric_limits<size_t>::max()) {
+            taken.insert(colors[l][a]);
+          }
+        }
+        size_t color = 0;
+        while (taken.contains(color)) {
+          color++;
+        }
+        colors[l][i] = color;
+      }
+      if (Walk::enabled()) {
+        std::cerr << "[homes] loop " << l << " body words by op (" << conflicts[l].size() << " conflicts):";
+        for (size_t i = 0; i < n; i++) {
+          std::cerr << " b" << i << "->w" << colors[l][i];
+        }
+        std::cerr << "\n";
+      }
+    }
+    for (size_t l = 0; l < loops.loops.size(); l++) {
+      const LibBDD::loop_t &loop       = loops.loops[l];
+      const size_t body                = loops.body_of[l];
+      const std::vector<size_t> &color = colors[body];
+      for (const std::vector<std::optional<bdd_node_id_t>> &iteration : loop.iterations) {
+        for (size_t b = 0; b < iteration.size(); b++) {
+          const LibBDD::Call *call = iteration[b] ? dynamic_cast<const LibBDD::Call *>(ep->get_bdd()->get_node_by_id(*iteration[b])) : nullptr;
+          if (!call) {
+            continue;
+          }
+          const std::string node_id = std::to_string(*iteration[b]);
+          const std::string fn      = call->get_call().function_name;
+          // The node's own call, or an op a rotate holds inline (the rotate's operand op).
+          join_role(body, color[b], fn == loop.body[b].fn ? fn + "_" + node_id : fn + "_" + node_id + "_x");
+        }
+      }
+      for (const LibBDD::loop_step_t &step : loop.steps) {
+        if (const LibBDD::Call *call = dynamic_cast<const LibBDD::Call *>(ep->get_bdd()->get_node_by_id(step.node))) {
+          join_role(body, color[step.state], call->get_call().function_name + "_" + std::to_string(step.node));
+        }
+      }
+      for (const bdd_node_id_t node : loop.prefix) {
+        const LibBDD::Call *call = dynamic_cast<const LibBDD::Call *>(ep->get_bdd()->get_node_by_id(node));
+        if (!call) {
+          continue;
+        }
+        for (const symbol_t &symbol : call->get_local_symbols().get()) {
+          const auto role_it = loops.roles.find(symbol.name);
+          if (role_it != loops.roles.end() && std::find(loop.state.begin(), loop.state.end(), role_it->second) != loop.state.end()) {
+            join_role(body, color[role_it->second], call->get_call().function_name + "_" + std::to_string(node));
+          }
+        }
+      }
+    }
+    std::vector<std::string> ids;
+    for (const auto &[op_id, parent] : field_parent) {
+      ids.push_back(op_id);
+    }
+    std::sort(ids.begin(), ids.end());
+    for (const std::string &op_id : ids) {
+      field_members[field_root(op_id)].push_back(op_id);
+    }
+    if (Walk::enabled()) {
+      for (const auto &[root, members] : field_members) {
+        std::cerr << "[homes] one field for";
+        for (const std::string &op_id : members) {
+          std::cerr << " " << op_id;
+        }
+        std::cerr << "\n";
+      }
+    }
+  }
 
   // Slot allocation for one path: linear scan by definition time, in the pool of the value's
   // width, around the slots an earlier path fixed and the ones shared actions write on this
@@ -2918,6 +3177,9 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       std::string op_id;
       std::vector<std::tuple<bool, code_t, code_t>> new_rotations;
       std::vector<std::pair<bool, code_t>> new_words;
+      bool extra    = false; // Another range of a unit on the slot its first value took: kept with the fixed ones.
+      bool absent   = false; // A value of the unit on no value of this path: only its slot is recorded.
+      bool inserted = true;  // Its op had no slot yet (a second instance of an op shares the first's).
     };
     const auto touched_words = [&](const value_t &value, const code_t &name) {
       std::vector<code_t> names{name};
@@ -2929,17 +3191,22 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       }
       return names;
     };
-    const auto take = [&](const value_t &value, const candidate_t &c) -> undo_t {
-      undo_t undo{value.def.width, c.index, c.fresh, 0, value.def.op_id, {}, {}};
-      if (c.fresh) {
+    const auto take = [&](const value_t &value, const candidate_t &c, bool extra = false) -> undo_t {
+      undo_t undo{value.def.width, c.index, c.fresh && !extra, 0, value.def.op_id, {}, {}};
+      undo.extra = extra;
+      if (undo.fresh) {
         state_slots_used[undo.width]++;
         pools[undo.width].push_back(slot_t{c.index, -1, {}});
       }
-      slot_t &slot      = entry_of(undo.width, c.index);
-      undo.old_busy     = slot.busy_until;
-      slot.busy_until   = value.to;
+      slot_t &slot  = entry_of(undo.width, c.index);
+      undo.old_busy = slot.busy_until;
+      if (extra) {
+        slot.fixed.emplace_back(value.from, value.to);
+      } else {
+        slot.busy_until = value.to;
+      }
       const code_t name = slot_name(undo.width, c.index);
-      slot_fields.insert({undo.op_id, var_t(name, value.def.out, undo.width, false, true, false)});
+      undo.inserted     = slot_fields.insert({undo.op_id, var_t(name, value.def.out, undo.width, false, true, false)}).second;
       for (const pair_t &pair : pairs_of(value)) {
         auto [it, inserted] = slot_rotations.emplace(pair_key(pair, name), pair.rotation);
         if (inserted) {
@@ -2960,8 +3227,17 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       for (const auto &key : undo.new_rotations) {
         slot_rotations.erase(key);
       }
-      slot_fields.erase(undo.op_id);
-      entry_of(undo.width, undo.index).busy_until = undo.old_busy;
+      if (undo.inserted) {
+        slot_fields.erase(undo.op_id);
+      }
+      if (undo.absent) {
+        return;
+      }
+      if (undo.extra) {
+        entry_of(undo.width, undo.index).fixed.pop_back();
+      } else {
+        entry_of(undo.width, undo.index).busy_until = undo.old_busy;
+      }
       if (undo.fresh) {
         pools[undo.width].pop_back();
         state_slots_used[undo.width]--;
@@ -2983,31 +3259,109 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
     // greedy choice alone leaves words behind that the pairs then keep others out of (measured on
     // the SmartCookie plan: 14 egress words greedily, 11 by search). Past the node limit the
     // greedy choice stands.
-    std::vector<size_t> todo;
-    for (size_t i = 0; i < values.size(); i++) {
-      if (!values[i].fixed) {
-        todo.push_back(i);
+    //
+    // It takes slots for units, in the order of their first values: a value alone, or every value
+    // of this path kept in one field (field_members) -- the instances of an op a loop's iterations
+    // define in several passes among them -- which take one slot together.
+    std::vector<std::vector<size_t>> units;
+    {
+      std::unordered_map<std::string, size_t> unit_of; // By field.
+      for (size_t i = 0; i < values.size(); i++) {
+        if (values[i].fixed) {
+          continue;
+        }
+        const auto [unit_it, inserted] = unit_of.try_emplace(field_root(values[i].def.op_id), units.size());
+        if (inserted) {
+          units.emplace_back();
+        }
+        units[unit_it->second].push_back(i);
       }
     }
+    for (const std::vector<size_t> &unit : units) {
+      int live_until = -1;
+      for (const size_t i : unit) {
+        if (live_until > values[i].from) {
+          std::cerr << "[homes] values kept in one field overlap: " << values[i].def.op_id << " from " << values[i].from << ", the field live until "
+                    << live_until << "\n";
+        }
+        live_until = std::max(live_until, values[i].to);
+      }
+    }
+    // The first value's candidates that the unit's other values fit too.
+    const auto unit_candidates = [&](const std::vector<size_t> &unit) {
+      const value_t &first = values[unit.front()];
+      std::vector<candidate_t> out;
+      for (const candidate_t &c : candidates(first, pairs_of(first))) {
+        bool fits = true;
+        for (size_t m = 1; fits && m < unit.size(); m++) {
+          const value_t &value = values[unit[m]];
+          fits                 = compatible(pairs_of(value), slot_name(value.def.width, c.index));
+          if (fits && !c.fresh) {
+            const slot_t &slot = entry_of(value.def.width, c.index);
+            fits               = slot.busy_until < value.from;
+            for (const auto &[from, to] : slot.fixed) {
+              fits &= to < value.from || value.to < from;
+            }
+          }
+        }
+        if (fits) {
+          out.push_back(c);
+        }
+      }
+      return out;
+    };
+    const auto take_unit = [&](const std::vector<size_t> &unit, const candidate_t &c) {
+      std::vector<undo_t> undos{take(values[unit.front()], c)};
+      for (size_t m = 1; m < unit.size(); m++) {
+        undos.push_back(take(values[unit[m]], c, /*extra=*/true));
+      }
+      // The field's values on other paths take the slot too, as fixed ones there.
+      const value_t &first  = values[unit.front()];
+      const auto members_it = field_members.find(field_root(first.def.op_id));
+      if (members_it != field_members.end()) {
+        for (const std::string &op_id : members_it->second) {
+          if (slot_fields.contains(op_id)) {
+            continue;
+          }
+          undo_t undo{first.def.width, c.index, false, 0, op_id, {}, {}};
+          undo.absent = true;
+          slot_fields.insert({op_id, var_t(slot_name(first.def.width, c.index), nullptr, first.def.width, false, true, false)});
+          undos.push_back(undo);
+        }
+      }
+      return undos;
+    };
+    const auto give_back_unit = [&](const std::vector<undo_t> &undos) {
+      for (auto undo_it = undos.rbegin(); undo_it != undos.rend(); ++undo_it) {
+        give_back(*undo_it);
+      }
+    };
+    const auto unit_over_budget = [&](const std::vector<size_t> &unit, const candidate_t &c) {
+      for (const size_t i : unit) {
+        if (over_budget(values[i], c)) {
+          return true;
+        }
+      }
+      return false;
+    };
     size_t nodes                       = 0;
     constexpr size_t NODE_LIMIT        = 200'000;
     std::function<bool(size_t)> search = [&](size_t k) -> bool {
-      if (k == todo.size()) {
+      if (k == units.size()) {
         return true;
       }
       if (++nodes > NODE_LIMIT) {
         return false;
       }
-      const value_t &value = values[todo[k]];
-      for (const candidate_t &c : candidates(value, pairs_of(value))) {
-        if (over_budget(value, c)) {
+      for (const candidate_t &c : unit_candidates(units[k])) {
+        if (unit_over_budget(units[k], c)) {
           continue;
         }
-        const undo_t undo = take(value, c);
+        const std::vector<undo_t> undos = take_unit(units[k], c);
         if (search(k + 1)) {
           return true;
         }
-        give_back(undo);
+        give_back_unit(undos);
         if (nodes > NODE_LIMIT) {
           return false;
         }
@@ -3018,9 +3372,12 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       if (Walk::enabled()) {
         std::cerr << "[homes] no assignment within " << WORD_BUDGET << " words per gress after " << nodes << " nodes; taking the greedy one\n";
       }
-      for (size_t k : todo) {
-        const value_t &value = values[k];
-        take(value, candidates(value, pairs_of(value)).front());
+      for (const std::vector<size_t> &unit : units) {
+        const std::vector<candidate_t> fitting = unit_candidates(unit);
+        if (fitting.empty()) {
+          std::cerr << "[homes] no slot takes every value kept in the field of " << values[unit.front()].def.op_id << "\n";
+        }
+        take_unit(unit, fitting.empty() ? candidate_t{state_slots_used[values[unit.front()].def.width], true} : fitting.front());
       }
     } else if (Walk::enabled()) {
       std::cerr << "[homes] assignment within " << WORD_BUDGET << " words per gress after " << nodes << " nodes\n";
@@ -3155,7 +3512,9 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       for (const def_t &def : defs) {
         const int time = time_of(def.op_id);
         auto index_it  = value_index.find(def.op_id);
-        if (index_it != value_index.end()) {
+        // Defined in an earlier pass: a loop's iteration running where an earlier one ran
+        // (loop_key_t) defines the value again, in a range of its own on the same slot.
+        if (index_it != value_index.end() && values[index_it->second].pass == pass) {
           // Defined already: a shared action holding several of this module's ops, or the op
           // node of an expression a rotate's operand computed first, which names that value.
           value_t &value = values[index_it->second];
@@ -3172,10 +3531,11 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
           }
           continue;
         }
-        value_index.insert({def.op_id, values.size()});
+        value_index[def.op_id] = values.size();
         values.push_back({def, time,
                           def.symbol.empty() ? std::max(time, read_within.count(def.op_id) ? read_within.at(def.op_id) : module_time) : time,
                           slot_fields.contains(def.op_id), egress_pass, resolve_sources(def)});
+        values.back().pass = pass;
         for (const auto &[source, rotation] : values.back().sources) {
           slot_readers[source].emplace_back(def.op_id, rotation, egress_pass);
         }
@@ -3314,6 +3674,33 @@ void TofinoSynthesizer::synthesize() {
   plan_shared_runs(target_ep);
   EPVisitor::visit(target_ep);
   emit_action_variants(target_ep->get_ctx().get_target_ctx<TofinoContext>());
+
+  // The runs every pass calls (plan_shared_runs), after the passes' whole if / else chain.
+  {
+    coder_t &after           = code_template.get(MARKER_INGRESS_APPLY_AFTER_PASSES);
+    const Pipeline &pipeline = target_ep->get_ctx().get_target_ctx<TofinoContext>()->get_tna().pipeline;
+    std::vector<size_t> runs;
+    for (size_t r = 0; r < shared_runs.size(); r++) {
+      if (shared_runs[r].after_passes) {
+        runs.push_back(r);
+      }
+    }
+    std::stable_sort(runs.begin(), runs.end(), [&](size_t a, size_t b) {
+      return pipeline.get_placed_stage(shared_runs[a].actions.front()) < pipeline.get_placed_stage(shared_runs[b].actions.front());
+    });
+    for (const size_t r : runs) {
+      after.indent();
+      after << "if (" << shared_runs[r].flag << " == 1) {\n";
+      after.inc();
+      for (const code_t &call : shared_run_calls(shared_runs[r])) {
+        after.indent();
+        after << call << "\n";
+      }
+      after.dec();
+      after.indent();
+      after << "}\n";
+    }
+  }
 
   // The recirculation passes are mutually exclusive: the code path is read from the header the
   // previous pass wrote and is never reassigned, so they belong in one if / else-if chain.
@@ -3502,24 +3889,172 @@ void TofinoSynthesizer::synthesize() {
         egress_apply << (i == 0 ? code_t("") : code_t(" || ")) << "hdr.egress_state.code_path == " << (i64)arms[i];
       }
       egress_apply << ") {\n";
-      first_arm           = false;
-      const code_t marker = "// @shared-run " + std::to_string(run_it->second);
-      std::vector<std::pair<code_t, code_t>> halves; // Each arm's block before and after the marker.
-      for (const code_path_t arm : arms) {
-        const code_t block = egress_coders[arm].dump();
-        const size_t at    = block.find(marker);
-        assert(at != code_t::npos && "A merged egress block without its shared run's marker");
-        const size_t line_end = block.find('\n', at);
-        halves.emplace_back(block.substr(0, block.rfind('\n', at) + 1), line_end == code_t::npos ? code_t("") : block.substr(line_end + 1));
+      first_arm = false;
+      if (run.callers.empty()) {
+        const code_t marker = "// @shared-run " + std::to_string(run_it->second);
+        std::vector<std::pair<code_t, code_t>> halves; // Each arm's block before and after the marker.
+        for (const code_path_t arm : arms) {
+          const code_t block = egress_coders[arm].dump();
+          const size_t at    = block.find(marker);
+          assert(at != code_t::npos && "A merged egress block without its shared run's marker");
+          const size_t line_end = block.find('\n', at);
+          halves.emplace_back(block.substr(0, block.rfind('\n', at) + 1), line_end == code_t::npos ? code_t("") : block.substr(line_end + 1));
+        }
+        for (size_t i = 0; i < arms.size(); i++) {
+          nest(arms[i], halves[i].first);
+        }
+        for (const code_t &call : shared_run_calls(run)) {
+          egress_apply << arm_indent << call << "\n";
+        }
+        for (size_t i = 0; i < arms.size(); i++) {
+          nest(arms[i], halves[i].second);
+        }
+        continue;
+      }
+      // Blocks calling different parts of the run, merged by stage: a branch shares stages only
+      // from where it starts (tofino/exp-compute/README.md), so each block is cut at its top-level
+      // compute calls, and its pieces and the run's calls go out in the order of the stages the
+      // plan placed them at. A piece's stage is its last call's; what follows a block's last call
+      // goes after every call of that stage.
+      const code_t prefix             = "// @shared-run " + std::to_string(run_it->second) + " @ ";
+      const TofinoContext *ladder_ctx = target_ep->get_ctx().get_target_ctx<TofinoContext>();
+      const Pipeline &ladder_pipeline = ladder_ctx->get_tna().pipeline;
+      static const std::regex call_line(R"(^\s*([A-Za-z_]\w*)\(\);\s*$)");
+      const auto stage_of_action = [&](const code_t &name) -> int {
+        int stage = ladder_pipeline.get_placed_stage(name);
+        if (const size_t variant = name.rfind("_v"); stage < 0 && variant != code_t::npos) {
+          stage = ladder_pipeline.get_placed_stage(name.substr(0, variant));
+        }
+        return stage;
+      };
+      struct piece_t {
+        int stage;
+        int rank; // 0: a block's piece up to a call; 1: a call of the run; 2: a block's code after its last call.
+        size_t order;
+        std::optional<size_t> arm;
+        code_t code;
+        DS_ID call;
+      };
+      std::vector<piece_t> pieces;
+      size_t order = 0;
+      // The action a top-level call runs, the call itself or one of its companions (_h1, _k); none
+      // for a variant (_v0), which runs a part of it.
+      static const std::regex companion(R"(^(.+)_(?:h\d+|k)$)");
+      const auto action_called = [&](const code_t &name) -> std::optional<DS_ID> {
+        if (ladder_pipeline.get_placed_stage(name) >= 0) {
+          return name;
+        }
+        if (std::smatch m; std::regex_match(name, m, companion) && ladder_pipeline.get_placed_stage(m[1].str()) >= 0) {
+          return m[1].str();
+        }
+        return std::nullopt;
+      };
+      // Actions the blocks call at their top level, by the blocks calling them.
+      std::map<DS_ID, std::set<code_path_t>> called_in_block;
+      for (size_t i = 0; i < arms.size(); i++) {
+        std::stringstream lines(egress_coders[arms[i]].dump());
+        int depth = 0;
+        for (code_t line; std::getline(lines, line);) {
+          if (std::smatch m; depth == 0 && std::regex_match(line, m, call_line)) {
+            if (const std::optional<DS_ID> action = action_called(m[1].str())) {
+              called_in_block[*action].insert(arms[i]);
+            }
+          }
+          for (const char c : line) {
+            depth += c == '{' ? 1 : (c == '}' ? -1 : 0);
+          }
+        }
+      }
+      // A block's call of an action the run calls, or that another block calls too (an op reusing
+      // it from another path of the pass): one call covers them all, guarded by their code paths,
+      // as a branch shares stages only from where it starts.
+      std::set<DS_ID> merged_calls(run.actions.begin(), run.actions.end());
+      for (const auto &[action, blocks] : called_in_block) {
+        if (blocks.size() > 1) {
+          merged_calls.insert(action);
+        }
       }
       for (size_t i = 0; i < arms.size(); i++) {
-        nest(arms[i], halves[i].first);
+        std::stringstream lines(egress_coders[arms[i]].dump());
+        code_t pending;
+        int depth        = 0;
+        int stage        = 0;
+        const auto flush = [&](int rank) {
+          if (!pending.empty()) {
+            pieces.push_back({stage, rank, order++, i, pending, ""});
+            pending.clear();
+          }
+        };
+        for (code_t line; std::getline(lines, line);) {
+          if (const size_t at = line.find(prefix); at != code_t::npos && depth == 0) {
+            stage = std::max(stage, stage_of_action(line.substr(at + prefix.size())));
+            flush(0);
+            continue;
+          }
+          if (std::smatch m; depth == 0 && std::regex_match(line, m, call_line)) {
+            if (const std::optional<DS_ID> action = action_called(m[1].str()); action && merged_calls.contains(*action)) {
+              stage = std::max(stage, stage_of_action(*action));
+              flush(0);
+              continue;
+            }
+          }
+          pending += line + "\n";
+          for (const char c : line) {
+            depth += c == '{' ? 1 : (c == '}' ? -1 : 0);
+          }
+          std::smatch m;
+          if (depth == 0 && std::regex_match(line, m, call_line)) {
+            if (const int call_stage = stage_of_action(m[1].str()); call_stage >= 0) {
+              stage = std::max(stage, call_stage);
+              flush(0);
+            }
+          }
+        }
+        flush(2);
       }
-      for (const code_t &call : shared_run_calls(run)) {
-        egress_apply << arm_indent << call << "\n";
+      for (const DS_ID &action : merged_calls) {
+        pieces.push_back({stage_of_action(action), 1, order++, std::nullopt, "", action});
       }
-      for (size_t i = 0; i < arms.size(); i++) {
-        nest(arms[i], halves[i].second);
+      std::stable_sort(pieces.begin(), pieces.end(),
+                       [](const piece_t &a, const piece_t &b) { return std::tie(a.stage, a.rank, a.order) < std::tie(b.stage, b.rank, b.order); });
+      // Each action once, under the code paths of the blocks calling it when not every block does.
+      for (size_t p = 0; p < pieces.size(); p++) {
+        if (pieces[p].arm) {
+          code_t code = pieces[p].code;
+          while (p + 1 < pieces.size() && pieces[p + 1].arm == pieces[p].arm) {
+            code += pieces[++p].code;
+          }
+          nest(arms[*pieces[p].arm], code);
+          continue;
+        }
+        const DS_ID &action = pieces[p].call;
+        if (compute_action_folded(action)) {
+          continue;
+        }
+        std::set<code_path_t> calling_paths;
+        if (const auto callers_it = run.callers.find(action); callers_it != run.callers.end()) {
+          for (const EPNode *cut : callers_it->second) {
+            calling_paths.insert(egress_code_path_of.at(cut));
+          }
+        }
+        if (const auto block_it = called_in_block.find(action); block_it != called_in_block.end()) {
+          calling_paths.insert(block_it->second.begin(), block_it->second.end());
+        }
+        const std::vector<code_path_t> calling(calling_paths.begin(), calling_paths.end());
+        const bool guarded = !calling.empty() && calling.size() < arms.size();
+        if (guarded) {
+          egress_apply << arm_indent << "if (";
+          for (size_t i = 0; i < calling.size(); i++) {
+            egress_apply << (i == 0 ? code_t("") : code_t(" || ")) << "hdr.egress_state.code_path == " << (i64)calling[i];
+          }
+          egress_apply << ") {\n";
+        }
+        for (const code_t &call : compute_action_calls(ladder_ctx, action)) {
+          egress_apply << arm_indent << (guarded ? "  " : "") << call << "\n";
+        }
+        if (guarded) {
+          egress_apply << arm_indent << "}\n";
+        }
       }
     }
     if (!egress_coders.empty()) {
@@ -3665,8 +4200,20 @@ void TofinoSynthesizer::synthesize() {
     target_ep->get_ctx().get_target_ctx<TofinoContext>()->get_tna().pipeline.dump_placements(std::cerr);
   }
 
+  std::vector<std::regex> folded_calls;
+  for (const DS_ID &action : calls_before_declaration) {
+    if (compute_action_folded(action)) {
+      folded_calls.emplace_back("^\\s*" + action + "(?:_h\\d+|_k|_v\\d+)?\\(\\);\\s*$");
+    }
+  }
+
   std::ofstream ofs(out_file);
-  ofs << code_template.dump();
+  std::stringstream program(code_template.dump());
+  for (code_t line; std::getline(program, line);) {
+    if (std::none_of(folded_calls.begin(), folded_calls.end(), [&](const std::regex &call) { return std::regex_match(line, call); })) {
+      ofs << line << "\n";
+    }
+  }
   ofs.close();
 }
 
@@ -4958,12 +5505,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     i += width;
   }
 
-  const code_t swap_action_name = "swap_action_" + std::to_string(node->get_node()->get_id());
-  transpile_action_decl(swap_action_name, swap_assignments);
-
-  ingress_apply.indent();
-  ingress_apply << swap_action_name << "();\n";
-
   // Materialize computed values written to the header (e.g. the LC-corrected estimate
   // `lc_offset - ln`) into metadata vars first, so the byte-level field assignments
   // below reference a bound variable instead of trying to bit-slice an un-materialized
@@ -5233,15 +5774,47 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     bytes_already_dealt_with.insert(mod.offset / 8);
   }
 
-  // I have no idea why this is necessary, but it is...
-  // For the cases where we have a lot of register accesses, interleaving these accesses with each other helps the compiler find a
-  // placement solution.
-  const size_t steps = 4;
-  for (size_t step = 0; step < steps; step++) {
-    for (size_t i = step; i < assignments.size(); i += steps) {
-      ingress_apply.indent();
-      ingress_apply << assignments[i] << "\n";
+  // The swaps and the field writes in one action, after the values they read are computed: as bare
+  // statements each is a table of its own, and bf-p4c chains them (SmartCookie's SYN-ACK rewrite
+  // took 4 egress stages more). A write through the hash unit stays outside, as an action takes
+  // one @in_hash. So does one reading a variable local to the apply block (HyperLogLog's
+  // `bit<32> quotient0 = divide_16_calc.execute(0);`), which an action cannot see: a plain
+  // name, not a field path and not a call.
+  static const std::regex local_name(R"((?:^|[^\w.])([A-Za-z_]\w*)\b(?![.(\w]))");
+  const auto reads_local = [](const code_t &statement) { return std::regex_search(statement, local_name); };
+  // So does one assembling a field from slices of another variable (HyperLogLog's
+  // `data3 = hdr_val1[23:16] ++ hdr_val1[31:24] ++ ...`): each slice is a PHV source, an action
+  // takes two, and the writes beside it make bf-p4c pack the slices together. Slices of the field
+  // written are its own bytes, kept.
+  static const std::regex assignment_parts(R"(^([\w.]+)(?:\[\d+:\d+\])?\s*=\s*(.*)$)");
+  static const std::regex slice_read(R"(([A-Za-z_][\w.]*)\[\d+:\d+\])");
+  const auto reads_other_slices = [](const code_t &statement) {
+    std::smatch parts;
+    if (!std::regex_match(statement, parts, assignment_parts)) {
+      return false;
     }
+    const code_t target = parts[1].str();
+    const code_t rhs    = parts[2].str();
+    for (std::sregex_iterator it(rhs.begin(), rhs.end(), slice_read), end; it != end; ++it) {
+      if ((*it)[1].str() != target) {
+        return true;
+      }
+    }
+    return false;
+  };
+  std::vector<code_t> rewrite = swap_assignments;
+  std::vector<code_t> bare;
+  for (const code_t &assignment : assignments) {
+    const bool alone = assignment.rfind("@in_hash", 0) == 0 || reads_local(assignment) || reads_other_slices(assignment);
+    (alone ? bare : rewrite).push_back(assignment);
+  }
+  const code_t rewrite_action_name = "rewrite_" + std::to_string(node->get_node()->get_id());
+  transpile_action_decl(rewrite_action_name, rewrite);
+  ingress_apply.indent();
+  ingress_apply << rewrite_action_name << "();\n";
+  for (const code_t &assignment : bare) {
+    ingress_apply.indent();
+    ingress_apply << assignment << "\n";
   }
 
   return EPVisitor::Action::doChildren;
@@ -7592,6 +8165,9 @@ void TofinoSynthesizer::emit_action_variants(const TofinoContext *tofino_ctx) {
     assert(action && "Compute step placed outside a ComputeAction");
     const auto statements_it = action_statements.find(action_id);
     if (statements_it == action_statements.end()) {
+      if (calls_before_declaration.contains(action_id)) {
+        continue; // Its path never came: folded, and the calls go at the output.
+      }
       panic("The action %s is called in part by a path, but no path declared it", action_id.c_str());
     }
     coder_t &control = code_template.get(action_in_egress.at(action_id) ? MARKER_EGRESS_CONTROL : MARKER_INGRESS_CONTROL);
@@ -7620,6 +8196,7 @@ void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
     bool egress;
     std::vector<DS_ID> own;
     std::vector<DS_ID> reused;
+    std::unordered_map<DS_ID, std::unordered_set<std::string>> reused_ops; // By reused action: the original ops this site runs.
   };
   std::vector<site_t> sites;
   std::unordered_map<const EPNode *, size_t> site_of;
@@ -7633,8 +8210,12 @@ void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
   };
   const auto classify = [&](site_t &site, const std::string &op_id, const DS_ID &action) {
     const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(op_id);
-    if (reuse && !tofino_ctx->is_own_path_reuse(op_id)) {
+    if (reuse && tofino_ctx->is_own_path_reuse(op_id)) {
+      return; // Names a value its path computed already: it calls nothing, here or in any other gress.
+    }
+    if (reuse) {
       push_unique(site.reused, reuse->action);
+      site.reused_ops[reuse->action].insert(reuse->op.id);
     } else {
       push_unique(site.own, action);
     }
@@ -7645,7 +8226,7 @@ void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
     }
   };
   const auto new_site = [&](const EPNode *first, const EPNode *cut, bool egress) {
-    site_t site{first, cut, egress, {}, {}};
+    site_t site{first, cut, egress, {}, {}, {}};
     for (const EPNode *step : compute_run_steps(first)) {
       in_a_run.insert(step);
       const Module *module = step->get_module();
@@ -7725,9 +8306,24 @@ void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
     std::set<size_t> site_ids;
   };
   std::map<std::vector<DS_ID>, group_t> groups;
+  // Actions some site of another pass calls: the runs across passes below take them, with every
+  // site calling them in their own pass too.
+  std::unordered_set<DS_ID> called_across_passes;
+  for (const site_t &X : sites) {
+    for (const site_t &Y : sites) {
+      if (Y.egress != X.egress || Y.cut == X.cut) {
+        continue;
+      }
+      for (const DS_ID &action : Y.reused) {
+        if (std::find(X.own.begin(), X.own.end(), action) != X.own.end()) {
+          called_across_passes.insert(action);
+        }
+      }
+    }
+  }
   for (size_t x = 0; x < sites.size(); x++) {
     const site_t &X = sites[x];
-    if (X.own.empty()) {
+    if (X.own.empty() || std::any_of(X.own.begin(), X.own.end(), [&](const DS_ID &action) { return called_across_passes.contains(action); })) {
       continue;
     }
     for (const std::vector<size_t> &path : paths) {
@@ -7836,10 +8432,349 @@ void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
     }
     shared_runs.push_back(run);
   }
+  // Sites in other passes calling a site's actions: a loop's iterations running where an earlier
+  // one ran (loop_key_t). Every site calling an action is a site of its run, and the actions with
+  // the same sites are one run; an action some caller runs only part of stays with its callers.
+  // In the egress the blocks merge as above. In the ingress one pass's block is not another's, so
+  // the calls follow the passes' whole if / else chain under a flag -- only where a site's other
+  // actions come before them and nothing after the site in its pass reads what they compute.
+  std::unordered_set<DS_ID> run_actions;
+  std::unordered_set<const EPNode *> merged_cuts;
+  for (const shared_run_t &run : shared_runs) {
+    run_actions.insert(run.actions.begin(), run.actions.end());
+    merged_cuts.insert(run.egress_cuts.begin(), run.egress_cuts.end());
+  }
+  std::string follow_why; // Why can_follow_passes refused its site last.
+  const auto can_follow_passes = [&](const site_t &site, const std::vector<DS_ID> &calls) {
+    const auto called = [&](const DS_ID &action) { return std::find(calls.begin(), calls.end(), action) != calls.end(); };
+    // The symbols the calls compute on this site's path, with the op whose word holds each.
+    std::unordered_map<std::string, std::string> computed;
+    const std::vector<const EPNode *> steps = compute_run_steps(site.first);
+    for (const EPNode *step : steps) {
+      const Module *module = step->get_module();
+      std::string op_id;
+      klee::ref<klee::Expr> out;
+      DS_ID action;
+      switch (module->get_type()) {
+      case ModuleType::Tofino_ArithmeticOp: {
+        const Tofino::ArithmeticOp *op = dynamic_cast<const Tofino::ArithmeticOp *>(module);
+        op_id                          = op->get_op_id();
+        out                            = op->get_out();
+        action                         = op->get_action_id();
+      } break;
+      case ModuleType::Tofino_RotateLeft: {
+        const Tofino::RotateLeft *rot = dynamic_cast<const Tofino::RotateLeft *>(module);
+        op_id                         = rot->get_op_id();
+        out                           = rot->get_out();
+        action                        = rot->get_action_id();
+      } break;
+      case ModuleType::Tofino_RotateLeftShifts: {
+        const Tofino::RotateLeftShifts *rot = dynamic_cast<const Tofino::RotateLeftShifts *>(module);
+        op_id                               = rot->get_or_op_id();
+        out                                 = rot->get_out();
+        action                              = rot->get_or_action_id();
+      } break;
+      default:
+        continue;
+      }
+      std::string symbol;
+      if (called(action) && !out.isNull() && LibCore::is_readLSB(out, symbol)) {
+        const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(op_id);
+        computed[symbol]                           = reuse ? reuse->op.id : op_id;
+      }
+    }
+    // The run's other ops stay in the block, ahead of the calls: none of them may read what the calls compute.
+    const auto reads_computed = [&](klee::ref<klee::Expr> expr) {
+      if (expr.isNull()) {
+        return false;
+      }
+      for (const std::string &name : symbol_t::get_symbols_names(expr)) {
+        if (computed.contains(name)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    for (const EPNode *step : steps) {
+      const Module *module = step->get_module();
+      std::vector<std::pair<DS_ID, klee::ref<klee::Expr>>> reads; // (action, what it reads)
+      std::vector<compute_operand_t> operands;
+      switch (module->get_type()) {
+      case ModuleType::Tofino_ArithmeticOp: {
+        const Tofino::ArithmeticOp *op = dynamic_cast<const Tofino::ArithmeticOp *>(module);
+        reads.emplace_back(op->get_action_id(), op->get_value());
+        operands = op->get_operands();
+      } break;
+      case ModuleType::Tofino_RotateLeft: {
+        const Tofino::RotateLeft *rot = dynamic_cast<const Tofino::RotateLeft *>(module);
+        reads.emplace_back(rot->get_action_id(), rot->get_x());
+        operands = rot->get_operands();
+      } break;
+      case ModuleType::Tofino_RotateLeftShifts: {
+        const Tofino::RotateLeftShifts *rot = dynamic_cast<const Tofino::RotateLeftShifts *>(module);
+        reads.emplace_back(rot->get_or_action_id(), rot->get_x());
+        operands = rot->get_operands();
+      } break;
+      case ModuleType::Tofino_If:
+        operands = dynamic_cast<const Tofino::If *>(module)->get_materialized_operands();
+        break;
+      default:
+        break;
+      }
+      for (const compute_operand_t &operand : operands) {
+        reads.emplace_back(operand.action_id, operand.expr);
+      }
+      for (const auto &[action, expr] : reads) {
+        if (!called(action) && reads_computed(expr)) {
+          follow_why = "the run's " + action + " reads what the calls compute";
+          return false;
+        }
+      }
+    }
+    std::vector<const EPNode *> pending(steps.back()->get_children().begin(), steps.back()->get_children().end());
+    while (!pending.empty()) {
+      const EPNode *ep_node = pending.back();
+      pending.pop_back();
+      const Module *module = ep_node->get_module();
+      if (module && (module->get_type() == ModuleType::Tofino_Recirculate || module->get_type() == ModuleType::Tofino_SendToEgress)) {
+        // The next pass reads the words the calls wrote; anything else would be copied before them.
+        for (const auto &[symbol, op_id] : computed) {
+          if (!slot_fields.contains(op_id)) {
+            follow_why = "the cut copies " + symbol + ", which has no word";
+            return false;
+          }
+        }
+        continue;
+      }
+      if (module && module->get_node()) {
+        Symbols used = module->get_node()->get_used_symbols();
+        if (module->get_type() == ModuleType::Tofino_SendToController) {
+          for (const symbol_t &symbol : dynamic_cast<const Tofino::SendToController *>(module)->get_symbols().get()) {
+            used.add(symbol);
+          }
+        }
+        for (const auto &[symbol, op_id] : computed) {
+          if (used.has(symbol)) {
+            follow_why = module->get_name() + " at node " + std::to_string(module->get_node()->get_id()) + " reads " + symbol;
+            return false;
+          }
+        }
+      }
+      pending.insert(pending.end(), ep_node->get_children().begin(), ep_node->get_children().end());
+    }
+    return true;
+  };
+  // Ingress runs are checked together: a site's other hoisted runs follow the passes too, so what
+  // they compute is no read before the calls. A site one of them cannot follow drops them all.
+  struct candidate_t {
+    size_t owner;
+    std::set<size_t> ids;
+    std::vector<DS_ID> actions;
+    bool alive = true;
+  };
+  std::vector<candidate_t> ingress_candidates;
+  std::vector<candidate_t> egress_candidates;
+  std::unordered_set<DS_ID> candidate_actions; // Every action some candidate holds.
+  const auto commit_run = [&](shared_run_t &run, bool egress) {
+    if (!egress) {
+      const var_t flag = alloc_var("shared_run_" + std::to_string(shared_runs.size()), 1, EXACT_NAME | IS_INGRESS_METADATA | SKIP_STACK_ALLOC);
+      declare_var_in_ingress_metadata(flag);
+      run.flag             = flag.name;
+      run.after_passes     = true;
+      coder_t &apply_start = code_template.get(MARKER_INGRESS_APPLY_START);
+      apply_start.indent();
+      apply_start << run.flag << " = 0;\n";
+    }
+    const size_t index = shared_runs.size();
+    for (const EPNode *site : run.sites) {
+      shared_runs_by_site[site].push_back(index);
+    }
+    run_actions.insert(run.actions.begin(), run.actions.end());
+    shared_runs.push_back(run);
+  };
+  const auto sorted_by_stage = [&](std::vector<DS_ID> actions) {
+    std::stable_sort(actions.begin(), actions.end(),
+                     [&pipeline](const DS_ID &a, const DS_ID &b) { return pipeline.get_placed_stage(a) < pipeline.get_placed_stage(b); });
+    return actions;
+  };
+  for (size_t x = 0; x < sites.size(); x++) {
+    const site_t &X = sites[x];
+    std::map<std::set<size_t>, std::vector<DS_ID>> by_sites;
+    for (const DS_ID &action : X.own) {
+      // Several sites can count one action as their own (an op of each named what it computes):
+      // it belongs to one run, or the passes would call it once per run.
+      if (run_actions.contains(action) || candidate_actions.contains(action)) {
+        continue;
+      }
+      const ComputeAction *compute = dynamic_cast<const ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(action));
+      std::set<size_t> ids{x};
+      bool whole      = true;
+      bool other_pass = false;
+      for (size_t y = 0; y < sites.size(); y++) {
+        if (y == x) {
+          continue;
+        }
+        // A site calls the action whether it reuses it from another path or counts it as its own.
+        if (std::find(sites[y].own.begin(), sites[y].own.end(), action) != sites[y].own.end()) {
+          whole &= sites[y].egress == X.egress;
+          other_pass |= sites[y].cut != X.cut;
+          ids.insert(y);
+          continue;
+        }
+        const auto ops_it = sites[y].reused_ops.find(action);
+        if (ops_it == sites[y].reused_ops.end()) {
+          continue;
+        }
+        whole &= sites[y].egress == X.egress && compute && ops_it->second.size() == compute->ops.size();
+        other_pass |= sites[y].cut != X.cut;
+        ids.insert(y);
+      }
+      if (ids.size() > 1 && whole && other_pass) {
+        by_sites[ids].push_back(action);
+      }
+    }
+    for (const auto &[ids, actions] : by_sites) {
+      (X.egress ? egress_candidates : ingress_candidates).push_back({x, ids, sorted_by_stage(actions)});
+      candidate_actions.insert(actions.begin(), actions.end());
+    }
+  }
+  // Egress candidates sharing a block are one arm: every action called once, under the code paths
+  // of the blocks calling it (the ladder in synthesize). A block must be its site's whole top level,
+  // with one site, and in no run from before.
+  {
+    // A block's later runs (past a module that is no compute step) keep their calls: the ladder
+    // splits a block at one marker.
+    std::map<const EPNode *, size_t> first_site_of_cut;
+    for (size_t id = 0; id < sites.size(); id++) {
+      if (sites[id].egress) {
+        first_site_of_cut.try_emplace(sites[id].cut, id);
+      }
+    }
+    std::erase_if(egress_candidates, [&](const candidate_t &candidate) {
+      for (const size_t id : candidate.ids) {
+        if (first_site_of_cut.at(sites[id].cut) != id) {
+          if (Walk::enabled()) {
+            std::cerr << "[runs] " << candidate.actions.size() << " egress action(s) called by the second run of a block, at node "
+                      << sites[id].first->get_module()->get_node()->get_id() << ": left with their callers\n";
+          }
+          return true;
+        }
+      }
+      return false;
+    });
+    std::vector<size_t> parent(egress_candidates.size());
+    for (size_t i = 0; i < parent.size(); i++) {
+      parent[i] = i;
+    }
+    const std::function<size_t(size_t)> root = [&](size_t i) { return parent[i] == i ? i : parent[i] = root(parent[i]); };
+    std::map<const EPNode *, size_t> candidate_of_cut;
+    for (size_t i = 0; i < egress_candidates.size(); i++) {
+      for (const size_t id : egress_candidates[i].ids) {
+        const auto [cut_it, inserted] = candidate_of_cut.try_emplace(sites[id].cut, i);
+        if (!inserted) {
+          parent[root(i)] = root(cut_it->second);
+        }
+      }
+    }
+    std::map<size_t, std::vector<size_t>> components;
+    for (size_t i = 0; i < egress_candidates.size(); i++) {
+      components[root(i)].push_back(i);
+    }
+    for (const auto &[_, members] : components) {
+      shared_run_t run;
+      std::set<size_t> ids;
+      std::vector<DS_ID> actions;
+      for (const size_t i : members) {
+        ids.insert(egress_candidates[i].ids.begin(), egress_candidates[i].ids.end());
+        for (const DS_ID &action : egress_candidates[i].actions) {
+          actions.push_back(action);
+          for (const size_t id : egress_candidates[i].ids) {
+            run.callers[action].push_back(sites[id].cut);
+          }
+        }
+      }
+      run.actions = sorted_by_stage(actions);
+      bool fits   = true;
+      std::set<const EPNode *> cuts;
+      std::stringstream why;
+      for (const size_t id : ids) {
+        const site_t &site = sites[id];
+        run.sites.insert(site.first);
+        why << " " << site.first->get_module()->get_node()->get_id();
+        const char *refusal = !site.cut                        ? "(no cut)"
+                              : cuts.contains(site.cut)        ? "(its block twice)"
+                              : merged_cuts.contains(site.cut) ? "(its block in another run)"
+                              : !at_block_top(site)            ? "(not at its block's top)"
+                                                               : nullptr;
+        if (refusal) {
+          why << refusal;
+          fits = false;
+        }
+        cuts.insert(site.cut);
+      }
+      if (Walk::enabled()) {
+        std::cerr << "[runs] " << run.actions.size() << " egress action(s) of " << members.size() << " run(s) called in " << ids.size()
+                  << " sites across passes: " << (fits ? "one arm" : "left with their callers") << "; sites" << why.str() << "\n";
+      }
+      if (!fits) {
+        continue;
+      }
+      run.egress_cuts.assign(cuts.begin(), cuts.end());
+      merged_cuts.insert(cuts.begin(), cuts.end());
+      commit_run(run, true);
+    }
+  }
+  for (bool changed = true; changed;) {
+    changed = false;
+    std::map<size_t, std::vector<DS_ID>> hoisted; // By site: every live candidate's actions it calls.
+    for (const candidate_t &candidate : ingress_candidates) {
+      if (!candidate.alive) {
+        continue;
+      }
+      for (const size_t id : candidate.ids) {
+        hoisted[id].insert(hoisted[id].end(), candidate.actions.begin(), candidate.actions.end());
+      }
+    }
+    for (const auto &[id, actions] : hoisted) {
+      if (can_follow_passes(sites[id], actions)) {
+        continue;
+      }
+      if (Walk::enabled()) {
+        std::cerr << "[runs] the ingress site at node " << sites[id].first->get_module()->get_node()->get_id()
+                  << " reads what its runs compute before the passes end (" << follow_why << "): its runs stay with their callers\n";
+      }
+      for (candidate_t &candidate : ingress_candidates) {
+        if (candidate.alive && candidate.ids.contains(id)) {
+          candidate.alive = false;
+          changed         = true;
+        }
+      }
+    }
+  }
+  for (const candidate_t &candidate : ingress_candidates) {
+    if (Walk::enabled()) {
+      std::cerr << "[runs] " << candidate.actions.size() << " ingress action(s) of the run at node "
+                << sites[candidate.owner].first->get_module()->get_node()->get_id() << " called in " << candidate.ids.size()
+                << " sites across passes: " << (candidate.alive ? "after the passes" : "left with their callers") << "\n";
+    }
+    if (!candidate.alive) {
+      continue;
+    }
+    shared_run_t run;
+    run.actions = candidate.actions;
+    for (const size_t id : candidate.ids) {
+      run.sites.insert(sites[id].first);
+    }
+    commit_run(run, false);
+  }
+
   if (Walk::enabled()) {
     for (size_t r = 0; r < shared_runs.size(); r++) {
       std::cerr << "[runs] shared run " << r << ": " << shared_runs[r].actions.size() << " actions, " << shared_runs[r].sites.size() << " sites, "
-                << (shared_runs[r].join ? "joined under a flag" : "one egress arm") << "\n";
+                << (shared_runs[r].after_passes ? "after the passes under a flag"
+                    : shared_runs[r].join       ? "joined under a flag"
+                                                : "one egress arm")
+                << "\n";
     }
   }
 }
@@ -8568,11 +9503,23 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     if (hoist) {
       for (const size_t r : site_runs_it->second) {
         const shared_run_t &run = shared_runs[r];
-        if (run.actions.front() != action_id) {
+        // The first of the run's actions this site calls: a block may call a part of the run.
+        const auto first_called = std::find_if(action_ids.begin(), action_ids.end(), [&](const DS_ID &id) {
+          return std::find(run.actions.begin(), run.actions.end(), id) != run.actions.end();
+        });
+        if (!run.callers.empty()) {
+          // An arm merging blocks that call different parts of the run: the ladder interleaves each
+          // block with the calls, so every call this block makes marks where it splits.
+          ingress_apply.indent();
+          ingress_apply << "// @shared-run " << (i64)r << " @ " << action_id << "\n";
+          continue;
+        }
+        const bool partial_callers = run.after_passes;
+        if (partial_callers ? (first_called == action_ids.end() || *first_called != action_id) : run.actions.front() != action_id) {
           continue;
         }
         ingress_apply.indent();
-        if (run.join) {
+        if (!run.flag.empty()) {
           ingress_apply << run.flag << " = 1;\n";
         } else {
           ingress_apply << "// @shared-run " << (i64)r << "\n";
@@ -8584,7 +9531,11 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       // Another path's action, declared with that path (before or after this one: declarations
       // and the apply block are separate sections). Called here with the same spill into
       // one-@in_hash companions its declaration makes, derived from the action's ops.
-      if (!hoist && !compute_action_folded(action_id)) {
+      const bool declared = action_statements.contains(action_id);
+      if (!hoist && !declared) {
+        calls_before_declaration.insert(action_id);
+      }
+      if (!hoist && (!declared || !compute_action_folded(action_id))) {
         // The part of the action this run runs: its reused ops, by the ids the original path gave
         // them. The rest is the other path's, and does not run here.
         std::unordered_set<std::string> canonical;
