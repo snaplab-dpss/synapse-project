@@ -334,6 +334,7 @@ void EP::process_leaf(EPNode *new_node, const std::vector<EPLeaf> &new_leaves, B
 
 void EP::replace_bdd(std::unique_ptr<BDD> new_bdd) {
   clear_caches();
+  ctx.invalidate_loops();
 
   for (EPLeaf &leaf : active_leaves) {
     assert(leaf.next && "Active leaf without a next node");
@@ -374,6 +375,7 @@ void EP::replace_bdd(std::unique_ptr<BDD> new_bdd) {
 
 void EP::replace_bdd(std::unique_ptr<BDD> new_bdd, const translation_data_t &translation_data) {
   clear_caches();
+  ctx.invalidate_loops();
 
   auto translate_next_node = [&translation_data](bdd_node_id_t node_id) {
     auto found_it = translation_data.next_nodes_translator.find(node_id);

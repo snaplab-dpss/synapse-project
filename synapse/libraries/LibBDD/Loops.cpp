@@ -1166,4 +1166,38 @@ void BDD::group_loop_iterations(const std::vector<loop_t> &loops) {
   }
 }
 
+bool same_body(const loop_t &a, const loop_t &b) {
+  if (a.body.size() != b.body.size() || a.state != b.state) {
+    return false;
+  }
+  for (size_t i = 0; i < a.body.size(); i++) {
+    const loop_body_op_t &oa = a.body[i];
+    const loop_body_op_t &ob = b.body[i];
+    if (oa.fn != ob.fn || oa.width != ob.width || oa.operands.size() != ob.operands.size()) {
+      return false;
+    }
+    for (size_t j = 0; j < oa.operands.size(); j++) {
+      const loop_operand_t &pa = oa.operands[j];
+      const loop_operand_t &pb = ob.operands[j];
+      if (pa.kind != pb.kind) {
+        return false;
+      }
+      switch (pa.kind) {
+      case LoopOperandKind::Body:
+      case LoopOperandKind::State:
+        if (pa.index != pb.index) {
+          return false;
+        }
+        break;
+      case LoopOperandKind::Outside:
+        if (pa.expr.isNull() != pb.expr.isNull() || (!pa.expr.isNull() && !same_expr(pa.expr, pb.expr))) {
+          return false;
+        }
+        break;
+      }
+    }
+  }
+  return true;
+}
+
 } // namespace LibBDD

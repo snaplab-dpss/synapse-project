@@ -1,5 +1,6 @@
 #include <LibSynapse/GlobalStats.h>
 #include <LibSynapse/Context.h>
+#include <LibSynapse/Walk.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/Modules/Tofino/ParserCondition.h>
 #include <LibCore/Solver.h>
@@ -397,9 +398,11 @@ Context::Context(const BDD *bdd, const TargetsView &targets, const targets_confi
   bdd_pre_processing_get_structural_fields(bdd);
   bdd_pre_processing_build_tofino_parser(bdd);
   bdd_pre_processing_log();
+  get_loops(bdd);
 }
 
-Context::Context(const Context &other) : profiler(other.profiler), perf_oracle(other.perf_oracle), state(other.state) {
+Context::Context(const Context &other)
+    : profiler(other.profiler), perf_oracle(other.perf_oracle), state(other.state), loops(std::as_const(other.loops)) {
   GlobalStats::num_context_copies++;
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
@@ -407,7 +410,7 @@ Context::Context(const Context &other) : profiler(other.profiler), perf_oracle(o
 }
 
 Context::Context(Context &&other)
-    : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)), state(std::move(other.state)),
+    : profiler(std::move(other.profiler)), perf_oracle(std::move(other.perf_oracle)), state(std::move(other.state)), loops(std::move(other.loops)),
       target_ctxs(std::move(other.target_ctxs)) {}
 
 Context::~Context() {
@@ -434,6 +437,7 @@ Context &Context::operator=(const Context &other) {
   profiler    = other.profiler;
   perf_oracle = other.perf_oracle;
   state       = other.state;
+  loops       = other.loops;
 
   for (auto &target_ctx_pair : other.target_ctxs) {
     target_ctxs[target_ctx_pair.first] = target_ctx_pair.second->clone();
@@ -457,6 +461,7 @@ Context &Context::operator=(Context &&other) {
   profiler    = std::move(other.profiler);
   perf_oracle = std::move(other.perf_oracle);
   state       = std::move(other.state);
+  loops       = std::move(other.loops);
   target_ctxs = std::move(other.target_ctxs);
 
   return *this;
@@ -532,6 +537,61 @@ const std::vector<hit_rate_t> &Context::get_failing_to_allocate_new_index_hit_ra
 const std::optional<expiration_data_t> &Context::get_expiration_data() const { return S().expiration_data; }
 
 const std::vector<expr_struct_t> &Context::get_expr_structs() const { return S().expr_structs; }
+
+namespace {
+
+loops_t build_loops(const BDD *bdd) {
+  GlobalStats::num_loop_detections++;
+  loops_t result;
+  result.loops = bdd->detect_loops();
+  for (size_t l = 0; l < result.loops.size(); l++) {
+    const LibBDD::loop_t &loop = result.loops[l];
+    result.body_of.push_back(l);
+    for (size_t other = 0; other < l; other++) {
+      if (LibBDD::same_body(result.loops[other], loop)) {
+        result.body_of[l] = result.body_of[other];
+        break;
+      }
+    }
+    for (size_t k = 0; k < loop.iterations.size(); k++) {
+      for (size_t b = 0; b < loop.iterations[k].size(); b++) {
+        if (loop.iterations[k][b]) {
+          result.nodes[*loop.iterations[k][b]].push_back({l, LoopNodeRole::Iteration, k, b});
+        }
+      }
+    }
+    for (const LibBDD::loop_step_t &step : loop.steps) {
+      result.nodes[step.node].push_back({l, LoopNodeRole::Step, step.after_iteration, step.state});
+    }
+    for (bdd_node_id_t node : loop.prefix) {
+      result.nodes[node].push_back({l, LoopNodeRole::Prefix, 0, 0});
+    }
+  }
+  if (Walk::enabled()) {
+    std::cerr << "[loops] " << result.loops.size() << " loop(s) in the BDD";
+    for (size_t l = 0; l < result.loops.size(); l++) {
+      const LibBDD::loop_t &loop = result.loops[l];
+      std::cerr << "; loop " << l << ": " << loop.iterations.size() << " iterations of " << loop.body.size() << " ops, " << loop.steps.size()
+                << " steps, " << loop.prefix.size() << " prefix nodes";
+      if (result.body_of[l] != l) {
+        std::cerr << ", same body as loop " << result.body_of[l];
+      }
+    }
+    std::cerr << "\n";
+  }
+  return result;
+}
+
+} // namespace
+
+const loops_t &Context::get_loops(const BDD *bdd) const {
+  if (!loops->has_value()) {
+    loops.set(std::optional<loops_t>(build_loops(bdd)));
+  }
+  return loops->value();
+}
+
+void Context::invalidate_loops() { loops.set(std::optional<loops_t>()); }
 
 void Context::save_ds_impl(bdd_node_id_t node_id, addr_t obj, DSImpl impl) {
   assert(can_impl_ds(obj, impl) && "Incompatible implementation");
