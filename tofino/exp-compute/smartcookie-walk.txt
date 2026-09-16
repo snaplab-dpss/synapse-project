@@ -1,13 +1,18 @@
 # The decisions that reach a SmartCookie solution, one line per visit in the order the walk takes
-# them: replay with --walk-replay. Re-driven 2026-09-15 once synapse learned to share the loop's
+# them: replay with --walk-replay. Re-driven 2026-09-16 once synapse learned to share the loop's
 # iterations: the hand decisions are the ground truth's cuts plus one cut per loop at every second
 # iteration boundary (loop 0 at nodes 361/379/399/416/167, loop 1 at 247/265/285/303/76), so each
 # pass runs whole iterations and the shared round bodies have no holes.
 #
+# The delta read (nodes 105 and 88) is a vector TABLE here, not the register the hand-written
+# expert uses: the data plane only reads that vector -- both vector_returns write back the value
+# they read -- so the table is a legal implementation, it is what max-tput prefers on its own
+# (the register costs 262'080 more memory units), and it compiles one logical table smaller.
+#
 # The program this replays to needs no hand edits: bf-p4c compiles it in 19 ingress / 20 egress
-# stages (177 logical tables) and it passes all 13 scenarios of tests/smartcookie.py on the Tofino 2
-# model. The whole cookie check stays in the data plane; only the clock-update path (node 211) is
-# handed to the controller, as GT-DECISIONS.md allows.
+# stages (176 logical tables) and it passes all 13 scenarios of tests/smartcookie.py on the
+# Tofino 2 model. The whole cookie check stays in the data plane; only the clock-update path
+# (node 211) is handed to the controller, as GT-DECISIONS.md allows.
 #
 # A change to the placement model moves the mechanical picks and makes this file stop replaying.
 # Re-drive it with tools/walk.py rather than editing it.
@@ -27,7 +32,7 @@ node=101 module=Tofino_ModifyHeader next=102  # driver: the single child, step 1
 node=102 module=Tofino_ModifyHeader next=103  # driver: the single child, step 14
 node=103 module=Tofino_Forward next=104  # driver: the single child, step 15
 node=104 module=Tofino_If next=105  # driver: the single child, step 16
-node=105 module=Tofino_VectorRegisterLookup next=106  # replayed, step 17
+node=105 module=Tofino_VectorTableLookup next=106  # replayed, step 17
 node=106 module=Tofino_Ignore next=107  # driver: the single child, step 18
 node=107 module=Tofino_RotateLeft next=108  # driver: the single child, step 19
 node=108 module=Tofino_RotateLeft next=109  # driver: the single child, step 20
@@ -224,7 +229,7 @@ node=181 module=Tofino_ModifyHeader next=182  # driver: the single child, step 2
 node=182 module=Tofino_ModifyHeader next=183  # driver: the single child, step 211
 node=183 module=Tofino_Forward next=16  # driver: the single child, step 212
 node=16 module=Tofino_RotateLeft next=88  # replayed, step 213
-node=88 module=Tofino_VectorRegisterLookup next=89  # replayed, step 214
+node=88 module=Tofino_VectorTableLookup next=89  # replayed, step 214
 node=89 module=Tofino_Ignore next=17  # replayed, step 215
 node=17 module=Tofino_RotateLeft next=18  # driver: the single child, step 216
 node=18 module=Tofino_RotateLeft next=19  # driver: the single child, step 217
