@@ -4226,6 +4226,8 @@ void TofinoSynthesizer::synthesize() {
     target_ep->get_ctx().get_target_ctx<TofinoContext>()->get_tna().pipeline.dump_placements(std::cerr);
   }
 
+  check_state_word_budget();
+
   std::vector<std::regex> folded_calls;
   for (const DS_ID &action : calls_before_declaration) {
     if (compute_action_folded(action)) {
@@ -8848,6 +8850,76 @@ bool TofinoSynthesizer::overwrites_loop_state(const DS_ID &action) const {
     return false;
   }
   return std::any_of(compute_action->ops.begin(), compute_action->ops.end(), [&](const compute_op_t &op) { return loop_step_ops->contains(op.id); });
+}
+
+void TofinoSynthesizer::check_state_word_budget() const {
+  // The words of a chain sliced by its rotates are one supercluster, and bf-p4c allocates a
+  // supercluster inside one container group: on Tofino 2, twelve normal 32-bit containers and four
+  // mocha ones (tofino/exp-compute/README.md, "What a gress's chain may hold"). A state word is
+  // written by the ALU or the hash unit and needs a normal container. A packet word an ALU
+  // statement reads next to a state word joins the cluster with every 32-bit field of its header,
+  // unless each such read shifts or slices it, which leaves the field alone in its slice list; it
+  // is only parsed, so it takes a mocha container, and a normal one once the four are gone. What
+  // the hash unit reads ties nothing.
+  constexpr size_t NORMAL_CONTAINERS = 12;
+  constexpr size_t MOCHA_CONTAINERS  = 4;
+  static const std::regex state_word(R"(hdr\.st\.s32_\d+)");
+  for (const bool egress : {false, true}) {
+    std::set<code_t> words;
+    std::set<code_t> whole, alone;
+    for (const auto &[action, statements] : action_statements) {
+      const auto gress_it = action_in_egress.find(action);
+      if (gress_it == action_in_egress.end() || gress_it->second != egress) {
+        continue;
+      }
+      for (const auto &[op_id, held] : statements) {
+        const code_t &s = held.statement;
+        if (!std::regex_search(s, state_word)) {
+          continue;
+        }
+        for (std::sregex_iterator it(s.begin(), s.end(), state_word), end; it != end; ++it) {
+          words.insert(it->str());
+        }
+        if (held.in_hash) {
+          continue;
+        }
+        for (const auto &[chunk, fields] : hdr_fields_by_hdr) {
+          for (const hdr_field_t &field : fields) {
+            if (field.width != 32) {
+              continue;
+            }
+            for (size_t at = s.find(field.name); at != code_t::npos; at = s.find(field.name, at + field.name.size())) {
+              const size_t after = at + field.name.size();
+              if (after < s.size() && (std::isalnum(s[after]) || s[after] == '_')) {
+                continue; // A longer name.
+              }
+              const bool shifted_or_sliced = s.compare(after, 4, " >> ") == 0 || s.compare(after, 4, " << ") == 0 || s.compare(after, 1, "[") == 0;
+              (shifted_or_sliced ? alone : whole).insert(field.name);
+            }
+          }
+        }
+      }
+    }
+    std::set<code_t> inputs = alone;
+    for (const auto &[chunk, fields] : hdr_fields_by_hdr) {
+      const bool joined = std::any_of(fields.begin(), fields.end(), [&](const hdr_field_t &field) { return whole.contains(field.name); });
+      for (const hdr_field_t &field : fields) {
+        if (joined && field.width == 32) {
+          inputs.insert(field.name);
+        }
+      }
+    }
+    const size_t normal = words.size() + (inputs.size() > MOCHA_CONTAINERS ? inputs.size() - MOCHA_CONTAINERS : 0);
+    if (Walk::enabled() && !words.empty()) {
+      std::cerr << "[homes] " << (egress ? "egress" : "ingress") << " chain: " << words.size() << " state words, " << inputs.size()
+                << " packet words tied to them, " << normal << " of " << NORMAL_CONTAINERS << " normal containers\n";
+    }
+    if (normal > NORMAL_CONTAINERS) {
+      panic("The %s hash chain does not fit one PHV container group: %zu state words and %zu packet words read next to them need %zu normal "
+            "32-bit containers, and a group has %zu (bf-p4c would fail PHV allocation).",
+            egress ? "egress" : "ingress", words.size(), inputs.size(), normal, NORMAL_CONTAINERS);
+    }
+  }
 }
 
 bool TofinoSynthesizer::called_before(const DS_ID &a, const DS_ID &b) const {

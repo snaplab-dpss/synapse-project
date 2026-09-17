@@ -460,6 +460,9 @@ private:
   // it can still read that word in the step's own stage -- the hardware hands both the old value --
   // but P4 statements run in order, so the step's call goes after the stage's other calls.
   bool overwrites_loop_state(const DS_ID &action) const;
+  // Whether each gress's hash chain fits one PHV container group, from the statements written:
+  // panics when it does not, as bf-p4c would only fail PHV allocation with no reason given.
+  void check_state_word_budget() const;
   // Compute actions in the order their calls are written: by stage, a stage's loop steps last.
   bool called_before(const DS_ID &a, const DS_ID &b) const;
   // The symbols anything past the cut at `cut_node` still uses: what a BDD node reachable from it

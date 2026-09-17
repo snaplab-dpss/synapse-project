@@ -490,6 +490,40 @@ over an operand that dies at it; the regenerated program then touches 12 words i
 10 in the egress; with the pairs right but 14 egress words (regen 19 of the walk) bf-p4c's
 failure had already narrowed from both gresses to the egress alone.
 
+## What a gress's chain may hold (`scw-11.p4`, `scw-i12.p4`, `scw-e12.p4`, `scy-b1-onefree-hash.p4`, `scy-b1-onefree-ctrl.p4`)
+
+Question: a synthesized SmartCookie with 12 state words per gress, the budget above, fails PHV
+allocation, and the same program with 11 compiles. Which count is wrong? And is the
+one-rotation-per-pair rule about every write, or only the ALU's? Both were first read in the
+compiler's source -- the Tofino backend is open (p4lang/p4c, `backends/tofino/bf-p4c/phv`); it is
+not the 9.13.4 binary, so what it says is a hypothesis until a toy agrees -- and then tested here.
+
+| toy | shape | result |
+|---|---|---|
+| `scw-11` | the program with 11 state words in both gresses | compiles |
+| `scw-i12` | 12 in the ingress, 11 in the egress | compiles |
+| `scw-e12` | 11 in the ingress, 12 in the egress | fails PHV allocation |
+| `scy-b1-onefree-hash` | `scy-b1-onefree` (seven pairs at two rotations, fails) with the byte rotates of those pairs through the hash unit | compiles |
+| `scy-b1-onefree-ctrl` | the same actions and calls, those rotates back on the ALU | fails |
+
+Takeaways: a supercluster goes into one container group (`SuperCluster`, `phv/utils/utils.h`;
+`tryAllocSlicing`, `phv/allocate_phv.cpp`), and a Tofino 2 group of 32-bit containers is twelve
+normal, four mocha and four dark (`specs/phv_spec.cpp`). bf-p4c's cluster dump
+(`-Xp4c=-Tmake_clusters:4`) shows what the chain's cluster holds besides the state words: a packet
+word an ALU statement reads next to a state word, with every 32-bit field of its header (the
+header is one slice list: `hdr1.data5` and `data6` bring `data0` and `data1`), unless the reads
+shift or slice it, which makes it solitary and leaves it alone (`hdr2.data0`, read as `>> 16` and
+`[15:0]`). A state word is written by the ALU or the hash unit and needs a normal container; a
+packet word is only parsed and takes a mocha one, then a normal one once the four are gone. So a
+gress fits when `state words + max(0, packet words - 4) <= 12`: the ingress of `scw-i12` holds
+12 + 4, the egress of `scw-e12` 12 + 5. The rule agrees with every synthesized SmartCookie whose
+outcome is known (five that compile, three that do not). What the hash unit reads ties nothing:
+its operands are no PHV sources (`ConstraintTracker::add_action`, `phv/action_phv_constraints.cpp`),
+which is also why the pair rule is the ALU's alone -- a destination written from a source at two
+rotations is refused only when both writes are ALU statements, the source is still unplaced and
+the destination's bytes share a container (`check_and_generate_conditional_constraints`). A byte
+rotate through the hash unit costs two hash-distribution units and the action's one `@in_hash`.
+
 ## Separate ifs on one field versus an if / else-if chain (`mx_else.p4`, `mx_sep.p4`)
 
 Does bf-p4c treat `if (x == 80) { A } if (x == 81) { B }` as mutually exclusive, the way it treats
