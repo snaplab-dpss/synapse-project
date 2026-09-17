@@ -3396,195 +3396,215 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
     }
   };
 
-  for (const std::vector<const EPNode *> &path : paths) {
-    std::vector<value_t> values;
-    std::vector<std::pair<std::string, int>> foreign_writes;      // (op id, time): a shared action's other ops, at the call.
-    std::unordered_map<std::string, size_t> value_index;          // By canonical op id, into `values`.
-    std::unordered_map<std::string, std::string> symbol_producer; // A symbol -> the canonical op producing it, this path.
-    int pass           = 0;
-    bool egress_pass   = false;
-    const auto time_of = [&](const std::string &op_id) { return pass * STRIDE + stage_of(op_id); };
-    // A def's sources on this path: the operands as they are, the symbols by what produced them here.
-    const auto resolve_sources = [&](const def_t &def) {
-      std::vector<std::pair<std::string, unsigned>> sources;
-      for (const source_t &source : def.sources) {
-        if (!source.op_id.empty()) {
-          sources.emplace_back(source.op_id, source.rotation);
-        }
-        if (!source.symbol.empty()) {
-          auto producer_it = symbol_producer.find(source.symbol);
-          // Not a compute value on this path (a packet field, a register's value) if unknown.
-          if (producer_it != symbol_producer.end() && producer_it->second != source.op_id) {
-            sources.emplace_back(producer_it->second, source.rotation);
+  // A value several paths compute keeps the word of the first path planned, so that word has to be
+  // free for as long as the value lives on ANY of them: a shared op can be read later on one path
+  // than on another (its reader sharing an action that waits for something else there). The paths
+  // are walked twice, first to measure how long each op's value lives at most, then to plan.
+  std::unordered_map<std::string, int> longest_life; // By canonical op id and pass: last read - definition.
+  for (const bool measuring : {true, false}) {
+    if (!measuring) {
+      slot_readers.clear();
+    }
+    for (const std::vector<const EPNode *> &path : paths) {
+      std::vector<value_t> values;
+      std::vector<std::pair<std::string, int>> foreign_writes;      // (op id, time): a shared action's other ops, at the call.
+      std::unordered_map<std::string, size_t> value_index;          // By canonical op id, into `values`.
+      std::unordered_map<std::string, std::string> symbol_producer; // A symbol -> the canonical op producing it, this path.
+      int pass           = 0;
+      bool egress_pass   = false;
+      const auto time_of = [&](const std::string &op_id) { return pass * STRIDE + stage_of(op_id); };
+      // A def's sources on this path: the operands as they are, the symbols by what produced them here.
+      const auto resolve_sources = [&](const def_t &def) {
+        std::vector<std::pair<std::string, unsigned>> sources;
+        for (const source_t &source : def.sources) {
+          if (!source.op_id.empty()) {
+            sources.emplace_back(source.op_id, source.rotation);
+          }
+          if (!source.symbol.empty()) {
+            auto producer_it = symbol_producer.find(source.symbol);
+            // Not a compute value on this path (a packet field, a register's value) if unknown.
+            if (producer_it != symbol_producer.end() && producer_it->second != source.op_id) {
+              sources.emplace_back(producer_it->second, source.rotation);
+            }
           }
         }
-      }
-      return sources;
-    };
+        return sources;
+      };
 
-    for (size_t i = 0; i < path.size(); i++) {
-      const Module *module = path[i]->get_module();
-      if (!module) {
-        continue;
-      }
-      // Only a hash chain's values live in slots; a compute op off every chain (the clock and
-      // delta arithmetic feeding the cookie) keeps its metadata variable, where nothing slices
-      // it, and reaches the chain through the hash unit like any other outside value. What it
-      // reads of the chain is read all the same: an exit xor holds its words to its own stage,
-      // or the next rotate takes one of them first.
-      const bool off_core =
-          TofinoModuleFactory::is_compute_module(module) && !TofinoModuleFactory::is_hash_chain_node(ep->get_bdd(), module->get_node());
-      // A module that leaves its node to be processed again (a cut: the node's own module comes
-      // next, on the far side) reads nothing itself; counting the node's reads here, at a module
-      // with no placed data structure, would hold the values to the end of the path.
-      const Module *next  = i + 1 < path.size() ? path[i + 1]->get_module() : nullptr;
-      const bool cut_here = next && next->get_node() == module->get_node();
-      // Reads first: a value read here lives at least to this module's time.
-      const std::unordered_set<std::string> reads = cut_here ? std::unordered_set<std::string>{} : reads_of(module);
-      const bool is_compute                       = TofinoModuleFactory::is_compute_module(module);
-      for (const std::string &symbol : reads) {
-        auto producer_it = symbol_producer.find(symbol);
-        if (producer_it == symbol_producer.end()) {
+      for (size_t i = 0; i < path.size(); i++) {
+        const Module *module = path[i]->get_module();
+        if (!module) {
           continue;
         }
-        value_t &value = values[value_index.at(producer_it->second)];
-        int use        = INF;
-        if (is_compute) {
-          // The value lives to the op that reads it: the def whose sources name it, not the
-          // module's earliest def (a materialized operand computed a stage earlier reads only its
-          // own inputs). An op whose reads are not tracked, in the hash unit, reads at its own time.
-          const std::vector<def_t> &reader_defs = defs_of(module);
-          for (const def_t &def : reader_defs) {
-            for (const auto &[source, rotation] : resolve_sources(def)) {
-              if (source == producer_it->second) {
-                use = std::min(use, time_of(def.op_id));
-              }
-            }
+        // Only a hash chain's values live in slots; a compute op off every chain (the clock and
+        // delta arithmetic feeding the cookie) keeps its metadata variable, where nothing slices
+        // it, and reaches the chain through the hash unit like any other outside value. What it
+        // reads of the chain is read all the same: an exit xor holds its words to its own stage,
+        // or the next rotate takes one of them first.
+        const bool off_core =
+            TofinoModuleFactory::is_compute_module(module) && !TofinoModuleFactory::is_hash_chain_node(ep->get_bdd(), module->get_node());
+        // A module that leaves its node to be processed again (a cut: the node's own module comes
+        // next, on the far side) reads nothing itself; counting the node's reads here, at a module
+        // with no placed data structure, would hold the values to the end of the path.
+        const Module *next  = i + 1 < path.size() ? path[i + 1]->get_module() : nullptr;
+        const bool cut_here = next && next->get_node() == module->get_node();
+        // Reads first: a value read here lives at least to this module's time.
+        const std::unordered_set<std::string> reads = cut_here ? std::unordered_set<std::string>{} : reads_of(module);
+        const bool is_compute                       = TofinoModuleFactory::is_compute_module(module);
+        for (const std::string &symbol : reads) {
+          auto producer_it = symbol_producer.find(symbol);
+          if (producer_it == symbol_producer.end()) {
+            continue;
           }
-          if (use >= INF) {
+          value_t &value = values[value_index.at(producer_it->second)];
+          int use        = INF;
+          if (is_compute) {
+            // The value lives to the op that reads it: the def whose sources name it, not the
+            // module's earliest def (a materialized operand computed a stage earlier reads only its
+            // own inputs). An op whose reads are not tracked, in the hash unit, reads at its own time.
+            const std::vector<def_t> &reader_defs = defs_of(module);
             for (const def_t &def : reader_defs) {
-              if (def.sources.empty()) {
-                use = std::min(use, time_of(def.op_id));
+              for (const auto &[source, rotation] : resolve_sources(def)) {
+                if (source == producer_it->second) {
+                  use = std::min(use, time_of(def.op_id));
+                }
+              }
+            }
+            if (use >= INF) {
+              for (const def_t &def : reader_defs) {
+                if (def.sources.empty()) {
+                  use = std::min(use, time_of(def.op_id));
+                }
               }
             }
           }
-        }
-        // A compute module with no value of its own (its result is not a plain symbol) reads at
-        // its action's stage, like any other module with a placed data structure.
-        if (use >= INF) {
-          if (const TofinoModule *reader = dynamic_cast<const TofinoModule *>(module)) {
-            // A table or a register reads the value at its stage. A module that placed nothing (a
-            // gateway, a hand-off to the controller) reads it at a stage the pipeline does not
-            // know: the value lives to the end of the path.
-            const std::unordered_set<DS_ID> dss = reader->get_generated_ds();
-            int last                            = -1;
-            for (const DS_ID &ds : dss) {
-              last = std::max(last, pipeline.get_placed_stage(ds));
-            }
-            if (!dss.empty() && last >= 0) {
-              use = pass * STRIDE + last;
+          // A compute module with no value of its own (its result is not a plain symbol) reads at
+          // its action's stage, like any other module with a placed data structure.
+          if (use >= INF) {
+            if (const TofinoModule *reader = dynamic_cast<const TofinoModule *>(module)) {
+              // A table or a register reads the value at its stage. A module that placed nothing (a
+              // gateway, a hand-off to the controller) reads it at a stage the pipeline does not
+              // know: the value lives to the end of the path.
+              const std::unordered_set<DS_ID> dss = reader->get_generated_ds();
+              int last                            = -1;
+              for (const DS_ID &ds : dss) {
+                last = std::max(last, pipeline.get_placed_stage(ds));
+              }
+              if (!dss.empty() && last >= 0) {
+                use = pass * STRIDE + last;
+              }
             }
           }
+          if (use >= INF && Walk::enabled()) {
+            std::cerr << "[homes] " << module->get_name() << " at node " << module->get_node()->get_id() << " holds " << symbol << " to the end\n";
+          }
+          if (!is_compute) {
+            value.read_elsewhere = true;
+          }
+          value.to = std::max(value.to, use);
         }
-        if (use >= INF && Walk::enabled()) {
-          std::cerr << "[homes] " << module->get_name() << " at node " << module->get_node()->get_id() << " holds " << symbol << " to the end\n";
+        if (off_core) {
+          continue; // Its own values stay in metadata: no slot, no def here.
         }
-        if (!is_compute) {
-          value.read_elsewhere = true;
+        // A temporary is read by its own module's ops: it lives to the last of those that read it
+        // (a shift rotate's operand to the halves, the halves to the or), or, for a hash op whose
+        // reads are not tracked, to the module's last op.
+        const std::vector<def_t> defs = defs_of(module);
+        int module_time               = -1;
+        std::unordered_map<std::string, int> read_within;
+        for (const def_t &def : defs) {
+          module_time = std::max(module_time, time_of(def.op_id));
+          for (const auto &[source, rotation] : resolve_sources(def)) {
+            read_within[source] = std::max(read_within.count(source) ? read_within.at(source) : -1, time_of(def.op_id));
+          }
         }
-        value.to = std::max(value.to, use);
-      }
-      if (off_core) {
-        continue; // Its own values stay in metadata: no slot, no def here.
-      }
-      // A temporary is read by its own module's ops: it lives to the last of those that read it
-      // (a shift rotate's operand to the halves, the halves to the or), or, for a hash op whose
-      // reads are not tracked, to the module's last op.
-      const std::vector<def_t> defs = defs_of(module);
-      int module_time               = -1;
-      std::unordered_map<std::string, int> read_within;
-      for (const def_t &def : defs) {
-        module_time = std::max(module_time, time_of(def.op_id));
-        for (const auto &[source, rotation] : resolve_sources(def)) {
-          read_within[source] = std::max(read_within.count(source) ? read_within.at(source) : -1, time_of(def.op_id));
-        }
-      }
-      for (const def_t &def : defs) {
-        const int time = time_of(def.op_id);
-        auto index_it  = value_index.find(def.op_id);
-        // Defined in an earlier pass: a loop's iteration running where an earlier one ran
-        // (loop_key_t) defines the value again, in a range of its own on the same slot.
-        if (index_it != value_index.end() && values[index_it->second].pass == pass) {
-          // Defined already: a shared action holding several of this module's ops, or the op
-          // node of an expression a rotate's operand computed first, which names that value.
-          value_t &value = values[index_it->second];
-          if (value.def.symbol.empty() && !def.symbol.empty()) {
-            value.def.symbol            = def.symbol;
-            value.def.out               = def.out;
+        for (const def_t &def : defs) {
+          const int time = time_of(def.op_id);
+          auto index_it  = value_index.find(def.op_id);
+          // Defined in an earlier pass: a loop's iteration running where an earlier one ran
+          // (loop_key_t) defines the value again, in a range of its own on the same slot.
+          if (index_it != value_index.end() && values[index_it->second].pass == pass) {
+            // Defined already: a shared action holding several of this module's ops, or the op
+            // node of an expression a rotate's operand computed first, which names that value.
+            value_t &value = values[index_it->second];
+            if (value.def.symbol.empty() && !def.symbol.empty()) {
+              value.def.symbol            = def.symbol;
+              value.def.out               = def.out;
+              symbol_producer[def.symbol] = def.op_id;
+            }
+            for (const auto &source : resolve_sources(def)) {
+              if (std::find(value.sources.begin(), value.sources.end(), source) == value.sources.end()) {
+                value.sources.push_back(source);
+                slot_readers[source.first].emplace_back(def.op_id, source.second, egress_pass);
+              }
+            }
+            continue;
+          }
+          value_index[def.op_id] = values.size();
+          values.push_back({def, time,
+                            def.symbol.empty() ? std::max(time, read_within.count(def.op_id) ? read_within.at(def.op_id) : module_time) : time,
+                            slot_fields.contains(def.op_id), egress_pass, resolve_sources(def)});
+          values.back().pass = pass;
+          for (const auto &[source, rotation] : values.back().sources) {
+            slot_readers[source].emplace_back(def.op_id, rotation, egress_pass);
+          }
+          if (!def.symbol.empty()) {
             symbol_producer[def.symbol] = def.op_id;
           }
-          for (const auto &source : resolve_sources(def)) {
-            if (std::find(value.sources.begin(), value.sources.end(), source) == value.sources.end()) {
-              value.sources.push_back(source);
-              slot_readers[source.first].emplace_back(def.op_id, source.second, egress_pass);
-            }
-          }
-          continue;
         }
-        value_index[def.op_id] = values.size();
-        values.push_back({def, time,
-                          def.symbol.empty() ? std::max(time, read_within.count(def.op_id) ? read_within.at(def.op_id) : module_time) : time,
-                          slot_fields.contains(def.op_id), egress_pass, resolve_sources(def)});
-        values.back().pass = pass;
-        for (const auto &[source, rotation] : values.back().sources) {
-          slot_readers[source].emplace_back(def.op_id, rotation, egress_pass);
-        }
-        if (!def.symbol.empty()) {
-          symbol_producer[def.symbol] = def.op_id;
-        }
-      }
-      // The other ops of a shared action this module calls write their slots at the call.
-      for (const def_t &def : defs) {
-        if (const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(def.op_id)) {
-          const ComputeAction *action = dynamic_cast<const ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(reuse->action));
-          for (const compute_op_t &op : action->ops) {
-            if (op.id != reuse->op.id) {
-              foreign_writes.emplace_back(op.id, pass * STRIDE + pipeline.get_placed_stage(reuse->action));
+        // The other ops of a shared action this module calls write their slots at the call.
+        for (const def_t &def : defs) {
+          if (const std::optional<compute_reuse_t> reuse = tofino_ctx->get_compute_reuse(def.op_id)) {
+            const ComputeAction *action = dynamic_cast<const ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(reuse->action));
+            for (const compute_op_t &op : action->ops) {
+              if (op.id != reuse->op.id) {
+                foreign_writes.emplace_back(op.id, pass * STRIDE + pipeline.get_placed_stage(reuse->action));
+              }
             }
           }
         }
-      }
-      if (module->get_type() == ModuleType::Tofino_SendToEgress || module->get_type() == ModuleType::Tofino_Recirculate) {
-        pass++;
-        egress_pass = module->get_type() == ModuleType::Tofino_SendToEgress;
-      }
-    }
-
-    std::vector<value_t> slotted;
-    for (const value_t &value : values) {
-      if (value.def.width % 8 == 0 && value.def.width <= 64) {
-        slotted.push_back(value);
-      }
-    }
-    allocate(slotted, foreign_writes);
-
-    if (Walk::enabled()) {
-      std::set<code_t> ingress_slots, egress_slots;
-      for (const value_t &value : slotted) {
-        (value.egress ? egress_slots : ingress_slots).insert(slot_fields.at(value.def.op_id).name);
-      }
-      std::cerr << "[homes] path of " << path.size() << " nodes: " << slotted.size() << " slotted values, " << (values.size() - slotted.size())
-                << " of other widths; slots: ingress " << ingress_slots.size() << ", egress " << egress_slots.size() << "\n";
-      for (const value_t &value : slotted) {
-        std::cerr << "  " << slot_fields.at(value.def.op_id).name << " <- " << value.def.op_id
-                  << (value.def.symbol.empty() ? "" : " (" + value.def.symbol + ")") << " [" << value.from << ", "
-                  << (value.to >= INF ? std::string("end") : std::to_string(value.to)) << "]" << (value.fixed ? " fixed" : "")
-                  << (value.egress ? " egress" : "");
-        for (const auto &[op_id, rotation] : value.sources) {
-          auto found_it = slot_fields.find(op_id);
-          std::cerr << " " << (found_it != slot_fields.end() ? found_it->second.name : op_id) << ":" << rotation;
+        if (module->get_type() == ModuleType::Tofino_SendToEgress || module->get_type() == ModuleType::Tofino_Recirculate) {
+          pass++;
+          egress_pass = module->get_type() == ModuleType::Tofino_SendToEgress;
         }
-        std::cerr << "\n";
+      }
+
+      if (measuring) {
+        for (const value_t &value : values) {
+          int &life = longest_life[value.def.op_id + "#" + std::to_string(value.pass)];
+          life      = std::max(life, value.to >= INF ? INF : value.to - value.from);
+        }
+        continue;
+      }
+      std::vector<value_t> slotted;
+      for (value_t &value : values) {
+        if (const int life = longest_life.at(value.def.op_id + "#" + std::to_string(value.pass)); value.to < INF) {
+          value.to = life >= INF ? INF : std::max(value.to, value.from + life);
+        }
+        if (value.def.width % 8 == 0 && value.def.width <= 64) {
+          slotted.push_back(value);
+        }
+      }
+      allocate(slotted, foreign_writes);
+
+      if (Walk::enabled()) {
+        std::set<code_t> ingress_slots, egress_slots;
+        for (const value_t &value : slotted) {
+          (value.egress ? egress_slots : ingress_slots).insert(slot_fields.at(value.def.op_id).name);
+        }
+        std::cerr << "[homes] path of " << path.size() << " nodes: " << slotted.size() << " slotted values, " << (values.size() - slotted.size())
+                  << " of other widths; slots: ingress " << ingress_slots.size() << ", egress " << egress_slots.size() << "\n";
+        for (const value_t &value : slotted) {
+          std::cerr << "  " << slot_fields.at(value.def.op_id).name << " <- " << value.def.op_id
+                    << (value.def.symbol.empty() ? "" : " (" + value.def.symbol + ")") << " [" << value.from << ", "
+                    << (value.to >= INF ? std::string("end") : std::to_string(value.to)) << "]" << (value.fixed ? " fixed" : "")
+                    << (value.egress ? " egress" : "");
+          for (const auto &[op_id, rotation] : value.sources) {
+            auto found_it = slot_fields.find(op_id);
+            std::cerr << " " << (found_it != slot_fields.end() ? found_it->second.name : op_id) << ":" << rotation;
+          }
+          std::cerr << "\n";
+        }
       }
     }
   }
