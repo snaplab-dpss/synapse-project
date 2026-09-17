@@ -1202,25 +1202,32 @@ expr_groups_t get_expr_groups(klee::ref<klee::Expr> expr) {
     expr = simplify(expr);
   }
 
-  while (expr->getKind() == klee::Expr::Concat) {
-    klee::ref<klee::Expr> lhs = expr->getKid(0);
-    klee::ref<klee::Expr> rhs = expr->getKid(1);
+  // The leaves of the concat tree, most significant first. Concats are usually right-leaning (what
+  // concat_lsb builds), but a BDD can carry a left-leaning one: SmartCookie reads packet bytes
+  // 268..271 as ((b0.b1).b2).b3. Walking only the right spine reported such a left subtree as one
+  // anonymous group, so the header-field inference never saw those bytes used together.
+  std::vector<klee::ref<klee::Expr>> leaves;
+  std::vector<klee::ref<klee::Expr>> pending{expr};
+  while (!pending.empty()) {
+    klee::ref<klee::Expr> current = pending.back();
+    pending.pop_back();
 
-    assert(lhs->getKind() != klee::Expr::Concat && "Nested concats");
-
-    if (lhs->getKind() == klee::Expr::Read) {
-      process_read(lhs);
-    } else {
-      process_not_read(lhs);
+    if (current->getKind() == klee::Expr::Concat) {
+      // Pushed least significant first, so the most significant is popped next.
+      pending.push_back(current->getKid(1));
+      pending.push_back(current->getKid(0));
+      continue;
     }
 
-    expr = rhs;
+    leaves.push_back(current);
   }
 
-  if (expr->getKind() == klee::Expr::Read) {
-    process_read(expr);
-  } else {
-    process_not_read(expr);
+  for (klee::ref<klee::Expr> leaf : leaves) {
+    if (leaf->getKind() == klee::Expr::Read) {
+      process_read(leaf);
+    } else {
+      process_not_read(leaf);
+    }
   }
 
   return groups;
