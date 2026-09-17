@@ -36,7 +36,11 @@ std::optional<rotation_t> get_rotation(const BDD *bdd, const BDDNode *node) {
 
   klee::ref<klee::Expr> x = call.args.at("x").expr;
   klee::ref<klee::Expr> n = call.args.at("n").expr;
-  if (!is_constant(n) || TofinoModuleFactory::reads_pending_write_borrow_value(node, x)) {
+  // A constant rotated by a constant is itself a compile-time constant, and RotateLeft emits it as
+  // a literal -- that is what its `!is_constant(x)` in_hash rule is for. Computing it here instead
+  // would spend three ops across two stages on a number known before the switch sees a packet, so
+  // do not offer the shift form for it at all.
+  if (!is_constant(n) || is_constant(x) || TofinoModuleFactory::reads_pending_write_borrow_value(node, x)) {
     return {};
   }
 
@@ -47,7 +51,8 @@ std::optional<rotation_t> get_rotation(const BDD *bdd, const BDDNode *node) {
   }
 
   rotation_t rotation{x, amount, call.ret, {}};
-  rotation.operands = TofinoModuleFactory::get_operands_to_compute(build_op_id(node, ""), {{"_x", x}}, bdd, TofinoModuleFactory::OutsideOperands::Load);
+  rotation.operands =
+      TofinoModuleFactory::get_operands_to_compute(build_op_id(node, ""), {{"_x", x}}, bdd, TofinoModuleFactory::OutsideOperands::Load);
   return rotation;
 }
 

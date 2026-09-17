@@ -40,6 +40,7 @@ def main() -> None:
     parser.add_argument("--profile", default="profiles/smartcookie-f40000-c0-unif.json")
     parser.add_argument("--synapse", default="synapse/build/bin/synapse")
     parser.add_argument("--break", dest="breakpoints", type=int, nargs="*", default=[])
+    parser.add_argument("--synapse-arg", action="append", default=[], help="extra flag passed through to synapse (repeatable)")
     args = parser.parse_args()
 
     out = Path(args.dir)
@@ -49,7 +50,7 @@ def main() -> None:
     breakpoints = set(args.breakpoints)
 
     cmd = [args.synapse, "--in", args.bdd, "--config", args.config, "--heuristic", "max-tput", "--profile", args.profile, "--seed", "0",
-           "--out", str(out), "--name", args.name, "--walk", str(decisions)]
+           "--out", str(out), "--name", args.name, "--walk", str(decisions)] + args.synapse_arg
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=open(out / "walk.out", "w"), stderr=subprocess.PIPE, text=True, bufsize=1)
 
     block = []
