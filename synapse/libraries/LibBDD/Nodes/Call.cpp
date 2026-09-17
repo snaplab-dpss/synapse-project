@@ -420,17 +420,27 @@ bool Call::guess_struct_fields_from_expr(klee::ref<klee::Expr> expr, expr_struct
                                         candidates_sorter](const expr_groups_t &expr_groups) -> std::vector<field_candidate_t> {
     std::vector<field_candidate_t> sorted_candidates;
 
+    // A big-endian read of a multi-byte field reaches us as single-byte groups at rising offsets:
+    // get_expr_groups only joins falling ones, which is what makes a group a little-endian read.
+    // Bytes an expression uses side by side are one use of the field, so a run of them is one
+    // candidate (a TCP sequence number, not four one-byte fields).
+    bool in_byte_run = false;
     for (const expr_group_t &group : expr_groups) {
-      if (!group.has_symbol || group.symbol != target_symbol) {
+      if (!group.has_symbol || group.symbol != target_symbol || group.offset < expr_offset || group.offset >= expr_offset + expr_size) {
+        in_byte_run = false;
         continue;
       }
 
-      if (group.offset >= expr_offset && group.offset < expr_offset + expr_size) {
-        const bytes_t offset = group.offset - expr_offset;
-        const bytes_t size   = std::min(group.size, expr_offset + expr_size - group.offset);
+      const bytes_t offset = group.offset - expr_offset;
+      const bytes_t size   = std::min(group.size, expr_offset + expr_size - group.offset);
 
-        sorted_candidates.emplace_back(offset, size);
+      if (in_byte_run && size == 1 && sorted_candidates.back().offset + sorted_candidates.back().size == offset) {
+        sorted_candidates.back().size++;
+        continue;
       }
+
+      sorted_candidates.emplace_back(offset, size);
+      in_byte_run = size == 1;
     }
 
     std::sort(sorted_candidates.begin(), sorted_candidates.end(), candidates_sorter);
