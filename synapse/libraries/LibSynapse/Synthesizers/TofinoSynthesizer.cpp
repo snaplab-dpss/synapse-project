@@ -2692,7 +2692,8 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
   constexpr int STRIDE = 64;
   // The 32-bit words one gress may write or read in the chain: one PHV group's normal containers
   // (tofino/exp-compute/README.md, "How many sliced fields fit").
-  constexpr size_t WORD_BUDGET = 12;
+  constexpr size_t WORD_BUDGET     = 12;
+  constexpr size_t MIN_WORD_BUDGET = 8; // The ground truth's count: four state words and four temporaries.
   struct value_t {
     def_t def;
     int from;
@@ -3243,6 +3244,11 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
         state_slots_used[undo.width]--;
       }
     };
+    // The words a gress may touch, for the search below: it asks for few first. A group's twelve
+    // containers are the ceiling, not the target: the packet words the chain reads on the ALU sit
+    // in the same group, its four mocha containers first and the normal ones past that, and how
+    // many there will be is only known once the statements are written (check_state_word_budget).
+    size_t budget          = WORD_BUDGET;
     const auto over_budget = [&](const value_t &value, const candidate_t &c) {
       size_t count = 0;
       for (const auto &[egress, word] : words_used) {
@@ -3251,7 +3257,7 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       for (const code_t &word : touched_words(value, slot_name(value.def.width, c.index))) {
         count += words_used.contains({value.egress, word}) ? 0 : 1;
       }
-      return count > WORD_BUDGET;
+      return count > budget;
     };
 
     // A depth-first search over the path's values in their order, each taking its best slot
@@ -3368,7 +3374,14 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       }
       return false;
     };
-    if (!search(0)) {
+    bool found = false;
+    for (budget = MIN_WORD_BUDGET; budget <= WORD_BUDGET && !found; budget++) {
+      nodes = 0;
+      found = search(0);
+    }
+    budget -= found ? 1 : 0;
+    if (!found) {
+      budget = WORD_BUDGET;
       if (Walk::enabled()) {
         std::cerr << "[homes] no assignment within " << WORD_BUDGET << " words per gress after " << nodes << " nodes; taking the greedy one\n";
       }
@@ -3380,7 +3393,7 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
         take_unit(unit, fitting.empty() ? candidate_t{state_slots_used[values[unit.front()].def.width], true} : fitting.front());
       }
     } else if (Walk::enabled()) {
-      std::cerr << "[homes] assignment within " << WORD_BUDGET << " words per gress after " << nodes << " nodes\n";
+      std::cerr << "[homes] assignment within " << budget << " words per gress after " << nodes << " nodes\n";
     }
     for (const value_t &value : values) {
       if (!value.fixed) {
