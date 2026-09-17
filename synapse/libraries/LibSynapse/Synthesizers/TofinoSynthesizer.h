@@ -314,6 +314,7 @@ private:
     bool in_hash;
   };
   std::unordered_map<DS_ID, std::unordered_map<std::string, action_statement_t>> action_statements; // Action -> op -> its statement.
+  mutable std::optional<std::unordered_set<std::string>> loop_step_ops;                             // The op ids of every loop's steps.
   std::unordered_map<DS_ID, bool> action_in_egress;                                                 // Action -> the control declaring it.
   std::unordered_map<DS_ID, std::vector<std::vector<std::string>>> action_variants;                 // Action -> the parts called, in order.
   // Actions called before their declaring path was emitted: whether they fold away is only known
@@ -454,6 +455,13 @@ private:
   // Every op of this action emitted an empty statement, so emit_compute_run declared nothing:
   // calling it would name a declaration the program does not have.
   bool compute_action_folded(const DS_ID &action) const;
+  // `action` holds a loop's step: the op that changes a state value between two iterations, which
+  // writes the word of the state it changes (the words are by role). An op of the iteration before
+  // it can still read that word in the step's own stage -- the hardware hands both the old value --
+  // but P4 statements run in order, so the step's call goes after the stage's other calls.
+  bool overwrites_loop_state(const DS_ID &action) const;
+  // Compute actions in the order their calls are written: by stage, a stage's loop steps last.
+  bool called_before(const DS_ID &a, const DS_ID &b) const;
   // The symbols anything past the cut at `cut_node` still uses: what a BDD node reachable from it
   // reads, plus what a later hand-off to the controller ships. `next` is the cut's continuation.
   std::unordered_set<std::string> live_symbols_past(const EP *ep, const BDDNode *cut_node, const EPNode *next) const;

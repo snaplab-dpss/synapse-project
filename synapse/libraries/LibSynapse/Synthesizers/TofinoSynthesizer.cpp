@@ -3929,7 +3929,9 @@ void TofinoSynthesizer::synthesize() {
       };
       struct piece_t {
         int stage;
-        int rank; // 0: a block's piece up to a call; 1: a call of the run; 2: a block's code after its last call.
+        // 0: a block's piece up to a call; 1: a call of the run; 2: a piece or a call of a loop's step
+        // (overwrites_loop_state); 3: a block's code after its last call.
+        int rank;
         size_t order;
         std::optional<size_t> arm;
         code_t code;
@@ -4005,15 +4007,19 @@ void TofinoSynthesizer::synthesize() {
           std::smatch m;
           if (depth == 0 && std::regex_match(line, m, call_line)) {
             if (const int call_stage = stage_of_action(m[1].str()); call_stage >= 0) {
-              stage = std::max(stage, call_stage);
-              flush(0);
+              // A variant (_v0) runs a part of its action: the step, if the action holds one.
+              const code_t called  = m[1].str();
+              const size_t variant = called.rfind("_v");
+              const DS_ID action   = action_called(called).value_or(variant != code_t::npos ? called.substr(0, variant) : called);
+              stage                = std::max(stage, call_stage);
+              flush(overwrites_loop_state(action) ? 2 : 0);
             }
           }
         }
-        flush(2);
+        flush(3);
       }
       for (const DS_ID &action : merged_calls) {
-        pieces.push_back({stage_of_action(action), 1, order++, std::nullopt, "", action});
+        pieces.push_back({stage_of_action(action), overwrites_loop_state(action) ? 2 : 1, order++, std::nullopt, "", action});
       }
       std::stable_sort(pieces.begin(), pieces.end(),
                        [](const piece_t &a, const piece_t &b) { return std::tie(a.stage, a.rank, a.order) < std::tie(b.stage, b.rank, b.order); });
@@ -8186,7 +8192,6 @@ void TofinoSynthesizer::emit_action_variants(const TofinoContext *tofino_ctx) {
 void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
   using compute_operand_t         = TofinoModuleFactory::compute_operand_t;
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
-  const Pipeline &pipeline        = tofino_ctx->get_tna().pipeline;
 
   // A site: a compute run, by its first step, with the actions of its own ops, the actions of
   // other paths' ops it calls, and the pass it runs in (the cut it starts at; none for the first).
@@ -8390,8 +8395,7 @@ void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
   for (auto &[key, group] : groups) {
     shared_run_t run;
     run.actions = group.actions;
-    std::stable_sort(run.actions.begin(), run.actions.end(),
-                     [&pipeline](const DS_ID &a, const DS_ID &b) { return pipeline.get_placed_stage(a) < pipeline.get_placed_stage(b); });
+    std::stable_sort(run.actions.begin(), run.actions.end(), [this](const DS_ID &a, const DS_ID &b) { return called_before(a, b); });
     std::set<const EPNode *> firsts;
     for (const size_t id : group.site_ids) {
       firsts.insert(sites[id].first);
@@ -8593,8 +8597,7 @@ void TofinoSynthesizer::plan_shared_runs(const EP *ep) {
     shared_runs.push_back(run);
   };
   const auto sorted_by_stage = [&](std::vector<DS_ID> actions) {
-    std::stable_sort(actions.begin(), actions.end(),
-                     [&pipeline](const DS_ID &a, const DS_ID &b) { return pipeline.get_placed_stage(a) < pipeline.get_placed_stage(b); });
+    std::stable_sort(actions.begin(), actions.end(), [this](const DS_ID &a, const DS_ID &b) { return called_before(a, b); });
     return actions;
   };
   for (size_t x = 0; x < sites.size(); x++) {
@@ -8805,6 +8808,38 @@ bool TofinoSynthesizer::compute_action_folded(const DS_ID &action) const {
   return statements_it == action_statements.end() || statements_it->second.empty();
 }
 
+bool TofinoSynthesizer::overwrites_loop_state(const DS_ID &action) const {
+  const TofinoContext *tofino_ctx = target_ep->get_ctx().get_target_ctx<TofinoContext>();
+  if (!loop_step_ops) {
+    loop_step_ops.emplace();
+    for (const LibBDD::loop_t &loop : target_ep->get_ctx().get_loops(target_ep->get_bdd()).loops) {
+      for (const LibBDD::loop_step_t &step : loop.steps) {
+        if (const LibBDD::Call *call = dynamic_cast<const LibBDD::Call *>(target_ep->get_bdd()->get_node_by_id(step.node))) {
+          loop_step_ops->insert(call->get_call().function_name + "_" + std::to_string(step.node));
+        }
+      }
+    }
+  }
+  if (loop_step_ops->empty() || !tofino_ctx->get_data_structures().has(action)) {
+    return false;
+  }
+  const ComputeAction *compute_action = dynamic_cast<const ComputeAction *>(tofino_ctx->get_data_structures().get_ds_from_id(action));
+  if (!compute_action) {
+    return false;
+  }
+  return std::any_of(compute_action->ops.begin(), compute_action->ops.end(), [&](const compute_op_t &op) { return loop_step_ops->contains(op.id); });
+}
+
+bool TofinoSynthesizer::called_before(const DS_ID &a, const DS_ID &b) const {
+  const Pipeline &pipeline = target_ep->get_ctx().get_target_ctx<TofinoContext>()->get_tna().pipeline;
+  const int stage_a        = pipeline.get_placed_stage(a);
+  const int stage_b        = pipeline.get_placed_stage(b);
+  if (stage_a != stage_b) {
+    return stage_a < stage_b;
+  }
+  return !overwrites_loop_state(a) && overwrites_loop_state(b);
+}
+
 std::vector<code_t> TofinoSynthesizer::shared_run_calls(const shared_run_t &run) const {
   const TofinoContext *tofino_ctx = target_ep->get_ctx().get_target_ctx<TofinoContext>();
   std::vector<code_t> calls;
@@ -8877,7 +8912,6 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     bool hash_rotate = false; // A rotate by a non-byte amount: only the hash unit can do it.
   };
   const TofinoContext *tofino_ctx = ep->get_ctx().get_target_ctx<TofinoContext>();
-  const Pipeline &pipeline        = tofino_ctx->get_tna().pipeline;
 
   // (time >> k) with k >= 16: the data plane keeps time as ingress_mac_tstamp[47:16] (32 bits
   // of 2^16 ns units, see the parser), so the value is meta.time >> (k - 16); that remaining
@@ -9478,8 +9512,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       action_ids.push_back(action_id);
     }
   }
-  std::stable_sort(action_ids.begin(), action_ids.end(),
-                   [&pipeline](const DS_ID &a, const DS_ID &b) { return pipeline.get_placed_stage(a) < pipeline.get_placed_stage(b); });
+  std::stable_sort(action_ids.begin(), action_ids.end(), [this](const DS_ID &a, const DS_ID &b) { return called_before(a, b); });
 
   coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
