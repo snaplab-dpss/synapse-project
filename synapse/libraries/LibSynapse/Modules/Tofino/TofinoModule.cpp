@@ -1090,7 +1090,12 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
         const int stage = pipeline.find_stage_for_compute_action(&probe, {});
         return (stage >= 0 && stage < shared_stage) ? stage : -1;
       };
-      bool fits = true;
+      // A match that needs a move is declined: the move writes the shared field's word, and the word
+      // planner (TofinoSynthesizer::plan_value_homes) knows nothing of moves, so on the moving path
+      // it hands that word to other values between the move and the shared action. Rewriting the
+      // placed op has two more holes: a path that already reuses it gets no move, and an op holding
+      // its value inline no longer finds it by name. All three computed a wrong hash on SmartCookie.
+      bool fits = match->moved_there.empty() && match->moved_here.empty();
       // Every value this match lines up has to end up in the shared action, or the claim that it
       // shares a field is one nothing will honour: the word assignment would look for it in a
       // field this path never writes.
