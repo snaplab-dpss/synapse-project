@@ -1,0 +1,235 @@
+// scy-b1-onefree with the byte rotates of its seven two-rotation pairs through the hash unit (one @in_hash per action: the extra ones in companion actions called first)
+// scy-b1 re-homed in one pool by liveness WITHOUT the rotation rule (rehome3.py --no-rule), state header parsed on port 6
+#include <core.p4>
+#include <t2na.p4>
+header hdr0_h {
+  bit<32> data0;
+  bit<32> data1;
+  bit<32> data2;
+  bit<16> data3;
+}
+header hdr1_h {
+  bit<32> data0;
+  bit<32> data1;
+  bit<32> data2;
+  bit<32> data3;
+  bit<32> data4;
+}
+header hdr2_h {
+  bit<32> data0;
+  bit<32> data1;
+  bit<32> data2;
+  bit<16> data3;
+  bit<16> data4;
+  bit<32> data5;
+}
+header recirc_h { bit<32> f32_0; bit<32> f32_1; bit<32> f32_2; }
+header state_h {
+  bit<32> w0;
+  bit<32> w1;
+  bit<32> w2;
+  bit<32> w3;
+  bit<32> w4;
+  bit<32> w5;
+  bit<32> w6;
+  bit<32> w7;
+  bit<32> w8;
+  bit<32> s32_0;
+  bit<32> s32_1;
+  bit<32> s32_2;
+  bit<32> s32_3;
+  bit<32> s32_4;
+  bit<32> s32_5;
+  bit<32> s32_6;
+  bit<32> s32_7;
+  bit<32> s32_8;
+  bit<32> s32_9;
+  bit<32> s32_10;
+}
+struct headers_t { hdr0_h hdr0; hdr1_h hdr1; hdr2_h hdr2; recirc_h recirc; state_h st; }
+struct meta_t { bit<32> cond_operand_90_0_out; bit<32> op_xor_345_out; }
+parser IgParser(packet_in pkt, out headers_t hdr, out meta_t meta, out ingress_intrinsic_metadata_t ig_intr_md) {
+  state start { pkt.extract(ig_intr_md); pkt.advance(PORT_METADATA_SIZE); pkt.extract(hdr.hdr0); pkt.extract(hdr.hdr1); pkt.extract(hdr.hdr2); pkt.extract(hdr.recirc); transition select(ig_intr_md.ingress_port) { 6: parse_st; default: accept; } }
+  state parse_st { pkt.extract(hdr.st); transition accept; }
+}
+control IgDeparser(packet_out pkt, inout headers_t hdr, in meta_t meta, in ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md) { apply { pkt.emit(hdr); } }
+control Ig(inout headers_t hdr, inout meta_t meta, in ingress_intrinsic_metadata_t ig_intr_md, in ingress_intrinsic_metadata_from_parser_t ig_prsr_md,
+           inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md, inout ingress_intrinsic_metadata_for_tm_t ig_tm_md) {
+  action init() { hdr.st.setValid(); }
+  action compute_op_add_281() {
+    hdr.st.w8 = hdr.st.w0 + hdr.st.w1;
+    hdr.st.w1 = hdr.st.w2 ^ hdr.st.w0;
+  }
+  action compute_op_add_285_b() {
+    @in_hash { hdr.st.w0 = hdr.hdr2.data1; }
+  }
+  action compute_op_add_285() {
+    hdr.st.w3 = 32w0xffffffff + hdr.st.w0;
+  }
+  action compute_rotate_left_53_x() {
+    hdr.st.w1 = (hdr.st.w0) ^ (hdr.st.w3);
+  }
+  action compute_op_xor_345() {
+    @in_hash { meta.op_xor_345_out = hdr.recirc.f32_1 ^ hdr.recirc.f32_2; }
+  }
+  action compute_cond_operand_90_0() {
+    meta.cond_operand_90_0_out = (hdr.recirc.f32_0) - (meta.op_xor_345_out);
+  }
+  action compute_rotate_left_107() {
+    hdr.st.s32_0 = 32w2225785509;
+  }
+  action compute_rotate_left_108_x() {
+    @in_hash { hdr.st.s32_1 = (32w0x3b355c4b) ^ (hdr.hdr1.data3); }
+    hdr.st.s32_2 = 32w3399118710;
+  }
+  action compute_rotate_left_108() {
+    hdr.st.s32_3 = hdr.st.s32_1[23:0] ++ hdr.st.s32_1[31:24];
+    hdr.st.s32_4 = (32w0x6f76ca9a) ^ (hdr.st.s32_0);
+    hdr.st.s32_5 = 32w0x5d476351 + hdr.st.s32_1;
+  }
+  action compute_rotate_left_110() {
+    @in_hash { hdr.st.s32_0 = hdr.st.s32_4[18:0] ++ hdr.st.s32_4[31:19]; }
+    hdr.st.s32_6 = (hdr.st.s32_3) ^ (hdr.st.s32_5);
+    hdr.st.s32_7 = hdr.st.s32_1 + hdr.st.s32_4;
+  }
+  action compute_rotate_left_111() {
+    @in_hash { hdr.st.s32_1 = hdr.st.s32_6[24:0] ++ hdr.st.s32_6[31:25]; }
+    hdr.st.s32_3 = (32w0x5d476351) + (hdr.st.s32_7);
+    hdr.st.s32_4 = hdr.st.s32_2 + hdr.st.s32_6;
+  }
+  action compute_rotate_left_112() {
+    hdr.st.s32_2 = hdr.st.s32_3[15:0] ++ hdr.st.s32_3[31:16];
+    hdr.st.s32_5 = (hdr.st.s32_0) ^ (hdr.st.s32_3);
+    hdr.st.s32_6 = (hdr.st.s32_1) ^ (hdr.st.s32_4);
+  }
+  action compute_rotate_left_113() {
+    @in_hash { hdr.st.s32_0 = hdr.st.s32_5[26:0] ++ hdr.st.s32_5[31:27]; }
+    hdr.st.s32_1 = hdr.st.s32_6[23:0] ++ hdr.st.s32_6[31:24];
+    hdr.st.s32_3 = (hdr.st.s32_4) + (hdr.st.s32_5);
+    hdr.st.s32_7 = hdr.st.s32_2 + hdr.st.s32_6;
+  }
+  action compute_rotate_left_115() {
+    hdr.st.s32_2 = hdr.st.s32_3[15:0] ++ hdr.st.s32_3[31:16];
+    hdr.st.s32_4 = (hdr.st.s32_0) ^ (hdr.st.s32_3);
+    hdr.st.s32_5 = (hdr.st.s32_1) ^ (hdr.st.s32_7);
+  }
+  action compute_rotate_left_116() {
+    @in_hash { hdr.st.s32_0 = hdr.st.s32_4[18:0] ++ hdr.st.s32_4[31:19]; }
+  }
+  action compute_rotate_left_117() {
+    @in_hash { hdr.st.s32_3 = hdr.st.s32_5[24:0] ++ hdr.st.s32_5[31:25]; }
+    hdr.st.s32_6 = (hdr.st.s32_7) + (hdr.st.s32_4);
+  }
+  action compute_rotate_left_118() {
+    hdr.st.s32_5 = hdr.st.s32_6[15:0] ++ hdr.st.s32_6[31:16];
+  }
+  action compute_rotate_left_143_x() {
+    hdr.st.w2 = (hdr.st.w3) ^ (hdr.st.w1);
+    hdr.st.w1 = hdr.st.w4 + hdr.st.w8;
+  }
+  action compute_op_xor_399() {
+    hdr.st.w0 = hdr.st.w5 ^ hdr.st.w1;
+    hdr.st.w4 = hdr.st.w1 ^ hdr.st.w6;
+  }
+  action compute_rotate_left_143() {
+    @in_hash { hdr.st.w1 = hdr.st.w2[26:0] ++ hdr.st.w2[31:27]; }
+    hdr.st.w5 = (hdr.st.w4) + (hdr.st.w2);
+  }
+  action select_unrolled__54() {
+    @in_hash { hdr.st.s32_1 = hdr.hdr2.data1; }
+  }
+  action compute_rotate_left_144_x() {
+    @in_hash { hdr.st.w2 = (hdr.st.w0) ^ (hdr.st.w3); }
+    hdr.st.w4 = (hdr.st.w1) ^ (hdr.st.w5);
+  }
+
+  action compute_rotate_left_144_x_hx0() {
+    @in_hash { hdr.st.w0 = hdr.st.w5[15:0] ++ hdr.st.w5[31:16]; }
+  }
+  action compute_rotate_left_144() {
+    @in_hash { hdr.st.w1 = hdr.st.w2[23:0] ++ hdr.st.w2[31:24]; }
+    hdr.st.w6 = hdr.st.w7 + hdr.st.w2;
+  }
+
+  action compute_rotate_left_144_hx0() {
+    @in_hash { hdr.st.w5 = hdr.st.w4[18:0] ++ hdr.st.w4[31:19]; }
+  }
+  action compute_rotate_left_147_x() {
+    hdr.st.w2 = (hdr.st.w1) ^ (hdr.st.w6);
+    hdr.st.w1 = (hdr.st.w6) + (hdr.st.w4);
+  }
+  action compute_rotate_left_148() {
+    @in_hash { hdr.st.w4 = hdr.st.w1[15:0] ++ hdr.st.w1[31:16]; }
+    hdr.st.w6 = (hdr.st.w5) ^ (hdr.st.w1);
+    hdr.st.w1 = hdr.st.w0 + hdr.st.w2;
+  }
+  action compute_rotate_left_147() {
+    @in_hash { hdr.st.w0 = hdr.st.w2[24:0] ++ hdr.st.w2[31:25]; }
+  }
+  action compute_rotate_left_149() {
+    @in_hash { hdr.st.w2 = hdr.st.w6[26:0] ++ hdr.st.w6[31:27]; }
+    hdr.st.w5 = (hdr.st.w1) + (hdr.st.w6);
+  }
+  action compute_rotate_left_150_x() {
+    hdr.st.w6 = (hdr.st.w0) ^ (hdr.st.w1);
+    @in_hash { hdr.st.w0 = hdr.st.w5[15:0] ++ hdr.st.w5[31:16]; }
+    hdr.st.w1 = (hdr.st.w2) ^ (hdr.st.w5);
+  }
+  action compute_rotate_left_150() {
+    @in_hash { hdr.st.w2 = hdr.st.w6[23:0] ++ hdr.st.w6[31:24]; }
+    hdr.st.w7 = hdr.st.w4 + hdr.st.w6;
+  }
+
+  action compute_rotate_left_150_hx0() {
+    @in_hash { hdr.st.w5 = hdr.st.w1[18:0] ++ hdr.st.w1[31:19]; }
+  }
+  action compute_rotate_left_153_x() {
+    hdr.st.w4 = (hdr.st.w2) ^ (hdr.st.w7);
+    hdr.st.w2 = (hdr.st.w7) + (hdr.st.w1);
+  }
+  action compute_rotate_left_153() {
+    @in_hash { hdr.st.w1 = hdr.st.w4[24:0] ++ hdr.st.w4[31:25]; }
+    hdr.st.w7 = (hdr.st.w5) ^ (hdr.st.w2);
+    hdr.st.w2 = hdr.st.w0 + hdr.st.w4;
+  }
+
+  action compute_rotate_left_153_hx0() {
+    @in_hash { hdr.st.w6 = hdr.st.w2[15:0] ++ hdr.st.w2[31:16]; }
+  }
+  action compute_rotate_left_155() {
+    @in_hash { hdr.st.w0 = hdr.st.w7[26:0] ++ hdr.st.w7[31:27]; }
+    hdr.st.w4 = (hdr.st.w1) ^ (hdr.st.w2);
+  }
+  action compute_op_xor_417() {
+    @in_hash { hdr.st.w1 = hdr.st.w2 ^ hdr.st.w3; }
+  }
+  action compute_rotate_left_156() {
+    @in_hash { hdr.st.w2 = hdr.st.w4[23:0] ++ hdr.st.w4[31:24]; }
+    hdr.st.w3 = (hdr.st.w1) + (hdr.st.w7);
+    hdr.st.w1 = hdr.st.w6 + hdr.st.w4;
+  }
+  action compute_rotate_left_157() {
+    hdr.st.w4 = hdr.st.w3[15:0] ++ hdr.st.w3[31:16];
+    hdr.st.w5 = (hdr.st.w0) ^ (hdr.st.w3);
+    hdr.st.w0 = (hdr.st.w2) ^ (hdr.st.w1);
+  }
+  action compute_rotate_left_158() {
+    @in_hash { hdr.st.w2 = hdr.st.w5[18:0] ++ hdr.st.w5[31:19]; }
+  }
+  action compute_rotate_left_159() {
+    @in_hash { hdr.st.w2 = hdr.st.w0[24:0] ++ hdr.st.w0[31:25]; }
+    hdr.st.w0 = (hdr.st.w1) + (hdr.st.w5);
+  }
+  action compute_rotate_left_160() {
+    @in_hash { hdr.st.w1 = hdr.st.w0[15:0] ++ hdr.st.w0[31:16]; }
+  }
+  action fin() { hdr.st.setInvalid(); ig_tm_md.ucast_egress_port = 1; }
+  apply { init(); if (ig_intr_md.ingress_port == 2) { compute_op_add_281(); compute_op_add_285_b(); compute_rotate_left_143_x(); compute_op_add_285(); compute_op_xor_399(); compute_rotate_left_53_x(); compute_rotate_left_143(); compute_rotate_left_144_x(); compute_rotate_left_144(); compute_rotate_left_147_x(); compute_rotate_left_148(); compute_rotate_left_147(); compute_rotate_left_149(); compute_rotate_left_150_x(); compute_rotate_left_150(); compute_rotate_left_153_x(); compute_rotate_left_153(); compute_rotate_left_155(); compute_op_xor_417(); compute_rotate_left_156(); compute_rotate_left_157(); compute_rotate_left_158(); compute_rotate_left_159(); compute_rotate_left_160(); } fin(); }
+}
+parser EgParser(packet_in pkt, out headers_t hdr, out meta_t meta, out egress_intrinsic_metadata_t eg_intr_md) { state start { pkt.extract(eg_intr_md); transition accept; } }
+control Eg(inout headers_t hdr, inout meta_t meta, in egress_intrinsic_metadata_t eg_intr_md, in egress_intrinsic_metadata_from_parser_t eg_prsr_md,
+           inout egress_intrinsic_metadata_for_deparser_t eg_dprsr_md, inout egress_intrinsic_metadata_for_output_port_t eg_oport_md) { apply {} }
+control EgDeparser(packet_out pkt, inout headers_t hdr, in meta_t meta, in egress_intrinsic_metadata_for_deparser_t eg_dprsr_md) { apply { pkt.emit(hdr); } }
+Pipeline(IgParser(), Ig(), IgDeparser(), EgParser(), Eg(), EgDeparser()) pipe;
+Switch(pipe) main;
+
