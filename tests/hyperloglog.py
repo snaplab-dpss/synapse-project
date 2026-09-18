@@ -155,7 +155,10 @@ def test(ports: Ports) -> None:
     flows = [build_flow() for _ in range(40)]
     run_flow(ports, models, port, flows[0])
 
-    step("40 distinct flows on pipe 0: every estimate matches the model exactly (this also confirms CRC32 matches the C's hash choice)")
+    # In the linear-counting regime the estimate depends only on how many estimators are hit, so the
+    # switch's hash (and its byte order) is only observed here through collisions among these flows;
+    # the 300-flow step below is the real check of it.
+    step("40 distinct flows on pipe 0: every estimate matches the model exactly")
     for flow in flows[1:]:
         run_flow(ports, models, port, flow)
     print(f"    pipe 0: nonzero estimators = {models[0].nonzero}, estimate = {LC_OFFSET - int(math.log(NUM_ESTIMATORS - models[0].nonzero) * NUM_ESTIMATORS)}")
