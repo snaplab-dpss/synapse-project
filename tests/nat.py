@@ -34,12 +34,13 @@ NF = "nat-f40000-c0-unif-hmax-tput"
 
 # The C puts the index little-endian on the wire (see above). Synapse deliberately writes it
 # big-endian (ModifyHeaderFactory::process_node reverses the bytes of new_index/allocated_index
-# symbols so the dataplane's big-endian read of the port on the way back stays consistent).
-# NAT_INDEX_BYTE_ORDER=big checks the rest of the NAT under synapse's convention.
-INDEX_BYTE_ORDER = environ.get("NAT_INDEX_BYTE_ORDER", "little")
+# symbols so the dataplane's big-endian read of the port on the way back stays consistent), and
+# that convention is the default here: NAT_INDEX_BYTE_ORDER=little checks the C's.
+INDEX_BYTE_ORDER = environ.get("NAT_INDEX_BYTE_ORDER", "big")
 # The controller-managed dchain hands out indexes 0, 1, 2, ... in order; a dataplane FCFS cached
-# table (high-churn max-tput solutions) allocates the slot by hash, so that check does not apply.
-SEQUENTIAL_INDEXES = environ.get("NAT_SEQUENTIAL_INDEXES", "1") == "1"
+# table (the max-tput solution under test) allocates the slot by hash, so that check does not
+# apply by default: NAT_SEQUENTIAL_INDEXES=1 turns it on for a controller-allocated solution.
+SEQUENTIAL_INDEXES = environ.get("NAT_SEQUENTIAL_INDEXES", "0") == "1"
 
 PUBLIC_IP = "1.2.3.4"
 LAN_PORTS = [p for p in NF_PORTS if p % 2 == 1]
