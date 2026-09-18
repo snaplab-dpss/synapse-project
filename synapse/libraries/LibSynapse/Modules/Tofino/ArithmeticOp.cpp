@@ -45,8 +45,9 @@ struct step_t {
 // time_shift), copied out of the intrinsic's metadata field.
 bool copies_clock(const BDD *bdd, klee::ref<klee::Expr> value) {
   std::string symbol;
-  return value->getKind() == klee::Expr::LShr && LibCore::is_constant(value->getKid(1)) && LibCore::solver_toolbox.value_from_expr(value->getKid(1)) == 16 &&
-         LibCore::is_readLSB(value->getKid(0), symbol) && symbol == bdd->get_time().name;
+  return value->getKind() == klee::Expr::LShr && LibCore::is_constant(value->getKid(1)) &&
+         LibCore::solver_toolbox.value_from_expr(value->getKid(1)) == 16 && LibCore::is_readLSB(value->getKid(0), symbol) &&
+         symbol == bdd->get_time().name;
 }
 
 step_t build_step(const BDD *bdd, const BDDNode *node) {
@@ -92,8 +93,8 @@ step_t build_step(const BDD *bdd, const BDDNode *node) {
     step.op.in_hash = true;
   }
   const TofinoModuleFactory::OutsideOperands mode = step.op.in_hash ? TofinoModuleFactory::OutsideOperands::Inline
-                                                   : chain           ? TofinoModuleFactory::OutsideOperands::Load
-                                                                     : TofinoModuleFactory::OutsideOperands::Keep;
+                                                    : chain         ? TofinoModuleFactory::OutsideOperands::Load
+                                                                    : TofinoModuleFactory::OutsideOperands::Keep;
   step.operands                                   = TofinoModuleFactory::get_operands_to_compute(step.op.id, kids, bdd, mode);
   for (const auto &[_, kid] : kids) {
     const bool computed = std::any_of(step.operands.begin(), step.operands.end(), [&](const auto &operand) { return operand.expr == kid; });
@@ -135,6 +136,9 @@ std::optional<spec_impl_t> ArithmeticOpFactory::speculate(const EP *ep, const BD
 std::vector<impl_t> ArithmeticOpFactory::process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const {
   if (!matches(node)) {
     return {};
+  }
+  if (const std::optional<std::string> due = TofinoModuleFactory::loop_cut_due(ep, node)) {
+    return decline(*due);
   }
 
   step_t step = build_step(ep->get_bdd(), node);

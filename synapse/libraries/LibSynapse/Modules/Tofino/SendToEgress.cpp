@@ -11,39 +11,6 @@ namespace {
 // Crossing into egress is only worth considering once the ingress has real work in it.
 constexpr size_t MIN_MODULES_BEFORE_EGRESS_CROSSING = 8;
 
-// Calls backed by a data structure -- a table or a register. The egress control this backend
-// emits holds compute actions and nothing else, so a crossing taken while one of these is still
-// ahead strands it: the plan can then only spend a lap getting back to the ingress, or hand the
-// packet to the controller. Measured on SmartCookie, where crossing before the bloom filter's
-// vector_borrow had the lookahead offloading that one node 1500 times.
-//
-// This is why the hand-written solution does its stateful work first and crosses after it.
-const std::unordered_set<std::string> ds_backed_calls{
-    "vector_borrow",
-    "vector_return",
-    "map_get",
-    "map_put",
-    "map_erase",
-    "dchain_allocate_new_index",
-    "dchain_free_index",
-    "dchain_rejuvenate_index",
-    "dchain_is_index_allocated",
-    "cms_increment",
-    "cms_count_min",
-    "cms_periodic_cleanup",
-    "bf_set",
-    "bf_query",
-    "tb_expire",
-    "tb_trace",
-    "tb_update_and_check",
-    "tb_is_tracing",
-    "lpm_lookup",
-    "lpm_update",
-    "expire_items_single_map",
-    "expire_items_single_map_iteratively",
-    "cht_find_preferred_available_backend",
-};
-
 } // namespace
 
 std::optional<spec_impl_t> SendToEgressFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
@@ -57,9 +24,10 @@ std::optional<spec_impl_t> SendToEgressFactory::speculate(const EP *ep, const BD
   // Measured: with a candidate here the search made 0 steps in 150 s where it otherwise makes 161.
   // This is the same reason Recirculate returns nothing, stated more precisely than its comment.
   //
-  // The crossing's value reaches the search through the compute-run capacity ladder in
-  // TofinoModule.cpp instead: when the pipeline fills, a free fresh context is tried before a
-  // recirculation is charged, so a plan that can use the egress is predicted to need fewer laps.
+  // The crossing's value reaches the search through the compute-run lookahead in TofinoModule.cpp
+  // instead: where the plan would cut an unrolled loop (loop_cut_due), and when the pipeline
+  // fills, a free fresh context is tried before a recirculation is charged, so a plan that can
+  // use the egress there is predicted to need fewer laps.
   return {};
 }
 
@@ -175,36 +143,7 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   // much: measured, it was turning down 15 crossings against 8 accepted, including the ones
   // partway down the SipHash chain that the hand-written solution takes, whose own path has no
   // data structure ahead at all.
-  const auto unavoidable_ds_ahead = [](const BDDNode *from) {
-    std::vector<const BDDNode *> stack{from};
-    std::unordered_set<bdd_node_id_t> seen;
-    while (!stack.empty()) {
-      const BDDNode *n = stack.back();
-      stack.pop_back();
-      if (!n || !seen.insert(n->get_id()).second) {
-        continue;
-      }
-      if (n->get_type() == BDDNodeType::Call && ds_backed_calls.contains(static_cast<const LibBDD::Call *>(n)->get_call().function_name)) {
-        continue; // This way forward hits one; look at the others.
-      }
-      if (n->get_type() == BDDNodeType::Route) {
-        return false; // Reached a route without meeting one: a clean way forward exists.
-      }
-      if (n->get_type() == BDDNodeType::Branch) {
-        const LibBDD::Branch *branch = static_cast<const LibBDD::Branch *>(n);
-        stack.push_back(branch->get_on_true());
-        stack.push_back(branch->get_on_false());
-        continue;
-      }
-      if (!n->get_next()) {
-        return false; // Ran out of nodes without meeting one.
-      }
-      stack.push_back(n->get_next());
-    }
-    return true;
-  };
-
-  if (unavoidable_ds_ahead(node)) {
+  if (TofinoModuleFactory::data_structure_call_ahead(node)) {
     return decline("every way forward runs into a data-structure call before a route");
   }
   if (!work_remains) {

@@ -149,6 +149,9 @@ std::vector<impl_t> RotateLeftShiftsFactory::process_node(const EP *ep, const BD
   if (!rotation) {
     return {};
   }
+  if (const std::optional<std::string> due = TofinoModuleFactory::loop_cut_due(ep, node)) {
+    return decline(*due);
+  }
   // The fallback for a rotation the hash unit cannot take: three ALU ops over two stages, and
   // two temporaries, where the hash rotate is one op in one stage. Where the hash rotate fits,
   // the two only tie in the score (the lookahead is the same from here), and a search picking
