@@ -122,7 +122,9 @@ bool crossed_this_pass(const EP *ep, const BDDNode *node, const speculations_t &
     }
   }
 
-  for (const EPNode *prev = ep->get_active_leaf().node; prev; prev = prev->get_prev()) {
+  // The plan's nodes on this node's own path: the lookahead visits nodes of several paths, and a
+  // crossing on the active leaf's path says nothing about another branch's pass.
+  for (const EPNode *prev = ep->get_leaf_ep_node_from_bdd_node(node); prev; prev = prev->get_prev()) {
     const Module *module = prev->get_module();
     if (!module || module->get_target() != TargetType::Tofino) {
       break;
@@ -921,6 +923,30 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
         }
         break;
       }
+      // The lookahead's own steps are in no plan node: the producing node's op is looked up by
+      // the id it was placed under, in the context the lookahead placed it in. Without this the
+      // lookahead recomputes every such operand from scratch, an op and a hash op per rotate that
+      // the plan never has, and its passes come out fuller than the plan's.
+      if (!full_placer) {
+        if (const LibBDD::Call *producer_call = dynamic_cast<const LibBDD::Call *>(ep->get_bdd()->get_node_by_id(value_it->second))) {
+          const std::string producer_id           = producer_call->get_call().function_name + "_" + std::to_string(value_it->second);
+          std::optional<compute_reuse_t> original = ctx->get_compute_reuse(producer_id);
+          for (const auto &[action_id, ds] : ctx->get_data_structures().get_data_per_id()) {
+            const ComputeAction *action = original ? nullptr : dynamic_cast<const ComputeAction *>(ds);
+            for (const compute_op_t &placed : action ? action->ops : std::vector<compute_op_t>{}) {
+              if (placed.id == producer_id) {
+                original = compute_reuse_t{action_id, placed, {}};
+              }
+            }
+          }
+          if (original) {
+            ctx->reuse_compute_op(canonical, *original, /*same_path=*/true);
+            placed_ops.insert({op.id, original->action});
+            GlobalStats::num_compute_ops_deduped++;
+            return original->action;
+          }
+        }
+      }
     }
   }
 
@@ -988,8 +1014,14 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
 
   // An iteration of an unrolled loop where one placed in another pass, or in another loop with the
   // same body, sits at the same key (loop_key_t): its action, when the operands line up.
-  const std::optional<loop_place_t> loop_place =
-      ep ? find_loop_place(ep, node, op, pipeline.get_gress() == Gress::Egress) : std::optional<loop_place_t>();
+  std::optional<loop_place_t> loop_place = ep ? find_loop_place(ep, node, op, pipeline.get_gress() == Gress::Egress) : std::optional<loop_place_t>();
+  // The lookahead keys every iteration at offset 0: it assumes the sharing a plan that cuts the
+  // loop at its period (loop_cut_due) achieves, which the search then builds, and it does so
+  // without placing the whole loop at one offset per iteration, which fits nowhere and sent every
+  // candidate to the controller before.
+  if (loop_place && !full_placer) {
+    loop_place->key.offset = 0;
+  }
   if (loop_place) {
     const loops_t &loops = ep->get_ctx().get_loops(ep->get_bdd());
     for (const compute_reuse_t &candidate : ctx->find_loop_originals(loop_place->key)) {
@@ -1453,6 +1485,11 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
     } else if (new_pass) {
       // A new pass that is not a crossing is a recirculation: back through the ingress.
       tofino_ctx->get_mutable_tna().pipeline.back_to_ingress();
+    } else {
+      // The gress is the node's own pass's, as the search syncs it from each leaf's ancestry
+      // (TofinoContext::sync_active_leaf): the lookahead visits nodes of several paths with one
+      // context, and a crossing on one path must not charge the other path's ops to the egress.
+      tofino_ctx->get_mutable_tna().pipeline.set_gress(crossed_this_pass(ep, node, speculations) ? Gress::Egress : Gress::Ingress);
     }
     ComputeStepBuilder builder{.node         = node,
                                .ctx          = tofino_ctx,
@@ -1463,7 +1500,8 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
                                .actions      = {},
                                .placed_ops   = {},
                                .path_actions = path_compute_actions(ep, &speculations),
-                               .why          = {}};
+                               .why          = {},
+                               .ep           = ep};
 
     // The steps of the run see the ones placed before them (run_specs notes each as it goes).
     speculations_t run_specs = speculations;
@@ -1604,6 +1642,11 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP 
     } else if (new_pass) {
       // A new pass that is not a crossing is a recirculation: back through the ingress.
       tofino_ctx->get_mutable_tna().pipeline.back_to_ingress();
+    } else {
+      // The gress is the node's own pass's, as the search syncs it from each leaf's ancestry
+      // (TofinoContext::sync_active_leaf): the lookahead visits nodes of several paths with one
+      // context, and a crossing on one path must not charge the other path's ops to the egress.
+      tofino_ctx->get_mutable_tna().pipeline.set_gress(crossed_this_pass(ep, node, speculations) ? Gress::Egress : Gress::Ingress);
     }
     ComputeStepBuilder builder{.node         = node,
                                .ctx          = tofino_ctx,
@@ -1614,7 +1657,8 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_step(const EP 
                                .actions      = {},
                                .placed_ops   = {},
                                .path_actions = path_compute_actions(ep, &speculations),
-                               .why          = {}};
+                               .why          = {},
+                               .ep           = ep};
     const std::optional<DS_ID> out = build(builder);
     if (!out) {
       return {};
