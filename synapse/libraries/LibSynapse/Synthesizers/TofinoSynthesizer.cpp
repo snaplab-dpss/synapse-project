@@ -6009,10 +6009,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // name, not a field path and not a call.
   static const std::regex local_name(R"((?:^|[^\w.])([A-Za-z_]\w*)\b(?![.(\w]))");
   const auto reads_local = [](const code_t &statement) { return std::regex_search(statement, local_name); };
-  // So does one assembling a field from slices of another variable (HyperLogLog's
-  // `data3 = hdr_val1[23:16] ++ hdr_val1[31:24] ++ ...`): each slice is a PHV source, an action
-  // takes two, and the writes beside it make bf-p4c pack the slices together. Slices of the field
-  // written are its own bytes, kept.
+  // One assembling a field from slices of another variable (HyperLogLog's
+  // `data3 = hdr_val1[23:16] ++ hdr_val1[31:24] ++ ...`) goes through the hash unit, on its own:
+  // each slice is a PHV source an ALU action would have to align with the field's bytes, which
+  // only ever held when the PHV allocation happened to place them so ("too many sources" once
+  // anything else moved), while the hash unit reads the bits in any arrangement and writes the
+  // field whole. Slices of the field written are its own bytes, kept.
   static const std::regex assignment_parts(R"(^([\w.]+)(?:\[\d+:\d+\])?\s*=\s*(.*)$)");
   static const std::regex slice_read(R"(([A-Za-z_][\w.]*)\[\d+:\d+\])");
   const auto reads_other_slices = [](const code_t &statement) {
@@ -6032,7 +6034,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   std::vector<code_t> rewrite = swap_assignments;
   std::vector<code_t> bare;
   for (const code_t &assignment : assignments) {
-    const bool alone = assignment.rfind("@in_hash", 0) == 0 || reads_local(assignment) || reads_other_slices(assignment);
+    const bool in_hash = assignment.rfind("@in_hash", 0) == 0;
+    if (!in_hash && reads_other_slices(assignment)) {
+      bare.push_back("@in_hash { " + assignment + " }");
+      continue;
+    }
+    const bool alone = in_hash || reads_local(assignment);
     (alone ? bare : rewrite).push_back(assignment);
   }
   const code_t rewrite_action_name = "rewrite_" + std::to_string(node->get_node()->get_id());
