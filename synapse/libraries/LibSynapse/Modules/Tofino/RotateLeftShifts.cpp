@@ -1,4 +1,5 @@
 #include <LibSynapse/Modules/Tofino/RotateLeftShifts.h>
+#include <LibSynapse/Modules/Tofino/RotateLeft.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibCore/Expr.h>
@@ -147,6 +148,16 @@ std::vector<impl_t> RotateLeftShiftsFactory::process_node(const EP *ep, const BD
   std::optional<rotation_t> rotation = get_rotation(ep->get_bdd(), node);
   if (!rotation) {
     return {};
+  }
+  // The fallback for a rotation the hash unit cannot take: three ALU ops over two stages, and
+  // two temporaries, where the hash rotate is one op in one stage. Where the hash rotate fits,
+  // the two only tie in the score (the lookahead is the same from here), and a search picking
+  // between equals at random took the shift form at a third of SmartCookie's rotates, which cost
+  // it the stages and the state words the plan had spare.
+  std::string hash_why;
+  if (implement_compute_step(
+          ep, node, [&](ComputeStepBuilder &builder) { return RotateLeftFactory::place(builder, ep, node, nullptr); }, &hash_why)) {
+    return decline("the hash unit takes this rotation");
   }
 
   std::optional<placed_t> placed;
