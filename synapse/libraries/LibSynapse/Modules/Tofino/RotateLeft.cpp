@@ -53,8 +53,9 @@ std::optional<rotation_t> get_rotation(const BDD *bdd, const BDDNode *node) {
       .out     = call.ret,
       .in_hash = amount % 8 != 0 && !is_constant(x), // A rotated constant is emitted as a constant; a byte-aligned rotate is a bare byte swap.
   };
-  rotation.operands = TofinoModuleFactory::get_operands_to_compute(
-      rotation.op.id, {{"_x", x}}, bdd, rotation.op.in_hash ? TofinoModuleFactory::OutsideOperands::Inline : TofinoModuleFactory::OutsideOperands::Load);
+  rotation.operands = TofinoModuleFactory::get_operands_to_compute(rotation.op.id, {{"_x", x}}, bdd,
+                                                                   rotation.op.in_hash ? TofinoModuleFactory::OutsideOperands::Inline
+                                                                                       : TofinoModuleFactory::OutsideOperands::Load);
   return rotation;
 }
 
@@ -91,6 +92,9 @@ std::vector<impl_t> RotateLeftFactory::process_node(const EP *ep, const BDDNode 
   std::optional<rotation_t> rotation = get_rotation(ep->get_bdd(), node);
   if (!rotation) {
     return {};
+  }
+  if (const std::optional<std::string> due = TofinoModuleFactory::loop_cut_due(ep, node)) {
+    return decline(*due);
   }
 
   std::string why;

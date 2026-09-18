@@ -113,6 +113,23 @@ public:
   static bool is_compute_module(const Module *module);
   // A BDD node that is a stateless compute step (an op_* call or a rotate_left).
   static bool is_compute_node(const BDDNode *node);
+  // An unrolled loop is cut at its period: the passes then all run the same iterations, sharing
+  // one action set per gress and keeping every pass's carried state alike (the emitted rounds
+  // have no holes). The period is the loop's own, the distance between its step groups (SipHash
+  // takes a message word every two rounds); past the last group, every period of iterations.
+  // The reason a cut is due at `node`, when one is: the pass holds a period of a loop and this
+  // node is the first past that iteration -- a compute module declines here, so the cut is what
+  // the search takes. Nothing is due at a loop's last iteration, or in a loop with no steps.
+  // With `speculations`, the lookahead's own steps count as the pass's, and a pass boundary it
+  // predicted (a crossing or a recirculation) ends the pass as a placed one does.
+  // `pass_start` names a node the lookahead has cut at but not yet recorded as a decision: the
+  // first node of the run being speculated, when that run opened a new pass.
+  static std::optional<std::string> loop_cut_due(const EP *ep, const BDDNode *node, const speculations_t *speculations = nullptr,
+                                                 const BDDNode *pass_start = nullptr);
+  // Every way forward from `from` meets a data-structure call before a route: a crossing here
+  // would strand that work in the egress, which holds no tables or registers, so the crossing
+  // module refuses it (SendToEgress) and the lookahead has to as well.
+  static bool data_structure_call_ahead(const BDDNode *from);
 
   // An operand of a compute op that the data plane can't read as is (an expression, not a
   // constant or a whole value): computed first as op `op_id` of the ComputeAction

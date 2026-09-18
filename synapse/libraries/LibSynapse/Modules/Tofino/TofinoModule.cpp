@@ -1232,6 +1232,167 @@ std::optional<DS_ID> TofinoModuleFactory::ComputeStepBuilder::place(const comput
   return new_action_id;
 }
 
+bool TofinoModuleFactory::data_structure_call_ahead(const BDDNode *from) {
+  // Calls backed by a data structure -- a table or a register. The egress control this backend
+  // emits holds compute actions and nothing else, so a crossing taken while one of these is still
+  // ahead strands it: the plan can then only spend a lap getting back to the ingress, or hand the
+  // packet to the controller. Measured on SmartCookie, where crossing before the bloom filter's
+  // vector_borrow had the lookahead offloading that one node 1500 times.
+  //
+  // This is why the hand-written solution does its stateful work first and crosses after it.
+  static const std::unordered_set<std::string> ds_backed_calls{
+      "vector_borrow",
+      "vector_return",
+      "map_get",
+      "map_put",
+      "map_erase",
+      "dchain_allocate_new_index",
+      "dchain_free_index",
+      "dchain_rejuvenate_index",
+      "dchain_is_index_allocated",
+      "cms_increment",
+      "cms_count_min",
+      "cms_periodic_cleanup",
+      "bf_set",
+      "bf_query",
+      "tb_expire",
+      "tb_trace",
+      "tb_update_and_check",
+      "tb_is_tracing",
+      "lpm_lookup",
+      "lpm_update",
+      "expire_items_single_map",
+      "expire_items_single_map_iteratively",
+      "cht_find_preferred_available_backend",
+  };
+  std::vector<const BDDNode *> stack{from};
+  std::unordered_set<bdd_node_id_t> seen;
+  while (!stack.empty()) {
+    const BDDNode *n = stack.back();
+    stack.pop_back();
+    if (!n || !seen.insert(n->get_id()).second) {
+      continue;
+    }
+    if (n->get_type() == BDDNodeType::Call) {
+      const LibBDD::Call *call    = static_cast<const LibBDD::Call *>(n);
+      const std::string &function = call->get_call().function_name;
+      // A vector_borrow that only writes, or a vector_return after a borrow that only read, does
+      // nothing in the data plane (Ignore): the access happens at the other end of the pair.
+      const bool idle = (function == "vector_borrow" && call->is_vector_write()) || (function == "vector_return" && call->is_vector_read());
+      if (ds_backed_calls.contains(function) && !idle) {
+        continue; // This way forward hits one; look at the others.
+      }
+    }
+    if (n->get_type() == BDDNodeType::Route) {
+      return false; // Reached a route without meeting one: a clean way forward exists.
+    }
+    if (n->get_type() == BDDNodeType::Branch) {
+      const LibBDD::Branch *branch = static_cast<const LibBDD::Branch *>(n);
+      stack.push_back(branch->get_on_true());
+      stack.push_back(branch->get_on_false());
+      continue;
+    }
+    if (!n->get_next()) {
+      return false; // Ran out of nodes without meeting one.
+    }
+    stack.push_back(n->get_next());
+  }
+  return true;
+}
+
+std::optional<std::string> TofinoModuleFactory::loop_cut_due(const EP *ep, const BDDNode *node, const speculations_t *speculations,
+                                                             const BDDNode *pass_start) {
+  const loops_t &loops = ep->get_ctx().get_loops(ep->get_bdd());
+  if (loops.loops.empty()) {
+    return {};
+  }
+  const auto iterations_of = [&](bdd_node_id_t id) {
+    std::vector<std::pair<size_t, size_t>> out;
+    if (const auto found_it = loops.nodes.find(id); found_it != loops.nodes.end()) {
+      for (const loop_node_t &entry : found_it->second) {
+        if (entry.role == LoopNodeRole::Iteration) {
+          out.emplace_back(entry.loop, entry.iteration);
+        }
+      }
+    }
+    return out;
+  };
+  // The iteration the pass placed last, and every iteration of its loop the pass holds.
+  std::optional<std::pair<size_t, size_t>> last;
+  std::set<size_t> held;
+  const auto count = [&](bdd_node_id_t id) {
+    for (const auto &[loop, iteration] : iterations_of(id)) {
+      if (!last) {
+        last = {loop, iteration};
+      }
+      if (loop == last->first) {
+        held.insert(iteration);
+      }
+    }
+  };
+  // The lookahead's steps come first, back along the BDD, up to a pass boundary it predicted or
+  // to the first node the plan itself placed; the plan's own nodes follow.
+  bool boundary = false;
+  if (speculations) {
+    // A run's node info marks every node the run consumed with the run's own recirculation, so
+    // the boundaries are the decisions that cut: their nodes, not the ones consumed after them.
+    std::unordered_set<bdd_node_id_t> cuts;
+    for (const spec_impl_lite_t &spec : speculations->speculations_per_node) {
+      if (spec.recirculated || spec.fresh_context) {
+        cuts.insert(spec.decision.node);
+      }
+    }
+    for (const BDDNode *n = node->get_prev(); n; n = n->get_prev()) {
+      if (!speculations->find_node_info(n->get_id())) {
+        break;
+      }
+      if (cuts.contains(n->get_id()) || n == pass_start) {
+        boundary = true;
+        break;
+      }
+      count(n->get_id());
+    }
+  }
+  for (const EPNode *ep_node = boundary ? nullptr : ep->get_leaf_ep_node_from_bdd_node(node); ep_node; ep_node = ep_node->get_prev()) {
+    const Module *module = ep_node->get_module();
+    if (!module) {
+      continue;
+    }
+    if (module->get_type() == ModuleType::Tofino_Recirculate || module->get_type() == ModuleType::Tofino_SendToEgress) {
+      break;
+    }
+    if (!module->get_node()) {
+      continue;
+    }
+    count(module->get_node()->get_id());
+  }
+  if (!last) {
+    return {};
+  }
+  const auto [loop, iteration]                      = *last;
+  const std::vector<std::pair<size_t, size_t>> here = iterations_of(node->get_id());
+  if (std::find(here.begin(), here.end(), *last) != here.end() || iteration + 1 >= loops.loops[loop].iterations.size()) {
+    return {}; // Still in that iteration, or past the loop's last one.
+  }
+  std::set<size_t> step_groups;
+  for (const LibBDD::loop_step_t &step : loops.loops[loop].steps) {
+    step_groups.insert(step.after_iteration);
+  }
+  if (step_groups.empty()) {
+    return {};
+  }
+  size_t period = std::numeric_limits<size_t>::max();
+  for (auto it = step_groups.begin(); std::next(it) != step_groups.end(); ++it) {
+    period = std::min(period, *std::next(it) - *it);
+  }
+  const bool at_step_group = step_groups.contains(iteration);
+  if (at_step_group ? held.empty() : held.size() < period) {
+    return {};
+  }
+  return "the pass holds " + std::to_string(held.size()) + " iteration(s) of loop " + std::to_string(loop) + " and iteration " +
+         std::to_string(iteration) + (at_step_group ? " ends a period (a step group follows)" : " ends a period") + ": a cut is due";
+}
+
 bool TofinoModuleFactory::is_compute_node(const BDDNode *node) {
   if (node->get_type() != BDDNodeType::Call) {
     return false;
@@ -1308,6 +1469,9 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
     speculations_t run_specs = speculations;
     attempt_t result{std::move(new_ctx), {}, {}, {}};
     for (const BDDNode *n = node; n && is_compute_node(n); n = n->get_next()) {
+      if (n != node && loop_cut_due(ep, n, &run_specs, new_pass ? node : nullptr)) {
+        break; // The run stops at the pass boundary; the cut comes with the next step's speculation.
+      }
       builder.node = n;
 
       // A step whose operand ops fit but whose own op doesn't must leave nothing behind: the
@@ -1348,11 +1512,16 @@ std::optional<spec_impl_t> TofinoModuleFactory::speculate_compute_run(const EP *
     return result;
   };
 
+  // Where the plan would cut (loop_cut_due), the lookahead cuts too, the same way the search
+  // does: the egress if this pass has not crossed and the crossing is not refused, else a lap.
+  // Without it the lookahead runs a whole loop in one pass, a plan the search never builds, and
+  // cannot tell a decision that makes the crossing possible from one that does not.
+  const bool due                  = loop_cut_due(ep, node, &speculations).has_value();
   bool recirculated               = false;
   bool crossed                    = false;
-  std::optional<attempt_t> result = attempt(false);
+  std::optional<attempt_t> result = due ? std::nullopt : attempt(false);
 
-  if (!result && !crossed_this_pass(ep, node, speculations)) {
+  if (!result && !crossed_this_pass(ep, node, speculations) && !(due && data_structure_call_ahead(node))) {
     // The ingress is used up, but the egress is a second pipeline on the same pass: the same
     // fresh placement context a recirculation would give, without costing a lap.
     result  = attempt(true, /*new_gress=*/true);
