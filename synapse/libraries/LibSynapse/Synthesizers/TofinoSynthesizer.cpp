@@ -114,12 +114,13 @@ klee::ref<klee::Expr> narrow_widened_bitop(klee::ref<klee::Expr> e) {
 
 constexpr const u16 CUCKOO_CODE_PATH = 0xffff;
 
-constexpr const char *const MARKER_CPU_HEADER       = "CPU_HEADER";
-constexpr const char *const MARKER_RECIRC_HEADER    = "RECIRCULATION_HEADER";
-constexpr const char *const MARKER_CUSTOM_HEADERS   = "CUSTOM_HEADERS";
-constexpr const char *const MARKER_INGRESS_HEADERS  = "INGRESS_HEADERS";
-constexpr const char *const MARKER_INGRESS_METADATA = "INGRESS_METADATA";
-constexpr const char *const MARKER_INGRESS_PARSER   = "INGRESS_PARSER";
+constexpr const char *const MARKER_CPU_HEADER                  = "CPU_HEADER";
+constexpr const char *const MARKER_RECIRC_HEADER               = "RECIRCULATION_HEADER";
+constexpr const char *const MARKER_CUSTOM_HEADERS              = "CUSTOM_HEADERS";
+constexpr const char *const MARKER_INGRESS_HEADERS             = "INGRESS_HEADERS";
+constexpr const char *const MARKER_INGRESS_METADATA            = "INGRESS_METADATA";
+constexpr const char *const MARKER_INGRESS_PARSER              = "INGRESS_PARSER";
+constexpr const char *const MARKER_INGRESS_PARSER_DECLARATIONS = "INGRESS_PARSER_DECLARATIONS";
 // The clock in the egress: the ingress's, carried in the egress-state header (see the crossing).
 constexpr const char *const EGRESS_TIME                         = "hdr.egress_state.time";
 constexpr const char *const MARKER_INGRESS_CONTROL              = "INGRESS_CONTROL";
@@ -2332,6 +2333,7 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_INGRESS_HEADERS, 1},
                                              {MARKER_INGRESS_METADATA, 1},
                                              {MARKER_INGRESS_PARSER, 1},
+                                             {MARKER_INGRESS_PARSER_DECLARATIONS, 1},
                                              {MARKER_INGRESS_CONTROL, 1},
                                              {MARKER_INGRESS_CONTROL_APPLY, 3},
                                              {MARKER_INGRESS_CONTROL_APPLY_RECIRC, 3},
@@ -3688,15 +3690,18 @@ void TofinoSynthesizer::synthesize() {
       assert_or_panic(ip && l4, "Checksum update without its headers extracted above it");
 
       // The deparser checksum covers whole headers: an IPv4 header without options and a TCP or
-      // UDP header. A call over anything else (nat borrows the four port bytes as its L4 header,
-      // and carries a payload) is left as it was, the checksums untouched.
-      if (ip->get_length() != 20 || (l4->get_length() != 20 && l4->get_length() != 8)) {
+      // UDP header. A chunk holding only the two ports (nat borrows four bytes as its L4 header,
+      // and carries a payload) gets the rest of the header parsed after it and its checksum
+      // updated incrementally, from what the parser leaves of the original (emit_deparser_checksums).
+      // Anything else is left as it was, the checksums untouched.
+      const bool partial = l4->get_length() == 4;
+      if (ip->get_length() != 20 || (l4->get_length() != 20 && l4->get_length() != 8 && !partial)) {
         std::cerr << "[checksum] BDD node " << module->get_node()->get_id() << ": L4 header of " << l4->get_length()
                   << " bytes, not recomputed in the deparser\n";
         continue;
       }
 
-      const checksum_site_t site{chunk_key(ip->get_hdr()), chunk_key(l4->get_hdr())};
+      const checksum_site_t site{chunk_key(ip->get_hdr()), chunk_key(l4->get_hdr()), partial};
       checksummed_chunks[site.ip_hdr]        = {true, ip->get_length()};
       checksummed_chunks[site.l4_hdr]        = {false, l4->get_length()};
       checksum_headers_of[ep_node->get_id()] = site;
@@ -4309,12 +4314,68 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
       ingress_parser.indent();
       ingress_parser << "pkt.extract(" << hdr_var->name << ");\n";
 
-      ingress_parser.indent();
-      ingress_parser << "transition " << next_state << ";\n";
+      // A field the incremental L4 checksum update subtracts has to be subtracted in the state
+      // that extracts it (bf-p4c): the addresses in the IPv4 chunk's state, the ports in theirs.
+      const std::optional<checksum_site_t> partial = partial_checksum_site_of(chunk_key(extract->hdr));
+      if (const std::optional<checksum_site_t> ip_of = partial_checksum_site_of_ip(chunk_key(extract->hdr))) {
+        for (const code_t &proto : {code_t("udp"), code_t("tcp")}) {
+          ingress_parser.indent();
+          ingress_parser << proto << "_checksum.subtract({" << hdr_field_list(hdr_fields_by_hdr.at(ip_of->ip_hdr), 12, 20) << "});\n";
+        }
+      }
+      if (!partial) {
+        ingress_parser.indent();
+        ingress_parser << "transition " << next_state << ";\n";
+      } else {
+        // The rest of the L4 header, by the protocol the IPv4 header carries, and the residual:
+        // the original checksum less the fields a rewrite may change (the addresses, the ports)
+        // and the checksum itself, over everything else including the payload the parser never
+        // sees. The deparser adds the fields back as rewritten (emit_deparser_checksums).
+        const std::vector<hdr_field_t> &ip = hdr_fields_by_hdr.at(partial->ip_hdr);
+        const std::vector<hdr_field_t> &l4 = hdr_fields_by_hdr.at(partial->l4_hdr);
+        for (const code_t &proto : {code_t("udp"), code_t("tcp")}) {
+          ingress_parser.indent();
+          ingress_parser << proto << "_checksum.subtract({" << hdr_field_list(l4, 0, 4) << "});\n";
+        }
+        ingress_parser.indent();
+        ingress_parser << "transition select (" << hdr_field_slice(ip, 9) << ") {\n";
+        ingress_parser.inc();
+        ingress_parser.indent();
+        ingress_parser << "8w0x06: " << state_name << "_tcp_rest;\n";
+        ingress_parser.indent();
+        ingress_parser << "8w0x11: " << state_name << "_udp_rest;\n";
+        ingress_parser.indent();
+        ingress_parser << "default: " << next_state << ";\n";
+        ingress_parser.dec();
+        ingress_parser.indent();
+        ingress_parser << "}\n";
+        ingress_parser.dec();
+        ingress_parser.indent();
+        ingress_parser << "}\n";
+        for (const code_t &proto : {code_t("udp"), code_t("tcp")}) {
+          const code_t rest = hdr_var->name + "_" + proto + "_rest";
+          ingress_parser.indent();
+          ingress_parser << "state " << state_name << "_" << proto << "_rest {\n";
+          ingress_parser.inc();
+          ingress_parser.indent();
+          ingress_parser << "pkt.extract(" << rest << ");\n";
+          ingress_parser.indent();
+          ingress_parser << proto << "_checksum.subtract({" << rest << ".csum});\n";
+          ingress_parser.indent();
+          ingress_parser << proto << "_checksum.subtract_all_and_deposit(meta." << proto << "_residual);\n";
+          ingress_parser.indent();
+          ingress_parser << "transition " << next_state << ";\n";
+          ingress_parser.dec();
+          ingress_parser.indent();
+          ingress_parser << "}\n";
+        }
+      }
 
-      ingress_parser.dec();
-      ingress_parser.indent();
-      ingress_parser << "}\n";
+      if (!partial) {
+        ingress_parser.dec();
+        ingress_parser.indent();
+        ingress_parser << "}\n";
+      }
 
       states.push_back(extract->next);
     } break;
@@ -5316,6 +5377,21 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     coder_t &ingress_hdrs = get(MARKER_INGRESS_HEADERS);
     ingress_hdrs.indent();
     ingress_hdrs << hdr_name << "_h " << hdr_name << ";\n";
+
+    // The ports chunk of a partial checksum site: the rest of the L4 header follows it on the
+    // wire, one header per protocol, so the deparser can write the checksum it holds.
+    if (const auto chunk_it = checksummed_chunks.find(chunk_key(node->get_hdr()));
+        chunk_it != checksummed_chunks.end() && !chunk_it->second.is_ip && chunk_it->second.length == 4) {
+      custom_hdrs.indent();
+      custom_hdrs << "header " << hdr_name << "_udp_rest_h {\n  bit<16> len;\n  bit<16> csum;\n}\n";
+      custom_hdrs.indent();
+      custom_hdrs << "header " << hdr_name
+                  << "_tcp_rest_h {\n  bit<32> seq;\n  bit<32> ack;\n  bit<16> off_flags;\n  bit<16> window;\n  bit<16> csum;\n  bit<16> urg;\n}\n";
+      ingress_hdrs.indent();
+      ingress_hdrs << hdr_name << "_udp_rest_h " << hdr_name << "_udp_rest;\n";
+      ingress_hdrs.indent();
+      ingress_hdrs << hdr_name << "_tcp_rest_h " << hdr_name << "_tcp_rest;\n";
+    }
   }
 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
@@ -5394,13 +5470,61 @@ std::set<bytes_t> TofinoSynthesizer::checksum_boundaries(const checksummed_chunk
     return {16, 18}; // TCP
   case 8:
     return {6, 8}; // UDP
+  case 4:
+    return {}; // The ports alone: the checksum sits in the rest of the header, parsed after them.
   }
   panic("Checksummed L4 header of %u bytes: neither TCP nor UDP", chunk.length);
+}
+
+std::optional<TofinoSynthesizer::checksum_site_t> TofinoSynthesizer::partial_checksum_site_of(const code_t &l4_chunk) const {
+  for (const auto &[ep_node, site] : checksum_headers_of) {
+    if (site.partial && site.l4_hdr == l4_chunk) {
+      return site;
+    }
+  }
+  return std::nullopt;
+}
+
+std::optional<TofinoSynthesizer::checksum_site_t> TofinoSynthesizer::partial_checksum_site_of_ip(const code_t &ip_chunk) const {
+  for (const auto &[ep_node, site] : checksum_headers_of) {
+    if (site.partial && site.ip_hdr == ip_chunk) {
+      return site;
+    }
+  }
+  return std::nullopt;
+}
+
+code_t TofinoSynthesizer::hdr_field_list(const std::vector<hdr_field_t> &fields, bytes_t from, bytes_t to) {
+  code_t joined;
+  bytes_t at = from;
+  for (const hdr_field_t &field : fields) {
+    if (field.offset == at && field.offset + field.width / 8 <= to) {
+      joined += (joined.empty() ? "" : ", ") + field.name;
+      at = field.offset + field.width / 8;
+    }
+  }
+  assert_or_panic(at == to, "No whole header fields for bytes [%u, %u) of a checksummed header", from, to);
+  return joined;
+}
+
+code_t TofinoSynthesizer::hdr_field_slice(const std::vector<hdr_field_t> &fields, bytes_t byte) {
+  for (const hdr_field_t &field : fields) {
+    const bytes_t end = field.offset + field.width / 8;
+    if (field.offset <= byte && byte < end) {
+      const bits_t low = (end - 1 - byte) * 8;
+      return field.name + "[" + std::to_string(low + 7) + ":" + std::to_string(low) + "]";
+    }
+  }
+  panic("No header field holds byte %u", byte);
 }
 
 void TofinoSynthesizer::emit_deparser_checksums(bool egress) {
   const std::optional<checksum_site_t> &site = egress ? egress_checksum_site : ingress_checksum_site;
   if (!site) {
+    return;
+  }
+  if (site->partial) {
+    emit_incremental_checksums(egress, *site);
     return;
   }
 
@@ -5465,6 +5589,68 @@ void TofinoSynthesizer::emit_deparser_checksums(bool egress) {
   apply << l4_csum_field[0] << " = l4_checksum.update({" << list(fields_between(ip, 12, 20)) << ", 8w0, " << list(fields_between(ip, 9, 10)) << ", "
         << md << "l4_len, " << list(concat(fields_between(l4, 0, l4_csum), fields_between(l4, l4_csum + 2, l4.back().offset + l4.back().width / 8)))
         << "});\n";
+  apply.dec();
+  apply.indent();
+  apply << "}\n";
+}
+
+// A partial site (checksum_site_t::partial): the IPv4 checksum recomputed over its whole header
+// as usual; the L4 one, whose header the parser only has the ports and the rest of, updated from
+// the residual the parser left of the original (transpile_parser) with the fields a rewrite may
+// have changed added back. Two Checksum instances, one per protocol's rest header: an instance
+// updates one field.
+void TofinoSynthesizer::emit_incremental_checksums(bool egress, const checksum_site_t &site) {
+  assert_or_panic(!egress, "An incremental checksum update is emitted in the ingress only");
+  const std::vector<hdr_field_t> &ip = hdr_fields_by_hdr.at(site.ip_hdr);
+  const std::vector<hdr_field_t> &l4 = hdr_fields_by_hdr.at(site.l4_hdr);
+  const code_t ports                 = l4.front().name.substr(0, l4.front().name.rfind('.'));
+
+  coder_t &metadata = code_template.get(MARKER_INGRESS_METADATA);
+  metadata.indent();
+  metadata << "bit<1> redo_checksum;\n";
+  metadata.indent();
+  metadata << "bit<16> l4_len;\n";
+  for (const code_t &proto : {code_t("udp"), code_t("tcp")}) {
+    metadata.indent();
+    metadata << "bit<16> " << proto << "_residual;\n";
+  }
+
+  coder_t &init = code_template.get(MARKER_INGRESS_APPLY_START);
+  init.indent();
+  init << "meta.redo_checksum = 0;\n";
+
+  coder_t &parser_decl = code_template.get(MARKER_INGRESS_PARSER_DECLARATIONS);
+  coder_t &decl        = code_template.get(MARKER_INGRESS_DEPARSER);
+  decl.indent();
+  decl << "Checksum() ipv4_checksum;\n";
+  for (const code_t &proto : {code_t("udp"), code_t("tcp")}) {
+    parser_decl.indent();
+    parser_decl << "Checksum() " << proto << "_checksum;\n";
+    decl.indent();
+    decl << "Checksum() " << proto << "_checksum;\n";
+  }
+
+  // Unconditional: the ingress deparser may not branch on metadata (bf-p4c: "must be intrinsic
+  // metadata"), and it need not, since a checksum recomputed over unchanged fields is the
+  // original. The flag flag_pending_checksum sets is left for the whole-header path.
+  coder_t &apply = code_template.get(MARKER_INGRESS_DEPARSER_APPLY);
+  apply.indent();
+  apply << "if (" << ip.front().name.substr(0, ip.front().name.rfind('.')) << ".isValid()) {\n";
+  apply.inc();
+  apply.indent();
+  apply << hdr_field_list(ip, 10, 12) << " = ipv4_checksum.update({" << hdr_field_list(ip, 0, 10) << ", " << hdr_field_list(ip, 12, 20) << "});\n";
+  for (const code_t &proto : {code_t("udp"), code_t("tcp")}) {
+    const code_t rest = ports + "_" + proto + "_rest";
+    apply.indent();
+    apply << "if (" << rest << ".isValid()) {\n";
+    apply.inc();
+    apply.indent();
+    apply << rest << ".csum = " << proto << "_checksum.update({" << hdr_field_list(ip, 12, 20) << ", " << hdr_field_list(l4, 0, 4) << ", meta."
+          << proto << "_residual});\n";
+    apply.dec();
+    apply.indent();
+    apply << "}\n";
+  }
   apply.dec();
   apply.indent();
   apply << "}\n";
