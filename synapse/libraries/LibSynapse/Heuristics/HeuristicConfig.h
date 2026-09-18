@@ -56,7 +56,18 @@ public:
     return Score(values);
   }
 
-  virtual bool operator()(const EP *e1, const EP *e2) const { return score(e1) > score(e2); }
+  // By score; on an exact tie, a plan whose last step kept the BDD's order before one whose
+  // step reordered it. A reordering is worth taking when it scores better (a lookahead that sees
+  // what it makes possible); at a tie it would only multiply equal plans, and a search picking
+  // among them at random fans out over every permutation instead of going deeper.
+  virtual bool operator()(const EP *e1, const EP *e2) const {
+    Score s1 = score(e1);
+    Score s2 = score(e2);
+    if (s1 != s2) {
+      return s1 > s2;
+    }
+    return !e1->last_step_reordered() && e2->last_step_reordered();
+  }
   virtual bool mutates(const EP *ep) const { return false; }
   virtual std::vector<heuristic_metadata_t> get_metadata(const EP *ep) const { return {}; }
 

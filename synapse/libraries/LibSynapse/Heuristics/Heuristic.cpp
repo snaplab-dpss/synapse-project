@@ -66,6 +66,7 @@ std::unique_ptr<EP> Heuristic::pop_next_unfinished() {
 void Heuristic::add(std::vector<impl_t> &&new_implementations) {
   for (impl_t &impl : new_implementations) {
     assert(impl.result && "Invalid execution plan");
+    impl.result->set_last_step_reordered(impl.bdd_reordered);
     if (impl.result->get_next_node()) {
       unfinished_eps.insert(std::move(impl.result));
     } else {
@@ -93,7 +94,10 @@ Heuristic::ep_it_t Heuristic::get_next_unfinished_it() {
   while (1) {
     const std::unique_ptr<EP> &ep = *it;
 
-    if ((it == unfinished_eps.end()) || (get_score(ep.get()) != best_score)) {
+    // The random walk stays among plans the ordering holds equal: the same score, and the same
+    // answer to whether their last step reordered the BDD (HeuristicCfg::operator()).
+    if ((it == unfinished_eps.end()) || (get_score(ep.get()) != best_score) ||
+        ep->last_step_reordered() != (*unfinished_eps.begin())->last_step_reordered()) {
       it = unfinished_eps.begin();
     }
 

@@ -44,6 +44,7 @@ private:
   ep_id_t id;
   std::shared_ptr<const BDD> bdd;
   std::unique_ptr<EPNode> root;
+  bool reordered = false; // last_step_reordered
 
   // Sorted by target priority and hit rates, from highest to lowest priority.
   // Leaves targeting the switch are prioritized over other targets.
@@ -98,6 +99,10 @@ public:
   void replace_bdd(std::unique_ptr<BDD> new_bdd, const translation_data_t &translation_data);
 
   ep_id_t get_id() const { return id; }
+  // The step that made this plan reordered the BDD: on an exact tie of scores the heuristic
+  // takes a plan that kept the NF's own order first (HeuristicCfg::operator()).
+  bool last_step_reordered() const { return reordered; }
+  void set_last_step_reordered(bool _reordered) { reordered = _reordered; }
   const BDD *get_bdd() const { return bdd.get(); }
   const EPNode *get_root() const { return root.get(); }
   const std::list<EPLeaf> &get_active_leaves() const { return active_leaves; }
