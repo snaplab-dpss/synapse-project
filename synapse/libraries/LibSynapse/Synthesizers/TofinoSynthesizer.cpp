@@ -8150,7 +8150,26 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const Hash *hash = get_tofino_ds<Hash>(ep, hash_id);
   transpile_hash_decl(hash);
 
-  const std::vector<code_t> hash_inputs = {transpiler.transpile(in)};
+  // The hash runs over the object's bytes in memory order. KLEE reads an object of several fields
+  // as one value whose high part is the field at the higher address (a struct {src, dst} of two
+  // 32-bit addresses is dst ++ src as a 64-bit value), so a concat is fed to the hash lowest part
+  // first: each part is a field holding its bytes in memory order already, the parts follow each
+  // other in the object's. Hashed as the value, dst ++ src, HyperLogLog's estimators collided on
+  // other flows than the NF's and the counts diverged at the first collision.
+  std::vector<klee::ref<klee::Expr>> parts; // Highest part first.
+  const std::function<void(klee::ref<klee::Expr>)> flatten = [&](klee::ref<klee::Expr> expr) {
+    if (expr->getKind() == klee::Expr::Concat) {
+      flatten(expr->getKid(0));
+      flatten(expr->getKid(1));
+    } else {
+      parts.push_back(expr);
+    }
+  };
+  flatten(in);
+  std::vector<code_t> hash_inputs;
+  for (auto it = parts.rbegin(); it != parts.rend(); ++it) {
+    hash_inputs.push_back(transpiler.transpile(*it));
+  }
 
   code_t hash_calculator;
   code_t hash_value;
