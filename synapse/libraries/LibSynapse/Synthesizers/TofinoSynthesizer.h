@@ -232,8 +232,16 @@ private:
   struct checksum_site_t {
     code_t ip_hdr;
     code_t l4_hdr;
+    // The L4 chunk holds only the ports (nat borrows four bytes and carries a payload): the rest
+    // of the header is parsed after it, the checksum updated incrementally from a parser residual.
+    bool partial = false;
   };
   std::unordered_map<ep_node_id_t, checksum_site_t> checksum_headers_of;
+  std::optional<checksum_site_t> partial_checksum_site_of(const code_t &l4_chunk) const;
+  std::optional<checksum_site_t> partial_checksum_site_of_ip(const code_t &ip_chunk) const;
+  static code_t hdr_field_list(const std::vector<hdr_field_t> &fields, bytes_t from, bytes_t to); // The fields covering [from, to), whole.
+  static code_t hdr_field_slice(const std::vector<hdr_field_t> &fields, bytes_t byte);            // The byte, as a slice of its field.
+  void emit_incremental_checksums(bool egress, const checksum_site_t &site);
   std::optional<checksum_site_t> ingress_checksum_site;
   std::optional<checksum_site_t> egress_checksum_site;
   // The headers a ChecksumUpdate above the node being visited covers: the flag is set where the

@@ -124,7 +124,8 @@ parser IngressParser(
   out ingress_intrinsic_metadata_t ig_intr_md
 ) {
   TofinoIngressParser() tofino_parser;
-  
+/*@{INGRESS_PARSER_DECLARATIONS}@*/
+
   /* This is a mandatory state, required by Tofino Architecture */
   state start {
     tofino_parser.apply(pkt, ig_intr_md);
