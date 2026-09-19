@@ -78,9 +78,8 @@ header scratch_h {
 header egress_state_h {
   bit<16> code_path;
   bit<32> time; // The ingress clock, ingress_mac_tstamp[47:16]: the packet's time in the egress too.
-  bit<32> vector_table_1073939616_88_get_value_param0;
-  bit<32> dev;
-  bit<32> vector_table_1073939616_105_get_value_param0;
+  bit<32> e32_0;
+  bit<32> e32_1;
 }
 
 
@@ -807,7 +806,6 @@ control Ingress(
         hdr.egress_state.setValid();
         hdr.egress_state.code_path = 1;
         hdr.egress_state.time = meta.time;
-        hdr.egress_state.vector_table_1073939616_88_get_value_param0 = hdr.egress_state.vector_table_1073939616_88_get_value_param0;
         fwd_op = fwd_op_t.RECIRCULATE;
         build_recirc_hdr(1);
       } else if (hdr.recirc.code_path == 1) {
@@ -878,7 +876,6 @@ control Ingress(
         hdr.egress_state.setValid();
         hdr.egress_state.code_path = 2;
         hdr.egress_state.time = meta.time;
-        hdr.egress_state.vector_table_1073939616_88_get_value_param0 = hdr.egress_state.vector_table_1073939616_88_get_value_param0;
         nf_dev[15:0] = bswap16(16w0x0000);
       } else if (hdr.recirc.code_path == 2) {
         // EP node  28603:ArithmeticOp
@@ -954,8 +951,6 @@ control Ingress(
         hdr.egress_state.setValid();
         hdr.egress_state.code_path = 4;
         hdr.egress_state.time = meta.time;
-        hdr.egress_state.dev = hdr.egress_state.dev;
-        hdr.egress_state.vector_table_1073939616_105_get_value_param0 = hdr.egress_state.vector_table_1073939616_105_get_value_param0;
         fwd_op = fwd_op_t.RECIRCULATE;
         build_recirc_hdr(3);
       } else if (hdr.recirc.code_path == 3) {
@@ -1026,9 +1021,7 @@ control Ingress(
         hdr.egress_state.setValid();
         hdr.egress_state.code_path = 5;
         hdr.egress_state.time = meta.time;
-        hdr.egress_state.dev = hdr.egress_state.dev;
-        hdr.egress_state.vector_table_1073939616_105_get_value_param0 = hdr.egress_state.vector_table_1073939616_105_get_value_param0;
-        nf_dev[15:0] = hdr.egress_state.dev[15:0];
+        nf_dev[15:0] = hdr.egress_state.e32_0[15:0];
       }
 
     } else {
@@ -1159,7 +1152,7 @@ control Ingress(
                   hdr.egress_state.setValid();
                   hdr.egress_state.code_path = 0;
                   hdr.egress_state.time = meta.time;
-                  hdr.egress_state.vector_table_1073939616_88_get_value_param0 = vector_table_1073939616_88_get_value_param0;
+                  hdr.egress_state.e32_0 = vector_table_1073939616_88_get_value_param0;
                   fwd_op = fwd_op_t.RECIRCULATE;
                   build_recirc_hdr(0);
                 } else {
@@ -1256,8 +1249,8 @@ control Ingress(
                   hdr.egress_state.setValid();
                   hdr.egress_state.code_path = 3;
                   hdr.egress_state.time = meta.time;
-                  hdr.egress_state.dev = meta.dev;
-                  hdr.egress_state.vector_table_1073939616_105_get_value_param0 = vector_table_1073939616_105_get_value_param0;
+                  hdr.egress_state.e32_0 = meta.dev;
+                  hdr.egress_state.e32_1 = vector_table_1073939616_105_get_value_param0;
                   fwd_op = fwd_op_t.RECIRCULATE;
                   build_recirc_hdr(2);
                 } else {
@@ -1501,7 +1494,7 @@ control Egress(
   }
 
   action compute_op_sub_333() {
-    eg_md.op_sub_333_out = hdr.egress_state.time - hdr.egress_state.vector_table_1073939616_88_get_value_param0;
+    eg_md.op_sub_333_out = hdr.egress_state.time - hdr.egress_state.e32_0;
     eg_md.op_add_335_out = 32w0xffffffff + hdr.hdr2.data2;
   }
 
@@ -1607,7 +1600,7 @@ control Egress(
   }
 
   action compute_op_sub_447() {
-    eg_md.op_sub_447_out = eg_md.op_lshr_446_out[31:0] - hdr.egress_state.vector_table_1073939616_105_get_value_param0;
+    eg_md.op_sub_447_out = eg_md.op_lshr_446_out[31:0] - hdr.egress_state.e32_1;
   }
 
   action compute_op_lshr_448() {
