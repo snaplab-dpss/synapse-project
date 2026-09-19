@@ -275,7 +275,15 @@ private:
   // and bf-p4c gives up on a cluster of a few dozen sliced fields long before the PHV is full.
   // The header crosses every cut with the packet, so a value live past one keeps its slot.
   std::unordered_map<std::string, var_t> slot_fields;
-  std::map<bits_t, size_t> state_slots_used;                           // width -> slots
+  std::map<bits_t, size_t> state_slots_used; // width -> slots
+  // The slots (by stem, s<width>_<index>) some value crosses a cut in: the state header's, which
+  // travels with the packet. The others hold in-pass temporaries only and go to the scratch
+  // header (hdr.sc), valid inside a pass and never deparsed: the recirculation ports are bit-rate
+  // bound, and every dead word carried costs throughput (SmartCookie: 11 words carried, 5 live).
+  std::set<code_t> carried_slots;
+  std::set<code_t> scratch_slots;
+  static bool is_state_word(const code_t &name) { return name.rfind("hdr.st.", 0) == 0 || name.rfind("hdr.sc.", 0) == 0; }
+  static code_t slot_stem(const code_t &name) { return name.substr(name.rfind('.') + 1); }
   std::map<std::tuple<bool, code_t, code_t>, unsigned> slot_rotations; // (egress, word, source word) -> the one rotation the word takes it at
   std::unordered_map<std::string, std::vector<std::tuple<std::string, unsigned, bool>>> slot_readers; // op -> (reader op, rotation, in egress)
   std::unordered_map<std::string, std::vector<code_t>> planned_sources;    // op -> the words the planner expects its statement to read
@@ -471,6 +479,10 @@ private:
   // Whether each gress's hash chain fits one PHV container group, from the statements written:
   // panics when it does not, as bf-p4c would only fail PHV allocation with no reason given.
   void check_state_word_budget() const;
+  // The carried words a second time, from the program as written: the state words a pass reads
+  // before it writes them are the ones the pass before it left, and no other travels. Moves the
+  // rest to the scratch header, in the text and in the hand-off layout (see carried_slots).
+  code_t refine_carried_words(const code_t &program);
   // Compute actions in the order their calls are written: by stage, a stage's loop steps last.
   bool called_before(const DS_ID &a, const DS_ID &b) const;
   // The symbols anything past the cut at `cut_node` still uses: what a BDD node reachable from it
