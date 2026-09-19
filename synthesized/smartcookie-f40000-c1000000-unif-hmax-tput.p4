@@ -56,17 +56,23 @@ header recirc_h {
 // containers: the allocator then keeps each one's slices in one container, as it does for the
 // ground truth's recirc_state, instead of spreading them and running out of PHV sources.
 header state_h {
-  bit<32> s32_0;
   bit<32> s32_1;
   bit<32> s32_2;
   bit<32> s32_3;
   bit<32> s32_4;
   bit<32> s32_5;
   bit<32> s32_6;
-  bit<32> s32_7;
+}
+
+// The chain's temporaries: header fields for the same reason, but nothing crosses a cut in
+// them, so the header is valid inside a pass only and invalidated before every deparser: it
+// never travels with the packet, whose bytes on the recirculation ports are the throughput.
+header scratch_h {
+  bit<32> s32_0;
   bit<32> s32_8;
-  bit<32> s32_9;
   bit<32> s32_10;
+  bit<32> s32_7;
+  bit<32> s32_9;
 }
 
 header egress_state_h {
@@ -126,6 +132,7 @@ struct synapse_ingress_headers_t {
   recirc_h recirc;
   cuckoo_h cuckoo;
   egress_state_h egress_state;
+  scratch_h sc;
   state_h st;
 
   hdr0_h hdr0;
@@ -159,6 +166,7 @@ struct synapse_egress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
   egress_state_h egress_state;
+  scratch_h sc;
   state_h st;
 
   hdr0_h hdr0;
@@ -551,7 +559,7 @@ control Ingress(
   }
 
   action compute_rotate_left_107() {
-    hdr.st.s32_0 = 32w2225785509;
+    hdr.sc.s32_0 = 32w2225785509;
   }
 
   action compute_rotate_left_108_x() {
@@ -564,18 +572,18 @@ control Ingress(
 
   action compute_rotate_left_108() {
     hdr.st.s32_3 = hdr.st.s32_1[23:0] ++ hdr.st.s32_1[31:24];
-    hdr.st.s32_0 = (32w0x6f66aa9a) ^ (hdr.st.s32_0);
+    hdr.sc.s32_0 = (32w0x6f66aa9a) ^ (hdr.sc.s32_0);
     hdr.st.s32_4 = 32w0x5d574351 + hdr.st.s32_1;
   }
 
   action compute_rotate_left_110() {
-    @in_hash { hdr.st.s32_5 = hdr.st.s32_0[18:0] ++ hdr.st.s32_0[31:19]; }
+    @in_hash { hdr.st.s32_5 = hdr.sc.s32_0[18:0] ++ hdr.sc.s32_0[31:19]; }
     hdr.st.s32_3 = (hdr.st.s32_3) ^ (hdr.st.s32_4);
-    hdr.st.s32_1 = hdr.st.s32_1 + hdr.st.s32_0;
+    hdr.st.s32_1 = hdr.st.s32_1 + hdr.sc.s32_0;
   }
 
   action compute_rotate_left_111() {
-    @in_hash { hdr.st.s32_0 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
+    @in_hash { hdr.sc.s32_0 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
     hdr.st.s32_2 = hdr.st.s32_2 + hdr.st.s32_3;
   }
 
@@ -586,44 +594,44 @@ control Ingress(
   action compute_rotate_left_112() {
     hdr.st.s32_6 = hdr.st.s32_1[15:0] ++ hdr.st.s32_1[31:16];
     hdr.st.s32_4 = hdr.st.s32_5 ^ hdr.st.s32_1;
-    hdr.st.s32_3 = hdr.st.s32_0 ^ hdr.st.s32_2;
+    hdr.st.s32_3 = hdr.sc.s32_0 ^ hdr.st.s32_2;
   }
 
   action compute_rotate_left_113() {
-    @in_hash { hdr.st.s32_7 = hdr.st.s32_4[26:0] ++ hdr.st.s32_4[31:27]; }
-    hdr.st.s32_8 = hdr.st.s32_3[23:0] ++ hdr.st.s32_3[31:24];
-    hdr.st.s32_9 = (hdr.st.s32_2) + (hdr.st.s32_4);
-    hdr.st.s32_10 = hdr.st.s32_6 + hdr.st.s32_3;
+    @in_hash { hdr.sc.s32_7 = hdr.st.s32_4[26:0] ++ hdr.st.s32_4[31:27]; }
+    hdr.sc.s32_8 = hdr.st.s32_3[23:0] ++ hdr.st.s32_3[31:24];
+    hdr.sc.s32_9 = (hdr.st.s32_2) + (hdr.st.s32_4);
+    hdr.sc.s32_10 = hdr.st.s32_6 + hdr.st.s32_3;
   }
 
   action compute_rotate_left_115() {
-    hdr.st.s32_0 = hdr.st.s32_9[15:0] ++ hdr.st.s32_9[31:16];
-    hdr.st.s32_4 = (hdr.st.s32_7) ^ (hdr.st.s32_9);
-    hdr.st.s32_3 = (hdr.st.s32_8) ^ (hdr.st.s32_10);
+    hdr.sc.s32_0 = hdr.sc.s32_9[15:0] ++ hdr.sc.s32_9[31:16];
+    hdr.st.s32_4 = (hdr.sc.s32_7) ^ (hdr.sc.s32_9);
+    hdr.st.s32_3 = (hdr.sc.s32_8) ^ (hdr.sc.s32_10);
   }
 
   action compute_rotate_left_116() {
-    @in_hash { hdr.st.s32_7 = hdr.st.s32_4[18:0] ++ hdr.st.s32_4[31:19]; }
+    @in_hash { hdr.sc.s32_7 = hdr.st.s32_4[18:0] ++ hdr.st.s32_4[31:19]; }
   }
 
   action compute_rotate_left_117() {
-    @in_hash { hdr.st.s32_8 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
-    hdr.st.s32_9 = (hdr.st.s32_10) + (hdr.st.s32_4);
-    hdr.st.s32_2 = hdr.st.s32_0 + hdr.st.s32_3;
+    @in_hash { hdr.sc.s32_8 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
+    hdr.sc.s32_9 = (hdr.sc.s32_10) + (hdr.st.s32_4);
+    hdr.st.s32_2 = hdr.sc.s32_0 + hdr.st.s32_3;
   }
 
   action compute_rotate_left_118() {
-    hdr.st.s32_6 = hdr.st.s32_9[15:0] ++ hdr.st.s32_9[31:16];
-    hdr.st.s32_3 = hdr.st.s32_8 ^ hdr.st.s32_2;
-    hdr.st.s32_4 = hdr.st.s32_7 ^ hdr.st.s32_9;
+    hdr.st.s32_6 = hdr.sc.s32_9[15:0] ++ hdr.sc.s32_9[31:16];
+    hdr.st.s32_3 = hdr.sc.s32_8 ^ hdr.st.s32_2;
+    hdr.st.s32_4 = hdr.sc.s32_7 ^ hdr.sc.s32_9;
   }
 
   action compute_op_shl_379_a() {
-    hdr.st.s32_0 = hdr.hdr2.data0 >> 16;
+    hdr.sc.s32_0 = hdr.hdr2.data0 >> 16;
   }
 
   action compute_op_shl_379() {
-    hdr.st.s32_5 = hdr.st.s32_0 << 32w0x00000010;
+    hdr.st.s32_5 = hdr.sc.s32_0 << 32w0x00000010;
     hdr.st.s32_1 = (bit<32>)(hdr.hdr2.data0[15:0]);
   }
 
@@ -640,32 +648,32 @@ control Ingress(
   }
 
   action compute_rotate_left_137() {
-    @in_hash { hdr.st.s32_7 = hdr.st.s32_4[26:0] ++ hdr.st.s32_4[31:27]; }
-    hdr.st.s32_8 = hdr.st.s32_3[23:0] ++ hdr.st.s32_3[31:24];
-    hdr.st.s32_9 = (hdr.st.s32_2) + (hdr.st.s32_4);
-    hdr.st.s32_10 = hdr.st.s32_6 + hdr.st.s32_3;
+    @in_hash { hdr.sc.s32_7 = hdr.st.s32_4[26:0] ++ hdr.st.s32_4[31:27]; }
+    hdr.sc.s32_8 = hdr.st.s32_3[23:0] ++ hdr.st.s32_3[31:24];
+    hdr.sc.s32_9 = (hdr.st.s32_2) + (hdr.st.s32_4);
+    hdr.sc.s32_10 = hdr.st.s32_6 + hdr.st.s32_3;
   }
 
   action compute_rotate_left_139() {
-    hdr.st.s32_0 = hdr.st.s32_9[15:0] ++ hdr.st.s32_9[31:16];
-    hdr.st.s32_4 = (hdr.st.s32_7) ^ (hdr.st.s32_9);
-    hdr.st.s32_3 = (hdr.st.s32_8) ^ (hdr.st.s32_10);
+    hdr.sc.s32_0 = hdr.sc.s32_9[15:0] ++ hdr.sc.s32_9[31:16];
+    hdr.st.s32_4 = (hdr.sc.s32_7) ^ (hdr.sc.s32_9);
+    hdr.st.s32_3 = (hdr.sc.s32_8) ^ (hdr.sc.s32_10);
   }
 
   action compute_rotate_left_140() {
-    @in_hash { hdr.st.s32_7 = hdr.st.s32_4[18:0] ++ hdr.st.s32_4[31:19]; }
+    @in_hash { hdr.sc.s32_7 = hdr.st.s32_4[18:0] ++ hdr.st.s32_4[31:19]; }
   }
 
   action compute_rotate_left_141() {
-    @in_hash { hdr.st.s32_8 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
-    hdr.st.s32_9 = (hdr.st.s32_10) + (hdr.st.s32_4);
-    hdr.st.s32_2 = hdr.st.s32_0 + hdr.st.s32_3;
+    @in_hash { hdr.sc.s32_8 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
+    hdr.sc.s32_9 = (hdr.sc.s32_10) + (hdr.st.s32_4);
+    hdr.st.s32_2 = hdr.sc.s32_0 + hdr.st.s32_3;
   }
 
   action compute_rotate_left_142() {
-    hdr.st.s32_6 = hdr.st.s32_9[15:0] ++ hdr.st.s32_9[31:16];
-    hdr.st.s32_3 = hdr.st.s32_8 ^ hdr.st.s32_2;
-    hdr.st.s32_4 = hdr.st.s32_7 ^ hdr.st.s32_9;
+    hdr.st.s32_6 = hdr.sc.s32_9[15:0] ++ hdr.sc.s32_9[31:16];
+    hdr.st.s32_3 = hdr.sc.s32_8 ^ hdr.st.s32_2;
+    hdr.st.s32_4 = hdr.sc.s32_7 ^ hdr.sc.s32_9;
   }
 
   action compute_op_xor_416() {
@@ -717,6 +725,7 @@ control Ingress(
     meta.shared_run_2 = 0;
     meta.shared_run_3 = 0;
     meta.to_egress = 0;
+    hdr.sc.setValid();
     hdr.st.setValid();
 
     ingress_port_to_nf_dev.apply();
@@ -1391,6 +1400,7 @@ control Ingress(
     } else {
       ig_tm_md.bypass_egress = 1;
     }
+    hdr.sc.setInvalid();
 
   }
 }
@@ -1479,11 +1489,11 @@ control Egress(
   action calculate_diff_8b(bit<8> a, bit<8> b) { diff_sign_bit = (a - b)[7:7]; }
 
   action compute_op_add_285_b() {
-    @in_hash { hdr.st.s32_0 = hdr.hdr2.data1; }
+    @in_hash { hdr.sc.s32_0 = hdr.hdr2.data1; }
   }
 
   action compute_op_add_285() {
-    hdr.st.s32_1 = 32w0xffffffff + hdr.st.s32_0;
+    hdr.st.s32_1 = 32w0xffffffff + hdr.sc.s32_0;
   }
 
   action compute_op_xor_289() {
@@ -1527,61 +1537,61 @@ control Egress(
   }
 
   action compute_rotate_left_119() {
-    @in_hash { hdr.st.s32_7 = hdr.st.s32_4[26:0] ++ hdr.st.s32_4[31:27]; }
-    hdr.st.s32_9 = (hdr.st.s32_2) + (hdr.st.s32_4);
+    @in_hash { hdr.sc.s32_7 = hdr.st.s32_4[26:0] ++ hdr.st.s32_4[31:27]; }
+    hdr.sc.s32_9 = (hdr.st.s32_2) + (hdr.st.s32_4);
   }
 
   action compute_rotate_left_120() {
-    hdr.st.s32_8 = hdr.st.s32_3[23:0] ++ hdr.st.s32_3[31:24];
-    hdr.st.s32_0 = hdr.st.s32_9[15:0] ++ hdr.st.s32_9[31:16];
-    hdr.st.s32_4 = (hdr.st.s32_7) ^ (hdr.st.s32_9);
-    hdr.st.s32_10 = hdr.st.s32_6 + hdr.st.s32_3;
+    hdr.sc.s32_8 = hdr.st.s32_3[23:0] ++ hdr.st.s32_3[31:24];
+    hdr.sc.s32_0 = hdr.sc.s32_9[15:0] ++ hdr.sc.s32_9[31:16];
+    hdr.st.s32_4 = (hdr.sc.s32_7) ^ (hdr.sc.s32_9);
+    hdr.sc.s32_10 = hdr.st.s32_6 + hdr.st.s32_3;
   }
 
   action compute_rotate_left_122() {
-    @in_hash { hdr.st.s32_7 = hdr.st.s32_4[18:0] ++ hdr.st.s32_4[31:19]; }
-    hdr.st.s32_3 = (hdr.st.s32_8) ^ (hdr.st.s32_10);
-    hdr.st.s32_9 = (hdr.st.s32_10) + (hdr.st.s32_4);
+    @in_hash { hdr.sc.s32_7 = hdr.st.s32_4[18:0] ++ hdr.st.s32_4[31:19]; }
+    hdr.st.s32_3 = (hdr.sc.s32_8) ^ (hdr.sc.s32_10);
+    hdr.sc.s32_9 = (hdr.sc.s32_10) + (hdr.st.s32_4);
   }
 
   action compute_rotate_left_123() {
-    @in_hash { hdr.st.s32_8 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
-    hdr.st.s32_6 = hdr.st.s32_9[15:0] ++ hdr.st.s32_9[31:16];
-    hdr.st.s32_2 = hdr.st.s32_0 + hdr.st.s32_3;
-    hdr.st.s32_4 = hdr.st.s32_7 ^ hdr.st.s32_9;
+    @in_hash { hdr.sc.s32_8 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
+    hdr.st.s32_6 = hdr.sc.s32_9[15:0] ++ hdr.sc.s32_9[31:16];
+    hdr.st.s32_2 = hdr.sc.s32_0 + hdr.st.s32_3;
+    hdr.st.s32_4 = hdr.sc.s32_7 ^ hdr.sc.s32_9;
   }
 
   action compute_op_xor_372() {
-    hdr.st.s32_3 = hdr.st.s32_8 ^ hdr.st.s32_2;
+    hdr.st.s32_3 = hdr.sc.s32_8 ^ hdr.st.s32_2;
   }
 
   action compute_rotate_left_125() {
-    @in_hash { hdr.st.s32_7 = hdr.st.s32_4[26:0] ++ hdr.st.s32_4[31:27]; }
-    hdr.st.s32_9 = (hdr.st.s32_2) + (hdr.st.s32_4);
+    @in_hash { hdr.sc.s32_7 = hdr.st.s32_4[26:0] ++ hdr.st.s32_4[31:27]; }
+    hdr.sc.s32_9 = (hdr.st.s32_2) + (hdr.st.s32_4);
   }
 
   action compute_rotate_left_126() {
-    hdr.st.s32_8 = hdr.st.s32_3[23:0] ++ hdr.st.s32_3[31:24];
-    hdr.st.s32_0 = hdr.st.s32_9[15:0] ++ hdr.st.s32_9[31:16];
-    hdr.st.s32_4 = (hdr.st.s32_7) ^ (hdr.st.s32_9);
-    hdr.st.s32_10 = hdr.st.s32_6 + hdr.st.s32_3;
+    hdr.sc.s32_8 = hdr.st.s32_3[23:0] ++ hdr.st.s32_3[31:24];
+    hdr.sc.s32_0 = hdr.sc.s32_9[15:0] ++ hdr.sc.s32_9[31:16];
+    hdr.st.s32_4 = (hdr.sc.s32_7) ^ (hdr.sc.s32_9);
+    hdr.sc.s32_10 = hdr.st.s32_6 + hdr.st.s32_3;
   }
 
   action compute_rotate_left_128() {
-    @in_hash { hdr.st.s32_7 = hdr.st.s32_4[18:0] ++ hdr.st.s32_4[31:19]; }
-    hdr.st.s32_3 = (hdr.st.s32_8) ^ (hdr.st.s32_10);
-    hdr.st.s32_9 = (hdr.st.s32_10) + (hdr.st.s32_4);
+    @in_hash { hdr.sc.s32_7 = hdr.st.s32_4[18:0] ++ hdr.st.s32_4[31:19]; }
+    hdr.st.s32_3 = (hdr.sc.s32_8) ^ (hdr.sc.s32_10);
+    hdr.sc.s32_9 = (hdr.sc.s32_10) + (hdr.st.s32_4);
   }
 
   action compute_rotate_left_129() {
-    @in_hash { hdr.st.s32_8 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
-    hdr.st.s32_6 = hdr.st.s32_9[15:0] ++ hdr.st.s32_9[31:16];
-    hdr.st.s32_2 = hdr.st.s32_0 + hdr.st.s32_3;
-    hdr.st.s32_4 = hdr.st.s32_7 ^ hdr.st.s32_9;
+    @in_hash { hdr.sc.s32_8 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
+    hdr.st.s32_6 = hdr.sc.s32_9[15:0] ++ hdr.sc.s32_9[31:16];
+    hdr.st.s32_2 = hdr.sc.s32_0 + hdr.st.s32_3;
+    hdr.st.s32_4 = hdr.sc.s32_7 ^ hdr.sc.s32_9;
   }
 
   action compute_op_xor_378() {
-    hdr.st.s32_3 = hdr.st.s32_8 ^ hdr.st.s32_2;
+    hdr.st.s32_3 = hdr.sc.s32_8 ^ hdr.st.s32_2;
   }
 
   action compute_op_xor_399() {
@@ -1629,22 +1639,23 @@ control Egress(
     hdr.hdr1.data0 = 8w0x45 ++ hdr.hdr1.data0[23:16] ++ 8w0x00 ++ 8w0x28;
   }
   action compute_rotate_left_128_v0() {
-    hdr.st.s32_3 = (hdr.st.s32_8) ^ (hdr.st.s32_10);
-    hdr.st.s32_9 = (hdr.st.s32_10) + (hdr.st.s32_4);
+    hdr.st.s32_3 = (hdr.sc.s32_8) ^ (hdr.sc.s32_10);
+    hdr.sc.s32_9 = (hdr.sc.s32_10) + (hdr.st.s32_4);
   }
 
   action compute_rotate_left_129_v0() {
-    @in_hash { hdr.st.s32_8 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
-    hdr.st.s32_6 = hdr.st.s32_9[15:0] ++ hdr.st.s32_9[31:16];
+    @in_hash { hdr.sc.s32_8 = hdr.st.s32_3[24:0] ++ hdr.st.s32_3[31:25]; }
+    hdr.st.s32_6 = hdr.sc.s32_9[15:0] ++ hdr.sc.s32_9[31:16];
   }
 
   action compute_rotate_left_129_v1() {
-    hdr.st.s32_2 = hdr.st.s32_0 + hdr.st.s32_3;
-    hdr.st.s32_4 = hdr.st.s32_7 ^ hdr.st.s32_9;
+    hdr.st.s32_2 = hdr.sc.s32_0 + hdr.st.s32_3;
+    hdr.st.s32_4 = hdr.sc.s32_7 ^ hdr.sc.s32_9;
   }
 
 
   apply {
+    hdr.sc.setValid();
     if (hdr.egress_state.code_path == 0 || hdr.egress_state.code_path == 1 || hdr.egress_state.code_path == 2 || hdr.egress_state.code_path == 3 || hdr.egress_state.code_path == 4 || hdr.egress_state.code_path == 5) {
       if (hdr.egress_state.code_path == 2) {
         // EP node  581547:RotateLeft
@@ -1897,6 +1908,7 @@ control Egress(
         }
       }
     }
+    hdr.sc.setInvalid();
 
   }
 }
@@ -1929,3 +1941,4 @@ Pipeline(
 ) pipe;
 
 Switch(pipe) main;
+
