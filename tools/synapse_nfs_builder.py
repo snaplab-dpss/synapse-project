@@ -177,6 +177,7 @@ if __name__ == "__main__":
     parser.add_argument("--churns", type=int, nargs="+", default=DEFAULT_CHURN_FPM, help="Churn rate (fpm)")
     parser.add_argument("--heuristics", type=str, nargs="+", default=DEFAULT_HEURISTICS, help="Heuristic to use for searching")
 
+    parser.add_argument("--max-concurrent-tasks", type=int, default=-1, help="Maximum number of concurrent tasks to run. If <= 0, uses number of CPU cores.")
     parser.add_argument("--show-cmds-output", action="store_true", default=False, help="Show command output during execution")
     parser.add_argument("--show-cmds", action="store_true", default=False, help="Show requested commands during execution")
     parser.add_argument("--show-execution-plan", action="store_true", default=False, help="Show execution plan")
@@ -235,4 +236,5 @@ if __name__ == "__main__":
 
     orchestrator.run(
         skip_if_already_produced=not args.force,
+        max_concurrent_tasks=args.max_concurrent_tasks,
     )
