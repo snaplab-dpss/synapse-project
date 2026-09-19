@@ -1,14 +1,14 @@
 {
   "bdd": "cl.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 160,
-    "num_phase1_speculations": 9311,
-    "num_phase2_speculations": 173,
-    "num_speculated_modules": 106475,
-    "time_per_instantiation_us": 856,
-    "time_per_speculation_us": 118,
-    "total_time_spent_generating_execution_plans_us": 136974,
-    "total_time_spent_speculating_us": 12582792
+    "num_execution_plans_generated": 146,
+    "num_phase1_speculations": 9525,
+    "num_phase2_speculations": 183,
+    "num_speculated_modules": 104716,
+    "time_per_instantiation_us": 507,
+    "time_per_speculation_us": 76,
+    "total_time_spent_generating_execution_plans_us": 74063,
+    "total_time_spent_speculating_us": 8009140
   },
   "heuristic": {
     "meta": [
@@ -25,7 +25,7 @@
         "name": "Recirculations"
       },
       {
-        "description": "49 / 53",
+        "description": "50 / 53",
         "name": "BDD Progress"
       },
       {
@@ -33,24 +33,20 @@
         "name": "Stages"
       },
       {
-        "description": "8307008 bits",
+        "description": "8310464 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
       2240000000,
-      49,
+      50,
       -6,
-      -8307008,
+      -8310464,
       0
     ]
   },
   "implementations": [
-    {
-      "addr": 1074092960,
-      "implementation": "Tofino::VectorTable"
-    },
     {
       "addr": 1074080384,
       "implementation": "Tofino::CMS"
@@ -66,6 +62,10 @@
     {
       "addr": 1074047984,
       "implementation": "Tofino::MapSetTable"
+    },
+    {
+      "addr": 1074092960,
+      "implementation": "Tofino::VectorTable"
     }
   ],
   "name": "cl-f40000-c1000-zipf1_2-hmax-tput",
@@ -122,7 +122,7 @@
         "node_id": 176
       },
       {
-        "avg": 2.0,
+        "avg": 0.0,
         "node_id": 169
       },
       {
@@ -134,11 +134,11 @@
         "node_id": 152
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 175
       },
       {
-        "avg": 4.0,
+        "avg": 0.0,
         "node_id": 168
       },
       {
@@ -150,11 +150,11 @@
         "node_id": 151
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 174
       },
       {
-        "avg": 4.0,
+        "avg": 0.0,
         "node_id": 167
       },
       {
@@ -166,15 +166,15 @@
         "node_id": 182
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 173
       },
       {
-        "avg": 4.0,
+        "avg": 0.0,
         "node_id": 166
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 142
       },
       {
@@ -182,11 +182,11 @@
         "node_id": 171
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 184
       },
       {
-        "avg": 4.0,
+        "avg": 6.0,
         "node_id": 141
       },
       {
@@ -194,7 +194,7 @@
         "node_id": 170
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 183
       },
       {
@@ -242,7 +242,7 @@
         "node_id": 143
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 172
       },
       {
@@ -254,7 +254,7 @@
         "node_id": 177
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 148
       },
       {
@@ -262,11 +262,11 @@
         "node_id": 145
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 178
       },
       {
-        "avg": 2.0,
+        "avg": 0.0,
         "node_id": 149
       },
       {
@@ -274,30 +274,30 @@
         "node_id": 146
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 179
       },
       {
-        "avg": 0.0,
+        "avg": 2.0,
         "node_id": 147
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 180
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 181
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.037037037037037,
-    "elapsed_time_seconds": 30,
+    "branching_factor": 2.759259259259259,
+    "elapsed_time_seconds": 15,
     "finished_eps": 1,
-    "ss_size": 160,
-    "steps": 50,
-    "total_ss_size_estimation": 5404103170271.255,
-    "unfinished_eps": 110
+    "ss_size": 146,
+    "steps": 51,
+    "total_ss_size_estimation": 475236507095.62305,
+    "unfinished_eps": 95
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

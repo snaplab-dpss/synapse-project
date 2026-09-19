@@ -7,20 +7,20 @@ Args:
   Profile file:       kvs-f40000-c1000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (52 modules)
+    Tofino (53 modules)
     Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,1'390'000'000,49,-5,-20'214'320,0>
-  Tput: 984.48 Gbps (1.40 Gpps)
-  Spec: 984.48 Gbps (1.40 Gpps)
+  Score: <0,1'350'000'000,49,-5,-20'217'776,0>
+  Tput: 950.49 Gbps (1.35 Gpps)
+  Spec: 950.49 Gbps (1.35 Gpps)
   Recirculations: 0
   BDD Progress: 49 / 50
   Stages: 5
-  Memory Usage: 20214320 bits
+  Memory Usage: 20217776 bits
 
 Stateful Implementations:
   1073954136: Tofino::VectorRegister
@@ -28,15 +28,15 @@ Stateful Implementations:
   1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       9 seconds
+  Elapsed time:       5 seconds
   Steps:              49
   Backtracks:         0
-  Search space size:  179
-  Unfinished EPs:     130
+  Search space size:  171
+  Unfinished EPs:     122
   Finished EPs:       1
   Avg BDD size:       50
-  Branching factor:   3
-  Total SS size est.: 711'703'415'568
+  Branching factor:   2
+  Total SS size est.: 264'504'681'011
   Avg children per node:
     Node 32: 0
     Node 31: 0
@@ -49,16 +49,16 @@ Search Metadata:
     Node 61: 2
     Node 54: 3
     Node 14: 4
-    Node 60: 4
+    Node 60: 3
     Node 53: 3
-    Node 13: 23
-    Node 59: 4
+    Node 13: 24
+    Node 59: 3
     Node 12: 3
     Node 64: 2
     Node 5: 3
     Node 6: 3
     Node 65: 3
-    Node 58: 4
+    Node 58: 3
     Node 7: 3
     Node 66: 2
     Node 8: 3
@@ -72,25 +72,25 @@ Search Metadata:
     Node 10: 3
     Node 11: 4
     Node 17: 0
-    Node 34: 4
+    Node 34: 3
     Node 40: 0
     Node 57: 2
     Node 18: 4
     Node 23: 0
-    Node 35: 4
+    Node 35: 3
     Node 41: 0
     Node 47: 0
-    Node 19: 4
+    Node 19: 3
     Node 24: 0
-    Node 36: 4
+    Node 36: 3
     Node 42: 4
     Node 48: 4
-    Node 20: 4
+    Node 20: 3
     Node 25: 0
     Node 37: 2
     Node 43: 4
     Node 49: 4
-    Node 21: 4
+    Node 21: 3
     Node 26: 0
     Node 44: 4
     Node 50: 4
@@ -103,23 +103,23 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 6'516 (100%)
-  Num phase 2 speculations: 82 (1.25844%)
-  Num speculated modules:   79'853
-  Num EPs generated:        179
+  Num phase 1 speculations: 6'608 (100%)
+  Num phase 2 speculations: 86 (1.30145%)
+  Num speculated modules:   81'396
+  Num EPs generated:        171
 
 Switch placement:
 
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 36'412/1'310'720 B (2.77802%)
+SRAM: 36'844/1'310'720 B (2.81097%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
-Logical IDs: 1/16
+Logical IDs: 2/16
 Hash Dist Units: 0/6
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [hh_table_1073923096_table_13]
+Exact Match Crossbar: 6/128 B (4.6875%)
+Objs: [hh_table_1073923096_table_13,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -139,7 +139,7 @@ MapRAM: 573'444/786'432 B (72.9172%)
 Logical IDs: 7/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 37/128 B (28.9062%)
-Objs: [hh_table_1073923096_threshold,hh_table_1073923096_cms_row_2,hh_table_1073923096_hash_calc_3,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_digest,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_0]
+Objs: [hh_table_1073923096_digest,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_3,hh_table_1073923096_threshold,hh_table_1073923096_cms_row_1,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_0]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -149,7 +149,7 @@ MapRAM: 557'056/786'432 B (70.8333%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_1]
+Objs: [hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_2]
 -------------------------------------
 -------------------------------------
 Stage 4

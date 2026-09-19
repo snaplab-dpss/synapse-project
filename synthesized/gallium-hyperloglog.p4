@@ -38,6 +38,7 @@ header cpu_h {
   bit<16> code_path;                  // Written by the data plane
   bit<16> egress_dev;                 // Written by the control plane
   bit<8> trigger_dataplane_execution; // Written by the control plane
+  bit<32> time; // The ingress clock at the hand-off, the controller's now for the packet.
   bit<32> find_first_set_bit_7_out;
   bit<32> hll_hash0;
   bit<32> dev;
@@ -49,7 +50,10 @@ header recirc_h {
   bit<16> ingress_port;
   bit<32> dev;
 
+
 };
+
+
 
 header cuckoo_h {
   bit<8>  op;
@@ -62,13 +66,18 @@ header cuckoo_h {
 }
 
 header hdr0_h {
-  bit<48> data0;
-  bit<48> data1;
+  bit<32> data0;
+  bit<16> data1;
   bit<16> data2;
+  bit<32> data3;
+  bit<16> data4;
 }
 header hdr1_h {
-  bit<96> data0;
-  bit<64> data1;
+  bit<32> data0;
+  bit<32> data1;
+  bit<32> data2;
+  bit<32> data3;
+  bit<32> data4;
 }
 
 
@@ -76,6 +85,7 @@ struct synapse_ingress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
   cuckoo_h cuckoo;
+
   hdr0_h hdr0;
   hdr1_h hdr1;
 
@@ -85,6 +95,11 @@ struct synapse_ingress_metadata_t {
   bit<16> ingress_port;
   bit<32> dev;
   bit<32> time;
+  // What the forwarding table decided: 0 the packet stays on the switch (recirculated or
+  // dropped), 1 it leaves, 2 it goes to the controller. The headers carrying data-plane state are
+  // dropped on the strength of this, after the table and outside its actions, because a packet
+  // that still has the egress ahead of it must keep them: the egress parser extracts them.
+  bit<2> leaving;
   bit<32> find_first_set_bit_7_key;
   bit<32> find_first_set_bit_7_out;
 
@@ -93,6 +108,7 @@ struct synapse_ingress_metadata_t {
 struct synapse_egress_headers_t {
   cpu_h cpu;
   recirc_h recirc;
+
 
 }
 
@@ -130,13 +146,15 @@ parser IngressParser(
   out ingress_intrinsic_metadata_t ig_intr_md
 ) {
   TofinoIngressParser() tofino_parser;
-  
+
+
   /* This is a mandatory state, required by Tofino Architecture */
   state start {
     tofino_parser.apply(pkt, ig_intr_md);
 
-    meta.ingress_port[8:0] = ig_intr_md.ingress_port;
+    meta.ingress_port = (bit<16>)ig_intr_md.ingress_port;
     meta.dev = 0;
+    meta.leaving = 0;
     meta.time = ig_intr_md.ingress_mac_tstamp[47:16];
 
     transition select(ig_intr_md.ingress_port) {
@@ -153,11 +171,13 @@ parser IngressParser(
 
   state parse_cpu {
     pkt.extract(hdr.cpu);
+
     transition accept;
   }
 
   state parse_recirc {
     pkt.extract(hdr.recirc);
+
     transition select(hdr.recirc.code_path) {
       CUCKOO_CODE_PATH: parse_cuckoo;
       default: parser_init;
@@ -177,7 +197,7 @@ parser IngressParser(
     transition parser_4_0;
   }
   state parser_4_0 {
-    transition select (hdr.hdr0.data2) {
+    transition select (hdr.hdr0.data4) {
       16w0x0800: parser_5;
       default: parser_81;
     }
@@ -214,15 +234,15 @@ control Ingress(
   }
 
   action fwd_to_cpu() {
-    hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
+    meta.leaving = 2;
     fwd(CPU_PCIE_PORT);
   }
 
   action fwd_nf_dev(bit<16> port) {
     hdr.cpu.setInvalid();
-    hdr.recirc.setInvalid();
     hdr.cuckoo.setInvalid();
+    meta.leaving = 1;
     fwd(port);
   }
 
@@ -274,6 +294,27 @@ control Ingress(
     b = tmp;
   }
 
+  // Swapping two fields a byte at a time forces byte-granular PHV slicing on both of them, and a
+  // field sliced that way drags its neighbours into the same container group; bf-p4c then cannot
+  // satisfy the action constraints. Swap whole fields where the byte pairs make one up.
+  action swap16(inout bit<16> a, inout bit<16> b) {
+    bit<16> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
+  action swap24(inout bit<24> a, inout bit<24> b) {
+    bit<24> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
+  action swap32(inout bit<32> a, inout bit<32> b) {
+    bit<32> tmp = a;
+    a = b;
+    b = tmp;
+  }
+
   bit<1> diff_sign_bit;
   action calculate_diff_32b(bit<32> a, bit<32> b) { diff_sign_bit = (a - b)[31:31]; }
   action calculate_diff_16b(bit<16> a, bit<16> b) { diff_sign_bit = (a - b)[15:15]; }
@@ -304,7 +345,14 @@ control Ingress(
   bit<32> hash_6_value;
   action hash_6_calc() {
     hash_6_value = hash_6.get({
-      hdr.hdr1.data1
+      hdr.hdr1.data3[31:24],
+      hdr.hdr1.data3[23:16],
+      hdr.hdr1.data3[15:8],
+      hdr.hdr1.data3[7:0],
+      hdr.hdr1.data4[31:24],
+      hdr.hdr1.data4[23:16],
+      hdr.hdr1.data4[15:8],
+      hdr.hdr1.data4[7:0]
       });
   }
   action find_first_set_bit_7_get_value(bit<32> v) {
@@ -353,6 +401,7 @@ control Ingress(
 
 
   apply {
+
     ingress_port_to_nf_dev.apply();
 
     if (hdr.cpu.isValid() && hdr.cpu.trigger_dataplane_execution == 0) {
@@ -381,7 +430,8 @@ control Ingress(
           // EP node  125:SendToController
           // BDD node 8:vector_borrow
           fwd_op = fwd_op_t.FORWARD_TO_CPU;
-          build_cpu_hdr(125);
+          build_cpu_hdr(0);
+          hdr.cpu.time = meta.time;
           hdr.cpu.find_first_set_bit_7_out = meta.find_first_set_bit_7_out;
           hdr.cpu.hll_hash0 = hll_hash0;
           hdr.cpu.dev = meta.dev;
@@ -395,7 +445,12 @@ control Ingress(
     }
 
     forwarding_tbl.apply();
+    if (meta.leaving != 0) {
+      hdr.recirc.setInvalid();
+    }
+
     ig_tm_md.bypass_egress = 1;
+
   }
 }
 
@@ -433,7 +488,9 @@ parser EgressParser(
   state start {
     tofino_parser.apply(pkt, eg_intr_md);
     transition accept;
+
   }
+
 }
 
 control Egress(
@@ -444,7 +501,11 @@ control Egress(
   inout egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md,
   inout egress_intrinsic_metadata_for_output_port_t eg_intr_oport_md
 ) {
-  apply {}
+
+
+  apply {
+
+  }
 }
 
 control EgressDeparser(
@@ -453,7 +514,9 @@ control EgressDeparser(
   in    synapse_egress_metadata_t eg_md,
   in    egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md
 ) {
+
   apply {
+
     pkt.emit(hdr);
   }
 }

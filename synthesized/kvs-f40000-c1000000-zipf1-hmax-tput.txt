@@ -7,20 +7,20 @@ Args:
   Profile file:       kvs-f40000-c1000000-zipf1.json
   Seed:               0
   Targets:
-    Tofino (52 modules)
+    Tofino (53 modules)
     Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,275'000'000,44,-14,-7'864'320,0>
-  Tput: 193.74 Gbps (275.20 Mpps)
-  Spec: 193.74 Gbps (275.20 Mpps)
+  Score: <0,275'000'000,44,-14,-7'867'776,0>
+  Tput: 193.70 Gbps (275.14 Mpps)
+  Spec: 193.70 Gbps (275.14 Mpps)
   Recirculations: 0
   BDD Progress: 44 / 47
   Stages: 14
-  Memory Usage: 7864320 bits
+  Memory Usage: 7867776 bits
 
 Stateful Implementations:
   1073954136: Tofino::CuckooHashTable
@@ -28,15 +28,15 @@ Stateful Implementations:
   1073923096: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       16 seconds
+  Elapsed time:       8 seconds
   Steps:              44
   Backtracks:         0
-  Search space size:  164
-  Unfinished EPs:     120
+  Search space size:  155
+  Unfinished EPs:     111
   Finished EPs:       1
   Avg BDD size:       47
   Branching factor:   2
-  Total SS size est.: 205'221'417'050
+  Total SS size est.: 63'363'355'379
   Avg children per node:
     Node 32: 0
     Node 31: 0
@@ -49,16 +49,16 @@ Search Metadata:
     Node 61: 2
     Node 54: 3
     Node 14: 0
-    Node 60: 4
+    Node 60: 3
     Node 53: 3
     Node 13: 24
-    Node 59: 4
+    Node 59: 3
     Node 12: 3
     Node 64: 2
     Node 5: 3
     Node 6: 3
     Node 65: 3
-    Node 58: 4
+    Node 58: 3
     Node 7: 3
     Node 66: 2
     Node 8: 3
@@ -72,25 +72,25 @@ Search Metadata:
     Node 10: 3
     Node 11: 4
     Node 17: 0
-    Node 34: 4
+    Node 34: 3
     Node 40: 0
     Node 57: 2
     Node 18: 4
     Node 23: 0
-    Node 35: 4
+    Node 35: 3
     Node 41: 0
     Node 47: 0
-    Node 19: 4
+    Node 19: 3
     Node 24: 0
-    Node 36: 4
+    Node 36: 3
     Node 42: 4
     Node 48: 4
-    Node 20: 4
+    Node 20: 3
     Node 25: 0
     Node 37: 2
     Node 43: 4
     Node 49: 4
-    Node 21: 4
+    Node 21: 3
     Node 26: 0
     Node 44: 4
     Node 50: 4
@@ -103,23 +103,23 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 5'958 (100%)
-  Num phase 2 speculations: 120 (2.0141%)
-  Num speculated modules:   72'382
-  Num EPs generated:        164
+  Num phase 1 speculations: 5'846 (100%)
+  Num phase 2 speculations: 120 (2.05269%)
+  Num speculated modules:   71'347
+  Num EPs generated:        155
 
 Switch placement:
 
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 0/1'310'720 B (0%)
+SRAM: 432/1'310'720 B (0.032959%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
-Logical IDs: 1/16
+Logical IDs: 2/16
 Hash Dist Units: 0/6
-Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [cuckoo_hash_table_1073923096_hash_calc_0]
+Exact Match Crossbar: 10/128 B (7.8125%)
+Objs: [cuckoo_hash_table_1073923096_hash_calc_0,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1
