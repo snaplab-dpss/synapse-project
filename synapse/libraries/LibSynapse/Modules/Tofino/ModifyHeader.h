@@ -37,6 +37,10 @@ class ModifyHeaderFactory : public TofinoModuleFactory {
 public:
   ModifyHeaderFactory() : TofinoModuleFactory(ModuleType::Tofino_ModifyHeader, "ModifyHeader") {}
 
+  // A packet_return_chunk that hands the chunk back as it was borrowed (checksum aside): it
+  // lowers to nothing, and counts as nothing left to do for a crossing that only has it ahead.
+  static bool returns_chunk_unchanged(const BDDNode *node);
+
 protected:
   virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
   virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
