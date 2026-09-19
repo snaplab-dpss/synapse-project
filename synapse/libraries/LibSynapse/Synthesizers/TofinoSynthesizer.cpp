@@ -2469,6 +2469,10 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
     std::string op_id;
     std::string symbol;
     unsigned rotation;
+    // The symbol names the value an operand computes (source_of's both): the statement reads the
+    // operand's word, and the symbol's producer is credited only to keep its slot from being
+    // handed out, not because the word is read.
+    bool symbol_is_alias = false;
   };
   // What a compute module defines: its own op (with the symbol it produces) and its temporaries.
   struct def_t {
@@ -2513,7 +2517,7 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
         // must; under-reporting hands a live slot to something else.
         std::string named;
         LibCore::is_readLSB(input, named);
-        return source_t{canonical(operand.op_id), named, rotation};
+        return source_t{canonical(operand.op_id), named, rotation, true};
       }
     }
     std::string symbol;
@@ -2712,6 +2716,7 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
     std::vector<std::pair<std::string, unsigned>> sources; // The values an ALU op reads to write this one (canonical op id, rotation).
     bool read_elsewhere = false;                           // A table, a gateway or a hand-off reads it too: no op writes over it in its last stage.
     int pass            = 0;                               // The pass defining it.
+    int read_to         = -1;                              // Its last read by a statement that reads its word (no alias credit), on this path.
   };
 
   // The values a loop's iterations keep in one field (loop_key_t), by the ops producing them: one
@@ -3432,9 +3437,29 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
       std::vector<std::pair<std::string, int>> foreign_writes;      // (op id, time): a shared action's other ops, at the call.
       std::unordered_map<std::string, size_t> value_index;          // By canonical op id, into `values`.
       std::unordered_map<std::string, std::string> symbol_producer; // A symbol -> the canonical op producing it, this path.
-      int pass           = 0;
-      bool egress_pass   = false;
-      const auto time_of = [&](const std::string &op_id) { return pass * STRIDE + stage_of(op_id); };
+      int pass         = 0;
+      bool egress_pass = false;
+      // The pass an op runs in is the last pass of the gress its action is placed in, which is
+      // the walk's pass but for the ops the EP orders after a cut and the placer kept on its near
+      // side (a loop's step group past the last rotate before a crossing: placed in the ingress,
+      // ordered after the SendToEgress). The emitter hoists them into the pass they are placed
+      // in (plan_shared_runs), so their reads happen there: counted in the far pass, their
+      // inputs looked read past the cut, and three of SmartCookie's words travelled for it.
+      int last_ingress_pass = 0;
+      int last_egress_pass  = -1;
+      const auto pass_of    = [&](const std::string &op_id) -> int {
+        const std::optional<Gress> placed = pipeline.get_placed_gress(tofino_ctx->find_compute_action(op_id));
+        if (!placed) {
+          return pass;
+        }
+        const bool placed_egress = *placed == Gress::Egress;
+        if (placed_egress == egress_pass) {
+          return pass;
+        }
+        const int last = placed_egress ? last_egress_pass : last_ingress_pass;
+        return last >= 0 ? last : pass;
+      };
+      const auto time_of = [&](const std::string &op_id) { return pass_of(op_id) * STRIDE + stage_of(op_id); };
       // A def's sources on this path: the operands as they are, the symbols by what produced them here.
       const auto resolve_sources = [&](const def_t &def) {
         std::vector<std::pair<std::string, unsigned>> sources;
@@ -3451,6 +3476,22 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
           }
         }
         return sources;
+      };
+      // The ops whose words the def's statement reads: the resolved sources less the alias credits.
+      const auto read_sources = [&](const def_t &def) {
+        std::set<std::string> read;
+        for (const source_t &source : def.sources) {
+          if (!source.op_id.empty()) {
+            read.insert(source.op_id);
+          }
+          if (!source.symbol.empty() && !source.symbol_is_alias) {
+            auto producer_it = symbol_producer.find(source.symbol);
+            if (producer_it != symbol_producer.end() && producer_it->second != source.op_id) {
+              read.insert(producer_it->second);
+            }
+          }
+        }
+        return read;
       };
 
       for (size_t i = 0; i < path.size(); i++) {
@@ -3491,11 +3532,15 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
                   use = std::min(use, time_of(def.op_id));
                 }
               }
+              if (read_sources(def).contains(producer_it->second)) {
+                value.read_to = std::max(value.read_to, time_of(def.op_id));
+              }
             }
             if (use >= INF) {
               for (const def_t &def : reader_defs) {
                 if (def.sources.empty()) {
-                  use = std::min(use, time_of(def.op_id));
+                  use           = std::min(use, time_of(def.op_id));
+                  value.read_to = std::max(value.read_to, time_of(def.op_id));
                 }
               }
             }
@@ -3522,6 +3567,7 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
           }
           if (!is_compute) {
             value.read_elsewhere = true;
+            value.read_to        = std::max(value.read_to, use);
           }
           value.to = std::max(value.to, use);
         }
@@ -3560,15 +3606,26 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
                 slot_readers[source.first].emplace_back(def.op_id, source.second, egress_pass);
               }
             }
+            for (const std::string &read : read_sources(def)) {
+              if (auto read_it = value_index.find(read); read_it != value_index.end()) {
+                values[read_it->second].read_to = std::max(values[read_it->second].read_to, time);
+              }
+            }
             continue;
           }
           value_index[def.op_id] = values.size();
           values.push_back({def, time,
                             def.symbol.empty() ? std::max(time, read_within.count(def.op_id) ? read_within.at(def.op_id) : module_time) : time,
                             slot_fields.contains(def.op_id), egress_pass, resolve_sources(def)});
-          values.back().pass = pass;
+          values.back().pass   = pass_of(def.op_id);
+          values.back().egress = values.back().pass != pass ? !egress_pass : egress_pass;
           for (const auto &[source, rotation] : values.back().sources) {
             slot_readers[source].emplace_back(def.op_id, rotation, egress_pass);
+          }
+          for (const std::string &read : read_sources(def)) {
+            if (auto read_it = value_index.find(read); read_it != value_index.end() && read != def.op_id) {
+              values[read_it->second].read_to = std::max(values[read_it->second].read_to, time);
+            }
           }
           if (!def.symbol.empty()) {
             symbol_producer[def.symbol] = def.op_id;
@@ -3586,6 +3643,7 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
           }
         }
         if (module->get_type() == ModuleType::Tofino_SendToEgress || module->get_type() == ModuleType::Tofino_Recirculate) {
+          (egress_pass ? last_egress_pass : last_ingress_pass) = pass;
           pass++;
           egress_pass = module->get_type() == ModuleType::Tofino_SendToEgress;
         }
@@ -3608,6 +3666,27 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
         }
       }
       allocate(slotted, foreign_writes);
+
+      // A value whose word a statement reads past the pass defining it, or something other than
+      // the chain reads (a hand-off carries the word to the controller), travels with the packet:
+      // its slot is the state header's. Judged on the reads of the word itself on this path
+      // (another path whose reads cross a cut marks the slot when it is planned), not on `to`:
+      // that one also holds the slot for a symbol an operand computes over (source_of's both), a
+      // sharing precaution, and is stretched by longest_life; both had SmartCookie carrying the
+      // words the last step group consumed before the cut.
+      for (const value_t &value : slotted) {
+        const bool crosses = value.read_to >= INF || value.read_elsewhere || value.read_to >= (value.pass + 1) * STRIDE;
+        if (crosses) {
+          carried_slots.insert(slot_stem(slot_fields.at(value.def.op_id).name));
+          if (getenv("SYNAPSE_CARRY_TRACE")) {
+            const code_t stem = slot_stem(slot_fields.at(value.def.op_id).name);
+            if (stem == "s32_7" || stem == "s32_9") {
+              std::cerr << "[carry] " << stem << " <- " << value.def.op_id << " (" << value.def.symbol << ") pass " << value.pass << " read_to "
+                        << value.read_to << (value.read_elsewhere ? " read_elsewhere" : "") << "\n";
+            }
+          }
+        }
+      }
 
       if (Walk::enabled()) {
         std::set<code_t> ingress_slots, egress_slots;
@@ -3637,6 +3716,26 @@ void TofinoSynthesizer::plan_value_homes(const EP *ep) {
     }
     std::cerr << "[homes] words touched over every path: ingress " << ingress_words << ", egress " << egress_words << " (budget " << WORD_BUDGET
               << " each)\n";
+  }
+
+  // The slots nothing crosses a cut in move to the scratch header: same slots, same pairs, one
+  // name apart. The emitter takes the names from slot_fields, so renaming here is all it takes.
+  for (const auto &[width, slots] : state_slots_used) {
+    for (size_t slot = 0; slot < slots; slot++) {
+      const code_t stem = "s" + std::to_string(width) + "_" + std::to_string(slot);
+      if (!carried_slots.contains(stem)) {
+        scratch_slots.insert(stem);
+      }
+    }
+  }
+  for (auto &[op_id, var] : slot_fields) {
+    if (scratch_slots.contains(slot_stem(var.name))) {
+      var.name          = "hdr.sc." + slot_stem(var.name);
+      var.original_name = var.name;
+    }
+  }
+  if (Walk::enabled()) {
+    std::cerr << "[homes] " << carried_slots.size() << " slots carried across cuts, " << scratch_slots.size() << " scratch\n";
   }
 }
 
@@ -3856,26 +3955,56 @@ void TofinoSynthesizer::synthesize() {
     eg_parser_start << "transition accept;\n";
   }
 
-  if (!state_slots_used.empty()) {
+  const bool has_state   = !carried_slots.empty();
+  const bool has_scratch = !scratch_slots.empty();
+  if (has_state || has_scratch) {
     coder_t &state_hdr = code_template.get(MARKER_EGRESS_STATE_HEADER);
-    state_hdr << "// The computed values' home: slots reused by live range. A real header -- valid from the start,\n";
-    state_hdr << "// carried with the packet across every pass, dropped where it leaves -- so its fields are exact\n";
-    state_hdr << "// containers: the allocator then keeps each one's slices in one container, as it does for the\n";
-    state_hdr << "// ground truth's recirc_state, instead of spreading them and running out of PHV sources.\n";
-    state_hdr << "header state_h {\n";
-    for (const auto &[width, slots] : state_slots_used) {
-      for (size_t slot = 0; slot < slots; slot++) {
-        state_hdr << "  bit<" << width << "> s" << width << "_" << slot << ";\n";
-        handoff_layout.state_words.emplace_back("s" + std::to_string(width) + "_" + std::to_string(slot), width);
+    const auto declare = [&](const code_t &name, const std::set<code_t> &slots) {
+      state_hdr << "header " << name << " {\n";
+      for (const auto &[width, count] : state_slots_used) {
+        for (size_t slot = 0; slot < count; slot++) {
+          const code_t stem = "s" + std::to_string(width) + "_" + std::to_string(slot);
+          if (slots.contains(stem)) {
+            state_hdr << "  bit<" << width << "> " << stem << ";\n";
+          }
+        }
+      }
+      state_hdr << "}\n\n";
+    };
+    if (has_state) {
+      state_hdr << "// The computed values' home: slots reused by live range. A real header -- valid from the start,\n";
+      state_hdr << "// carried with the packet across every pass, dropped where it leaves -- so its fields are exact\n";
+      state_hdr << "// containers: the allocator then keeps each one's slices in one container, as it does for the\n";
+      state_hdr << "// ground truth's recirc_state, instead of spreading them and running out of PHV sources.\n";
+      declare("state_h", carried_slots);
+      for (const auto &[width, count] : state_slots_used) {
+        for (size_t slot = 0; slot < count; slot++) {
+          const code_t stem = "s" + std::to_string(width) + "_" + std::to_string(slot);
+          if (carried_slots.contains(stem)) {
+            handoff_layout.state_words.emplace_back(stem, width);
+          }
+        }
       }
     }
-    state_hdr << "}\n\n";
+    if (has_scratch) {
+      state_hdr << "// The chain's temporaries: header fields for the same reason, but nothing crosses a cut in\n";
+      state_hdr << "// them, so the header is valid inside a pass only and invalidated before every deparser: it\n";
+      state_hdr << "// never travels with the packet, whose bytes on the recirculation ports are the throughput.\n";
+      declare("scratch_h", scratch_slots);
+    }
   }
 
   // The crossings are mutually exclusive: the egress reads which one the packet took and runs
   // that block only, as the recirculation passes do.
   if (uses_egress) {
     coder_t &egress_apply = code_template.get(MARKER_EGRESS_CONTROL_APPLY);
+    if (has_scratch) {
+      // Ahead of whatever the walk wrote to the block: the temporaries are valid for the pass.
+      const code_t written = egress_apply.dump();
+      egress_apply.stream.str("");
+      egress_apply.indent();
+      egress_apply << "hdr.sc.setValid();\n" << written;
+    }
     // Blocks calling one shared run are one arm (plan_shared_runs): what each does besides is
     // nested under its own code path, before and after the calls, as the marker splits it.
     std::unordered_map<code_path_t, size_t> run_of_block;
@@ -4112,6 +4241,10 @@ void TofinoSynthesizer::synthesize() {
       egress_apply.indent();
       egress_apply << "}\n";
     }
+    if (has_scratch) {
+      egress_apply.indent();
+      egress_apply << "hdr.sc.setInvalid();\n"; // Never deparsed: the last statement of the block.
+    }
   }
 
   if (uses_egress) {
@@ -4171,7 +4304,7 @@ void TofinoSynthesizer::synthesize() {
     eg_parser << "pkt.extract(hdr.recirc);\n";
     eg_parser.indent();
     eg_parser << "pkt.extract(hdr.egress_state);\n";
-    if (!state_slots_used.empty()) {
+    if (has_state) {
       eg_parser.indent();
       eg_parser << "pkt.extract(hdr.st);\n"; // Travels after egress_state, in struct order.
     }
@@ -4194,7 +4327,19 @@ void TofinoSynthesizer::synthesize() {
     parse_recirc << "pkt.extract(hdr.egress_state);\n";
   }
 
-  if (!state_slots_used.empty()) {
+  if (has_scratch) {
+    code_template.get(MARKER_INGRESS_EGRESS_STATE_FIELD) << "  scratch_h sc;\n";
+    code_template.get(MARKER_EGRESS_EGRESS_STATE_FIELD) << "  scratch_h sc;\n";
+    coder_t &apply_start = code_template.get(MARKER_INGRESS_APPLY_START);
+    apply_start.indent();
+    apply_start << "hdr.sc.setValid();\n";
+    // Its last statement: whatever leaves the ingress -- to a port, the egress, the recirculation
+    // port or the controller -- is deparsed without the temporaries.
+    coder_t &apply_end = code_template.get(MARKER_INGRESS_EGRESS_DECISION);
+    apply_end.indent();
+    apply_end << "hdr.sc.setInvalid();\n";
+  }
+  if (has_state) {
     code_template.get(MARKER_INGRESS_EGRESS_STATE_FIELD) << "  state_h st;\n";
     code_template.get(MARKER_EGRESS_EGRESS_STATE_FIELD) << "  state_h st;\n";
     coder_t &apply_start = code_template.get(MARKER_INGRESS_APPLY_START);
@@ -4233,7 +4378,7 @@ void TofinoSynthesizer::synthesize() {
     leave.dec();
     leave.indent();
     leave << "}\n";
-    if (!state_slots_used.empty()) {
+    if (has_state) {
       // The state header travels to the controller behind the cpu header, so only a packet
       // leaving the switch drops it.
       leave.indent();
@@ -4261,7 +4406,7 @@ void TofinoSynthesizer::synthesize() {
   }
 
   std::ofstream ofs(out_file);
-  std::stringstream program(code_template.dump());
+  std::stringstream program(refine_carried_words(code_template.dump()));
   for (code_t line; std::getline(program, line);) {
     if (std::none_of(folded_calls.begin(), folded_calls.end(), [&](const std::regex &call) { return std::regex_match(line, call); })) {
       ofs << line << "\n";
@@ -4593,8 +4738,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       // A packet header field the controller reads from the packet itself. A state word travels
       // with the state header, whole: the controller reads it there (handoff_layout).
       if (var->name.rfind("hdr.st.", 0) == 0) {
-        handoff_layout.symbol_word[ep_node->get_id()][symbol.name] = var->name.substr(std::string("hdr.st.").size());
+        handoff_layout.symbol_word[ep_node->get_id()][symbol.name] = slot_stem(var->name);
       }
+      assert_or_panic(var->name.rfind("hdr.sc.", 0) != 0, "A value the controller reads lives in a scratch word: %s", var->name.c_str());
       continue;
     }
 
@@ -4621,7 +4767,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     // egress-state and recirculation writes below are different: those are few and on the fast
     // path, and wrapping the uncut ones there only spends hash-distribution units.
     // A widened write carries the cast, and 64 bits do not fit the hash unit's 32-bit immediate.
-    const bool via_hash = !sliced && !widened && var->name.rfind("hdr.st.", 0) == 0;
+    const bool via_hash = !sliced && !widened && is_state_word(var->name);
 
     ingress_apply.indent();
     if (via_hash) {
@@ -4744,7 +4890,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       recirc_vars.push_back(local_recirc_var);
       local_recirc_vars_by_name.insert({recirc_var.name, local_recirc_var});
 
-      const bool via_hash = var.name.rfind("hdr.st.", 0) == 0; // A state word: the copy must not slice it on the ALU.
+      const bool via_hash = is_state_word(var.name); // A state word: the copy must not slice it on the ALU.
       ingress_apply.indent();
       if (via_hash) {
         ingress_apply << "@in_hash { ";
@@ -4901,7 +5047,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       egress_vars.push_back(local_egress_var);
       local_egress_vars_by_name.insert({egress_var.name, local_egress_var});
 
-      const bool via_hash = var.name.rfind("hdr.st.", 0) == 0; // A state word: the copy must not slice it on the ALU.
+      const bool via_hash = is_state_word(var.name); // A state word: the copy must not slice it on the ALU.
       ingress_apply.indent();
       if (via_hash) {
         ingress_apply << "@in_hash { ";
@@ -5150,7 +5296,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     egress << "hdr.recirc.setInvalid();\n";
     egress.indent();
     egress << "hdr.egress_state.setInvalid();\n";
-    if (!state_slots_used.empty()) {
+    if (!carried_slots.empty()) {
       egress.indent();
       egress << "hdr.st.setInvalid();\n";
     }
@@ -5791,7 +5937,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       // this metadata field to the chain's sliced cluster. The hash unit takes an xor or a
       // layout of fields; an add of a slot stays an ALU op.
       const std::optional<std::string> op = LibBDD::unrolled_op_name(emitted);
-      const bool via_hash                 = base_code.find("hdr.st.") != std::string::npos && (!op || *op == "op_xor");
+      const bool via_hash =
+          (base_code.find("hdr.st.") != std::string::npos || base_code.find("hdr.sc.") != std::string::npos) && (!op || *op == "op_xor");
       control.indent();
       control << "action " << action_name << "() { " << (via_hash ? "@in_hash { " : "") << base_var.name << " = " << base_code << ";"
               << (via_hash ? " }" : "") << " }\n";
@@ -5912,7 +6059,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
         // limit of two. Route it through the hash unit, as the ground truth does
         // (`@in_hash { hdr.hdr2.data2 = ctime ^ v0 ^ v1 ^ v2 ^ v3; }`). A metadata temporary or
         // a carried field is whole, and a plain move of it is an ALU move.
-        const bool via_hash = whole_var.has_value() && whole_var->name.rfind("hdr.st.", 0) == 0;
+        const bool via_hash = whole_var.has_value() && is_state_word(whole_var->name);
 
         // Byte at klee offset p sits at the field's bits [width-1-p : width-8-p], so offset 0 is
         // the field's most significant byte and the bytes concatenate in their klee order.
@@ -9109,7 +9256,7 @@ void TofinoSynthesizer::check_state_word_budget() const {
   // the hash unit reads ties nothing.
   constexpr size_t NORMAL_CONTAINERS = 12;
   constexpr size_t MOCHA_CONTAINERS  = 4;
-  static const std::regex state_word(R"(hdr\.st\.s32_\d+)");
+  static const std::regex state_word(R"(hdr\.s[tc]\.s32_\d+)");
   for (const bool egress : {false, true}) {
     std::set<code_t> words;
     std::set<code_t> whole, alone;
@@ -9166,6 +9313,308 @@ void TofinoSynthesizer::check_state_word_budget() const {
             egress ? "egress" : "ingress", words.size(), inputs.size(), normal, NORMAL_CONTAINERS);
     }
   }
+}
+
+code_t TofinoSynthesizer::refine_carried_words(const code_t &program) {
+  if (carried_slots.empty()) {
+    return program;
+  }
+  // The passes as the program has them: the ingress runs one of its blocks -- the first pass's,
+  // or a recirculation code path's -- then the shared runs the block flagged, then the forwarding
+  // table; the egress runs the arms of its code path. Each block's compute calls, in textual
+  // order, expanded to their actions' statements, give the state words the pass reads before it
+  // writes them: what the pass before it left. Nothing else needs the state header to travel.
+  std::vector<code_t> lines;
+  for (std::stringstream in(program); in.good();) {
+    code_t line;
+    std::getline(in, line);
+    lines.push_back(line);
+  }
+  static const std::regex action_open(R"(^\s*action (\w+)\(\)\s*\{)");
+  static const std::regex assignment(R"(([\w.]+(?:\[\d+:\d+\])?)\s*=\s*([^;]+);)");
+  static const std::regex call(R"(^\s*((?:compute|select)_\w+)\(\);\s*$)");
+  static const std::regex state_word(R"(hdr\.st\.(s\d+_\d+))");
+  std::unordered_map<code_t, std::vector<std::pair<code_t, code_t>>> actions; // Name -> (lhs, rhs) in order.
+  {
+    std::optional<code_t> current;
+    for (const code_t &line : lines) {
+      std::smatch m;
+      if (std::regex_search(line, m, action_open)) {
+        current = m[1].str();
+        continue;
+      }
+      if (current && line.rfind("  }", 0) == 0) {
+        current.reset();
+        continue;
+      }
+      if (current) {
+        for (std::sregex_iterator it(line.begin(), line.end(), assignment), end; it != end; ++it) {
+          actions[*current].emplace_back((*it)[1].str(), (*it)[2].str());
+        }
+      }
+    }
+  }
+  const auto words_of = [&](const code_t &text) {
+    std::set<code_t> words;
+    for (std::sregex_iterator it(text.begin(), text.end(), state_word), end; it != end; ++it) {
+      words.insert((*it)[1].str());
+    }
+    return words;
+  };
+  const auto find_line = [&](size_t from, size_t to, const std::function<bool(const code_t &)> &pred) -> std::optional<size_t> {
+    for (size_t i = from; i < to; i++) {
+      if (pred(lines[i])) {
+        return i;
+      }
+    }
+    return std::nullopt;
+  };
+  const auto starts_with                = [](const code_t &prefix) { return [prefix](const code_t &line) { return line.rfind(prefix, 0) == 0; }; };
+  const std::optional<size_t> ingress   = find_line(0, lines.size(), starts_with("control Ingress("));
+  const std::optional<size_t> ingress_d = find_line(0, lines.size(), starts_with("control IngressDeparser("));
+  const std::optional<size_t> egress    = find_line(0, lines.size(), starts_with("control Egress("));
+  const std::optional<size_t> egress_d  = find_line(0, lines.size(), starts_with("control EgressDeparser("));
+  assert_or_panic(ingress && ingress_d && egress && egress_d, "The program's controls were not found");
+
+  std::set<code_t> carried; // Read before written by some pass.
+  const auto read_before_write = [&](const std::vector<code_t> &calls) {
+    std::set<code_t> written;
+    for (const code_t &action : calls) {
+      auto action_it = actions.find(action);
+      if (action_it == actions.end()) {
+        continue;
+      }
+      for (const auto &[lhs, rhs] : action_it->second) {
+        for (const code_t &word : words_of(rhs)) {
+          if (!written.contains(word)) {
+            carried.insert(word);
+          }
+        }
+        for (const code_t &word : words_of(lhs)) {
+          written.insert(word);
+        }
+      }
+    }
+  };
+  const auto calls_in = [&](size_t from, size_t to) {
+    std::vector<code_t> calls;
+    for (size_t i = from; i < to; i++) {
+      std::smatch m;
+      if (std::regex_match(lines[i], m, call)) {
+        calls.push_back(m[1].str());
+      }
+    }
+    return calls;
+  };
+
+  // Ingress: the recirculation blocks, then the first pass's else, then the shared runs up to the
+  // forwarding table (they follow whichever block set their flag: appended to every block).
+  {
+    static const std::regex recirc_open(R"(if \(hdr\.recirc\.code_path == (\d+)\))");
+    static const std::regex shared_open(R"(^\s*if \(meta\.shared_run_\d+ == 1\))");
+    std::vector<size_t> recirc_blocks;
+    for (size_t i = *ingress; i < *ingress_d; i++) {
+      if (std::regex_search(lines[i], recirc_open)) {
+        recirc_blocks.push_back(i);
+      }
+    }
+    const std::optional<size_t> first_else = find_line(*ingress, *ingress_d, [](const code_t &line) { return line == "    } else {"; });
+    const std::optional<size_t> forwarding =
+        find_line(*ingress, *ingress_d, [](const code_t &line) { return line.find("forwarding_tbl.apply();") != code_t::npos; });
+    assert_or_panic(first_else && forwarding, "The ingress apply block's shape was not recognized");
+    const std::optional<size_t> shared =
+        find_line(*first_else, *forwarding, [&](const code_t &line) { return std::regex_search(line, shared_open); });
+    const size_t chain_end         = shared ? *shared : *forwarding;
+    const std::vector<code_t> tail = calls_in(chain_end, *forwarding);
+    for (size_t b = 0; b < recirc_blocks.size(); b++) {
+      const size_t end       = b + 1 < recirc_blocks.size() ? recirc_blocks[b + 1] : *first_else;
+      std::vector<code_t> cs = calls_in(recirc_blocks[b], end);
+      cs.insert(cs.end(), tail.begin(), tail.end());
+      read_before_write(cs);
+    }
+    std::vector<code_t> first = calls_in(*first_else, chain_end);
+    first.insert(first.end(), tail.begin(), tail.end());
+    read_before_write(first);
+  }
+  // Egress: the calls under each code path, by the conditions enclosing them.
+  {
+    static const std::regex if_open(R"(^(\s*)(?:\} else )?if \((.*)\) \{\s*$)");
+    static const std::regex code_path(R"(code_path == (\d+))");
+    struct frame_t {
+      size_t indent;
+      std::set<int> paths; // Empty: every path.
+    };
+    std::vector<frame_t> stack;
+    std::map<int, std::vector<code_t>> arms;
+    for (size_t i = *egress; i < *egress_d; i++) {
+      const code_t &line = lines[i];
+      std::smatch m;
+      if (std::regex_match(line, m, if_open)) {
+        std::set<int> paths;
+        const code_t condition = m[2].str();
+        for (std::sregex_iterator it(condition.begin(), condition.end(), code_path), end; it != end; ++it) {
+          paths.insert(std::stoi((*it)[1].str()));
+        }
+        stack.push_back({m[1].str().size(), paths});
+        continue;
+      }
+      const size_t indent = line.find_first_not_of(' ');
+      if (indent != code_t::npos && line[indent] == '}' && !stack.empty() && indent == stack.back().indent) {
+        stack.pop_back();
+        if (line.find('{') != code_t::npos) {
+          stack.push_back({indent, {}}); // } else {
+        }
+        continue;
+      }
+      if (std::regex_match(line, m, call)) {
+        std::set<int> active;
+        bool any = false;
+        for (const frame_t &frame : stack) {
+          if (frame.paths.empty()) {
+            continue;
+          }
+          if (!any) {
+            active = frame.paths;
+            any    = true;
+          } else {
+            std::set<int> both;
+            std::set_intersection(active.begin(), active.end(), frame.paths.begin(), frame.paths.end(), std::inserter(both, both.begin()));
+            active = both;
+          }
+        }
+        if (!any) {
+          active = {-1}; // Unconditional: every arm.
+        }
+        for (const int arm : active) {
+          arms[arm].push_back(m[1].str());
+        }
+      }
+    }
+    std::vector<code_t> common = arms.count(-1) ? arms.at(-1) : std::vector<code_t>{};
+    for (const auto &[arm, calls] : arms) {
+      if (arm < 0) {
+        continue;
+      }
+      std::vector<code_t> cs = calls;
+      cs.insert(cs.end(), common.begin(), common.end());
+      read_before_write(cs);
+    }
+    if (arms.size() == 1 && arms.count(-1)) {
+      read_before_write(common);
+    }
+  }
+  // A hand-off's words travel to the controller: carried whatever the passes read.
+  for (const auto &[node, words] : handoff_layout.symbol_word) {
+    for (const auto &[symbol, word] : words) {
+      carried.insert(word);
+    }
+  }
+
+  std::set<code_t> moved;
+  for (const code_t &stem : carried_slots) {
+    if (!carried.contains(stem)) {
+      moved.insert(stem);
+    }
+  }
+  if (moved.empty()) {
+    return program;
+  }
+  if (Walk::enabled()) {
+    std::cerr << "[homes] " << moved.size() << " of " << carried_slots.size()
+              << " carried words are read by no pass before it writes them: scratch\n";
+  }
+  for (const code_t &stem : moved) {
+    carried_slots.erase(stem);
+    scratch_slots.insert(stem);
+  }
+  std::erase_if(handoff_layout.state_words, [&](const auto &word) { return moved.contains(word.first); });
+  // The text: the words' names, and their declarations from one header to the other.
+  code_t out;
+  bool in_state = false, in_scratch = false;
+  bool scratch_declared = program.find("header scratch_h {") != code_t::npos;
+  for (code_t line : lines) {
+    for (const code_t &stem : moved) {
+      for (size_t at = line.find("hdr.st." + stem); at != code_t::npos; at = line.find("hdr.st." + stem, at + 1)) {
+        const size_t after = at + 7 + stem.size();
+        if (after < line.size() && (std::isalnum(line[after]) || line[after] == '_')) {
+          continue;
+        }
+        line.replace(at, 7, "hdr.sc.");
+      }
+    }
+    if (line == "header state_h {") {
+      in_state = true;
+    } else if (line == "header scratch_h {") {
+      in_scratch = true;
+    } else if (line == "}") {
+      if (in_state) {
+        in_state = false;
+        out += line + "\n";
+        if (!scratch_declared) {
+          out += "\n// The chain's temporaries: header fields for the same reason, but nothing crosses a cut in\n";
+          out += "// them, so the header is valid inside a pass only and invalidated before every deparser: it\n";
+          out += "// never travels with the packet, whose bytes on the recirculation ports are the throughput.\n";
+          out += "header scratch_h {\n";
+          for (const code_t &stem : moved) {
+            out += "  bit<32> " + stem + ";\n";
+          }
+          out += "}\n";
+        }
+        continue;
+      }
+      if (in_scratch) {
+        in_scratch = false;
+        for (const code_t &stem : moved) {
+          out += "  bit<32> " + stem + ";\n";
+        }
+      }
+    } else if (in_state) {
+      bool is_moved = false;
+      for (const code_t &stem : moved) {
+        is_moved |= line == "  bit<32> " + stem + ";";
+      }
+      if (is_moved) {
+        continue;
+      }
+    }
+    out += line + "\n";
+  }
+  if (!scratch_declared) {
+    // The planner found no scratch word, so the header's plumbing was not written: the struct
+    // members, and the validity around each apply block (see synthesize).
+    code_t plumbed;
+    std::optional<code_t> control; // "Ingress" / "Egress" while inside its apply block.
+    for (std::stringstream in(out); in.good();) {
+      code_t line;
+      std::getline(in, line);
+      if (!in.good() && line.empty()) {
+        break;
+      }
+      if (line == "  state_h st;") {
+        plumbed += line + "\n  scratch_h sc;\n";
+        continue;
+      }
+      if (line.rfind("control Ingress(", 0) == 0) {
+        control = "Ingress";
+      } else if (line.rfind("control Egress(", 0) == 0) {
+        control = "Egress";
+      } else if (line.rfind("control ", 0) == 0 || line.rfind("parser ", 0) == 0) {
+        control.reset();
+      }
+      if (control && line == "  apply {") {
+        plumbed += line + "\n    hdr.sc.setValid();\n";
+        continue;
+      }
+      if (control && line == "  }") {
+        plumbed += "    hdr.sc.setInvalid();\n" + line + "\n";
+        control.reset();
+        continue;
+      }
+      plumbed += line + "\n";
+    }
+    out = plumbed;
+  }
+  return out;
 }
 
 bool TofinoSynthesizer::called_before(const DS_ID &a, const DS_ID &b) const {
@@ -9763,7 +10212,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
         continue;
       }
       const code_t out = m[1].str();
-      if (out.rfind("hdr.st.", 0) == 0) {
+      if (is_state_word(out)) {
         continue; // A state word: the chain reads it.
       }
       size_t reader = ops.size();
@@ -9799,7 +10248,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
   if (Walk::enabled()) {
     // The words a statement reads must be the ones the planner chose for the op: its word pairs
     // hold only then. A difference here is an emitter lookup the planner did not foresee.
-    static const std::regex word(R"(hdr\.st\.s\d+_\d+)");
+    static const std::regex word(R"(hdr\.s[tc]\.s\d+_\d+)");
     for (const op_emission_t &op : ops) {
       auto planned_it = planned_source_ops.find(op.op_id);
       if (planned_it == planned_source_ops.end() || op.statement.empty() || op.in_hash) {
@@ -9989,7 +10438,7 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
         continue;
       }
       const code_t &s            = emission.statement;
-      const bool state_word      = s.find("hdr.st.") != code_t::npos;
+      const bool state_word      = s.find("hdr.st.") != code_t::npos || s.find("hdr.sc.") != code_t::npos;
       const bool packet_field    = s.find("hdr.hdr") != code_t::npos;
       const bool metadata        = s.find("meta.") != code_t::npos || s.find("eg_md.") != code_t::npos || s.find("_intr_md") != code_t::npos;
       const bool alu_packet_read = packet_field && !metadata && !emission.hash_rotate && !reads_a_rewritten_field(s);
