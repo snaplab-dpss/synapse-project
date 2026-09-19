@@ -42,6 +42,8 @@ extern "C" {
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
+#include <utility>
 
 using json = nlohmann::json;
 
@@ -548,11 +550,22 @@ struct expiration_tracker_t {
   }
 };
 
+struct LnStats {
+  std::set<std::pair<uint32_t, uint32_t>> inputs; // distinct (x, scale) pairs
+
+  void update(uint32_t x, uint32_t scale) {
+    if (!warmup) {
+      inputs.insert({x, scale});
+    }
+  }
+};
+
 PcapReader warmup_reader;
 PcapReader reader;
 std::unordered_map<int, MapStats> stats_per_map;
 std::unordered_map<int, PortStats> forwarding_stats_per_route_op;
 std::unordered_map<uint64_t, uint64_t> node_pkt_counter;
+std::unordered_map<int, LnStats> ln_stats_per_node;
 time_ns_t elapsed_time;
 expiration_tracker_t expiration_tracker;
 
@@ -591,6 +604,18 @@ void generate_report() {
   report["counters"] = json::object();
   for (const auto& [node_id, count] : node_pkt_counter) {
     report["counters"][std::to_string(node_id)] = count;
+  }
+
+  report["ln_inputs"] = json::object();
+  for (const auto &[node_id, ln_stats] : ln_stats_per_node) {
+    json entries = json::array();
+    for (const auto &[x, scale] : ln_stats.inputs) {
+      json entry;
+      entry["x"]     = x;
+      entry["scale"] = scale;
+      entries.push_back(entry);
+    }
+    report["ln_inputs"][std::to_string(node_id)] = entries;
   }
 
   report["meta"]            = json::object();
@@ -964,23 +989,25 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               } else {
                 // BDDNode 23
                 inc_path_counter(23);
-                uint8_t* vector_value_out = 0;
-                vector_borrow(vector, index, (void**)&vector_value_out);
+                uint8_t* vector_cell = 0;
+                vector_borrow(vector, index, (void**)&vector_cell);
+                uint32_t vector_value_out = *(uint32_t*)vector_cell;
                 // BDDNode 24
                 inc_path_counter(24);
-                *(uint32_t*)vector_value_out = hdr4_slice;
-                map_put(map, vector_value_out, index);
-                stats_per_map[1073923096ULL].update(24, vector_value_out, 4, now);
+                *(uint32_t*)vector_cell = hdr4_slice;
+                map_put(map, vector_cell, index);
+                stats_per_map[1073923096ULL].update(24, vector_cell, 4, now);
                 // BDDNode 25
                 inc_path_counter(25);
                 // BDDNode 26
                 inc_path_counter(26);
-                uint8_t* vector_value_out2 = 0;
-                vector_borrow(vector2, index, (void**)&vector_value_out2);
+                uint8_t* vector_cell2 = 0;
+                vector_borrow(vector2, index, (void**)&vector_cell2);
+                uint32_t vector_value_out2 = *(uint32_t*)vector_cell2;
                 // BDDNode 27
                 inc_path_counter(27);
                 uint32_t hdr4_slice2 = *(uint32_t*)(hdr4+5);
-                memcpy((void*)vector_value_out2, (void*)&hdr4_slice2, 4);
+                memcpy((void*)vector_cell2, (void*)&hdr4_slice2, 4);
                 // BDDNode 28
                 inc_path_counter(28);
                 hdr4[9] = 1;
@@ -1049,15 +1076,16 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
             dchain_rejuvenate_index(dchain, value, now);
             // BDDNode 39
             inc_path_counter(39);
-            uint8_t* vector_value_out3 = 0;
-            vector_borrow(vector2, value, (void**)&vector_value_out3);
+            uint8_t* vector_cell3 = 0;
+            vector_borrow(vector2, value, (void**)&vector_cell3);
+            uint32_t vector_value_out3 = *(uint32_t*)vector_cell3;
             // BDDNode 40
             inc_path_counter(40);
             if ((1) == (*(hdr4+0))) {
               // BDDNode 41
               inc_path_counter(41);
               uint32_t hdr4_slice3 = *(uint32_t*)(hdr4+5);
-              memcpy((void*)vector_value_out3, (void*)&hdr4_slice3, 4);
+              memcpy((void*)vector_cell3, (void*)&hdr4_slice3, 4);
               // BDDNode 42
               inc_path_counter(42);
               hdr4[9] = 1;
@@ -1104,10 +1132,10 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               inc_path_counter(47);
               // BDDNode 48
               inc_path_counter(48);
-              hdr4[5] = *(vector_value_out3+0);
-              hdr4[6] = *(vector_value_out3+1);
-              hdr4[7] = *(vector_value_out3+2);
-              hdr4[8] = *(vector_value_out3+3);
+              hdr4[5] = vector_value_out3 & 255;
+              hdr4[6] = (vector_value_out3>>8) & 255;
+              hdr4[7] = (vector_value_out3>>16) & 255;
+              hdr4[8] = (vector_value_out3>>24) & 255;
               hdr4[9] = 1;
               packet_return_chunk(buffer, hdr4);
               // BDDNode 49
