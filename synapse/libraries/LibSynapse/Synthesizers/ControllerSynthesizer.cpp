@@ -1092,17 +1092,14 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   std::unordered_set<bytes_t> bytes_already_dealt_with;
   for (const expr_byte_swap_t &byte_swap : swaps) {
-    coder.indent();
-    coder << "std::swap(";
-    coder << hdr.value().name << "[" << byte_swap.byte0 << "]";
-    coder << ", ";
-    coder << hdr.value().name << "[" << byte_swap.byte1 << "]";
-    coder << ");\n";
-
     bytes_already_dealt_with.insert(byte_swap.byte0);
     bytes_already_dealt_with.insert(byte_swap.byte1);
   }
 
+  // Every new byte is an expression over the chunk as borrowed, so all of them are computed
+  // before any of them is stored: written one by one, SmartCookie's SYN-ACK took its ack from the
+  // seq bytes the cookie had just overwritten (ack = cookie + 1 instead of the client's seq + 1).
+  std::vector<std::pair<bytes_t, code_t>> new_bytes; // Chunk byte -> the temporary holding it.
   for (const expr_mod_t &mod : changes) {
     symbolic_reads_t symbolic_reads = get_unique_symbolic_reads(mod.expr, "checksum");
     if (!symbolic_reads.empty()) {
@@ -1115,17 +1112,32 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
     const bytes_t size = mod.width / 8;
     for (bytes_t i = 0; i < size; i++) {
+      const bytes_t byte  = mod.offset / 8 + i;
+      const code_t holder = hdr.value().name + "_" + std::to_string(ep_node->get_id()) + "_b" + std::to_string(byte);
       coder.indent();
-      coder << hdr.value().name << "[" << ((mod.offset / 8) + i) << "] = ";
-
+      coder << "const u8 " << holder << " = ";
       if (size == 1) {
         coder << transpiler.transpile(mod.expr);
       } else {
         coder << transpiler.transpile(solver_toolbox.exprBuilder->Extract(mod.expr, i * 8, 8));
       }
-
       coder << ";\n";
+      new_bytes.emplace_back(byte, holder);
     }
+  }
+
+  for (const expr_byte_swap_t &byte_swap : swaps) {
+    coder.indent();
+    coder << "std::swap(";
+    coder << hdr.value().name << "[" << byte_swap.byte0 << "]";
+    coder << ", ";
+    coder << hdr.value().name << "[" << byte_swap.byte1 << "]";
+    coder << ");\n";
+  }
+
+  for (const auto &[byte, holder] : new_bytes) {
+    coder.indent();
+    coder << hdr.value().name << "[" << byte << "] = " << holder << ";\n";
   }
 
   return EPVisitor::Action::doChildren;

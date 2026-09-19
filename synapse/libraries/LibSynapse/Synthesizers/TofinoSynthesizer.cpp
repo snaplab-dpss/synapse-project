@@ -197,6 +197,21 @@ bool carries_action_data(const compute_op_t &op) {
   return found;
 }
 
+// A vector cell read as is: byte reads of one vector_data symbol and nothing else, no arithmetic on
+// the way (which would make a number of it).
+bool is_plain_vector_read(klee::ref<klee::Expr> expr) {
+  switch (expr->getKind()) {
+  case klee::Expr::Concat:
+    return is_plain_vector_read(expr->getKid(0)) && is_plain_vector_read(expr->getKid(1));
+  case klee::Expr::Read: {
+    const klee::ReadExpr *read = dynamic_cast<const klee::ReadExpr *>(expr.get());
+    return symbol_t::base_from_name(read->updates.root->name) == "vector_data";
+  }
+  default:
+    return false;
+  }
+}
+
 } // namespace
 
 TofinoSynthesizer::Transpiler::Transpiler(TofinoSynthesizer *_synthesizer) : synthesizer(_synthesizer) {}
@@ -2102,18 +2117,10 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::compose_hdr_fi
       }
       const u32 end      = std::min(bytes->hi, target->hi);
       const bits_t width = (bytes->hi - bytes->lo + 1) * 8;
-      // Where bytes `next..end` sit inside the field depends on how the field itself is read. A
-      // network-order field has byte `lo` at the top, so the run counts down from the width; a
-      // host-order one has byte `lo` at the bottom, so it counts up from it.
-      bits_t high;
-      bits_t low;
-      if (bytes->network_order) {
-        high = width - 1 - (next - bytes->lo) * 8;
-        low  = width - (end - bytes->lo + 1) * 8;
-      } else {
-        high = (end - bytes->lo + 1) * 8 - 1;
-        low  = (next - bytes->lo) * 8;
-      }
+      // A P4 header field holds its bytes in wire order whichever way the NF read it: byte `lo` at
+      // the top, so the run counts down from the width.
+      const bits_t high = width - 1 - (next - bytes->lo) * 8;
+      const bits_t low  = width - (end - bytes->lo + 1) * 8;
       field_names.push_back(var.name + "[" + std::to_string(high) + ":" + std::to_string(low) + "]");
       next  = end + 1;
       found = true;
@@ -2128,12 +2135,12 @@ std::optional<TofinoSynthesizer::var_t> TofinoSynthesizer::Stack::compose_hdr_fi
     return {};
   }
 
-  // The pieces were gathered by increasing address. A network-order value wants them in that
-  // order, most significant first; a host-order one is the same bytes read the other way round, so
-  // its pieces -- each already a host-order run -- go most significant last.
-  if (!target->network_order) {
-    std::reverse(field_names.begin(), field_names.end());
-  }
+  // The pieces were gathered by increasing address and stay in it for a host-order read too: a
+  // read spanning several fields is a table key or a hash input, whose bytes meet the ones the
+  // controller installs in memory order (HashObj feeds the hash unit the same way). A single
+  // field's host-order read is the field itself, so this is what the one-field case already does.
+  // Reversed, as a host-order value read as a number would want, the classifier's key was
+  // dst ++ src against a controller entry of src, dst, and the fast path never hit.
 
   // One field covering the whole range is the common case now that adjacent fields are coalesced
   // at their natural width: a P4 header field holds its bytes in wire order, so the network-order
@@ -5881,8 +5888,22 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
               parts.push_back(field_bytes_written[b]->expr);
             }
             // parts[0] is the field's most significant byte, which concat_exprs puts at the high
-            // end only with left_to_right = false.
+            // end only with left_to_right = false: a value the NF wrote in network order
+            // (SmartCookie's cookie). A vector cell it copied in host order (the KVS's stored
+            // value, a memcpy) reassembles the other way round, and it is the same var to write:
+            // the cell was filled from the packet's bytes as they lie (a register write reads the
+            // field whole), so writing it back whole puts them back. Written byte by byte as the
+            // host-order copy reads, the GET's reply came back byte-reversed from the PUT's value.
+            // Only a cell copied as is: a number copied in host order (the KVS's client port,
+            // meta.dev; HyperLogLog's estimate, computed from the cells) is a number, and its
+            // bytes go out as the copy reads them.
             whole_var = ingress_vars.get(LibCore::concat_exprs(parts, false));
+            if (!whole_var) {
+              const klee::ref<klee::Expr> as_stored = LibCore::concat_exprs(parts, true);
+              if (is_plain_vector_read(as_stored)) {
+                whole_var = ingress_vars.get(as_stored);
+              }
+            }
           }
         }
 
