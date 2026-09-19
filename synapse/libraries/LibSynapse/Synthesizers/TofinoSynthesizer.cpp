@@ -2405,6 +2405,33 @@ size_t TofinoSynthesizer::recirc_slot_for(const code_t &name, const code_t &slot
   return slot;
 }
 
+size_t TofinoSynthesizer::egress_slot_for(const code_t &name, const code_t &slot_kind) {
+  // A name keeps its slot from crossing to crossing (an egress block shared by several crossings
+  // reads one field); a new name takes the lowest slot no name of *this* crossing holds: the
+  // crossings are exclusive, so two values that never cross together share a slot. The names
+  // holding a slot already are reserved ahead of the new ones (reserve_egress_slot).
+  std::set<size_t> &taken = egress_slots_owned[slot_kind];
+  size_t slot;
+  auto owned_it = egress_slot_by_name.find(name);
+  if (owned_it != egress_slot_by_name.end() && owned_it->second.first == slot_kind) {
+    slot = owned_it->second.second;
+  } else {
+    slot = 0;
+    while (taken.contains(slot)) {
+      slot++;
+    }
+    egress_slot_by_name[name] = {slot_kind, slot};
+  }
+  taken.insert(slot);
+  return slot;
+}
+
+void TofinoSynthesizer::reserve_egress_slot(const code_t &name) {
+  if (auto owned_it = egress_slot_by_name.find(name); owned_it != egress_slot_by_name.end()) {
+    egress_slots_owned[owned_it->second.first].insert(owned_it->second.second);
+  }
+}
+
 std::unordered_set<std::string> TofinoSynthesizer::live_symbols_past(const EP *ep, const BDDNode *cut_node, const EPNode *next) const {
   std::unordered_set<std::string> live_symbols;
   const BDDNode *node = ep->get_bdd()->get_node_by_id(cut_node->get_id());
@@ -4252,7 +4279,11 @@ void TofinoSynthesizer::synthesize() {
     eg_state_hdr << "header egress_state_h {\n";
     eg_state_hdr << "  bit<16> code_path;\n";
     eg_state_hdr << "  bit<32> time; // The ingress clock, ingress_mac_tstamp[47:16]: the packet's time in the egress too.\n";
+    std::unordered_set<code_t> declared_egress_slots;
     for (const var_t &var : egress_state_hdr_vars.get_all()) {
+      if (!declared_egress_slots.insert(var.get_stem()).second) {
+        continue;
+      }
       const bits_t pad = var.is_bool() ? 7 : (8 - var.expr->getWidth()) % 8;
       if (pad > 0) {
         eg_state_hdr << "  @padding bit<" << pad << "> pad_" << var.get_stem() << ";\n";
@@ -4985,6 +5016,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   Stack first_stack = ingress_vars.get_first_stack();
   std::vector<var_t> egress_vars;
   std::unordered_map<code_t, var_t> local_egress_vars_by_name;
+  // Slot counters restart for every crossing (see egress_slot_for).
+  begin_egress_slots();
 
   // Same liveness rule as a recirculation: only what a BDD node reachable from here still uses
   // travels, or the header does not fit the PHV.
@@ -5002,6 +5035,16 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     }
     return false;
   };
+
+  // The names an earlier crossing gave slots to and that cross here too keep theirs, so they
+  // are reserved before the new names take the free ones.
+  for (const Stack &stack : ingress_vars.get_all()) {
+    for (const var_t &var : stack.get_all()) {
+      if (!var.is_header_field && var.original_name != "meta.time" && is_live(var)) {
+        reserve_egress_slot(var_t(var).flatten_name());
+      }
+    }
+  }
 
   for (const Stack &stack : ingress_vars.get_all()) {
     for (const var_t &var : stack.get_all()) {
@@ -5027,6 +5070,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
         continue;
       }
 
+      // Already in the crossing header from an earlier crossing of this chain (a recirculation
+      // in between re-extracts it): it stays where it is, in its slot.
+      if (var.name.rfind("hdr.egress_state.", 0) == 0) {
+        egress_vars.push_back(var);
+        continue;
+      }
+
       var_t egress_var = var;
       egress_var.name  = egress_var.flatten_name();
 
@@ -5039,11 +5089,19 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
         continue;
       }
 
+      // Whole 32-bit words only, the device included (a 16-bit field next to the chain's sliced
+      // words landed in byte containers the parser's port-metadata state overwrote on every pass,
+      // measured: the tagged ACK's device came out zero).
+      const code_t slot_kind = egress_var.is_bool() ? code_t("b") : std::to_string(egress_var.expr->getWidth());
+      const size_t slot      = egress_slot_for(egress_var.name, slot_kind);
+
       var_t local_egress_var         = egress_var;
-      local_egress_var.name          = "hdr.egress_state." + egress_var.name;
+      local_egress_var.name          = "hdr.egress_state.e" + slot_kind + "_" + std::to_string(slot);
       local_egress_var.original_name = local_egress_var.name;
 
-      egress_state_hdr_vars.push(egress_var);
+      var_t slot_var = egress_var;
+      slot_var.name  = "e" + slot_kind + "_" + std::to_string(slot);
+      egress_state_hdr_vars.push(slot_var);
       egress_vars.push_back(local_egress_var);
       local_egress_vars_by_name.insert({egress_var.name, local_egress_var});
 

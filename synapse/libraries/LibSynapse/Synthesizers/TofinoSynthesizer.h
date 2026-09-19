@@ -265,6 +265,11 @@ private:
   std::map<code_t, std::pair<code_t, size_t>> recirc_slot_by_name; // name -> (slot kind, slot)
   std::map<code_t, std::set<size_t>> recirc_slots_owned;           // slot kind -> slots some name owns
   std::map<code_t, size_t> recirc_slot_next;                       // slot kind -> next slot to try, per pass
+  // The same for the crossings' header (egress_state_h): the crossings are exclusive, so a slot
+  // serves one value per crossing, and the header holds the widest crossing's values, not every
+  // crossing's. Kept apart from the recirculation's slots: the two headers travel together.
+  std::map<code_t, std::pair<code_t, size_t>> egress_slot_by_name; // name -> (slot kind, slot), over every crossing
+  std::map<code_t, std::set<size_t>> egress_slots_owned;           // slot kind -> the slots taken at the crossing being written
 
   // Every computed value of a byte width, by the canonical op id of its producer: a slot of the
   // state header `hdr.st`, allocated per path by live range (plan_value_homes). A header field is
@@ -493,6 +498,9 @@ private:
   // begin_recirc_slots.
   size_t recirc_slot_for(const code_t &name, const code_t &slot_kind);
   void begin_recirc_slots() { recirc_slot_next.clear(); }
+  size_t egress_slot_for(const code_t &name, const code_t &slot_kind);
+  void reserve_egress_slot(const code_t &name);
+  void begin_egress_slots() { egress_slots_owned.clear(); }
 
   coder_t &get(const std::string &marker);
 
