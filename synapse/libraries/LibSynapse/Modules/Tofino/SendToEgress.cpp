@@ -1,4 +1,5 @@
 #include <LibSynapse/Modules/Tofino/SendToEgress.h>
+#include <LibSynapse/Modules/Tofino/ModifyHeader.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <iostream>
 #include <cstdlib>
@@ -103,7 +104,12 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
       conditions.push_back(static_cast<const LibBDD::Branch *>(future)->get_condition());
       break;
     case BDDNodeType::Call:
-      work_remains = true;
+      // Handing a chunk back unchanged lowers to nothing: a crossing with only that and the
+      // routes ahead buys no depth and costs the egress pass, its headers and, past a rewrite the
+      // ingress already made, the checksum update the egress cannot do.
+      if (!ModifyHeaderFactory::returns_chunk_unchanged(future)) {
+        work_remains = true;
+      }
       break;
     default:
       work_remains = true;

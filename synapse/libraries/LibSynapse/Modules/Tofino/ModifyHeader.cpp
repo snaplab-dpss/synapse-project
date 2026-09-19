@@ -44,6 +44,24 @@ std::vector<expr_mod_t> filter_out_checksum_mods(const std::vector<expr_mod_t> &
 
 } // namespace
 
+bool ModifyHeaderFactory::returns_chunk_unchanged(const BDDNode *node) {
+  if (node->get_type() != BDDNodeType::Call) {
+    return false;
+  }
+
+  const Call *packet_return_chunk = dynamic_cast<const Call *>(node);
+  if (packet_return_chunk->get_call().function_name != "packet_return_chunk") {
+    return false;
+  }
+
+  const Call *packet_borrow_chunk = packet_return_chunk->packet_borrow_from_return();
+  assert(packet_borrow_chunk && "Failed to find packet_borrow_next_chunk from packet_return_chunk");
+
+  klee::ref<klee::Expr> borrowed = packet_borrow_chunk->get_call().extra_vars.at("the_chunk").second;
+  klee::ref<klee::Expr> returned = packet_return_chunk->get_call().args.at("the_chunk").in;
+  return filter_out_checksum_mods(build_expr_mods(borrowed, returned)).empty();
+}
+
 std::optional<spec_impl_t> ModifyHeaderFactory::speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const {
   if (node->get_type() != BDDNodeType::Call) {
     return {};
