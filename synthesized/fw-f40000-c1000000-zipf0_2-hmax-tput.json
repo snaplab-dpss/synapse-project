@@ -1,27 +1,27 @@
 {
   "bdd": "fw.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 191,
-    "num_phase1_speculations": 13178,
-    "num_phase2_speculations": 211,
-    "num_speculated_modules": 144255,
-    "time_per_instantiation_us": 922,
-    "time_per_speculation_us": 104,
-    "total_time_spent_generating_execution_plans_us": 176282,
-    "total_time_spent_speculating_us": 15033840
+    "num_execution_plans_generated": 183,
+    "num_phase1_speculations": 13199,
+    "num_phase2_speculations": 217,
+    "num_speculated_modules": 144252,
+    "time_per_instantiation_us": 578,
+    "time_per_speculation_us": 65,
+    "total_time_spent_generating_execution_plans_us": 105871,
+    "total_time_spent_speculating_us": 9496385
   },
   "heuristic": {
     "meta": [
       {
-        "description": "47.63 Gbps (67.66 Mpps)",
+        "description": "48.37 Gbps (68.71 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "47.63 Gbps (67.66 Mpps)",
+        "description": "48.37 Gbps (68.71 Mpps)",
         "name": "Spec"
       },
       {
-        "description": "2",
+        "description": "3",
         "name": "Recirculations"
       },
       {
@@ -33,17 +33,17 @@
         "name": "Stages"
       },
       {
-        "description": "32076480 bits",
+        "description": "32079936 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      67600000,
+      68700000,
       56,
       -6,
-      -32076480,
-      -2
+      -32079936,
+      -3
     ]
   },
   "implementations": [
@@ -98,11 +98,11 @@
         "node_id": 159
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 150
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 146
       },
       {
@@ -118,7 +118,7 @@
         "node_id": 149
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 145
       },
       {
@@ -134,7 +134,7 @@
         "node_id": 148
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 144
       },
       {
@@ -242,7 +242,7 @@
         "node_id": 165
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 176
       },
       {
@@ -250,7 +250,7 @@
         "node_id": 147
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 151
       },
       {
@@ -262,11 +262,11 @@
         "node_id": 166
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 177
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 152
       },
       {
@@ -278,11 +278,11 @@
         "node_id": 167
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 178
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 153
       },
       {
@@ -294,7 +294,7 @@
         "node_id": 168
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 179
       },
       {
@@ -306,7 +306,7 @@
         "node_id": 163
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 169
       },
       {
@@ -318,15 +318,15 @@
         "node_id": 164
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 170
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 171
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 172
       },
       {
@@ -343,16 +343,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.4074074074074074,
-    "elapsed_time_seconds": 24,
+    "branching_factor": 3.240740740740741,
+    "elapsed_time_seconds": 14,
     "finished_eps": 1,
-    "ss_size": 191,
-    "steps": 58,
-    "total_ss_size_estimation": 760948089576.5981,
-    "unfinished_eps": 133
+    "ss_size": 183,
+    "steps": 59,
+    "total_ss_size_estimation": 259827093994.57196,
+    "unfinished_eps": 124
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 47632943424,
-  "tput_estimation_pps": 67660431
+  "tput_estimation_bps": 48374776384,
+  "tput_estimation_pps": 68714171
 }

@@ -1,14 +1,14 @@
 {
   "bdd": "psd.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 241,
-    "num_phase1_speculations": 13639,
+    "num_execution_plans_generated": 227,
+    "num_phase1_speculations": 13464,
     "num_phase2_speculations": 144,
-    "num_speculated_modules": 175150,
-    "time_per_instantiation_us": 5417,
-    "time_per_speculation_us": 55,
-    "total_time_spent_generating_execution_plans_us": 1305566,
-    "total_time_spent_speculating_us": 9760757
+    "num_speculated_modules": 172723,
+    "time_per_instantiation_us": 562,
+    "time_per_speculation_us": 33,
+    "total_time_spent_generating_execution_plans_us": 127576,
+    "total_time_spent_speculating_us": 5797345
   },
   "heuristic": {
     "meta": [
@@ -29,11 +29,11 @@
         "name": "BDD Progress"
       },
       {
-        "description": "3",
+        "description": "10",
         "name": "Stages"
       },
       {
-        "description": "18900096 bits",
+        "description": "14670080 bits",
         "name": "Memory Usage"
       }
     ],
@@ -41,8 +41,8 @@
       0,
       504000000,
       73,
-      -3,
-      -18900096,
+      -10,
+      -14670080,
       -1
     ]
   },
@@ -94,7 +94,7 @@
         "node_id": 292
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 165
       },
       {
@@ -110,11 +110,11 @@
         "node_id": 291
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 164
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 190
       },
       {
@@ -158,7 +158,7 @@
         "node_id": 145
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 193
       },
       {
@@ -166,7 +166,7 @@
         "node_id": 135
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 194
       },
       {
@@ -174,7 +174,7 @@
         "node_id": 136
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 195
       },
       {
@@ -182,7 +182,7 @@
         "node_id": 137
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 196
       },
       {
@@ -246,7 +246,7 @@
         "node_id": 199
       },
       {
-        "avg": 3.0,
+        "avg": 2.0,
         "node_id": 200
       },
       {
@@ -346,7 +346,7 @@
         "node_id": 173
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 180
       },
       {
@@ -366,15 +366,15 @@
         "node_id": 160
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 174
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 181
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 187
       },
       {
@@ -382,19 +382,19 @@
         "node_id": 288
       },
       {
-        "avg": 5.0,
+        "avg": 3.0,
         "node_id": 161
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 175
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 182
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 188
       },
       {
@@ -402,7 +402,7 @@
         "node_id": 289
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 162
       },
       {
@@ -410,26 +410,26 @@
         "node_id": 176
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 183
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 189
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 163
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.3115942028985508,
-    "elapsed_time_seconds": 25,
+    "branching_factor": 3.0942028985507246,
+    "elapsed_time_seconds": 14,
     "finished_eps": 1,
-    "ss_size": 241,
+    "ss_size": 227,
     "steps": 75,
-    "total_ss_size_estimation": 67576511033201.33,
-    "unfinished_eps": 166
+    "total_ss_size_estimation": 12270424686815.15,
+    "unfinished_eps": 152
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",

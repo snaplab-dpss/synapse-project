@@ -1,0 +1,613 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     smartcookie.bdd
+  Name:               gallium-smartcookie
+  Targets config:     tofino2-smartcookie.toml
+  Heuristic:          gallium
+  Profile file:       smartcookie-f40000-c10000-zipf1_2.json
+  Seed:               0
+  Targets:
+    Tofino (53 modules)
+    Ctrl (98 modules)
+    x86 (30 modules)
+  No reorder:         0
+  Not greedy:         0
+
+Winner:
+  Score: <0,0,0,0,119,456>
+  Tput: 448.45 Kbps (637.00 pps)
+  Spec: 352.00 Kbps (500.00 pps)
+
+Stateful Implementations:
+  1073939616: Tofino::VectorRegister
+  1073927040: Tofino::BloomFilter
+
+Search Metadata:
+  Elapsed time:       207 seconds
+  Steps:              490
+  Backtracks:         1
+  Search space size:  2'484
+  Unfinished EPs:     1'994
+  Finished EPs:       1
+  Avg BDD size:       456
+  Branching factor:   2
+  Total SS size est.: -9'223'372'036'854'775'808
+  Avg children per node:
+    Node 95: 0
+    Node 99: 0
+    Node 94: 0
+    Node 98: 0
+    Node 93: 0
+    Node 97: 0
+    Node 92: 0
+    Node 183: 0
+    Node 96: 0
+    Node 91: 0
+    Node 182: 0
+    Node 90: 0
+    Node 181: 0
+    Node 344: 0
+    Node 180: 0
+    Node 343: 0
+    Node 456: 0
+    Node 342: 0
+    Node 455: 0
+    Node 341: 0
+    Node 454: 0
+    Node 340: 0
+    Node 453: 0
+    Node 339: 0
+    Node 452: 0
+    Node 338: 0
+    Node 451: 0
+    Node 337: 0
+    Node 450: 0
+    Node 336: 0
+    Node 449: 0
+    Node 335: 0
+    Node 448: 0
+    Node 334: 0
+    Node 447: 0
+    Node 333: 0
+    Node 446: 0
+    Node 89: 0
+    Node 179: 0
+    Node 88: 0
+    Node 178: 0
+    Node 87: 0
+    Node 445: 0
+    Node 332: 0
+    Node 177: 0
+    Node 86: 0
+    Node 444: 0
+    Node 331: 0
+    Node 176: 0
+    Node 85: 0
+    Node 442: 0
+    Node 329: 0
+    Node 175: 0
+    Node 84: 0
+    Node 174: 0
+    Node 83: 0
+    Node 173: 0
+    Node 82: 0
+    Node 443: 0
+    Node 330: 0
+    Node 441: 0
+    Node 328: 0
+    Node 440: 0
+    Node 327: 0
+    Node 439: 0
+    Node 326: 0
+    Node 438: 0
+    Node 325: 0
+    Node 172: 0
+    Node 81: 0
+    Node 437: 0
+    Node 324: 0
+    Node 171: 0
+    Node 80: 0
+    Node 436: 0
+    Node 323: 0
+    Node 170: 0
+    Node 79: 0
+    Node 434: 0
+    Node 321: 0
+    Node 169: 0
+    Node 78: 0
+    Node 168: 0
+    Node 77: 0
+    Node 167: 0
+    Node 76: 0
+    Node 435: 0
+    Node 322: 0
+    Node 433: 0
+    Node 320: 0
+    Node 432: 0
+    Node 319: 0
+    Node 431: 0
+    Node 318: 0
+    Node 430: 0
+    Node 317: 0
+    Node 166: 0
+    Node 75: 0
+    Node 429: 0
+    Node 316: 0
+    Node 165: 0
+    Node 74: 0
+    Node 428: 0
+    Node 315: 0
+    Node 164: 0
+    Node 73: 0
+    Node 426: 0
+    Node 313: 0
+    Node 163: 0
+    Node 72: 0
+    Node 162: 0
+    Node 71: 0
+    Node 161: 0
+    Node 70: 0
+    Node 427: 0
+    Node 314: 0
+    Node 425: 0
+    Node 312: 0
+    Node 424: 0
+    Node 311: 0
+    Node 423: 0
+    Node 310: 0
+    Node 422: 0
+    Node 309: 0
+    Node 160: 0
+    Node 69: 0
+    Node 421: 0
+    Node 308: 0
+    Node 159: 0
+    Node 68: 0
+    Node 420: 0
+    Node 307: 0
+    Node 158: 0
+    Node 67: 0
+    Node 418: 0
+    Node 305: 0
+    Node 157: 0
+    Node 66: 0
+    Node 156: 0
+    Node 65: 0
+    Node 155: 0
+    Node 64: 0
+    Node 416: 0
+    Node 303: 0
+    Node 419: 0
+    Node 306: 0
+    Node 417: 0
+    Node 304: 0
+    Node 415: 0
+    Node 302: 0
+    Node 414: 0
+    Node 301: 0
+    Node 413: 0
+    Node 300: 0
+    Node 154: 0
+    Node 63: 0
+    Node 412: 0
+    Node 299: 0
+    Node 153: 0
+    Node 62: 0
+    Node 411: 0
+    Node 298: 0
+    Node 152: 0
+    Node 61: 0
+    Node 409: 0
+    Node 296: 0
+    Node 151: 0
+    Node 60: 0
+    Node 150: 0
+    Node 59: 0
+    Node 149: 0
+    Node 58: 0
+    Node 410: 0
+    Node 297: 0
+    Node 408: 0
+    Node 295: 0
+    Node 407: 0
+    Node 294: 0
+    Node 406: 0
+    Node 293: 0
+    Node 405: 0
+    Node 292: 0
+    Node 148: 0
+    Node 57: 0
+    Node 404: 0
+    Node 291: 0
+    Node 147: 0
+    Node 56: 0
+    Node 403: 0
+    Node 290: 0
+    Node 146: 0
+    Node 55: 0
+    Node 401: 0
+    Node 288: 0
+    Node 145: 0
+    Node 54: 0
+    Node 144: 0
+    Node 53: 0
+    Node 143: 0
+    Node 247: 2
+    Node 248: 10
+    Node 246: 11
+    Node 245: 10
+    Node 118: 7
+    Node 375: 6
+    Node 27: 8
+    Node 284: 0
+    Node 244: 9
+    Node 117: 7
+    Node 374: 6
+    Node 26: 8
+    Node 283: 0
+    Node 243: 9
+    Node 116: 7
+    Node 373: 6
+    Node 25: 8
+    Node 282: 0
+    Node 242: 9
+    Node 115: 7
+    Node 372: 8
+    Node 241: 9
+    Node 114: 8
+    Node 371: 6
+    Node 24: 8
+    Node 281: 0
+    Node 23: 9
+    Node 280: 0
+    Node 22: 10
+    Node 279: 0
+    Node 113: 9
+    Node 370: 8
+    Node 240: 11
+    Node 239: 9
+    Node 112: 7
+    Node 369: 7
+    Node 21: 8
+    Node 278: 0
+    Node 238: 11
+    Node 111: 7
+    Node 368: 6
+    Node 217: 0
+    Node 20: 8
+    Node 277: 0
+    Node 216: 0
+    Node 215: 0
+    Node 237: 10
+    Node 110: 7
+    Node 367: 6
+    Node 214: 0
+    Node 236: 9
+    Node 109: 8
+    Node 366: 6
+    Node 19: 8
+    Node 276: 0
+    Node 213: 0
+    Node 197: 2
+    Node 187: 3
+    Node 235: 9
+    Node 108: 9
+    Node 365: 6
+    Node 18: 9
+    Node 275: 0
+    Node 212: 2
+    Node 209: 2
+    Node 196: 3
+    Node 192: 2
+    Node 350: 8
+    Node 223: 3
+    Node 359: 9
+    Node 102: 3
+    Node 232: 9
+    Node 105: 16
+    Node 362: 9
+    Node 345: 7
+    Node 218: 3
+    Node 188: 3
+    Node 11: 6
+    Node 268: 0
+    Node 13: 10
+    Node 270: 0
+    Node 190: 3
+    Node 349: 8
+    Node 222: 3
+    Node 358: 8
+    Node 101: 3
+    Node 231: 8
+    Node 104: 10
+    Node 361: 5.5
+    Node 204: 3
+    Node 199: 3
+    Node 12: 6
+    Node 269: 0
+    Node 189: 3
+    Node 9: 2
+    Node 266: 0
+    Node 186: 4
+    Node 354: 10
+    Node 100: 3
+    Node 357: 8
+    Node 227: 3
+    Node 198: 3
+    Node 205: 3
+    Node 2: 2
+    Node 259: 0
+    Node 3: 3
+    Node 260: 0
+    Node 4: 3
+    Node 261: 0
+    Node 200: 2
+    Node 457: 3
+    Node 356: 8
+    Node 229: 4
+    Node 8: 3
+    Node 265: 0
+    Node 185: 4
+    Node 5: 4
+    Node 262: 0
+    Node 353: 8
+    Node 226: 3
+    Node 6: 4
+    Node 263: 0
+    Node 103: 8
+    Node 360: 10
+    Node 230: 3
+    Node 201: 3
+    Node 7: 3
+    Node 264: 0
+    Node 184: 3
+    Node 202: 3
+    Node 10: 4
+    Node 267: 0
+    Node 14: 10
+    Node 271: 0
+    Node 191: 3
+    Node 193: 3
+    Node 16: 11
+    Node 273: 0
+    Node 206: 5
+    Node 210: 3
+    Node 346: 8
+    Node 219: 3
+    Node 355: 8
+    Node 228: 2
+    Node 351: 9
+    Node 224: 3
+    Node 233: 8
+    Node 106: 9
+    Node 363: 6
+    Node 15: 4
+    Node 272: 0
+    Node 194: 3
+    Node 17: 10
+    Node 274: 0
+    Node 207: 4
+    Node 211: 4
+    Node 347: 7
+    Node 220: 3
+    Node 352: 10
+    Node 225: 2
+    Node 234: 9
+    Node 107: 10
+    Node 364: 8
+    Node 195: 3
+    Node 208: 3
+    Node 203: 3
+    Node 348: 8
+    Node 221: 2
+    Node 250: 0
+    Node 28: 0
+    Node 285: 0
+    Node 29: 0
+    Node 286: 0
+    Node 119: 7
+    Node 376: 6
+    Node 30: 0
+    Node 287: 0
+    Node 120: 6
+    Node 377: 7
+    Node 249: 0
+    Node 121: 5
+    Node 378: 6
+    Node 31: 0
+    Node 251: 0
+    Node 122: 5
+    Node 379: 0
+    Node 32: 0
+    Node 289: 0
+    Node 252: 0
+    Node 123: 5
+    Node 380: 0
+    Node 33: 0
+    Node 253: 0
+    Node 124: 5
+    Node 381: 0
+    Node 254: 0
+    Node 255: 0
+    Node 256: 0
+    Node 258: 0
+    Node 34: 0
+    Node 35: 0
+    Node 125: 7
+    Node 382: 5
+    Node 36: 0
+    Node 126: 6
+    Node 383: 0
+    Node 257: 0
+    Node 127: 5
+    Node 384: 0
+    Node 37: 0
+    Node 128: 5
+    Node 385: 0
+    Node 38: 0
+    Node 129: 5
+    Node 386: 0
+    Node 39: 0
+    Node 130: 5
+    Node 387: 0
+    Node 40: 0
+    Node 41: 0
+    Node 131: 0
+    Node 388: 0
+    Node 42: 0
+    Node 132: 0
+    Node 389: 0
+    Node 133: 0
+    Node 390: 0
+    Node 43: 0
+    Node 134: 0
+    Node 391: 0
+    Node 44: 0
+    Node 135: 0
+    Node 392: 0
+    Node 45: 0
+    Node 136: 0
+    Node 393: 0
+    Node 46: 0
+    Node 47: 0
+    Node 137: 0
+    Node 394: 0
+    Node 48: 0
+    Node 138: 0
+    Node 395: 0
+    Node 139: 0
+    Node 396: 0
+    Node 49: 0
+    Node 140: 0
+    Node 397: 0
+    Node 50: 0
+    Node 141: 0
+    Node 398: 0
+    Node 51: 0
+    Node 142: 0
+    Node 399: 0
+    Node 400: 0
+    Node 402: 0
+    Node 52: 0
+
+Global Stats:
+  Num phase 1 speculations: 138'637 (100%)
+  Num phase 2 speculations: 3'989 (2.8773%)
+  Num speculated modules:   2'022'310
+  Num EPs generated:        2'484
+
+Switch placement:
+
+====================== TNA Pipeline ======================
+-------------------------------------
+Stage 0
+SRAM: 164'276/1'310'720 B (12.5333%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 163'844/786'432 B (20.8338%)
+Logical IDs: 8/16
+Hash Dist Units: 2/6
+Exact Match Crossbar: 21/128 B (16.4062%)
+Objs: [compute_op_lshr_457,bf_1073927040_row_0,bf_1073927040_hash_0,vector_register_1073939616_0,ingress_port_to_nf_dev]
+-------------------------------------
+-------------------------------------
+Stage 1
+SRAM: 147'456/1'310'720 B (11.25%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 147'456/786'432 B (18.75%)
+Logical IDs: 4/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 15/128 B (11.7188%)
+Objs: [bf_1073927040_row_1,bf_1073927040_hash_1]
+-------------------------------------
+-------------------------------------
+Stage 2
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 2/16
+Hash Dist Units: 4/6
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [compute_rotate_left_108_x,compute_rotate_left_107]
+-------------------------------------
+-------------------------------------
+Stage 3
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [compute_rotate_left_108]
+-------------------------------------
+-------------------------------------
+Stage 4
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 2/6
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [compute_rotate_left_110]
+-------------------------------------
+-------------------------------------
+Stage 5
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 2/6
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [compute_rotate_left_111]
+-------------------------------------
+-------------------------------------
+Stage 6
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [compute_rotate_left_112]
+-------------------------------------
+-------------------------------------
+Stage 7
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 2/6
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [compute_rotate_left_113]
+-------------------------------------
+-------------------------------------
+Stage 8
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [compute_rotate_left_115]
+-------------------------------------
+-------------------------------------
+Stage 9
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 2/16
+Hash Dist Units: 4/6
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [compute_rotate_left_117,compute_rotate_left_116]
+-------------------------------------
+-------------------------------------
+Stage 10
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 0/128 B (0%)
+Objs: [compute_rotate_left_118]
+-------------------------------------
+==========================================================
+========================================================

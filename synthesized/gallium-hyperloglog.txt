@@ -7,8 +7,8 @@ Args:
   Profile file:       hyperloglog-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (49 modules)
-    Ctrl (97 modules)
+    Tofino (53 modules)
+    Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
@@ -24,7 +24,7 @@ Stateful Implementations:
   1073917816: Controller::Vector
 
 Search Metadata:
-  Elapsed time:       1 seconds
+  Elapsed time:       0 seconds
   Steps:              84
   Backtracks:         0
   Search space size:  156
@@ -119,9 +119,9 @@ Search Metadata:
     Node 61: 0
 
 Global Stats:
-  Num phase 1 speculations: 272 (100%)
-  Num phase 2 speculations: 8 (2.94118%)
-  Num speculated modules:   6'141
+  Num phase 1 speculations: 264 (100%)
+  Num phase 2 speculations: 4 (1.51515%)
+  Num speculated modules:   5'915
   Num EPs generated:        156
 
 Switch placement:
@@ -129,17 +129,21 @@ Switch placement:
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 0/1'310'720 B (0%)
+SRAM: 432/1'310'720 B (0.032959%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
-Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [hash_6]
+Logical IDs: 2/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 10/128 B (7.8125%)
+Objs: [hash_6,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1
 SRAM: 296/1'310'720 B (0.022583%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [find_first_set_bit_7]
 -------------------------------------

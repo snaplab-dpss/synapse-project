@@ -7,16 +7,16 @@ Args:
   Profile file:       kvs-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (48 modules)
-    Ctrl (96 modules)
+    Tofino (53 modules)
+    Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
   Score: <0,0,0,0,49,63>
-  Tput: 82.25 Gbps (116.83 Mpps)
-  Spec: 82.25 Gbps (116.83 Mpps)
+  Tput: 84.77 Gbps (120.41 Mpps)
+  Spec: 84.77 Gbps (120.41 Mpps)
 
 Stateful Implementations:
   1073954136: Tofino::VectorRegister
@@ -24,20 +24,20 @@ Stateful Implementations:
   1073923096: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       20 seconds
+  Elapsed time:       6 seconds
   Steps:              65
   Backtracks:         0
-  Search space size:  179
-  Unfinished EPs:     114
+  Search space size:  189
+  Unfinished EPs:     124
   Finished EPs:       1
   Avg BDD size:       59
   Branching factor:   2
-  Total SS size est.: 22'147'762'998
+  Total SS size est.: 78'055'834'949
   Avg children per node:
     Node 130: 3
     Node 129: 3
     Node 128: 3
-    Node 127: 3
+    Node 127: 4
     Node 32: 0
     Node 31: 0
     Node 30: 0
@@ -64,7 +64,7 @@ Search Metadata:
     Node 8: 3
     Node 38: 3
     Node 9: 3
-    Node 33: 3
+    Node 33: 4
     Node 131: 2
     Node 4: 2
     Node 63: 3
@@ -84,47 +84,51 @@ Search Metadata:
     Node 19: 0
     Node 24: 0
     Node 36: 3
-    Node 42: 3
-    Node 48: 3
+    Node 42: 4
+    Node 48: 4
     Node 20: 0
     Node 25: 0
     Node 37: 3
-    Node 43: 3
-    Node 49: 3
+    Node 43: 4
+    Node 49: 4
     Node 21: 0
     Node 26: 0
-    Node 44: 3
-    Node 50: 3
+    Node 44: 4
+    Node 50: 4
     Node 22: 0
     Node 27: 0
-    Node 45: 3
-    Node 51: 3
+    Node 45: 4
+    Node 51: 4
     Node 28: 0
     Node 46: 2
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 23'779 (100%)
-  Num phase 2 speculations: 1'646 (6.92207%)
-  Num speculated modules:   223'273
-  Num EPs generated:        179
+  Num phase 1 speculations: 6'831 (100%)
+  Num phase 2 speculations: 136 (1.99092%)
+  Num speculated modules:   86'502
+  Num EPs generated:        189
 
 Switch placement:
 
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 89'209/1'310'720 B (6.80611%)
+SRAM: 89'641/1'310'720 B (6.83907%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 16'385/786'432 B (2.08346%)
-Exact Match Crossbar: 5/128 B (3.90625%)
-Objs: [guarded_map_table_1073923096_guard,guarded_map_table_1073923096_13]
+Logical IDs: 3/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 7/128 B (5.46875%)
+Objs: [guarded_map_table_1073923096_guard,guarded_map_table_1073923096_13,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1
 SRAM: 36'412/1'310'720 B (2.77802%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [dchain_table_1073971272_38]
 -------------------------------------
@@ -133,6 +137,8 @@ Stage 2
 SRAM: 49'152/1'310'720 B (3.75%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 49'152/786'432 B (6.25%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [vector_register_1073954136_0]
 -------------------------------------

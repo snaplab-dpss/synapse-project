@@ -7,8 +7,8 @@ Args:
   Profile file:       nat-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (48 modules)
-    Ctrl (96 modules)
+    Tofino (53 modules)
+    Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
@@ -26,15 +26,15 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       29 seconds
+  Elapsed time:       13 seconds
   Steps:              67
   Backtracks:         0
-  Search space size:  198
-  Unfinished EPs:     131
+  Search space size:  204
+  Unfinished EPs:     137
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   2
-  Total SS size est.: 90'578'287'342
+  Total SS size est.: 181'340'453'213
   Avg children per node:
     Node 255: 2
     Node 254: 3
@@ -77,77 +77,77 @@ Search Metadata:
     Node 162: 2
     Node 168: 0
     Node 172: 0
-    Node 184: 3
+    Node 184: 4
     Node 148: 3
     Node 155: 3
     Node 169: 0
     Node 173: 0
-    Node 185: 3
+    Node 185: 4
     Node 149: 3
     Node 156: 3
     Node 170: 0
     Node 174: 0
-    Node 186: 3
-    Node 150: 3
+    Node 186: 4
+    Node 150: 4
     Node 157: 3
     Node 175: 0
     Node 187: 3
-    Node 151: 3
+    Node 151: 4
     Node 158: 2
     Node 176: 0
     Node 188: 3
-    Node 152: 3
+    Node 152: 4
     Node 177: 0
     Node 153: 3
     Node 178: 0
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 19'118 (100%)
-  Num phase 2 speculations: 923 (4.82791%)
-  Num speculated modules:   229'253
-  Num EPs generated:        198
+  Num phase 1 speculations: 13'958 (100%)
+  Num phase 2 speculations: 181 (1.29675%)
+  Num speculated modules:   162'091
+  Num EPs generated:        204
 
 Switch placement:
 
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 786'425/1'310'720 B (59.9995%)
+SRAM: 720/1'310'720 B (0.0549316%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 786'425/786'432 B (99.9991%)
-Exact Match Crossbar: 29/128 B (22.6562%)
-Objs: [dchain_table_1074085120_142,vector_table_1074085544_139,dchain_table_1074085120_146,dchain_table_1074085120_181,guarded_map_table_1074053136_163,guarded_map_table_1074053136_guard]
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 6/128 B (4.6875%)
+Objs: [vector_table_1074085544_139,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1
-SRAM: 786'432/1'310'720 B (60%)
+SRAM: 1'181'473/1'310'720 B (90.1392%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 786'432/786'432 B (100%)
-Exact Match Crossbar: 20/128 B (15.625%)
-Objs: [dchain_table_1074085120_181,guarded_map_table_1074053136_163,vector_table_1074066960_144]
+MapRAM: 16'385/786'432 B (2.08346%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 13/128 B (10.1562%)
+Objs: [guarded_map_table_1074053136_guard,guarded_map_table_1074053136_163]
 -------------------------------------
 -------------------------------------
 Stage 2
-SRAM: 786'432/1'310'720 B (60%)
+SRAM: 873'816/1'310'720 B (66.6669%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 786'432/786'432 B (100%)
-Exact Match Crossbar: 16/128 B (12.5%)
-Objs: [guarded_map_table_1074053136_163,vector_table_1074066960_144]
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 3/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 12/128 B (9.375%)
+Objs: [dchain_table_1074085120_181,dchain_table_1074085120_146,dchain_table_1074085120_142]
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 786'432/1'310'720 B (60%)
+SRAM: 1'181'536/1'310'720 B (90.144%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 786'432/786'432 B (100%)
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_table_1074066960_144]
--------------------------------------
--------------------------------------
-Stage 4
-SRAM: 91'392/1'310'720 B (6.97266%)
-TCAM: 0/67'584 B (0%)
-MapRAM: 91'392/786'432 B (11.6211%)
+MapRAM: 16'448/786'432 B (2.09147%)
+Logical IDs: 3/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
 Objs: [vector_register_1074102760_0,vector_table_1074066960_144]
 -------------------------------------

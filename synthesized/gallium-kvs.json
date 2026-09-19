@@ -1,23 +1,23 @@
 {
   "bdd": "kvs.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 179,
-    "num_phase1_speculations": 23779,
-    "num_phase2_speculations": 1646,
-    "num_speculated_modules": 223273,
-    "time_per_instantiation_us": 1657,
-    "time_per_speculation_us": 6,
-    "total_time_spent_generating_execution_plans_us": 296774,
-    "total_time_spent_speculating_us": 1475058
+    "num_execution_plans_generated": 189,
+    "num_phase1_speculations": 6831,
+    "num_phase2_speculations": 136,
+    "num_speculated_modules": 86502,
+    "time_per_instantiation_us": 820,
+    "time_per_speculation_us": 12,
+    "total_time_spent_generating_execution_plans_us": 155165,
+    "total_time_spent_speculating_us": 1045083
   },
   "heuristic": {
     "meta": [
       {
-        "description": "82.25 Gbps (116.83 Mpps)",
+        "description": "84.77 Gbps (120.41 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "82.25 Gbps (116.83 Mpps)",
+        "description": "84.77 Gbps (120.41 Mpps)",
         "name": "Spec"
       }
     ],
@@ -62,7 +62,7 @@
         "node_id": 128
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 127
       },
       {
@@ -170,7 +170,7 @@
         "node_id": 9
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 33
       },
       {
@@ -250,11 +250,11 @@
         "node_id": 36
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 42
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 48
       },
       {
@@ -270,11 +270,11 @@
         "node_id": 37
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 43
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 49
       },
       {
@@ -286,11 +286,11 @@
         "node_id": 26
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 44
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 50
       },
       {
@@ -302,11 +302,11 @@
         "node_id": 27
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 45
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 51
       },
       {
@@ -323,16 +323,16 @@
       }
     ],
     "backtracks": 0,
-    "branching_factor": 2.639705882352941,
-    "elapsed_time_seconds": 20,
+    "branching_factor": 2.786764705882353,
+    "elapsed_time_seconds": 6,
     "finished_eps": 1,
-    "ss_size": 179,
+    "ss_size": 189,
     "steps": 65,
-    "total_ss_size_estimation": 22147762998.420856,
-    "unfinished_eps": 114
+    "total_ss_size_estimation": 78055834949.19353,
+    "unfinished_eps": 124
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 82247071104,
-  "tput_estimation_pps": 116828226
+  "tput_estimation_bps": 84769179968,
+  "tput_estimation_pps": 120410767
 }

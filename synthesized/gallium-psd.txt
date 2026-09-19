@@ -7,8 +7,8 @@ Args:
   Profile file:       psd-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (48 modules)
-    Ctrl (96 modules)
+    Tofino (53 modules)
+    Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
@@ -27,15 +27,15 @@ Stateful Implementations:
   1074109560: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       25 seconds
+  Elapsed time:       16 seconds
   Steps:              75
   Backtracks:         0
-  Search space size:  188
-  Unfinished EPs:     113
+  Search space size:  190
+  Unfinished EPs:     115
   Finished EPs:       1
   Avg BDD size:       66
   Branching factor:   2
-  Total SS size est.: 16'367'302'612
+  Total SS size est.: 21'646'703'093
   Avg children per node:
     Node 166: 0
     Node 179: 0
@@ -57,14 +57,14 @@ Search Metadata:
     Node 192: 4
     Node 272: 3
     Node 145: 30
-    Node 193: 3
+    Node 193: 4
     Node 135: 2
     Node 194: 3
     Node 136: 3
     Node 195: 3
     Node 137: 3
     Node 196: 3
-    Node 271: 3
+    Node 271: 4
     Node 144: 3
     Node 202: 2
     Node 270: 3
@@ -113,27 +113,31 @@ Search Metadata:
     Node 163: 0
 
 Global Stats:
-  Num phase 1 speculations: 16'014 (100%)
-  Num phase 2 speculations: 514 (3.20969%)
-  Num speculated modules:   213'955
-  Num EPs generated:        188
+  Num phase 1 speculations: 13'054 (100%)
+  Num phase 2 speculations: 159 (1.21802%)
+  Num speculated modules:   163'386
+  Num EPs generated:        190
 
 Switch placement:
 
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 288/1'310'720 B (0.0219727%)
+SRAM: 720/1'310'720 B (0.0549316%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_table_1074109560_142]
+Logical IDs: 2/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 6/128 B (4.6875%)
+Objs: [vector_table_1074109560_142,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1
 SRAM: 598'929/1'310'720 B (45.6947%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 16'385/786'432 B (2.08346%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 5/128 B (3.90625%)
 Objs: [guarded_map_table_1074048392_guard,guarded_map_table_1074048392_145]
 -------------------------------------
@@ -142,6 +146,8 @@ Stage 2
 SRAM: 291'704/1'310'720 B (22.2552%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
+Logical IDs: 3/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 12/128 B (9.375%)
 Objs: [dchain_table_1074096568_167,vector_table_1074126776_270,vector_table_1074126776_192]
 -------------------------------------
@@ -150,38 +156,48 @@ Stage 3
 SRAM: 278'528/1'310'720 B (21.25%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 278'528/786'432 B (35.4167%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [vector_register_1074079432_0]
 -------------------------------------
 -------------------------------------
 Stage 4
-SRAM: 20'480/1'310'720 B (1.5625%)
+SRAM: 16'512/1'310'720 B (1.25977%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 20'480/786'432 B (2.60417%)
+MapRAM: 16'512/786'432 B (2.09961%)
+Logical IDs: 4/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
 Objs: [bf_1074096984_row_0,bf_1074096984_hash_0]
 -------------------------------------
 -------------------------------------
 Stage 5
-SRAM: 20'480/1'310'720 B (1.5625%)
+SRAM: 16'512/1'310'720 B (1.25977%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 20'480/786'432 B (2.60417%)
+MapRAM: 16'512/786'432 B (2.09961%)
+Logical IDs: 4/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
 Objs: [bf_1074096984_row_1,bf_1074096984_hash_1]
 -------------------------------------
 -------------------------------------
 Stage 6
-SRAM: 20'480/1'310'720 B (1.5625%)
+SRAM: 16'512/1'310'720 B (1.25977%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 20'480/786'432 B (2.60417%)
+MapRAM: 16'512/786'432 B (2.09961%)
+Logical IDs: 4/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
 Objs: [bf_1074096984_row_2,bf_1074096984_hash_2]
 -------------------------------------
 -------------------------------------
 Stage 7
-SRAM: 20'480/1'310'720 B (1.5625%)
+SRAM: 16'512/1'310'720 B (1.25977%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 20'480/786'432 B (2.60417%)
+MapRAM: 16'512/786'432 B (2.09961%)
+Logical IDs: 4/16
+Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
 Objs: [bf_1074096984_row_3,bf_1074096984_hash_3]
 -------------------------------------

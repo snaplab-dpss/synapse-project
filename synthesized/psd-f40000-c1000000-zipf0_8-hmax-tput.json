@@ -1,23 +1,23 @@
 {
   "bdd": "psd.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 244,
-    "num_phase1_speculations": 13978,
-    "num_phase2_speculations": 148,
-    "num_speculated_modules": 179406,
-    "time_per_instantiation_us": 4052,
-    "time_per_speculation_us": 54,
-    "total_time_spent_generating_execution_plans_us": 988817,
-    "total_time_spent_speculating_us": 9806426
+    "num_execution_plans_generated": 235,
+    "num_phase1_speculations": 13688,
+    "num_phase2_speculations": 145,
+    "num_speculated_modules": 176077,
+    "time_per_instantiation_us": 542,
+    "time_per_speculation_us": 32,
+    "total_time_spent_generating_execution_plans_us": 127398,
+    "total_time_spent_speculating_us": 5656769
   },
   "heuristic": {
     "meta": [
       {
-        "description": "33.86 Gbps (48.10 Mpps)",
+        "description": "33.74 Gbps (47.93 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "33.86 Gbps (48.10 Mpps)",
+        "description": "33.74 Gbps (47.93 Mpps)",
         "name": "Spec"
       },
       {
@@ -29,20 +29,20 @@
         "name": "BDD Progress"
       },
       {
-        "description": "3",
+        "description": "10",
         "name": "Stages"
       },
       {
-        "description": "18900096 bits",
+        "description": "14670080 bits",
         "name": "Memory Usage"
       }
     ],
     "score": [
       0,
-      48000000,
+      47900000,
       73,
-      -3,
-      -18900096,
+      -10,
+      -14670080,
       -3
     ]
   },
@@ -94,7 +94,7 @@
         "node_id": 292
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 165
       },
       {
@@ -110,11 +110,11 @@
         "node_id": 291
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 164
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 190
       },
       {
@@ -158,7 +158,7 @@
         "node_id": 145
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 193
       },
       {
@@ -166,7 +166,7 @@
         "node_id": 135
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 194
       },
       {
@@ -174,7 +174,7 @@
         "node_id": 136
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 195
       },
       {
@@ -182,7 +182,7 @@
         "node_id": 137
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 196
       },
       {
@@ -246,7 +246,7 @@
         "node_id": 199
       },
       {
-        "avg": 3.0,
+        "avg": 2.0,
         "node_id": 200
       },
       {
@@ -310,7 +310,7 @@
         "node_id": 285
       },
       {
-        "avg": 8.0,
+        "avg": 7.5,
         "node_id": 158
       },
       {
@@ -346,7 +346,7 @@
         "node_id": 173
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 180
       },
       {
@@ -366,15 +366,15 @@
         "node_id": 160
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 174
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 181
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 187
       },
       {
@@ -382,19 +382,19 @@
         "node_id": 288
       },
       {
-        "avg": 5.0,
+        "avg": 3.0,
         "node_id": 161
       },
       {
-        "avg": 3.0,
+        "avg": 0.0,
         "node_id": 175
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 182
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 188
       },
       {
@@ -410,29 +410,29 @@
         "node_id": 176
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 183
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 189
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 163
       }
     ],
     "backtracks": 0,
-    "branching_factor": 3.3043478260869565,
-    "elapsed_time_seconds": 25,
+    "branching_factor": 3.0652173913043477,
+    "elapsed_time_seconds": 14,
     "finished_eps": 1,
-    "ss_size": 244,
+    "ss_size": 235,
     "steps": 77,
-    "total_ss_size_estimation": 63952165630438.66,
-    "unfinished_eps": 167
+    "total_ss_size_estimation": 9690506003855.53,
+    "unfinished_eps": 158
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 33862126848,
-  "tput_estimation_pps": 48099612
+  "tput_estimation_bps": 33744741888,
+  "tput_estimation_pps": 47932872
 }

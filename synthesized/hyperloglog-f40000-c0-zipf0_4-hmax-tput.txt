@@ -7,41 +7,41 @@ Args:
   Profile file:       hyperloglog-f40000-c0-zipf0_4.json
   Seed:               0
   Targets:
-    Tofino (52 modules)
+    Tofino (53 modules)
     Ctrl (98 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'240'000'000,41,-12,-1'069'312,0>
+  Score: <0,2'240'000'000,41,-11,-1'072'768,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
   BDD Progress: 41 / 41
-  Stages: 12
-  Memory Usage: 1069312 bits
+  Stages: 11
+  Memory Usage: 1072768 bits
 
 Stateful Implementations:
-  1073935032: Tofino::VectorRegister
   1073952248: Tofino::VectorRegister
+  1073935032: Tofino::VectorRegister
   1073917816: Tofino::VectorRegister
 
 Search Metadata:
-  Elapsed time:       1 seconds
-  Steps:              42
-  Backtracks:         1
+  Elapsed time:       0 seconds
+  Steps:              41
+  Backtracks:         0
   Search space size:  155
-  Unfinished EPs:     113
+  Unfinished EPs:     114
   Finished EPs:       1
   Avg BDD size:       41
   Branching factor:   2
-  Total SS size est.: 15'945'648'521
+  Total SS size est.: 26'029'074'859
   Avg children per node:
     Node 73: 0
     Node 60: 0
     Node 38: 2
-    Node 25: 2
+    Node 25: 3
     Node 76: 0
     Node 72: 0
     Node 63: 0
@@ -59,14 +59,14 @@ Search Metadata:
     Node 44: 2
     Node 40: 4
     Node 36: 4
-    Node 31: 2
+    Node 31: 3
     Node 27: 4
     Node 23: 4
     Node 85: 0
     Node 26: 4
     Node 83: 4
     Node 50: 0
-    Node 15: 3
+    Node 15: 4
     Node 74: 0
     Node 84: 0
     Node 82: 5
@@ -79,7 +79,7 @@ Search Metadata:
     Node 3: 2
     Node 52: 0
     Node 81: 2
-    Node 22: 5
+    Node 22: 4
     Node 4: 3
     Node 5: 3
     Node 64: 0
@@ -88,12 +88,12 @@ Search Metadata:
     Node 21: 4
     Node 6: 4
     Node 65: 0
-    Node 16: 4
+    Node 16: 3
     Node 45: 0
     Node 7: 3
-    Node 17: 6
+    Node 17: 5
     Node 46: 0
-    Node 8: 4
+    Node 8: 6
     Node 67: 0
     Node 9: 0
     Node 68: 0
@@ -101,7 +101,7 @@ Search Metadata:
     Node 69: 0
     Node 11: 0
     Node 70: 0
-    Node 18: 4
+    Node 18: 5
     Node 77: 0
     Node 53: 0
     Node 19: 0
@@ -109,7 +109,7 @@ Search Metadata:
     Node 32: 0
     Node 54: 0
     Node 20: 4
-    Node 33: 4
+    Node 33: 5
     Node 55: 0
     Node 29: 4
     Node 34: 4
@@ -123,9 +123,9 @@ Search Metadata:
     Node 61: 0
 
 Global Stats:
-  Num phase 1 speculations: 1'912 (100%)
-  Num phase 2 speculations: 13 (0.679916%)
-  Num speculated modules:   26'633
+  Num phase 1 speculations: 2'010 (100%)
+  Num phase 2 speculations: 13 (0.646766%)
+  Num speculated modules:   27'204
   Num EPs generated:        155
 
 Switch placement:
@@ -133,13 +133,13 @@ Switch placement:
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 0/1'310'720 B (0%)
+SRAM: 432/1'310'720 B (0.032959%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
-Logical IDs: 1/16
+Logical IDs: 2/16
 Hash Dist Units: 0/6
-Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [hash_6]
+Exact Match Crossbar: 10/128 B (7.8125%)
+Objs: [hash_6,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -169,7 +169,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [power_of_two_13]
+Objs: [power_of_two_12]
 -------------------------------------
 -------------------------------------
 Stage 4
@@ -179,7 +179,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [power_of_two_12]
+Objs: [power_of_two_13]
 -------------------------------------
 -------------------------------------
 Stage 5
@@ -196,43 +196,13 @@ Stage 6
 SRAM: 16'388/1'310'720 B (1.25031%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 16'388/786'432 B (2.08384%)
-Logical IDs: 3/16
-Hash Dist Units: 0/6
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1073952248_0]
--------------------------------------
--------------------------------------
-Stage 7
-SRAM: 584/1'310'720 B (0.0445557%)
-TCAM: 0/67'584 B (0%)
-MapRAM: 0/786'432 B (0%)
-Logical IDs: 1/16
-Hash Dist Units: 0/6
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [ln_22]
--------------------------------------
--------------------------------------
-Stage 8
-SRAM: 584/1'310'720 B (0.0445557%)
-TCAM: 0/67'584 B (0%)
-MapRAM: 0/786'432 B (0%)
-Logical IDs: 1/16
-Hash Dist Units: 0/6
-Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [ln_35]
--------------------------------------
--------------------------------------
-Stage 9
-SRAM: 16'388/1'310'720 B (1.25031%)
-TCAM: 0/67'584 B (0%)
-MapRAM: 16'388/786'432 B (2.08384%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [vector_register_1073935032_0]
 -------------------------------------
 -------------------------------------
-Stage 10
+Stage 7
 SRAM: 0/1'310'720 B (0%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
@@ -242,7 +212,7 @@ Exact Match Crossbar: 0/128 B (0%)
 Objs: [compute_op_add_83]
 -------------------------------------
 -------------------------------------
-Stage 11
+Stage 8
 SRAM: 16'388/1'310'720 B (1.25031%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 16'388/786'432 B (2.08384%)
@@ -250,6 +220,26 @@ Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 1/128 B (0.78125%)
 Objs: [divide_16]
+-------------------------------------
+-------------------------------------
+Stage 9
+SRAM: 16'388/1'310'720 B (1.25031%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 16'388/786'432 B (2.08384%)
+Logical IDs: 3/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1073952248_0]
+-------------------------------------
+-------------------------------------
+Stage 10
+SRAM: 1'168/1'310'720 B (0.0891113%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 8/128 B (6.25%)
+Objs: [ln_35,ln_22]
 -------------------------------------
 ==========================================================
 ========================================================
