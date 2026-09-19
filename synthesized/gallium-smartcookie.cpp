@@ -123,15 +123,12 @@ struct cpu_hdr_extra_t {
   u32 vector_data__105;
   u64 unrolled__226;
   // The data plane's state header, as it follows the cpu header on every packet.
-  u32 st_s32_0;
   u32 st_s32_1;
   u32 st_s32_2;
   u32 st_s32_3;
   u32 st_s32_4;
-  u32 st_s32_5;
   u32 st_s32_6;
   u32 st_s32_7;
-  u32 st_s32_8;
 
 } __attribute__((packed));
 
