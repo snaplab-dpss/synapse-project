@@ -1732,7 +1732,7 @@ void TofinoSynthesizer::transpile_hash_decl(const Hash *hash) {
   // The IEEE polynomial is TNA's built-in CRC32; any other entry of the bank is a custom polynomial.
   const crc32_config_t &poly = hash->polynomial;
   const crc32_config_t &ieee = CRC32_BANK[0];
-  const bool builtin       = poly.coeff == ieee.coeff && poly.reversed == ieee.reversed && poly.init == ieee.init && poly.xor_out == ieee.xor_out;
+  const bool builtin         = poly.coeff == ieee.coeff && poly.reversed == ieee.reversed && poly.init == ieee.init && poly.xor_out == ieee.xor_out;
 
   code_t hash_algo = "HashAlgorithm_t.CRC32";
   if (!builtin) {

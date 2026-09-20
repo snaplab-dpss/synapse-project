@@ -15,9 +15,21 @@ control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success)
 	bit</*@{CUCKOO_IDX_WIDTH}@*/> cuckoo_hash_2 = 0;
 	bit</*@{CUCKOO_IDX_WIDTH}@*/> cuckoo_hash_2_r = 0;
 
+	// The entry displaced out of table 1, kept in its own variables: the table-1 swap overwrites
+	// cuckoo.key/.val/.ts, and reading the displaced entry back out of them is not reliable.
+	bit<32> evicted_1_key = 0;
+	bit<32> evicted_1_val = 0;
+	bit<32> evicted_1_ts = 0;
+
+	// What a table-2 register action writes: the incoming entry when looking up or updating, the
+	// displaced entry when swapping. One variable per register, because the ALUs of a register all
+	// source their operand from the same place on the input crossbar.
+	bit<32> v_2_in = 0;
+	bit<32> ts_2_in = 0;
+
 	action calc_cuckoo_hash_1() { cuckoo_hash_1	= cuckoo_hash_func_1.get({cuckoo.key}); }
 	action calc_cuckoo_hash_2() { cuckoo_hash_2	= cuckoo_hash_func_2.get({cuckoo.key}); }
-	action calc_cuckoo_hash_2_r() { cuckoo_hash_2_r = cuckoo_hash_func_2_r.get({cuckoo.key}); }
+	action calc_cuckoo_hash_2_r() { cuckoo_hash_2_r = cuckoo_hash_func_2_r.get({evicted_1_key}); }
 
 	Register<bit<32>, bit</*@{CUCKOO_IDX_WIDTH}@*/>>(/*@{CUCKOO_ENTRIES}@*/, 0) reg_k_1;
 	Register<bit<32>, bit</*@{CUCKOO_IDX_WIDTH}@*/>>(/*@{CUCKOO_ENTRIES}@*/, 0) reg_k_2;
@@ -58,7 +70,7 @@ control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success)
 	RegisterAction<bit<32>, bit</*@{CUCKOO_IDX_WIDTH}@*/>, bit<32>>(reg_k_2) k_2_swap = {
 		void apply(inout bit<32> val, out bit<32> res) {
 			res = val;
-			val = cuckoo.key;
+			val = evicted_1_key;
 		}
 	};
 
@@ -74,7 +86,7 @@ control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success)
 	RegisterAction<bit<32>, bit</*@{CUCKOO_IDX_WIDTH}@*/>, bit<32>>(reg_v_2) v_2_read_or_update = {
 		void apply(inout bit<32> val, out bit<32> res) {
 			if (cuckoo.op == cuckoo_ops_t.UPDATE) {
-				val = cuckoo.val;
+				val = v_2_in;
 			}
 			res = val;
 		}
@@ -90,7 +102,7 @@ control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success)
 	RegisterAction<bit<32>, bit</*@{CUCKOO_IDX_WIDTH}@*/>, bit<32>>(reg_v_2) v_2_swap = {
 		void apply(inout bit<32> val, out bit<32> res) {
 			res = val;
-			val = cuckoo.val;
+			val = v_2_in;
 		}
 	};
 
@@ -109,13 +121,13 @@ control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success)
 
 	RegisterAction<bit<32>, bit</*@{CUCKOO_IDX_WIDTH}@*/>, bool>(reg_ts_2) ts_2_query_and_refresh = {
 		void apply(inout bit<32> val, out bool active) {
-			bit<32> diff = cuckoo.ts - val;
+			bit<32> diff = ts_2_in - val;
 			if (diff > CUCKOO_ENTRY_TIMEOUT) {
 				active = false;
 				val = 0;
 			} else {
 				active = true;
-				val = cuckoo.ts;
+				val = ts_2_in;
 			}
 		}
 	};
@@ -130,7 +142,7 @@ control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success)
 	RegisterAction<bit<32>, bit</*@{CUCKOO_IDX_WIDTH}@*/>, bit<32>>(reg_ts_2) ts_2_swap = {
 		void apply(inout bit<32> val, out bit<32> res) {
 			res = val;
-			val = cuckoo.ts;
+			val = ts_2_in;
 		}
 	};
 
@@ -144,7 +156,9 @@ control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success)
 
 		calc_cuckoo_hash_1();
 		calc_cuckoo_hash_2();
-		calc_cuckoo_hash_2_r();
+
+		v_2_in = cuckoo.val;
+		ts_2_in = cuckoo.ts;
 
 		success = false;
 		if (cuckoo.op == cuckoo_ops_t.LOOKUP || cuckoo.op == cuckoo_ops_t.UPDATE) {
@@ -165,14 +179,21 @@ control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success)
 				}
 			}
 		} else {
-			cuckoo.key = k_1_swap.execute(cuckoo_hash_1);
-			cuckoo.ts = ts_1_swap.execute(cuckoo_hash_1);
-			cuckoo.val = v_1_swap.execute(cuckoo_hash_1);
+			evicted_1_key = k_1_swap.execute(cuckoo_hash_1);
+			evicted_1_ts = ts_1_swap.execute(cuckoo_hash_1);
+			evicted_1_val = v_1_swap.execute(cuckoo_hash_1);
 
 			bit<32> ts_1_diff;
-			ts_diff(cuckoo.ts, ts_1_diff);
+			ts_diff(evicted_1_ts, ts_1_diff);
+
+			// Unconditional: the index is only used below, but predicating the hash on a value
+			// read out of a register makes what it hashes unreliable.
+			calc_cuckoo_hash_2_r();
 
 			if (ts_1_diff < CUCKOO_ENTRY_TIMEOUT) {
+				v_2_in = evicted_1_val;
+				ts_2_in = evicted_1_ts;
+
 				cuckoo.key = k_2_swap.execute(cuckoo_hash_2_r);
 				cuckoo.ts = ts_2_swap.execute(cuckoo_hash_2_r);
 				cuckoo.val = v_2_swap.execute(cuckoo_hash_2_r);
