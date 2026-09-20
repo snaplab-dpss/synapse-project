@@ -6140,14 +6140,46 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
           if (whole_var.has_value()) {
             assignment << whole_var->name;
           } else {
-            for (bytes_t b = 0; b < field_bytes; b++) {
+            // A run of written bytes that reassembles, the other way round, a vector cell's
+            // slice the data plane holds (a register's value): that slice, whole, for the reason
+            // the whole-field case has. The NAT's flow cell keeps the ports as the packet field
+            // is (the register was written from the field), so the C's byte swap on the way
+            // back, emitted byte by byte, put the internal port on the wire reversed.
+            for (bytes_t b = 0; b < field_bytes;) {
               assignment << (b > 0 ? " ++ " : "");
+              std::optional<std::pair<var_t, bytes_t>> slice; // The var and the run's length.
+              for (bytes_t run = field_bytes - b; run >= 2 && !slice; run--) {
+                bool written = true;
+                std::vector<klee::ref<klee::Expr>> parts;
+                for (bytes_t k = 0; k < run; k++) {
+                  written &= field_bytes_written[b + k] != nullptr;
+                  if (written) {
+                    parts.push_back(field_bytes_written[b + k]->expr);
+                  }
+                }
+                if (!written) {
+                  continue;
+                }
+                const klee::ref<klee::Expr> as_stored = LibCore::concat_exprs(parts, true);
+                if (!is_plain_vector_read(as_stored)) {
+                  continue;
+                }
+                if (const std::optional<var_t> var = ingress_vars.get(as_stored); var && !var->is_slice()) {
+                  slice = {*var, run};
+                }
+              }
+              if (slice) {
+                assignment << slice->first.name;
+                b += slice->second;
+                continue;
+              }
               if (field_bytes_written[b]) {
                 assignment << transpiler.transpile(field_bytes_written[b]->expr);
               } else {
                 const bits_t high = field_width - 1 - b * 8;
                 assignment << field->name << "[" << high << ":" << (high - 7) << "]";
               }
+              b++;
             }
           }
         }
