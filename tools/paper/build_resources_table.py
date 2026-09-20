@@ -18,11 +18,12 @@ SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
 NETCACHE_DIR = PROJECT_DIR / "tofino" / "netcache" / "p4"
 SWITCHAROO_DIR = PROJECT_DIR / "tofino" / "switcharoo" / "p4"
 HYPERLOGLOG_DIR = PROJECT_DIR / "tofino" / "hyperloglog" / "p4"
+SMARTCOOKIE_DIR = PROJECT_DIR / "tofino" / "smartcookie" / "p4"
 
-TARGET_NFS = ["kvs", "fw", "nat", "psd", "cl", "hyperloglog"]
+TARGET_NFS = ["kvs", "fw", "nat", "psd", "cl", "hyperloglog", "smartcookie"]
 
 # Table labels; NFs missing from this map are shown as their upper-cased name.
-NF_LABELS = {"hyperloglog": "HLL"}
+NF_LABELS = {"hyperloglog": "HLL", "smartcookie": "SC"}
 
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
@@ -168,9 +169,7 @@ def build_merged_comparison_latex_table(groups: list[tuple[str, list[ComparisonR
 
     for nf, rows in groups:
         # The NF spans the group, so it only labels the first of its rows.
-        latex_rows = [
-            " & ".join([nf if i == 0 else "", label] + build_comparison_columns(resources)) + r" \\" for i, (label, resources) in enumerate(rows)
-        ]
+        latex_rows = [" & ".join([nf if i == 0 else "", label] + build_comparison_columns(resources)) + r" \\" for i, (label, resources) in enumerate(rows)]
         latex_groups.append("\n".join(latex_rows))
 
     return prefix + "\n\\midrule\n".join(latex_groups) + COMPARISON_SUFFIX
@@ -307,6 +306,8 @@ if __name__ == "__main__":
     hyperloglog_resources_file = HYPERLOGLOG_DIR / "hyperloglog-resources.txt"
     gallium_kvs_resources_file = SYNTHESIZED_DIR / "gallium-kvs-resources.txt"
     gallium_hyperloglog_resources_file = SYNTHESIZED_DIR / "gallium-hyperloglog-resources.txt"
+    smartcookie_resources_file = SMARTCOOKIE_DIR / "smartcookie-resources.txt"
+    gallium_smartcookie_resources_file = SYNTHESIZED_DIR / "gallium-smartcookie-resources.txt"
 
     comparison_groups: list[tuple[str, list[ComparisonRow]]] = []
 
@@ -337,6 +338,19 @@ if __name__ == "__main__":
 
         comparison_groups.append((NF_LABELS.get("hyperloglog", "hyperloglog".upper()), hyperloglog_rows))
         print(build_manual_comparison_latex_table(hyperloglog_rows))
+
+    if "smartcookie" in args.nfs:
+        assert smartcookie_resources_file.exists(), f"Synthesized resources file {smartcookie_resources_file} does not exist!"
+        assert gallium_smartcookie_resources_file.exists(), f"Synthesized resources file {gallium_smartcookie_resources_file} does not exist!"
+
+        smartcookie_rows: list[ComparisonRow] = [
+            ("SmartCookie", parse_tofino_resources_file(smartcookie_resources_file)),
+            ("Gallium", parse_tofino_resources_file(gallium_smartcookie_resources_file)),
+            ("Tessera", avg_resources_per_nf["smartcookie"]),
+        ]
+
+        comparison_groups.append((NF_LABELS.get("smartcookie", "smartcookie".upper()), smartcookie_rows))
+        print(build_manual_comparison_latex_table(smartcookie_rows))
 
     if comparison_groups:
         print(build_merged_comparison_latex_table(comparison_groups))

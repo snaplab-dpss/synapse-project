@@ -15,10 +15,10 @@ CURRENT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PROJECT_DIR = (CURRENT_DIR / ".." / "..").resolve()
 
 SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
-TARGET_NFS = ["kvs", "fw", "nat", "psd", "cl", "hyperloglog"]
+TARGET_NFS = ["kvs", "fw", "nat", "psd", "cl", "hyperloglog", "smartcookie"]
 
 # Table labels; NFs missing from this map are shown as their upper-cased name.
-NF_LABELS = {"hyperloglog": "HLL"}
+NF_LABELS = {"hyperloglog": "HLL", "smartcookie": "SC"}
 
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
