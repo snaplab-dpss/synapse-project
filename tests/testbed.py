@@ -99,12 +99,25 @@ def tail(path: Path, lines: int = 30) -> str:
         return ""
 
 
+def _is_zombie(pid: int) -> bool:
+    """A process that has exited but was never reaped. It holds no port and no memory, yet it keeps
+    its name, so pgrep still reports it: taken for a live model it makes `running_model` answer "?"
+    forever and every start time out, and no signal can clear it (only its parent reaping it can)."""
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text()
+    except OSError:
+        return False
+    # The state letter follows the parenthesised command name, which may itself contain spaces.
+    _, _, after_name = stat.rpartition(") ")
+    return after_name.startswith("Z")
+
+
 def _pgrep(pattern: str) -> list[tuple[int, str]]:
     proc = subprocess.run(["pgrep", "-a", "-f", pattern], stdout=PIPE, stderr=STDOUT, text=True)
     result = []
     for line in proc.stdout.splitlines():
         pid, _, cmd = line.partition(" ")
-        if pid.isdigit() and int(pid) != os.getpid():
+        if pid.isdigit() and int(pid) != os.getpid() and not _is_zombie(int(pid)):
             result.append((int(pid), cmd))
     return result
 
