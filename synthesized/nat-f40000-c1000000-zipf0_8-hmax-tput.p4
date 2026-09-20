@@ -581,6 +581,7 @@ control Ingress(
   }
 
   action rewrite_151() {
+    hdr.hdr2.data0 = hdr.hdr2.data0[31:24] ++ hdr.hdr2.data0[23:16] ++ meta.vector_reg_value2;
   }
   action rewrite_152() {
     hdr.hdr1.data6 = meta.vector_reg_value0;
@@ -787,7 +788,6 @@ control Ingress(
                     // EP node  3334:ModifyHeader
                     // BDD node 151:packet_return_chunk
                     rewrite_151();
-                    @in_hash { hdr.hdr2.data0 = hdr.hdr2.data0[31:24] ++ hdr.hdr2.data0[23:16] ++ meta.vector_reg_value2[7:0] ++ meta.vector_reg_value2[15:8]; }
                     // EP node  3529:ModifyHeader
                     // BDD node 152:packet_return_chunk
                     rewrite_152();

@@ -155,7 +155,7 @@ MapRAM: 704'512/786'432 B (89.5833%)
 Logical IDs: 8/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 36/128 B (28.125%)
-Objs: [vector_register_1074066960_1,vector_register_1074066960_3,fcfs_ct_1074053136_hash_163,fcfs_ct_1074053136_reg_liveness,fcfs_ct_1074053136_hash_142]
+Objs: [vector_register_1074066960_1,fcfs_ct_1074053136_reg_liveness,vector_register_1074066960_3,fcfs_ct_1074053136_hash_163,fcfs_ct_1074053136_hash_142]
 -------------------------------------
 -------------------------------------
 Stage 3
