@@ -44,10 +44,14 @@ DROP_WAIT = 0.5  # drops happen in the data plane, no need to wait a full second
 SCAN_COUNT = 24  # distinct new ports to send when probing the limit
 EARLY_PASS = 10  # the first this-many new ports must pass (limit is not absurdly low)
 MIN_LIMITED = 3  # at least this many of SCAN_COUNT must be dropped (the limit really engages)
-# Per-port wait when scanning MUST be shorter than the source TTL: a forward returns in ~0.2 s, and
-# a drop produces nothing, so a longer wait would let the source expire during a run of drops (each
-# packet, drop included, refreshes the source) and the counter would restart mid-scan.
-SCAN_TIMEOUT = 0.7
+# The whole scan MUST fit inside the source TTL. The C refreshes a source on every packet, drops
+# included, but a solution whose read path only queries the cache's liveness (FCFSCachedTableRead;
+# refreshing there would keep colliding stale entries alive) lets the entry expire EXPIRATION_SEC
+# after admission no matter how much the source sends, and a slower scan would see its counter
+# restart mid-scan. So the probes are paced SCAN_GAP apart (the controller round trip on the model
+# is ~15 ms, and the counter increments there) and the replies are classified afterwards.
+SCAN_GAP = 0.03
+SCAN_SETTLE = 0.5  # silence after the last reply before the scan's replies are considered complete
 
 
 def scan(ports: Ports, wan: int, src: str, dst_port: int, proto: str = "udp") -> Packet:
@@ -72,12 +76,14 @@ def drive_new_ports(ports: Ports, wan: int, lan: int, src: str, base_port: int, 
     Replies come back over the controller (CPU path) and can lag, so each port is classified by
     matching the reply's destination port rather than by whatever happens to arrive next."""
     l4 = TCP if proto == "tcp" else UDP
+    ports.drain()
+    for i in range(count):
+        scan(ports, wan, src, base_port + i, proto)
+        sleep(SCAN_GAP)
+    received = ports.collect(CPU_PATH_TIMEOUT, settle=SCAN_SETTLE)
     forwarded = []
     for i in range(count):
         dst_port = base_port + i
-        ports.drain()
-        scan(ports, wan, src, dst_port, proto)
-        received = ports.collect(SCAN_TIMEOUT)
         got = any(r.port == lan and l4 in r.pkt and r.pkt[l4].dport == dst_port for r in received)
         forwarded.append(got)
     return forwarded
