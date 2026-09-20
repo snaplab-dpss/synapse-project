@@ -6,18 +6,18 @@ brings the Tofino 2 model and the solution's controller up on the veth interface
 
     sudo -E ./tools/test_synapse_nfs.py                       # every tested NF, every workload
     sudo -E ./tools/test_synapse_nfs.py --nfs kvs smartcookie --churns 0 --zipf-params 0.0 1.2
-    sudo -E ./tools/test_synapse_nfs.py --only-distinct       # one solution per distinct DS choice
     sudo -E ./tools/test_synapse_nfs.py --report results.csv --resume
 
 The solutions are expected to be synthesized already (tools/synapse_batcher.py --synthesize); each
-one is built (bf-p4c + controller) by the test harness unless --skip-build is given. The tests run
-one after the other: there is one model. Logs go under /tmp/synapse-tests/<solution>/.
+one is built (bf-p4c + controller) by the test harness unless --skip-build is given. The workload
+sweep emits the same program many times over, so only one solution per distinct (P4, controller) is
+tested unless --exhaustive is given. The tests run one after the other: there is one model. Logs go
+under /tmp/synapse-tests/<solution>/.
 """
 
 from __future__ import annotations  # keep 3.9+ annotation syntax valid on Python 3.8 (tofino2)
 
 import csv
-import json
 import os
 import shutil
 import subprocess
@@ -25,6 +25,7 @@ import sys
 import time
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from hashlib import md5
 from itertools import product
 from pathlib import Path
 from typing import Optional
@@ -168,37 +169,37 @@ def preflight(solutions: list[Solution], skip_build: bool) -> None:
         print(f"[*] a testbed is running (model: {model}, controller: {controller}); each test restarts it", flush=True)
 
 
+def distinct_by_content(solutions: list[Solution]) -> list[Solution]:
+    """Drop every solution whose emitted P4 and controller are byte-identical to one already kept:
+    the same two files on the same model run the same test, so testing both only costs a build.
+    The workload sweep produces many such duplicates (252 solutions, 67 distinct programs)."""
+    seen: set[bytes] = set()
+    kept = []
+    for solution in solutions:
+        p4 = SYNTHESIZED_DIR / f"{solution.name}.p4"
+        controller = SYNTHESIZED_DIR / f"{solution.name}.cpp"
+        if not (p4.is_file() and controller.is_file()):
+            kept.append(solution)  # Let preflight report it missing.
+            continue
+        digest = md5(p4.read_bytes() + controller.read_bytes()).digest()
+        if digest not in seen:
+            seen.add(digest)
+            kept.append(solution)
+    return kept
+
+
 def select_solutions(args) -> list[Solution]:
     solutions: list[Solution] = []
     for nf_name in args.nfs:
         nf = NFS[nf_name]
         if MAX_TPUT_HEURISTIC in args.heuristics:
             names = [build_synapse_nf_name(nf_name, flows, churn, zipf) for flows, churn, zipf in product(args.total_flows, args.churns, args.zipf_params)]
-            if args.only_distinct:
-                names = distinct_by_implementations(nf, names)
             solutions += [Solution(nf, name) for name in names]
         if GALLIUM_HEURISTIC in args.heuristics:
             solutions.append(Solution(nf, f"{GALLIUM_HEURISTIC}-{nf_name}"))
+    if not args.exhaustive:
+        solutions = distinct_by_content(solutions)
     return solutions
-
-
-def distinct_by_implementations(nf: NF, names: list[str]) -> list[str]:
-    """One solution per distinct set of data structures the search chose (the report's
-    `implementations`, addresses aside), the first workload with it: the emitted program differs
-    between such sets, and only in the profile's numbers within one."""
-    seen: set[tuple] = set()
-    kept = []
-    for name in names:
-        report = SYNTHESIZED_DIR / f"{name}.json"
-        if not report.is_file():
-            kept.append(name)  # Let preflight report it missing.
-            continue
-        with open(report) as f:
-            impls = tuple(sorted(i["implementation"] for i in json.load(f)["implementations"]))
-        if impls not in seen:
-            seen.add(impls)
-            kept.append(name)
-    return kept
 
 
 # bf_switchd's initialization can fail right after the previous one was stopped
@@ -269,7 +270,7 @@ def main() -> int:
     parser.add_argument("--churns", type=int, nargs="+", default=DEFAULT_CHURN_FPM, help="churn rates (fpm) of the workloads")
     parser.add_argument("--zipf-params", type=float, nargs="+", default=DEFAULT_ZIPF_PARAMS, help="zipf parameters of the workloads (0.0: uniform)")
     parser.add_argument("--heuristics", choices=DEFAULT_HEURISTICS, nargs="+", default=DEFAULT_HEURISTICS)
-    parser.add_argument("--only-distinct", action="store_true", help="per NF, test one max-tput solution per distinct choice of data structures")
+    parser.add_argument("--exhaustive", action="store_true", help="also test the solutions whose P4 and controller are byte-identical to another one")
     parser.add_argument("--skip-build", action="store_true", help="the solutions are built already (tools/synapse_nfs_builder.py)")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SEC, help="seconds a build plus test may take")
     parser.add_argument("--report", type=Path, help="write a CSV with one row per solution")
