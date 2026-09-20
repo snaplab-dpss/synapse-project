@@ -19,7 +19,7 @@ from argparse import ArgumentParser
 from binascii import hexlify
 from dataclasses import dataclass
 from enum import Enum
-from random import getrandbits, randint
+from random import getrandbits, randint, seed as seed_random
 from select import select
 from socket import AF_PACKET, SOCK_RAW, inet_aton, ntohs, socket
 from time import monotonic
@@ -390,8 +390,17 @@ def run(test: Callable[[Ports], None], nf: str) -> None:
     parser.add_argument("--no-build", action="store_true", help="with --up: skip the build step")
     parser.add_argument("--keep", action="store_true", help="with --up: leave the testbed running afterwards")
     parser.add_argument("--quiet", action="store_true", help="don't print every packet sent/received")
+    parser.add_argument("--seed", type=int, help="seed the random flows (default: a fresh one, printed below)")
     args = parser.parse_args()
     nf = args.nf
+
+    # The tests address random flows, so which of them collide in a dataplane cache -- and with it
+    # which code paths run at all -- changes from run to run. Print the seed so a failure can be
+    # replayed: the sweep keeps this in the solution's test.log.
+    seed = args.seed if args.seed is not None else getrandbits(32)
+    seed_random(seed)
+    # Not the "[*] " prefix `step` uses: the sweep counts those lines as scenarios.
+    print(f"random seed {seed} (replay with --seed {seed})")
 
     try:
         testbed.require_root()
