@@ -5,10 +5,10 @@
     "num_phase1_speculations": 7333,
     "num_phase2_speculations": 136,
     "num_speculated_modules": 87301,
-    "time_per_instantiation_us": 696,
-    "time_per_speculation_us": 9,
-    "total_time_spent_generating_execution_plans_us": 119179,
-    "total_time_spent_speculating_us": 807878
+    "time_per_instantiation_us": 640,
+    "time_per_speculation_us": 8,
+    "total_time_spent_generating_execution_plans_us": 109461,
+    "total_time_spent_speculating_us": 764124
   },
   "heuristic": {
     "meta": [
