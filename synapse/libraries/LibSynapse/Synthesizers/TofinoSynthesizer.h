@@ -540,6 +540,9 @@ private:
   std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_actions(const BloomFilter *bf);
   std::unordered_map<RegisterActionType, std::vector<code_t>> bf_get_rows_values(const BloomFilter *bf);
   var_t bf_get_estimate_value(const BloomFilter *bf);
+  var_t bf_get_row_hits_value(const BloomFilter *bf);
+  static code_t bf_get_all_rows_hit_action(const BloomFilter *bf);
+  void transpile_bf_query_apply(const BloomFilter *bf, const std::vector<code_t> &row_actions, const var_t &estimate_value);
 
   void transpile_parser(const Parser &parser);
   void transpile_action_decl(const code_t &action_name, const std::vector<code_t> &body);
@@ -570,6 +573,7 @@ private:
   // (metadata) destination of the returned value, or empty for a value-less execute.
   void emit_register_execute(const code_t &lhs, const code_t &action_name, const klee::ref<klee::Expr> &index, const code_t &index_code,
                              const EPNode *ep_node);
+  static code_t crc_polynomial_args(const crc32_config_t &poly);
   void transpile_hash_decl(const Hash *hash);
   void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash);
   void transpile_digest_decl(const Digest *digest);

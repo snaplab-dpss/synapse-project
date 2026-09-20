@@ -13,8 +13,6 @@ namespace LibSynapse {
 namespace Tofino {
 
 struct BloomFilter : public DS {
-  static const std::vector<u32> HASH_SALTS;
-
   u32 width;
   u32 height;
   bits_t hash_size;

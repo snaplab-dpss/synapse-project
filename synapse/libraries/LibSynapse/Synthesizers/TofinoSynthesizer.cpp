@@ -152,6 +152,8 @@ constexpr const char *const MARKER_CUCKOO_IDX_WIDTH       = "CUCKOO_IDX_WIDTH";
 constexpr const char *const MARKER_CUCKOO_ENTRIES         = "CUCKOO_ENTRIES";
 constexpr const char *const MARKER_CUCKOO_BLOOM_IDX_WIDTH = "CUCKOO_BLOOM_IDX_WIDTH";
 constexpr const char *const MARKER_CUCKOO_BLOOM_ENTRIES   = "CUCKOO_BLOOM_ENTRIES";
+constexpr const char *const MARKER_CUCKOO_POLY_1          = "CUCKOO_POLY_1";
+constexpr const char *const MARKER_CUCKOO_POLY_2          = "CUCKOO_POLY_2";
 
 constexpr const char *const TEMPLATE_FILENAME                   = "tofino.template.p4";
 constexpr const char *const TEMPLATE_CUCKOO_HASH_TABLE_FILENAME = "cuckoo_hash_table.template.p4";
@@ -1705,6 +1707,15 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
   ingress << "\n";
 }
 
+code_t TofinoSynthesizer::crc_polynomial_args(const crc32_config_t &poly) {
+  // CRCPolynomial<bit<32>>(coeff, reversed, msb, extended, init, xor). A crc32_config_t maps onto
+  // TNA's extern as: coeff = normal-form polynomial, reversed = reflected input and output, init
+  // and xor as given; msb and extended stay false so that a Hash<bit<W>> is the low W bits of the
+  // 32-bit CRC, exactly what the controllers' software hashers index with (tofino/exp-hash).
+  return Transpiler::transpile_literal(poly.coeff, 32, true) + ", " + (poly.reversed ? "true" : "false") + ", false, false, " +
+         Transpiler::transpile_literal(poly.init, 32, true) + ", " + Transpiler::transpile_literal(poly.xor_out, 32, true);
+}
+
 void TofinoSynthesizer::transpile_hash_decl(const Hash *hash) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
 
@@ -1718,12 +1729,23 @@ void TofinoSynthesizer::transpile_hash_decl(const Hash *hash) {
     panic("Hash size too large: %u", hash->size);
   }
 
-  const code_t hash_algo{"CRC32"};
+  // The IEEE polynomial is TNA's built-in CRC32; any other entry of the bank is a custom polynomial.
+  const crc32_config_t &poly = hash->polynomial;
+  const crc32_config_t &ieee = CRC32_BANK[0];
+  const bool builtin       = poly.coeff == ieee.coeff && poly.reversed == ieee.reversed && poly.init == ieee.init && poly.xor_out == ieee.xor_out;
+
+  code_t hash_algo = "HashAlgorithm_t.CRC32";
+  if (!builtin) {
+    const code_t poly_id = hash->id + "_poly";
+    ingress.indent();
+    ingress << "CRCPolynomial<bit<32>>(" << crc_polynomial_args(poly) << ") " << poly_id << "; // " << poly.name << "\n";
+    hash_algo = "HashAlgorithm_t.CUSTOM, " + poly_id;
+  }
 
   ingress.indent();
   ingress << "Hash<";
   ingress << TofinoSynthesizer::Transpiler::type_from_size(hash->size);
-  ingress << ">(HashAlgorithm_t." << hash_algo << ")";
+  ingress << ">(" << hash_algo << ")";
   ingress << " ";
   ingress << hash->id;
   ingress << ";\n";
@@ -7648,10 +7670,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       hash_inputs.push_back(key_var.name);
     }
 
-    assert(i < HHTable::HASH_SALTS.size());
-    const bits_t hash_salt_size = sizeof(HHTable::HASH_SALTS[i]) * 8;
-    hash_inputs.push_back(Transpiler::transpile_literal(HHTable::HASH_SALTS[i], hash_salt_size, true));
-
     code_t hash_calculator;
     code_t output_hash;
     transpile_hash_calculation(&hh_table->hashes[i], hash_inputs, hash_calculator, output_hash);
@@ -7861,14 +7879,51 @@ TofinoSynthesizer::var_t TofinoSynthesizer::bf_get_estimate_value(const BloomFil
   return estimate_var;
 }
 
+// One bit per row, written by the row actions (which the compiler may place in parallel): bit i is
+// row i's cell. The estimate the BDD sees is 1 only when every row hit, so the rows cannot write it
+// directly -- a single hit must not count as a match.
+TofinoSynthesizer::var_t TofinoSynthesizer::bf_get_row_hits_value(const BloomFilter *bf) {
+  assert(bf->height <= 8 && "Row hits are kept in a byte");
+  const var_t row_hits_var = alloc_var(bf->id + "_row_hits", 8, EXACT_NAME | IS_INGRESS_METADATA);
+  declare_var_in_ingress_metadata(row_hits_var);
+  return row_hits_var;
+}
+
+code_t TofinoSynthesizer::bf_get_all_rows_hit_action(const BloomFilter *bf) { return bf->id + "_all_rows_hit"; }
+
+// Query the rows (each row action sets its bit of row_hits), then reduce: the estimate is 1 iff all
+// rows hit.
+void TofinoSynthesizer::transpile_bf_query_apply(const BloomFilter *bf, const std::vector<code_t> &row_actions, const var_t &estimate_value) {
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const var_t row_hits_value = bf_get_row_hits_value(bf);
+
+  ingress_apply.indent();
+  ingress_apply << estimate_value.name << " = 0;\n";
+  ingress_apply.indent();
+  ingress_apply << row_hits_value.name << " = 0;\n";
+
+  for (const code_t &action : row_actions) {
+    ingress_apply.indent();
+    ingress_apply << action << "();\n";
+  }
+
+  const u64 all_rows = (1ULL << bf->height) - 1;
+  ingress_apply.indent();
+  ingress_apply << "if (" << row_hits_value.name << " == " << Transpiler::transpile_literal(all_rows, 8, true) << ") {\n";
+  ingress_apply.inc();
+  ingress_apply.indent();
+  ingress_apply << bf_get_all_rows_hit_action(bf) << "();\n";
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+}
+
 void TofinoSynthesizer::transpile_cms_hash_calculator_decl(const CountMinSketch *cms, const EPNode *ep_node, const std::vector<var_t> &keys_vars) {
   const std::vector<code_t> hashes_calculators = cms_get_hashes_calculators(cms, ep_node);
   const std::vector<code_t> hashes_values      = cms_get_hashes_values(cms);
 
   for (size_t i = 0; i < cms->height; i++) {
-    assert(i < CountMinSketch::HASH_SALTS.size());
-
-    const bits_t hash_salt_size   = sizeof(CountMinSketch::HASH_SALTS[i]) * 8;
     const code_t &hash            = cms->hashes[i].id + "_" + std::to_string(ep_node->get_id());
     const code_t &hash_calculator = hashes_calculators[i];
     const code_t &hash_value      = hashes_values[i];
@@ -7879,12 +7934,10 @@ void TofinoSynthesizer::transpile_cms_hash_calculator_decl(const CountMinSketch 
     hash_calculation_body << hash_value << " = " << hash << ".get({\n";
 
     hash_calculation_body.inc();
-    for (const var_t &key_var : keys_vars) {
+    for (size_t k = 0; k < keys_vars.size(); k++) {
       hash_calculation_body.indent();
-      hash_calculation_body << key_var.name << ",\n";
+      hash_calculation_body << keys_vars[k].name << (k + 1 < keys_vars.size() ? "," : "") << "\n";
     }
-    hash_calculation_body.indent();
-    hash_calculation_body << Transpiler::transpile_literal(HHTable::HASH_SALTS[i], hash_salt_size, true) << "\n";
     hash_calculation_body.dec();
 
     hash_calculation_body.indent();
@@ -7973,12 +8026,20 @@ std::vector<code_t> TofinoSynthesizer::transpile_bf_decl(const BloomFilter *bf, 
   const std::unordered_map<RegisterActionType, std::vector<code_t>> actions     = bf_get_rows_actions(bf);
   const std::unordered_map<RegisterActionType, std::vector<code_t>> values      = bf_get_rows_values(bf);
   const var_t estimate_value                                                    = bf_get_estimate_value(bf);
+  const var_t row_hits_value                                                    = bf_get_row_hits_value(bf);
 
   if (!declared_ds.contains(bf->id)) {
     for (size_t i = 0; i < bf->height; i++) {
       transpile_register_decl(&bf->rows[i]);
     }
     ingress << "\n";
+
+    coder_t all_rows_hit_body;
+    all_rows_hit_body.indent();
+    all_rows_hit_body << estimate_value.name << " = 1;\n";
+    transpile_action_decl(bf_get_all_rows_hit_action(bf), all_rows_hit_body.split_lines());
+    ingress << "\n";
+
     declared_ds.insert(bf->id);
   }
 
@@ -7994,7 +8055,6 @@ std::vector<code_t> TofinoSynthesizer::transpile_bf_decl(const BloomFilter *bf, 
   assert(reg_actions.contains(action_type) && actions.contains(action_type) && values.contains(action_type));
   std::vector<code_t> site_actions;
   for (size_t i = 0; i < bf->height; i++) {
-    assert(i < BloomFilter::HASH_SALTS.size());
     const Register &row      = bf->rows[i];
     code_t reg_action        = reg_actions.at(action_type)[i];
     code_t action            = actions.at(action_type)[i];
@@ -8026,18 +8086,16 @@ std::vector<code_t> TofinoSynthesizer::transpile_bf_decl(const BloomFilter *bf, 
     }
     body << reg_action << ".execute(" << hash_ids[i] << ".get({\n";
     body.inc();
-    for (const code_t &input : key_inputs) {
+    for (size_t k = 0; k < key_inputs.size(); k++) {
       body.indent();
-      body << input << ",\n";
+      body << key_inputs[k] << (k + 1 < key_inputs.size() ? "," : "") << "\n";
     }
-    body.indent();
-    body << Transpiler::transpile_literal(HHTable::HASH_SALTS[i], sizeof(BloomFilter::HASH_SALTS[i]) * 8, true) << "\n";
     body.dec();
     body.indent();
     body << "}));\n";
     if (returns_value) {
       body.indent();
-      body << estimate_value.get_slice(i, 1).name << " = " << value << "[0:0];\n";
+      body << row_hits_value.get_slice(i, 1).name << " = " << value << "[0:0];\n";
     }
     transpile_action_decl(action, body.split_lines());
     ingress << "\n";
@@ -8058,12 +8116,17 @@ void TofinoSynthesizer::transpile_cuckoo_hash_table_decl(const CuckooHashTable *
                                           {MARKER_CUCKOO_ENTRIES, 0},
                                           {MARKER_CUCKOO_BLOOM_IDX_WIDTH, 0},
                                           {MARKER_CUCKOO_BLOOM_ENTRIES, 0},
+                                          {MARKER_CUCKOO_POLY_1, 0},
+                                          {MARKER_CUCKOO_POLY_2, 0},
                                       });
 
   cuckoo_hash_table_template.get(MARKER_CUCKOO_IDX_WIDTH) << cuckoo_hash_table->cuckoo_index_size;
   cuckoo_hash_table_template.get(MARKER_CUCKOO_ENTRIES) << cuckoo_hash_table->entries_per_cuckoo_table;
   cuckoo_hash_table_template.get(MARKER_CUCKOO_BLOOM_IDX_WIDTH) << cuckoo_hash_table->cuckoo_bloom_index_size;
   cuckoo_hash_table_template.get(MARKER_CUCKOO_BLOOM_ENTRIES) << cuckoo_hash_table->BLOOM_WIDTH;
+  // The two tables' polynomials (the third hash is the second table's, recomputed in a later stage).
+  cuckoo_hash_table_template.get(MARKER_CUCKOO_POLY_1) << crc_polynomial_args(cuckoo_hash_table->cuckoo_hashes[0].polynomial);
+  cuckoo_hash_table_template.get(MARKER_CUCKOO_POLY_2) << crc_polynomial_args(cuckoo_hash_table->cuckoo_hashes[1].polynomial);
 
   coder_t &control_blocks = get(MARKER_CONTROL_BLOCKS);
   control_blocks << cuckoo_hash_table_template.dump() << "\n";
@@ -8202,8 +8265,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQueryAndSet *node) {
-  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
-
   const DS_ID bf_id                              = node->get_bf_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
   const klee::ref<klee::Expr> estimate           = node->get_estimate();
@@ -8217,13 +8278,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::vector<code_t> row_actions = transpile_bf_decl(bf, ep_node, key_inputs, RegisterActionType::SetToOneAndReturnOldValue);
 
   const var_t estimate_value = bf_get_estimate_value(bf);
-  ingress_apply.indent();
-  ingress_apply << estimate_value.name << " = 0;\n";
-
-  for (const code_t &action : row_actions) {
-    ingress_apply.indent();
-    ingress_apply << action << "();\n";
-  }
+  transpile_bf_query_apply(bf, row_actions, estimate_value);
 
   ingress_vars.set_var_expr(estimate_value.name, estimate);
 
@@ -8292,8 +8347,6 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQuery *node) {
-  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
-
   const DS_ID bf_id                              = node->get_bf_id();
   const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
   const klee::ref<klee::Expr> estimate           = node->get_estimate();
@@ -8307,13 +8360,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const std::vector<code_t> row_actions = transpile_bf_decl(bf, ep_node, key_inputs, RegisterActionType::Read);
 
   const var_t estimate_value = bf_get_estimate_value(bf);
-  ingress_apply.indent();
-  ingress_apply << estimate_value.name << " = 0;\n";
-
-  for (const code_t &action : row_actions) {
-    ingress_apply.indent();
-    ingress_apply << action << "();\n";
-  }
+  transpile_bf_query_apply(bf, row_actions, estimate_value);
 
   ingress_vars.set_var_expr(estimate_value.name, estimate);
 

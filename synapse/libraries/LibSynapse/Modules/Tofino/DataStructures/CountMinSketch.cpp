@@ -11,9 +11,11 @@ using LibCore::bits_from_pow2_capacity;
 namespace {
 
 std::vector<Hash> build_hashes(DS_ID id, u32 height, const std::vector<bits_t> &keys, bits_t hash_size) {
+  assert(height <= CRC32_BANK_SIZE && "Not enough CRC polynomials for the number of rows");
+
   std::vector<Hash> hashes;
   for (size_t i = 0; i < height; i++) {
-    Hash hash(id + "_hash_" + std::to_string(i), keys, hash_size);
+    Hash hash(id + "_hash_" + std::to_string(i), keys, hash_size, CRC32_BANK[i]);
     hashes.push_back(hash);
   }
 
@@ -35,9 +37,6 @@ std::vector<Register> build_rows(const tna_properties_t &properties, DS_ID id, u
 }
 
 } // namespace
-
-const std::vector<u32> CountMinSketch::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f, 0x1f3a2b4d, 0x7c5e9f8b, 0x3a2b4d1f,
-                                                     0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
 
 CountMinSketch::CountMinSketch(const tna_properties_t &properties, DS_ID _id, const std::vector<bits_t> &_keys, u32 _width, u32 _height)
     : DS(DSType::CountMinSketch, false, _id), width(_width), height(_height), hash_size(bits_from_pow2_capacity(_width)),

@@ -19,14 +19,13 @@ Register build_cached_counters(const tna_properties_t &properties, DS_ID id, u32
   return Register(properties, reg_id, capacity, index_size, value_size, {action});
 }
 
-std::vector<Hash> build_hashes(DS_ID id, std::vector<bits_t> keys_sizes, u32 total_hashes, bits_t hash_size) {
+std::vector<Hash> build_hashes(DS_ID id, const std::vector<bits_t> &keys_sizes, u32 total_hashes, bits_t hash_size) {
   assert(!keys_sizes.empty() && "Keys sizes must not be empty");
-
-  keys_sizes.push_back(32); // Add the hash salt
+  assert(total_hashes <= CRC32_BANK_SIZE && "Not enough CRC polynomials for the number of CMS rows");
 
   std::vector<Hash> hashes;
   for (u32 i = 0; i < total_hashes; i++) {
-    hashes.emplace_back(id + "_hash_calc_" + std::to_string(i), keys_sizes, hash_size);
+    hashes.emplace_back(id + "_hash_calc_" + std::to_string(i), keys_sizes, hash_size, CRC32_BANK[i]);
   }
 
   return hashes;
@@ -71,9 +70,6 @@ Digest build_digest(DS_ID id, std::vector<bits_t> fields, u8 digest_type) {
 }
 
 } // namespace
-
-const std::vector<u32> HHTable::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f, 0x1f3a2b4d, 0x7c5e9f8b, 0x3a2b4d1f,
-                                              0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
 
 const std::vector<u32> HHTable::CMS_WIDTH_CANDIDATES = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
 

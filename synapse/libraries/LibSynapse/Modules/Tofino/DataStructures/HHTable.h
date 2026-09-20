@@ -18,7 +18,6 @@ namespace Tofino {
 constexpr const char *const HHTABLE_CMS_WIDTH_PARAM = "cms_width";
 
 struct HHTable : public DS {
-  static const std::vector<u32> HASH_SALTS;
   static const std::vector<u32> CMS_WIDTH_CANDIDATES;
 
   static constexpr const u32 CMS_HEIGHT{4};

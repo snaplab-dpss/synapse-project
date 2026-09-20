@@ -10,12 +10,15 @@ using LibCore::bits_from_pow2_capacity;
 namespace {
 
 std::array<Hash, 3> build_cuckoo_hashes(DS_ID id, bits_t key_size, bits_t hash_size) {
-  const std::vector<bits_t> keys_sizes{key_size, 32}; // Add the key and the hash salt
+  const std::vector<bits_t> keys_sizes{key_size};
 
+  // The two tables hash with different polynomials (the third hash recomputes the second table's
+  // position in a later stage). With a single polynomial the second position would be the first
+  // XOR a constant, and no collision could ever be displaced.
   std::array<Hash, 3> hashes = {
-      Hash(id + "_hash_calc_0", keys_sizes, hash_size),
-      Hash(id + "_hash_calc_1", keys_sizes, hash_size),
-      Hash(id + "_hash_calc_2", keys_sizes, hash_size),
+      Hash(id + "_hash_calc_0", keys_sizes, hash_size, CRC32_BANK[0]),
+      Hash(id + "_hash_calc_1", keys_sizes, hash_size, CRC32_BANK[1]),
+      Hash(id + "_hash_calc_2", keys_sizes, hash_size, CRC32_BANK[1]),
   };
 
   return hashes;
