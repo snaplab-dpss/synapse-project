@@ -433,9 +433,12 @@ control Ingress(
   };
 
   Hash<bit<15>>(HashAlgorithm_t.CRC32) hh_table_1073923096_hash_calc_0;
-  Hash<bit<15>>(HashAlgorithm_t.CRC32) hh_table_1073923096_hash_calc_1;
-  Hash<bit<15>>(HashAlgorithm_t.CRC32) hh_table_1073923096_hash_calc_2;
-  Hash<bit<15>>(HashAlgorithm_t.CRC32) hh_table_1073923096_hash_calc_3;
+  CRCPolynomial<bit<32>>(32w0x7b17a39f, true, false, false, 32w0xffffffff, 32w0xffffffff) hh_table_1073923096_hash_calc_1_poly; // p1
+  Hash<bit<15>>(HashAlgorithm_t.CUSTOM, hh_table_1073923096_hash_calc_1_poly) hh_table_1073923096_hash_calc_1;
+  CRCPolynomial<bit<32>>(32w0x99f29aad, true, false, false, 32w0xffffffff, 32w0xffffffff) hh_table_1073923096_hash_calc_2_poly; // p2
+  Hash<bit<15>>(HashAlgorithm_t.CUSTOM, hh_table_1073923096_hash_calc_2_poly) hh_table_1073923096_hash_calc_2;
+  CRCPolynomial<bit<32>>(32w0x21bca2c3, true, false, false, 32w0xffffffff, 32w0xffffffff) hh_table_1073923096_hash_calc_3_poly; // p3
+  Hash<bit<15>>(HashAlgorithm_t.CUSTOM, hh_table_1073923096_hash_calc_3_poly) hh_table_1073923096_hash_calc_3;
 
   Register<bit<32>,_>(32768, 0) hh_table_1073923096_cms_row_0;
   RegisterAction<bit<32>, bit<15>, bit<32>>(hh_table_1073923096_cms_row_0) hh_table_1073923096_cms_row_0_inc_and_read_621 = {
@@ -480,29 +483,25 @@ control Ingress(
   bit<15> hh_table_1073923096_hash_calc_0_value;
   action hh_table_1073923096_hash_calc_0_calc() {
     hh_table_1073923096_hash_calc_0_value = hh_table_1073923096_hash_calc_0.get({
-      meta.key_32b_0,
-      32w0xfbc31fc7
+      meta.key_32b_0
       });
   }
   bit<15> hh_table_1073923096_hash_calc_1_value;
   action hh_table_1073923096_hash_calc_1_calc() {
     hh_table_1073923096_hash_calc_1_value = hh_table_1073923096_hash_calc_1.get({
-      meta.key_32b_0,
-      32w0x2681580b
+      meta.key_32b_0
       });
   }
   bit<15> hh_table_1073923096_hash_calc_2_value;
   action hh_table_1073923096_hash_calc_2_calc() {
     hh_table_1073923096_hash_calc_2_value = hh_table_1073923096_hash_calc_2.get({
-      meta.key_32b_0,
-      32w0x486d7e2f
+      meta.key_32b_0
       });
   }
   bit<15> hh_table_1073923096_hash_calc_3_value;
   action hh_table_1073923096_hash_calc_3_calc() {
     hh_table_1073923096_hash_calc_3_value = hh_table_1073923096_hash_calc_3.get({
-      meta.key_32b_0,
-      32w0x1f3a2b4d
+      meta.key_32b_0
       });
   }
   bit<32> hh_table_1073923096_cms_row_0_value;

@@ -155,6 +155,7 @@ struct synapse_ingress_metadata_t {
   bit<1> shared_run_2;
   bit<1> shared_run_3;
   bit<32> bf_1073927040_estimate;
+  bit<8> bf_1073927040_row_hits;
   bit<32> key_32b_0;
   bit<32> op_lshr_457_out;
   bit<1> to_egress;
@@ -484,8 +485,13 @@ control Ingress(
   Register<bit<1>,_>(1048576, 0) bf_1073927040_row_0;
   Register<bit<1>,_>(1048576, 0) bf_1073927040_row_1;
 
+  action bf_1073927040_all_rows_hit() {
+    meta.bf_1073927040_estimate = 1;
+  }
+
   Hash<bit<20>>(HashAlgorithm_t.CRC32) bf_1073927040_hash_0_583;
-  Hash<bit<20>>(HashAlgorithm_t.CRC32) bf_1073927040_hash_1_583;
+  CRCPolynomial<bit<32>>(32w0x7b17a39f, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1073927040_hash_1_583_poly; // p1
+  Hash<bit<20>>(HashAlgorithm_t.CUSTOM, bf_1073927040_hash_1_583_poly) bf_1073927040_hash_1_583;
 
   RegisterAction<bit<1>, bit<20>, bit<1>>(bf_1073927040_row_0) bf_1073927040_row_0_read = {
     void apply(inout bit<1> value, out bit<1> out_value) {
@@ -499,10 +505,9 @@ control Ingress(
       hdr.hdr1.data5,
       hdr.hdr1.data6,
       hdr.hdr2.data0[31:16],
-      hdr.hdr2.data0[15:0],
-      32w0xfbc31fc7
+      hdr.hdr2.data0[15:0]
     }));
-    meta.bf_1073927040_estimate[0:0] = bf_1073927040_row_0_read_value[0:0];
+    meta.bf_1073927040_row_hits[0:0] = bf_1073927040_row_0_read_value[0:0];
   }
 
   RegisterAction<bit<1>, bit<20>, bit<1>>(bf_1073927040_row_1) bf_1073927040_row_1_read = {
@@ -517,10 +522,9 @@ control Ingress(
       hdr.hdr1.data5,
       hdr.hdr1.data6,
       hdr.hdr2.data0[31:16],
-      hdr.hdr2.data0[15:0],
-      32w0x2681580b
+      hdr.hdr2.data0[15:0]
     }));
-    meta.bf_1073927040_estimate[1:1] = bf_1073927040_row_1_read_value[0:0];
+    meta.bf_1073927040_row_hits[1:1] = bf_1073927040_row_1_read_value[0:0];
   }
 
   bit<32> vector_table_1073939616_88_get_value_param0 = 32w0;
@@ -680,7 +684,8 @@ control Ingress(
   }
 
   Hash<bit<20>>(HashAlgorithm_t.CRC32) bf_1073927040_hash_0_677272;
-  Hash<bit<20>>(HashAlgorithm_t.CRC32) bf_1073927040_hash_1_677272;
+  CRCPolynomial<bit<32>>(32w0x7b17a39f, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1073927040_hash_1_677272_poly; // p1
+  Hash<bit<20>>(HashAlgorithm_t.CUSTOM, bf_1073927040_hash_1_677272_poly) bf_1073927040_hash_1_677272;
 
   RegisterAction<bit<1>, bit<20>, void>(bf_1073927040_row_0) bf_1073927040_row_0_set_to_one = {
     void apply(inout bit<1> value) {
@@ -693,8 +698,7 @@ control Ingress(
       hdr.hdr1.data5,
       hdr.hdr1.data6,
       hdr.hdr2.data0[31:16],
-      hdr.hdr2.data0[15:0],
-      32w0xfbc31fc7
+      hdr.hdr2.data0[15:0]
     }));
   }
 
@@ -709,8 +713,7 @@ control Ingress(
       hdr.hdr1.data5,
       hdr.hdr1.data6,
       hdr.hdr2.data0[31:16],
-      hdr.hdr2.data0[15:0],
-      32w0x2681580b
+      hdr.hdr2.data0[15:0]
     }));
   }
 
@@ -1068,8 +1071,12 @@ control Ingress(
                 // EP node  583:BloomFilterQuery
                 // BDD node 14:bf_query
                 meta.bf_1073927040_estimate = 0;
+                meta.bf_1073927040_row_hits = 0;
                 bf_1073927040_row_0_read_execute();
                 bf_1073927040_row_1_read_execute();
+                if (meta.bf_1073927040_row_hits == 8w0x03) {
+                  bf_1073927040_all_rows_hit();
+                }
                 // EP node  856:If
                 // BDD node 15:if
                 if ((32w0x00000000) == (meta.bf_1073927040_estimate)){

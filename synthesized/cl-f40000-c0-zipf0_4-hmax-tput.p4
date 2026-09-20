@@ -532,32 +532,31 @@ control Ingress(
   }
 
   Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_0_2100;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_1_2100;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_2_2100;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) cms_1074080384_hash_3_2100;
+  CRCPolynomial<bit<32>>(32w0x7b17a39f, true, false, false, 32w0xffffffff, 32w0xffffffff) cms_1074080384_hash_1_2100_poly; // p1
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, cms_1074080384_hash_1_2100_poly) cms_1074080384_hash_1_2100;
+  CRCPolynomial<bit<32>>(32w0x99f29aad, true, false, false, 32w0xffffffff, 32w0xffffffff) cms_1074080384_hash_2_2100_poly; // p2
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, cms_1074080384_hash_2_2100_poly) cms_1074080384_hash_2_2100;
+  CRCPolynomial<bit<32>>(32w0x21bca2c3, true, false, false, 32w0xffffffff, 32w0xffffffff) cms_1074080384_hash_3_2100_poly; // p3
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, cms_1074080384_hash_3_2100_poly) cms_1074080384_hash_3_2100;
 
   action cms_1074080384_hash_0_2100_calc_2100() {
     cms_1074080384_hash_0_value = cms_1074080384_hash_0_2100.get({
-      meta.key_64b_0,
-      32w0xfbc31fc7
+      meta.key_64b_0
     });
   }
   action cms_1074080384_hash_1_2100_calc_2100() {
     cms_1074080384_hash_1_value = cms_1074080384_hash_1_2100.get({
-      meta.key_64b_0,
-      32w0x2681580b
+      meta.key_64b_0
     });
   }
   action cms_1074080384_hash_2_2100_calc_2100() {
     cms_1074080384_hash_2_value = cms_1074080384_hash_2_2100.get({
-      meta.key_64b_0,
-      32w0x486d7e2f
+      meta.key_64b_0
     });
   }
   action cms_1074080384_hash_3_2100_calc_2100() {
     cms_1074080384_hash_3_value = cms_1074080384_hash_3_2100.get({
-      meta.key_64b_0,
-      32w0x1f3a2b4d
+      meta.key_64b_0
     });
   }
   bit<16> vector_table_1074110176_171_get_value_param0 = 16w0;

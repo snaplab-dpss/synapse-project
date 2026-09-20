@@ -109,6 +109,7 @@ struct synapse_ingress_metadata_t {
   bit<32> vector_reg_value0;
   bit<32> regexec_vector_register_1074079432_0_read_1625_index0;
   bit<32> bf_1074096984_estimate;
+  bit<8> bf_1074096984_row_hits;
 
 }
 
@@ -450,10 +451,17 @@ control Ingress(
   Register<bit<1>,_>(1024, 0) bf_1074096984_row_2;
   Register<bit<1>,_>(1024, 0) bf_1074096984_row_3;
 
+  action bf_1074096984_all_rows_hit() {
+    meta.bf_1074096984_estimate = 1;
+  }
+
   Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_0_1714;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_1_1714;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_2_1714;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_3_1714;
+  CRCPolynomial<bit<32>>(32w0x7b17a39f, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1074096984_hash_1_1714_poly; // p1
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, bf_1074096984_hash_1_1714_poly) bf_1074096984_hash_1_1714;
+  CRCPolynomial<bit<32>>(32w0x99f29aad, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1074096984_hash_2_1714_poly; // p2
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, bf_1074096984_hash_2_1714_poly) bf_1074096984_hash_2_1714;
+  CRCPolynomial<bit<32>>(32w0x21bca2c3, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1074096984_hash_3_1714_poly; // p3
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, bf_1074096984_hash_3_1714_poly) bf_1074096984_hash_3_1714;
 
   RegisterAction<bit<1>, bit<10>, bit<1>>(bf_1074096984_row_0) bf_1074096984_row_0_read = {
     void apply(inout bit<1> value, out bit<1> out_value) {
@@ -465,10 +473,9 @@ control Ingress(
   action bf_1074096984_row_0_read_execute() {
     bf_1074096984_row_0_read_value = bf_1074096984_row_0_read.execute(bf_1074096984_hash_0_1714.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0xfbc31fc7
+      hdr.hdr2.data0[15:0]
     }));
-    meta.bf_1074096984_estimate[0:0] = bf_1074096984_row_0_read_value[0:0];
+    meta.bf_1074096984_row_hits[0:0] = bf_1074096984_row_0_read_value[0:0];
   }
 
   RegisterAction<bit<1>, bit<10>, bit<1>>(bf_1074096984_row_1) bf_1074096984_row_1_read = {
@@ -481,10 +488,9 @@ control Ingress(
   action bf_1074096984_row_1_read_execute() {
     bf_1074096984_row_1_read_value = bf_1074096984_row_1_read.execute(bf_1074096984_hash_1_1714.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0x2681580b
+      hdr.hdr2.data0[15:0]
     }));
-    meta.bf_1074096984_estimate[1:1] = bf_1074096984_row_1_read_value[0:0];
+    meta.bf_1074096984_row_hits[1:1] = bf_1074096984_row_1_read_value[0:0];
   }
 
   RegisterAction<bit<1>, bit<10>, bit<1>>(bf_1074096984_row_2) bf_1074096984_row_2_read = {
@@ -497,10 +503,9 @@ control Ingress(
   action bf_1074096984_row_2_read_execute() {
     bf_1074096984_row_2_read_value = bf_1074096984_row_2_read.execute(bf_1074096984_hash_2_1714.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0x486d7e2f
+      hdr.hdr2.data0[15:0]
     }));
-    meta.bf_1074096984_estimate[2:2] = bf_1074096984_row_2_read_value[0:0];
+    meta.bf_1074096984_row_hits[2:2] = bf_1074096984_row_2_read_value[0:0];
   }
 
   RegisterAction<bit<1>, bit<10>, bit<1>>(bf_1074096984_row_3) bf_1074096984_row_3_read = {
@@ -513,10 +518,9 @@ control Ingress(
   action bf_1074096984_row_3_read_execute() {
     bf_1074096984_row_3_read_value = bf_1074096984_row_3_read.execute(bf_1074096984_hash_3_1714.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0x1f3a2b4d
+      hdr.hdr2.data0[15:0]
     }));
-    meta.bf_1074096984_estimate[3:3] = bf_1074096984_row_3_read_value[0:0];
+    meta.bf_1074096984_row_hits[3:3] = bf_1074096984_row_3_read_value[0:0];
   }
 
   bit<16> vector_table_1074126776_192_get_value_param0 = 16w0;
@@ -630,10 +634,14 @@ control Ingress(
                 // EP node  1714:BloomFilterQuery
                 // BDD node 169:bf_query
                 meta.bf_1074096984_estimate = 0;
+                meta.bf_1074096984_row_hits = 0;
                 bf_1074096984_row_0_read_execute();
                 bf_1074096984_row_1_read_execute();
                 bf_1074096984_row_2_read_execute();
                 bf_1074096984_row_3_read_execute();
+                if (meta.bf_1074096984_row_hits == 8w0x0f) {
+                  bf_1074096984_all_rows_hit();
+                }
                 // EP node  1871:SendToController
                 // BDD node 170:bf_set
                 fwd_op = fwd_op_t.FORWARD_TO_CPU;

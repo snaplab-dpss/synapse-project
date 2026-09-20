@@ -109,6 +109,7 @@ struct synapse_ingress_metadata_t {
   bit<32> fcfs_ct_1074048392_key_32b_0;
   bit<32> reg_write0;
   bit<32> bf_1074096984_estimate;
+  bit<8> bf_1074096984_row_hits;
   bit<32> vector_reg_value0;
   bit<32> regexec_vector_register_1074079432_0_read_1722_index0;
 
@@ -474,10 +475,17 @@ control Ingress(
   Register<bit<1>,_>(1024, 0) bf_1074096984_row_2;
   Register<bit<1>,_>(1024, 0) bf_1074096984_row_3;
 
+  action bf_1074096984_all_rows_hit() {
+    meta.bf_1074096984_estimate = 1;
+  }
+
   Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_0_3949;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_1_3949;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_2_3949;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_3_3949;
+  CRCPolynomial<bit<32>>(32w0x7b17a39f, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1074096984_hash_1_3949_poly; // p1
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, bf_1074096984_hash_1_3949_poly) bf_1074096984_hash_1_3949;
+  CRCPolynomial<bit<32>>(32w0x99f29aad, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1074096984_hash_2_3949_poly; // p2
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, bf_1074096984_hash_2_3949_poly) bf_1074096984_hash_2_3949;
+  CRCPolynomial<bit<32>>(32w0x21bca2c3, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1074096984_hash_3_3949_poly; // p3
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, bf_1074096984_hash_3_3949_poly) bf_1074096984_hash_3_3949;
 
   RegisterAction<bit<1>, bit<10>, void>(bf_1074096984_row_0) bf_1074096984_row_0_set_to_one = {
     void apply(inout bit<1> value) {
@@ -488,8 +496,7 @@ control Ingress(
   action bf_1074096984_row_0_set_to_one_execute() {
     bf_1074096984_row_0_set_to_one.execute(bf_1074096984_hash_0_3949.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0xfbc31fc7
+      hdr.hdr2.data0[15:0]
     }));
   }
 
@@ -502,8 +509,7 @@ control Ingress(
   action bf_1074096984_row_1_set_to_one_execute() {
     bf_1074096984_row_1_set_to_one.execute(bf_1074096984_hash_1_3949.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0x2681580b
+      hdr.hdr2.data0[15:0]
     }));
   }
 
@@ -516,8 +522,7 @@ control Ingress(
   action bf_1074096984_row_2_set_to_one_execute() {
     bf_1074096984_row_2_set_to_one.execute(bf_1074096984_hash_2_3949.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0x486d7e2f
+      hdr.hdr2.data0[15:0]
     }));
   }
 
@@ -530,8 +535,7 @@ control Ingress(
   action bf_1074096984_row_3_set_to_one_execute() {
     bf_1074096984_row_3_set_to_one.execute(bf_1074096984_hash_3_3949.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0x1f3a2b4d
+      hdr.hdr2.data0[15:0]
     }));
   }
 
@@ -562,9 +566,12 @@ control Ingress(
     meta.vector_reg_value0 = vector_register_1074079432_0_read_1722.execute(meta.regexec_vector_register_1074079432_0_read_1722_index0);
   }
   Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_0_1841;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_1_1841;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_2_1841;
-  Hash<bit<10>>(HashAlgorithm_t.CRC32) bf_1074096984_hash_3_1841;
+  CRCPolynomial<bit<32>>(32w0x7b17a39f, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1074096984_hash_1_1841_poly; // p1
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, bf_1074096984_hash_1_1841_poly) bf_1074096984_hash_1_1841;
+  CRCPolynomial<bit<32>>(32w0x99f29aad, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1074096984_hash_2_1841_poly; // p2
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, bf_1074096984_hash_2_1841_poly) bf_1074096984_hash_2_1841;
+  CRCPolynomial<bit<32>>(32w0x21bca2c3, true, false, false, 32w0xffffffff, 32w0xffffffff) bf_1074096984_hash_3_1841_poly; // p3
+  Hash<bit<10>>(HashAlgorithm_t.CUSTOM, bf_1074096984_hash_3_1841_poly) bf_1074096984_hash_3_1841;
 
   RegisterAction<bit<1>, bit<10>, bit<1>>(bf_1074096984_row_0) bf_1074096984_row_0_read_and_set = {
     void apply(inout bit<1> value, out bit<1> out_value) {
@@ -577,10 +584,9 @@ control Ingress(
   action bf_1074096984_row_0_read_and_set_execute() {
     bf_1074096984_row_0_read_and_set_value = bf_1074096984_row_0_read_and_set.execute(bf_1074096984_hash_0_1841.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0xfbc31fc7
+      hdr.hdr2.data0[15:0]
     }));
-    meta.bf_1074096984_estimate[0:0] = bf_1074096984_row_0_read_and_set_value[0:0];
+    meta.bf_1074096984_row_hits[0:0] = bf_1074096984_row_0_read_and_set_value[0:0];
   }
 
   RegisterAction<bit<1>, bit<10>, bit<1>>(bf_1074096984_row_1) bf_1074096984_row_1_read_and_set = {
@@ -594,10 +600,9 @@ control Ingress(
   action bf_1074096984_row_1_read_and_set_execute() {
     bf_1074096984_row_1_read_and_set_value = bf_1074096984_row_1_read_and_set.execute(bf_1074096984_hash_1_1841.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0x2681580b
+      hdr.hdr2.data0[15:0]
     }));
-    meta.bf_1074096984_estimate[1:1] = bf_1074096984_row_1_read_and_set_value[0:0];
+    meta.bf_1074096984_row_hits[1:1] = bf_1074096984_row_1_read_and_set_value[0:0];
   }
 
   RegisterAction<bit<1>, bit<10>, bit<1>>(bf_1074096984_row_2) bf_1074096984_row_2_read_and_set = {
@@ -611,10 +616,9 @@ control Ingress(
   action bf_1074096984_row_2_read_and_set_execute() {
     bf_1074096984_row_2_read_and_set_value = bf_1074096984_row_2_read_and_set.execute(bf_1074096984_hash_2_1841.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0x486d7e2f
+      hdr.hdr2.data0[15:0]
     }));
-    meta.bf_1074096984_estimate[2:2] = bf_1074096984_row_2_read_and_set_value[0:0];
+    meta.bf_1074096984_row_hits[2:2] = bf_1074096984_row_2_read_and_set_value[0:0];
   }
 
   RegisterAction<bit<1>, bit<10>, bit<1>>(bf_1074096984_row_3) bf_1074096984_row_3_read_and_set = {
@@ -628,10 +632,9 @@ control Ingress(
   action bf_1074096984_row_3_read_and_set_execute() {
     bf_1074096984_row_3_read_and_set_value = bf_1074096984_row_3_read_and_set.execute(bf_1074096984_hash_3_1841.get({
       hdr.hdr1.data3,
-      hdr.hdr2.data0[15:0],
-      32w0x1f3a2b4d
+      hdr.hdr2.data0[15:0]
     }));
-    meta.bf_1074096984_estimate[3:3] = bf_1074096984_row_3_read_and_set_value[0:0];
+    meta.bf_1074096984_row_hits[3:3] = bf_1074096984_row_3_read_and_set_value[0:0];
   }
 
   bit<16> vector_table_1074126776_186_get_value_param0 = 16w0;
@@ -738,10 +741,14 @@ control Ingress(
                   // EP node  1841:BloomFilterQueryAndSet
                   // BDD node 169:bf_query
                   meta.bf_1074096984_estimate = 0;
+                  meta.bf_1074096984_row_hits = 0;
                   bf_1074096984_row_0_read_and_set_execute();
                   bf_1074096984_row_1_read_and_set_execute();
                   bf_1074096984_row_2_read_and_set_execute();
                   bf_1074096984_row_3_read_and_set_execute();
+                  if (meta.bf_1074096984_row_hits == 8w0x0f) {
+                    bf_1074096984_all_rows_hit();
+                  }
                   // EP node  1963:If
                   // BDD node 171:if
                   if ((32w0x00000000) == (meta.bf_1074096984_estimate)){
