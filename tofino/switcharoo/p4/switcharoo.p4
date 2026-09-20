@@ -206,13 +206,22 @@ control Ingress(inout header_t hdr,
 		size = 1;
 	}
 
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_table_1;
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_table_2;
-	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_table_2_r;
+	// A key's two homes: table 1 at its built-in CRC-32, table 2 at TABLE_2_CRC_POLY. The two
+	// polynomial objects hold the same polynomial -- the hash engine wants one per Hash unit, and
+	// a lookup in table 2 and an eviction into table 2 must agree on where a key lives.
+	CRCPolynomial<bit<32>>(TABLE_2_CRC_POLY) poly_table_2;
+	CRCPolynomial<bit<32>>(TABLE_2_CRC_POLY) poly_table_2_r;
 
-	action calc_hash_table_1()		{ ig_md.hash_table_1	= hash_table_1.get({ig_md.cur_key, HASH_SALT_1});	}
-	action calc_hash_table_2()		{ ig_md.hash_table_2	= hash_table_2.get({ig_md.cur_key, HASH_SALT_2});	}
-	action calc_hash_table_2_r()	{ ig_md.hash_table_2_r	= hash_table_2_r.get({ig_md.cur_key, HASH_SALT_2});	}
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_table_1;
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, poly_table_2) hash_table_2;
+	Hash<bit<CUCKOO_IDX_WIDTH>>(HashAlgorithm_t.CUSTOM, poly_table_2_r) hash_table_2_r;
+
+	action calc_hash_table_1()		{ ig_md.hash_table_1	= hash_table_1.get({ig_md.cur_key});		}
+	action calc_hash_table_2()		{ ig_md.hash_table_2	= hash_table_2.get({ig_md.cur_key});		}
+	// Displacement: the key just swapped OUT of table 1 goes to its own table-2 home, so hash that
+	// key, not the incoming one. (Hashing the incoming key only lands in the right place when the
+	// two hashes are a fixed offset apart, which is what the salted pair used to be.)
+	action calc_hash_table_2_r()	{ ig_md.hash_table_2_r	= hash_table_2_r.get({ig_md.table_1_key});	}
 
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_old_key;
 	Hash<bit<BLOOM_IDX_WIDTH>>(HashAlgorithm_t.CRC32) hash_new_key;
