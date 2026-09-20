@@ -707,12 +707,14 @@ control Ingress(
                 // BDD node 145:map_get
                 meta.fcfs_ct_1074048392_key_32b_0 = hdr.hdr1.data3;
                 bool hit0 = fcfs_ct_1074048392_table_145.apply().hit;
-                fcfs_ct_1074048392_hash_145_calc();
-                bool fcfs_ct_is_alive0 = fcfs_ct_1074048392_reg_liveness_query_timestamp.execute(fcfs_ct_1074048392_table_145_get_value_param0);
-                if (!hit0 && fcfs_ct_is_alive0) {
-                  fcfs_ct_1074048392_check_key_0_145();
-                  if (match_counter0 == 1) {
-                    hit0 = true;
+                if (!hit0) {
+                  fcfs_ct_1074048392_hash_145_calc();
+                  bool fcfs_ct_is_alive0 = fcfs_ct_1074048392_reg_liveness_query_timestamp.execute(fcfs_ct_1074048392_table_145_get_value_param0);
+                  if (fcfs_ct_is_alive0) {
+                    fcfs_ct_1074048392_check_key_0_145();
+                    if (match_counter0 == 1) {
+                      hit0 = true;
+                    }
                   }
                 }
                 // EP node  1119:If

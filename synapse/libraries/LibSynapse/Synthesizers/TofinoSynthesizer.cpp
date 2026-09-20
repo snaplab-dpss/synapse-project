@@ -6904,6 +6904,12 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const var_t hit_var = hit.has_value() ? alloc_var("hit", hit->expr, FORCE_BOOL) : alloc_var("hit", 32, EXACT_NAME | FORCE_BOOL);
   hit_var.declare(ingress_apply, table->id + ".apply().hit");
 
+  // Only consult the dataplane cache on a table miss: the hash calculator writes the slot into the
+  // value variable's low bits, which on a hit would clobber the index the controller installed.
+  ingress_apply.indent();
+  ingress_apply << "if (!" << hit_var.name << ") {\n";
+  ingress_apply.inc();
+
   ingress_apply.indent();
   ingress_apply << hash_calculator << "();\n";
 
@@ -6913,11 +6919,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << fcfs_ct_internals.liveness_query << ".execute(" << value_var->name << ");\n";
 
   ingress_apply.indent();
-  ingress_apply << "if (";
-  ingress_apply << "!" << hit_var.name;
-  ingress_apply << " && ";
-  ingress_apply << is_alive_var_name;
-  ingress_apply << ") {\n";
+  ingress_apply << "if (" << is_alive_var_name << ") {\n";
   ingress_apply.inc();
 
   const code_t match_counter_var_name = create_unique_name("match_counter");
@@ -6945,6 +6947,10 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   ingress_apply.indent();
   ingress_apply << hit_var.name << " = true;\n";
+
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
 
   ingress_apply.dec();
   ingress_apply.indent();
