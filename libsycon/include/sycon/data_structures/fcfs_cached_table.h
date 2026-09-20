@@ -11,7 +11,6 @@
 #include "../time.h"
 #include "../field.h"
 #include "../hash.h"
-#include <algorithm>
 
 namespace sycon {
 
@@ -72,11 +71,14 @@ public:
   bool get_from_dataplane_cache(const buffer_t &k, u32 &index) {
     const u32 slot = crc32.hash(k) & (cache_capacity - 1);
     std::vector<bool> match_per_pipe;
-    for (size_t i = 0; i < reg_cached_keys.size(); i++) {
-      const bytes_t offset = 4 * i;
-      const bytes_t width  = std::min<bytes_t>(4, key_size - offset);
-      const u64 expected   = k.get(offset, width);
-      const std::vector<u32> values_per_pipe = reg_cached_keys[i].get_per_pipe(slot);
+    bytes_t offset = 0;
+    for (Register &reg_cached_key : reg_cached_keys) {
+      // The emitter splits the key over the registers in memory order, one register per field run,
+      // so their widths need not be four bytes each (a 12-byte key can be 4+4+2+2).
+      const bytes_t width = reg_cached_key.get_value_size() / 8;
+      const u64 expected  = k.get(offset, width);
+      offset += width;
+      const std::vector<u32> values_per_pipe = reg_cached_key.get_per_pipe(slot);
       if (match_per_pipe.empty()) {
         match_per_pipe.assign(values_per_pipe.size(), true);
       }
@@ -86,6 +88,7 @@ public:
         }
       }
     }
+    assert(offset == key_size && "The key registers must cover the table key exactly");
     for (bool match : match_per_pipe) {
       if (match) {
         index = slot;
