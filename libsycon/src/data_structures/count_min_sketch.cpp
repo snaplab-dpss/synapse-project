@@ -109,7 +109,7 @@ void CountMinSketch::cleanup() {
   LOG_DEBUG("Cleaning CMS...");
 
   for (Register &row : rows) {
-    row.overwrite_all_entries(0);
+    row.reset_all_entries();
   }
 }
 

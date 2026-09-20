@@ -117,7 +117,7 @@ void BloomFilter::cleanup() {
   LOG_DEBUG("Cleaning bf...");
 
   for (Register &row : rows) {
-    row.overwrite_all_entries(0);
+    row.reset_all_entries();
   }
 }
 

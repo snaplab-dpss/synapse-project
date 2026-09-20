@@ -12,8 +12,8 @@ Register::Register(const std::string &_name) : MetaTable(_name), hi_id(0), paire
 }
 
 Register::Register(const Register &other)
-    : MetaTable(other), index_id(other.index_id), value_id(other.value_id), hi_id(other.hi_id), paired(other.paired),
-      value_size(other.value_size), pipes(other.pipes) {
+    : MetaTable(other), index_id(other.index_id), value_id(other.value_id), hi_id(other.hi_id), paired(other.paired), value_size(other.value_size),
+      pipes(other.pipes) {
   init_fields();
 }
 
@@ -94,15 +94,12 @@ void Register::set(u32 i, u32 value, u16 pipe_id) {
   ASSERT_BF_STATUS(bf_status);
 }
 
-void Register::overwrite_all_entries(u32 value) {
-  data_setup(value);
-
-  for (size_t i = 0; i < capacity; i++) {
-    key_setup(i);
-
-    bf_status_t bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
-    ASSERT_BF_STATUS(bf_status);
-  }
+void Register::reset_all_entries() {
+  // A single stateful-table reset instruction (pipe_stful_table_reset) instead of one entry
+  // modification per index: for the tens of thousands of cells the sketches use, the latter
+  // holds the session for seconds on the model (and stalls the digest callbacks with it).
+  bf_status_t bf_status = table->tableClear(*session, dev_tgt);
+  ASSERT_BF_STATUS(bf_status);
 }
 
 void Register::key_setup(u32 i) {

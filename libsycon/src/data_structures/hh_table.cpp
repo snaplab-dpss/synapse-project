@@ -170,10 +170,10 @@ void HHTable::clear_counters() {
   LOG_DEBUG("Cleaning HHTable counters...");
 
   for (Register &reg : count_min_sketch) {
-    reg.overwrite_all_entries(0);
+    reg.reset_all_entries();
   }
 
-  reg_cached_counters.overwrite_all_entries(0);
+  reg_cached_counters.reset_all_entries();
 }
 
 u32 HHTable::cms_get_min(const std::vector<u32> &hashes) {

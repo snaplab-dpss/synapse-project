@@ -28,7 +28,8 @@ public:
 
   void set(u32 i, u32 value);
   void set(u32 i, u32 value, u16 pipe_id);
-  void overwrite_all_entries(u32 value);
+  // Resets every entry to the register's P4 initial value (0 for every register synapse emits).
+  void reset_all_entries();
 
   bits_t get_value_size() const;
   virtual void dump(std::ostream &) const override;
