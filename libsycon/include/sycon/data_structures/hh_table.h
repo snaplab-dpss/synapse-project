@@ -20,8 +20,6 @@ private:
   constexpr const static u32 THRESHOLD{128};
   constexpr const static time_s_t RESET_TIMER{3};
 
-  static const std::vector<u32> HASH_SALTS;
-
   std::vector<Table> tables;
   Register reg_cached_counters;
   std::vector<Register> count_min_sketch;
@@ -31,9 +29,8 @@ private:
   const u32 capacity;
   const bytes_t key_size;
 
-  const std::vector<buffer_t> hash_salts;
+  const std::vector<CRC32> row_hashers; // One polynomial per row (CRC32::per_row).
   const u32 hash_mask;
-  const CRC32 crc32;
 
   std::unordered_map<buffer_t, u32, buffer_hash_t> key_to_index;
   std::vector<buffer_t> index_to_key;
@@ -64,7 +61,6 @@ private:
   static u32 get_capacity(const std::vector<Table> &tables);
   static bytes_t get_key_size(const std::vector<Table> &tables);
   static u32 build_hash_mask(const std::vector<Register> &count_min_sketch);
-  static std::vector<buffer_t> build_hash_salts(const std::vector<Register> &count_min_sketch);
 
   static void expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie);
   static bf_status_t digest_callback(const bf_rt_target_t &bf_rt_tgt, const std::shared_ptr<bfrt::BfRtSession> session,

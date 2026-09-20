@@ -8,18 +8,14 @@
 
 namespace sycon {
 
-const std::vector<u32> HHTable::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f, 0x1f3a2b4d, 0x7c5e9f8b, 0x3a2b4d1f,
-                                              0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
-
 HHTable::HHTable(const std::string &_name, const std::vector<std::string> &table_names, const std::string &reg_cached_counters_name,
                  const std::vector<std::string> &count_min_sketch_reg_names, const std::string &reg_threshold_name, const std::string &digest_name,
                  time_ms_t timeout)
     : SynapseDS(_name), tables(build_tables(table_names)), reg_cached_counters(reg_cached_counters_name),
       count_min_sketch(build_count_min_sketch(count_min_sketch_reg_names)), reg_threshold(reg_threshold_name), digest(digest_name),
-      capacity(get_capacity(tables)), key_size(get_key_size(tables)), hash_salts(build_hash_salts(count_min_sketch)),
-      hash_mask(build_hash_mask(count_min_sketch)), crc32(), key_to_index(capacity), index_to_key(capacity), free_indices(capacity),
-      used_indices(capacity) {
-  assert(hash_salts.size() == count_min_sketch.size() && "Number of salts must match the number of CMS registers");
+      capacity(get_capacity(tables)), key_size(get_key_size(tables)), row_hashers(CRC32::per_row(count_min_sketch.size())),
+      hash_mask(build_hash_mask(count_min_sketch)), key_to_index(capacity), index_to_key(capacity), free_indices(capacity), used_indices(capacity) {
+  assert(row_hashers.size() == count_min_sketch.size() && "One hasher per CMS row");
 
   reg_threshold.set(0, THRESHOLD);
 
@@ -189,10 +185,8 @@ u32 HHTable::cms_get_min(const std::vector<u32> &hashes) {
 
 std::vector<u32> HHTable::calculate_hashes(const buffer_t &key) {
   std::vector<u32> hashes;
-  for (const buffer_t &hash_salt : hash_salts) {
-    const buffer_t hash_input = key.append(hash_salt);
-    const u32 hash            = crc32.hash(hash_input) & hash_mask;
-    hashes.push_back(hash);
+  for (const CRC32 &hasher : row_hashers) {
+    hashes.push_back(hasher.hash(key) & hash_mask);
   }
   return hashes;
 }
@@ -266,20 +260,6 @@ u32 HHTable::build_hash_mask(const std::vector<Register> &count_min_sketch) {
   }
 
   return hash_mask;
-}
-
-std::vector<buffer_t> HHTable::build_hash_salts(const std::vector<Register> &count_min_sketch) {
-  const size_t num_hashes = count_min_sketch.size();
-  assert(HASH_SALTS.size() >= num_hashes && "Not enough hash salts defined");
-
-  std::vector<buffer_t> hash_salts;
-  for (size_t i = 0; i < num_hashes; i++) {
-    buffer_t hash_salt(4);
-    hash_salt.set(0, 4, HASH_SALTS[i]);
-    hash_salts.push_back(hash_salt);
-  }
-
-  return hash_salts;
 }
 
 void HHTable::expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {

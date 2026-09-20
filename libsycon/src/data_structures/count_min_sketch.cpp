@@ -8,14 +8,11 @@
 
 namespace sycon {
 
-const std::vector<u32> CountMinSketch::HASH_SALTS = {0xfbc31fc7, 0x2681580b, 0x486d7e2f, 0x1f3a2b4d, 0x7c5e9f8b, 0x3a2b4d1f,
-                                                     0x5e9f8b7c, 0x2b4d1f3a, 0x9f8b7c5e, 0xb4d1f3a2, 0x4d1f3a2b, 0x8b7c5e9f};
-
 CountMinSketch::CountMinSketch(const std::string &_name, const std::vector<std::string> &_rows_names, time_ms_t _periodic_cleanup_interval)
     : SynapseDS(_name), rows(build_rows(_rows_names)), height(_rows_names.size()), width(get_width(rows)),
-      periodic_cleanup_interval(_periodic_cleanup_interval), hash_salts(build_hash_salts(rows)), hash_mask(build_hash_mask(width)) {
+      periodic_cleanup_interval(_periodic_cleanup_interval), row_hashers(CRC32::per_row(rows.size())), hash_mask(build_hash_mask(width)) {
   assert(rows.size() == height);
-  assert(hash_salts.size() == height);
+  assert(row_hashers.size() == height);
 
   // See BloomFilter: a zero interval means no periodic cleanup, and spawning the thread regardless
   // spins on the configuration lock.
@@ -54,20 +51,6 @@ u32 CountMinSketch::get_width(const std::vector<Register> &rows) {
   return capacity;
 }
 
-std::vector<buffer_t> CountMinSketch::build_hash_salts(const std::vector<Register> &rows) {
-  const size_t num_hashes = rows.size();
-  assert(HASH_SALTS.size() >= num_hashes && "Not enough hash salts defined");
-
-  std::vector<buffer_t> hash_salts;
-  for (size_t i = 0; i < num_hashes; i++) {
-    buffer_t hash_salt(4);
-    hash_salt.set(0, 4, HASH_SALTS[i]);
-    hash_salts.push_back(hash_salt);
-  }
-
-  return hash_salts;
-}
-
 u32 CountMinSketch::build_hash_mask(u32 width) {
   auto hash_size_from_capacity = [](size_t capacity) {
     assert((capacity & (capacity - 1)) == 0 && "Hash size must be a power of 2");
@@ -86,10 +69,8 @@ u32 CountMinSketch::build_hash_mask(u32 width) {
 
 std::vector<u32> CountMinSketch::calculate_hashes(const buffer_t &key) {
   std::vector<u32> hashes;
-  for (const buffer_t &hash_salt : hash_salts) {
-    const buffer_t hash_input = key.append(hash_salt);
-    const u32 hash            = crc32.hash(hash_input) & hash_mask;
-    hashes.push_back(hash);
+  for (const CRC32 &hasher : row_hashers) {
+    hashes.push_back(hasher.hash(key) & hash_mask);
   }
   return hashes;
 }

@@ -90,6 +90,7 @@ file(GLOB SOURCES
 set(LIBNF_DIR ${PROJECT_SOURCE_DIR}/../dpdk-nfs)
 set(LIBNF_C_SOURCES
     lib/util/math.c
+    lib/util/crc32.c
     lib/util/time.c
     lib/util/expirator.c
     lib/state/vector.c
@@ -99,9 +100,7 @@ set(LIBNF_C_SOURCES
     lib/state/double-chain-impl.c
     lib/state/cht.c
     lib/state/cms.c
-    lib/state/cms-util.c
     lib/state/bloom-filter.c
-    lib/state/bloom-filter-util.c
     lib/state/token-bucket.c
     lib/state/lpm-dir-24-8.c
 )
