@@ -8,12 +8,14 @@
 #include "lib/state/vector.h"
 #include "lib/util/time.h"
 #include "lib/util/math.h"
+#include "lib/util/crc32.h"
 #include "lib/util/compute.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 struct CMS {
   struct Vector *buckets;
+  struct crc32_hasher *hashers; // One per row, each with its own polynomial (see crc32.h).
 
   uint32_t height;
   uint32_t width;
@@ -34,7 +36,7 @@ struct cms_bucket {
 int cms_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t periodic_cleanup_interval, struct CMS **cms_out) {
   assert(height > 0);
   assert(width > 0);
-  assert(height < CMS_MAX_SALTS_BANK_SIZE);
+  assert(height <= CRC32_BANK_SIZE);
 
   struct CMS *cms_alloc = (struct CMS *)malloc(sizeof(struct CMS));
   if (cms_alloc == NULL) {
@@ -50,6 +52,14 @@ int cms_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t p
 
   (*cms_out)->last_cleanup = 0;
 
+  (*cms_out)->hashers = (struct crc32_hasher *)malloc(height * sizeof(struct crc32_hasher));
+  if ((*cms_out)->hashers == NULL) {
+    return 0;
+  }
+  for (uint32_t h = 0; h < height; h++) {
+    crc32_hasher_init(&(*cms_out)->hashers[h], &CRC32_BANK[h]);
+  }
+
   uint32_t capacity = ensure_power_of_two(height * width);
 
   (*cms_out)->buckets = NULL;
@@ -62,7 +72,7 @@ int cms_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t p
 
 void cms_increment(struct CMS *cms, void *key) {
   for (uint32_t h = 0; h < cms->height; h++) {
-    unsigned hash   = __builtin_ia32_crc32si(CMS_SALTS[h], hash_obj(key, cms->key_size));
+    unsigned hash   = crc32_hasher_hash(&cms->hashers[h], key, cms->key_size);
     uint32_t offset = h * cms->width + (hash % cms->width);
 
     struct cms_bucket *bucket = 0;
@@ -76,7 +86,7 @@ int cms_count_min(struct CMS *cms, void *key) {
   int min_val = INT32_MAX;
 
   for (uint32_t h = 0; h < cms->height; h++) {
-    unsigned hash   = __builtin_ia32_crc32si(CMS_SALTS[h], hash_obj(key, cms->key_size));
+    unsigned hash   = crc32_hasher_hash(&cms->hashers[h], key, cms->key_size);
     uint32_t offset = h * cms->width + (hash % cms->width);
 
     struct cms_bucket *bucket = 0;

@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "lib/util/math.h"
+#include "lib/util/crc32.h"
 
 static int calculate_str_size(struct str_field_descr *descr, int len) {
   int rez = 0;
@@ -53,7 +54,7 @@ int cms_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t c
   klee_trace_param_i64(cleanup_interval, "cleanup_interval");
   klee_trace_param_ptr(cms_out, sizeof(struct CMS *), "cms_out");
 
-  klee_assert(height <= CMS_MAX_SALTS_BANK_SIZE);
+  klee_assert(height <= CRC32_BANK_SIZE);
 
   int allocation_succeeded = klee_int("cms_allocation_succeeded");
 

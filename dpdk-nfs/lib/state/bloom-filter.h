@@ -1,8 +1,6 @@
 #ifndef _BLOOM_FILTER_H_INCLUDED_
 #define _BLOOM_FILTER_H_INCLUDED_
 
-#include "bloom-filter-util.h"
-
 #include <stdbool.h>
 #include <stdint.h>
 

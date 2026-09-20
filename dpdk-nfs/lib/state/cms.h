@@ -1,8 +1,6 @@
 #ifndef _CMS_H_INCLUDED_
 #define _CMS_H_INCLUDED_
 
-#include "cms-util.h"
-
 #include <stdbool.h>
 #include <stdint.h>
 

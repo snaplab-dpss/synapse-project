@@ -8,12 +8,14 @@
 #include "lib/state/vector.h"
 #include "lib/util/time.h"
 #include "lib/util/math.h"
+#include "lib/util/crc32.h"
 #include "lib/util/compute.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 struct BloomFilter {
   struct Vector *buckets;
+  struct crc32_hasher *hashers; // One per row, each with its own polynomial (see crc32.h).
 
   uint32_t height;
   uint32_t width;
@@ -34,7 +36,7 @@ struct bf_bucket {
 int bf_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t periodic_cleanup_interval, struct BloomFilter **bf_out) {
   assert(height > 0);
   assert(width > 0);
-  assert(height < BF_MAX_SALTS_BANK_SIZE);
+  assert(height <= CRC32_BANK_SIZE);
 
   struct BloomFilter *bf_alloc = (struct BloomFilter *)malloc(sizeof(struct BloomFilter));
   if (bf_alloc == NULL) {
@@ -50,6 +52,14 @@ int bf_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t pe
 
   (*bf_out)->last_cleanup = 0;
 
+  (*bf_out)->hashers = (struct crc32_hasher *)malloc(height * sizeof(struct crc32_hasher));
+  if ((*bf_out)->hashers == NULL) {
+    return 0;
+  }
+  for (uint32_t h = 0; h < height; h++) {
+    crc32_hasher_init(&(*bf_out)->hashers[h], &CRC32_BANK[h]);
+  }
+
   uint32_t capacity = ensure_power_of_two(height * width);
 
   (*bf_out)->buckets = NULL;
@@ -62,7 +72,7 @@ int bf_allocate(uint32_t height, uint32_t width, uint32_t key_size, time_ns_t pe
 
 void bf_set(struct BloomFilter *bf, void *key) {
   for (uint32_t h = 0; h < bf->height; h++) {
-    unsigned hash   = __builtin_ia32_crc32si(BF_SALTS[h], hash_obj(key, bf->key_size));
+    unsigned hash   = crc32_hasher_hash(&bf->hashers[h], key, bf->key_size);
     uint32_t offset = h * bf->width + (hash % bf->width);
 
     struct bf_bucket *bucket = 0;
@@ -76,7 +86,7 @@ int bf_query(struct BloomFilter *bf, void *key) {
   uint32_t count = 0;
 
   for (uint32_t h = 0; h < bf->height; h++) {
-    unsigned hash   = __builtin_ia32_crc32si(BF_SALTS[h], hash_obj(key, bf->key_size));
+    unsigned hash   = crc32_hasher_hash(&bf->hashers[h], key, bf->key_size);
     uint32_t offset = h * bf->width + (hash % bf->width);
 
     struct bf_bucket *bucket = 0;
