@@ -38,6 +38,11 @@ header cpu_h {
   bit<16> code_path;                  // Written by the data plane
   bit<16> egress_dev;                 // Written by the control plane
   bit<8> trigger_dataplane_execution; // Written by the control plane
+  // Where the packet came in, for a packet the controller hands back to be executed again: it
+  // returns on the CPU port, so ingress_port_to_nf_dev no longer knows either. What the
+  // recirculation header carries for the same reason. Written by the data plane.
+  bit<16> ingress_dev;
+  bit<16> ingress_port;
   bit<32> time; // The ingress clock at the hand-off, the controller's now for the packet.
   bit<64> op_lshr_457_out;
 
@@ -254,7 +259,14 @@ parser IngressParser(
     pkt.extract(hdr.cpu);
     pkt.extract(hdr.st);
 
-    transition accept;
+    // A packet the controller declined re-enters the pipeline from the top, so its own headers
+    // have to be parsed again -- every branch down there asks whether they are valid. It parsed
+    // on the way in, or it would have been rejected before ever reaching the controller. One the
+    // controller has already decided on is only forwarded, and its bytes stay payload.
+    transition select(hdr.cpu.trigger_dataplane_execution) {
+      8w1: parser_init;
+      default: accept;
+    }
   }
 
   state parse_recirc {
@@ -396,6 +408,11 @@ control Ingress(
     meta.dev = hdr.recirc.dev;
   }
 
+  action set_ingress_dev_from_cpu() {
+    meta.ingress_port = hdr.cpu.ingress_port;
+    meta.dev = (bit<32>)hdr.cpu.ingress_dev;
+  }
+
   table ingress_port_to_nf_dev {
     key = {
       meta.ingress_port: exact;
@@ -403,6 +420,7 @@ control Ingress(
     actions = {
       set_ingress_dev;
       set_ingress_dev_from_recirculation;
+      set_ingress_dev_from_cpu;
     }
 
     size = 64;
@@ -464,6 +482,8 @@ control Ingress(
   action build_cpu_hdr(bit<16> code_path) {
     hdr.cpu.setValid();
     hdr.cpu.code_path = code_path;
+    hdr.cpu.ingress_dev = meta.dev[15:0];
+    hdr.cpu.ingress_port = meta.ingress_port;
     fwd(CPU_PCIE_PORT);
   }
 
@@ -806,6 +826,7 @@ control Ingress(
         // EP node  404553:SendToEgress
         // BDD node 285:op_add
         meta.to_egress = 1;
+        hdr.recirc.setValid();
         hdr.egress_state.setValid();
         hdr.egress_state.code_path = 1;
         hdr.egress_state.time = meta.time;
@@ -876,6 +897,7 @@ control Ingress(
         // EP node  580391:SendToEgress
         // BDD node 76:rotate_left
         meta.to_egress = 1;
+        hdr.recirc.setValid();
         hdr.egress_state.setValid();
         hdr.egress_state.code_path = 2;
         hdr.egress_state.time = meta.time;
@@ -951,6 +973,7 @@ control Ingress(
         // EP node  54039:SendToEgress
         // BDD node 399:op_xor
         meta.to_egress = 1;
+        hdr.recirc.setValid();
         hdr.egress_state.setValid();
         hdr.egress_state.code_path = 4;
         hdr.egress_state.time = meta.time;
@@ -1021,6 +1044,7 @@ control Ingress(
         // EP node  113225:SendToEgress
         // BDD node 167:rotate_left
         meta.to_egress = 1;
+        hdr.recirc.setValid();
         hdr.egress_state.setValid();
         hdr.egress_state.code_path = 5;
         hdr.egress_state.time = meta.time;
@@ -1156,6 +1180,7 @@ control Ingress(
                   // EP node  230504:SendToEgress
                   // BDD node 247:op_xor
                   meta.to_egress = 1;
+                  hdr.recirc.setValid();
                   hdr.egress_state.setValid();
                   hdr.egress_state.code_path = 0;
                   hdr.egress_state.time = meta.time;
@@ -1253,6 +1278,7 @@ control Ingress(
                   // EP node  13973:SendToEgress
                   // BDD node 361:op_xor
                   meta.to_egress = 1;
+                  hdr.recirc.setValid();
                   hdr.egress_state.setValid();
                   hdr.egress_state.code_path = 3;
                   hdr.egress_state.time = meta.time;
@@ -1390,6 +1416,9 @@ control Ingress(
     if (meta.leaving != 0 && meta.to_egress == 0) {
       hdr.recirc.setInvalid();
       hdr.egress_state.setInvalid();
+    }
+    if (meta.leaving == 0) {
+      hdr.cpu.setInvalid();
     }
     if (meta.leaving == 1 && meta.to_egress == 0) {
       hdr.st.setInvalid();

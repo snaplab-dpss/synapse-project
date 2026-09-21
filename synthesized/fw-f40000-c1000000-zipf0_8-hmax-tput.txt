@@ -29,7 +29,7 @@ Stateful Implementations:
   1074044080: Tofino::FCFSCachedSet
 
 Search Metadata:
-  Elapsed time:       54 seconds
+  Elapsed time:       23 seconds
   Steps:              59
   Backtracks:         0
   Search space size:  206

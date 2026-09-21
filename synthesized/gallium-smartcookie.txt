@@ -23,7 +23,7 @@ Stateful Implementations:
   1073927040: Tofino::BloomFilter
 
 Search Metadata:
-  Elapsed time:       232 seconds
+  Elapsed time:       167 seconds
   Steps:              490
   Backtracks:         1
   Search space size:  2'484

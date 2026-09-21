@@ -24,7 +24,7 @@ Stateful Implementations:
   1073917816: Controller::Vector
 
 Search Metadata:
-  Elapsed time:       1 seconds
+  Elapsed time:       0 seconds
   Steps:              84
   Backtracks:         0
   Search space size:  156

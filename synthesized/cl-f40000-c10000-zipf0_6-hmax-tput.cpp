@@ -31,6 +31,7 @@ void sycon::nf_init() {
   state->ingress_port_to_nf_dev.add_recirc_entry(128);
   state->ingress_port_to_nf_dev.add_recirc_entry(256);
   state->ingress_port_to_nf_dev.add_recirc_entry(384);
+  state->ingress_port_to_nf_dev.add_cpu_entry(asic_get_cpu_port());
 
   state->forwarding_tbl.add_fwd_to_cpu_entry();
   state->forwarding_tbl.add_recirc_entry(6);

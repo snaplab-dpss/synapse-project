@@ -38,6 +38,11 @@ header cpu_h {
   bit<16> code_path;                  // Written by the data plane
   bit<16> egress_dev;                 // Written by the control plane
   bit<8> trigger_dataplane_execution; // Written by the control plane
+  // Where the packet came in, for a packet the controller hands back to be executed again: it
+  // returns on the CPU port, so ingress_port_to_nf_dev no longer knows either. What the
+  // recirculation header carries for the same reason. Written by the data plane.
+  bit<16> ingress_dev;
+  bit<16> ingress_port;
   bit<32> time; // The ingress clock at the hand-off, the controller's now for the packet.
   bit<32> dev;
 
@@ -197,7 +202,14 @@ parser IngressParser(
   state parse_cpu {
     pkt.extract(hdr.cpu);
 
-    transition accept;
+    // A packet the controller declined re-enters the pipeline from the top, so its own headers
+    // have to be parsed again -- every branch down there asks whether they are valid. It parsed
+    // on the way in, or it would have been rejected before ever reaching the controller. One the
+    // controller has already decided on is only forwarded, and its bytes stay payload.
+    transition select(hdr.cpu.trigger_dataplane_execution) {
+      8w1: parser_init;
+      default: accept;
+    }
   }
 
   state parse_recirc {
@@ -317,6 +329,11 @@ control Ingress(
     meta.dev = hdr.recirc.dev;
   }
 
+  action set_ingress_dev_from_cpu() {
+    meta.ingress_port = hdr.cpu.ingress_port;
+    meta.dev = (bit<32>)hdr.cpu.ingress_dev;
+  }
+
   table ingress_port_to_nf_dev {
     key = {
       meta.ingress_port: exact;
@@ -324,6 +341,7 @@ control Ingress(
     actions = {
       set_ingress_dev;
       set_ingress_dev_from_recirculation;
+      set_ingress_dev_from_cpu;
     }
 
     size = 64;
@@ -385,6 +403,8 @@ control Ingress(
   action build_cpu_hdr(bit<16> code_path) {
     hdr.cpu.setValid();
     hdr.cpu.code_path = code_path;
+    hdr.cpu.ingress_dev = meta.dev[15:0];
+    hdr.cpu.ingress_port = meta.ingress_port;
     fwd(CPU_PCIE_PORT);
   }
 
@@ -697,6 +717,9 @@ control Ingress(
     forwarding_tbl.apply();
     if (meta.leaving != 0) {
       hdr.recirc.setInvalid();
+    }
+    if (meta.leaving == 0) {
+      hdr.cpu.setInvalid();
     }
 
     ig_tm_md.bypass_egress = 1;
