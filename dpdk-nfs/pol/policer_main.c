@@ -10,6 +10,11 @@
 #include "config.h"
 #include "state.h"
 
+// Out-of-profile packets are remarked to CS1 / Lower Effort (RFC 3662) rather than dropped.
+#define POLICED_DSCP     8
+#define IPV4_DSCP_SHIFT  2
+#define IPV4_ECN_MASK    0x03
+
 struct nf_config config;
 
 struct State *state;
@@ -56,6 +61,12 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
     return DROP;
   }
 
+  struct tcpudp_hdr *tcpudp_header = nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
+  if (tcpudp_header == NULL) {
+    NF_DEBUG("Not TCP/UDP, dropping");
+    return DROP;
+  }
+
   if (is_internal(device)) {
     // Simply forward outgoing packets.
     NF_DEBUG("Outgoing packet. Not policing.");
@@ -67,12 +78,14 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
       int pass = tb_update_and_check(state->tb, index, packet_length, now);
 
       if (!pass) {
-        // For KLEE verification, we ignore packet drops. This is to avoid synthesizing solutions that, well... actually police packets.
-        // If we rate limit them, we can't actually do performance measurements on them.
-#ifndef KLEE_VERIFICATION
-        NF_DEBUG("Incoming packet outside of policed rate. Dropping.");
-        return DROP;
-#endif
+        // Mark rather than drop: a dropped packet never reaches the receiver, so a throughput
+        // measurement of a policed NF measures the policer's rate instead of the forwarding
+        // capacity we want to report. Remarking keeps every packet on the wire and still uses the
+        // bucket's verdict, which the previous KLEE-only drop did not: it compiled the decision
+        // out, leaving a synthesized program that computed `pass` and discarded it.
+        NF_DEBUG("Incoming packet outside of policed rate. Marking.");
+        rte_ipv4_header->type_of_service = (rte_ipv4_header->type_of_service & IPV4_ECN_MASK) | (POLICED_DSCP << IPV4_DSCP_SHIFT);
+        nf_set_rte_ipv4_udptcp_checksum(rte_ipv4_header, tcpudp_header, buffer);
       }
     } else {
       int allocated = tb_trace(state->tb, &rte_ipv4_header->dst_addr, packet_length, now, &index);
