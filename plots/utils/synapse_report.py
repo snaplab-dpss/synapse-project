@@ -31,9 +31,9 @@ class SearchMeta(Struct):
     branching_factor: float
     elapsed_time_seconds: int
     finished_eps: int
+    log10_design_space: int
     ss_size: int
     steps: int
-    total_ss_size_estimation: float
     unfinished_eps: int
 
 

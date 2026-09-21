@@ -23,12 +23,12 @@ struct search_meta_t {
   std::unordered_map<bdd_node_id_t, double> avg_children_per_node;
   u64 avg_bdd_size;
   double branching_factor;
-  double total_ss_size_estimation;
+  u32 log10_design_space;
   int unfinished_eps;
   int finished_eps;
 
   search_meta_t()
-      : ss_size(0), elapsed_time(0), steps(0), backtracks(0), avg_bdd_size(0), branching_factor(0), total_ss_size_estimation(0), unfinished_eps(0),
+      : ss_size(0), elapsed_time(0), steps(0), backtracks(0), avg_bdd_size(0), branching_factor(0), log10_design_space(0), unfinished_eps(0),
         finished_eps(0) {}
 
   search_meta_t(const search_meta_t &other) = default;

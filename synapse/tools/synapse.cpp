@@ -130,7 +130,7 @@ void dump_final_report(const args_t &args, const search_report_t &search_report)
       {"finished_eps", search_report.meta.finished_eps},
       {"avg_bdd_size", search_report.meta.avg_bdd_size},
       {"branching_factor", search_report.meta.branching_factor},
-      {"total_ss_size_estimation", search_report.meta.total_ss_size_estimation},
+      {"log10_design_space", search_report.meta.log10_design_space},
       {"avg_children_per_node", nlohmann::json::array()},
   };
 
@@ -217,7 +217,7 @@ void dump_final_hr_report(const args_t &args, const search_report_t &search_repo
   out_hr_report << "  Finished EPs:       " << int2hr(search_report.meta.finished_eps) << "\n";
   out_hr_report << "  Avg BDD size:       " << int2hr(search_report.meta.avg_bdd_size) << "\n";
   out_hr_report << "  Branching factor:   " << int2hr(search_report.meta.branching_factor) << "\n";
-  out_hr_report << "  Total SS size est.: " << int2hr(search_report.meta.total_ss_size_estimation) << "\n";
+  out_hr_report << "  Design space:       10^" << search_report.meta.log10_design_space << "\n";
   out_hr_report << "  Avg children per node:\n";
   for (const auto &[node_id, avg_children] : search_report.meta.avg_children_per_node) {
     out_hr_report << "    Node " << node_id << ": " << avg_children << "\n";

@@ -102,7 +102,7 @@ void log_search_iteration(const search_step_report_t &report, const search_meta_
   std::cerr << "Backtracks:       " << int2hr(search_meta.backtracks) << "\n";
   std::cerr << "Branching factor: " << search_meta.branching_factor << "\n";
   std::cerr << "Avg BDD size:     " << int2hr(search_meta.avg_bdd_size) << "\n";
-  std::cerr << "SS size (est):    " << scientific(search_meta.total_ss_size_estimation) << "\n";
+  std::cerr << "Design space:     10^" << search_meta.log10_design_space << "\n";
   std::cerr << "Current SS size:  " << int2hr(search_meta.ss_size) << "\n";
   std::cerr << "Search Steps:     " << int2hr(search_meta.steps) << "\n";
   std::cerr << "Speculations:     " << int2hr(GlobalStats::num_speculated_modules) << " modules, " << int2hr(GlobalStats::num_phase1_speculations)
@@ -187,12 +187,10 @@ search_report_t SearchEngine::search() {
   std::unique_ptr<SearchSpace> search_space = std::make_unique<SearchSpace>(heuristic->get_cfg());
 
   search_meta_t meta;
-  std::unordered_map<bdd_node_id_t, int> node_depth;
-  bdd.get_root()->visit_nodes([this, &meta, &node_depth](const BDDNode *node) {
+  bdd.get_root()->visit_nodes([&meta](const BDDNode *node) {
     const bdd_node_id_t id         = node->get_id();
     meta.avg_children_per_node[id] = 0;
     meta.visits_per_node[id]       = 0;
-    node_depth[id]                 = bdd.get_node_depth(id);
     return BDDNodeVisitAction::Continue;
   });
 
@@ -255,10 +253,14 @@ search_report_t SearchEngine::search() {
         meta.branching_factor += std::max(1.0, kv.second);
       meta.branching_factor /= meta.avg_children_per_node.size();
 
-      meta.total_ss_size_estimation = 0;
-      for (const auto &[id, depth] : node_depth) {
-        meta.total_ss_size_estimation += std::pow(meta.branching_factor, depth + 1);
+      double log10_design_space = 0;
+      for (const auto &kv : meta.avg_children_per_node) {
+        const double choices = std::floor(kv.second);
+        if (choices > 1) {
+          log10_design_space += std::log10(choices);
+        }
       }
+      meta.log10_design_space = static_cast<u32>(std::floor(log10_design_space));
     }
 
     meta.ss_size        = search_space->get_size();
