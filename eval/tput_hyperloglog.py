@@ -3,7 +3,7 @@
 # Throughput sweep for the HyperLogLog expert baseline.
 #
 # HyperLogLog is a monitoring primitive (approximate distinct counting), not a
-# KVS, so - like tput_echo and unlike tput_netcache / tput_switcharoo - this
+# KVS, so - unlike tput_netcache / tput_switcharoo - this
 # sweep uses NO server. It still drives the same workload knobs as every other
 # throughput experiment: Zipfian flow skew and flow churn. These map directly
 # onto HyperLogLog's job: churn is the rate at which brand-new distinct flows

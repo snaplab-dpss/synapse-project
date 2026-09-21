@@ -9,7 +9,7 @@
 # other throughput experiment: Zipfian flow skew and flow churn. The SYN path
 # keeps no per-flow state, so the result is expected to be flat across the grid;
 # we keep the grid so the heatmap is comparable with the other NFs'. Like
-# tput_echo / tput_hyperloglog and unlike the KVS sweeps, NO server is used:
+# tput_hyperloglog and unlike the KVS sweeps, NO server is used:
 # SYNs never reach it. The TG floods every DUT port with SYNs (pktgen
 # --tcp-syn), the DUT reflects a SYN-ACK to each, and we measure sustained
 # lossless throughput, repeated for ITERATIONS to get error bars.

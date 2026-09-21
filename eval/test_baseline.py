@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
 """Baseline datapath test using ONLY the traffic generator (no synthesized NF).
 
-This isolates the "~20% loss with synapse-echo" problem. It runs the hand-written,
-known-good traffic-generator P4 on BOTH switches:
+Answers "is the testbed itself healthy?" before any loss is blamed on a synthesized
+NF. It runs the hand-written, known-good traffic-generator P4 on BOTH switches:
 
   - TG switch: floods/steers pktgen traffic to the DUT (broadcast = dut_ports),
     exactly like a real throughput experiment.
   - DUT switch: instead of a synapse-synthesized NF, it runs the traffic-generator
     too, configured with plain forwarding rules to reproduce a chosen datapath:
-        --mode echo     : each packet goes back out the SAME port (A -> A),
-                          i.e. the synapse-echo pattern, but with a known-good
-                          dataplane (unicast forward to the ingress port).
+        --mode echo     : each packet goes back out the SAME port (A -> A), the
+                          pattern of an NF that replies to the sender, on a
+                          known-good dataplane (unicast forward to the ingress port).
         --mode forward  : each packet goes out a DIFFERENT port (A <-> B pairs),
-                          i.e. the pattern every other NF (e.g. map_table) uses.
+                          the pattern every other NF (e.g. map_table) uses.
 
 Then it runs the standard throughput search and prints TX/RX/loss.
 
-Interpretation:
-  - echo loses ~20% but forward is clean  -> the same-port echo datapath itself is
-    the problem on this testbed; NOT the synapse compiler (reproduced with a
-    known-good dataplane). Look at TG/DUT config, TM/mcast, or the measurement.
-  - both are clean                        -> the synapse-echo *synthesized* NF (or
-    its controller) is the culprit; the synapse compiler mishandles echo.
-  - both lose                             -> something more fundamental in the
+Interpretation, when a synthesized NF on one of these datapaths is losing packets:
+  - the same datapath loses here too     -> the testbed is at fault, not the NF:
+    the loss reproduces with a known-good dataplane. Look at TG/DUT config,
+    TM/mcast, or the measurement itself.
+  - this is clean                        -> the synthesized NF or its controller
+    is the culprit.
+  - both modes lose                      -> something more fundamental in the
     baseline steering/measurement.
 """
 
@@ -37,7 +37,7 @@ from experiments.experiment import Experiment
 from utils.kill_hosts import kill_hosts_on_sigint
 from utils.constants import EVAL_DIR
 
-# Mirror tput_echo.py's traffic profile so we compare apples to apples.
+# The throughput experiments' traffic profile, so the numbers compare directly.
 PACKET_SIZE = 256
 TOTAL_FLOWS = 40_000
 

@@ -7,8 +7,8 @@
 # cookie, computed entirely in the data plane (two recirculations per SYN).
 # This test reproduces the authors' own benchmark: a SYN flood, measuring the
 # lossless SYN-ACK response rate. Every SYN-ACK is reflected to the port the SYN
-# came in on, so this is the same "echo" methodology as tput_echo / synapse-echo
-# / test_hyperloglog: the TG floods every DUT port, the DUT reflects, and we
+# came in on, so this is the same "echo" methodology as test_hyperloglog: the
+# TG floods every DUT port, the DUT reflects, and we
 # measure sustained lossless throughput. No server is involved: SYNs never
 # reach it, and the server agent (eBPF) only matters on the paths a SYN flood
 # does not take. pktgen runs in --tcp-syn mode (every packet is a TCP SYN; see

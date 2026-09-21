@@ -4,7 +4,7 @@ Lifecycle of the Tofino 2 model testbed for synthesized NFs.
 
 Runs inside the SDE container (needs $SDE and $SDE_INSTALL) as root:
 
-    sudo -E ./testbed.py up synapse-echo      # build if stale, start model + controller
+    sudo -E ./testbed.py up nat-f40000-c0-unif-hmax-tput   # build if stale, start model + controller
     sudo -E ./testbed.py status
     sudo -E ./testbed.py down
 
@@ -313,7 +313,7 @@ def main() -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_up = sub.add_parser("up", help="build (unless --no-build), then start model + controller")
-    p_up.add_argument("nf", help="synthesized NF name (e.g. synapse-echo)")
+    p_up.add_argument("nf", help="synthesized NF name (e.g. nat-f40000-c0-unif-hmax-tput)")
     p_up.add_argument("--no-build", action="store_true")
 
     p_build = sub.add_parser("build", help="build P4 + controller only")

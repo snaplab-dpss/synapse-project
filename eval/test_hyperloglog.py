@@ -6,8 +6,8 @@
 # a backing KVS server for cache misses - HyperLogLog is a monitoring primitive:
 # it counts the number of distinct IPv4 src/dst pairs it sees and reflects every
 # packet back out its ingress port. There is no backend to talk to, so this test
-# uses NO server. It drives the exact same "echo" methodology as tput_echo /
-# synapse-echo: the TG floods every DUT port (broadcast), the DUT reflects each
+# uses NO server. It drives the "echo" methodology: the TG floods every DUT
+# port (broadcast), the DUT reflects each
 # packet, and we measure sustained lossless throughput. This mirrors how we would
 # later compare HyperLogLog against a synapse-synthesized solution for the same
 # task.

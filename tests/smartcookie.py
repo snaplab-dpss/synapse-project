@@ -31,17 +31,15 @@ from os import environ
 
 from util import *
 
-# Defaults to the hand-written ground truth. A synthesized solution is tested by naming it here
-# together with its topology, e.g.
-#   SC_NF=smartcookie-f40000-c0-unif-hmax-tput SC_SERVER_PORT=1 SC_SERVER_DEV=0 ./smartcookie.py
-NF = environ.get("SC_NF", "smartcookie-manual")
+# Another solution is tested by naming it here, together with its topology if it differs, e.g.
+#   SC_NF=smartcookie-f40000-c1000-zipf1-hmax-tput ./smartcookie.py
+NF = environ.get("SC_NF", "smartcookie-f40000-c0-unif-hmax-tput")
 
-# Which front panel port the server sits on, and the NF device it is known by. The hand-written
-# solutions put it on port 3 / device 2; a synthesized solution follows configs/tofino2-smartcookie
-# .toml, which uses port 1 / device 0. Routing is by the destination's first octet, so the device
+# Which front panel port the server sits on, and the NF device it is known by, following
+# configs/tofino2-smartcookie.toml. Routing is by the destination's first octet, so the device
 # number also picks the address a client uses to reach the server.
-SERVER_PORT = int(environ.get("SC_SERVER_PORT", "3"))
-SERVER_DEV = int(environ.get("SC_SERVER_DEV", "2"))
+SERVER_PORT = int(environ.get("SC_SERVER_PORT", "1"))
+SERVER_DEV = int(environ.get("SC_SERVER_DEV", "0"))
 CLIENT_PORT = int(environ.get("SC_CLIENT_PORT", "5"))
 OTHER_CLIENT_PORT = int(environ.get("SC_OTHER_CLIENT_PORT", "7"))
 TIMESYNC_PORT = 5555
@@ -50,9 +48,8 @@ SYN = 0x02
 ACK = 0x10
 ECE = 0x40
 
-# The hand-written solutions use upstream's default key. A synthesized solution carries the key its
-# BDD was built with (dpdk-nfs/smartcookie/Makefile, NF_ARGS), which is what its cookies must be
-# checked against.
+# A solution carries the key its BDD was built with (dpdk-nfs/smartcookie/Makefile, NF_ARGS),
+# which is what its cookies must be checked against.
 SIP_KEY_0 = int(environ.get("SC_SIP_KEY0", "0x33323130"), 0)
 SIP_KEY_1 = int(environ.get("SC_SIP_KEY1", "0x42413938"), 0)
 
