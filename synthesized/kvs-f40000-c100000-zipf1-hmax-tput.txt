@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       5 seconds
+  Elapsed time:       16 seconds
   Steps:              44
   Backtracks:         0
   Search space size:  155
@@ -36,7 +36,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       47
   Branching factor:   2
-  Total SS size est.: 63'363'355'379
+  Design space:       10^21
   Avg children per node:
     Node 32: 0
     Node 31: 0

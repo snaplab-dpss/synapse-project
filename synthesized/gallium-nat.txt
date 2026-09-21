@@ -26,7 +26,7 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       13 seconds
+  Elapsed time:       26 seconds
   Steps:              67
   Backtracks:         0
   Search space size:  204
@@ -34,7 +34,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   2
-  Total SS size est.: 181'340'453'213
+  Design space:       10^25
   Avg children per node:
     Node 255: 2
     Node 254: 3
@@ -119,7 +119,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [vector_table_1074085544_139,ingress_port_to_nf_dev]
+Objs: [ingress_port_to_nf_dev,vector_table_1074085544_139]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -129,7 +129,7 @@ MapRAM: 16'385/786'432 B (2.08346%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 13/128 B (10.1562%)
-Objs: [guarded_map_table_1074053136_guard,guarded_map_table_1074053136_163]
+Objs: [guarded_map_table_1074053136_163,guarded_map_table_1074053136_guard]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -139,7 +139,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [dchain_table_1074085120_181,dchain_table_1074085120_146,dchain_table_1074085120_142]
+Objs: [dchain_table_1074085120_142,dchain_table_1074085120_146,dchain_table_1074085120_181]
 -------------------------------------
 -------------------------------------
 Stage 3

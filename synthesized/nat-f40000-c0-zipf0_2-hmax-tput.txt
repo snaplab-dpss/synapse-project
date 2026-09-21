@@ -30,7 +30,7 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       14 seconds
+  Elapsed time:       34 seconds
   Steps:              62
   Backtracks:         0
   Search space size:  190
@@ -38,7 +38,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       61
   Branching factor:   3
-  Total SS size est.: 191'963'909'649
+  Design space:       10^24
   Avg children per node:
     Node 180: 0
     Node 179: 0
@@ -119,7 +119,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [vector_table_1074085544_139,ingress_port_to_nf_dev]
+Objs: [ingress_port_to_nf_dev,vector_table_1074085544_139]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -129,7 +129,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [map_table_1074053136_163,dchain_table_1074085120_146,dchain_table_1074085120_181,dchain_table_1074085120_142]
+Objs: [dchain_table_1074085120_142,dchain_table_1074085120_146,dchain_table_1074085120_181,map_table_1074053136_163]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -139,7 +139,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 16/128 B (12.5%)
-Objs: [vector_table_1074066960_144,map_table_1074053136_163]
+Objs: [map_table_1074053136_163,vector_table_1074066960_144]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -149,7 +149,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [vector_table_1074102760_149,vector_table_1074102760_183,vector_table_1074066960_144]
+Objs: [vector_table_1074066960_144,vector_table_1074102760_149,vector_table_1074102760_183]
 -------------------------------------
 ==========================================================
 ========================================================

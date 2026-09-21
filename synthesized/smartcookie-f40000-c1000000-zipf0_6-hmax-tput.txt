@@ -27,7 +27,7 @@ Stateful Implementations:
   1073927040: Tofino::BloomFilter
 
 Search Metadata:
-  Elapsed time:       254 seconds
+  Elapsed time:       366 seconds
   Steps:              467
   Backtracks:         0
   Search space size:  3'061
@@ -35,7 +35,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       456
   Branching factor:   6
-  Total SS size est.: -9'223'372'036'854'775'808
+  Design space:       10^352
   Avg children per node:
     Node 95: 2
     Node 99: 2
@@ -511,7 +511,7 @@ MapRAM: 147'456/786'432 B (18.75%)
 Logical IDs: 13/16
 Hash Dist Units: 6/6
 Exact Match Crossbar: 25/128 B (19.5312%)
-Objs: [compute_op_sub_333,compute_op_xor_303,compute_op_xor_399,compute_op_shl_379_a,compute_op_xor_361,vector_table_1073939616_88,compute_op_xor_364,vector_table_1073939616_105,bf_1073927040_row_0,bf_1073927040_hash_0,ingress_port_to_nf_dev]
+Objs: [bf_1073927040_hash_0,bf_1073927040_row_0,compute_op_shl_379_a,compute_op_sub_333,compute_op_xor_303,compute_op_xor_361,compute_op_xor_364,compute_op_xor_399,ingress_port_to_nf_dev,vector_table_1073939616_105,vector_table_1073939616_88]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -521,7 +521,7 @@ MapRAM: 147'456/786'432 B (18.75%)
 Logical IDs: 8/16
 Hash Dist Units: 6/6
 Exact Match Crossbar: 15/128 B (11.7188%)
-Objs: [compute_op_lshr_334,compute_op_xor_381,compute_op_shl_379,compute_rotate_left_119,bf_1073927040_row_1,bf_1073927040_hash_1]
+Objs: [bf_1073927040_hash_1,bf_1073927040_row_1,compute_op_lshr_334,compute_op_shl_379,compute_op_xor_381,compute_rotate_left_119]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -531,7 +531,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 4/16
 Hash Dist Units: 6/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_op_xor_402,compute_op_or_380,compute_rotate_left_108_x,compute_rotate_left_107]
+Objs: [compute_op_or_380,compute_op_xor_402,compute_rotate_left_107,compute_rotate_left_108_x]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -541,7 +541,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 5/16
 Hash Dist Units: 6/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_op_add_285_b,compute_op_xor_416,compute_op_xor_384,compute_op_lshr_446,compute_rotate_left_108]
+Objs: [compute_op_add_285_b,compute_op_lshr_446,compute_op_xor_384,compute_op_xor_416,compute_rotate_left_108]
 -------------------------------------
 -------------------------------------
 Stage 4
@@ -551,7 +551,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 4/16
 Hash Dist Units: 4/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_op_add_285,compute_op_sub_447,compute_op_lshr_457,compute_rotate_left_110]
+Objs: [compute_op_add_285,compute_op_lshr_457,compute_op_sub_447,compute_rotate_left_110]
 -------------------------------------
 -------------------------------------
 Stage 5
@@ -561,7 +561,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 2/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_op_xor_289,compute_op_lshr_448,compute_rotate_left_111]
+Objs: [compute_op_lshr_448,compute_op_xor_289,compute_rotate_left_111]
 -------------------------------------
 -------------------------------------
 Stage 6
@@ -571,7 +571,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_rotate_left_120,compute_rotate_left_112]
+Objs: [compute_rotate_left_112,compute_rotate_left_120]
 -------------------------------------
 -------------------------------------
 Stage 7
@@ -581,7 +581,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 4/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_rotate_left_122,compute_rotate_left_113]
+Objs: [compute_rotate_left_113,compute_rotate_left_122]
 -------------------------------------
 -------------------------------------
 Stage 8
@@ -591,7 +591,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 2/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_rotate_left_123,compute_rotate_left_115]
+Objs: [compute_rotate_left_115,compute_rotate_left_123]
 -------------------------------------
 -------------------------------------
 Stage 9
@@ -601,7 +601,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 4/16
 Hash Dist Units: 6/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_rotate_left_125,compute_op_xor_372,compute_rotate_left_117,compute_rotate_left_116]
+Objs: [compute_op_xor_372,compute_rotate_left_116,compute_rotate_left_117,compute_rotate_left_125]
 -------------------------------------
 -------------------------------------
 Stage 10
@@ -611,7 +611,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_rotate_left_126,compute_rotate_left_118]
+Objs: [compute_rotate_left_118,compute_rotate_left_126]
 -------------------------------------
 -------------------------------------
 Stage 11
@@ -641,7 +641,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 6/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_rotate_left_129,compute_rotate_left_141,compute_rotate_left_140]
+Objs: [compute_rotate_left_129,compute_rotate_left_140,compute_rotate_left_141]
 -------------------------------------
 -------------------------------------
 Stage 14
@@ -651,7 +651,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 2/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_op_xor_453,compute_op_xor_378,compute_rotate_left_142]
+Objs: [compute_op_xor_378,compute_op_xor_453,compute_rotate_left_142]
 -------------------------------------
 -------------------------------------
 Stage 15

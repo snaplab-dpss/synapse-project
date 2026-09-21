@@ -26,7 +26,7 @@ Stateful Implementations:
   1074092960: Tofino::VectorRegister
 
 Search Metadata:
-  Elapsed time:       17 seconds
+  Elapsed time:       36 seconds
   Steps:              53
   Backtracks:         0
   Search space size:  152
@@ -34,7 +34,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       52
   Branching factor:   2
-  Total SS size est.: 786'912'547'116
+  Design space:       10^16
   Avg children per node:
     Node 165: 0
     Node 164: 0
@@ -108,7 +108,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [vector_register_1074092960_0,ingress_port_to_nf_dev]
+Objs: [ingress_port_to_nf_dev,vector_register_1074092960_0]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -118,7 +118,7 @@ MapRAM: 16'385/786'432 B (2.08346%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 13/128 B (10.1562%)
-Objs: [guarded_map_table_1074047984_guard,guarded_map_table_1074047984_144]
+Objs: [guarded_map_table_1074047984_144,guarded_map_table_1074047984_guard]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -128,7 +128,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 5/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 14/128 B (10.9375%)
-Objs: [cms_1074080384_row_0,cms_1074080384_hash_0,dchain_table_1074079968_170]
+Objs: [cms_1074080384_hash_0,cms_1074080384_row_0,dchain_table_1074079968_170]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -138,7 +138,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 6/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 18/128 B (14.0625%)
-Objs: [cms_1074080384_hash_1,vector_table_1074110176_171,cms_1074080384_row_1,vector_table_1074110176_177]
+Objs: [cms_1074080384_hash_1,cms_1074080384_row_1,vector_table_1074110176_171,vector_table_1074110176_177]
 -------------------------------------
 -------------------------------------
 Stage 4
@@ -148,7 +148,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 10/128 B (7.8125%)
-Objs: [cms_1074080384_row_2,cms_1074080384_hash_2]
+Objs: [cms_1074080384_hash_2,cms_1074080384_row_2]
 -------------------------------------
 -------------------------------------
 Stage 5
@@ -158,7 +158,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 10/128 B (7.8125%)
-Objs: [cms_1074080384_row_3,cms_1074080384_hash_3]
+Objs: [cms_1074080384_hash_3,cms_1074080384_row_3]
 -------------------------------------
 ==========================================================
 ========================================================

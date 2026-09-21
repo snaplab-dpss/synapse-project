@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       4 seconds
+  Elapsed time:       13 seconds
   Steps:              49
   Backtracks:         0
   Search space size:  171
@@ -36,7 +36,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       50
   Branching factor:   2
-  Total SS size est.: 264'504'681'011
+  Design space:       10^24
   Avg children per node:
     Node 32: 0
     Node 31: 0
@@ -129,7 +129,7 @@ MapRAM: 65'537/786'432 B (8.33346%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 5/128 B (3.90625%)
-Objs: [hh_table_1073923096_packet_sampler,hh_table_1073923096_cached_counters]
+Objs: [hh_table_1073923096_cached_counters,hh_table_1073923096_packet_sampler]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -139,7 +139,7 @@ MapRAM: 86'020/786'432 B (10.938%)
 Logical IDs: 9/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 21/128 B (16.4062%)
-Objs: [hh_table_1073923096_digest,hh_table_1073923096_threshold,hh_table_1073923096_cms_row_3,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_1,hh_table_1073923096_cms_row_0,hh_table_1073923096_hash_calc_3,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_0]
+Objs: [hh_table_1073923096_cms_row_0,hh_table_1073923096_cms_row_1,hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_3,hh_table_1073923096_digest,hh_table_1073923096_hash_calc_0,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_3,hh_table_1073923096_threshold]
 -------------------------------------
 -------------------------------------
 Stage 3

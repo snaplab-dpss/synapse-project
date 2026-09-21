@@ -30,7 +30,7 @@ Stateful Implementations:
   1074092960: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       25 seconds
+  Elapsed time:       54 seconds
   Steps:              63
   Backtracks:         2
   Search space size:  248
@@ -38,7 +38,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       52
   Branching factor:   3
-  Total SS size est.: 13'842'000'212'958
+  Design space:       10^21
   Avg children per node:
     Node 258: 0
     Node 257: 0
@@ -127,7 +127,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 6/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 16/128 B (12.5%)
-Objs: [cms_1074080384_row_0,cms_1074080384_hash_0,vector_table_1074092960_141,ingress_port_to_nf_dev]
+Objs: [cms_1074080384_hash_0,cms_1074080384_row_0,ingress_port_to_nf_dev,vector_table_1074092960_141]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -137,7 +137,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 5/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 22/128 B (17.1875%)
-Objs: [cms_1074080384_row_1,cms_1074080384_hash_1,fcfs_cs_1074047984_table_144]
+Objs: [cms_1074080384_hash_1,cms_1074080384_row_1,fcfs_cs_1074047984_table_144]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -147,7 +147,7 @@ MapRAM: 299'008/786'432 B (38.0208%)
 Logical IDs: 8/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 36/128 B (28.125%)
-Objs: [cms_1074080384_row_2,cms_1074080384_hash_2,fcfs_cs_1074047984_reg_liveness,fcfs_cs_1074047984_hash_149,fcfs_cs_1074047984_hash_144]
+Objs: [cms_1074080384_hash_2,cms_1074080384_row_2,fcfs_cs_1074047984_hash_144,fcfs_cs_1074047984_hash_149,fcfs_cs_1074047984_reg_liveness]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -157,7 +157,7 @@ MapRAM: 577'536/786'432 B (73.4375%)
 Logical IDs: 8/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 14/128 B (10.9375%)
-Objs: [cms_1074080384_row_3,cms_1074080384_hash_3,fcfs_cs_1074047984_reg_key_1,fcfs_cs_1074047984_reg_key_0]
+Objs: [cms_1074080384_hash_3,cms_1074080384_row_3,fcfs_cs_1074047984_reg_key_0,fcfs_cs_1074047984_reg_key_1]
 -------------------------------------
 -------------------------------------
 Stage 4
@@ -177,7 +177,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [vector_table_1074110176_171,vector_table_1074110176_160,vector_table_1074110176_177]
+Objs: [vector_table_1074110176_160,vector_table_1074110176_171,vector_table_1074110176_177]
 -------------------------------------
 ==========================================================
 ========================================================

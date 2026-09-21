@@ -31,7 +31,7 @@ Stateful Implementations:
   1074109560: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       14 seconds
+  Elapsed time:       21 seconds
   Steps:              67
   Backtracks:         0
   Search space size:  197
@@ -39,7 +39,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       65
   Branching factor:   2
-  Total SS size est.: 838'113'645'488
+  Design space:       10^21
   Avg children per node:
     Node 166: 0
     Node 179: 0
@@ -127,7 +127,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [vector_table_1074109560_142,ingress_port_to_nf_dev]
+Objs: [ingress_port_to_nf_dev,vector_table_1074109560_142]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -167,7 +167,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_row_0,bf_1074096984_hash_0]
+Objs: [bf_1074096984_hash_0,bf_1074096984_row_0]
 -------------------------------------
 -------------------------------------
 Stage 5
@@ -177,7 +177,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_row_1,bf_1074096984_hash_1]
+Objs: [bf_1074096984_hash_1,bf_1074096984_row_1]
 -------------------------------------
 -------------------------------------
 Stage 6
@@ -187,7 +187,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_row_2,bf_1074096984_hash_2]
+Objs: [bf_1074096984_hash_2,bf_1074096984_row_2]
 -------------------------------------
 -------------------------------------
 Stage 7
@@ -197,7 +197,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_row_3,bf_1074096984_hash_3]
+Objs: [bf_1074096984_hash_3,bf_1074096984_row_3]
 -------------------------------------
 -------------------------------------
 Stage 8

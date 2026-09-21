@@ -23,7 +23,7 @@ Stateful Implementations:
   1073927040: Tofino::BloomFilter
 
 Search Metadata:
-  Elapsed time:       168 seconds
+  Elapsed time:       232 seconds
   Steps:              490
   Backtracks:         1
   Search space size:  2'484
@@ -31,7 +31,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       456
   Branching factor:   2
-  Total SS size est.: -9'223'372'036'854'775'808
+  Design space:       10^111
   Avg children per node:
     Node 95: 0
     Node 99: 0
@@ -507,7 +507,7 @@ MapRAM: 163'844/786'432 B (20.8338%)
 Logical IDs: 8/16
 Hash Dist Units: 2/6
 Exact Match Crossbar: 21/128 B (16.4062%)
-Objs: [compute_op_lshr_457,bf_1073927040_row_0,bf_1073927040_hash_0,vector_register_1073939616_0,ingress_port_to_nf_dev]
+Objs: [bf_1073927040_hash_0,bf_1073927040_row_0,compute_op_lshr_457,ingress_port_to_nf_dev,vector_register_1073939616_0]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -517,7 +517,7 @@ MapRAM: 147'456/786'432 B (18.75%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 15/128 B (11.7188%)
-Objs: [bf_1073927040_row_1,bf_1073927040_hash_1]
+Objs: [bf_1073927040_hash_1,bf_1073927040_row_1]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -527,7 +527,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 4/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_rotate_left_108_x,compute_rotate_left_107]
+Objs: [compute_rotate_left_107,compute_rotate_left_108_x]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -597,7 +597,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 4/6
 Exact Match Crossbar: 0/128 B (0%)
-Objs: [compute_rotate_left_117,compute_rotate_left_116]
+Objs: [compute_rotate_left_116,compute_rotate_left_117]
 -------------------------------------
 -------------------------------------
 Stage 10

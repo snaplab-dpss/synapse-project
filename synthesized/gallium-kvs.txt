@@ -24,7 +24,7 @@ Stateful Implementations:
   1073923096: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       5 seconds
+  Elapsed time:       15 seconds
   Steps:              65
   Backtracks:         0
   Search space size:  189
@@ -32,7 +32,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       59
   Branching factor:   2
-  Total SS size est.: 78'055'834'949
+  Design space:       10^24
   Avg children per node:
     Node 130: 3
     Node 129: 3
@@ -120,7 +120,7 @@ MapRAM: 16'385/786'432 B (2.08346%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 7/128 B (5.46875%)
-Objs: [guarded_map_table_1073923096_guard,guarded_map_table_1073923096_13,ingress_port_to_nf_dev]
+Objs: [guarded_map_table_1073923096_13,guarded_map_table_1073923096_guard,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1

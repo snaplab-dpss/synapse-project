@@ -28,7 +28,7 @@ Stateful Implementations:
   1073917816: Tofino::VectorRegister
 
 Search Metadata:
-  Elapsed time:       0 seconds
+  Elapsed time:       1 seconds
   Steps:              41
   Backtracks:         0
   Search space size:  155
@@ -36,7 +36,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       41
   Branching factor:   2
-  Total SS size est.: 26'029'074'859
+  Design space:       10^22
   Avg children per node:
     Node 73: 0
     Node 60: 0
@@ -239,7 +239,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [ln_35,ln_22]
+Objs: [ln_22,ln_35]
 -------------------------------------
 ==========================================================
 ========================================================

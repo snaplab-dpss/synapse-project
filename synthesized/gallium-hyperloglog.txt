@@ -24,7 +24,7 @@ Stateful Implementations:
   1073917816: Controller::Vector
 
 Search Metadata:
-  Elapsed time:       0 seconds
+  Elapsed time:       1 seconds
   Steps:              84
   Backtracks:         0
   Search space size:  156
@@ -32,7 +32,7 @@ Search Metadata:
   Finished EPs:       1
   Avg BDD size:       83
   Branching factor:   1
-  Total SS size est.: 4'649
+  Design space:       10^3
   Avg children per node:
     Node 73: 0
     Node 60: 0
