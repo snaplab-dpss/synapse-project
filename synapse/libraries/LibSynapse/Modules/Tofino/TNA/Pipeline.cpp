@@ -3,7 +3,9 @@
 #include <LibSynapse/Modules/Tofino/TNA/SolverPlacer.h>
 #include <LibCore/Debug.h>
 #include <LibSynapse/Walk.h>
+#include <algorithm>
 #include <iostream>
+#include <vector>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -112,9 +114,12 @@ void Pipeline::dump(std::ostream &os) const {
     ss << "(" << xbar_usage << "%)";
     ss << "\n";
 
+    std::vector<DS_ID> sorted_ds_ids(stage.data_structures.begin(), stage.data_structures.end());
+    std::sort(sorted_ds_ids.begin(), sorted_ds_ids.end());
+
     ss << "Objs: [";
     bool first = true;
-    for (DS_ID ds_id : stage.data_structures) {
+    for (const DS_ID &ds_id : sorted_ds_ids) {
       if (!first) {
         ss << ",";
       }
