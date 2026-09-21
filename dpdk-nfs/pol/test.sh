@@ -63,6 +63,7 @@ function run_case {
         --rate "$rate" \
         --burst "$burst" \
         --capacity 65536 \
+        --expire 1000000 \
         >"$nf_log" 2>&1 &
   local nf_pid=$!
 

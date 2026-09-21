@@ -1163,7 +1163,7 @@ bool nf_init() {
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
   // BDDNode 131
   inc_path_counter(131);
-  tb_expire(tb, now);
+  tb_expire(tb, now, 1000000000ULL);
   // BDDNode 132
   inc_path_counter(132);
   uint8_t* hdr;

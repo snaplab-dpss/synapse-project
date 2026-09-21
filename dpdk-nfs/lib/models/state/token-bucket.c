@@ -133,11 +133,12 @@ int tb_update_and_check(struct TokenBucket *tb, int index, uint16_t pkt_len, tim
   return klee_int("pass");
 }
 
-int tb_expire(struct TokenBucket *tb, time_ns_t time) {
+int tb_expire(struct TokenBucket *tb, time_ns_t time, time_ns_t expiration_time) {
   klee_trace_ret();
 
   klee_trace_param_u64((uint64_t)tb, "tb");
   klee_trace_param_u64(time, "time");
+  klee_trace_param_u64(expiration_time, "expiration_time");
 
   klee_assert(tb != NULL);
 

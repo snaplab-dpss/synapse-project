@@ -25,4 +25,7 @@ struct nf_config {
 
   // Size of the dynamic filtering table
   uint32_t dyn_capacity;
+
+  // Expiration time of buckets in microseconds
+  uint32_t expiration_time;
 };

@@ -12,6 +12,6 @@ int tb_allocate(uint32_t capacity, uint64_t rate, uint64_t burst, uint32_t key_s
 int tb_is_tracing(struct TokenBucket *tb, void *k, int *index_out);
 int tb_trace(struct TokenBucket *tb, void *k, uint16_t pkt_len, time_ns_t time, int *index_out);
 int tb_update_and_check(struct TokenBucket *tb, int index, uint16_t pkt_len, time_ns_t time);
-int tb_expire(struct TokenBucket *tb, time_ns_t time);
+int tb_expire(struct TokenBucket *tb, time_ns_t time, time_ns_t expiration_time);
 
 #endif

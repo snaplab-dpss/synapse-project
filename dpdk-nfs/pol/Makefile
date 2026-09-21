@@ -4,6 +4,7 @@ NF_FILES := policer_main.c config.c ip_addr.c state.c
 
 RATE  := 17179869184 # 2^34 ~ 17GBps ~ 136Gbps
 BURST := 131072      # 2^17 = 131KB
+EXPIRATION := 1000000 # us, i.e. 1 s, as fw and nat use
 
 NF_ARGS := --internal-devs 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 \
            --fwd-rule 0,1 --fwd-rule 1,0 \
@@ -24,7 +25,8 @@ NF_ARGS := --internal-devs 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 \
            --fwd-rule 30,31 --fwd-rule 31,30 \
            --rate $(or $(POLICER_RATE),$(RATE)) \
            --burst $(or $(POLICER_BURST),$(BURST)) \
-           --capacity $(or $(CAPACITY),65536)
+           --capacity $(or $(CAPACITY),65536) \
+           --expire $(or $(POLICER_EXPIRATION),$(EXPIRATION))
 
 NF_LAYER := 3
 

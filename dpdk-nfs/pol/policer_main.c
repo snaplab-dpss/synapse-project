@@ -51,7 +51,7 @@ uint16_t get_dst_dev(uint16_t src_dev) {
 }
 
 int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_ns_t now, struct rte_mbuf *mbuf) {
-  tb_expire(state->tb, now);
+  tb_expire(state->tb, now, (time_ns_t)config.expiration_time * 1000); // us to ns
 
   struct rte_ether_hdr *rte_ether_header = nf_then_get_ether_header(buffer);
   struct rte_ipv4_hdr *rte_ipv4_header   = nf_then_get_ipv4_header(rte_ether_header, buffer);

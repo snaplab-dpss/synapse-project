@@ -124,11 +124,9 @@ int tb_update_and_check(struct TokenBucket *tb, int index, uint16_t pkt_len, tim
   return pass;
 }
 
-int tb_expire(struct TokenBucket *tb, time_ns_t time) {
+int tb_expire(struct TokenBucket *tb, time_ns_t time, time_ns_t expiration_time) {
   assert(time >= 0); // we don't support the past
-  time_ns_t exp_time = NS_TO_S_MULTIPLIER * (tb->burst / tb->rate);
   uint64_t time_u    = (uint64_t)time;
-  // OK because time >= tb->burst / tb->rate >= 0
-  time_ns_t min_time = time_u - exp_time;
+  time_ns_t min_time = time_u - expiration_time;
   return expire_items_single_map(tb->allocator, tb->keys, tb->flows, min_time);
 }

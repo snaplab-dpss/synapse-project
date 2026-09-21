@@ -11,6 +11,7 @@
 const uint64_t DEFAULT_RATE     = 1000000; // 1MB/s
 const uint64_t DEFAULT_BURST    = 100000;  // 100kB
 const uint32_t DEFAULT_CAPACITY = 128;     // IPs
+const uint32_t DEFAULT_EXPIRATION_TIME = 1000000; // us
 
 #define PARSE_ERROR(format, ...)                                                                                                           \
   nf_config_usage();                                                                                                                       \
@@ -24,15 +25,17 @@ void nf_config_init(int argc, char **argv) {
   config.rate         = DEFAULT_RATE;     // B/s
   config.burst        = DEFAULT_BURST;    // B
   config.dyn_capacity = DEFAULT_CAPACITY; // MAC addresses
+  config.expiration_time = DEFAULT_EXPIRATION_TIME; // us
 
   unsigned nb_devices = rte_eth_dev_count_avail();
 
   struct option long_options[] = {{"internal-devs", required_argument, NULL, 'd'}, {"fwd-rule", required_argument, NULL, 'f'},
                                   {"rate", required_argument, NULL, 'r'},          {"burst", required_argument, NULL, 'b'},
-                                  {"capacity", required_argument, NULL, 'c'},      {NULL, 0, NULL, 0}};
+                                  {"capacity", required_argument, NULL, 'c'},
+                                  {"expire", required_argument, NULL, 't'},        {NULL, 0, NULL, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "d:f:r:b:c:", long_options, NULL)) != EOF) {
+  while ((opt = getopt_long(argc, argv, "d:f:r:b:c:t:", long_options, NULL)) != EOF) {
     switch (opt) {
     case 'd': {
       uint16_t nb_devices        = rte_eth_dev_count_avail();
@@ -96,6 +99,13 @@ void nf_config_init(int argc, char **argv) {
       }
       break;
 
+    case 't':
+      config.expiration_time = nf_util_parse_int(optarg, "exp-time", 10, '\0');
+      if (config.expiration_time == 0) {
+        PARSE_ERROR("Expiration time must be strictly positive.\n");
+      }
+      break;
+
     default:
       PARSE_ERROR("Unknown option %c", opt);
     }
@@ -115,8 +125,10 @@ void nf_config_usage(void) {
           "\t--burst <size>: policer burst size in bytes,"
           " default: %" PRIu64 ".\n"
           "\t--capacity <n>: policer table capacity,"
+          " default: %" PRIu32 ".\n"
+          "\t--expire <time>: bucket expiration time (us),"
           " default: %" PRIu32 ".\n",
-          DEFAULT_RATE, DEFAULT_BURST, DEFAULT_CAPACITY);
+          DEFAULT_RATE, DEFAULT_BURST, DEFAULT_CAPACITY, DEFAULT_EXPIRATION_TIME);
 }
 
 void nf_config_print(void) {
@@ -135,6 +147,7 @@ void nf_config_print(void) {
   NF_INFO("Rate: %" PRIu64, config.rate);
   NF_INFO("Burst: %" PRIu64, config.burst);
   NF_INFO("Capacity: %" PRIu16, config.dyn_capacity);
+  NF_INFO("Expiration time: %" PRIu32 "us", config.expiration_time);
 
   NF_INFO("\n--- ------ ------ ---\n");
 }

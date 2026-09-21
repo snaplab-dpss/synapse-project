@@ -2011,13 +2011,15 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::tb_update_and_check(coder_t 
 BDDSynthesizer::success_condition_t BDDSynthesizer::tb_expire(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
-  klee::ref<klee::Expr> tb_addr = call.args.at("tb").expr;
-  klee::ref<klee::Expr> time    = call.args.at("time").expr;
+  klee::ref<klee::Expr> tb_addr    = call.args.at("tb").expr;
+  klee::ref<klee::Expr> time       = call.args.at("time").expr;
+  klee::ref<klee::Expr> expiration = call.args.at("expiration_time").expr;
 
   coder.indent();
   coder << "tb_expire(";
   coder << stack_get(tb_addr).name << ", ";
-  coder << transpiler.transpile(time);
+  coder << transpiler.transpile(time) << ", ";
+  coder << transpiler.transpile(expiration);
   coder << ")";
   coder << ";\n";
 
