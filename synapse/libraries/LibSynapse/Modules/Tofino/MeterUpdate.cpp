@@ -75,6 +75,15 @@ std::unique_ptr<BDD> delete_future_tb_update(EP *ep, const BDDNode *node, const 
     new_next = nullptr;
   }
 
+  // The meter checks and charges the bucket inside the table apply that also answers whether the
+  // flow is tracked, so the update node goes away. Its verdict is read further down the BDD, so
+  // the node that survives has to be the one that produces it.
+  Call *surviving = dynamic_cast<Call *>(new_bdd->get_mutable_node_by_id(node->get_id()));
+  assert(surviving && "Meter node not found in the new BDD");
+  for (const symbol_t &symbol : tb_update_and_check->get_local_symbols().get()) {
+    surviving->add_local_symbol(symbol);
+  }
+
   bool replace_next    = (tb_update_and_check == next);
   BDDNode *replacement = new_bdd->delete_non_branch(tb_update_and_check->get_id());
 

@@ -402,6 +402,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ChecksumUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapSetTableLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MeterUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorTableLookup *node) override final;

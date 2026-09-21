@@ -2295,16 +2295,37 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterAllocate *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::MeterAllocate");
+  const addr_t obj = node->get_obj();
+
+  const Tofino::Meter *meter = get_unique_tofino_ds_from_obj<Tofino::Meter>(ep, obj);
+
+  transpile_meter_decl(ep, meter);
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *node) {
   coder_t &coder = get_current_coder();
+
+  const addr_t obj                    = node->get_obj();
+  const klee::ref<klee::Expr> success = node->get_success();
+
+  const Tofino::Meter *meter = get_unique_tofino_ds_from_obj<Tofino::Meter>(ep, obj);
+
+  // The dataplane table matches the key field by field; an entry is written with it whole.
+  const Call *tb_trace = dynamic_cast<const Call *>(node->get_node());
+  assert(tb_trace && "Meter insert node is not a call");
+  const klee::ref<klee::Expr> key = tb_trace->get_call().args.at("key").in;
+
+  const var_t key_var     = transpile_buffer_decl_and_set(coder, meter->id + "_key", key, true);
+  const var_t success_var = alloc_var("success", success, {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::MeterInsert");
+  coder << "bool " << success_var.name << " = ";
+  coder << "state->" << meter->id << ".trace(";
+  coder << key_var.name;
+  coder << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
@@ -2645,6 +2666,33 @@ void ControllerSynthesizer::transpile_map_table_decl(const Tofino::MapTable *map
     member_init_list << ", " << expiration_time_ms << "LL";
   }
 
+  member_init_list << ")";
+
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
+void ControllerSynthesizer::transpile_meter_decl(const EP *ep, const Tofino::Meter *meter) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name                  = assert_unique_name(meter->id);
+  const time_ns_t expiration_time    = get_expiration_time(ep->get_ctx());
+  const time_ms_t expiration_time_ms = expiration_time / MILLION;
+
+  state_fields.indent();
+  state_fields << "Meter " << name << ";\n";
+
+  synapse_data_structures_instances.push_back(name);
+
+  // The rate and burst go on every entry the controller writes, and the timeout ages the bucket
+  // out: a DirectMeter's bucket is the entry, so there is no index to free.
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
+  member_init_list << "\"" << gress() << meter->id << "\",";
+  member_init_list << meter->rate << "ULL,";
+  member_init_list << meter->burst << "ULL,";
+  member_init_list << expiration_time_ms << "LL";
   member_init_list << ")";
 
   state_member_init_list.push_back(member_init_list.dump());

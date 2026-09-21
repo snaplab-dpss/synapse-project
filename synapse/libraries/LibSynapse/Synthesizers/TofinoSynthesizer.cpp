@@ -158,6 +158,13 @@ constexpr const char *const MARKER_CUCKOO_POLY_2          = "CUCKOO_POLY_2";
 constexpr const char *const TEMPLATE_FILENAME                   = "tofino.template.p4";
 constexpr const char *const TEMPLATE_CUCKOO_HASH_TABLE_FILENAME = "cuckoo_hash_table.template.p4";
 
+// A meter returns GREEN(0), YELLOW(1|2) or RED(3); a single rate two-colour policer only ever sees
+// green and red. The 4 bytes are the frame check sequence (see visit(MeterUpdate)).
+constexpr const bits_t METER_COLOR_WIDTH = 8;
+constexpr const int METER_COLOR_GREEN    = 0;
+constexpr const int METER_COLOR_RED      = 3;
+constexpr const int METER_FCS_BYTES      = 4;
+
 template <class T> const T *get_tofino_ds(const EP *ep, DS_ID id) {
   const Context &ctx              = ep->get_ctx();
   const TofinoContext *tofino_ctx = ctx.get_target_ctx<TofinoContext>();
@@ -6386,6 +6393,121 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply.indent();
     ingress_apply << table->id << ".apply();\n";
   }
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::MeterUpdate *node) {
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const DS_ID meter_id                           = node->get_table_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  const klee::ref<klee::Expr> hit                = node->get_hit();
+  const klee::ref<klee::Expr> pass               = node->get_pass();
+
+  const Meter *meter = get_tofino_ds<Meter>(ep, meter_id);
+  assert(meter && "Meter not found");
+
+  const code_t meter_name  = meter_id + "_meter";
+  const code_t action_name = meter_id + "_execute";
+  const var_t color        = alloc_var(meter_id + "_color", METER_COLOR_WIDTH, SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
+
+  std::vector<var_t> keys_vars;
+  for (size_t i = 0; i < keys.size(); i++) {
+    const code_t key_name = meter_id + "_key_" + std::to_string(keys[i]->getWidth()) + "b_" + std::to_string(i);
+    const var_t key_var   = alloc_var(key_name, keys[i], SKIP_STACK_ALLOC | EXACT_NAME | IS_INGRESS_METADATA);
+    keys_vars.push_back(key_var);
+    declare_var_in_ingress_metadata(key_var);
+  }
+
+  if (declared_ds.find(meter_id) == declared_ds.end()) {
+    declared_ds.insert(meter_id);
+    declare_var_in_ingress_metadata(color);
+
+    ingress.indent();
+    ingress << "DirectMeter(MeterType_t.BYTES) " << meter_name << ";\n";
+    ingress << "\n";
+
+    // The argument is named because a bare one is ambiguous between execute(MeterColor_t) and
+    // execute(bit<32>), which bf-p4c rejects. It is the frame check sequence: an ingress byte
+    // meter charges the frame including it, the NF's packet length excludes it.
+    ingress.indent();
+    ingress << "action " << action_name << "() {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << color.name << " = " << meter_name << ".execute(adjust_byte_count = 32w" << METER_FCS_BYTES << ");\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+    ingress << "\n";
+
+    ingress.indent();
+    ingress << "table " << meter_id << " {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "key = {\n";
+    ingress.inc();
+    for (const var_t &key_var : keys_vars) {
+      ingress.indent();
+      ingress << key_var.name << ": exact;\n";
+    }
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+
+    ingress.indent();
+    ingress << "actions = {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << action_name << ";\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+
+    ingress.indent();
+    ingress << "meters = " << meter_name << ";\n";
+
+    // The bucket is born and dies with the entry, so the controller ages it out with the idle
+    // timeout rather than freeing an index. A register on this table would be rejected: bf-p4c
+    // refuses a table that carries both a meter and a register.
+    ingress.indent();
+    ingress << "idle_timeout = true;\n";
+
+    ingress.indent();
+    ingress << "size = " << meter->capacity << ";\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+    ingress << "\n";
+  }
+
+  for (const var_t &key_var : keys_vars) {
+    ingress_apply.indent();
+    ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
+  }
+
+  // A miss leaves the action unexecuted, so the colour must mean "in profile" beforehand: the BDD
+  // only reads the verdict where the bucket was found.
+  ingress_apply.indent();
+  ingress_apply << color.name << " = " << METER_COLOR_GREEN << ";\n";
+
+  const var_t hit_var = alloc_var("is_tracing", hit, FORCE_BOOL);
+  hit_var.declare(ingress_apply, meter_id + ".apply().hit");
+
+  // A DirectMeter has no index: the bucket IS the table entry. The symbol exists because
+  // tb_is_tracing declares it, and a hand-off ships whatever the node declares, so it needs a
+  // value even though nothing reads it -- the controller's insert takes only the bucket and key.
+  const Call *tb_is_tracing = dynamic_cast<const Call *>(node->get_node());
+  assert(tb_is_tracing && "Meter node is not a call");
+  const klee::ref<klee::Expr> index = tb_is_tracing->get_call().args.at("index_out").out;
+  const var_t index_var             = alloc_var("index", index);
+  index_var.declare(ingress_apply, "0");
+
+  const var_t pass_var = alloc_var("pass", pass, FORCE_BOOL);
+  pass_var.declare(ingress_apply, color.name + " != " + std::to_string(METER_COLOR_RED));
 
   return EPVisitor::Action::doChildren;
 }

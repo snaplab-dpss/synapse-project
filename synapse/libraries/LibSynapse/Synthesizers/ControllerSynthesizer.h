@@ -299,6 +299,7 @@ private:
 
   var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr, bool skip_alloc);
   void transpile_map_table_decl(const Tofino::MapTable *map_table);
+  void transpile_meter_decl(const EP *ep, const Tofino::Meter *meter);
   void transpile_map_set_table_decl(const Tofino::MapSetTable *map_set_table);
   void transpile_guarded_map_table_decl(const Tofino::GuardedMapTable *guarded_map_table);
   void transpile_vector_table_decl(const EP *ep, const Tofino::VectorTable *vector_table);

@@ -22,6 +22,13 @@ struct table_field_t {
   bits_t size;
 };
 
+// Bytes per second and bytes, as the NF configures them; converted to the units BF-RT wants when
+// the entry is written.
+struct meter_spec_t {
+  u64 rate;
+  u64 burst;
+};
+
 struct table_action_t {
   std::string name;
   bf_rt_id_t action_id;
@@ -77,6 +84,7 @@ public:
 
   void add_entry(const buffer_t &k);
   void add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
+  void add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params, const meter_spec_t &meter_spec);
   bool try_add_entry(const buffer_t &k);
   bool try_add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
   void mod_entry(const buffer_t &k);

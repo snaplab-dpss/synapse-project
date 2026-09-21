@@ -69,7 +69,7 @@ private:
         break;
 
         // ========================================
-        // Tofino Gallium Inompatible
+        // Tofino Gallium Incompatible
         // ========================================
 
       case DSImpl::Tofino_MapTable: // GuardedMapTable is preferable for KVS, but Gallium makes static choices.

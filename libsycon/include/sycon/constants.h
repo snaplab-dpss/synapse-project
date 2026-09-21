@@ -38,6 +38,13 @@ constexpr const char TOFINO_NO_ACTION_NAME[]         = "NoAction";
 constexpr const char DATA_FIELD_NAME_ENTRY_HIT_STATE[] = "$ENTRY_HIT_STATE";
 constexpr const char DATA_FIELD_NAME_ENTRY_TTL[]       = "$ENTRY_TTL";
 
+// A DirectMeter's rate and burst are data fields of its owner table's entry. A single rate two
+// colour policer programs the committed and peak parameters identically.
+constexpr const char DATA_FIELD_NAME_METER_CIR_KBPS[]  = "$METER_SPEC_CIR_KBPS";
+constexpr const char DATA_FIELD_NAME_METER_PIR_KBPS[]  = "$METER_SPEC_PIR_KBPS";
+constexpr const char DATA_FIELD_NAME_METER_CBS_KBITS[] = "$METER_SPEC_CBS_KBITS";
+constexpr const char DATA_FIELD_NAME_METER_PBS_KBITS[] = "$METER_SPEC_PBS_KBITS";
+
 constexpr const char SYNAPSE_TABLE_MAP_ACTION[] = "populate";
 
 } // namespace sycon

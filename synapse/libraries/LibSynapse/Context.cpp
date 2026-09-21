@@ -60,12 +60,23 @@ std::optional<expiration_data_t> build_expiration_data(const BDD *bdd) {
     const Call *call_node = dynamic_cast<const Call *>(node);
     const call_t &call    = call_node->get_call();
 
-    if (call.function_name != "expire_items_single_map") {
+    // expire_items_single_map encodes the window as `now - exp`, so it has to be read back out of
+    // the subtraction; tb_expire takes it as an argument and it is already the value we want.
+    const bool is_map_expire = call.function_name == "expire_items_single_map";
+    const bool is_tb_expire  = call.function_name == "tb_expire";
+
+    if (!is_map_expire && !is_tb_expire) {
       return BDDNodeVisitAction::Continue;
     }
 
-    klee::ref<klee::Expr> time = call.args.at("time").expr;
-    const time_ns_t exp_time   = exp_time_from_expire_items_single_map_time(bdd, time);
+    time_ns_t exp_time;
+    if (is_map_expire) {
+      klee::ref<klee::Expr> time = call.args.at("time").expr;
+      exp_time                   = exp_time_from_expire_items_single_map_time(bdd, time);
+    } else {
+      klee::ref<klee::Expr> expiration_time = call.args.at("expiration_time").expr;
+      exp_time                              = (time_ns_t)solver_toolbox.value_from_expr(expiration_time);
+    }
 
     const symbol_t number_of_freed_flows = call_node->get_local_symbol("number_of_freed_flows");
 

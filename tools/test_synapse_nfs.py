@@ -59,13 +59,14 @@ class NF:
     env: dict[str, str]
 
 
-# The NFs with a test. echo, fwd and pol have none.
+# The NFs with a test. echo and fwd have none.
 NFS = {
     "cl": NF("cl", {}),
     "fw": NF("fw", {}),
     "nat": NF("nat", {}),
     "kvs": NF("kvs", {}),
     "psd": NF("psd", {}),
+    "pol": NF("pol", {}),
     "hyperloglog": NF("hyperloglog", {}),
     # The synthesized SmartCookie keeps the server on device 0, front panel port 1
     # (configs/tofino2-smartcookie.toml); the test's default is the hand-written program's layout.

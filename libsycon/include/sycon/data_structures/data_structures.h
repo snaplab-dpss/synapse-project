@@ -13,3 +13,4 @@
 #include "bloom_filter.h"
 #include "fcfs_cached_table.h"
 #include "fcfs_cached_set.h"
+#include "meter.h"

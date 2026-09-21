@@ -80,7 +80,11 @@ std::vector<table_action_t> build_actions(const bfrt::BfRtTable *table) {
       bf_status = table->dataFieldNameGet(data_id, action_id, &data_name);
       ASSERT_BF_STATUS(bf_status);
 
-      if (data_name == DATA_FIELD_NAME_ENTRY_TTL || data_name == DATA_FIELD_NAME_ENTRY_HIT_STATE) {
+      // Not parameters of the action: BF-RT reports them alongside, and they are written by the
+      // operations that own them (the entry timeout, and a direct meter's rate and burst).
+      if (data_name == DATA_FIELD_NAME_ENTRY_TTL || data_name == DATA_FIELD_NAME_ENTRY_HIT_STATE || data_name == DATA_FIELD_NAME_METER_CIR_KBPS ||
+          data_name == DATA_FIELD_NAME_METER_PIR_KBPS || data_name == DATA_FIELD_NAME_METER_CBS_KBITS ||
+          data_name == DATA_FIELD_NAME_METER_PBS_KBITS) {
         continue;
       }
 
@@ -576,6 +580,42 @@ void Table::add_entry(const buffer_t &k, const std::string &action_name, const s
 
   set_key(k);
   set_data(action_name, params);
+
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
+  bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
+  ASSERT_BF_STATUS(bf_status);
+}
+
+void Table::add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params, const meter_spec_t &meter_spec) {
+  bf_status_t bf_status;
+
+  set_key(k);
+  set_data(action_name, params);
+
+  // Committed and peak are programmed identically: two colour policing, so a packet is either
+  // within the rate (green) or over it (red), never yellow. The hardware stores these in a
+  // float-like format, so what reads back is close to, not exactly, what was written.
+  const u64 rate_kbps   = meter_spec.rate * 8 / 1000;
+  const u64 burst_kbits = meter_spec.burst * 8 / 1000;
+
+  const std::pair<const char *, u64> spec_fields[] = {
+      {DATA_FIELD_NAME_METER_CIR_KBPS, rate_kbps},
+      {DATA_FIELD_NAME_METER_PIR_KBPS, rate_kbps},
+      {DATA_FIELD_NAME_METER_CBS_KBITS, burst_kbits},
+      {DATA_FIELD_NAME_METER_PBS_KBITS, burst_kbits},
+  };
+
+  for (const auto &[field_name, value] : spec_fields) {
+    bf_rt_id_t field_id;
+    bf_status = table->dataFieldIdGet(field_name, &field_id);
+    ASSERT_BF_STATUS(bf_status);
+
+    bf_status = data->setValue(field_id, value);
+    ASSERT_BF_STATUS(bf_status);
+  }
 
   uint64_t flags;
   BF_RT_FLAG_INIT(flags);
