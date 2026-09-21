@@ -4431,6 +4431,17 @@ void TofinoSynthesizer::synthesize() {
     leave.dec();
     leave.indent();
     leave << "}\n";
+    // The dual: a packet that stays drops the cpu header. One the controller declined comes back
+    // carrying it, and recirculating with it still valid puts it ahead of the recirculation
+    // header, which is the only one parse_recirc reads -- every byte after it lands wrong.
+    leave.indent();
+    leave << "if (meta.leaving == 0) {\n";
+    leave.inc();
+    leave.indent();
+    leave << "hdr.cpu.setInvalid();\n";
+    leave.dec();
+    leave.indent();
+    leave << "}\n";
     if (has_state) {
       // The state header travels to the controller behind the cpu header, so only a packet
       // leaving the switch drops it.

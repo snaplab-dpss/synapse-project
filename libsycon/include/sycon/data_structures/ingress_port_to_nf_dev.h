@@ -36,6 +36,16 @@ public:
     Table::add_entry(key, set_ingress_dev_from_recirculation.name, {});
   }
 
+  // A packet we hand back for re-execution returns on the CPU port, which is no device's: it
+  // carries where it came from in the cpu header, and this entry is what reads it back.
+  void add_cpu_entry(u16 ingress_port) {
+    buffer_t key(2);
+    key.set(0, 2, ingress_port);
+
+    const table_action_t set_ingress_dev_from_cpu = get_action("Ingress.set_ingress_dev_from_cpu");
+    Table::add_entry(key, set_ingress_dev_from_cpu.name, {});
+  }
+
   u16 get_nf_dev(u16 ingress_port) const {
     auto it = port_to_nf_dev.find(ingress_port);
     if (it == port_to_nf_dev.end()) {

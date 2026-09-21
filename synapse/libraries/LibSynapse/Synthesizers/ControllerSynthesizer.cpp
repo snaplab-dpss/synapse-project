@@ -864,6 +864,8 @@ void ControllerSynthesizer::synthesize_nf_init() {
     nf_init << recirc_port.dev_port;
     nf_init << ");\n";
   }
+  nf_init.indent();
+  nf_init << "state->ingress_port_to_nf_dev.add_cpu_entry(asic_get_cpu_port());\n";
   nf_init << "\n";
   nf_init.indent();
   nf_init << "state->forwarding_tbl.add_fwd_to_cpu_entry();\n";

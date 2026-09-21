@@ -17,6 +17,9 @@ std::unique_ptr<Port_Stat> port_stat;
 std::unique_ptr<Ports> ports;
 
 u16 asic_get_dev_port(u16 front_panel_port) { return ports->get_dev_port(front_panel_port, DEFAULT_PORT_LANE); }
+// The port the data plane forwards to as CPU_PCIE_PORT, and the one a packet the controller sends
+// back arrives on.
+u16 asic_get_cpu_port() { return bf_pcie_cpu_port_get(cfg.dev_tgt.dev_id); }
 u16 asic_get_front_panel_port_from_dev_port(u16 dev_port) { return ports->get_front_panel_port(dev_port); }
 u64 asic_get_port_rx(u16 dev_port) { return port_stat->get_port_rx(dev_port, true); }
 u64 asic_get_port_tx(u16 dev_port) { return port_stat->get_port_tx(dev_port, true); }

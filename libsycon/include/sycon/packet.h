@@ -12,6 +12,10 @@ struct cpu_hdr_t {
   u16 code_path;
   u16 egress_dev;
   u8 trigger_dataplane_execution;
+  // Where the packet came in. The data plane fills them so that a packet handed back for
+  // re-execution can recover them: it returns on the CPU port, which maps to no device.
+  u16 ingress_dev;
+  u16 ingress_port;
 } __attribute__((packed));
 
 struct eth_hdr_t {
