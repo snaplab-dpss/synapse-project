@@ -4812,6 +4812,11 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
     cpu_hdr_vars.push(cpu_var);
 
+    // Only the word's last bit is written below; the rest is @padding (handoff_layout).
+    if (cpu_var.is_bool()) {
+      handoff_layout.bool_symbols.insert(symbol.name);
+    }
+
     // A sliced write cannot go through the hash unit, so it stays a plain copy.
     const bool sliced = symbol.name == "next_time";
     // Every computed value, not just the ones a rotate cut directly. The controller header is

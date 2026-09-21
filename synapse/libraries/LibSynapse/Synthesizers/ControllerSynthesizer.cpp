@@ -2565,6 +2565,12 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
     } break;
     }
 
+    // The data plane wrote one bit of this word and left the rest to whatever shared its
+    // containers (handoff_layout).
+    if (handoff_layout.bool_symbols.contains(var.name)) {
+      cpu_hdr_extra_var.name = "(" + cpu_hdr_extra_var.name + " & 1)";
+    }
+
     if (!skip_alloc) {
       vars.insert_back(cpu_hdr_extra_var);
     }

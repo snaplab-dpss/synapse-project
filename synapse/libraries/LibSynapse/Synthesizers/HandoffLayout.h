@@ -4,6 +4,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -21,6 +22,11 @@ struct handoff_layout_t {
   bool ships_time = false;
   std::vector<std::pair<std::string, unsigned>> state_words;                                  // (word, width in bits)
   std::unordered_map<ep_node_id_t, std::unordered_map<std::string, std::string>> symbol_word; // hand-off -> symbol -> word
+  // Symbols the data plane ships as a P4 bool: the word holds one meaningful bit, its least
+  // significant, and @padding above it. bf-p4c overlays that padding with fields of headers it
+  // believes cannot be live at the same time, so on a recirculated packet the word reaches the
+  // controller with those bits set. The controller reads the whole word, so it has to drop them.
+  std::unordered_set<std::string> bool_symbols;
 };
 
 } // namespace LibSynapse
