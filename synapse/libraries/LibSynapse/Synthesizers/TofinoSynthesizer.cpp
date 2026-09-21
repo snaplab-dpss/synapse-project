@@ -4347,9 +4347,8 @@ void TofinoSynthesizer::synthesize() {
     to_egress_init << "meta.to_egress = 0;\n";
 
     coder_t &eg_parser = code_template.get(MARKER_EGRESS_PARSER_START);
-    // The crossing always recirculates -- the egress cannot choose a port -- so the ingress runs
-    // build_recirc_hdr on this path and its deparser emits hdr.recirc, which precedes
-    // egress_state in the header struct. Without extracting it here the egress parser reads
+    // hdr.recirc precedes egress_state in the header struct, and visit(SendToEgress) sets it valid
+    // so that every crossing carries it. Without extracting it here the egress parser reads
     // egress_state out of the recirculation header's bytes, hdr.recirc stays invalid in egress,
     // and the egress's writes to it are dead: bf-p4c then eliminates the whole egress compute
     // chain, which is how a plan that discards half its work looked like it fit.
@@ -5037,6 +5036,13 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   egress_code_path_of[ep_node]       = egress_code_path;
   ingress_apply.indent();
   ingress_apply << "meta.to_egress = 1;\n";
+  // The egress parser extracts the recirculation header ahead of the state one, so the crossing
+  // has to carry it whether or not this pass came from a recirculation -- otherwise the egress
+  // reads the state header out of the packet's own bytes. Where the packet did come from one,
+  // this keeps what that pass put there: the egress never reads these fields, and it drops the
+  // header before the packet leaves, so they cost nothing on the wire.
+  ingress_apply.indent();
+  ingress_apply << "hdr.recirc.setValid();\n";
   ingress_apply.indent();
   ingress_apply << "hdr.egress_state.setValid();\n";
   ingress_apply.indent();
