@@ -105,19 +105,6 @@ void apply_all_candidates(const BDD *bdd, bdd_node_id_t anchor_id) {
   }
 }
 
-void estimate(const BDD *bdd) {
-  auto start = std::chrono::steady_clock::now();
-
-  double approximation = estimate_reorder(bdd);
-
-  auto end             = std::chrono::steady_clock::now();
-  auto elapsed         = end - start;
-  auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
-
-  std::cerr << "Approximately " << approximation << " BDDs generated\n";
-  std::cerr << "Elapsed: " << elapsed_seconds << " seconds\n";
-}
-
 int main(int argc, char **argv) {
   CLI::App app{"BDD reorder"};
 

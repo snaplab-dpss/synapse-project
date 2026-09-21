@@ -958,64 +958,6 @@ void pull_candidate(BDD *bdd, const mutable_vector_t &anchor, BDDNode *candidate
   }
 }
 
-double estimate_reorder(const BDD *bdd, const BDDNode *anchor) {
-  static std::unordered_map<std::string, double> cache;
-  static double total_max = 0;
-
-  if (!anchor) {
-    return 0;
-  }
-
-  double total     = 0;
-  std::string hash = anchor->hash(true);
-
-  if (cache.find(hash) != cache.end()) {
-    return cache[hash];
-  }
-
-  if (anchor->get_type() == BDDNodeType::Branch) {
-    const Branch *branch = dynamic_cast<const Branch *>(anchor);
-
-    double lhs = estimate_reorder(bdd, branch->get_on_true());
-    double rhs = estimate_reorder(bdd, branch->get_on_false());
-
-    if (lhs == 0 || rhs == 0) {
-      total += lhs + rhs;
-    } else {
-      total += lhs * rhs;
-    }
-
-  } else {
-    total += estimate_reorder(bdd, anchor->get_next());
-  }
-
-  fprintf(stderr, "Total ~ %.2e\r", total_max);
-
-  std::vector<reordered_bdd_t> bdds = reorder(bdd, anchor->get_id(), false);
-  total += bdds.size();
-
-  fprintf(stderr, "Total ~ %.2e\r", total_max);
-
-  for (const reordered_bdd_t &reordered_bdd : bdds) {
-    bdd_node_id_t anchor_id = reordered_bdd.op.anchor_info.id;
-    bool anchor_direction   = reordered_bdd.op.anchor_info.direction;
-
-    const BDDNode *anchor_node = reordered_bdd.bdd->get_node_by_id(anchor_id);
-    const BDDNode *anchor_next = get_vector_next({anchor_node, anchor_direction});
-
-    if (!anchor_next)
-      continue;
-
-    total += estimate_reorder(reordered_bdd.bdd.get(), anchor_next);
-  }
-
-  fprintf(stderr, "Total ~ %.2e\r", total_max);
-
-  cache[hash] = total;
-  total_max   = std::max(total_max, total);
-
-  return total;
-}
 } // namespace
 
 candidate_info_t concretize_reordering_candidate(const BDD *bdd, const vector_t &anchor, bdd_node_id_t proposed_candidate_id,
@@ -1317,13 +1259,6 @@ reordered_bdd_t try_reorder(const BDD *bdd, const anchor_info_t &anchor_info, bd
   };
 
   return result;
-}
-
-double estimate_reorder(const BDD *bdd) {
-  const BDDNode *root = bdd->get_root();
-  double estimate     = 1 + estimate_reorder(bdd, root);
-  std::cerr << "\n";
-  return estimate;
 }
 
 std::ostream &operator<<(std::ostream &os, const ReorderingCandidateStatus &status) {
