@@ -161,6 +161,7 @@ private:
   Transpiler transpiler;
 
   void synthesize_nf_init();
+  void synthesize_cpu_token_bucket_sweep();
   void synthesize_nf_process();
   void synthesize_state_member_init_list();
 

@@ -827,6 +827,7 @@ void ControllerSynthesizer::synthesize() {
     prologue << "now = ((time_ns_t)bswap32(cpu_hdr_extra->time)) << 16;\n";
   }
 
+  synthesize_cpu_token_bucket_sweep();
   synthesize_nf_process();
   synthesize_state_member_init_list();
 
@@ -848,6 +849,54 @@ void ControllerSynthesizer::synthesize() {
   std::ofstream ofs(out_file);
   ofs << code_template.dump();
   ofs.close();
+}
+
+// A token bucket the controller keeps is libnf's own, and nothing retires its entries: the data
+// plane ignores tb_expire because a Tofino meter expires with the table entry it rides on, which
+// is exactly what a controller-side bucket does not have. So the controller sweeps it itself,
+// where the C does -- at the top of every packet it handles. Every packet reaches the controller
+// when the bucket lives there, so this matches the C; were only some to reach it, buckets would
+// merely outlive their window a little, the same approximation a table's idle timeout already
+// makes. Skipped when the search placed Controller::TokenBucketExpire, which sweeps it inline.
+void ControllerSynthesizer::synthesize_cpu_token_bucket_sweep() {
+  const EPMeta &meta = target_ep->get_meta();
+  if (meta.modules_counter.contains(ModuleType::Controller_TokenBucketExpire)) {
+    return;
+  }
+
+  const BDD *bdd     = target_ep->get_bdd();
+  const Context &ctx = target_ep->get_ctx();
+
+  std::vector<addr_t> swept;
+  bdd->get_root()->visit_nodes([&ctx, &swept](const BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const call_t &call = dynamic_cast<const Call *>(node)->get_call();
+    if (call.function_name != "tb_expire") {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const addr_t tb_addr = LibCore::expr_addr_to_obj_addr(call.args.at("tb").expr);
+    if (ctx.check_ds_impl(tb_addr, DSImpl::Controller_TokenBucket)) {
+      swept.push_back(tb_addr);
+    }
+
+    return BDDNodeVisitAction::Continue;
+  });
+
+  if (swept.empty()) {
+    return;
+  }
+
+  const time_ns_t expiration_time = get_expiration_time(ctx);
+
+  coder_t &prologue = get(MARKER_NF_PROCESS_PROLOGUE);
+  for (const addr_t tb_addr : swept) {
+    prologue.indent();
+    prologue << "libnf::tb_expire(state->cpu_tb_" << std::to_string(tb_addr) << ", now, " << expiration_time << "LL);\n";
+  }
 }
 
 void ControllerSynthesizer::synthesize_nf_init() {
@@ -2259,38 +2308,81 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+// The token bucket kept by the controller itself: libnf's, the very structure the NF's C code
+// runs, rather than a hardware meter. Every one of these is the BDD call it came from.
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *node) {
-  coder_t &coder = get_current_coder();
-  coder.indent();
-  panic("TODO: Controller::TokenBucketAllocate");
+  const code_t name = "cpu_tb_" + std::to_string(node->get_tb_addr());
+
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+  state_fields.indent();
+  state_fields << "libnf::TokenBucket *" << name << " = nullptr;\n";
+
+  coder_t &nf_init = get(MARKER_NF_INIT);
+  nf_init.indent();
+  nf_init << "libnf::tb_allocate(" << transpiler.transpile(node->get_capacity()) << ", " << transpiler.transpile(node->get_rate()) << ", "
+          << transpiler.transpile(node->get_burst()) << ", " << transpiler.transpile(node->get_key_size()) << ", &state->" << name << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketIsTracing *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name          = "cpu_tb_" + std::to_string(node->get_tb_addr());
+  const var_t key_var        = transpile_buffer_decl_and_set(coder, "tb_key", node->get_key(), true);
+  const var_t index_var      = alloc_var("tb_index", node->get_index_out(), {}, NO_OPTION);
+  const var_t is_tracing_var = alloc_var("tb_is_tracing", node->get_is_tracing(), {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::TokenBucketIsTracing");
+  coder << "int " << index_var.name << ";\n";
+  coder.indent();
+  coder << "int " << is_tracing_var.name << " = libnf::tb_is_tracing(state->" << name << ", " << key_var.name << ".data, &" << index_var.name
+        << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketTrace *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name       = "cpu_tb_" + std::to_string(node->get_tb_addr());
+  const var_t key_var     = transpile_buffer_decl_and_set(coder, "tb_key", node->get_key(), true);
+  const var_t index_var   = alloc_var("tb_index", node->get_index_out(), {}, NO_OPTION);
+  const var_t success_var = alloc_var("tb_tracing", node->get_successfuly_tracing(), {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::TokenBucketTrace");
+  coder << "int " << index_var.name << ";\n";
+  coder.indent();
+  coder << "int " << success_var.name << " = libnf::tb_trace(state->" << name << ", " << key_var.name << ".data, "
+        << transpiler.transpile(node->get_pkt_len()) << ", " << transpiler.transpile(node->get_time()) << ", &" << index_var.name << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketUpdateAndCheck *node) {
   coder_t &coder = get_current_coder();
+
+  const code_t name    = "cpu_tb_" + std::to_string(node->get_tb_addr());
+  const var_t pass_var = alloc_var("tb_pass", node->get_pass(), {}, NO_OPTION);
+
   coder.indent();
-  panic("TODO: Controller::TokenBucketUpdateAndCheck");
+  coder << "int " << pass_var.name << " = libnf::tb_update_and_check(state->" << name << ", " << transpiler.transpile(node->get_index()) << ", "
+        << transpiler.transpile(node->get_pkt_len()) << ", " << transpiler.transpile(node->get_time()) << ");\n";
+
   return EPVisitor::Action::doChildren;
 }
 
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketExpire *node) {
   coder_t &coder = get_current_coder();
+
+  // The NF passes its expiration time as an argument, the same one the other flow tables retire
+  // on; the count of what it freed is not read further down.
+  const code_t name               = "cpu_tb_" + std::to_string(node->get_tb_addr());
+  const time_ns_t expiration_time = get_expiration_time(ep->get_ctx());
+
   coder.indent();
-  panic("TODO: Controller::TokenBucketExpire");
+  coder << "libnf::tb_expire(state->" << name << ", " << transpiler.transpile(node->get_time()) << ", " << expiration_time << "LL);\n";
+
   return EPVisitor::Action::doChildren;
 }
 
