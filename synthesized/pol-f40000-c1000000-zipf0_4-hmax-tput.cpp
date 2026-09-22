@@ -569,8 +569,6 @@ void sycon::nf_user_signal_handler() {
 
 struct cpu_hdr_extra_t {
   u32 time; // The switch's clock at the hand-off, ingress_mac_tstamp[47:16].
-  u32 is_tracing__140;
-  u32 index_out__140;
   u32 DEVICE;
 
 } __attribute__((packed));
@@ -593,83 +591,91 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
 
   if (bswap16(cpu_hdr->code_path) == 0) {
-    // EP node  2166
+    // EP node  2173
     // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
     u8* hdr_0 = packet_consume(pkt, 14);
-    // EP node  2167
+    // EP node  2174
     // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
     u8* hdr_1 = packet_consume(pkt, 20);
-    // EP node  2168
+    // EP node  2175
     // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
     u8* hdr_2 = packet_consume(pkt, 4);
-    // EP node  2169
+    // EP node  2176
     // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
     buffer_t value_0;
     state->vector_table_1074054008.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 0xffffull), value_0);
-    // EP node  2170
+    // EP node  2177
     // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
     if ((0) == ((u32)value_0.get(0, 4))) {
-      // EP node  2171
+      // EP node  2178
       // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
-      // EP node  2174
+      // EP node  2181
       // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
-      if ((0) == ((bswap32(cpu_hdr_extra->is_tracing__140) & 1))) {
-        // EP node  2175
+      buffer_t tb_140_key_0(4);
+      tb_140_key_0[0] = *(u8*)(hdr_1 + 16);
+      tb_140_key_0[1] = *(u8*)(hdr_1 + 17);
+      tb_140_key_0[2] = *(u8*)(hdr_1 + 18);
+      tb_140_key_0[3] = *(u8*)(hdr_1 + 19);
+      bool is_tracing_0 = state->tb_140.is_tracking(tb_140_key_0);
+      // EP node  2182
+      // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
+      if ((0) == (is_tracing_0)) {
+        // EP node  2183
         // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
-        // EP node  5348
+        // EP node  5419
         // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
-        buffer_t tb_140_key_0(4);
-        tb_140_key_0[0] = *(u8*)(hdr_1 + 16);
-        tb_140_key_0[1] = *(u8*)(hdr_1 + 17);
-        tb_140_key_0[2] = *(u8*)(hdr_1 + 18);
-        tb_140_key_0[3] = *(u8*)(hdr_1 + 19);
-        bool success_0 = state->tb_140.trace(tb_140_key_0);
-        // EP node  5412
+        buffer_t tb_140_key_1(4);
+        tb_140_key_1[0] = *(u8*)(hdr_1 + 16);
+        tb_140_key_1[1] = *(u8*)(hdr_1 + 17);
+        tb_140_key_1[2] = *(u8*)(hdr_1 + 18);
+        tb_140_key_1[3] = *(u8*)(hdr_1 + 19);
+        bool success_0 = state->tb_140.trace(tb_140_key_1);
+        // EP node  5484
         // BDD node 143:if ((Eq (w32 0) (ReadLSB w32 (w32 0) successfuly_tracing__142))
         if ((0) == (success_0)) {
-          // EP node  5413
+          // EP node  5485
           // BDD node 143:if ((Eq (w32 0) (ReadLSB w32 (w32 0) successfuly_tracing__142))
-          // EP node  6263
+          // EP node  6347
           // BDD node 147:DROP
           result.forward = false;
         } else {
-          // EP node  5414
+          // EP node  5486
           // BDD node 143:if ((Eq (w32 0) (ReadLSB w32 (w32 0) successfuly_tracing__142))
-          // EP node  5479
+          // EP node  5552
           // BDD node 148:vector_borrow(vector:(w64 1074071224), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), val_out:(w64 1074186456)[ -> (w64 1074085120)])
           buffer_t value_1;
           state->vector_table_1074071224.read((u16)(bswap32(cpu_hdr_extra->DEVICE) & 0xffffull), value_1);
-          // EP node  5547
+          // EP node  5621
           // BDD node 149:vector_return(vector:(w64 1074071224), index:(ZExt w32 (ReadLSB w16 (w32 0) DEVICE)), value:(w64 1074085120)[(ReadLSB w16 (w32 0) vector_data__148)])
-          // EP node  5823
+          // EP node  5901
           // BDD node 153:if ((Eq false (Eq (ReadLSB w16 (w32 0) DEVICE) (ReadLSB w16 (w32 0) vector_data__148)))
           if ((bswap32(cpu_hdr_extra->DEVICE) & 0xffffull) != ((u16)value_1.get(0, 2))) {
-            // EP node  5824
+            // EP node  5902
             // BDD node 153:if ((Eq false (Eq (ReadLSB w16 (w32 0) DEVICE) (ReadLSB w16 (w32 0) vector_data__148)))
-            // EP node  5967
+            // EP node  6047
             // BDD node 154:FORWARD
             cpu_hdr->egress_dev = bswap16((u16)value_1.get(0, 2));
           } else {
-            // EP node  5825
+            // EP node  5903
             // BDD node 153:if ((Eq false (Eq (ReadLSB w16 (w32 0) DEVICE) (ReadLSB w16 (w32 0) vector_data__148)))
-            // EP node  6041
+            // EP node  6122
             // BDD node 155:DROP
             result.forward = false;
           }
         }
       } else {
-        // EP node  2176
+        // EP node  2184
         // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
-        // EP node  2177
+        // EP node  2185
         // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
         result.abort_transaction = true;
         cpu_hdr->trigger_dataplane_execution = 1;
         return result;
       }
     } else {
-      // EP node  2172
+      // EP node  2179
       // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
-      // EP node  2173
+      // EP node  2180
       // BDD node 142:tb_trace(tb:(w64 1074041392), key:(w64 1073759344)[(ReadLSB w32 (w32 272) packet_chunks) -> (ReadLSB w32 (w32 272) packet_chunks)], pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))), time:(ReadLSB w64 (w32 0) next_time), index_out:(w64 1074182712)[(ReadLSB w32 (w32 0) index_out__140) -> (ReadLSB w32 (w32 0) index_out__142)])
       result.abort_transaction = true;
       cpu_hdr->trigger_dataplane_execution = 1;
