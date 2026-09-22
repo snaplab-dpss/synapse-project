@@ -91,6 +91,11 @@ header hdr3_h {
   bit<8> data3;
   bit<16> data4;
 }
+header hh_table_1073923096_digest_hdr {
+  bit<32> data0;
+  bit<32> data1;
+}
+
 
 
 struct synapse_ingress_headers_t {
@@ -114,6 +119,11 @@ struct synapse_ingress_metadata_t {
   // dropped on the strength of this, after the table and outside its actions, because a packet
   // that still has the egress ahead of it must keep them: the egress parser extracts them.
   bit<2> leaving;
+  bit<32> key_32b_0;
+  bit<32> hh_table_1073923096_cms_min;
+  bit<32> regexec_vector_register_1073954136_0_write_897_index0;
+  bit<32> vector_reg_value0;
+  bit<32> regexec_vector_register_1073954136_0_read_896_index0;
 
 }
 
@@ -272,318 +282,6 @@ parser IngressParser(
 
 }
 
-// Entry Timeout Expiration (units of 65536 ns).
-#define CUCKOO_ENTRY_TIMEOUT 16384 // 1 s
-#define CUCKOO_MAX_LOOPS 4
-
-control CuckooHashTable(in bit<32> now, inout cuckoo_h cuckoo, out bool success) {
-	// One CRC polynomial per table: a single one with different salts would put every key's
-	// second position at a fixed XOR offset of its first, so no collision could be displaced.
-	CRCPolynomial<bit<32>>(32w0x04c11db7, true, false, false, 32w0xffffffff, 32w0xffffffff) cuckoo_poly_1;
-	CRCPolynomial<bit<32>>(32w0x7b17a39f, true, false, false, 32w0xffffffff, 32w0xffffffff) cuckoo_poly_2;
-	Hash<bit<12>>(HashAlgorithm_t.CUSTOM, cuckoo_poly_1) cuckoo_hash_func_1;
-	Hash<bit<12>>(HashAlgorithm_t.CUSTOM, cuckoo_poly_2) cuckoo_hash_func_2;
-	Hash<bit<12>>(HashAlgorithm_t.CUSTOM, cuckoo_poly_2) cuckoo_hash_func_2_r;
-
-	bit<12> cuckoo_hash_1 = 0;
-	bit<12> cuckoo_hash_2 = 0;
-	bit<12> cuckoo_hash_2_r = 0;
-
-	// The entry displaced out of table 1, kept in its own variables: the table-1 swap overwrites
-	// cuckoo.key/.val/.ts, and reading the displaced entry back out of them is not reliable.
-	bit<32> evicted_1_key = 0;
-	bit<32> evicted_1_val = 0;
-	bit<32> evicted_1_ts = 0;
-
-	// What a table-2 register action writes: the incoming entry when looking up or updating, the
-	// displaced entry when swapping. One variable per register, because the ALUs of a register all
-	// source their operand from the same place on the input crossbar.
-	bit<32> v_2_in = 0;
-	bit<32> ts_2_in = 0;
-
-	action calc_cuckoo_hash_1() { cuckoo_hash_1	= cuckoo_hash_func_1.get({cuckoo.key}); }
-	action calc_cuckoo_hash_2() { cuckoo_hash_2	= cuckoo_hash_func_2.get({cuckoo.key}); }
-	action calc_cuckoo_hash_2_r() { cuckoo_hash_2_r = cuckoo_hash_func_2_r.get({evicted_1_key}); }
-
-	Register<bit<32>, bit<12>>(4096, 0) reg_k_1;
-	Register<bit<32>, bit<12>>(4096, 0) reg_k_2;
-
-	Register<bit<32>, bit<12>>(4096, 0) reg_v_1;
-	Register<bit<32>, bit<12>>(4096, 0) reg_v_2;
-
-	Register<bit<32>, bit<12>>(4096, 0) reg_ts_1;
-	Register<bit<32>, bit<12>>(4096, 0) reg_ts_2;
-
-	RegisterAction<bit<32>, bit<12>, bool>(reg_k_1) k_1_read = {
-		void apply(inout bit<32> val, out bool match) {
-			if (val == cuckoo.key) {
-				match = true;
-			} else {
-				match = false;
-			}
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bool>(reg_k_2) k_2_read = {
-		void apply(inout bit<32> val, out bool match) {
-			if (val == cuckoo.key) {
-				match = true;
-			} else {
-				match = false;
-			}
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bit<32>>(reg_k_1) k_1_swap = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			res = val;
-			val = cuckoo.key;
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bit<32>>(reg_k_2) k_2_swap = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			res = val;
-			val = evicted_1_key;
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bit<32>>(reg_v_1) v_1_read_or_update = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			if (cuckoo.op == cuckoo_ops_t.UPDATE) {
-				val = cuckoo.val;
-			}
-			res = val;
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bit<32>>(reg_v_2) v_2_read_or_update = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			if (cuckoo.op == cuckoo_ops_t.UPDATE) {
-				val = v_2_in;
-			}
-			res = val;
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bit<32>>(reg_v_1) v_1_swap = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			res = val;
-			val = cuckoo.val;
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bit<32>>(reg_v_2) v_2_swap = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			res = val;
-			val = v_2_in;
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bool>(reg_ts_1) ts_1_query_and_refresh = {
-		void apply(inout bit<32> val, out bool active) {
-			bit<32> diff = cuckoo.ts - val;
-			if (diff > CUCKOO_ENTRY_TIMEOUT) {
-				active = false;
-				val = 0;
-			} else {
-				active = true;
-				val = cuckoo.ts;
-			}
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bool>(reg_ts_2) ts_2_query_and_refresh = {
-		void apply(inout bit<32> val, out bool active) {
-			bit<32> diff = ts_2_in - val;
-			if (diff > CUCKOO_ENTRY_TIMEOUT) {
-				active = false;
-				val = 0;
-			} else {
-				active = true;
-				val = ts_2_in;
-			}
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bit<32>>(reg_ts_1) ts_1_swap = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			res = val;
-			val = cuckoo.ts;
-		}
-	};
-
-	RegisterAction<bit<32>, bit<12>, bit<32>>(reg_ts_2) ts_2_swap = {
-		void apply(inout bit<32> val, out bit<32> res) {
-			res = val;
-			val = ts_2_in;
-		}
-	};
-
-	action ts_diff(in bit<32> ts, out bit<32> diff) {
-		diff = now - ts;
-	}
-
-	apply {
-		cuckoo.old_op = cuckoo.op;
-		cuckoo.old_key = cuckoo.key;
-
-		calc_cuckoo_hash_1();
-		calc_cuckoo_hash_2();
-
-		v_2_in = cuckoo.val;
-		ts_2_in = cuckoo.ts;
-
-		success = false;
-		if (cuckoo.op == cuckoo_ops_t.LOOKUP || cuckoo.op == cuckoo_ops_t.UPDATE) {
-			if (k_1_read.execute(cuckoo_hash_1)) {
-				if (ts_1_query_and_refresh.execute(cuckoo_hash_1)) {
-					cuckoo.val = v_1_read_or_update.execute(cuckoo_hash_1);
-					cuckoo.op = cuckoo_ops_t.DONE;
-					success = true;
-				}
-			}
-			if (!success) {
-				if (k_2_read.execute(cuckoo_hash_2)) {
-					if (ts_2_query_and_refresh.execute(cuckoo_hash_2)) {
-						cuckoo.val = v_2_read_or_update.execute(cuckoo_hash_2);
-						cuckoo.op = cuckoo_ops_t.DONE;
-						success = true;
-					}
-				}
-			}
-		} else {
-			evicted_1_key = k_1_swap.execute(cuckoo_hash_1);
-			evicted_1_ts = ts_1_swap.execute(cuckoo_hash_1);
-			evicted_1_val = v_1_swap.execute(cuckoo_hash_1);
-
-			bit<32> ts_1_diff;
-			ts_diff(evicted_1_ts, ts_1_diff);
-
-			// Unconditional: the index is only used below, but predicating the hash on a value
-			// read out of a register makes what it hashes unreliable.
-			calc_cuckoo_hash_2_r();
-
-			if (ts_1_diff < CUCKOO_ENTRY_TIMEOUT) {
-				v_2_in = evicted_1_val;
-				ts_2_in = evicted_1_ts;
-
-				cuckoo.key = k_2_swap.execute(cuckoo_hash_2_r);
-				cuckoo.ts = ts_2_swap.execute(cuckoo_hash_2_r);
-				cuckoo.val = v_2_swap.execute(cuckoo_hash_2_r);
-
-				bit<32> ts_2_diff;
-				ts_diff(cuckoo.ts, ts_2_diff);
-
-				if (ts_2_diff < CUCKOO_ENTRY_TIMEOUT) {
-					cuckoo.op = cuckoo_ops_t.SWAP;
-				} else {
-					cuckoo.op = cuckoo_ops_t.DONE;
-					success = true;
-				}
-			} else {
-				cuckoo.op = cuckoo_ops_t.DONE;
-				success = true;
-			}
-		}
-	}
-}
-
-control CuckooHashBloomFilter(inout cuckoo_h cuckoo, out fwd_op_t fwd_op) {
-	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash_old_key;
-	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash_new_key;
-	Hash<bit<16>>(HashAlgorithm_t.CRC32) hash_old_key_2;
-
-	Register<bit<16>, bit<16>>(65536, 0) swap_transient;
-	Register<bit<16>, bit<16>>(65536, 0) swapped_transient;
-
-	bit<16> swapped_transient_val = 0;
-
-	RegisterAction<bit<16>, bit<16>, bool>(swap_transient) swap_transient_read = {
-		void apply(inout bit<16> val, out bool stable) {
-			if (val <= swapped_transient_val) {
-				stable = true;
-			} else {
-				stable = false;
-			}
-		}
-	};
-
-	RegisterAction<bit<16>, bit<16>, bool>(swap_transient) swap_transient_conditional_inc = {
-		void apply(inout bit<16> val, out bool new_insertion) {
-			if (val <= swapped_transient_val) {
-				val = swapped_transient_val |+| 1;
-				new_insertion = true;
-			} else {
-				new_insertion = false;
-			}
-		}
-	};
-
-	RegisterAction<bit<16>, bit<16>, bit<16>>(swap_transient) swap_transient_inc = {
-		void apply(inout bit<16> val) {
-			val = val |+| 1;
-		}
-	};
-
-	RegisterAction<bit<16>, bit<16>, bit<16>>(swapped_transient) swapped_transient_inc = {
-		void apply(inout bit<16> val) {
-			val = val |+| 1;
-		}
-	};
-
-	RegisterAction<bit<16>, bit<16>, bit<16>>(swapped_transient) swapped_transient_read = {
-		void apply(inout bit<16> val, out bit<16> res) {
-			res = val;
-		}
-	};
-
-	apply {
-		bit<16> old_key_hash = hash_old_key.get({cuckoo.old_key});
-		bit<16> old_key_hash_2 = hash_old_key_2.get({cuckoo.old_key});
-
-		if (cuckoo.op == cuckoo_ops_t.DONE) {
-			if (cuckoo.old_op == cuckoo_ops_t.INSERT || cuckoo.old_op == cuckoo_ops_t.SWAP) {
-				swapped_transient_inc.execute(old_key_hash);
-			}
-		} else if (cuckoo.op == cuckoo_ops_t.LOOKUP) {
-			swapped_transient_val = swapped_transient_read.execute(old_key_hash);
-			if (swap_transient_read.execute(old_key_hash)) {
-				// Cache miss.
-				cuckoo.op = cuckoo_ops_t.DONE;
-			}
-		} else if (cuckoo.op == cuckoo_ops_t.UPDATE) {
-			if (cuckoo.recirc_cntr >= CUCKOO_MAX_LOOPS) {
-				// Give up and send to KVS server.
-				swapped_transient_inc.execute(old_key_hash_2);
-				cuckoo.op = cuckoo_ops_t.DONE;
-			} else {
-				swapped_transient_val = swapped_transient_read.execute(old_key_hash_2);
-				bool new_insertion = swap_transient_conditional_inc.execute(old_key_hash_2);
-				if (new_insertion) {
-					cuckoo.op = cuckoo_ops_t.INSERT;
-					cuckoo.recirc_cntr = 0;
-				}
-			}
-		} else if (cuckoo.op == cuckoo_ops_t.SWAP) {
-			swapped_transient_inc.execute(old_key_hash_2);
-			if (cuckoo.recirc_cntr >= CUCKOO_MAX_LOOPS) {
-				cuckoo.op = cuckoo_ops_t.DONE;
-			} else {
-				swap_transient_inc.execute(hash_new_key.get({cuckoo.key}));
-			}
-		}
-
-		if (cuckoo.op != cuckoo_ops_t.DONE) {
-			if (cuckoo.recirc_cntr >= CUCKOO_MAX_LOOPS) {
-				cuckoo.op = cuckoo_ops_t.DONE;
-			} else {
-				fwd_op = fwd_op_t.RECIRCULATE;
-				cuckoo.recirc_cntr = cuckoo.recirc_cntr + 1;
-			}
-		}
-	}
-}
 
 
 control Ingress(
@@ -718,8 +416,145 @@ control Ingress(
 		hdr.cuckoo.val = val;
 	}
 
-  CuckooHashTable() cuckoo_hash_table;
-  CuckooHashBloomFilter() cuckoo_bloom_filter;
+  bit<32> hh_table_1073923096_table_13_get_value_param0 = 32w0;
+  action hh_table_1073923096_table_13_get_value(bit<32> _hh_table_1073923096_table_13_get_value_param0) {
+    hh_table_1073923096_table_13_get_value_param0 = _hh_table_1073923096_table_13_get_value_param0;
+  }
+
+  table hh_table_1073923096_table_13 {
+    key = {
+      meta.key_32b_0: exact;
+    }
+    actions = {
+      hh_table_1073923096_table_13_get_value;
+    }
+    size = 9103;
+    idle_timeout = true;
+  }
+
+  Register<bit<32>,_>(8192, 0) hh_table_1073923096_cached_counters;
+  RegisterAction<bit<32>, bit<32>, void>(hh_table_1073923096_cached_counters) hh_table_1073923096_cached_counters_inc_621 = {
+    void apply(inout bit<32> value) {
+      value = value + 1;
+    }
+  };
+
+  Register<bit<8>,_>(1, 0) hh_table_1073923096_packet_sampler;
+  RegisterAction<bit<8>, bit<1>, bit<8>>(hh_table_1073923096_packet_sampler) hh_table_1073923096_packet_sampler_sample_every_fourth_621 = {
+    void apply(inout bit<8> value, out bit<8> out_value) {
+      out_value = 0;
+      if (value < 3) {
+        value = value + 1;
+      } else {
+        value = 0;
+        out_value = 1;
+      }
+    }
+  };
+
+  Hash<bit<15>>(HashAlgorithm_t.CRC32) hh_table_1073923096_hash_calc_0;
+  CRCPolynomial<bit<32>>(32w0x7b17a39f, true, false, false, 32w0xffffffff, 32w0xffffffff) hh_table_1073923096_hash_calc_1_poly; // p1
+  Hash<bit<15>>(HashAlgorithm_t.CUSTOM, hh_table_1073923096_hash_calc_1_poly) hh_table_1073923096_hash_calc_1;
+  CRCPolynomial<bit<32>>(32w0x99f29aad, true, false, false, 32w0xffffffff, 32w0xffffffff) hh_table_1073923096_hash_calc_2_poly; // p2
+  Hash<bit<15>>(HashAlgorithm_t.CUSTOM, hh_table_1073923096_hash_calc_2_poly) hh_table_1073923096_hash_calc_2;
+  CRCPolynomial<bit<32>>(32w0x21bca2c3, true, false, false, 32w0xffffffff, 32w0xffffffff) hh_table_1073923096_hash_calc_3_poly; // p3
+  Hash<bit<15>>(HashAlgorithm_t.CUSTOM, hh_table_1073923096_hash_calc_3_poly) hh_table_1073923096_hash_calc_3;
+
+  Register<bit<32>,_>(32768, 0) hh_table_1073923096_cms_row_0;
+  RegisterAction<bit<32>, bit<15>, bit<32>>(hh_table_1073923096_cms_row_0) hh_table_1073923096_cms_row_0_inc_and_read_621 = {
+    void apply(inout bit<32> value, out bit<32> out_value) {
+      value = value + 1;
+      out_value = value;
+    }
+  };
+
+  Register<bit<32>,_>(32768, 0) hh_table_1073923096_cms_row_1;
+  RegisterAction<bit<32>, bit<15>, bit<32>>(hh_table_1073923096_cms_row_1) hh_table_1073923096_cms_row_1_inc_and_read_621 = {
+    void apply(inout bit<32> value, out bit<32> out_value) {
+      value = value + 1;
+      out_value = value;
+    }
+  };
+
+  Register<bit<32>,_>(32768, 0) hh_table_1073923096_cms_row_2;
+  RegisterAction<bit<32>, bit<15>, bit<32>>(hh_table_1073923096_cms_row_2) hh_table_1073923096_cms_row_2_inc_and_read_621 = {
+    void apply(inout bit<32> value, out bit<32> out_value) {
+      value = value + 1;
+      out_value = value;
+    }
+  };
+
+  Register<bit<32>,_>(32768, 0) hh_table_1073923096_cms_row_3;
+  RegisterAction<bit<32>, bit<15>, bit<32>>(hh_table_1073923096_cms_row_3) hh_table_1073923096_cms_row_3_inc_and_read_621 = {
+    void apply(inout bit<32> value, out bit<32> out_value) {
+      value = value + 1;
+      out_value = value;
+    }
+  };
+
+  Register<bit<32>,_>(1, 0) hh_table_1073923096_threshold;
+  bit<32> hh_table_1073923096_threshold_diff_621_cmp;
+  RegisterAction<bit<32>, bit<1>, bit<32>>(hh_table_1073923096_threshold) hh_table_1073923096_threshold_diff_621 = {
+    void apply(inout bit<32> value, out bit<32> out_value) {
+      out_value = hh_table_1073923096_threshold_diff_621_cmp - value;
+    }
+  };
+
+  bit<15> hh_table_1073923096_hash_calc_0_value;
+  action hh_table_1073923096_hash_calc_0_calc() {
+    hh_table_1073923096_hash_calc_0_value = hh_table_1073923096_hash_calc_0.get({
+      meta.key_32b_0
+      });
+  }
+  bit<15> hh_table_1073923096_hash_calc_1_value;
+  action hh_table_1073923096_hash_calc_1_calc() {
+    hh_table_1073923096_hash_calc_1_value = hh_table_1073923096_hash_calc_1.get({
+      meta.key_32b_0
+      });
+  }
+  bit<15> hh_table_1073923096_hash_calc_2_value;
+  action hh_table_1073923096_hash_calc_2_calc() {
+    hh_table_1073923096_hash_calc_2_value = hh_table_1073923096_hash_calc_2.get({
+      meta.key_32b_0
+      });
+  }
+  bit<15> hh_table_1073923096_hash_calc_3_value;
+  action hh_table_1073923096_hash_calc_3_calc() {
+    hh_table_1073923096_hash_calc_3_value = hh_table_1073923096_hash_calc_3.get({
+      meta.key_32b_0
+      });
+  }
+  bit<32> hh_table_1073923096_cms_row_0_value;
+  action hh_table_1073923096_cms_row_0_inc_and_read_621_execute() {
+    hh_table_1073923096_cms_row_0_value = hh_table_1073923096_cms_row_0_inc_and_read_621.execute(hh_table_1073923096_hash_calc_0_value);
+  }
+  bit<32> hh_table_1073923096_cms_row_1_value;
+  action hh_table_1073923096_cms_row_1_inc_and_read_621_execute() {
+    hh_table_1073923096_cms_row_1_value = hh_table_1073923096_cms_row_1_inc_and_read_621.execute(hh_table_1073923096_hash_calc_1_value);
+  }
+  bit<32> hh_table_1073923096_cms_row_2_value;
+  action hh_table_1073923096_cms_row_2_inc_and_read_621_execute() {
+    hh_table_1073923096_cms_row_2_value = hh_table_1073923096_cms_row_2_inc_and_read_621.execute(hh_table_1073923096_hash_calc_2_value);
+  }
+  bit<32> hh_table_1073923096_cms_row_3_value;
+  action hh_table_1073923096_cms_row_3_inc_and_read_621_execute() {
+    hh_table_1073923096_cms_row_3_value = hh_table_1073923096_cms_row_3_inc_and_read_621.execute(hh_table_1073923096_hash_calc_3_value);
+  }
+  action rewrite_18() {
+  }
+  action rewrite_33() {
+  }
+  Register<bit<32>,_>(8192, 0) vector_register_1073954136_0;
+
+  RegisterAction<bit<32>, bit<32>, void>(vector_register_1073954136_0) vector_register_1073954136_0_write_897 = {
+    void apply(inout bit<32> value) {
+      value = hdr.hdr3.data2;
+    }
+  };
+
+  action regexec_vector_register_1073954136_0_write_897() {
+    vector_register_1073954136_0_write_897.execute(meta.regexec_vector_register_1073954136_0_write_897_index0);
+  }
   action rewrite_42() {
     hdr.hdr3.data3 = 8w0x01;
   }
@@ -737,10 +572,19 @@ control Ingress(
     swap(hdr.hdr0.data1[15:8], hdr.hdr0.data3[15:8]);
     swap(hdr.hdr0.data1[7:0], hdr.hdr0.data3[7:0]);
   }
-  action rewrite_18() {
+
+  RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1073954136_0) vector_register_1073954136_0_read_896 = {
+    void apply(inout bit<32> value, out bit<32> out_value) {
+      out_value = value;
+    }
+  };
+
+
+  action regexec_vector_register_1073954136_0_read_896() {
+    meta.vector_reg_value0 = vector_register_1073954136_0_read_896.execute(meta.regexec_vector_register_1073954136_0_read_896_index0);
   }
   action rewrite_48() {
-    hdr.hdr3.data2 = hdr.cuckoo.val;
+    hdr.hdr3.data2 = meta.vector_reg_value0;
     hdr.hdr3.data3 = 8w0x01;
   }
   action rewrite_49() {
@@ -756,8 +600,6 @@ control Ingress(
     swap(hdr.hdr0.data0[7:0], hdr.hdr0.data3[23:16]);
     swap(hdr.hdr0.data1[15:8], hdr.hdr0.data3[15:8]);
     swap(hdr.hdr0.data1[7:0], hdr.hdr0.data3[7:0]);
-  }
-  action rewrite_33() {
   }
 
   apply {
@@ -800,115 +642,138 @@ control Ingress(
               if ((16w0x0000) != (meta.dev[15:0])){
                 // EP node  223:Then
                 // BDD node 12:if
-                // EP node  640:CuckooHashTableReadWrite
+                // EP node  621:HHTableRead
                 // BDD node 13:map_get
-                if (!hdr.cuckoo.isValid()) {
-                  build_cuckoo_hdr(hdr.hdr3.data1, hdr.hdr3.data2);
-                  if ((8w0x01) == (hdr.hdr3.data0)) {
-                    hdr.cuckoo.op = cuckoo_ops_t.UPDATE;
+                meta.key_32b_0 = hdr.hdr3.data1;
+                bool hit0 = hh_table_1073923096_table_13.apply().hit;
+                bit<8> hh_table_1073923096_packet_sampler_sample_every_fourth_621_out_value = hh_table_1073923096_packet_sampler_sample_every_fourth_621.execute(0);
+                if (hh_table_1073923096_packet_sampler_sample_every_fourth_621_out_value == 1) {
+                  if (hit0) {
+                    hh_table_1073923096_cached_counters_inc_621.execute(hh_table_1073923096_table_13_get_value_param0);
                   } else {
-                    hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
+                    hh_table_1073923096_hash_calc_0_calc();
+                    hh_table_1073923096_hash_calc_1_calc();
+                    hh_table_1073923096_hash_calc_2_calc();
+                    hh_table_1073923096_hash_calc_3_calc();
+                    hh_table_1073923096_cms_row_0_inc_and_read_621_execute();
+                    hh_table_1073923096_cms_row_1_inc_and_read_621_execute();
+                    hh_table_1073923096_cms_row_2_inc_and_read_621_execute();
+                    hh_table_1073923096_cms_row_3_inc_and_read_621_execute();
+                    meta.hh_table_1073923096_cms_min = hh_table_1073923096_cms_row_0_value;
+                    meta.hh_table_1073923096_cms_min = min(meta.hh_table_1073923096_cms_min, hh_table_1073923096_cms_row_1_value);
+                    meta.hh_table_1073923096_cms_min = min(meta.hh_table_1073923096_cms_min, hh_table_1073923096_cms_row_2_value);
+                    meta.hh_table_1073923096_cms_min = min(meta.hh_table_1073923096_cms_min, hh_table_1073923096_cms_row_3_value);
+                    hh_table_1073923096_threshold_diff_621_cmp = meta.hh_table_1073923096_cms_min;
+                    bit<32> hh_table_1073923096_threshold_diff = hh_table_1073923096_threshold_diff_621.execute(0);
+                    if (hh_table_1073923096_threshold_diff_621_cmp[31:31] == 0) {
+                      ig_dprsr_md.digest_type = 1;
+                    }
                   }
                 }
-                bool cuckoo_hash_table_1073923096_13_success0;
-                cuckoo_hash_table.apply(meta.time, hdr.cuckoo, cuckoo_hash_table_1073923096_13_success0);
-                cuckoo_bloom_filter.apply(hdr.cuckoo, fwd_op);
-                if (hdr.cuckoo.op != cuckoo_ops_t.DONE) {
-                  build_recirc_hdr(CUCKOO_CODE_PATH);
-                } else {
-                  // EP node  641:If
-                  // BDD node 13:map_get
+                // EP node  726:If
+                // BDD node 14:if
+                if (!hit0){
+                  // EP node  727:Then
+                  // BDD node 14:if
+                  // EP node  1583:If
+                  // BDD node 15:if
                   if ((8w0x01) == (hdr.hdr3.data0)){
-                    // EP node  642:Then
-                    // BDD node 13:map_get
-                    // EP node  644:If
-                    // BDD node 13:map_get
-                    if (cuckoo_hash_table_1073923096_13_success0){
-                      // EP node  645:Then
-                      // BDD node 13:map_get
-                      // EP node  1928:ModifyHeader
-                      // BDD node 42:packet_return_chunk
-                      rewrite_42();
-                      // EP node  2083:ModifyHeader
-                      // BDD node 43:packet_return_chunk
-                      rewrite_43();
-                      // EP node  2242:ModifyHeader
-                      // BDD node 44:packet_return_chunk
-                      rewrite_44();
-                      // EP node  2405:ModifyHeader
-                      // BDD node 45:packet_return_chunk
-                      rewrite_45();
-                      // EP node  2533:Forward
-                      // BDD node 46:FORWARD
-                      nf_dev[15:0] = meta.dev[15:0];
-                    } else {
-                      // EP node  646:Else
-                      // BDD node 13:map_get
-                      // EP node  2653:ModifyHeader
-                      // BDD node 18:packet_return_chunk
-                      rewrite_18();
-                      @in_hash { hdr.hdr3.data4 = meta.dev[7:0] ++ meta.dev[15:8]; }
-                      // EP node  3189:Forward
-                      // BDD node 22:FORWARD
-                      nf_dev[15:0] = 16w0x0000;
-                    }
+                    // EP node  1584:Then
+                    // BDD node 15:if
+                    // EP node  3039:HHTableOutOfBandUpdate
+                    // BDD node 16:dchain_allocate_new_index
+                    // EP node  3269:ModifyHeader
+                    // BDD node 18:packet_return_chunk
+                    rewrite_18();
+                    @in_hash { hdr.hdr3.data4 = meta.dev[7:0] ++ meta.dev[15:8]; }
+                    // EP node  3857:Forward
+                    // BDD node 22:FORWARD
+                    nf_dev[15:0] = 16w0x0000;
                   } else {
-                    // EP node  643:Else
-                    // BDD node 13:map_get
-                    // EP node  647:If
-                    // BDD node 13:map_get
-                    if (cuckoo_hash_table_1073923096_13_success0){
-                      // EP node  648:Then
-                      // BDD node 13:map_get
-                      // EP node  772:ModifyHeader
-                      // BDD node 48:packet_return_chunk
-                      rewrite_48();
-                      // EP node  899:ModifyHeader
-                      // BDD node 49:packet_return_chunk
-                      rewrite_49();
-                      // EP node  1030:ModifyHeader
-                      // BDD node 50:packet_return_chunk
-                      rewrite_50();
-                      // EP node  1165:ModifyHeader
-                      // BDD node 51:packet_return_chunk
-                      rewrite_51();
-                      // EP node  1272:Forward
-                      // BDD node 52:FORWARD
-                      nf_dev[15:0] = meta.dev[15:0];
-                    } else {
-                      // EP node  649:Else
-                      // BDD node 13:map_get
-                      // EP node  1371:ModifyHeader
-                      // BDD node 33:packet_return_chunk
-                      rewrite_33();
-                      @in_hash { hdr.hdr3.data4 = meta.dev[7:0] ++ meta.dev[15:8]; }
-                      // EP node  1823:Forward
-                      // BDD node 37:FORWARD
-                      nf_dev[15:0] = 16w0x0000;
-                    }
+                    // EP node  1585:Else
+                    // BDD node 15:if
+                    // EP node  1735:ModifyHeader
+                    // BDD node 33:packet_return_chunk
+                    rewrite_33();
+                    @in_hash { hdr.hdr3.data4 = meta.dev[7:0] ++ meta.dev[15:8]; }
+                    // EP node  2227:Forward
+                    // BDD node 37:FORWARD
+                    nf_dev[15:0] = 16w0x0000;
+                  }
+                } else {
+                  // EP node  728:Else
+                  // BDD node 14:if
+                  // EP node  795:Ignore
+                  // BDD node 38:dchain_rejuvenate_index
+                  // EP node  893:If
+                  // BDD node 40:if
+                  if ((8w0x01) == (hdr.hdr3.data0)){
+                    // EP node  894:Then
+                    // BDD node 40:if
+                    // EP node  897:VectorRegisterUpdate
+                    // BDD node 39:vector_borrow
+                    meta.regexec_vector_register_1073954136_0_write_897_index0 = hh_table_1073923096_table_13_get_value_param0;
+                    regexec_vector_register_1073954136_0_write_897();
+                    // EP node  2341:ModifyHeader
+                    // BDD node 42:packet_return_chunk
+                    rewrite_42();
+                    // EP node  2509:ModifyHeader
+                    // BDD node 43:packet_return_chunk
+                    rewrite_43();
+                    // EP node  2681:ModifyHeader
+                    // BDD node 44:packet_return_chunk
+                    rewrite_44();
+                    // EP node  2857:ModifyHeader
+                    // BDD node 45:packet_return_chunk
+                    rewrite_45();
+                    // EP node  2995:Forward
+                    // BDD node 46:FORWARD
+                    nf_dev[15:0] = meta.dev[15:0];
+                  } else {
+                    // EP node  895:Else
+                    // BDD node 40:if
+                    // EP node  896:VectorRegisterLookup
+                    // BDD node 39:vector_borrow
+                    meta.regexec_vector_register_1073954136_0_read_896_index0 = hh_table_1073923096_table_13_get_value_param0;
+                    regexec_vector_register_1073954136_0_read_896();
+                    // EP node  1013:ModifyHeader
+                    // BDD node 48:packet_return_chunk
+                    rewrite_48();
+                    // EP node  1141:ModifyHeader
+                    // BDD node 49:packet_return_chunk
+                    rewrite_49();
+                    // EP node  1273:ModifyHeader
+                    // BDD node 50:packet_return_chunk
+                    rewrite_50();
+                    // EP node  1409:ModifyHeader
+                    // BDD node 51:packet_return_chunk
+                    rewrite_51();
+                    // EP node  1517:Forward
+                    // BDD node 52:FORWARD
+                    nf_dev[15:0] = meta.dev[15:0];
                   }
                 }
               } else {
                 // EP node  224:Else
                 // BDD node 12:if
-                // EP node  4847:Forward
+                // EP node  5667:Forward
                 // BDD node 57:FORWARD
                 nf_dev[15:0] = bswap16(hdr.hdr3.data4);
               }
             }
             // EP node  119:Else
             // BDD node 10:if
-            // EP node  4619:ParserReject
+            // EP node  5419:ParserReject
             // BDD node 61:DROP
           }
           // EP node  54:Else
           // BDD node 8:if
-          // EP node  4262:ParserReject
+          // EP node  5030:ParserReject
           // BDD node 64:DROP
         }
         // EP node  15:Else
         // BDD node 6:if
-        // EP node  3783:ParserReject
+        // EP node  4507:ParserReject
         // BDD node 66:DROP
       }
 
@@ -933,8 +798,16 @@ control IngressDeparser(
   in    synapse_ingress_metadata_t meta,
   in    ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md
 ) {
+  Digest<hh_table_1073923096_digest_hdr>() hh_table_1073923096_digest;
 
   apply {
+    if (ig_dprsr_md.digest_type == 1) {
+      hh_table_1073923096_digest.pack({
+        meta.key_32b_0,
+        meta.hh_table_1073923096_cms_min,
+      });
+    }
+
     pkt.emit(hdr);
   }
 }

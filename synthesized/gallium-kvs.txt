@@ -15,8 +15,8 @@ Args:
 
 Winner:
   Score: <0,0,0,0,49,63>
-  Tput: 84.77 Gbps (120.41 Mpps)
-  Spec: 84.77 Gbps (120.41 Mpps)
+  Tput: 118.68 Gbps (168.58 Mpps)
+  Spec: 118.68 Gbps (168.57 Mpps)
 
 Stateful Implementations:
   1073954136: Tofino::VectorRegister
@@ -24,7 +24,7 @@ Stateful Implementations:
   1073923096: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       4 seconds
+  Elapsed time:       6 seconds
   Steps:              65
   Backtracks:         0
   Search space size:  189
@@ -104,9 +104,9 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 6'831 (100%)
-  Num phase 2 speculations: 136 (1.99092%)
-  Num speculated modules:   86'502
+  Num phase 1 speculations: 6'821 (100%)
+  Num phase 2 speculations: 136 (1.99384%)
+  Num speculated modules:   86'412
   Num EPs generated:        189
 
 Switch placement:

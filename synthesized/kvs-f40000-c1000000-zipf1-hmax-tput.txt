@@ -14,9 +14,9 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,275'000'000,44,-14,-7'867'776,0>
-  Tput: 193.70 Gbps (275.14 Mpps)
-  Spec: 193.70 Gbps (275.14 Mpps)
+  Score: <0,337'000'000,44,-14,-7'867'776,0>
+  Tput: 237.73 Gbps (337.69 Mpps)
+  Spec: 237.73 Gbps (337.69 Mpps)
   Recirculations: 0
   BDD Progress: 44 / 47
   Stages: 14
@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       7 seconds
+  Elapsed time:       3 seconds
   Steps:              44
   Backtracks:         0
   Search space size:  155
@@ -103,9 +103,9 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 5'846 (100%)
-  Num phase 2 speculations: 120 (2.05269%)
-  Num speculated modules:   71'347
+  Num phase 1 speculations: 5'810 (100%)
+  Num phase 2 speculations: 120 (2.0654%)
+  Num speculated modules:   71'051
   Num EPs generated:        155
 
 Switch placement:
