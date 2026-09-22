@@ -140,6 +140,12 @@ class SynapseController:
         if self.controller_cmd.exit_status_ready():
             self.host.crash("Controller exited unexpectedly")
 
+        # From here until quit() nothing else reads the controller's output, so keep draining it in
+        # the background: otherwise a controller that logs per packet fills the SSH channel, blocks
+        # in write(), and stops serving packets in the middle of the experiment -- and none of what
+        # it printed reaches its log. run_console_commands() pauses this around `stats` and `reset`.
+        self.controller_cmd.spawn_output_reader_thread()
+
         self.ready = True
 
     def send_usr1_signal(self) -> Optional[str]:
@@ -148,16 +154,26 @@ class SynapseController:
 
         cmd = f"sudo killall -SIGUSR1 {self.exe}"
 
-        # Flush stdout and stderr before running the new command
-        self.controller_cmd.flush()
+        # Same bargain as run_console_commands: the signal is sent only once the reader has
+        # stopped, so the reply can only land on the channel, and the caller need not know it exists.
+        was_reading_in_background = self.controller_cmd._reading_output_in_background()
+        if was_reading_in_background:
+            self.controller_cmd.stop_output_reader_thread()
 
-        output = ""
-        while len(output) == 0:
-            self.host.run_command(cmd)
-            output = self.controller_cmd.watch(
-                stop_pattern="~~~ USR1 signal processing done ~~~",
-                timeout=5,
-            )
+        try:
+            # Flush stdout and stderr before running the new command
+            self.controller_cmd.flush()
+
+            output = ""
+            while len(output) == 0:
+                self.host.run_command(cmd)
+                output = self.controller_cmd.watch(
+                    stop_pattern="~~~ USR1 signal processing done ~~~",
+                    timeout=5,
+                )
+        finally:
+            if was_reading_in_background:
+                self.controller_cmd.spawn_output_reader_thread()
 
         return output
 
@@ -206,6 +222,9 @@ class SynapseController:
         assert self.ready, "Controller is not ready to quit"
         assert self.controller_cmd, "Controller command is None"
 
+        # Stop the reader for good before quitting, so run_console_commands does not restart it
+        # against a channel that is about to close.
+        self.controller_cmd.stop_output_reader_thread()
         self.controller_cmd.run_console_commands(commands=["quit"])
         self.host.log("Controller terminated successfully.")
 
@@ -233,6 +252,11 @@ class SynapseController:
 
     def stop(self):
         self.host.log("Stopping controller...")
+
+        # Also on this path: stop() is how a failed run tears the controller down, and a reader
+        # thread left behind would keep holding the channel.
+        if self.controller_cmd:
+            self.controller_cmd.stop_output_reader_thread()
 
         if not self.exe:
             self.host.log("Requested stopping controller, but no executable found. Ignoring request.")

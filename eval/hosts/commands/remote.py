@@ -1,5 +1,7 @@
 import re
 import select
+import threading
+from collections import deque
 import sys
 import termios
 import time
@@ -15,6 +17,12 @@ from .command import Command
 
 
 class RemoteCommand(Command):
+    # A tail of the background reader's output is kept for stop_output_reader_thread to return;
+    # the log file always gets all of it.
+    MAX_BACKGROUND_OUTPUT = 8 * 1024 * 1024
+    OUTPUT_READER_JOIN_TIMEOUT_SEC = 5
+    OUTPUT_READER_CHUNK = 64 * 1024
+
     def __init__(
         self,
         ssh_client: paramiko.SSHClient,
@@ -40,6 +48,86 @@ class RemoteCommand(Command):
 
         session.exec_command(self.command)
         self.cmd_ = session
+
+        # Set by spawn_output_reader_thread. See the comment there for why this exists.
+        self.output_reader_thread: Optional[threading.Thread] = None
+        self.output_reader_stop = threading.Event()
+        self.output_reader_lock = threading.Lock()
+        self.output_chunks: deque = deque()
+        self.output_chunks_len = 0
+        self.output_discarded_in_background = 0
+
+    def spawn_output_reader_thread(self) -> None:
+        """Start a background thread that keeps reading this command's output, and RETURN AT ONCE.
+
+        Nothing reads a command's output except `watch` and `run_console_commands`, so between two
+        of those calls the output just sits in the SSH channel. Once it fills the channel's window
+        the REMOTE process blocks in write(), which for a controller means it stops answering
+        packets mid-experiment -- and meanwhile none of what it printed reaches its log file. A
+        chatty controller therefore both stalls and goes unrecorded, silently.
+
+        This thread is the only reader while it lives, so `watch` refuses to run alongside it and
+        `run_console_commands` pauses it. Stop it with stop_output_reader_thread.
+        """
+        if self.output_reader_thread is not None:
+            return
+
+        self.output_reader_stop.clear()
+        self.output_reader_thread = threading.Thread(target=self._read_output_until_stopped, daemon=True)
+        self.output_reader_thread.start()
+
+    def stop_output_reader_thread(self) -> str:
+        """Stop the background reader and return what it read (see MAX_BACKGROUND_OUTPUT)."""
+        if self.output_reader_thread is None:
+            return ""
+
+        self.output_reader_stop.set()
+        self.output_reader_thread.join(timeout=self.OUTPUT_READER_JOIN_TIMEOUT_SEC)
+        self.output_reader_thread = None
+
+        with self.output_reader_lock:
+            output = "".join(self.output_chunks)
+            discarded = self.output_discarded_in_background
+            self.output_chunks.clear()
+            self.output_chunks_len = 0
+            self.output_discarded_in_background = 0
+
+        if discarded:
+            print(f"warning: dropped {discarded} bytes of background output (the log file has them all)")
+
+        return output
+
+    def _reading_output_in_background(self) -> bool:
+        return self.output_reader_thread is not None
+
+    def _read_output_until_stopped(self) -> None:
+        # Kept as chunks rather than one string: appending to a multi-megabyte string copies it
+        # every time, which made the reader slower than the controller it is supposed to keep up
+        # with -- and a reader that cannot keep up is the very problem this thread exists to avoid.
+        while not self.output_reader_stop.is_set():
+            read_something = False
+
+            for ready, receive in ((self.cmd_.recv_ready, self.cmd_.recv), (self.cmd_.recv_stderr_ready, self.cmd_.recv_stderr)):
+                while ready():
+                    read_something = True
+                    decoded_data = receive(self.OUTPUT_READER_CHUNK).decode("utf-8", errors="replace")
+
+                    with self.output_reader_lock:
+                        # The log file always gets everything; memory keeps only a bounded tail.
+                        if self.log_file:
+                            self.log_file.write(decoded_data)
+                            self.log_file.flush()
+
+                        self.output_chunks.append(decoded_data)
+                        self.output_chunks_len += len(decoded_data)
+
+                        while self.output_chunks_len - len(self.output_chunks[0]) >= self.MAX_BACKGROUND_OUTPUT:
+                            dropped = self.output_chunks.popleft()
+                            self.output_chunks_len -= len(dropped)
+                            self.output_discarded_in_background += len(dropped)
+
+            if not read_something:
+                time.sleep(0.01)
 
     def send(self, data: Union[str, bytes]) -> None:
         if isinstance(data, str):
@@ -100,6 +188,12 @@ class RemoteCommand(Command):
         stop_pattern: Optional[str] = None,
         max_match_length: Optional[int] = None,
     ) -> str:
+        # The background reader would consume the very output being waited for here, and whether a
+        # pattern arrived before or after this call became unanswerable. Refuse instead of racing
+        # it: the caller has to decide, and a silently missed pattern is the worst outcome.
+        if self._reading_output_in_background():
+            raise RuntimeError("cannot watch() while the background output reader is running; stop_output_reader_thread() first")
+
         if stop_condition is None:
             stop_condition = self.cmd_.exit_status_ready
 
@@ -187,15 +281,26 @@ class RemoteCommand(Command):
         else:
             console_pattern_len = None
 
+        # Unlike watch(), this is unambiguous: the command is sent only after the reader has
+        # stopped, so its answer can only arrive on the channel, never into the reader's buffer.
+        # Pause rather than refuse, so that callers do not have to know the reader exists.
+        was_reading_in_background = self._reading_output_in_background()
+        if was_reading_in_background:
+            self.stop_output_reader_thread()
+
         output = ""
-        for cmd in commands:
-            self.send(cmd + "\n")
-            output += self.watch(
-                keyboard_int=lambda: self.send("\x03"),
-                timeout=timeout,
-                stop_pattern=console_pattern,
-                max_match_length=console_pattern_len,
-            )
+        try:
+            for cmd in commands:
+                self.send(cmd + "\n")
+                output += self.watch(
+                    keyboard_int=lambda: self.send("\x03"),
+                    timeout=timeout,
+                    stop_pattern=console_pattern,
+                    max_match_length=console_pattern_len,
+                )
+        finally:
+            if was_reading_in_background:
+                self.spawn_output_reader_thread()
 
         return output
 
