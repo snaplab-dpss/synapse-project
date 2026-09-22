@@ -23,7 +23,8 @@ from enum import Enum
 from random import getrandbits, randint, seed as seed_random
 from select import select
 from socket import AF_PACKET, SOCK_RAW, inet_aton, ntohs, socket
-from time import monotonic
+from contextlib import contextmanager
+from time import monotonic, sleep
 from typing import Callable, Optional
 
 from scapy.fields import ByteField, ShortField, StrFixedLenField
@@ -121,6 +122,53 @@ KVS_STATUS_FAIL = 0
 
 class TestFailure(Exception):
     pass
+
+
+# The solution under test, set by `run`. Only the controller-punt helpers below need it.
+_NF: Optional[str] = None
+
+# Every packet the controller receives logs one of these (the debug controller, which is the one
+# testbed.py builds and runs).
+_CONTROLLER_PUNT_MARKER = "New packet"
+
+
+def controller_punts() -> int:
+    """How many packets the data plane has sent up to the controller so far.
+
+    A test that only checks a packet came out cannot tell the data-plane fast path from the CPU
+    path: both deliver it, the CPU path just takes longer, and the timeouts here are far too
+    generous to separate them. Counting punts asks the question directly, and is immune to how
+    slow the model happens to be.
+    """
+    if _NF is None:
+        raise TestFailure("controller_punts() is only usable from inside run()")
+    log = testbed.controller_log_file(_NF)
+    try:
+        return log.read_text(errors="replace").count(_CONTROLLER_PUNT_MARKER)
+    except FileNotFoundError:
+        raise TestFailure(f"no controller log at {log}; is the testbed up?")
+
+
+@contextmanager
+def expect_controller_punts(expected: int, what: str):
+    """Assert exactly `expected` packets reach the controller while the block runs.
+
+    `expect_controller_punts(0, ...)` is the interesting case: it pins a packet to the data-plane
+    fast path, which is what throughput depends on and what a delivery-only check silently misses.
+    """
+    before = controller_punts()
+    yield
+    # The controller logs after it has handled the packet, so a punt can land just after the
+    # packet does; only a punt we did NOT expect needs waiting out before we can call it absent.
+    deadline = monotonic() + (DEFAULT_SETTLE_TIME if expected else NO_PACKET_TIMEOUT)
+    while monotonic() < deadline:
+        if controller_punts() - before > expected:
+            break
+        sleep(0.05)
+    actual = controller_punts() - before
+    if actual != expected:
+        took = "took the CPU path" if actual > expected else "did not reach the controller"
+        raise TestFailure(f"{what}: expected {expected} packet(s) at the controller, saw {actual} ({took})")
 
 
 class HeaderField(Enum):
@@ -453,6 +501,9 @@ def run(test: Callable[[Ports], None]) -> None:
     parser.add_argument("--seed", type=int, help="seed the random flows (default: a fresh one, printed below)")
     args = parser.parse_args()
     nf = args.nf
+
+    global _NF
+    _NF = nf
 
     try:
         _resolve_solution(nf)

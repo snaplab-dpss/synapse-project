@@ -51,10 +51,14 @@ def test(ports: Ports) -> None:
         expect_unmarked(ports, wan, lan_pkt)
 
         wan_pkt = build_packet(flow=build_flow())
-        ports.send(wan, wan_pkt)
-        expect_unmarked(ports, lan, wan_pkt, timeout=CPU_PATH_TIMEOUT)
-        ports.send(wan, wan_pkt)
-        expect_unmarked(ports, lan, wan_pkt)
+        with expect_controller_punts(1, f"WAN {wan}: first packet to an untracked destination"):
+            ports.send(wan, wan_pkt)
+            expect_unmarked(ports, lan, wan_pkt, timeout=CPU_PATH_TIMEOUT)
+        # The whole point of installing the bucket: the next packet must be served by the data
+        # plane. Delivery alone would not show that -- the CPU path delivers it too, just slower.
+        with expect_controller_punts(0, f"WAN {wan}: second packet to a tracked destination"):
+            ports.send(wan, wan_pkt)
+            expect_unmarked(ports, lan, wan_pkt)
 
     lan, wan = lan_ports()[0], wan_of(lan_ports()[0])
 
@@ -104,10 +108,15 @@ def test(ports: Ports) -> None:
     wan_pkt = build_packet(flow=build_flow())
     ports.send(wan, wan_pkt)
     expect_unmarked(ports, lan, wan_pkt, timeout=CPU_PATH_TIMEOUT)
+    # No punt assertion here, unlike the fast-path checks above: one send plus its
+    # collect-and-settle costs ~0.9s on the model, against a 1.0s bucket, so consecutive packets
+    # land more than EXPIRATION_SEC apart however short the sleep is and the bucket expires for
+    # real between them. That the bucket survives a refresh is therefore not testable here; what
+    # is tested is that a destination kept warm still gets through.
     for _ in range(int(4 * EXPIRATION_SEC / (EXPIRATION_SEC / 2))):
         sleep(EXPIRATION_SEC / 2)
         ports.send(wan, wan_pkt)
-        expect_unmarked(ports, lan, wan_pkt)
+        expect_unmarked(ports, lan, wan_pkt, timeout=CPU_PATH_TIMEOUT)
     sleep(4 * EXPIRATION_SEC)
     ports.send(wan, wan_pkt)
     expect_unmarked(ports, lan, wan_pkt, timeout=CPU_PATH_TIMEOUT)
