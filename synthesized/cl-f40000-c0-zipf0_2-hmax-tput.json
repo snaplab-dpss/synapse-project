@@ -5,10 +5,10 @@
     "num_phase1_speculations": 7322,
     "num_phase2_speculations": 183,
     "num_speculated_modules": 83520,
-    "time_per_instantiation_us": 411,
+    "time_per_instantiation_us": 402,
     "time_per_speculation_us": 3,
-    "total_time_spent_generating_execution_plans_us": 60136,
-    "total_time_spent_speculating_us": 300064
+    "total_time_spent_generating_execution_plans_us": 58833,
+    "total_time_spent_speculating_us": 293486
   },
   "heuristic": {
     "meta": [
@@ -69,6 +69,158 @@
     }
   ],
   "name": "cl-f40000-c0-zipf0_2-hmax-tput",
+  "ports": [
+    {
+      "front_panel_port": 3,
+      "nf_device": 2,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 4,
+      "nf_device": 3,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 5,
+      "nf_device": 4,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 6,
+      "nf_device": 5,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 7,
+      "nf_device": 6,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 8,
+      "nf_device": 7,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 9,
+      "nf_device": 8,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 10,
+      "nf_device": 9,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 11,
+      "nf_device": 10,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 12,
+      "nf_device": 11,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 13,
+      "nf_device": 12,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 14,
+      "nf_device": 13,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 15,
+      "nf_device": 14,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 16,
+      "nf_device": 15,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 17,
+      "nf_device": 16,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 18,
+      "nf_device": 17,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 19,
+      "nf_device": 18,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 20,
+      "nf_device": 19,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 21,
+      "nf_device": 20,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 22,
+      "nf_device": 21,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 23,
+      "nf_device": 22,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 24,
+      "nf_device": 23,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 25,
+      "nf_device": 24,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 26,
+      "nf_device": 25,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 27,
+      "nf_device": 26,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 28,
+      "nf_device": 27,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 29,
+      "nf_device": 28,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 30,
+      "nf_device": 29,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 31,
+      "nf_device": 30,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 32,
+      "nf_device": 31,
+      "pipe": 0
+    }
+  ],
   "profile_file": "cl-f40000-c0-zipf0_2.json",
   "search_meta": {
     "avg_bdd_size": 51,
