@@ -26,23 +26,22 @@ an approximate MathUnit, so only a tolerance is checked there.
 The switch writes the estimate big-endian (most significant byte first) into the source MAC,
 whereas the C does a little-endian memcpy; this was the open question from the Part 1 reading and
 the model confirms it (a first-packet estimate of 1 comes back as 0x01000000 decoded little-endian).
-So the default here is big-endian; set HLL_ESTIMATE_BYTE_ORDER=little to check against the C's order.
+The order is worked out from the first estimate rather than assumed, so either implementation
+reads correctly.
 
 CAVEAT vs the C: Tofino registers are per-pipe, so the estimators/accumulator/nonzero state is
 NOT global. Each pipe (a group of front-panel ports) keeps an independent HyperLogLog, whereas the
-C has one global state. Front-panel ports map to pipes in groups of eight: 3..10 -> pipe 0,
-11..18 -> pipe 1, 19..26 -> pipe 2, 27..32 -> pipe 3. This test keeps one HLL model per pipe and
-checks each pipe's port group against its own model; a multi-pipe deployment therefore estimates
-cardinality per pipe, not across the whole switch.
+C has one global state. On the model the front panel ports group into pipes by eights from the
+first NF port, which is what pipe_of below assumes (the targets config describes the physical
+switch, whose grouping differs). This test keeps one HLL model per pipe and checks each pipe's
+port group against its own model; a multi-pipe deployment therefore estimates cardinality per
+pipe, not across the whole switch.
 """
 
 import math
 import zlib
-from os import environ
 
 from util import *
-
-NF = "hyperloglog-f40000-c0-unif-hmax-tput"
 
 NUM_ESTIMATORS = 64
 LOG_NUM_ESTIMATORS = 6
@@ -55,7 +54,8 @@ LC_OFFSET = 266
 
 # "big" (max-tput dataplane path), "little" (the C's order, kept by controller-side solutions such
 # as gallium) or "auto" (default): decided on the first packet, whose estimate is known to be 1.
-ESTIMATE_BYTE_ORDER = environ.get("HLL_ESTIMATE_BYTE_ORDER", "auto")
+# Worked out from the first estimate seen (see check_output); the switch and the C differ.
+ESTIMATE_BYTE_ORDER = "auto"
 MATH_UNIT_TOLERANCE = 0.15  # relative, outside the deep linear-counting regime
 # The linear counter kicks in below estimate 160. Near that boundary the switch's approximate
 # MathUnit divide and the model's exact integer divide can land on opposite sides, so one applies
@@ -119,10 +119,12 @@ def check_output(sent: Packet, got: Packet) -> int:
 
 
 def pipe_of(port: int) -> int:
-    return (port - NF_PORTS[0]) // 8
+    return (port - nf_ports()[0]) // 8
 
 
-PIPE0_PORTS = [p for p in NF_PORTS if pipe_of(p) == 0]  # front-panel 3..10
+def first_pipe_ports() -> list[int]:
+    """The ports of one pipe: each pipe keeps its own HLL, so a run stays inside one."""
+    return [p for p in nf_ports() if pipe_of(p) == 0]
 
 
 def run_flow(ports: Ports, models: dict, port: int, flow: Flow, timeout: float = DEFAULT_RX_TIMEOUT) -> int:
@@ -145,7 +147,7 @@ def run_flow(ports: Ports, models: dict, port: int, flow: Flow, timeout: float =
 
 def test(ports: Ports) -> None:
     models: dict = {}
-    port = PIPE0_PORTS[0]
+    port = first_pipe_ports()[0]
 
     step("non-IPv4 frames are dropped")
     ports.send(port, build_non_ip_packet())
@@ -208,7 +210,7 @@ def test(ports: Ports) -> None:
     # grouping, so this only checks the routing property (packet returns on its ingress port); the
     # estimate is decoded but not compared, as those ports may live in independently-counting pipes.
     step("the packet always returns on its ingress port, for a spread of ports")
-    for p in (NF_PORTS[1], NF_PORTS[8], NF_PORTS[16], NF_PORTS[-1]):
+    for p in (nf_ports()[1], nf_ports()[8], nf_ports()[16], nf_ports()[-1]):
         pkt = build_packet(flow=build_flow())
         ports.send(p, pkt)
         received = ports.collect()
@@ -218,4 +220,4 @@ def test(ports: Ports) -> None:
 
 
 if __name__ == "__main__":
-    run(test, NF)
+    run(test)

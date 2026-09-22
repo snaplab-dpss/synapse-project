@@ -30,10 +30,17 @@ from time import sleep
 
 from util import *
 
-NF = "kvs-f40000-c0-unif-hmax-tput"
+# The storage server is the NF's lowest device; every other port is a client. Both come from
+# the port layout in the solution's report.
+SERVER_DEV = 0
 
-SERVER_PORT = 1
-CLIENT_PORTS = NF_PORTS
+
+def server_port() -> int:
+    return port_of_dev(SERVER_DEV)
+
+
+def client_ports() -> list[int]:
+    return [p for p in nf_ports() if p != server_port()]
 
 EXPIRATION_SEC = 1.0
 CPU_PATH_TIMEOUT = 3.0  # cache admission may run through the controller
@@ -81,7 +88,7 @@ def detect_cache_mode(ports: Ports, flow: Flow, client: int) -> str:
     ports_seen = {r.port for r in received}
     if client in ports_seen:
         return "deterministic"
-    if SERVER_PORT in ports_seen:
+    if server_port() in ports_seen:
         return "hhtable"
     raise TestFailure(f"probe PUT produced no reply and no forward-to-server (ports {sorted(ports_seen)})")
 
@@ -95,7 +102,7 @@ def test_deterministic_cache(ports: Ports, flow: Flow, client: int) -> None:
     expect_packet_from_port(ports, client, hit_reply(put, value), STRICT, timeout=CPU_PATH_TIMEOUT)
 
     step("a cached GET returns the stored value (flow inverted, status = 1), from any client")
-    for c in (client, CLIENT_PORTS[5]):
+    for c in (client, client_ports()[5]):
         get = kvs_packet(build_flow(dst_port=KVS_PORT), KVS_OP_GET, key, b"\0" * 4)
         ports.send(c, get)
         expect_packet_from_port(ports, c, hit_reply(get, value), STRICT, timeout=CPU_PATH_TIMEOUT)
@@ -112,12 +119,12 @@ def test_deterministic_cache(ports: Ports, flow: Flow, client: int) -> None:
     step("a distinct key still misses to the server")
     other = kvs_packet(flow, KVS_OP_GET, b"\x00\x00\x00\x63", b"\0" * 4)
     ports.send(client, other)
-    expect_packet_from_port(ports, SERVER_PORT, to_server(other, client), STRICT, timeout=CPU_PATH_TIMEOUT)
+    expect_packet_from_port(ports, server_port(), to_server(other, client), STRICT, timeout=CPU_PATH_TIMEOUT)
 
     step(f"after {4 * EXPIRATION_SEC}s idle the entry expires: a GET goes to the server again")
     sleep(4 * EXPIRATION_SEC)
     ports.send(client, get)
-    expect_packet_from_port(ports, SERVER_PORT, to_server(get, client), STRICT, timeout=CPU_PATH_TIMEOUT)
+    expect_packet_from_port(ports, server_port(), to_server(get, client), STRICT, timeout=CPU_PATH_TIMEOUT)
 
 
 def test_hhtable_cache(ports: Ports, flow: Flow, client: int) -> None:
@@ -126,7 +133,7 @@ def test_hhtable_cache(ports: Ports, flow: Flow, client: int) -> None:
 
     step("heavy-hitter cache: a PUT of an unknown key is forwarded to the server (not cached immediately)")
     ports.send(client, req)
-    expect_packet_from_port(ports, SERVER_PORT, to_server(req, client), STRICT)
+    expect_packet_from_port(ports, server_port(), to_server(req, client), STRICT)
 
     # Admission is probabilistic (sampled, count-min threshold, periodic counter reset), so only
     # check that a hot key is eventually admitted and that any reply seen is well formed.
@@ -135,9 +142,9 @@ def test_hhtable_cache(ports: Ports, flow: Flow, client: int) -> None:
         ports.send(client, req)
         sleep(BURST_PACING_SEC)
     received = ports.collect(timeout=5.0, settle=1.0)
-    server_side = [r for r in received if r.port == SERVER_PORT]
+    server_side = [r for r in received if r.port == server_port()]
     replies = [r for r in received if r.port == client]
-    others = [r for r in received if r.port not in (SERVER_PORT, client)]
+    others = [r for r in received if r.port not in (server_port(), client)]
     print(f"    {len(server_side)} forwarded to the server, {len(replies)} answered from the cache, {len(others)} elsewhere")
     if others:
         raise TestFailure(f"burst: unexpected packets on ports {[r.port for r in others]}")
@@ -151,19 +158,19 @@ def test_hhtable_cache(ports: Ports, flow: Flow, client: int) -> None:
 
 def test(ports: Ports) -> None:
     flow = build_flow(dst_port=KVS_PORT)
-    client = CLIENT_PORTS[0]
+    client = client_ports()[0]
 
-    for c in (CLIENT_PORTS[0], CLIENT_PORTS[7], CLIENT_PORTS[-1]):
+    for c in (client_ports()[0], client_ports()[7], client_ports()[-1]):
         step(f"server -> client {c}: forwarded untouched to the device in client_port (little-endian)")
         pkt = kvs_packet(flow, KVS_OP_GET, b"\x01\x02\x03\x04", b"\x0a\x0b\x0c\x0d", status=1, port=client_port_field(c))
-        ports.send(SERVER_PORT, pkt)
+        ports.send(server_port(), pkt)
         expect_packet_from_port(ports, c, pkt, STRICT)
 
-    for c in CLIENT_PORTS:
+    for c in client_ports():
         step(f"client {c}: GET of an unknown key goes to the server with client_port = device {dev_of(c)}")
         req = kvs_packet(flow, KVS_OP_GET, build_kvs_hdr().key, b"\0" * 4)
         ports.send(c, req)
-        expect_packet_from_port(ports, SERVER_PORT, to_server(req, c), STRICT)
+        expect_packet_from_port(ports, server_port(), to_server(req, c), STRICT)
 
     mode = detect_cache_mode(ports, flow, client)
     step(f"detected cache mode: {mode}")
@@ -190,4 +197,4 @@ def test(ports: Ports) -> None:
 
 
 if __name__ == "__main__":
-    run(test, NF)
+    run(test)

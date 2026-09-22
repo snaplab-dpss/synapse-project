@@ -18,8 +18,9 @@ Semantics (smartcookie_main.c):
 Both crafted packets are cut down to a 20-byte IPv4 header and a 20-byte TCP header with the
 checksums recomputed, so this also exercises the deparser checksums.
 
-Topology: front panel port N is NF device N - 1, so the server (device 2) is port 3 and routing
-by the destination's first octet D lands on port D + 1.
+Topology comes from the targets config the solution was built for: which front panel port each
+NF device is wired to, and which pipe it sits in. Routing is by the destination's first octet,
+so a client reaches the server at <server device>.1.1.1.
 
 The cookie itself cannot be predicted, because cookie_time comes from the switch's own clock. It
 is checked two ways instead: the hash is recomputed here, so the cookie_time recovered from two
@@ -27,31 +28,40 @@ cookies minted back to back must agree; and a clock update announcing a known va
 cookie_time to a value this test can name.
 """
 
-from os import environ
-
 from util import *
 
-# Another solution is tested by naming it here, together with its topology if it differs, e.g.
-#   SC_NF=smartcookie-f40000-c1000-zipf1-hmax-tput ./smartcookie.py
-NF = environ.get("SC_NF", "smartcookie-f40000-c0-unif-hmax-tput")
-
-# Which front panel port the server sits on, and the NF device it is known by, following
-# configs/tofino2-smartcookie.toml. Routing is by the destination's first octet, so the device
-# number also picks the address a client uses to reach the server.
-SERVER_PORT = int(environ.get("SC_SERVER_PORT", "1"))
-SERVER_DEV = int(environ.get("SC_SERVER_DEV", "0"))
-CLIENT_PORT = int(environ.get("SC_CLIENT_PORT", "5"))
-OTHER_CLIENT_PORT = int(environ.get("SC_OTHER_CLIENT_PORT", "7"))
 TIMESYNC_PORT = 5555
+
+
+# The server is the NF's lowest device, from the port layout in the solution's report. Routing is
+# by the destination's first octet, so its device number is also the address a client reaches it
+# at.
+def server_dev() -> int:
+    return dev_of_port(nf_ports()[0])
+
+
+def server_port() -> int:
+    return nf_ports()[0]
+
+
+# Both clients must share the server's pipe, because the bloom filter that remembers a verified
+# flow is a per-pipe register. On the model that grouping is not the targets config's, so these
+# stay named here rather than derived.
+CLIENT_PORTS = [5, 7]
+
+
+def client_ports() -> list[int]:
+    return CLIENT_PORTS
+
 
 SYN = 0x02
 ACK = 0x10
 ECE = 0x40
 
-# A solution carries the key its BDD was built with (dpdk-nfs/smartcookie/Makefile, NF_ARGS),
-# which is what its cookies must be checked against.
-SIP_KEY_0 = int(environ.get("SC_SIP_KEY0", "0x33323130"), 0)
-SIP_KEY_1 = int(environ.get("SC_SIP_KEY1", "0x42413938"), 0)
+# The key every solution's BDD is built with (dpdk-nfs/smartcookie/Makefile, NF_ARGS), which is
+# what its cookies must be checked against.
+SIP_KEY_0 = 0x33323130
+SIP_KEY_1 = 0x42413938
 
 M32 = 0xFFFFFFFF
 
@@ -164,14 +174,15 @@ def timesync_packet(ticks: int) -> Packet:
 
 def client_flow(dst_octet: Optional[int] = None) -> Flow:
     """A client -> server flow. The first octet of the destination is the server's NF device."""
-    return build_flow(dst_addr=f"{SERVER_DEV if dst_octet is None else dst_octet}.1.1.1")
+    return build_flow(dst_addr=f"{server_dev() if dst_octet is None else dst_octet}.1.1.1")
 
 
 # --- the test -----------------------------------------------------------------------------------
 
 
-def do_syn(ports: Ports, flow: Flow, seq: int, client: int = CLIENT_PORT) -> int:
+def do_syn(ports: Ports, flow: Flow, seq: int, client: Optional[int] = None) -> int:
     """Send a SYN, check the SYN-ACK exactly, and return the cookie it carries."""
+    client = client_ports()[0] if client is None else client
     ports.send(client, tcp_packet(flow, seq=seq, flags=SYN))
     received = ports.collect()
     if len(received) != 1 or received[0].port != client:
@@ -192,18 +203,18 @@ def test(ports: Ports) -> None:
 
     step("the client's ACK with a valid cookie reaches the server, ECE-tagged and with seq - 1")
     ack_pkt = tcp_packet(flow_a, seq=seq_a + 1, ack=(cookie_a + 1) & M32, flags=ACK)
-    ports.send(CLIENT_PORT, ack_pkt)
-    expect_packet_from_port(ports, SERVER_PORT, expected_tagged(flow_a, seq_a + 1, (cookie_a + 1) & M32, ACK), [])
+    ports.send(client_ports()[0], ack_pkt)
+    expect_packet_from_port(ports, server_port(), expected_tagged(flow_a, seq_a + 1, (cookie_a + 1) & M32, ACK), [])
 
     step("an ACK whose cookie is wrong is dropped")
     # Far from the real cookie on purpose: an ack a count or two off can still xor into an age
     # inside the accepted window, which is a property of the cookie scheme, not a bug.
-    ports.send(CLIENT_PORT, tcp_packet(flow_a, seq=seq_a + 1, ack=(cookie_a ^ 0xDEADBEEF) & M32, flags=ACK))
+    ports.send(client_ports()[0], tcp_packet(flow_a, seq=seq_a + 1, ack=(cookie_a ^ 0xDEADBEEF) & M32, flags=ACK))
     expect_no_packet(ports)
 
     step("a cookie is bound to its flow: replaying it on another flow is dropped")
     other = flow_a.clone(new_src_port=(flow_a.src_port ^ 0x0100) & 0xFFFF)
-    ports.send(CLIENT_PORT, tcp_packet(other, seq=seq_a + 1, ack=(cookie_a + 1) & M32, flags=ACK))
+    ports.send(client_ports()[0], tcp_packet(other, seq=seq_a + 1, ack=(cookie_a + 1) & M32, flags=ACK))
     expect_no_packet(ports)
 
     step("the cookie is cookie_time ^ HalfSipHash of the 4-tuple and the sequence number")
@@ -215,7 +226,7 @@ def test(ports: Ports) -> None:
     cookie_b = do_syn(ports, flow_b, seq_b)
     flow_c = client_flow()
     seq_c = 0x99AABBCC
-    cookie_c = do_syn(ports, flow_c, seq_c, client=OTHER_CLIENT_PORT)
+    cookie_c = do_syn(ports, flow_c, seq_c, client=client_ports()[1])
 
     ctime_b = cookie_b ^ cookie_hash(flow_b, seq_b)
     ctime_c = cookie_c ^ cookie_hash(flow_c, seq_c)
@@ -226,35 +237,35 @@ def test(ports: Ports) -> None:
         )
 
     step("a SYN-ACK from a client is dropped")
-    ports.send(CLIENT_PORT, tcp_packet(client_flow(), seq=1, ack=1, flags=SYN | ACK))
+    ports.send(client_ports()[0], tcp_packet(client_flow(), seq=1, ack=1, flags=SYN | ACK))
     expect_no_packet(ports)
 
     step("an ECE-tagged packet from the server is dropped and records the flow")
     flow_v = client_flow()
-    ports.send(SERVER_PORT, tcp_packet(flow_v, seq=7, ack=9, flags=ACK | ECE))
+    ports.send(server_port(), tcp_packet(flow_v, seq=7, ack=9, flags=ACK | ECE))
     expect_no_packet(ports)
 
     step("a packet on a recorded flow goes to the server untouched, cookie or no cookie")
     passthrough = tcp_packet(flow_v, seq=123, ack=456, flags=ACK)
-    ports.send(CLIENT_PORT, passthrough)
-    expect_packet_from_port(ports, SERVER_PORT, passthrough, [])
+    ports.send(client_ports()[0], passthrough)
+    expect_packet_from_port(ports, server_port(), passthrough, [])
 
     step("an untagged packet from the server is routed by the destination's first octet")
     to_client = build_flow(dst_addr="10.4.5.6")
     plain = tcp_packet(to_client, seq=1, ack=1, flags=ACK)
-    ports.send(SERVER_PORT, plain)
+    ports.send(server_port(), plain)
     expect_packet_from_port(ports, 11, plain, [])
 
     step("a non-TCP packet is routed by the destination's first octet")
     udp = build_packet(flow=build_flow(dst_addr="12.4.5.6"))
-    ports.send(CLIENT_PORT, udp)
+    ports.send(client_ports()[0], udp)
     expect_packet_from_port(ports, 13, udp, [])
 
     step("a UDP packet to port 5555 that is not from the server is routed, not consumed")
     sync_from_client = timesync_packet(0)
     sync_from_client[IP].dst = "14.4.5.6"
     sync_from_client = pad_frame(sync_from_client)
-    ports.send(CLIENT_PORT, sync_from_client)
+    ports.send(client_ports()[0], sync_from_client)
     expect_packet_from_port(ports, 15, sync_from_client, [])
 
     step("the server's clock update is consumed and moves cookie_time to the clock it announces")
@@ -262,7 +273,7 @@ def test(ports: Ports) -> None:
     # since) >> 12. One epoch is 2^28 ns, about 268 ms, so a handful of epochs may pass before
     # the cookie below is minted, but the announced clock fixes everything above that.
     announced = 0x40000000
-    ports.send(SERVER_PORT, timesync_packet(announced))
+    ports.send(server_port(), timesync_packet(announced))
     expect_no_packet(ports)
 
     flow_d = client_flow()
@@ -276,9 +287,9 @@ def test(ports: Ports) -> None:
         )
 
     step("cookies minted against the updated clock still verify")
-    ports.send(CLIENT_PORT, tcp_packet(flow_d, seq=seq_d + 1, ack=(cookie_d + 1) & M32, flags=ACK))
-    expect_packet_from_port(ports, SERVER_PORT, expected_tagged(flow_d, seq_d + 1, (cookie_d + 1) & M32, ACK), [])
+    ports.send(client_ports()[0], tcp_packet(flow_d, seq=seq_d + 1, ack=(cookie_d + 1) & M32, flags=ACK))
+    expect_packet_from_port(ports, server_port(), expected_tagged(flow_d, seq_d + 1, (cookie_d + 1) & M32, ACK), [])
 
 
 if __name__ == "__main__":
-    run(test, NF)
+    run(test)

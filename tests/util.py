@@ -8,12 +8,13 @@ The tofino-model owns the even end; we inject and capture on the odd end, exactl
 PTF does. Frames we transmit ourselves show up on the same raw socket flagged as
 PACKET_OUTGOING, so they are filtered out: everything reported here came out of the switch.
 
-Test scripts call `run(test_fn, nf)`; `test_fn` receives a `Ports` object and raises
+Test scripts call `run(test_fn)`; `test_fn` receives a `Ports` object and raises
 `TestFailure` (through the expect_* helpers) when the switch misbehaves.
 """
 
 from __future__ import annotations  # keep 3.9+ annotation syntax valid on Python 3.8
 
+import json
 import sys
 from argparse import ArgumentParser
 from binascii import hexlify
@@ -36,7 +37,65 @@ ETH_P_ALL = 3
 PACKET_OUTGOING = 4  # sll_pkttype of frames we sent ourselves
 
 ALL_PORTS = list(range(1, 33))
-NF_PORTS = list(range(3, 33))  # front panel ports wired to NF devices (configs/tofino2.toml)
+
+# What the solution under test is, read from its synapse report: which data structures it chose,
+# and the port layout it was built for. A test asks these rather than being told, so that naming
+# the solution is the only thing a test run has to say. run() resolves them before the test runs.
+_report: dict = {}
+_dev_to_port: dict = {}
+
+
+def _resolve_solution(nf: str) -> None:
+    global _report, _dev_to_port
+
+    report_file = testbed.SYNTHESIZED_DIR / f"{nf}.json"
+    if not report_file.is_file():
+        raise testbed.TestbedError(f"no synapse report for {nf} ({report_file})")
+    with open(report_file) as f:
+        _report = json.load(f)
+
+    if "ports" not in _report:
+        raise testbed.TestbedError(f"{nf} was synthesized before the report carried its port layout; regenerate it")
+
+    _dev_to_port = {p["nf_device"]: p["front_panel_port"] for p in _report["ports"]}
+
+
+def nf_ports() -> list[int]:
+    """The front panel ports wired to NF devices, in device order."""
+    return [_dev_to_port[dev] for dev in sorted(_dev_to_port)]
+
+
+def port_of_dev(dev: int) -> int:
+    if dev not in _dev_to_port:
+        raise TestFailure(f"NF device {dev} is not wired to a front panel port")
+    return _dev_to_port[dev]
+
+
+def dev_of_port(port: int) -> int:
+    for dev, p in _dev_to_port.items():
+        if p == port:
+            return dev
+    raise TestFailure(f"front panel port {port} is not wired to an NF device")
+
+
+def lan_ports() -> list[int]:
+    """Front panel ports on the NF's internal side: the even devices (--internal-devs).
+
+    Only those actually paired with an external one -- a config can leave a device out.
+    """
+    return [_dev_to_port[dev] for dev in sorted(_dev_to_port) if dev % 2 == 0 and dev + 1 in _dev_to_port]
+
+
+def wan_of(lan_port: int) -> int:
+    """The external port paired with an internal one: the NF pairs device 2k with 2k+1."""
+    return port_of_dev(dev_of_port(lan_port) + 1)
+
+
+def implements(*implementations: str) -> bool:
+    """Whether the solution implements any object with one of these data structures."""
+    chosen = {i["implementation"] for i in _report.get("implementations", [])}
+    return any(i in chosen for i in implementations)
+
 
 # Data plane latency on the model is a few ms, but under load a frame can occasionally take up to a
 # second, so the default wait is generous to avoid false "got nothing" failures; CPU-path packets
@@ -376,16 +435,17 @@ def step(msg: str) -> None:
     print(f"[*] {msg}", flush=True)
 
 
-def run(test: Callable[[Ports], None], nf: str) -> None:
+def run(test: Callable[[Ports], None]) -> None:
     """
     Entry point for NF test scripts.
 
-    By default the testbed (model + controller for `nf`) must already be running
-    (`testbed.py up <nf>`). With --up it is brought up before the test and torn down
-    after it, unless --keep is given.
+    The solution to test is named by --nf; there is no default, because a test that runs
+    without being told what to test proves nothing. By default its testbed (model +
+    controller) must already be running (`testbed.py up <nf>`). With --up it is brought up
+    before the test and torn down after it, unless --keep is given.
     """
-    parser = ArgumentParser(description=f"Black-box test for {nf} on the Tofino 2 model")
-    parser.add_argument("--nf", default=nf, help=f"synthesized solution to test (default: {nf})")
+    parser = ArgumentParser(description="Black-box test for a synthesized solution on the Tofino 2 model")
+    parser.add_argument("--nf", required=True, help="synthesized solution to test")
     parser.add_argument("--up", action="store_true", help="build (unless --no-build) and start the testbed first")
     parser.add_argument("--no-build", action="store_true", help="with --up: skip the build step")
     parser.add_argument("--keep", action="store_true", help="with --up: leave the testbed running afterwards")
@@ -393,6 +453,12 @@ def run(test: Callable[[Ports], None], nf: str) -> None:
     parser.add_argument("--seed", type=int, help="seed the random flows (default: a fresh one, printed below)")
     args = parser.parse_args()
     nf = args.nf
+
+    try:
+        _resolve_solution(nf)
+    except testbed.TestbedError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(2)
 
     # The tests address random flows, so which of them collide in a dataplane cache -- and with it
     # which code paths run at all -- changes from run to run. Print the seed so a failure can be

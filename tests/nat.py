@@ -25,34 +25,30 @@ the fresh-start order is checked exactly; afterwards the test uses whatever port
 The first packet of a new LAN flow takes the controller path in the synthesized solution.
 """
 
-from os import environ
 from time import sleep
 
 from util import *
 
-NF = "nat-f40000-c0-unif-hmax-tput"
-
 # The C puts the index little-endian on the wire (see above). Synapse deliberately writes it
 # big-endian (ModifyHeaderFactory::process_node reverses the bytes of new_index/allocated_index
 # symbols so the dataplane's big-endian read of the port on the way back stays consistent), and
-# that convention is the default here: NAT_INDEX_BYTE_ORDER=little checks the C's.
-INDEX_BYTE_ORDER = environ.get("NAT_INDEX_BYTE_ORDER", "big")
+# that convention is what these tests check, since they only ever run a synthesized solution.
+
+
 # The controller-managed dchain hands out indexes 0, 1, 2, ... in order; a dataplane FCFS cached
 # table (the max-tput solution under test) allocates the slot by hash, so that check does not
-# apply by default: NAT_SEQUENTIAL_INDEXES=1 turns it on for a controller-allocated solution.
-SEQUENTIAL_INDEXES = environ.get("NAT_SEQUENTIAL_INDEXES", "0") == "1"
+# apply to one. Which of the two this solution chose is in its synapse report.
+def sequential_indexes() -> bool:
+    return implements("Tofino::DchainTable")
+
 
 PUBLIC_IP = "1.2.3.4"
-LAN_PORTS = [p for p in NF_PORTS if p % 2 == 1]
-WAN_OF = {p: p + 1 for p in LAN_PORTS}
 
 EXPIRATION_SEC = 1.0
 CPU_PATH_TIMEOUT = 3.0  # first packet of a flow goes through the controller
 
 # The NAT rewrites headers and must fix the checksums, so nothing is ignored when comparing.
-# The synthesized dataplane path currently leaves the original checksums untouched (the checksum
-# update node is mapped to Ignore); NAT_CHECK_CHECKSUMS=0 skips them to validate the rest.
-STRICT: list = [] if environ.get("NAT_CHECK_CHECKSUMS", "1") == "1" else DEFAULT_IGNORED_FIELDS
+STRICT: list = []
 
 
 def l4(pkt: Packet):
@@ -61,7 +57,7 @@ def l4(pkt: Packet):
 
 def external_port_of(index: int) -> int:
     """Port value (as parsed from the wire) written for flow-table index `index`."""
-    return bswap16(index) if INDEX_BYTE_ORDER == "little" else index
+    return index
 
 
 def translate_out(lan_pkt: Packet, ext_port: int) -> Packet:
@@ -106,20 +102,20 @@ def open_flow(ports: Ports, lan: int, wan: int, proto: str = "udp") -> tuple:
 
 
 def test(ports: Ports) -> None:
-    lan, wan = LAN_PORTS[0], WAN_OF[LAN_PORTS[0]]
+    lan, wan = lan_ports()[0], wan_of(lan_ports()[0])
 
     sleep(3 * EXPIRATION_SEC)  # let flows from any previous run expire
-    if SEQUENTIAL_INDEXES:
-        step(f"fresh start: back-to-back new flows get external ports for indexes 0, 1, 2 ({INDEX_BYTE_ORDER}-endian on the wire)")
+    if sequential_indexes():
+        step("fresh start: back-to-back new flows get external ports for indexes 0, 1, 2")
         for index in range(3):
             lan_pkt = build_packet(flow=build_flow())
             ports.send(lan, lan_pkt)
             expect_packet_from_port(ports, wan, translate_out(lan_pkt, external_port_of(index)), STRICT, timeout=CPU_PATH_TIMEOUT)
     else:
-        step("NAT_SEQUENTIAL_INDEXES=0: skipping the sequential-index check (a dataplane cached table allocates by hash)")
+        step("this solution allocates by hash (a dataplane cached table), so indexes are not sequential")
 
-    for lan_i in LAN_PORTS:
-        wan_i = WAN_OF[lan_i]
+    for lan_i in lan_ports():
+        wan_i = wan_of(lan_i)
         step(f"LAN {lan_i} <-> WAN {wan_i}: new flow translated, fast path stable, reply translated back")
         lan_pkt, ext_port = open_flow(ports, lan_i, wan_i)
 
@@ -206,4 +202,4 @@ def test(ports: Ports) -> None:
 
 
 if __name__ == "__main__":
-    run(test, NF)
+    run(test)

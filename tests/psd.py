@@ -30,10 +30,6 @@ from time import sleep
 
 from util import *
 
-NF = "psd-f40000-c0-unif-hmax-tput"
-
-LAN_PORTS = [p for p in NF_PORTS if p % 2 == 1]
-WAN_OF = {p: p + 1 for p in LAN_PORTS}
 
 EXPIRATION_SEC = 1.0
 MAX_PORTS = 16
@@ -98,8 +94,8 @@ def assert_rate_limited(forwarded: list, label: str) -> None:
 
 
 def test(ports: Ports) -> None:
-    for lan in LAN_PORTS:
-        wan = WAN_OF[lan]
+    for lan in lan_ports():
+        wan = wan_of(lan)
         step(f"LAN {lan} <-> WAN {wan}: LAN forwarded untouched, new WAN source admitted, then fast path")
         lan_pkt = build_packet(flow=build_flow())
         ports.send(lan, lan_pkt)
@@ -111,7 +107,7 @@ def test(ports: Ports) -> None:
         ports.send(wan, wan_pkt)
         expect_packet_from_port(ports, lan, wan_pkt)
 
-    lan, wan = LAN_PORTS[0], WAN_OF[LAN_PORTS[0]]
+    lan, wan = lan_ports()[0], wan_of(lan_ports()[0])
     src = build_flow().src_addr
 
     step("LAN traffic is never limited")
@@ -153,4 +149,4 @@ def test(ports: Ports) -> None:
 
 
 if __name__ == "__main__":
-    run(test, NF)
+    run(test)

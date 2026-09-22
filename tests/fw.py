@@ -24,10 +24,6 @@ from time import sleep
 
 from util import *
 
-NF = "fw-f40000-c0-unif-hmax-tput"
-
-LAN_PORTS = [p for p in NF_PORTS if p % 2 == 1]
-WAN_OF = {p: p + 1 for p in LAN_PORTS}
 
 EXPIRATION_SEC = 1.0
 CPU_PATH_TIMEOUT = 3.0  # first packet of a flow goes through the controller
@@ -58,8 +54,8 @@ def refresh_flow(ports: Ports, lan: int, wan: int, lan_pkt: Packet) -> None:
 
 
 def test(ports: Ports) -> None:
-    for lan in LAN_PORTS:
-        wan = WAN_OF[lan]
+    for lan in lan_ports():
+        wan = wan_of(lan)
         step(f"LAN {lan} <-> WAN {wan}: unknown WAN flow dropped, LAN opens it, WAN reply allowed, fast path works")
         lan_pkt, wan_pkt = lan_creates_flow(ports, lan, wan)
 
@@ -72,7 +68,7 @@ def test(ports: Ports) -> None:
         ports.send(wan, wan_pkt)
         expect_packet_from_port(ports, lan, wan_pkt)
 
-    lan, wan = LAN_PORTS[0], WAN_OF[LAN_PORTS[0]]
+    lan, wan = lan_ports()[0], wan_of(lan_ports()[0])
 
     step("WAN packet with the LAN flow's own 4-tuple (not inverted) is dropped")
     lan_pkt, wan_pkt = lan_creates_flow(ports, lan, wan)
@@ -138,4 +134,4 @@ def test(ports: Ports) -> None:
 
 
 if __name__ == "__main__":
-    run(test, NF)
+    run(test)
