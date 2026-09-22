@@ -97,7 +97,7 @@ class RemoteCommand(Command):
 
         return output
 
-    def _reading_output_in_background(self) -> bool:
+    def is_reading_output_in_background(self) -> bool:
         return self.output_reader_thread is not None
 
     def _read_output_until_stopped(self) -> None:
@@ -191,7 +191,7 @@ class RemoteCommand(Command):
         # The background reader would consume the very output being waited for here, and whether a
         # pattern arrived before or after this call became unanswerable. Refuse instead of racing
         # it: the caller has to decide, and a silently missed pattern is the worst outcome.
-        if self._reading_output_in_background():
+        if self.is_reading_output_in_background():
             raise RuntimeError("cannot watch() while the background output reader is running; stop_output_reader_thread() first")
 
         if stop_condition is None:
@@ -284,7 +284,7 @@ class RemoteCommand(Command):
         # Unlike watch(), this is unambiguous: the command is sent only after the reader has
         # stopped, so its answer can only arrive on the channel, never into the reader's buffer.
         # Pause rather than refuse, so that callers do not have to know the reader exists.
-        was_reading_in_background = self._reading_output_in_background()
+        was_reading_in_background = self.is_reading_output_in_background()
         if was_reading_in_background:
             self.stop_output_reader_thread()
 

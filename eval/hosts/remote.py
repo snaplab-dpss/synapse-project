@@ -28,10 +28,10 @@ class RemoteHost(Host):
 
         self._ssh_client = None
 
-    def run_command(self, *args, **kwargs) -> Command:
+    def run_command(self, *args, **kwargs) -> RemoteCommand:
         return RemoteCommand(self.ssh_client, *args, **kwargs, log_file=self.log_file)
 
-    def run_command_locally(self, *args, **kwargs) -> Command:
+    def run_command_locally(self, *args, **kwargs) -> LocalCommand:
         return LocalCommand(*args, **kwargs, log_file=self.log_file)
 
     def remote_file_exists(self, remote_path: Path) -> bool:

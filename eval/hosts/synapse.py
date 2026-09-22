@@ -7,6 +7,7 @@ from typing import Optional, Union
 
 import re
 
+from .commands.remote import RemoteCommand
 from .remote import RemoteHost
 
 SYNAPSE_BENCH_CONTROLLER_PROMPT = "Sycon> "
@@ -30,8 +31,8 @@ class SynapseController:
         # Far more output: only usable because the controller's channel is drained in the
         # background (see wait_ready), otherwise it fills the SSH window and the controller blocks.
         self.debug = debug
-        self.controller_cmd = None
-        self.exe = None
+        self.controller_cmd: Optional[RemoteCommand] = None
+        self.exe: Optional[str] = None
 
         self.host.test_connection()
 
@@ -162,7 +163,7 @@ class SynapseController:
 
         # Same bargain as run_console_commands: the signal is sent only once the reader has
         # stopped, so the reply can only land on the channel, and the caller need not know it exists.
-        was_reading_in_background = self.controller_cmd._reading_output_in_background()
+        was_reading_in_background = self.controller_cmd.is_reading_output_in_background()
         if was_reading_in_background:
             self.controller_cmd.stop_output_reader_thread()
 

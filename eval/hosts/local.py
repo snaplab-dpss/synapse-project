@@ -12,5 +12,5 @@ class LocalHost(Host):
     ) -> None:
         super().__init__(log_file)
 
-    def run_command(self, *args, **kwargs) -> Command:
+    def run_command(self, *args, **kwargs) -> LocalCommand:
         return LocalCommand(*args, **kwargs)
