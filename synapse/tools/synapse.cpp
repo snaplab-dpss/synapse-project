@@ -121,6 +121,19 @@ void dump_final_report(const args_t &args, const search_report_t &search_report)
   report_json["tput_estimation_pps"] = search_report.tput_estimation_pps;
   report_json["tput_estimation_bps"] = search_report.tput_estimation_bps;
 
+  // The port layout this solution was built for. Whoever reads the report -- the model tests
+  // especially -- then knows which front panel port each NF device is wired to, and which pipe it
+  // sits in, without going back to the targets config and parsing it again.
+  const targets_config_t targets_config(args.targets_config_file);
+  report_json["ports"] = nlohmann::json::array();
+  for (const Tofino::tofino_port_t &port : targets_config.tofino_config.ports) {
+    report_json["ports"].push_back({
+        {"nf_device", port.nf_device},
+        {"front_panel_port", port.front_panel_port},
+        {"pipe", port.pipe},
+    });
+  }
+
   report_json["search_meta"] = {
       {"elapsed_time_seconds", search_report.meta.elapsed_time},
       {"steps", search_report.meta.steps},
