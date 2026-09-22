@@ -35,7 +35,7 @@ ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 # CHURN_FPM = [10_000]
 # ZIPF_PARAMS = [1.2]
 
-ITERATIONS = 1
+ITERATIONS = 3
 
 
 @dataclass
@@ -145,37 +145,37 @@ NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
-    SynapseNF(
-        name="gallium-smartcookie",
-        description="Gallium SmartCookie",
-        data_out=Path("tput_gallium_smartcookie.csv"),
-        kvs_mode=False,
-        tcp_syn=True,
-        tofino=Path("synthesized/gallium-smartcookie.p4"),
-        controller=Path("synthesized/gallium-smartcookie.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
-        churn=CHURN_FPM,
-        zipf=ZIPF_PARAMS,
-    ),
-    # *[
-    #     SynapseNF(
-    #         name=build_synapse_nf_name("kvs", churn, s),
-    #         description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
-    #         data_out=Path(f"tput_synapse_kvs.csv"),
-    #         kvs_mode=True,
-    #         tcp_syn=False,
-    #         tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
-    #         controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
-    #         broadcast=lambda ports: ports,
-    #         symmetric=lambda _: [],
-    #         route=lambda _: [],
-    #         churn=[churn],
-    #         zipf=[s],
-    #     )
-    #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
-    # ],
+    # SynapseNF(
+    #     name="gallium-smartcookie",
+    #     description="Gallium SmartCookie",
+    #     data_out=Path("tput_gallium_smartcookie.csv"),
+    #     kvs_mode=False,
+    #     tcp_syn=True,
+    #     tofino=Path("synthesized/gallium-smartcookie.p4"),
+    #     controller=Path("synthesized/gallium-smartcookie.cpp"),
+    #     broadcast=lambda ports: ports,
+    #     symmetric=lambda _: [],
+    #     route=lambda _: [],
+    #     churn=CHURN_FPM,
+    #     zipf=ZIPF_PARAMS,
+    # ),
+    *[
+        SynapseNF(
+            name=build_synapse_nf_name("kvs", churn, s),
+            description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
+            data_out=Path(f"tput_synapse_kvs.csv"),
+            kvs_mode=True,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
+            broadcast=lambda ports: ports,
+            symmetric=lambda _: [],
+            route=lambda _: [],
+            churn=[churn],
+            zipf=[s],
+        )
+        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    ],
     # *[
     #     SynapseNF(
     #         name=build_synapse_nf_name("fw", churn, s),
