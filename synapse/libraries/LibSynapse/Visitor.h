@@ -122,6 +122,7 @@ class DataplaneHHTableIsIndexAllocated;
 class DataplaneHHTableOutOfBandUpdate;
 class DataplaneMeterAllocate;
 class DataplaneMeterInsert;
+class DataplaneMeterIsTracing;
 class DataplaneIntegerAllocatorAllocate;
 class DataplaneIntegerAllocatorFreeIndex;
 class DataplaneCMSAllocate;
@@ -370,6 +371,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketExpire *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterIsTracing *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *m) { return Action::doChildren; }

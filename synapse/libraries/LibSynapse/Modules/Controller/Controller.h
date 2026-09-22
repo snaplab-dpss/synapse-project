@@ -90,6 +90,7 @@
 #include <LibSynapse/Modules/Controller/TokenBucketExpire.h>
 #include <LibSynapse/Modules/Controller/DataplaneMeterAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneMeterInsert.h>
+#include <LibSynapse/Modules/Controller/DataplaneMeterIsTracing.h>
 #include <LibSynapse/Modules/Controller/DataplaneIntegerAllocatorAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneIntegerAllocatorFreeIndex.h>
 #include <LibSynapse/Modules/Controller/CMSAllocate.h>

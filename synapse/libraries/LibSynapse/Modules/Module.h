@@ -136,6 +136,7 @@ enum class ModuleType {
   Controller_DataplaneIntegerAllocatorFreeIndex,
   Controller_DataplaneMeterAllocate,
   Controller_DataplaneMeterInsert,
+  Controller_DataplaneMeterIsTracing,
   Controller_DataplaneGuardedMapTableAllocate,
   Controller_DataplaneGuardedMapTableLookup,
   Controller_DataplaneGuardedMapTableUpdate,
@@ -661,6 +662,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneMeterInsert:
     os << "Controller_DataplaneMeterInsert";
+    break;
+  case ModuleType::Controller_DataplaneMeterIsTracing:
+    os << "Controller_DataplaneMeterIsTracing";
     break;
   case ModuleType::Controller_CMSAllocate:
     os << "Controller_CMSAllocate";

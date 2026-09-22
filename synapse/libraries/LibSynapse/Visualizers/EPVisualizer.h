@@ -163,6 +163,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketUpdateAndCheck *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketExpire *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterIsTracing *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *node) override final;

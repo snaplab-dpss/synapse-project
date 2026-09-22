@@ -2421,6 +2421,33 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterIsTracing *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                         = node->get_obj();
+  const std::optional<symbol_t> is_tracing = node->get_is_tracing();
+
+  const Tofino::Meter *meter = get_unique_tofino_ds_from_obj<Tofino::Meter>(ep, obj);
+
+  // The dataplane table matches the key field by field; it is looked up whole here, as on insert.
+  const Call *tb_is_tracing = dynamic_cast<const Call *>(node->get_node());
+  assert(tb_is_tracing && "Meter is-tracing node is not a call");
+  const klee::ref<klee::Expr> key = tb_is_tracing->get_call().args.at("key").in;
+
+  const var_t key_var = transpile_buffer_decl_and_set(coder, meter->id + "_key", key, true);
+
+  coder.indent();
+  if (is_tracing.has_value()) {
+    const var_t is_tracing_var = alloc_var("is_tracing", is_tracing->expr, {}, NO_OPTION);
+    coder << "bool " << is_tracing_var.name << " = ";
+  }
+  coder << "state->" << meter->id << ".is_tracking(";
+  coder << key_var.name;
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();

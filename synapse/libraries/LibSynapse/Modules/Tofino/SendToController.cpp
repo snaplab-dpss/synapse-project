@@ -19,6 +19,7 @@
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableIsIndexAllocated.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedSetRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneHHTableRead.h>
+#include <LibSynapse/Modules/Controller/DataplaneMeterIsTracing.h>
 
 #include <LibSynapse/Modules/Tofino/ParserExtraction.h>
 #include <LibSynapse/Modules/Tofino/If.h>
@@ -34,6 +35,7 @@
 #include <LibSynapse/Modules/Tofino/FCFSCachedSetRead.h>
 #include <LibSynapse/Modules/Tofino/FCFSCachedSetReadInsert.h>
 #include <LibSynapse/Modules/Tofino/HHTableRead.h>
+#include <LibSynapse/Modules/Tofino/MeterUpdate.h>
 #include <LibSynapse/Modules/Tofino/IntegerAllocatorIsAllocated.h>
 #include <LibSynapse/Modules/Tofino/LPMLookup.h>
 
@@ -133,6 +135,31 @@ struct initial_controller_logic_t {
   }
 };
 
+// Builds the prologue of the controller's program: what it has to do before it can pick up the
+// BDD where the data plane left off.
+//
+// The controller resumes half way through the BDD, so it needs the symbols the data plane already
+// produced -- the branch conditions it took, the values it read. Those come from two kinds of
+// facts, and the difference is the whole point of this function:
+//
+//   - Facts about the PACKET (parsed headers, conditions on header fields) do not change. They are
+//     replayed here, or carried up in the CPU header, and either way stay true.
+//
+//   - Facts about mutable STATE do not survive the trip. The packet reaches the controller
+//     microseconds to milliseconds after the data plane looked, and the data plane keeps running at
+//     line rate in between -- including other packets punted for the very same key. So for every
+//     stateful lookup the data plane performed, we emit a controller-side lookup of the LIVE data
+//     structure, which rebinds the hit/value symbol to what is true NOW.
+//
+// Concretely, without this: two packets for one key both miss a table and are both sent up. "miss"
+// was correct for both when it was measured. By the time the controller handles the second, it has
+// already installed the entry for the first -- and if it still believes "miss", it inserts a key
+// that is already there.
+//
+// Which is why the switch below is exhaustive with no default: EVERY module that reads mutable
+// state needs a case that re-reads it. Landing in the fall-through group at the bottom is a claim
+// that the module observed nothing the controller could be wrong about -- true for Forward, Drop
+// and ModifyHeader, and false, silently, for anything that looked at state.
 initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const EPLeaf active_leaf) {
   initial_controller_logic_t initial_controller_logic{
       .head                         = nullptr,
@@ -469,6 +496,23 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
         initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(hh_table_read->get_node())->get_local_symbols());
       }
     } break;
+    case ModuleType::Tofino_MeterUpdate: {
+      const MeterUpdate *meter_update = dynamic_cast<const MeterUpdate *>(prev.module);
+
+      const symbol_t is_tracing = dynamic_cast<const Call *>(meter_update->get_node())->get_local_symbol("is_tracing");
+
+      Controller::DataplaneMeterIsTracing *ctrl_meter_is_tracing =
+          new Controller::DataplaneMeterIsTracing(active_leaf.next, meter_update->get_obj(), meter_update->get_keys(), is_tracing);
+
+      EPNode *meter_is_tracing_ep_node = new EPNode(ctrl_meter_is_tracing);
+      initial_controller_logic.update(meter_is_tracing_ep_node);
+
+      if (meter_update->get_node()) {
+        initial_controller_logic.extra_symbols.add(meter_update->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(meter_update->get_node())->get_local_symbols());
+      }
+    } break;
+
     case ModuleType::Tofino_IntegerAllocatorIsAllocated: {
       panic("TODO: implement controller constraints checker logic for IntegerAllocatorIsAllocated");
     } break;
@@ -502,7 +546,6 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Tofino_VectorRegisterReadConditionalIncrement:
     case ModuleType::Tofino_FCFSCachedTableInsert:
     case ModuleType::Tofino_FCFSCachedSetInsert:
-    case ModuleType::Tofino_MeterUpdate:
     case ModuleType::Tofino_HHTableOutOfBandUpdate:
     case ModuleType::Tofino_IntegerAllocatorRejuvenate:
     case ModuleType::Tofino_IntegerAllocatorAllocate:
@@ -577,6 +620,7 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Controller_DataplaneIntegerAllocatorFreeIndex:
     case ModuleType::Controller_DataplaneMeterAllocate:
     case ModuleType::Controller_DataplaneMeterInsert:
+    case ModuleType::Controller_DataplaneMeterIsTracing:
     case ModuleType::Controller_DataplaneCMSAllocate:
     case ModuleType::Controller_DataplaneCMSQuery:
     case ModuleType::Controller_DataplaneBloomFilterAllocate:

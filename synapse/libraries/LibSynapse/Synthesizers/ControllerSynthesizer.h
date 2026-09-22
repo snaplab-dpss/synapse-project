@@ -264,6 +264,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketExpire *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterIsTracing *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSAllocate *node) override final;
