@@ -9,7 +9,7 @@ model = "AS9516-32D"
 vport        = 0              # Storage server NF device
 pport        = 1              # Storage server front panel port
 pipe         = 1
-capacity_bps = 50_000_000_000 # Storage server capacity (bottleneck)
+capacity_bps = 70_000_000_000 # Storage server capacity (bottleneck)
 
 [[switch.front_panel_ports]]
 vport        = -1              # Unused port
