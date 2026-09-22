@@ -132,6 +132,20 @@ NFS = [
     #     zipf=ZIPF_PARAMS,
     # ),
     # SynapseNF(
+    #     name="gallium-pol",
+    #     description="Gallium Policer",
+    #     data_out=Path("tput_gallium_pol.csv"),
+    #     kvs_mode=False,
+    #     tcp_syn=False,
+    #     tofino=Path("synthesized/gallium-pol.p4"),
+    #     controller=Path("synthesized/gallium-pol.cpp"),
+    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+    #     route=lambda _: [],
+    #     churn=CHURN_FPM,
+    #     zipf=ZIPF_PARAMS,
+    # ),
+    # SynapseNF(
     #     name="gallium-hyperloglog",
     #     description="Gallium HyperLogLog",
     #     data_out=Path("tput_gallium_hyperloglog.csv"),
@@ -159,23 +173,23 @@ NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
-    *[
-        SynapseNF(
-            name=build_synapse_nf_name("kvs", churn, s),
-            description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
-            data_out=Path(f"tput_synapse_kvs.csv"),
-            kvs_mode=True,
-            tcp_syn=False,
-            tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
-            controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
-            broadcast=lambda ports: ports,
-            symmetric=lambda _: [],
-            route=lambda _: [],
-            churn=[churn],
-            zipf=[s],
-        )
-        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
-    ],
+    # *[
+    #     SynapseNF(
+    #         name=build_synapse_nf_name("kvs", churn, s),
+    #         description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
+    #         data_out=Path(f"tput_synapse_kvs.csv"),
+    #         kvs_mode=True,
+    #         tcp_syn=False,
+    #         tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
+    #         controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
+    #         broadcast=lambda ports: ports,
+    #         symmetric=lambda _: [],
+    #         route=lambda _: [],
+    #         churn=[churn],
+    #         zipf=[s],
+    #     )
+    #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    # ],
     # *[
     #     SynapseNF(
     #         name=build_synapse_nf_name("fw", churn, s),
@@ -244,6 +258,23 @@ NFS = [
     #     )
     #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
     # ],
+    *[
+        SynapseNF(
+            name=build_synapse_nf_name("pol", churn, s),
+            description=f"Synapse {build_synapse_nf_name('pol', churn, s)}",
+            data_out=Path(f"tput_synapse_pol.csv"),
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('pol', churn, s)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('pol', churn, s)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+            churn=[churn],
+            zipf=[s],
+        )
+        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    ],
     # *[
     #     SynapseNF(
     #         name=build_synapse_nf_name("hyperloglog", churn, s),
