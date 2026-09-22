@@ -19,6 +19,10 @@ STORAGE_SERVER_DELAY_NS = 0
 KVS_GET_RATIO = 0.99
 PIPELINES = 1
 
+# Launch the Synapse controller's debug build, which logs what it does with every packet sent
+# up to it (in the controller's log). Slower and far more verbose, so it is off for real runs.
+DEBUG_MODE = False
+
 TOTAL_FLOWS = 40_000
 CHURN_FPM = 1_000_000
 ZIPF_PARAM = 1.2
@@ -322,6 +326,7 @@ def main():
     tput_hosts = ThroughputHosts(
         config,
         use_accelerator=False,
+        debug=DEBUG_MODE,
     )
 
     kvs_server = KVSServer(

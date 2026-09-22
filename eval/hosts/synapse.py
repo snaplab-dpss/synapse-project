@@ -20,11 +20,16 @@ class SynapseController:
         sde: str,
         tofino_version: int,
         log_file: Optional[str] = None,
+        debug: bool = False,
     ) -> None:
         self.host = RemoteHost(hostname, log_file=log_file)
         self.repo = Path(repo)
         self.sde = Path(sde)
         self.tofino_version = tofino_version
+        # Run the debug build, which logs what the controller does with every packet it is sent.
+        # Far more output: only usable because the controller's channel is drained in the
+        # background (see wait_ready), otherwise it fills the SSH window and the controller blocks.
+        self.debug = debug
         self.controller_cmd = None
         self.exe = None
 
@@ -96,7 +101,8 @@ class SynapseController:
         # but without the extension.
         self.exe = src_path.stem
 
-        cmd = f"sudo -E ./build/release/{self.exe}"
+        build = "debug" if self.debug else "release"
+        cmd = f"sudo -E ./build/{build}/{self.exe}"
         cmd += f" --tna {self.tofino_version}"
         cmd += f" --wait-ports"
         cmd += f" --bench"

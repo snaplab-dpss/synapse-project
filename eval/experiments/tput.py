@@ -81,6 +81,7 @@ class ThroughputHosts:
         self,
         config: dict,
         use_accelerator: bool = True,
+        debug: bool = False,
     ) -> None:
         self.dut_switch = Switch(
             hostname=config["hosts"]["switch_dut"],
@@ -96,6 +97,7 @@ class ThroughputHosts:
             sde=config["devices"]["switch_dut"]["sde"],
             tofino_version=config["devices"]["switch_dut"]["tofino_version"],
             log_file=config["logs"]["controller_dut"],
+            debug=debug,
         )
 
         if use_accelerator:
