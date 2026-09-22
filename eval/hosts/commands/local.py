@@ -101,15 +101,23 @@ class LocalCommand(Command):
             max_match_length = 1024
 
         output = ""
+        searched_upto = 0
 
         def continue_running():
+            nonlocal searched_upto
+
             if (deadline is not None) and (time.time() > deadline):
                 return False
 
             if stop_pattern is not None:
-                search_len = min(len(output), max_match_length)
-                if re.search(stop_pattern, output[-search_len:]):
+                # Search everything that arrived since the last check, plus an overlap so a match
+                # straddling the boundary is still found. Looking only at the last max_match_length
+                # characters instead would skip PAST the pattern whenever more than that arrives
+                # between two checks.
+                start = max(0, searched_upto - max_match_length)
+                if re.search(stop_pattern, output[start:]):
                     return False
+                searched_upto = len(output)
 
             return not stop_condition()
 
