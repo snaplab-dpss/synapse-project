@@ -88,6 +88,7 @@ public:
 
   pps_t get_max_input_pps() const;
   bps_t get_max_input_bps() const;
+  pps_t get_controller_capacity() const { return controller_capacity; }
 
   hit_rate_t get_dropped_ingress() const { return dropped_ingress; }
   hit_rate_t get_total_controller_ingress() const { return controller_ingress.get_total_hr(); }

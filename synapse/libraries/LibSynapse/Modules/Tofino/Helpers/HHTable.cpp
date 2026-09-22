@@ -120,6 +120,17 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, cons
   const fpm_t churn_top_k_flows          = bdd_profile->churn_top_k_flows(map, capacity);
   const double churn_top_k_flows_per_sec = churn_top_k_flows / 60.0;
 
+  // The controller installs entries off a digest, one operation each, so the table cannot take on
+  // new flows faster than the controller's own service rate. Once the top-k turns over faster than
+  // that, the backlog of pending installs grows without bound: an entry lands long after its flow
+  // has gone, so the table stops tracking the working set rather than merely lagging it. The terms
+  // below model a table that keeps up, and say nothing about one that cannot -- hence the cutoff
+  // here rather than a share of the churn getting through, which is what the install *throughput*
+  // would suggest and what the diverging install *latency* rules out.
+  if (churn_top_k_flows_per_sec >= ctx.get_perf_oracle().get_controller_capacity()) {
+    return hit_rate_t(0);
+  }
+
   auto find_bottom_k_affected = [capacity, &flow_stats](u64 threshold) {
     assert(capacity < flow_stats.pkts_per_flow.size() && "Invalid capacity");
     u32 k = 0;
@@ -161,13 +172,14 @@ hit_rate_t TofinoModuleFactory::get_hh_table_hit_success_rate(const EP *ep, cons
   const hit_rate_t new_affected_hr       = (affected_hr + contending_hr) / 2;
   const hit_rate_t steady_state_hit_rate = std::min(new_hr, unaffected_hr + new_affected_hr);
 
-  const double time_to_insert_in_table_sec = 0.005;
-  const int n                              = 1;
-  u64 top_n                                = 0;
-  for (size_t k = 0; k < n && k < flow_stats.pkts_per_flow.size(); k++) {
-    top_n += flow_stats.pkts_per_flow[k];
-  }
-  const hit_rate_t missing_flow_hit_rate = hit_rate_t(top_n, flow_stats.pkts * n);
+  // An entry is installed by the controller, off a digest, so an insertion costs it one operation.
+  const double time_to_insert_in_table_sec = 1.0 / ctx.get_perf_oracle().get_controller_capacity();
+
+  // A flow churning into the table is one at the table's boundary, not the hottest flow of the
+  // whole trace: while it waits to be installed, what is missed is the marginal flow's share of
+  // the traffic, which is orders of magnitude smaller.
+  const size_t marginal_flow             = std::min<size_t>(capacity, flow_stats.pkts_per_flow.size() - 1);
+  const hit_rate_t missing_flow_hit_rate = hit_rate_t(flow_stats.pkts_per_flow.at(marginal_flow), flow_stats.pkts);
   const hit_rate_t hit_rate =
       steady_state_hit_rate - churn_top_k_flows_per_sec * ((THRESHOLD / rate) + (missing_flow_hit_rate * time_to_insert_in_table_sec));
 
