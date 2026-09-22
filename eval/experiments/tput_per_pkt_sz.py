@@ -2,6 +2,7 @@
 
 from experiments.tput import ThroughputHosts
 from experiments.experiment import Experiment
+from hosts.tofino_tg import TofinoTG, TofinoTGController
 
 from pathlib import Path
 
@@ -12,6 +13,12 @@ from typing import Optional
 
 
 class ThroughputPerPacketSize(Experiment):
+    """Throughput per packet size, against a DUT that only mirrors traffic back.
+
+    The DUT runs the hand-written traffic generator with plain forwarding rules, so it is a
+    known-good mirror and the numbers are the generator's doing, not an NF's.
+    """
+
     def __init__(
         self,
         # Experiment parameters
@@ -20,17 +27,15 @@ class ThroughputPerPacketSize(Experiment):
         pkt_sizes: list[int],
         # Hosts
         hosts: ThroughputHosts,
-        # Switch
-        p4_src_in_repo: str,
-        # Controller
-        controller_src_in_repo: str,
-        controller_timeout_ms: int,
-        # TG controller
-        broadcast: list[int],
-        symmetric: list[int],
-        route: list[tuple[int, int]],
+        dut_switch: TofinoTG,
+        dut_controller: TofinoTGController,
         # Pktgen
         nb_flows: int,
+        # TG controller
+        broadcast: list[int],
+        # DUT controller
+        dut_broadcast: list[int],
+        dut_route: list[tuple[int, int]],
         experiment_log_file: Optional[str] = None,
         console: Console = Console(),
     ) -> None:
@@ -41,17 +46,16 @@ class ThroughputPerPacketSize(Experiment):
         self.hosts = hosts
         self.pkt_sizes = pkt_sizes
 
-        # Switch
-        self.p4_src_in_repo = p4_src_in_repo
-
-        # Controller
-        self.controller_src_in_repo = controller_src_in_repo
-        self.controller_timeout_ms = controller_timeout_ms
+        # The DUT, running the traffic generator rather than anything synthesized
+        self.dut_switch = dut_switch
+        self.dut_controller = dut_controller
 
         # TG controller
         self.broadcast = broadcast
-        self.symmetric = symmetric
-        self.route = route
+
+        # DUT controller
+        self.dut_broadcast = dut_broadcast
+        self.dut_route = dut_route
 
         # Pktgen
         self.nb_flows = nb_flows
@@ -108,14 +112,14 @@ class ThroughputPerPacketSize(Experiment):
         self.log("Installing Tofino TG")
         self.hosts.tg_switch.install()
 
-        self.log("Installing NF")
-        self.hosts.dut_switch.install(self.p4_src_in_repo)
+        self.log("Installing traffic generator on the DUT")
+        self.dut_switch.install()
 
         self.log("Launching Tofino TG")
         self.hosts.tg_switch.launch()
 
-        self.log("Launching synapse controller")
-        self.hosts.dut_controller.launch(self.controller_src_in_repo)
+        self.log("Launching traffic generator on the DUT")
+        self.dut_switch.launch()
 
         self.log("Launching pktgen")
         self.hosts.pktgen.launch(
@@ -127,17 +131,15 @@ class ThroughputPerPacketSize(Experiment):
         self.hosts.tg_switch.wait_ready()
 
         self.log("Configuring Tofino TG")
-        self.hosts.tg_controller.setup(
-            broadcast=self.broadcast,
-            symmetric=self.symmetric,
-            route=self.route,
-        )
+        self.hosts.tg_controller.setup(broadcast=self.broadcast, symmetric=[], route=[])
 
         self.log("Waiting for pktgen")
         self.hosts.pktgen.wait_launch()
 
-        self.log("Waiting for synapse controller")
-        self.hosts.dut_controller.wait_ready()
+        self.log("Waiting for the DUT's traffic generator")
+        self.dut_switch.wait_ready()
+        self.log("Configuring the DUT's forwarding rules")
+        self.dut_controller.setup(broadcast=self.dut_broadcast, symmetric=[], route=self.dut_route)
 
         self.log("Waiting for TG ports")
         self.hosts.tg_controller.wait_for_ports()
@@ -189,6 +191,5 @@ class ThroughputPerPacketSize(Experiment):
             step_progress.update(task_id, description=description, advance=1)
 
         self.hosts.pktgen.close()
-        self.hosts.dut_controller.stop()
 
         step_progress.update(task_id, visible=False)
