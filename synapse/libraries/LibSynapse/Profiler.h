@@ -5,6 +5,7 @@
 #include <LibBDD/Reorder.h>
 #include <LibCore/Types.h>
 
+#include <cmath>
 #include <optional>
 #include <vector>
 
@@ -58,6 +59,44 @@ struct flow_stats_t {
     }
     assert(between_k <= pkts && "Invalid between_k");
     return hit_rate_t(between_k, pkts);
+  }
+
+  // Hit rate of a cache of `capacity` entries that evicts a uniformly random resident on every
+  // miss, rather than keeping the hottest flows. A flow is resident with probability
+  // `p * capacity / (miss_rate + p * capacity)`: it is admitted at the rate it misses and evicted
+  // at the rate the cache as a whole misses, times its share of the entries. Summing that over the
+  // flows gives the hit rate, and the miss rate it assumes must equal the one it produces, so
+  // iterate to the fixed point. Damped, because the raw iteration oscillates about it.
+  hit_rate_t calculate_random_replacement_hit_rate(size_t capacity) const {
+    if (pkts == 0 || capacity == 0) {
+      return hit_rate_t(0);
+    }
+
+    constexpr const u32 MAX_ITERATIONS{1000};
+    constexpr const double TOLERANCE{1e-12};
+    constexpr const double DAMPING{0.5};
+
+    double miss_rate = 0.5;
+
+    for (u32 i = 0; i < MAX_ITERATIONS; i++) {
+      double hit_rate = 0;
+      for (u64 flow_pkts : pkts_per_flow) {
+        const double p         = static_cast<double>(flow_pkts) / pkts;
+        const double residency = (p * capacity) / (miss_rate + p * capacity);
+        hit_rate += p * residency;
+      }
+
+      const double next_miss_rate = 1.0 - hit_rate;
+      const double delta          = next_miss_rate - miss_rate;
+
+      miss_rate += DAMPING * delta;
+
+      if (std::abs(delta) < TOLERANCE) {
+        break;
+      }
+    }
+
+    return hit_rate_t(1.0 - miss_rate);
   }
 
   u64 calculate_top_k_flows_with_at_least_n_pkts(u64 n) const {

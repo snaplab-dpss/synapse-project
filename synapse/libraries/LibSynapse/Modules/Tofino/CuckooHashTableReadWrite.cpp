@@ -63,9 +63,13 @@ struct read_write_pattern_t {
 
 hit_rate_t calculate_expected_cache_hit_rate(const EP *ep, const BDDNode *node, const read_write_pattern_t &read_write_pattern,
                                              klee::ref<klee::Expr> key, u32 capacity) {
-  const flow_stats_t flow_stats                         = ep->get_ctx().get_profiler().get_flow_stats(node, key);
-  const hit_rate_t probability_of_finding_item_in_table = flow_stats.calculate_top_k_hit_rate(capacity);
-  const hit_rate_t expected_cache_hit_rate              = 1_hr - ((1_hr - probability_of_finding_item_in_table) * 1.4);
+  // The table admits on every miss and evicts to make room: a miss overwrites the entry sitting in
+  // its first slot, that entry is relocated to its second slot, and whatever it displaces there is
+  // dropped. Nothing stops an insertion and nothing favours a hot entry, so the table does not hold
+  // the hottest flows -- it holds a random sample of the recently missed ones, and its hit rate is
+  // that of a cache with random replacement rather than of the top-`capacity` flows.
+  const flow_stats_t flow_stats            = ep->get_ctx().get_profiler().get_flow_stats(node, key);
+  const hit_rate_t expected_cache_hit_rate = flow_stats.calculate_random_replacement_hit_rate(capacity);
   return expected_cache_hit_rate;
 }
 
