@@ -11,8 +11,6 @@ NF_ARGS := --flow-expiration $(or $(EXPIRATION_TIME),1000000) \
            --cht-height 97 \
            --backend-expiration 100000000
 
-NF_LAYER := 3
-
 NF_BENCH_NEEDS_REVERSE_TRAFFIC := true
 
 include $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/../Makefile

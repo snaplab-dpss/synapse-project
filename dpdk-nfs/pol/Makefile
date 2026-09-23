@@ -28,6 +28,4 @@ NF_ARGS := --internal-devs 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 \
            --capacity $(or $(CAPACITY),65536) \
            --expire $(or $(POLICER_EXPIRATION),$(EXPIRATION))
 
-NF_LAYER := 3
-
 include $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/../Makefile

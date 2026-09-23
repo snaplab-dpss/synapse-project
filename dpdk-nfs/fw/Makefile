@@ -24,6 +24,4 @@ NF_ARGS := --internal-devs 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 \
            --expire 1000000 \
            --max-flows 65536
 
-NF_LAYER := 4
-
 include $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/../Makefile

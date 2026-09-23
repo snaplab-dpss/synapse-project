@@ -26,6 +26,4 @@ NF_ARGS := --internal-devs 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 \
            --sketch-width $(or $(SKETCH_WIDTH),1024) \
            --sketch-cleanup-interval $(or $(SKETCH_CLEANUP_INTERVAL),10000000) 
 
-NF_LAYER := 4
-
 include $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/../Makefile

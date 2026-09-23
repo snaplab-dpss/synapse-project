@@ -9,6 +9,4 @@ NF_ARGS := \
 	--burst $(or $(HHH_BURST),3750000000) \
 	--capacity $(or $(HHH_CAPACITY),65536)
 
-NF_LAYER := 3
-
 include $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/../Makefile

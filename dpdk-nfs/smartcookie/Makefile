@@ -9,6 +9,4 @@ NF_ARGS := --server-dev $(or $(SERVER_DEV),0) \
            --bf-height $(or $(BLOOM_FILTER_HEIGHT),2) \
            --bf-width $(or $(BLOOM_FILTER_WIDTH),1048576)
 
-NF_LAYER := 4
-
 include $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/../Makefile
