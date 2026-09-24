@@ -151,6 +151,7 @@ private:
   success_condition_t lpm_lookup(coder_t &, const Call *);
   success_condition_t lpm_update(coder_t &, const Call *);
   success_condition_t lpm_from_file(coder_t &, const Call *);
+  success_condition_t dns_get_response(coder_t &, const Call *);
   success_condition_t hash_obj(coder_t &, const Call *);
   success_condition_t count_trailing_zeros(coder_t &, const Call *);
   success_condition_t find_first_set_bit(coder_t &, const Call *);

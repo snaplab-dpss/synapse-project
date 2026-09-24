@@ -707,6 +707,7 @@ BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, st
                             POPULATE_SYNTHESIZER(lpm_lookup),
                             POPULATE_SYNTHESIZER(lpm_update),
                             POPULATE_SYNTHESIZER(lpm_from_file),
+                            POPULATE_SYNTHESIZER(dns_get_response),
                             POPULATE_SYNTHESIZER(hash_obj),
                             POPULATE_SYNTHESIZER(count_trailing_zeros),
                             POPULATE_SYNTHESIZER(find_first_set_bit),
@@ -1877,8 +1878,10 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::tb_allocate(coder_t &coder, 
 BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_allocate(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
-  klee::ref<klee::Expr> lpm_out = call.args.at("lpm_out").out;
-  symbol_t success              = call_node->get_local_symbol("lpm_alloc_success");
+  klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
+  klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
+  klee::ref<klee::Expr> lpm_out  = call.args.at("lpm_out").out;
+  symbol_t success               = call_node->get_local_symbol("lpm_alloc_success");
 
   var_t lpm_out_var = build_var("lpm", lpm_out);
   var_t success_var = build_var("lpm_alloc_success", success.expr);
@@ -1892,6 +1895,8 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_allocate(coder_t &coder,
   coder.indent();
   coder << "int " << success_var.name << " = ";
   coder << "lpm_allocate(";
+  coder << transpiler.transpile(capacity) << ", ";
+  coder << transpiler.transpile(key_size) << ", ";
   coder << "&" << lpm_out_var.name;
   coder << ");\n";
 
@@ -2029,29 +2034,35 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::tb_expire(coder_t &coder, co
 BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_lookup(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
-  klee::ref<klee::Expr> lpm_addr  = call.args.at("lpm").expr;
-  klee::ref<klee::Expr> prefix    = call.args.at("prefix").expr;
-  klee::ref<klee::Expr> value_out = call.args.at("value_out").out;
+  klee::ref<klee::Expr> lpm_addr    = call.args.at("lpm").expr;
+  klee::ref<klee::Expr> prefix_addr = call.args.at("prefix").expr;
+  klee::ref<klee::Expr> prefix      = call.args.at("prefix").in;
+  klee::ref<klee::Expr> value_out   = call.args.at("value_out").out;
 
   symbol_t lpm_lookup_match = call_node->get_local_symbol("lpm_lookup_match");
 
   var_t lookup_match_var = build_var("lpm_lookup_match", lpm_lookup_match.expr);
-  var_t lpm_matching_dev = build_var("lpm_matching_dev", value_out);
+  var_t lpm_value        = build_var("lpm_value", value_out);
+
+  // The key is read through a pointer and can be wider than any scalar, so it is materialized as
+  // its own buffer rather than transpiled into the call.
+  bool prefix_in_stack;
+  var_t prefix_var = build_var_ptr("lpm_key", prefix_addr, prefix, coder, prefix_in_stack);
 
   coder.indent();
-  coder << "uint16_t " << lpm_matching_dev.name << ";\n";
+  coder << "int " << lpm_value.name << ";\n";
 
   coder.indent();
   coder << "int " << lookup_match_var.name << " = ";
   coder << "lpm_lookup(";
   coder << stack_get(lpm_addr).name << ", ";
-  coder << transpiler.transpile(prefix) << ", ";
-  coder << "&" << lpm_matching_dev.name;
+  coder << prefix_var.name << ", ";
+  coder << "&" << lpm_value.name;
   coder << ")";
   coder << ";\n";
 
   stack_add(lookup_match_var);
-  stack_add(lpm_matching_dev);
+  stack_add(lpm_value);
 
   return lookup_match_var;
 }
@@ -2059,20 +2070,25 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_lookup(coder_t &coder, c
 BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_update(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
-  klee::ref<klee::Expr> lpm_addr  = call.args.at("lpm").expr;
-  klee::ref<klee::Expr> prefix    = call.args.at("prefix").expr;
-  klee::ref<klee::Expr> prefixlen = call.args.at("prefixlen").expr;
-  klee::ref<klee::Expr> value     = call.args.at("value").expr;
+  klee::ref<klee::Expr> lpm_addr    = call.args.at("lpm").expr;
+  klee::ref<klee::Expr> prefix_addr = call.args.at("prefix").expr;
+  klee::ref<klee::Expr> prefix      = call.args.at("prefix").in;
+  klee::ref<klee::Expr> prefixlen   = call.args.at("prefixlen").expr;
+  klee::ref<klee::Expr> value       = call.args.at("value").expr;
 
   symbol_t lpm_update_elem_result = call_node->get_local_symbol("lpm_update_elem_result");
 
   var_t update_result_var = build_var("lpm_update_elem_success", lpm_update_elem_result.expr);
 
+  // As in lpm_lookup: the prefix is read through a pointer and can be wider than any scalar.
+  bool prefix_in_stack;
+  var_t prefix_var = build_var_ptr("lpm_prefix", prefix_addr, prefix, coder, prefix_in_stack);
+
   coder.indent();
   coder << "int " << update_result_var.name << " = ";
   coder << "lpm_update(";
   coder << stack_get(lpm_addr).name << ", ";
-  coder << transpiler.transpile(prefix) << ", ";
+  coder << prefix_var.name << ", ";
   coder << transpiler.transpile(prefixlen) << ", ";
   coder << transpiler.transpile(value);
   coder << ")";
@@ -2098,6 +2114,47 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::lpm_from_file(coder_t &coder
   coder << ");\n";
 
   return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::dns_get_response(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> msg_addr     = call.args.at("msg").expr;
+  klee::ref<klee::Expr> length       = call.args.at("length").expr;
+  klee::ref<klee::Expr> name_addr    = call.args.at("name").expr;
+  klee::ref<klee::Expr> name         = call.args.at("name").out;
+  klee::ref<klee::Expr> address_addr = call.args.at("address").expr;
+  klee::ref<klee::Expr> address      = call.args.at("address").out;
+
+  symbol_t found = call_node->get_local_symbol("dns_response_found");
+
+  var_t found_var   = build_var("dns_response_found", found.expr);
+  var_t name_var    = build_var("dns_name", name, name_addr);
+  var_t address_var = build_var("dns_address", address, address_addr);
+
+  // Both outputs are written through pointers and both are read back byte by byte -- the address
+  // becomes half of a session key -- so they are buffers, not scalars.
+  coder.indent();
+  coder << "uint8_t " << name_var.name << "[" << name->getWidth() / 8 << "];\n";
+
+  coder.indent();
+  coder << "uint8_t " << address_var.name << "[" << address->getWidth() / 8 << "];\n";
+
+  coder.indent();
+  coder << "int " << found_var.name << " = ";
+  coder << "dns_get_response(";
+  coder << "(struct dns_hdr*)" << stack_get(msg_addr).name << ", ";
+  coder << transpiler.transpile(length) << ", ";
+  coder << "(struct dns_name*)" << name_var.name << ", ";
+  coder << "(uint32_t*)" << address_var.name;
+  coder << ")";
+  coder << ";\n";
+
+  stack_add(found_var);
+  stack_add(name_var);
+  stack_add(address_var);
+
+  return found_var;
 }
 
 BDDSynthesizer::success_condition_t BDDSynthesizer::hash_obj(coder_t &coder, const Call *call_node) {
@@ -2486,10 +2543,16 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
   if (stack_find_or_create_tmp_slice_var(value, coder, stack_value)) {
     const bits_t width = stack_value.expr->getWidth();
     if (Transpiler::is_primitive_type(width)) {
+      const code_t type = Transpiler::type_from_size(width);
       coder.indent();
-      coder << "*(" << Transpiler::type_from_size(width) << "*)";
+      coder << "*(" << type << "*)";
       coder << var.name;
       coder << " = ";
+      // A source with an address of its own denotes memory -- a buffer or a pointer, not a scalar
+      // copy -- so it has to be read through it, or this assigns the address instead of the value.
+      if (!stack_value.addr.isNull()) {
+        coder << "*(" << type << "*)";
+      }
       coder << stack_value.name;
       coder << ";\n";
     } else {

@@ -782,280 +782,142 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-struct TokenBucket *tb;
 struct Vector *vector;
-struct Vector *vector2;
 
 
 bool nf_init() {
-  int tb_allocation_succeeded = tb_allocate(65536, 17179869184ULL, 131072ULL, 4, &tb);
-  if (!tb_allocation_succeeded) {
-    return false;
-  }
-  int vector_alloc_success = vector_allocate(4, 32, &vector);
+  int vector_alloc_success = vector_allocate(2, 32, &vector);
   if (!vector_alloc_success) {
-    return false;
-  }
-  int vector_alloc_success2 = vector_allocate(2, 32, &vector2);
-  if (!vector_alloc_success2) {
     return false;
   }
   uint8_t* vector_cell = 0;
   vector_borrow(vector, 0, (void**)&vector_cell);
-  uint32_t vector_value_out = *(uint32_t*)vector_cell;
-  *(uint32_t*)vector_cell = 1;
+  uint16_t vector_value_out = *(uint16_t*)vector_cell;
+  *(uint16_t*)vector_cell = 1;
   uint8_t* vector_cell2 = 0;
-  vector_borrow(vector2, 0, (void**)&vector_cell2);
+  vector_borrow(vector, 1, (void**)&vector_cell2);
   uint16_t vector_value_out2 = *(uint16_t*)vector_cell2;
-  *(uint16_t*)vector_cell2 = 1;
+  *(uint16_t*)vector_cell2 = 0;
   uint8_t* vector_cell3 = 0;
-  vector_borrow(vector, 1, (void**)&vector_cell3);
-  uint32_t vector_value_out3 = *(uint32_t*)vector_cell3;
-  *(uint32_t*)vector_cell3 = 0;
+  vector_borrow(vector, 2, (void**)&vector_cell3);
+  uint16_t vector_value_out3 = *(uint16_t*)vector_cell3;
+  *(uint16_t*)vector_cell3 = 3;
   uint8_t* vector_cell4 = 0;
-  vector_borrow(vector2, 1, (void**)&vector_cell4);
+  vector_borrow(vector, 3, (void**)&vector_cell4);
   uint16_t vector_value_out4 = *(uint16_t*)vector_cell4;
-  *(uint16_t*)vector_cell4 = 0;
+  *(uint16_t*)vector_cell4 = 2;
   uint8_t* vector_cell5 = 0;
-  vector_borrow(vector, 2, (void**)&vector_cell5);
-  uint32_t vector_value_out5 = *(uint32_t*)vector_cell5;
-  *(uint32_t*)vector_cell5 = 1;
+  vector_borrow(vector, 4, (void**)&vector_cell5);
+  uint16_t vector_value_out5 = *(uint16_t*)vector_cell5;
+  *(uint16_t*)vector_cell5 = 5;
   uint8_t* vector_cell6 = 0;
-  vector_borrow(vector2, 2, (void**)&vector_cell6);
+  vector_borrow(vector, 5, (void**)&vector_cell6);
   uint16_t vector_value_out6 = *(uint16_t*)vector_cell6;
-  *(uint16_t*)vector_cell6 = 3;
+  *(uint16_t*)vector_cell6 = 4;
   uint8_t* vector_cell7 = 0;
-  vector_borrow(vector, 3, (void**)&vector_cell7);
-  uint32_t vector_value_out7 = *(uint32_t*)vector_cell7;
-  *(uint32_t*)vector_cell7 = 0;
+  vector_borrow(vector, 6, (void**)&vector_cell7);
+  uint16_t vector_value_out7 = *(uint16_t*)vector_cell7;
+  *(uint16_t*)vector_cell7 = 7;
   uint8_t* vector_cell8 = 0;
-  vector_borrow(vector2, 3, (void**)&vector_cell8);
+  vector_borrow(vector, 7, (void**)&vector_cell8);
   uint16_t vector_value_out8 = *(uint16_t*)vector_cell8;
-  *(uint16_t*)vector_cell8 = 2;
+  *(uint16_t*)vector_cell8 = 6;
   uint8_t* vector_cell9 = 0;
-  vector_borrow(vector, 4, (void**)&vector_cell9);
-  uint32_t vector_value_out9 = *(uint32_t*)vector_cell9;
-  *(uint32_t*)vector_cell9 = 1;
+  vector_borrow(vector, 8, (void**)&vector_cell9);
+  uint16_t vector_value_out9 = *(uint16_t*)vector_cell9;
+  *(uint16_t*)vector_cell9 = 9;
   uint8_t* vector_cell10 = 0;
-  vector_borrow(vector2, 4, (void**)&vector_cell10);
+  vector_borrow(vector, 9, (void**)&vector_cell10);
   uint16_t vector_value_out10 = *(uint16_t*)vector_cell10;
-  *(uint16_t*)vector_cell10 = 5;
+  *(uint16_t*)vector_cell10 = 8;
   uint8_t* vector_cell11 = 0;
-  vector_borrow(vector, 5, (void**)&vector_cell11);
-  uint32_t vector_value_out11 = *(uint32_t*)vector_cell11;
-  *(uint32_t*)vector_cell11 = 0;
+  vector_borrow(vector, 10, (void**)&vector_cell11);
+  uint16_t vector_value_out11 = *(uint16_t*)vector_cell11;
+  *(uint16_t*)vector_cell11 = 11;
   uint8_t* vector_cell12 = 0;
-  vector_borrow(vector2, 5, (void**)&vector_cell12);
+  vector_borrow(vector, 11, (void**)&vector_cell12);
   uint16_t vector_value_out12 = *(uint16_t*)vector_cell12;
-  *(uint16_t*)vector_cell12 = 4;
+  *(uint16_t*)vector_cell12 = 10;
   uint8_t* vector_cell13 = 0;
-  vector_borrow(vector, 6, (void**)&vector_cell13);
-  uint32_t vector_value_out13 = *(uint32_t*)vector_cell13;
-  *(uint32_t*)vector_cell13 = 1;
+  vector_borrow(vector, 12, (void**)&vector_cell13);
+  uint16_t vector_value_out13 = *(uint16_t*)vector_cell13;
+  *(uint16_t*)vector_cell13 = 13;
   uint8_t* vector_cell14 = 0;
-  vector_borrow(vector2, 6, (void**)&vector_cell14);
+  vector_borrow(vector, 13, (void**)&vector_cell14);
   uint16_t vector_value_out14 = *(uint16_t*)vector_cell14;
-  *(uint16_t*)vector_cell14 = 7;
+  *(uint16_t*)vector_cell14 = 12;
   uint8_t* vector_cell15 = 0;
-  vector_borrow(vector, 7, (void**)&vector_cell15);
-  uint32_t vector_value_out15 = *(uint32_t*)vector_cell15;
-  *(uint32_t*)vector_cell15 = 0;
+  vector_borrow(vector, 14, (void**)&vector_cell15);
+  uint16_t vector_value_out15 = *(uint16_t*)vector_cell15;
+  *(uint16_t*)vector_cell15 = 15;
   uint8_t* vector_cell16 = 0;
-  vector_borrow(vector2, 7, (void**)&vector_cell16);
+  vector_borrow(vector, 15, (void**)&vector_cell16);
   uint16_t vector_value_out16 = *(uint16_t*)vector_cell16;
-  *(uint16_t*)vector_cell16 = 6;
+  *(uint16_t*)vector_cell16 = 14;
   uint8_t* vector_cell17 = 0;
-  vector_borrow(vector, 8, (void**)&vector_cell17);
-  uint32_t vector_value_out17 = *(uint32_t*)vector_cell17;
-  *(uint32_t*)vector_cell17 = 1;
+  vector_borrow(vector, 16, (void**)&vector_cell17);
+  uint16_t vector_value_out17 = *(uint16_t*)vector_cell17;
+  *(uint16_t*)vector_cell17 = 17;
   uint8_t* vector_cell18 = 0;
-  vector_borrow(vector2, 8, (void**)&vector_cell18);
+  vector_borrow(vector, 17, (void**)&vector_cell18);
   uint16_t vector_value_out18 = *(uint16_t*)vector_cell18;
-  *(uint16_t*)vector_cell18 = 9;
+  *(uint16_t*)vector_cell18 = 16;
   uint8_t* vector_cell19 = 0;
-  vector_borrow(vector, 9, (void**)&vector_cell19);
-  uint32_t vector_value_out19 = *(uint32_t*)vector_cell19;
-  *(uint32_t*)vector_cell19 = 0;
+  vector_borrow(vector, 18, (void**)&vector_cell19);
+  uint16_t vector_value_out19 = *(uint16_t*)vector_cell19;
+  *(uint16_t*)vector_cell19 = 19;
   uint8_t* vector_cell20 = 0;
-  vector_borrow(vector2, 9, (void**)&vector_cell20);
+  vector_borrow(vector, 19, (void**)&vector_cell20);
   uint16_t vector_value_out20 = *(uint16_t*)vector_cell20;
-  *(uint16_t*)vector_cell20 = 8;
+  *(uint16_t*)vector_cell20 = 18;
   uint8_t* vector_cell21 = 0;
-  vector_borrow(vector, 10, (void**)&vector_cell21);
-  uint32_t vector_value_out21 = *(uint32_t*)vector_cell21;
-  *(uint32_t*)vector_cell21 = 1;
+  vector_borrow(vector, 20, (void**)&vector_cell21);
+  uint16_t vector_value_out21 = *(uint16_t*)vector_cell21;
+  *(uint16_t*)vector_cell21 = 21;
   uint8_t* vector_cell22 = 0;
-  vector_borrow(vector2, 10, (void**)&vector_cell22);
+  vector_borrow(vector, 21, (void**)&vector_cell22);
   uint16_t vector_value_out22 = *(uint16_t*)vector_cell22;
-  *(uint16_t*)vector_cell22 = 11;
+  *(uint16_t*)vector_cell22 = 20;
   uint8_t* vector_cell23 = 0;
-  vector_borrow(vector, 11, (void**)&vector_cell23);
-  uint32_t vector_value_out23 = *(uint32_t*)vector_cell23;
-  *(uint32_t*)vector_cell23 = 0;
+  vector_borrow(vector, 22, (void**)&vector_cell23);
+  uint16_t vector_value_out23 = *(uint16_t*)vector_cell23;
+  *(uint16_t*)vector_cell23 = 23;
   uint8_t* vector_cell24 = 0;
-  vector_borrow(vector2, 11, (void**)&vector_cell24);
+  vector_borrow(vector, 23, (void**)&vector_cell24);
   uint16_t vector_value_out24 = *(uint16_t*)vector_cell24;
-  *(uint16_t*)vector_cell24 = 10;
+  *(uint16_t*)vector_cell24 = 22;
   uint8_t* vector_cell25 = 0;
-  vector_borrow(vector, 12, (void**)&vector_cell25);
-  uint32_t vector_value_out25 = *(uint32_t*)vector_cell25;
-  *(uint32_t*)vector_cell25 = 1;
+  vector_borrow(vector, 24, (void**)&vector_cell25);
+  uint16_t vector_value_out25 = *(uint16_t*)vector_cell25;
+  *(uint16_t*)vector_cell25 = 25;
   uint8_t* vector_cell26 = 0;
-  vector_borrow(vector2, 12, (void**)&vector_cell26);
+  vector_borrow(vector, 25, (void**)&vector_cell26);
   uint16_t vector_value_out26 = *(uint16_t*)vector_cell26;
-  *(uint16_t*)vector_cell26 = 13;
+  *(uint16_t*)vector_cell26 = 24;
   uint8_t* vector_cell27 = 0;
-  vector_borrow(vector, 13, (void**)&vector_cell27);
-  uint32_t vector_value_out27 = *(uint32_t*)vector_cell27;
-  *(uint32_t*)vector_cell27 = 0;
+  vector_borrow(vector, 26, (void**)&vector_cell27);
+  uint16_t vector_value_out27 = *(uint16_t*)vector_cell27;
+  *(uint16_t*)vector_cell27 = 27;
   uint8_t* vector_cell28 = 0;
-  vector_borrow(vector2, 13, (void**)&vector_cell28);
+  vector_borrow(vector, 27, (void**)&vector_cell28);
   uint16_t vector_value_out28 = *(uint16_t*)vector_cell28;
-  *(uint16_t*)vector_cell28 = 12;
+  *(uint16_t*)vector_cell28 = 26;
   uint8_t* vector_cell29 = 0;
-  vector_borrow(vector, 14, (void**)&vector_cell29);
-  uint32_t vector_value_out29 = *(uint32_t*)vector_cell29;
-  *(uint32_t*)vector_cell29 = 1;
+  vector_borrow(vector, 28, (void**)&vector_cell29);
+  uint16_t vector_value_out29 = *(uint16_t*)vector_cell29;
+  *(uint16_t*)vector_cell29 = 29;
   uint8_t* vector_cell30 = 0;
-  vector_borrow(vector2, 14, (void**)&vector_cell30);
+  vector_borrow(vector, 29, (void**)&vector_cell30);
   uint16_t vector_value_out30 = *(uint16_t*)vector_cell30;
-  *(uint16_t*)vector_cell30 = 15;
+  *(uint16_t*)vector_cell30 = 28;
   uint8_t* vector_cell31 = 0;
-  vector_borrow(vector, 15, (void**)&vector_cell31);
-  uint32_t vector_value_out31 = *(uint32_t*)vector_cell31;
-  *(uint32_t*)vector_cell31 = 0;
+  vector_borrow(vector, 30, (void**)&vector_cell31);
+  uint16_t vector_value_out31 = *(uint16_t*)vector_cell31;
+  *(uint16_t*)vector_cell31 = 31;
   uint8_t* vector_cell32 = 0;
-  vector_borrow(vector2, 15, (void**)&vector_cell32);
+  vector_borrow(vector, 31, (void**)&vector_cell32);
   uint16_t vector_value_out32 = *(uint16_t*)vector_cell32;
-  *(uint16_t*)vector_cell32 = 14;
-  uint8_t* vector_cell33 = 0;
-  vector_borrow(vector, 16, (void**)&vector_cell33);
-  uint32_t vector_value_out33 = *(uint32_t*)vector_cell33;
-  *(uint32_t*)vector_cell33 = 1;
-  uint8_t* vector_cell34 = 0;
-  vector_borrow(vector2, 16, (void**)&vector_cell34);
-  uint16_t vector_value_out34 = *(uint16_t*)vector_cell34;
-  *(uint16_t*)vector_cell34 = 17;
-  uint8_t* vector_cell35 = 0;
-  vector_borrow(vector, 17, (void**)&vector_cell35);
-  uint32_t vector_value_out35 = *(uint32_t*)vector_cell35;
-  *(uint32_t*)vector_cell35 = 0;
-  uint8_t* vector_cell36 = 0;
-  vector_borrow(vector2, 17, (void**)&vector_cell36);
-  uint16_t vector_value_out36 = *(uint16_t*)vector_cell36;
-  *(uint16_t*)vector_cell36 = 16;
-  uint8_t* vector_cell37 = 0;
-  vector_borrow(vector, 18, (void**)&vector_cell37);
-  uint32_t vector_value_out37 = *(uint32_t*)vector_cell37;
-  *(uint32_t*)vector_cell37 = 1;
-  uint8_t* vector_cell38 = 0;
-  vector_borrow(vector2, 18, (void**)&vector_cell38);
-  uint16_t vector_value_out38 = *(uint16_t*)vector_cell38;
-  *(uint16_t*)vector_cell38 = 19;
-  uint8_t* vector_cell39 = 0;
-  vector_borrow(vector, 19, (void**)&vector_cell39);
-  uint32_t vector_value_out39 = *(uint32_t*)vector_cell39;
-  *(uint32_t*)vector_cell39 = 0;
-  uint8_t* vector_cell40 = 0;
-  vector_borrow(vector2, 19, (void**)&vector_cell40);
-  uint16_t vector_value_out40 = *(uint16_t*)vector_cell40;
-  *(uint16_t*)vector_cell40 = 18;
-  uint8_t* vector_cell41 = 0;
-  vector_borrow(vector, 20, (void**)&vector_cell41);
-  uint32_t vector_value_out41 = *(uint32_t*)vector_cell41;
-  *(uint32_t*)vector_cell41 = 1;
-  uint8_t* vector_cell42 = 0;
-  vector_borrow(vector2, 20, (void**)&vector_cell42);
-  uint16_t vector_value_out42 = *(uint16_t*)vector_cell42;
-  *(uint16_t*)vector_cell42 = 21;
-  uint8_t* vector_cell43 = 0;
-  vector_borrow(vector, 21, (void**)&vector_cell43);
-  uint32_t vector_value_out43 = *(uint32_t*)vector_cell43;
-  *(uint32_t*)vector_cell43 = 0;
-  uint8_t* vector_cell44 = 0;
-  vector_borrow(vector2, 21, (void**)&vector_cell44);
-  uint16_t vector_value_out44 = *(uint16_t*)vector_cell44;
-  *(uint16_t*)vector_cell44 = 20;
-  uint8_t* vector_cell45 = 0;
-  vector_borrow(vector, 22, (void**)&vector_cell45);
-  uint32_t vector_value_out45 = *(uint32_t*)vector_cell45;
-  *(uint32_t*)vector_cell45 = 1;
-  uint8_t* vector_cell46 = 0;
-  vector_borrow(vector2, 22, (void**)&vector_cell46);
-  uint16_t vector_value_out46 = *(uint16_t*)vector_cell46;
-  *(uint16_t*)vector_cell46 = 23;
-  uint8_t* vector_cell47 = 0;
-  vector_borrow(vector, 23, (void**)&vector_cell47);
-  uint32_t vector_value_out47 = *(uint32_t*)vector_cell47;
-  *(uint32_t*)vector_cell47 = 0;
-  uint8_t* vector_cell48 = 0;
-  vector_borrow(vector2, 23, (void**)&vector_cell48);
-  uint16_t vector_value_out48 = *(uint16_t*)vector_cell48;
-  *(uint16_t*)vector_cell48 = 22;
-  uint8_t* vector_cell49 = 0;
-  vector_borrow(vector, 24, (void**)&vector_cell49);
-  uint32_t vector_value_out49 = *(uint32_t*)vector_cell49;
-  *(uint32_t*)vector_cell49 = 1;
-  uint8_t* vector_cell50 = 0;
-  vector_borrow(vector2, 24, (void**)&vector_cell50);
-  uint16_t vector_value_out50 = *(uint16_t*)vector_cell50;
-  *(uint16_t*)vector_cell50 = 25;
-  uint8_t* vector_cell51 = 0;
-  vector_borrow(vector, 25, (void**)&vector_cell51);
-  uint32_t vector_value_out51 = *(uint32_t*)vector_cell51;
-  *(uint32_t*)vector_cell51 = 0;
-  uint8_t* vector_cell52 = 0;
-  vector_borrow(vector2, 25, (void**)&vector_cell52);
-  uint16_t vector_value_out52 = *(uint16_t*)vector_cell52;
-  *(uint16_t*)vector_cell52 = 24;
-  uint8_t* vector_cell53 = 0;
-  vector_borrow(vector, 26, (void**)&vector_cell53);
-  uint32_t vector_value_out53 = *(uint32_t*)vector_cell53;
-  *(uint32_t*)vector_cell53 = 1;
-  uint8_t* vector_cell54 = 0;
-  vector_borrow(vector2, 26, (void**)&vector_cell54);
-  uint16_t vector_value_out54 = *(uint16_t*)vector_cell54;
-  *(uint16_t*)vector_cell54 = 27;
-  uint8_t* vector_cell55 = 0;
-  vector_borrow(vector, 27, (void**)&vector_cell55);
-  uint32_t vector_value_out55 = *(uint32_t*)vector_cell55;
-  *(uint32_t*)vector_cell55 = 0;
-  uint8_t* vector_cell56 = 0;
-  vector_borrow(vector2, 27, (void**)&vector_cell56);
-  uint16_t vector_value_out56 = *(uint16_t*)vector_cell56;
-  *(uint16_t*)vector_cell56 = 26;
-  uint8_t* vector_cell57 = 0;
-  vector_borrow(vector, 28, (void**)&vector_cell57);
-  uint32_t vector_value_out57 = *(uint32_t*)vector_cell57;
-  *(uint32_t*)vector_cell57 = 1;
-  uint8_t* vector_cell58 = 0;
-  vector_borrow(vector2, 28, (void**)&vector_cell58);
-  uint16_t vector_value_out58 = *(uint16_t*)vector_cell58;
-  *(uint16_t*)vector_cell58 = 29;
-  uint8_t* vector_cell59 = 0;
-  vector_borrow(vector, 29, (void**)&vector_cell59);
-  uint32_t vector_value_out59 = *(uint32_t*)vector_cell59;
-  *(uint32_t*)vector_cell59 = 0;
-  uint8_t* vector_cell60 = 0;
-  vector_borrow(vector2, 29, (void**)&vector_cell60);
-  uint16_t vector_value_out60 = *(uint16_t*)vector_cell60;
-  *(uint16_t*)vector_cell60 = 28;
-  uint8_t* vector_cell61 = 0;
-  vector_borrow(vector, 30, (void**)&vector_cell61);
-  uint32_t vector_value_out61 = *(uint32_t*)vector_cell61;
-  *(uint32_t*)vector_cell61 = 1;
-  uint8_t* vector_cell62 = 0;
-  vector_borrow(vector2, 30, (void**)&vector_cell62);
-  uint16_t vector_value_out62 = *(uint16_t*)vector_cell62;
-  *(uint16_t*)vector_cell62 = 31;
-  uint8_t* vector_cell63 = 0;
-  vector_borrow(vector, 31, (void**)&vector_cell63);
-  uint32_t vector_value_out63 = *(uint32_t*)vector_cell63;
-  *(uint32_t*)vector_cell63 = 0;
-  uint8_t* vector_cell64 = 0;
-  vector_borrow(vector2, 31, (void**)&vector_cell64);
-  uint16_t vector_value_out64 = *(uint16_t*)vector_cell64;
-  *(uint16_t*)vector_cell64 = 30;
+  *(uint16_t*)vector_cell32 = 30;
   ports.push_back(31);
   ports.push_back(30);
   ports.push_back(29);
@@ -1088,299 +950,24 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  forwarding_stats_per_route_op.insert({185, PortStats{}});
-  forwarding_stats_per_route_op.insert({182, PortStats{}});
-  forwarding_stats_per_route_op.insert({187, PortStats{}});
-  forwarding_stats_per_route_op.insert({174, PortStats{}});
-  forwarding_stats_per_route_op.insert({166, PortStats{}});
-  forwarding_stats_per_route_op.insert({165, PortStats{}});
-  forwarding_stats_per_route_op.insert({181, PortStats{}});
-  forwarding_stats_per_route_op.insert({155, PortStats{}});
-  forwarding_stats_per_route_op.insert({154, PortStats{}});
-  forwarding_stats_per_route_op.insert({173, PortStats{}});
-  forwarding_stats_per_route_op.insert({147, PortStats{}});
-  node_pkt_counter.insert({187, 0});
-  node_pkt_counter.insert({186, 0});
-  node_pkt_counter.insert({185, 0});
-  node_pkt_counter.insert({184, 0});
-  node_pkt_counter.insert({183, 0});
-  node_pkt_counter.insert({182, 0});
-  node_pkt_counter.insert({181, 0});
-  node_pkt_counter.insert({180, 0});
-  node_pkt_counter.insert({179, 0});
-  node_pkt_counter.insert({178, 0});
-  node_pkt_counter.insert({177, 0});
-  node_pkt_counter.insert({176, 0});
-  node_pkt_counter.insert({175, 0});
-  node_pkt_counter.insert({174, 0});
-  node_pkt_counter.insert({173, 0});
-  node_pkt_counter.insert({172, 0});
-  node_pkt_counter.insert({171, 0});
-  node_pkt_counter.insert({170, 0});
-  node_pkt_counter.insert({169, 0});
-  node_pkt_counter.insert({168, 0});
-  node_pkt_counter.insert({167, 0});
-  node_pkt_counter.insert({166, 0});
-  node_pkt_counter.insert({165, 0});
-  node_pkt_counter.insert({164, 0});
-  node_pkt_counter.insert({163, 0});
-  node_pkt_counter.insert({162, 0});
-  node_pkt_counter.insert({188, 0});
-  node_pkt_counter.insert({161, 0});
-  node_pkt_counter.insert({160, 0});
-  node_pkt_counter.insert({143, 0});
-  node_pkt_counter.insert({142, 0});
-  node_pkt_counter.insert({141, 0});
-  node_pkt_counter.insert({140, 0});
-  node_pkt_counter.insert({139, 0});
-  node_pkt_counter.insert({138, 0});
-  node_pkt_counter.insert({137, 0});
-  node_pkt_counter.insert({136, 0});
-  node_pkt_counter.insert({135, 0});
-  node_pkt_counter.insert({134, 0});
-  node_pkt_counter.insert({133, 0});
-  node_pkt_counter.insert({132, 0});
-  node_pkt_counter.insert({131, 0});
-  node_pkt_counter.insert({144, 0});
-  node_pkt_counter.insert({145, 0});
-  node_pkt_counter.insert({146, 0});
-  node_pkt_counter.insert({147, 0});
-  node_pkt_counter.insert({148, 0});
-  node_pkt_counter.insert({149, 0});
-  node_pkt_counter.insert({150, 0});
-  node_pkt_counter.insert({151, 0});
-  node_pkt_counter.insert({152, 0});
-  node_pkt_counter.insert({153, 0});
-  node_pkt_counter.insert({154, 0});
-  node_pkt_counter.insert({155, 0});
-  node_pkt_counter.insert({156, 0});
-  node_pkt_counter.insert({157, 0});
-  node_pkt_counter.insert({158, 0});
-  node_pkt_counter.insert({159, 0});
+  forwarding_stats_per_route_op.insert({67, PortStats{}});
+  node_pkt_counter.insert({67, 0});
+  node_pkt_counter.insert({66, 0});
+  node_pkt_counter.insert({65, 0});
   return true;
 }
 
 
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
-  // BDDNode 131
-  inc_path_counter(131);
-  tb_expire(tb, now, 1000000000ULL);
-  // BDDNode 132
-  inc_path_counter(132);
-  uint8_t* hdr;
-  packet_borrow_next_chunk(buffer, 14, (void**)&hdr);
-  // BDDNode 133
-  inc_path_counter(133);
-  if (((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20ULL) <= ((uint16_t)((uint32_t)((4294967282) + ((uint16_t)(packet_length & 65535))))))) {
-    // BDDNode 134
-    inc_path_counter(134);
-    uint8_t* hdr2;
-    packet_borrow_next_chunk(buffer, 20, (void**)&hdr2);
-    // BDDNode 135
-    inc_path_counter(135);
-    if ((((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & ((4ULL) <= ((uint32_t)((4294967262) + ((uint16_t)(packet_length & 65535)))))) {
-      // BDDNode 136
-      inc_path_counter(136);
-      uint8_t* hdr3;
-      packet_borrow_next_chunk(buffer, 4, (void**)&hdr3);
-      // BDDNode 137
-      inc_path_counter(137);
-      uint8_t* vector_cell65 = 0;
-      vector_borrow(vector, (uint16_t)(device & 65535), (void**)&vector_cell65);
-      uint32_t vector_value_out65 = *(uint32_t*)vector_cell65;
-      // BDDNode 138
-      inc_path_counter(138);
-      // BDDNode 139
-      inc_path_counter(139);
-      if ((0) == (vector_value_out65)) {
-        // BDDNode 140
-        inc_path_counter(140);
-        uint8_t key[4];
-        uint32_t hdr2_slice = *(uint32_t*)(hdr2+16);
-        *(uint32_t*)key = hdr2_slice;
-        int index;
-        int is_tracing = tb_is_tracing(tb, key, &index);
-        // BDDNode 141
-        inc_path_counter(141);
-        if ((0) == (is_tracing)) {
-          // BDDNode 142
-          inc_path_counter(142);
-          int index2;
-          int successfuly_tracing = tb_trace(tb, key, packet_length & 65535, now, &index2);
-          // BDDNode 143
-          inc_path_counter(143);
-          if ((0) == (successfuly_tracing)) {
-            // BDDNode 144
-            inc_path_counter(144);
-            packet_return_chunk(buffer, hdr3);
-            // BDDNode 145
-            inc_path_counter(145);
-            packet_return_chunk(buffer, hdr2);
-            // BDDNode 146
-            inc_path_counter(146);
-            packet_return_chunk(buffer, hdr);
-            // BDDNode 147
-            inc_path_counter(147);
-            forwarding_stats_per_route_op[147].inc_drop();
-            return DROP;
-          } else {
-            // BDDNode 148
-            inc_path_counter(148);
-            uint8_t* vector_cell66 = 0;
-            vector_borrow(vector2, (uint16_t)(device & 65535), (void**)&vector_cell66);
-            uint16_t vector_value_out66 = *(uint16_t*)vector_cell66;
-            // BDDNode 149
-            inc_path_counter(149);
-            // BDDNode 150
-            inc_path_counter(150);
-            packet_return_chunk(buffer, hdr3);
-            // BDDNode 151
-            inc_path_counter(151);
-            packet_return_chunk(buffer, hdr2);
-            // BDDNode 152
-            inc_path_counter(152);
-            packet_return_chunk(buffer, hdr);
-            // BDDNode 153
-            inc_path_counter(153);
-            if ((device & 65535) != (vector_value_out66)) {
-              // BDDNode 154
-              inc_path_counter(154);
-              forwarding_stats_per_route_op[154].inc_fwd(vector_value_out66);
-              return vector_value_out66;
-            } else {
-              // BDDNode 155
-              inc_path_counter(155);
-              forwarding_stats_per_route_op[155].inc_drop();
-              return DROP;
-            } // (device & 65535) != (vector_value_out66)
-          } // (0) == (successfuly_tracing)
-        } else {
-          // BDDNode 156
-          inc_path_counter(156);
-          int pass = tb_update_and_check(tb, index, packet_length & 65535, now);
-          // BDDNode 157
-          inc_path_counter(157);
-          if ((0) == (pass)) {
-            // BDDNode 158
-            inc_path_counter(158);
-            int checksum = rte_ipv4_udptcp_cksum((struct rte_ipv4_hdr*)hdr2, (void*)hdr3);
-            // BDDNode 159
-            inc_path_counter(159);
-            uint8_t* vector_cell67 = 0;
-            vector_borrow(vector2, (uint16_t)(device & 65535), (void**)&vector_cell67);
-            uint16_t vector_value_out67 = *(uint16_t*)vector_cell67;
-            // BDDNode 160
-            inc_path_counter(160);
-            // BDDNode 161
-            inc_path_counter(161);
-            packet_return_chunk(buffer, hdr3);
-            // BDDNode 188
-            inc_path_counter(188);
-            uint32_t unrolled = ((uint8_t)(*(hdr2+1))) & (3);
-            // BDDNode 162
-            inc_path_counter(162);
-            hdr2[1] = (uint32_t)((unrolled) | (32));
-            hdr2[10] = checksum & 255;
-            hdr2[11] = (checksum>>8) & 255;
-            packet_return_chunk(buffer, hdr2);
-            // BDDNode 163
-            inc_path_counter(163);
-            packet_return_chunk(buffer, hdr);
-            // BDDNode 164
-            inc_path_counter(164);
-            if ((device & 65535) != (vector_value_out67)) {
-              // BDDNode 165
-              inc_path_counter(165);
-              forwarding_stats_per_route_op[165].inc_fwd(vector_value_out67);
-              return vector_value_out67;
-            } else {
-              // BDDNode 166
-              inc_path_counter(166);
-              forwarding_stats_per_route_op[166].inc_drop();
-              return DROP;
-            } // (device & 65535) != (vector_value_out67)
-          } else {
-            // BDDNode 167
-            inc_path_counter(167);
-            uint8_t* vector_cell68 = 0;
-            vector_borrow(vector2, (uint16_t)(device & 65535), (void**)&vector_cell68);
-            uint16_t vector_value_out68 = *(uint16_t*)vector_cell68;
-            // BDDNode 168
-            inc_path_counter(168);
-            // BDDNode 169
-            inc_path_counter(169);
-            packet_return_chunk(buffer, hdr3);
-            // BDDNode 170
-            inc_path_counter(170);
-            packet_return_chunk(buffer, hdr2);
-            // BDDNode 171
-            inc_path_counter(171);
-            packet_return_chunk(buffer, hdr);
-            // BDDNode 172
-            inc_path_counter(172);
-            if ((device & 65535) != (vector_value_out68)) {
-              // BDDNode 173
-              inc_path_counter(173);
-              forwarding_stats_per_route_op[173].inc_fwd(vector_value_out68);
-              return vector_value_out68;
-            } else {
-              // BDDNode 174
-              inc_path_counter(174);
-              forwarding_stats_per_route_op[174].inc_drop();
-              return DROP;
-            } // (device & 65535) != (vector_value_out68)
-          } // (0) == (pass)
-        } // (0) == (is_tracing)
-      } else {
-        // BDDNode 175
-        inc_path_counter(175);
-        uint8_t* vector_cell69 = 0;
-        vector_borrow(vector2, (uint16_t)(device & 65535), (void**)&vector_cell69);
-        uint16_t vector_value_out69 = *(uint16_t*)vector_cell69;
-        // BDDNode 176
-        inc_path_counter(176);
-        // BDDNode 177
-        inc_path_counter(177);
-        packet_return_chunk(buffer, hdr3);
-        // BDDNode 178
-        inc_path_counter(178);
-        packet_return_chunk(buffer, hdr2);
-        // BDDNode 179
-        inc_path_counter(179);
-        packet_return_chunk(buffer, hdr);
-        // BDDNode 180
-        inc_path_counter(180);
-        if ((device & 65535) != (vector_value_out69)) {
-          // BDDNode 181
-          inc_path_counter(181);
-          forwarding_stats_per_route_op[181].inc_fwd(vector_value_out69);
-          return vector_value_out69;
-        } else {
-          // BDDNode 182
-          inc_path_counter(182);
-          forwarding_stats_per_route_op[182].inc_drop();
-          return DROP;
-        } // (device & 65535) != (vector_value_out69)
-      } // (0) == (vector_value_out65)
-    } else {
-      // BDDNode 183
-      inc_path_counter(183);
-      packet_return_chunk(buffer, hdr2);
-      // BDDNode 184
-      inc_path_counter(184);
-      packet_return_chunk(buffer, hdr);
-      // BDDNode 185
-      inc_path_counter(185);
-      forwarding_stats_per_route_op[185].inc_drop();
-      return DROP;
-    } // (((6) == (*(hdr2+9))) | ((17) == (*(hdr2+9)))) & ((4ULL) <= ((uint32_t)((4294967262) + ((uint16_t)(packet_length & 65535)))))
-  } else {
-    // BDDNode 186
-    inc_path_counter(186);
-    packet_return_chunk(buffer, hdr);
-    // BDDNode 187
-    inc_path_counter(187);
-    forwarding_stats_per_route_op[187].inc_drop();
-    return DROP;
-  } // ((8) == (*(uint16_t*)(uint16_t*)(hdr+12))) & ((20ULL) <= ((uint16_t)((uint32_t)((4294967282) + ((uint16_t)(packet_length & 65535))))))
+  // BDDNode 65
+  inc_path_counter(65);
+  uint8_t* vector_cell33 = 0;
+  vector_borrow(vector, (uint16_t)(device & 65535), (void**)&vector_cell33);
+  uint16_t vector_value_out33 = *(uint16_t*)vector_cell33;
+  // BDDNode 66
+  inc_path_counter(66);
+  // BDDNode 67
+  inc_path_counter(67);
+  forwarding_stats_per_route_op[67].inc_fwd(vector_value_out33);
+  return vector_value_out33;
 }

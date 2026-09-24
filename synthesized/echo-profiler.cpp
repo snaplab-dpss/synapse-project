@@ -6,12 +6,14 @@ extern "C" {
 #include <lib/state/double-chain.h>
 #include <lib/state/cht.h>
 #include <lib/state/cms.h>
+#include <lib/state/bloom-filter.h>
 #include <lib/state/token-bucket.h>
 #include <lib/state/lpm.h>
 
 #include <lib/util/math.h>
 #include <lib/util/expirator.h>
 #include <lib/util/packet-io.h>
+#include <lib/util/dns_hdr.h>
 #include <lib/util/tcpudp_hdr.h>
 #include <lib/util/time.h>
 #ifdef __cplusplus
@@ -41,6 +43,8 @@ extern "C" {
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
+#include <utility>
 
 using json = nlohmann::json;
 
@@ -121,26 +125,40 @@ struct pcap_data_t {
   const struct pcap_pkthdr *header;
 };
 
+struct next_packet_t {
+  uint16_t device;
+  pkt_t pkt;
+};
+
+struct pcap_info_t {
+  pcap_t* pcap;
+  bool assume_ip;
+  long start_offset;
+  uint64_t total_packets;
+  uint64_t total_bytes;
+  pkt_t first_packet;
+  std::unordered_set<uint16_t> devices;
+};
+
 class PcapReader {
 private:
-  std::unordered_map<uint16_t, pcap_t *> pcaps;
-  std::unordered_map<uint16_t, bool> assume_ip;
-  std::unordered_map<uint16_t, long> pcaps_start;
-  std::unordered_map<uint16_t, pkt_t> pending_pkts_per_dev;
+  std::unordered_map<std::string, pcap_t*> fname_to_pcap;
+  std::unordered_map<pcap_t*, pcap_info_t> pcap_infos;
+  std::map<pcap_t *, pkt_t> pending_pkts_per_pcap;
   int64_t last_ts;
-  std::unordered_set<uint16_t> last_devs;
   
   // Meta
   uint64_t total_packets;
   uint64_t total_bytes;
   uint64_t processed_packets;
+  uint64_t processed_bytes;
   int last_percentage_report;
 
 public:
   PcapReader() {}
 
-  uint64_t get_total_packets() { return total_packets; }
-  uint64_t get_total_bytes() { return total_bytes; }
+  uint64_t get_processed_packets() { return processed_packets; }
+  uint64_t get_processed_bytes() { return processed_bytes; }
 
   void setup(const std::vector<dev_pcap_t> &_pcaps) {
     last_ts                = -1;
@@ -150,23 +168,38 @@ public:
     last_percentage_report = -1;
 
     for (const auto &dev_pcap : _pcaps) {
-      char errbuf[PCAP_ERRBUF_SIZE];
-      pcap_t *pcap = pcap_open_offline(dev_pcap.pcap.c_str(), errbuf);
+      auto fname_to_pcap_it = fname_to_pcap.find(dev_pcap.pcap.string());
+      if (fname_to_pcap_it != fname_to_pcap.end()) {
+        pcap_t* pcap = fname_to_pcap_it->second;
+        pcap_infos[pcap].devices.insert(dev_pcap.device);
+        continue;
+      }
 
-      if (pcap == NULL) {
+      char errbuf[PCAP_ERRBUF_SIZE];
+      pcap_t* pcap = pcap_open_offline(dev_pcap.pcap.c_str(), errbuf);
+
+      fname_to_pcap[dev_pcap.pcap.string()] = pcap;
+      pcap_infos[pcap] = pcap_info_t();
+
+      pcap_info_t &pcap_info = pcap_infos.at(pcap);
+
+      pcap_info.pcap = pcap;
+      pcap_info.devices.insert(dev_pcap.device);
+
+      if (pcap_info.pcap == NULL) {
         rte_exit(EXIT_FAILURE, "pcap_open_offline() failed: %s\n", errbuf);
       }
 
-      int link_hdr_type = pcap_datalink(pcap);
+      int link_hdr_type = pcap_datalink(pcap_info.pcap);
 
       switch (link_hdr_type) {
       case DLT_EN10MB:
         // Normal ethernet, as expected.
-        assume_ip[dev_pcap.device] = false;
+        pcap_info.assume_ip = false;
         break;
       case DLT_RAW:
         // Contains raw IP packets.
-        assume_ip[dev_pcap.device] = true;
+        pcap_info.assume_ip = true;
         break;
       default: {
         fprintf(stderr, "Unknown header type (%d)", link_hdr_type);
@@ -174,77 +207,85 @@ public:
       }
       }
 
-      pcaps[dev_pcap.device] = pcap;
-
-      FILE *pcap_fptr = pcap_file(pcap);
+      FILE *pcap_fptr = pcap_file(pcap_info.pcap);
       assert(pcap_fptr && "Invalid pcap file pointer");
-      pcaps_start[dev_pcap.device] = ftell(pcap_fptr);
+      pcap_info.start_offset = ftell(pcap_fptr);
 
-      accumulate_stats(dev_pcap.device);
+      pcap_info.total_packets = 0;
+      pcap_info.total_bytes   = 0;
 
       pkt_t pkt;
-      if (read(dev_pcap.device, pkt)) {
-        pending_pkts_per_dev[dev_pcap.device] = pkt;
+      while (read(pcap_info.pcap, pkt)) {
+        if (pcap_info.total_packets == 0) {
+          pcap_info.first_packet = pkt;
+        }
+
+        pcap_info.total_packets++;
+        pcap_info.total_bytes += pkt.len + CRC_SIZE_BYTES;
       }
+      
+      total_packets += pcap_info.total_packets;
+      total_bytes += pcap_info.total_bytes;
+
+      pending_pkts_per_pcap[pcap_info.pcap] = pcap_info.first_packet;
     }
   }
 
-  bool get_next_packet(uint16_t &dev, pkt_t &pkt) {
+  std::vector<next_packet_t> get_next_packets() {
     int64_t ts = -1;
-    for (const auto& [pending_dev, pending_pkt] : pending_pkts_per_dev) {
+    for (const auto& [pending_pcap, pending_pkt] : pending_pkts_per_pcap) {
       if (ts == -1 || pending_pkt.ts < ts) {
         ts = pending_pkt.ts;
       }
     }
 
     if (ts == -1) {
-      return false;
+      return {};
     }
-    
-    bool chosen = false;
-    for (const auto& [pending_dev, pending_pkt] : pending_pkts_per_dev) {
+
+    pcap_t* chosen_pcap = nullptr;
+    std::vector<next_packet_t> next_packets;
+    for (const auto& [pending_pcap, pending_pkt] : pending_pkts_per_pcap) {
       if (pending_pkt.ts != ts) {
         continue;
       }
 
-      if (chosen && last_devs.find(pending_dev) != last_devs.end()) {
-        continue;
+      for (uint16_t dev : pcap_infos[pending_pcap].devices) {
+        next_packet_t next_pkt = {
+          .device = dev,
+          .pkt = pending_pkt
+        };
+        next_packets.push_back(next_pkt);
+
+        processed_packets += 1;
+        processed_bytes += pending_pkt.len + CRC_SIZE_BYTES;
       }
 
-      dev = pending_dev;
-      pkt = pending_pkt;
-
-      chosen = true;
-    }
-
-    if (last_ts != ts || last_devs.size() == pending_pkts_per_dev.size()) {
-      last_devs.clear();
+      chosen_pcap = pending_pcap;
+      break;
     }
 
     last_ts = ts;
-    last_devs.insert(dev);
 
-    update_and_show_progress();
+    show_progress();
 
     pkt_t new_pkt;
-    if (read(dev, new_pkt)) {
-      pending_pkts_per_dev[dev] = new_pkt;
+    if (read(chosen_pcap, new_pkt)) {
+      pending_pkts_per_pcap[chosen_pcap] = new_pkt;
     } else {
-      pending_pkts_per_dev.erase(dev);
+      pending_pkts_per_pcap.erase(chosen_pcap);
     }
 
-    return true;
+    return next_packets;
   }
 
 private:
-  bool read(uint16_t dev, pkt_t &pkt) {
-    pcap_t *pd = pcaps[dev];
-
+  bool read(pcap_t* pcap, pkt_t &pkt) {
     const uint8_t *data;
     struct pcap_pkthdr *hdr;
 
-    if (pcap_next_ex(pd, &hdr, &data) != 1) {
-      rewind(dev);
+    if (pcap_next_ex(pcap, &hdr, &data) != 1) {
+      rewind(pcap);
       return false;
     }
 
@@ -252,7 +293,7 @@ private:
 
     pkt.len = hdr->len;
 
-    if (assume_ip[dev]) {
+    if (pcap_infos.at(pcap).assume_ip) {
       struct rte_ether_hdr *eth_hdr = (struct rte_ether_hdr *)pkt_data;
       nf_parse_etheraddr(DEFAULT_DST_MAC, &eth_hdr->dst_addr);
       nf_parse_etheraddr(DEFAULT_SRC_MAC, &eth_hdr->src_addr);
@@ -269,24 +310,13 @@ private:
 
   // WARNING: this does not work on windows!
   // https://winpcap-users.winpcap.narkive.com/scCKD3x2/packet-random-access-using-file-seek
-  void rewind(uint16_t dev) {
-    pcap_t *pd      = pcaps[dev];
-    long pcap_start = pcaps_start[dev];
-    FILE *pcap_fptr = pcap_file(pd);
+  void rewind(pcap_t* pcap) {
+    long pcap_start = pcap_infos.at(pcap).start_offset;
+    FILE *pcap_fptr = pcap_file(pcap);
     fseek(pcap_fptr, pcap_start, SEEK_SET);
   }
 
-  void accumulate_stats(uint16_t dev) {
-    pcap_t *pd = pcaps[dev];
-    pkt_t pkt;
-    while (read(dev, pkt)) {
-      total_packets++;
-      total_bytes += pkt.len + CRC_SIZE_BYTES;
-    }
-  }
-
-  void update_and_show_progress() {
-    processed_packets++;
+  void show_progress() {
     int progress = 100.0 * processed_packets / total_packets;
 
     if (progress <= last_percentage_report) {
@@ -451,14 +481,9 @@ struct MapStats {
       epochs.emplace_back(now, warmup);
     }
 
-    if (!warmup) {
-      stats_per_node.at(op).update(key, len);
-      epochs.back().stats.update(key, len);
-    }
-
-    if (!epochs.empty()) {
-      epochs.back().end = now;
-    }
+    stats_per_node.at(op).update(key, len);
+    epochs.back().stats.update(key, len);
+    epochs.back().end = now;
   }
 };
 
@@ -499,12 +524,51 @@ struct PortStats {
   }
 };
 
+struct expiration_tracker_t {
+  struct epoch_t {
+    time_ns_t start;
+    time_ns_t end;
+    bool warmup;
+    uint64_t expirations;
+  
+    epoch_t(time_ns_t _start, bool _warmup) : start(_start), end(-1), warmup(_warmup), expirations(0) {}
+  };
+
+  std::vector<epoch_t> epochs;
+
+  void update(uint64_t expirations, time_ns_t now) {
+    if (epochs.empty() || (epochs.back().warmup && !warmup) || now - epochs.back().start > PROFILING_EXPIRATION_TIME_NS) {
+      epochs.emplace_back(now, warmup);
+    }
+
+    if (!warmup) {
+      epochs.back().expirations += expirations;
+    }
+
+    if (!epochs.empty()) {
+      epochs.back().end = now;
+    }
+  }
+};
+
+struct LnStats {
+  std::set<std::pair<uint32_t, uint32_t>> inputs; // distinct (x, scale) pairs
+
+  void update(uint32_t x, uint32_t scale) {
+    if (!warmup) {
+      inputs.insert({x, scale});
+    }
+  }
+};
+
 PcapReader warmup_reader;
 PcapReader reader;
 std::unordered_map<int, MapStats> stats_per_map;
 std::unordered_map<int, PortStats> forwarding_stats_per_route_op;
 std::unordered_map<uint64_t, uint64_t> node_pkt_counter;
+std::unordered_map<int, LnStats> ln_stats_per_node;
 time_ns_t elapsed_time;
+expiration_tracker_t expiration_tracker;
 
 void inc_path_counter(int i) {
   if (warmup) {
@@ -543,10 +607,27 @@ void generate_report() {
     report["counters"][std::to_string(node_id)] = count;
   }
 
+  report["ln_inputs"] = json::object();
+  for (const auto &[node_id, ln_stats] : ln_stats_per_node) {
+    json entries = json::array();
+    for (const auto &[x, scale] : ln_stats.inputs) {
+      json entry;
+      entry["x"]     = x;
+      entry["scale"] = scale;
+      entries.push_back(entry);
+    }
+    report["ln_inputs"][std::to_string(node_id)] = entries;
+  }
+
   report["meta"]            = json::object();
   report["meta"]["elapsed"] = elapsed_time;
-  report["meta"]["pkts"]    = reader.get_total_packets();
-  report["meta"]["bytes"]   = reader.get_total_bytes();
+  report["meta"]["pkts"]    = reader.get_processed_packets();
+  report["meta"]["bytes"]   = reader.get_processed_bytes();
+  
+  report["expirations_per_epoch"] = json::array();
+  for (const auto &epoch : expiration_tracker.epochs) {
+    report["expirations_per_epoch"].push_back(epoch.expirations);
+  }
 
   report["stats_per_map"] = json::object();
 
@@ -652,33 +733,44 @@ static void worker_main() {
     }
   }
 
+  puts("Setting up pcap readers...");
+
   warmup_reader.setup(warmup_pcaps);
   reader.setup(pcaps);
 
-  uint16_t dev;
-  pkt_t pkt;
+  puts("Processing warmup packets...");
 
   // First process warmup packets
   warmup = true;
-  while (warmup_reader.get_next_packet(dev, pkt)) {
-    nf_process(dev, pkt.data, pkt.len, pkt.ts);
+  std::vector<next_packet_t> next_pkts;
+  while (!(next_pkts = warmup_reader.get_next_packets()).empty()) {
+    for (next_packet_t& next_pkt : next_pkts) {
+      nf_process(next_pkt.device, next_pkt.pkt.data, next_pkt.pkt.len, next_pkt.pkt.ts);
+    }
   }
   warmup = false;
 
+  puts("Processing NF packets...");
+
   // Generate the first packet manually to record the starting time
-  bool success = reader.get_next_packet(dev, pkt);
-  assert(success && "Failed to generate the first packet");
+  next_pkts = reader.get_next_packets();
+  assert(!next_pkts.empty() && "Failed to generate the first packet");
 
-  time_ns_t start_time = pkt.ts;
-  time_ns_t last_time  = 0;
+  time_ns_t first_pkt_time = next_pkts.front().pkt.ts;
+  time_ns_t start_time = first_pkt_time;
+  time_ns_t last_time  = first_pkt_time;
 
-  do {
+  while (!next_pkts.empty()) {
     // Ignore destination device, we don't forward anywhere
-    nf_process(dev, pkt.data, pkt.len, pkt.ts);
-    last_time = pkt.ts;
-  } while (reader.get_next_packet(dev, pkt));
+    for (next_packet_t& next_pkt : next_pkts) {
+      nf_process(next_pkt.device, next_pkt.pkt.data, next_pkt.pkt.len, next_pkt.pkt.ts);
+    }
+    
+    elapsed_time += next_pkts.back().pkt.ts - last_time;
+    last_time = next_pkts.back().pkt.ts;
 
-  elapsed_time = last_time - start_time;
+    next_pkts = reader.get_next_packets();
+  }
 
   NF_INFO("Elapsed virtual time: %lf s", (double)elapsed_time / 1e9);
 }
@@ -693,19 +785,22 @@ int main(int argc, char **argv) {
 
 
 bool nf_init() {
-  ports.push_back(0);
-  ports.push_back(1);
-  ports.push_back(2);
-  ports.push_back(3);
-  ports.push_back(4);
-  ports.push_back(5);
-  ports.push_back(6);
-  ports.push_back(7);
-  ports.push_back(8);
-  ports.push_back(9);
-  ports.push_back(10);
-  ports.push_back(11);
+  ports.push_back(31);
+  ports.push_back(30);
+  ports.push_back(29);
   ports.push_back(12);
+  ports.push_back(11);
+  ports.push_back(10);
+  ports.push_back(9);
+  ports.push_back(8);
+  ports.push_back(7);
+  ports.push_back(6);
+  ports.push_back(5);
+  ports.push_back(4);
+  ports.push_back(3);
+  ports.push_back(2);
+  ports.push_back(1);
+  ports.push_back(0);
   ports.push_back(13);
   ports.push_back(14);
   ports.push_back(15);
@@ -722,9 +817,6 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  ports.push_back(29);
-  ports.push_back(30);
-  ports.push_back(31);
   forwarding_stats_per_route_op.insert({0, PortStats{}});
   node_pkt_counter.insert({0, 0});
   return true;
@@ -732,7 +824,7 @@ bool nf_init() {
 
 
 int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns_t now) {
-  // Node 0
+  // BDDNode 0
   inc_path_counter(0);
   forwarding_stats_per_route_op[0].inc_fwd(device & 65535);
   return device & 65535;
