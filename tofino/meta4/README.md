@@ -74,9 +74,9 @@ that match refresh the timestamp, so active sessions are not evicted.
 p4/meta4.p4               data plane (upstream netassay_v4_j6.p4 + the edits below)
 p4/meta4-resources.txt    bf-p4c resource usage on Tofino 2
 p4/Makefile               APP := meta4; includes tofino/tools/Makefile
-known_domains_v1.txt      watch list of domain names (upstream, from the Princeton campus trace)
-allowed_dns_dst.txt       client IPs whose DNS requests are tracked (upstream)
-banned_dns_dst.txt        client IPs whose DNS requests are ignored (upstream)
+known_domains_v1.txt      watch list of domain names -- OUR eval configuration, see change 6
+allowed_dns_dst.txt       client prefixes whose DNS responses are tracked -- empty, see change 6
+banned_dns_dst.txt        client prefixes whose DNS responses are ignored -- ours, see change 6
 ```
 
 ## Changes vs. upstream
@@ -159,6 +159,19 @@ Tofino 1 → Tofino 2 porting issues.
    paper's size it compiles with room to spare (11 of 20 stages). We use the
    paper's value, which is both the documented configuration and the one that
    builds.
+
+6. **The three list files hold our evaluation configuration, not upstream's.**
+   Upstream's `known_domains_v1.txt` (313 names from the Princeton campus
+   trace), `banned_dns_dst.txt` (15 campus hosts) and `allowed_dns_dst.txt`
+   (8 campus prefixes) were chosen for their deployment; their controller uses
+   the last two as an allow-list (everything banned, the campus prefixes
+   allowed), which would refuse every DNS response in synthetic traffic. Ours
+   are the watch list our C NF is built with (32 names, identical to
+   `dpdk-nfs/meta4/domains.txt`), a single ignored prefix (`10.9.0.0/24`), and
+   an empty allow-list, so that both implementations are configured
+   identically for the comparison. The originals are in
+   `tofino/princeton-p4-projects/Meta4-tofino/`. Configuration only; no
+   effect on what the data plane does per packet.
 
 ### Status on Tofino 1
 
