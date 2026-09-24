@@ -154,6 +154,13 @@ protected:
     return *pkt;
   }
 
+  // How much of `pkt` goes into the capture, and how long the packet is declared to be on the
+  // wire. By default only the headers are captured and every packet is the configured size, which
+  // is all a replayer needs while nothing reads the payload. A generator whose packets carry
+  // something the NF parses overrides these for those packets.
+  virtual bytes_t get_pkt_hdrs_len(const pkt_t &pkt) const { return get_hdrs_len(); }
+  virtual bytes_t get_pkt_len(const pkt_t &pkt) const { return config.packet_size_without_crc; }
+
   void tick() { current_time += dt; }
 
 private:

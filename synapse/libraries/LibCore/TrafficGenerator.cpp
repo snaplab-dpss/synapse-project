@@ -91,11 +91,9 @@ TrafficGenerator::pkt_t TrafficGenerator::build_pkt_template() const {
 }
 
 void TrafficGenerator::generate() {
-  const bytes_t hdrs_len = assume_ip ? get_hdrs_len() - sizeof(ether_hdr_t) : get_hdrs_len();
-  const bytes_t pkt_len  = assume_ip ? config.packet_size_without_crc - sizeof(ether_hdr_t) : config.packet_size_without_crc;
-  const u64 goal         = config.total_packets;
-  u64 counter            = 0;
-  int progress           = -1;
+  const u64 goal = config.total_packets;
+  u64 counter    = 0;
+  int progress   = -1;
 
   for (const auto &[dev, writer] : writers) {
     printf("Dev %u: %s\n", dev, writer.get_output_fname().c_str());
@@ -131,7 +129,9 @@ void TrafficGenerator::generate() {
       continue;
     }
 
-    const u8 *data = assume_ip ? reinterpret_cast<const u8 *>(&pkt->ip_hdr) : reinterpret_cast<const u8 *>(&pkt.value());
+    const u8 *data         = assume_ip ? reinterpret_cast<const u8 *>(&pkt->ip_hdr) : reinterpret_cast<const u8 *>(&pkt.value());
+    const bytes_t hdrs_len = assume_ip ? get_pkt_hdrs_len(*pkt) - sizeof(ether_hdr_t) : get_pkt_hdrs_len(*pkt);
+    const bytes_t pkt_len  = assume_ip ? get_pkt_len(*pkt) - sizeof(ether_hdr_t) : get_pkt_len(*pkt);
     writers.at(dev).write(data, hdrs_len, pkt_len, current_time);
 
     counters[flow_idx]++;
@@ -180,9 +180,6 @@ void TrafficGenerator::report() const {
 }
 
 void TrafficGenerator::generate_warmup() {
-  const bytes_t hdrs_len = assume_ip ? get_hdrs_len() - sizeof(ether_hdr_t) : get_hdrs_len();
-  const bytes_t pkt_len  = assume_ip ? config.packet_size_without_crc - sizeof(ether_hdr_t) : config.packet_size_without_crc;
-
   // Create the warmup pcap writers (and thus the files) only now, so NFs that never
   // call generate_warmup() don't produce empty warmup pcaps.
   for (device_t warmup_dev : config.warmup_devices) {
@@ -204,8 +201,10 @@ void TrafficGenerator::generate_warmup() {
     std::shuffle(flow_indices.begin(), flow_indices.end(), flows_random_engine_uniform.get_engine());
 
     for (flow_idx_t flow_idx : flow_indices) {
-      const pkt_t pkt = build_warmup_packet(target_dev, flow_idx);
-      const u8 *data  = assume_ip ? reinterpret_cast<const u8 *>(&pkt.ip_hdr) : reinterpret_cast<const u8 *>(&pkt);
+      const pkt_t pkt        = build_warmup_packet(target_dev, flow_idx);
+      const u8 *data         = assume_ip ? reinterpret_cast<const u8 *>(&pkt.ip_hdr) : reinterpret_cast<const u8 *>(&pkt);
+      const bytes_t hdrs_len = assume_ip ? get_pkt_hdrs_len(pkt) - sizeof(ether_hdr_t) : get_pkt_hdrs_len(pkt);
+      const bytes_t pkt_len  = assume_ip ? get_pkt_len(pkt) - sizeof(ether_hdr_t) : get_pkt_len(pkt);
 
       warmup_writer.write(data, hdrs_len, pkt_len, current_time);
 

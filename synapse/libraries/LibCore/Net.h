@@ -74,6 +74,32 @@ struct vlan_hdr_t {
   u16 vlan_tci;
 } __attribute__((__packed__));
 
+constexpr const u16 DNS_PORT              = 53;
+constexpr const u16 DNS_FLAGS_RESPONSE    = 0x8180; // QR set, recursion desired and available, no error
+constexpr const u16 DNS_TYPE_A            = 1;
+constexpr const u16 DNS_TYPE_CNAME        = 5;
+constexpr const u16 DNS_CLASS_IN          = 1;
+constexpr const u16 DNS_NAME_POINTER      = 0xC00C; // compression pointer to the question's name, right after the header
+constexpr const bytes_t DNS_MAX_LABEL_LEN = 63;     // RFC 1035
+
+struct dns_hdr_t {
+  u16 id;
+  u16 flags;
+  u16 q_count;
+  u16 answer_count;
+  u16 auth_rec;
+  u16 addn_rec;
+} __attribute__((__packed__));
+
+// The fixed part of a resource record, up to but excluding RDATA.
+struct dns_rr_hdr_t {
+  u16 name;
+  u16 type;
+  u16 rr_class;
+  u32 ttl;
+  u16 rd_length;
+} __attribute__((__packed__));
+
 enum kvs_op_t {
   KVS_OP_GET = 0,
   KVS_OP_PUT = 1,
