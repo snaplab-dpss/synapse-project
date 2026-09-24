@@ -27,7 +27,7 @@ SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
 DEVICES = list(range(2, 32))
 
-DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd", "pol", "hyperloglog", "smartcookie"]
+DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd", "pol", "hyperloglog", "smartcookie", "meta4"]
 # DEFAULT_RATE = [100_000_000_000]  # 100 Gbps
 # DEFAULT_TOTAL_PACKETS = [160_000_000]
 DEFAULT_RATE = [10_000_000_000]  # 10 Gbps
@@ -83,6 +83,11 @@ NFs = {
     "smartcookie": NF("smartcookie", "smartcookie.bdd", "pcap-generator-smartcookie", warmup_devices=[], unique_devices=[0, DEVICES[0]], fwd_rules=[],
                       devices=[0] + DEVICES, pcap_device=lambda dev: 0 if dev == 0 else DEVICES[0],
                       pcap_extra_args=f"--client-devs {' '.join(map(str, DEVICES))}"),
+    # Every device sees the same mix of DNS responses and data, and the warmup (one DNS response per
+    # client-server pair) installs the sessions the data is attributed to. The watch list is the
+    # file the NF itself is built with, so every name in the pcaps is one the NF knows.
+    "meta4": NF("meta4", "meta4.bdd", "pcap-generator-meta4", warmup_devices=DEVICES, unique_devices=DEVICES[:2], fwd_rules=[],
+                pcap_extra_args=f"--domains {PROJECT_DIR / 'dpdk-nfs' / 'meta4' / 'domains.txt'}"),
 }
 
 
