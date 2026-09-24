@@ -110,6 +110,8 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
 
     {"hash_obj", {"hash"}},
 
+    {"dns_get_response", {"dns_name", "dns_address", "dns_response_found"}},
+
     {"count_trailing_zeros", {"trailing_zeros"}},
     {"find_first_set_bit", {"first_set_bit"}},
     {"min", {"min"}},

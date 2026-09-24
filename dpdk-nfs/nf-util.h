@@ -15,6 +15,7 @@
 
 #include "lib/util/packet-io.h"
 #include "lib/util/tcpudp_hdr.h"
+#include "lib/util/dns_hdr.h"
 
 #ifdef KLEE_VERIFICATION
 #include "lib/models/str-descr.h"
@@ -66,12 +67,22 @@ static struct str_field_descr udp_fields[] = {
 static struct nested_field_descr rte_ether_nested_fields[] = {
     {offsetof(struct rte_ether_hdr, dst_addr), 0, sizeof(uint8_t), 6, "src_addr_bytes"},
     {offsetof(struct rte_ether_hdr, src_addr), 0, sizeof(uint8_t), 6, "dst_addr_bytes"}};
+static struct str_field_descr dns_hdr_fields[] = {
+    {offsetof(struct dns_hdr, id), sizeof(uint16_t), 0, "id"},
+    {offsetof(struct dns_hdr, flags_hi), sizeof(uint8_t), 0, "flags_hi"},
+    {offsetof(struct dns_hdr, flags_lo), sizeof(uint8_t), 0, "flags_lo"},
+    {offsetof(struct dns_hdr, q_count), sizeof(uint16_t), 0, "q_count"},
+    {offsetof(struct dns_hdr, answer_count), sizeof(uint16_t), 0, "answer_count"},
+    {offsetof(struct dns_hdr, auth_rec), sizeof(uint16_t), 0, "auth_rec"},
+    {offsetof(struct dns_hdr, addn_rec), sizeof(uint16_t), 0, "addn_rec"},
+};
 #endif // KLEE_VERIFICATION
 
 void nf_log_pkt(struct rte_ether_hdr *rte_ether_header, struct rte_ipv4_hdr *rte_ipv4_header, struct tcpudp_hdr *tcpudp_header);
 
 bool nf_has_ipv4_header(struct rte_ether_hdr *header);
 bool nf_has_tcpudp_header(struct rte_ipv4_hdr *header);
+bool nf_has_dns_header(struct rte_udp_hdr *header);
 bool nf_has_tcp_header(struct rte_ipv4_hdr *header);
 bool nf_has_udp_header(struct rte_ipv4_hdr *header);
 
@@ -223,4 +234,39 @@ static inline struct rte_udp_hdr *nf_then_get_udp_header(struct rte_ipv4_hdr *ip
   }
   CHUNK_LAYOUT(*p, rte_udp_hdr, udp_fields);
   return (struct rte_udp_hdr *)nf_borrow_next_chunk(p, sizeof(struct rte_udp_hdr));
+}
+
+// Borrows the DNS message the UDP header says is there, in one piece. Its variable-length insides
+// are then read with dns_get_name() / dns_get_address(), which are modeled: walking them here
+// would make the number of reads depend on the bytes just read, forking symbolic execution at
+// every step that could end the name or the record chain, and copying everything the NF does
+// afterwards into each arm.
+//
+// The chunk is laid out as the fixed header, so those fields are readable directly, while the
+// borrow consumes the whole message so the cursor lands on whatever follows it.
+static inline struct dns_hdr *nf_then_get_dns_message(struct rte_udp_hdr *udp_header, uint8_t **p, uint16_t *length) {
+  uint16_t datagram = rte_be_to_cpu_16(udp_header->dgram_len);
+
+  if (datagram < sizeof(struct rte_udp_hdr) + sizeof(struct dns_hdr)) {
+    return NULL;
+  }
+
+  uint16_t message = datagram - sizeof(struct rte_udp_hdr);
+
+  // Only the front of a long message is read, rather than giving up on it. A DNS message carries
+  // its header, then the question, then the answers, and everything read here is in that order --
+  // what a bound cuts off is the authority and additional records, which nothing looks at.
+  if (message > DNS_MAX_MESSAGE) {
+    message = DNS_MAX_MESSAGE;
+  }
+
+  if (packet_get_unread_length(p) < message) {
+    return NULL;
+  }
+
+  CHUNK_LAYOUT(*p, dns_hdr, dns_hdr_fields);
+  struct dns_hdr *header = (struct dns_hdr *)nf_borrow_next_chunk(p, message);
+
+  *length = message;
+  return header;
 }

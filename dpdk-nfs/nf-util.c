@@ -62,6 +62,12 @@ bool nf_has_tcp_header(struct rte_ipv4_hdr *header) { return header->next_proto_
 
 bool nf_has_udp_header(struct rte_ipv4_hdr *header) { return header->next_proto_id == IPPROTO_UDP; }
 
+bool nf_has_dns_header(struct rte_udp_hdr *header) {
+  // NOTE: Use non-short-circuiting version of OR, so that symbex doesn't fork: either port being
+  //       the DNS one is enough, and which one it is does not matter here.
+  return header->dst_port == rte_cpu_to_be_16(DNS_PORT) | header->src_port == rte_cpu_to_be_16(DNS_PORT);
+}
+
 #ifdef KLEE_VERIFICATION
 int nf_set_rte_ipv4_udptcp_checksum(struct rte_ipv4_hdr *ip_header, void *l4_header, void *packet) {
   klee_trace_ret();
