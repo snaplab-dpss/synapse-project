@@ -88,10 +88,15 @@ class Pktgen:
         kvs_mode: bool = False,
         kvs_get_ratio: float = 0.99,
         tcp_syn: bool = False,
+        dns_mode: bool = False,
+        domains: Optional[str] = None,
+        dns_ratio: float = 0.0014,
         seed: Optional[int] = None,
     ) -> None:
         assert not self.pktgen_active
         assert not (tcp_syn and kvs_mode)
+        assert not (dns_mode and (kvs_mode or tcp_syn))
+        assert not dns_mode or domains, "DNS mode needs the domains file (a path on the pktgen host)"
 
         if nb_flows % 2 != 0:
             nb_flows -= 1
@@ -128,6 +133,12 @@ class Pktgen:
         # SYN flood: every packet is a TCP SYN (see deps/pktgen/README.md).
         if tcp_syn:
             pktgen_options_list.append(f"--tcp-syn")
+
+        # DNS mode: flows are client-server pairs announced by DNS responses (see deps/pktgen/README.md).
+        if dns_mode:
+            pktgen_options_list.append(f"--dns-mode")
+            pktgen_options_list.append(f"--domains {domains}")
+            pktgen_options_list.append(f"--dns-ratio {dns_ratio}")
 
         pktgen_options = " ".join(pktgen_options_list)
 
