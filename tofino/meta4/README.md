@@ -74,6 +74,7 @@ that match refresh the timestamp, so active sessions are not evicted.
 p4/meta4.p4               data plane (upstream netassay_v4_j6.p4 + the edits below)
 p4/meta4-resources.txt    bf-p4c resource usage on Tofino 2
 p4/Makefile               APP := meta4; includes tofino/tools/Makefile
+meta4.py                  controller: ports up, then the tables from the three list files
 known_domains_v1.txt      watch list of domain names -- OUR eval configuration, see change 6
 allowed_dns_dst.txt       client prefixes whose DNS responses are tracked -- empty, see change 6
 banned_dns_dst.txt        client prefixes whose DNS responses are ignored -- ours, see change 6
@@ -311,12 +312,48 @@ Resource report:
 cd tofino/meta4/p4 && ../../tools/get_resources_tofino2.sh meta4.p4
 ```
 
-## Not done yet
+Controller, on the switch, once `bf_switchd` is up (brings up the ports, then
+populates the tables from the three list files; `--domains`, `--banned` and
+`--allowed` override them, `--no-ports` skips the bring-up):
 
-- **Controller.** Nothing populates `known_domain_list`, `allowed_dns_dst` or
-  `banned_dns_dst` at runtime. Upstream's `knownlist_v4_j6.py` generates the
-  match-action rules from `known_domains_v1.txt`; it has not been ported to our
-  `libsycon`-based harness, so there is no `meta4.py` here yet.
-- **Evaluation.** Not wired into `eval/` — the traffic generator emits UDP, and
-  a Meta4 benchmark needs DNS responses followed by data packets on the learned
-  flows.
+```
+cd tofino/meta4 && SDE=... SDE_INSTALL=... PYTHONPATH=... ./meta4.py
+```
+
+Model test (from `tests/`, inside the SDE container):
+
+```
+sudo -E ./meta4.py --p4 ../tofino/meta4/p4/meta4.p4 --controller ../tofino/meta4/meta4.py --up
+```
+
+Throughput, single point and churn x zipf sweep (from `eval/`; both drive
+pktgen's DNS mode, see `deps/pktgen/README.md`):
+
+```
+./test_meta4.py
+./tput_meta4.py
+```
+
+## Controller
+
+`meta4.py` is upstream's `knownlist_v4_j6.py` ported from the `bfshell` python
+object to `bfrt_grpc`, on the same pattern as `tofino/hyperloglog/hyperloglog.py`.
+It installs one ternary entry per pattern in `known_domain_list`: for each of
+the four labels, which 1/2/4/8-byte chunk headers are valid and what they hold
+(the chunks are chosen by the binary digits of the label's length, smallest
+first, exactly as the parser extracts them), with a `*` label as don't-care. A
+pattern's domain id is its line number, from zero, the same id the C NF uses.
+
+Two rules differ from upstream's script, both on purpose:
+
+- **Exact labels.** Whatever a name must not have is required *absent* (the
+  chunk header invalid) rather than left don't-care: the label positions a
+  pattern does not have, and, within a spelled-out label, the chunks its
+  length does not use. Upstream's script leaves both don't-care, so its
+  `*.google.com` also matches `x.google.com.au`, and its `www.google.com` also
+  matches `wwwabcd.google.com`. The paper's own simulator (`matchDomain` in
+  `combined_sim_v2.py`) compares whole labels and equal label counts, and so
+  does our NF's longest-prefix match.
+- **Priority by specificity.** Entries get `$MATCH_PRIORITY` = number of
+  wildcards, so the most specific pattern wins. Upstream numbers entries in
+  list order, so whichever was listed first won.
