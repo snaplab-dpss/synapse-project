@@ -218,7 +218,7 @@ def run_one(solution: Solution, skip_build: bool, timeout_sec: int) -> Result:
 
 
 def run_once(solution: Solution, skip_build: bool, timeout_sec: int) -> Result:
-    cmd = [sys.executable, str(TESTS_DIR / f"{solution.nf.name}.py"), "--up", "--quiet", "--nf", solution.name]
+    cmd = [sys.executable, str(TESTS_DIR / f"{solution.nf.name}.py"), "--up", "--quiet", "--p4", str(solution.p4), "--controller", str(solution.cpp)]
     if skip_build:
         cmd.append("--no-build")
     env = dict(os.environ)

@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """
-Lifecycle of the Tofino 2 model testbed for synthesized NFs.
+Lifecycle of the Tofino 2 model testbed: a P4 program and its controller.
 
 Runs inside the SDE container (needs $SDE and $SDE_INSTALL) as root:
 
-    sudo -E ./testbed.py up nat-f40000-c0-unif-hmax-tput   # build if stale, start model + controller
+    sudo -E ./testbed.py up --p4 ../synthesized/nat-f40000-c0-unif-hmax-tput.p4 \
+                           --controller ../synthesized/nat-f40000-c0-unif-hmax-tput.cpp
+    sudo -E ./testbed.py up --p4 ../tofino/meta4/p4/meta4.p4 --controller ../tofino/meta4/meta4.py
     sudo -E ./testbed.py status
     sudo -E ./testbed.py down
+
+The program's name is the P4 file's stem. A .cpp controller is a Barefoot program that starts
+bf_switchd itself (a synthesized one does so through libsycon); a .py controller is a script run
+against a bf_switchd started here, which configures the switch and exits.
 
 The NF test scripts (echo.py, ...) assume the testbed is already up unless
 they are given --up, in which case they call into this module themselves.
@@ -26,7 +32,6 @@ from typing import Callable, Optional
 
 TESTS_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = TESTS_DIR.parent
-SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
 TOFINO_TOOLS_DIR = PROJECT_DIR / "tofino" / "tools"
 
 MAKEFILE = TOFINO_TOOLS_DIR / "Makefile"
@@ -88,8 +93,29 @@ def build_log_file(nf: str) -> Path:
     return nf_log_dir(nf) / "build.log"
 
 
-def controller_binary(nf: str) -> Path:
-    return SYNTHESIZED_DIR / "build" / "debug" / nf
+def controller_binary(controller: Path) -> Path:
+    """Where the Makefile puts the debug build of a .cpp controller."""
+    return controller.parent / "build" / "debug" / controller.stem
+
+
+def controller_is_script(controller: Path) -> bool:
+    if controller.suffix == ".py":
+        return True
+    if controller.suffix == ".cpp":
+        return False
+    raise TestbedError(f"controller must be a .cpp program or a .py script: {controller}")
+
+
+def switchd_log_file(nf: str) -> Path:
+    return nf_log_dir(nf) / "switchd.log"
+
+
+def sde_python_path(env: dict[str, str]) -> str:
+    """The SDE's python packages, as controller scripts expect them on PYTHONPATH."""
+    for site_packages in Path(env["SDE_INSTALL"]).glob("lib/python*/site-packages"):
+        if (site_packages / "tofino").is_dir():
+            return f"{site_packages / 'tofino'}:{site_packages}"
+    raise TestbedError(f"no tofino python packages under {env['SDE_INSTALL']}")
 
 
 def tail(path: Path, lines: int = 30) -> str:
@@ -131,15 +157,23 @@ def running_model() -> Optional[str]:
 
 
 def _controller_procs() -> list[tuple[int, str]]:
-    """Processes whose executable is a synthesized controller (not shells/sudo wrapping one)."""
-    build_dir = str(SYNTHESIZED_DIR / "build") + "/"
-    return [(pid, cmd) for pid, cmd in _pgrep(build_dir) if cmd.split(" ")[0].startswith(build_dir)]
+    """Processes whose executable is a built controller (not shells/sudo wrapping one)."""
+    build_dir = "/build/debug/"
+    return [(pid, cmd) for pid, cmd in _pgrep(build_dir) if build_dir in cmd.split(" ")[0]]
 
 
 def running_controller() -> Optional[str]:
-    """Name of the running synthesized controller, if any."""
+    """Name of the running .cpp controller, if any."""
     for _, cmd in _controller_procs():
         return Path(cmd.split(" ")[0]).name
+    return None
+
+
+def running_switchd() -> Optional[str]:
+    """Name of the P4 program a running bf_switchd (started for a controller script) serves, if any."""
+    for _, cmd in _pgrep(r"\bbf_switchd\b"):
+        m = re.search(r"--conf-file\s+\S*/([^/\s]+)\.conf", cmd)
+        return m.group(1) if m else "?"
     return None
 
 
@@ -150,15 +184,12 @@ def ensure_veths() -> None:
     subprocess.run([str(VETH_SETUP_SCRIPT)], check=True, stdout=PIPE, stderr=STDOUT)
 
 
-def build(nf: str) -> None:
-    """Compile+install the P4 program and build the debug controller (make skips what is up to date)."""
+def build(p4: Path, controller: Path) -> None:
+    """Compile+install the P4 program and, for a .cpp controller, build it (make skips what is up to date)."""
     env = sde_env()
-    env["APP"] = nf
-    logfile = build_log_file(nf)
+    logfile = build_log_file(p4.stem)
 
-    p4 = SYNTHESIZED_DIR / f"{nf}.p4"
-    cpp = SYNTHESIZED_DIR / f"{nf}.cpp"
-    for f in (p4, cpp):
+    for f in (p4, controller):
         if not f.is_file():
             raise TestbedError(f"missing {f}")
 
@@ -166,18 +197,23 @@ def build(nf: str) -> None:
     # libsycon). The controller is always rebuilt (-B): it is a single g++ of one .cpp (seconds) and
     # it is the only half that depends on libsycon, whose headers make does not track. Always
     # recompiling it avoids stale binaries linking against an out-of-date libsycon (ABI mismatch).
+    # Either is built by tofino/tools/Makefile in the source's own directory, APP naming the file.
+    steps = [("install-tofino2", [], p4)]
+    if not controller_is_script(controller):
+        steps.append(("controller-debug", ["-B"], controller))
     with open(logfile, "w") as out:
-        for target, extra in (("install-tofino2", []), ("controller-debug", ["-B"])):
-            log(f"make {target} ({nf})")
+        for target, extra, source in steps:
+            env["APP"] = source.stem
+            log(f"make {target} ({source.name})")
             proc = subprocess.run(
                 ["make", *extra, "-f", str(MAKEFILE), target],
-                cwd=SYNTHESIZED_DIR,
+                cwd=source.parent,
                 env=env,
                 stdout=out,
                 stderr=STDOUT,
             )
             if proc.returncode != 0:
-                raise TestbedError(f"make {target} failed for {nf}; see {logfile}\n{tail(logfile)}")
+                raise TestbedError(f"make {target} failed for {source.name}; see {logfile}\n{tail(logfile)}")
 
 
 def _wait_for(predicate, timeout_sec: float, what: str, failed=lambda: False) -> None:
@@ -221,9 +257,9 @@ def start_model(nf: str) -> None:
     log("tofino-model is up")
 
 
-def start_controller(nf: str) -> None:
+def start_controller(controller: Path, nf: str) -> None:
     env = sde_env()
-    binary = controller_binary(nf)
+    binary = controller_binary(controller)
     if not binary.is_file():
         raise TestbedError(f"controller binary not found: {binary} (build it first)")
 
@@ -251,6 +287,61 @@ def start_controller(nf: str) -> None:
     log("controller is running")
 
 
+# bf_switchd's stdin is bfshell's; it must stay open or switchd exits, so the pipe lives here.
+_switchd_stdin = None
+
+
+def start_switchd(nf: str) -> None:
+    global _switchd_stdin
+    env = sde_env()
+    logfile = switchd_log_file(nf)
+
+    log(f"starting bf_switchd for {nf} (log: {logfile})")
+    with open(logfile, "w") as out:
+        proc = subprocess.Popen(
+            [f"{env['SDE']}/run_switchd.sh", "-p", nf, "--arch", "tf2"],
+            cwd=nf_log_dir(nf),
+            env=env,
+            stdout=out,
+            stderr=STDOUT,
+            stdin=subprocess.PIPE,
+            start_new_session=True,
+        )
+    _switchd_stdin = proc.stdin
+
+    def ready() -> bool:
+        return "bf_switchd: server started" in tail(logfile, 200)
+
+    try:
+        _wait_for(ready, CONTROLLER_READY_TIMEOUT_SEC, "bf_switchd start", failed=lambda: proc.poll() is not None)
+    except TestbedError as e:
+        raise TestbedError(f"{e}\n--- {logfile} ---\n{tail(logfile)}")
+    log("bf_switchd is up")
+
+
+def run_controller_script(script: Path, nf: str) -> None:
+    """Runs a controller script to completion: it configures the switch and exits."""
+    env = sde_env()
+    env["PYTHONPATH"] = sde_python_path(env)
+    if not script.is_file():
+        raise TestbedError(f"controller not found: {script}")
+
+    logfile = controller_log_file(nf)
+    log(f"running controller {script.name} (log: {logfile})")
+
+    # bfrt's gRPC server comes up a little after switchd reports itself started.
+    attempts = 6
+    for attempt in range(1, attempts + 1):
+        with open(logfile, "a") as out:
+            proc = subprocess.run([str(script)], cwd=script.parent, env=env, stdout=out, stderr=STDOUT)
+        if proc.returncode == 0:
+            log("controller done")
+            return
+        if attempt < attempts:
+            time.sleep(5)
+    raise TestbedError(f"{script.name} failed {attempts} times; see {logfile}\n{tail(logfile)}")
+
+
 def _kill(find: Callable[[], list[tuple[int, str]]], what: str) -> None:
     procs = find()
     if not procs:
@@ -269,22 +360,32 @@ def _kill(find: Callable[[], list[tuple[int, str]]], what: str) -> None:
 
 
 def down() -> None:
+    global _switchd_stdin
     # Controller first (it is the bf_switchd side), then the model.
     _kill(_controller_procs, "controller")
+    _kill(lambda: _pgrep(r"\bbf_switchd\b"), "bf_switchd")
+    _kill(lambda: _pgrep(r"run_switchd\.sh"), "run_switchd.sh")
+    _switchd_stdin = None
     _kill(lambda: _pgrep(r"^tofino-model\b"), "tofino-model")
     _kill(lambda: _pgrep(r"run_tofino_model\.sh"), "run_tofino_model.sh")
 
 
-def up(nf: str, do_build: bool = True) -> None:
+def up(p4: Path, controller: Path, do_build: bool = True) -> None:
     require_root()
     ensure_veths()
+    nf = p4.stem
+    script = controller_is_script(controller)
     if do_build:
-        build(nf)
-    if running_model() or running_controller():
+        build(p4, controller)
+    if running_model() or running_controller() or running_switchd():
         down()
     start_model(nf)
     try:
-        start_controller(nf)
+        if script:
+            start_switchd(nf)
+            run_controller_script(controller, nf)
+        else:
+            start_controller(controller, nf)
     except TestbedError:
         down()
         raise
@@ -293,18 +394,24 @@ def up(nf: str, do_build: bool = True) -> None:
 def status() -> None:
     model = running_model()
     controller = running_controller()
+    switchd = running_switchd()
     print(f"tofino-model: {'running (' + model + ')' if model else 'not running'}")
     print(f"controller:   {'running (' + controller + ')' if controller else 'not running'}")
+    print(f"bf_switchd:   {'running (' + switchd + ')' if switchd else 'not running'}")
 
 
-def assert_up(nf: str) -> None:
-    """Fail unless the testbed is running for exactly this NF."""
+def assert_up(p4: Path, controller: Path) -> None:
+    """Fail unless the testbed is running for exactly this program and controller."""
+    nf = p4.stem
     model = running_model()
-    controller = running_controller()
-    if controller != nf or model != nf:
+    if controller_is_script(controller):
+        side, expected = running_switchd(), nf
+    else:
+        side, expected = running_controller(), controller.stem
+    if side != expected or model != nf:
         raise TestbedError(
-            f"testbed is not up for {nf} (model: {model}, controller: {controller}); "
-            f"run `sudo -E {TESTS_DIR / 'testbed.py'} up {nf}` or pass --up"
+            f"testbed is not up for {nf} (model: {model}, {'bf_switchd' if controller_is_script(controller) else 'controller'}: {side}); "
+            f"run `sudo -E {TESTS_DIR / 'testbed.py'} up --p4 {p4} --controller {controller}` or pass --up"
         )
 
 
@@ -313,11 +420,13 @@ def main() -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_up = sub.add_parser("up", help="build (unless --no-build), then start model + controller")
-    p_up.add_argument("nf", help="synthesized NF name (e.g. nat-f40000-c0-unif-hmax-tput)")
+    p_up.add_argument("--p4", type=Path, required=True, help="P4 program to compile and install; its stem names the program")
+    p_up.add_argument("--controller", type=Path, required=True, help=".cpp: a program that starts bf_switchd itself; .py: a script run against a bf_switchd started here")
     p_up.add_argument("--no-build", action="store_true")
 
     p_build = sub.add_parser("build", help="build P4 + controller only")
-    p_build.add_argument("nf")
+    p_build.add_argument("--p4", type=Path, required=True)
+    p_build.add_argument("--controller", type=Path, required=True)
 
     sub.add_parser("down", help="stop controller and model")
     sub.add_parser("status")
@@ -326,9 +435,9 @@ def main() -> int:
 
     try:
         if args.cmd == "up":
-            up(args.nf, do_build=not args.no_build)
+            up(args.p4.resolve(), args.controller.resolve(), do_build=not args.no_build)
         elif args.cmd == "build":
-            build(args.nf)
+            build(args.p4.resolve(), args.controller.resolve())
         elif args.cmd == "down":
             require_root()
             down()

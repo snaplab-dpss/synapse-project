@@ -18,6 +18,7 @@ import json
 import sys
 from argparse import ArgumentParser
 from binascii import hexlify
+from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
 from random import getrandbits, randint, seed as seed_random
@@ -39,24 +40,28 @@ PACKET_OUTGOING = 4  # sll_pkttype of frames we sent ourselves
 
 ALL_PORTS = list(range(1, 33))
 
-# What the solution under test is, read from its synapse report: which data structures it chose,
-# and the port layout it was built for. A test asks these rather than being told, so that naming
-# the solution is the only thing a test run has to say. run() resolves them before the test runs.
+# What the program under test is, read from its synapse report (the .json next to the .p4): which
+# data structures it chose, and the port layout it was built for. A test asks these rather than
+# being told, so that naming the program is the only thing a test run has to say. run() resolves
+# them before the test runs. A program with no report (an expert baseline) has every front panel
+# port as a device.
 _report: dict = {}
 _dev_to_port: dict = {}
 
 
-def _resolve_solution(nf: str) -> None:
+def _resolve_program(p4: Path) -> None:
     global _report, _dev_to_port
 
-    report_file = testbed.SYNTHESIZED_DIR / f"{nf}.json"
+    report_file = p4.with_suffix(".json")
     if not report_file.is_file():
-        raise testbed.TestbedError(f"no synapse report for {nf} ({report_file})")
+        _report = {}
+        _dev_to_port = {port: port for port in ALL_PORTS}
+        return
     with open(report_file) as f:
         _report = json.load(f)
 
     if "ports" not in _report:
-        raise testbed.TestbedError(f"{nf} was synthesized before the report carried its port layout; regenerate it")
+        raise testbed.TestbedError(f"{p4.stem} was synthesized before the report carried its port layout; regenerate it")
 
     _dev_to_port = {p["nf_device"]: p["front_panel_port"] for p in _report["ports"]}
 
@@ -492,21 +497,24 @@ def run(test: Callable[[Ports], None]) -> None:
     controller) must already be running (`testbed.py up <nf>`). With --up it is brought up
     before the test and torn down after it, unless --keep is given.
     """
-    parser = ArgumentParser(description="Black-box test for a synthesized solution on the Tofino 2 model")
-    parser.add_argument("--nf", required=True, help="synthesized solution to test")
+    parser = ArgumentParser(description="Black-box test for a P4 program and its controller on the Tofino 2 model")
+    parser.add_argument("--p4", type=Path, required=True, help="P4 program under test (its synapse report, if any, is the .json next to it)")
+    parser.add_argument("--controller", type=Path, required=True, help=".cpp: a program that starts bf_switchd itself; .py: a script run against a bf_switchd the testbed starts")
     parser.add_argument("--up", action="store_true", help="build (unless --no-build) and start the testbed first")
     parser.add_argument("--no-build", action="store_true", help="with --up: skip the build step")
     parser.add_argument("--keep", action="store_true", help="with --up: leave the testbed running afterwards")
     parser.add_argument("--quiet", action="store_true", help="don't print every packet sent/received")
     parser.add_argument("--seed", type=int, help="seed the random flows (default: a fresh one, printed below)")
     args = parser.parse_args()
-    nf = args.nf
+    p4 = args.p4.resolve()
+    controller = args.controller.resolve()
+    nf = p4.stem
 
     global _NF
     _NF = nf
 
     try:
-        _resolve_solution(nf)
+        _resolve_program(p4)
     except testbed.TestbedError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(2)
@@ -522,9 +530,9 @@ def run(test: Callable[[Ports], None]) -> None:
     try:
         testbed.require_root()
         if args.up:
-            testbed.up(nf, do_build=not args.no_build)
+            testbed.up(p4, controller, do_build=not args.no_build)
         else:
-            testbed.assert_up(nf)
+            testbed.assert_up(p4, controller)
     except testbed.TestbedError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(2)
