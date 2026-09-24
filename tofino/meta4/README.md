@@ -63,7 +63,7 @@ that domain's counters.
 The DNS Response Table is the interesting part. It is a **two-stage hash table
 with lazy timeout eviction**: each stage is an independent hash of the address
 pair, and an entry may be overwritten once it has gone untouched for the
-timeout (100 s). Insertion tries stage 1, and if that is occupied by a live
+timeout (100 s in the paper; 1 s here, change 9). Insertion tries stage 1, and if that is occupied by a live
 entry, the packet is **resubmitted** to try stage 2 — which is why the program
 carries a `resubmit_data_t` header and a `stage_indicator` bit. Data packets
 that match refresh the timestamp, so active sessions are not evicted.
@@ -84,8 +84,10 @@ banned_dns_dst.txt        client prefixes whose DNS responses are ignored -- our
 Upstream states that `netassay_v4_j6.p4` "compiles with SDE v9.2.0". We build
 with **bf-p4c 9.13.4**, which rejects four things 9.2.0 accepted. The DNS
 parsing, the domain matching, the DNS Response Table algorithm, the resubmit
-logic and the counters are **all unchanged**; items 1-4 are portability fixes
-and item 5 is a parameter correction back to the paper's stated value.
+logic and the counters are **all unchanged**. Items 1-4 are portability fixes,
+item 5 a parameter correction back to the paper's stated value, item 6 our
+evaluation configuration, and items 7-12 what it took to run the program on our
+Tofino 2 testbed, most of them found by the model test.
 
 Items 2-4 were each checked against both targets: **Tofino 1 rejects them under
 9.13.4 exactly as Tofino 2 does**, so they are SDE-version issues, not
@@ -158,7 +160,12 @@ Tofino 1 → Tofino 2 porting issues.
    stage and the third table that must attach to it has nowhere to go. At the
    paper's size it compiles with room to spare (11 of 20 stages). We use the
    paper's value, which is both the documented configuration and the one that
-   builds.
+   builds. The four index hashes are 15 bits wide to match
+   (`TABLE_INDEX_BITS`); upstream's are 16, the width of its tables. Left at
+   16, half the index space points past the registers: the stateful ALU then
+   does nothing, the slot reads as neither matched nor timed out, and the
+   response is counted as missed. The model test caught it on the first pair
+   whose hashes landed in the upper half in both stages.
 
 6. **The three list files hold our evaluation configuration, not upstream's.**
    Upstream's `known_domains_v1.txt` (313 names from the Princeton campus
@@ -172,6 +179,88 @@ Tofino 1 → Tofino 2 porting issues.
    identically for the comparison. The originals are in
    `tofino/princeton-p4-projects/Meta4-tofino/`. Configuration only; no
    effect on what the data plane does per packet.
+
+The next three make the program forward traffic the way a throughput test
+needs. Upstream was deployed on a tap, where what left the switch never had to
+be a valid packet; on our testbed every packet is reflected to the traffic
+generator and counted.
+
+7. **Packets leave the switch as they came.** A header the parser extracts
+   but the deparser does not emit is dropped from the packet, and upstream
+   dropped a lot: its ingress deparser emitted only Ethernet, IPv4 and the
+   bridged `netassay_hdr`, so the UDP header and every DNS header the parser
+   had taken vanished from every packet; and its egress deparser was empty, so
+   what the egress parser took — Ethernet, IPv4 and the bridged header — went
+   too, leaving no L2/L3 headers at all. Now the ingress deparser emits every
+   header the parser can extract, in wire order, the bridged header placed
+   right after Ethernet so that the egress parser takes it off IPv4 and
+   non-IPv4 packets alike, and the egress deparser emits Ethernet and IPv4.
+   Data packets and single-answer DNS responses come back byte-for-byte; a
+   response with CNAME records comes back without them (the parser steps over
+   their bytes, which are gone), which nothing downstream needs. Emitting the
+   answer record needed change 12.
+
+8. **Every packet is reflected to its ingress port.** Upstream hardcodes
+   `ucast_egress_port = 180` on the data path and sets no egress port at all on
+   the DNS path (those packets were dropped). The port is now set once, at the
+   top of the ingress control, to the ingress port, for every packet — the echo
+   methodology our other monitoring baselines use.
+
+9. **`TIMEOUT` is 1 second, on a timestamp that does not wrap.** Upstream
+   defines `TIMEOUT 100000000 // 100 seconds`, but compares it against
+   `global_tstamp`, which counts nanoseconds, so the released program expired
+   entries after 100 ms rather than the paper's 100 s — and it truncates the
+   timestamp to 32 bits, which wrap every 4.29 s. With a timeout of a second
+   that truncation refuses every insertion during the 23% of each wrap cycle
+   in which the low 32 bits read below the timeout (an empty slot's timestamp
+   is 0, and `0 + TIMEOUT < now` is false then); the model test hit it on its
+   first insertion, at 4.96 s of uptime reading as 0.67 s. The timestamp is
+   now `global_tstamp >> 16`, computed once per packet into `ig_md.now_ticks`:
+   ticks of 65.536 µs, so 32 bits span 78 hours, and `TIMEOUT` is 15259 ticks
+   = 1 s, the timeout our C NF defaults to, so the two are compared on equal
+   terms. The register actions are otherwise unchanged.
+
+10. **The parser skips `PORT_METADATA_SIZE`, not 64 bits.** Upstream's
+    `parse_port_metadata` does `pkt.advance(64)` — the Tofino 1 port metadata
+    size, as its own comment says. On Tofino 2 the port metadata is 192 bits,
+    so the parser was reading the Ethernet header 16 bytes early, out of the
+    metadata itself: every field came up zero, no packet was ever IPv4, and
+    what left the switch was 23 bytes of that phantom Ethernet header plus the
+    bridged header, followed by the untouched frame. Found by the model test
+    (`tests/meta4.py`) on the first packet sent; items 1–5 had only ever been
+    compiled. The arch constant is 64 on Tofino 1 and 192 on Tofino 2, so this
+    is a portability fix in the same sense as change 1.
+
+11. **The resubmit parser skips the rest of the metadata region on Tofino 2.**
+    The same size difference, on the other branch of the parser. A
+    resubmitted packet carries its resubmit data in the region the port
+    metadata otherwise occupies; upstream's `parse_resubmit` extracts its
+    64-bit `resubmit_data_t` and stops, which is exact on Tofino 1 (a 64-bit
+    region) and 128 bits short on Tofino 2 (192). Every insertion into the DNS
+    Response Table goes through a resubmit, so on Tofino 2 every insertion
+    read its Ethernet header out of that leftover metadata and installed
+    nothing. Found by the model test on the first insertion, once change 9
+    let insertions happen at all. The extra `pkt.advance(PORT_METADATA_SIZE -
+    64)` is under `#if __TARGET_TOFINO__ == 2`.
+
+12. **CNAME hops and the final answer are parsed into different headers.**
+    Upstream's `parse_dns_answer` extracts `dns_answer` once per record: for
+    each CNAME it steps over the name and loops back, and the A record that
+    ends the chain overwrites it. That is fine while the header is never
+    deparsed — the compiler then does not extract its fields at all — but once
+    change 7 emits it, the Tofino 2 parser rejects the second extraction: the
+    header first becomes a CLOT (parser-to-deparser pass-through), which the
+    model aborts on when a packet fills twice (`Tag 1 reused`), and with a
+    `@do_not_use_clot` pragma the PHV write is flagged instead (`MultiWr`) and
+    the packet dropped. Neither `@max_loop_depth` (header stacks only) nor a
+    multi-write pragma (none exists) helps. `parse_dns_answer` now peeks at the
+    record type with `lookahead` and extracts a CNAME into `dns_cname`, a
+    header of the same type that is never deparsed and may be overwritten per
+    hop, and an A record into `dns_answer`, which is extracted at most once.
+    The CNAME loop, the byte counter and the 50-byte shortcut are otherwise
+    upstream's. A single-answer response therefore comes back byte-for-byte;
+    what the parser learns from a CNAME chain (the A record at its end) is
+    what it learned before.
 
 ### Status on Tofino 1
 
@@ -193,14 +282,14 @@ so we have not pursued it.
 | SRAM | 85 |
 | Map RAM | 80 |
 | TCAM | 49 |
-| Exact match input xbar | 115 |
+| Exact match input xbar | 126 |
 | Ternary match input xbar | 132 |
-| Hash bits | 349 |
+| Hash bits | 345 |
 | Hash dist units | 18 |
 | Gateways | 33 |
-| VLIW instructions | 26 |
+| VLIW instructions | 25 |
 | Meter ALUs | 11 |
-| Logical table IDs | 45 |
+| Logical table IDs | 46 |
 
 The two 2^15-entry DNS Response Table stages dominate: stages 5/6 and 8/9 each
 carry ~18 SRAM and ~18 map RAM blocks for `sip_cip`, `domain` and `tstamp`.

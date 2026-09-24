@@ -16,7 +16,9 @@
 // total over the two stages is 2^15 each. Upstream had 65536 = 2^16 here, and since this is a
 // per-stage figure that came to 2 * 2^16 = 2^17 in total, twice the paper's configuration.
 #define TABLE_SIZE 32768
-#define TIMEOUT 100000000 // 100 seconds
+#define TABLE_INDEX_BITS 15 // log2(TABLE_SIZE): the hashes must not index past the registers
+// In ticks of 2^16 ns (65.536 us): 1 second. See README, change 9.
+#define TIMEOUT 15259
 
 typedef bit<48> MacAddress;
 typedef bit<32> IPv4Address;
@@ -189,6 +191,7 @@ struct Parsed_packet {
 
     dns_query_tc query_tc;
 
+    dns_a dns_cname;
     dns_a dns_answer;
     dns_a_ip dns_ip;
 
@@ -224,6 +227,7 @@ struct ig_metadata_t {
     bit<32> index_1;
     bit<32> index_2;
     bit<48> temp_timestamp;
+    bit<32> now_ticks; // global_tstamp >> 16: 32 bits then span 78 hours instead of 4.3 seconds
     bit<32> temp_cip;
     bit<32> temp_sip;
     bit<1> already_matched;
@@ -277,11 +281,16 @@ parser TofinoIngressParser(
         // Parse resubmitted packet here.
         //pkt.advance(64);
         pkt.extract(ig_md.resubmit_data_read);
+#if __TARGET_TOFINO__ == 2
+        // The resubmit data fills the same region as the port metadata, which is 64 bits on
+        // Tofino 1 (exactly this header) but 192 on Tofino 2 (see README, change 11).
+        pkt.advance(PORT_METADATA_SIZE - 64);
+#endif
         transition accept;
     }
 
     state parse_port_metadata {
-        pkt.advance(64);  //tofino 1 port metadata size
+        pkt.advance(PORT_METADATA_SIZE); // 64 bits on Tofino 1, 192 on Tofino 2 (see README, change 10)
         transition accept;
     }
 }
@@ -881,18 +890,30 @@ parser SwitchIngressParser(packet_in pkt,
         transition parse_dns_answer;
     }
 
+    // The record type sits 16 bits into the record. Peek at it so CNAME hops
+    // land in dns_cname, which is stepped over and never deparsed, and only
+    // the final A record in dns_answer, which is: the Tofino 2 parser rejects
+    // a packet that extracts a deparsed header twice (MultiWr).
     state parse_dns_answer {
-        pkt.extract(p.dns_answer);
-
-        transition select(p.dns_answer.tc_ans.type) {
-            1: parse_a_ip;
-            5: parse_cname_arbiter;
+        transition select(pkt.lookahead<bit<32>>()[15:0]) {
+            1: parse_a_answer;
+            5: parse_cname_answer;
             default: accept;
         }
     }
 
+    state parse_a_answer {
+        pkt.extract(p.dns_answer);
+        transition parse_a_ip;
+    }
+
+    state parse_cname_answer {
+        pkt.extract(p.dns_cname);
+        transition parse_cname_arbiter;
+    }
+
     state parse_cname {
-        counter.set(p.dns_answer.rd_length_2);
+        counter.set(p.dns_cname.rd_length_2);
 
         transition select(counter.is_zero()) {
             true: parse_dns_answer;
@@ -903,7 +924,7 @@ parser SwitchIngressParser(packet_in pkt,
     // Parse normally up to CNAME length: 50 bytes
     // For 51 or more, parse with parse_cname_over50
     state parse_cname_arbiter {
-        transition select(p.dns_answer.rd_length_2) {
+        transition select(p.dns_cname.rd_length_2) {
             1: parse_cname;
             2: parse_cname; 
             3: parse_cname;
@@ -961,7 +982,7 @@ parser SwitchIngressParser(packet_in pkt,
     // A state just for hopping to parse_cname_cut50
     // Might not even need, but whatever.
     state parse_cname_over50 {
-        counter.set(p.dns_answer.rd_length_2);
+        counter.set(p.dns_cname.rd_length_2);
 
         transition parse_cname_cut50;
     }
@@ -1015,9 +1036,41 @@ control SwitchIngressDeparser(
         }
  
 
+        // Every header the parser may have taken, in wire order (see README, change 7). The
+        // bridged header goes right after Ethernet, so egress strips it from every packet.
         pkt.emit(hdr.ethernet);
-        pkt.emit(hdr.ipv4);
         pkt.emit(hdr.netassay_hdr);
+        pkt.emit(hdr.ipv4);
+        pkt.emit(hdr.udp);
+        pkt.emit(hdr.dns_header);
+        pkt.emit(hdr.label1);
+        pkt.emit(hdr.q1_part1);
+        pkt.emit(hdr.q1_part2);
+        pkt.emit(hdr.q1_part4);
+        pkt.emit(hdr.q1_part8_1);
+        pkt.emit(hdr.q1_part8_2);
+        pkt.emit(hdr.label2);
+        pkt.emit(hdr.q2_part1);
+        pkt.emit(hdr.q2_part2);
+        pkt.emit(hdr.q2_part4);
+        pkt.emit(hdr.q2_part8_1);
+        pkt.emit(hdr.q2_part8_2);
+        pkt.emit(hdr.label3);
+        pkt.emit(hdr.q3_part1);
+        pkt.emit(hdr.q3_part2);
+        pkt.emit(hdr.q3_part4);
+        pkt.emit(hdr.q3_part8_1);
+        pkt.emit(hdr.q3_part8_2);
+        pkt.emit(hdr.label4);
+        pkt.emit(hdr.q4_part1);
+        pkt.emit(hdr.q4_part2);
+        pkt.emit(hdr.q4_part4);
+        pkt.emit(hdr.q4_part8_1);
+        pkt.emit(hdr.q4_part8_2);
+        pkt.emit(hdr.label5);
+        pkt.emit(hdr.query_tc);
+        pkt.emit(hdr.dns_answer);
+        pkt.emit(hdr.dns_ip);
     }
 }
 
@@ -1043,6 +1096,7 @@ parser SwitchEgressParser(
 
     state parse_ethernet {
         pkt.extract(p.ethernet);
+        pkt.extract(p.netassay_hdr);
         transition select(p.ethernet.etherType) {
 			0x800: parse_ip;
 			default: accept;
@@ -1051,7 +1105,6 @@ parser SwitchEgressParser(
 
 	state parse_ip {
         pkt.extract(p.ipv4);
-		pkt.extract(p.netassay_hdr);
         transition accept;
 	}
 }
@@ -1065,6 +1118,9 @@ control SwitchEgressDeparser(
         in eg_metadata_t eg_md,
         in egress_intrinsic_metadata_for_deparser_t eg_intr_md_for_dprsr) {
     apply {
+        // Put the headers back, minus the bridged one (see README, change 7).
+        pkt.emit(hdr.ethernet);
+        pkt.emit(hdr.ipv4);
     }
 }
 
@@ -1115,7 +1171,7 @@ control SwitchIngress(inout Parsed_packet headers,
     Register<timestamp_t, bit<32>>(TABLE_SIZE) tstamp_reg_1;
     RegisterAction<timestamp_t, bit<32>,bit<1>> (tstamp_reg_1) tstamp_reg_1_check_tstamp_action = {
         void apply(inout timestamp_t value, out bit<1> timed_out) {
-            if (value.timestamp + TIMEOUT < (bit<32>)ig_intr_prsr_md.global_tstamp) {
+            if (value.timestamp + TIMEOUT < ig_md.now_ticks) {
                 timed_out = 1;
             }
             else {
@@ -1125,7 +1181,7 @@ control SwitchIngress(inout Parsed_packet headers,
     };
     RegisterAction<timestamp_t, bit<32>,void> (tstamp_reg_1) tstamp_reg_1_update_tstamp_action = {
         void apply(inout timestamp_t value) {
-            value.timestamp = (bit<32>)ig_intr_prsr_md.global_tstamp;
+            value.timestamp = ig_md.now_ticks;
         }
     };
 
@@ -1164,7 +1220,7 @@ control SwitchIngress(inout Parsed_packet headers,
     Register<timestamp_t, bit<32>>(TABLE_SIZE) tstamp_reg_2;
     RegisterAction<timestamp_t, bit<32>,bit<1>> (tstamp_reg_2) tstamp_reg_2_check_tstamp_action = {
         void apply(inout timestamp_t value, out bit<1> timed_out) {
-            if (value.timestamp + TIMEOUT < (bit<32>)ig_intr_prsr_md.global_tstamp) {
+            if (value.timestamp + TIMEOUT < ig_md.now_ticks) {
                 timed_out = 1;
             }
             else {
@@ -1174,7 +1230,7 @@ control SwitchIngress(inout Parsed_packet headers,
     };
     RegisterAction<timestamp_t, bit<32>,void> (tstamp_reg_2) tstamp_reg_2_update_tstamp_action = {
         void apply(inout timestamp_t value) {
-            value.timestamp = (bit<32>)ig_intr_prsr_md.global_tstamp;
+            value.timestamp = ig_md.now_ticks;
         }
     };
 
@@ -1184,7 +1240,7 @@ control SwitchIngress(inout Parsed_packet headers,
     Register<domainid_timestamp_t, bit<32>>(TABLE_SIZE) domain_tstamp_reg_2;
     RegisterAction<domainid_timestamp_t, bit<32>,bit<1>> (domain_tstamp_reg_2) domain_tstamp_reg_2_check_tstamp_action = {
         void apply(inout domainid_timestamp_t value, out bit<1> timed_out) {
-            if (value.timestamp + TIMEOUT < (bit<32>)ig_intr_prsr_md.global_tstamp) {
+            if (value.timestamp + TIMEOUT < ig_md.now_ticks) {
                 timed_out = 1;
             }
             else {
@@ -1194,18 +1250,18 @@ control SwitchIngress(inout Parsed_packet headers,
     };
     RegisterAction<domainid_timestamp_t, bit<32>,bit<32>> (domain_tstamp_reg_2) domain_tstamp_reg_2_get_domain_and_update_ts_action = {
         void apply(inout domainid_timestamp_t value, out bit<32> domain_id) {
-            value.timestamp = (bit<32>)ig_intr_prsr_md.global_tstamp;
+            value.timestamp = ig_md.now_ticks;
             domain_id = value.domain_id;
         }
     };
     RegisterAction<domainid_timestamp_t, bit<32>,void> (domain_tstamp_reg_2) domain_tstamp_reg_2_update_tstamp_action = {
         void apply(inout domainid_timestamp_t value) {
-            value.timestamp = (bit<32>)ig_intr_prsr_md.global_tstamp;
+            value.timestamp = ig_md.now_ticks;
         }
     };
     RegisterAction<domainid_timestamp_t, bit<32>,void> (domain_tstamp_reg_2) domain_tstamp_reg_2_update_tstamp_domain_action = {
         void apply(inout domainid_timestamp_t value) {
-            value.timestamp = (bit<32>)ig_intr_prsr_md.global_tstamp;
+            value.timestamp = ig_md.now_ticks;
             value.domain_id = ig_md.domain_id_dns;
         }
     };
@@ -1227,11 +1283,11 @@ control SwitchIngress(inout Parsed_packet headers,
     };
 
     // Define Hash
-    Hash<bit<16>>(HashAlgorithm_t.CRC32) hash_1_dns;
-    Hash<bit<16>>(HashAlgorithm_t.CRC32) hash_2_dns;
+    Hash<bit<TABLE_INDEX_BITS>>(HashAlgorithm_t.CRC32) hash_1_dns;
+    Hash<bit<TABLE_INDEX_BITS>>(HashAlgorithm_t.CRC32) hash_2_dns;
 
-    Hash<bit<16>>(HashAlgorithm_t.CRC32) hash_1;
-    Hash<bit<16>>(HashAlgorithm_t.CRC32) hash_2;
+    Hash<bit<TABLE_INDEX_BITS>>(HashAlgorithm_t.CRC32) hash_1;
+    Hash<bit<TABLE_INDEX_BITS>>(HashAlgorithm_t.CRC32) hash_2;
 
     // Build the hash inputs one add per action, so no action reads what it also writes.
     // ig_md.hash_in_{1,2} end up holding exactly the sums that used to be written inline,
@@ -1244,6 +1300,10 @@ control SwitchIngress(inout Parsed_packet headers,
     action set_hash_base_ip() {
         ig_md.hash_in_1 = headers.ipv4.src + headers.ipv4.dst;
         ig_md.hash_in_2 = headers.ipv4.src + headers.ipv4.dst;
+    }
+
+    action set_now_ticks() {
+        ig_md.now_ticks = (bit<32>)(ig_intr_prsr_md.global_tstamp >> 16);
     }
 
     action salt_hash_inputs() {
@@ -1363,6 +1423,9 @@ control SwitchIngress(inout Parsed_packet headers,
     }
 
     apply {
+        // Every packet goes back out the port it came in on (see README, change 8).
+        ig_intr_tm_md.ucast_egress_port = ig_intr_md.ingress_port;
+        set_now_ticks();
 
         if(ig_md.parsed_answer == 1) {
             // Precomputed here rather than at the hash calls below, so the two adds overlap the
@@ -1522,7 +1585,6 @@ control SwitchIngress(inout Parsed_packet headers,
             }
 
 
-            ig_intr_tm_md.ucast_egress_port=180;
             /*
             if (entry_matched == 1) {
                 packet_counts_table_reg_inc_action.execute(domain_id);
