@@ -8,7 +8,7 @@
 #include "lib/models/util/ether.h"
 #include "lib/models/state/map-control.h"
 #include "lib/models/state/vector-control.h"
-#include "lib/models/state/lpm-dir-24-8-control.h"
+#include "lib/models/state/lpm-control.h"
 
 bool dyn_val_condition(void *value, int index, void *state) {
   struct DynamicValue *v = value;

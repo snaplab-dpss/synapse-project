@@ -1,7 +1,8 @@
-#include "lpm-dir-24-8.h"
+#include "lpm.h"
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 
 // Portable byte swap (was rte_bswap32) so this file has no DPDK dependency and can be
@@ -29,11 +30,29 @@ struct rule {
   uint16_t route;
 };
 
+// One backend per key width: DIR-24-8 for an address, a scanned prefix list for anything else.
+struct lpm_prefix {
+  uint8_t *bits;
+  uint32_t prefixlen;
+  int value;
+};
+
 struct LPM {
+  uint32_t key_size;
+  uint32_t capacity;
+
+  // DIR-24-8, used when key_size is 4
   uint16_t *lpm_24;
   uint16_t *lpm_long;
   uint16_t lpm_long_index;
+
+  // scanned prefixes, used otherwise
+  struct lpm_prefix *prefixes;
+  uint32_t n_prefixes;
 };
+
+static int dir248_lookup(struct LPM *lpm, uint32_t addr, uint16_t *value_out);
+static int dir248_update(struct LPM *lpm, uint32_t prefix, uint8_t prefixlen, uint16_t value);
 
 void fill_invalid(uint16_t *t, uint32_t size) {
   for (uint32_t i = 0;; i++) {
@@ -90,22 +109,15 @@ uint16_t lpm_long_extract_first_index(uint32_t data, uint8_t prefixlen, uint8_t 
   return res;
 }
 
-int lpm_allocate(struct LPM **lpm_out) {
-  struct LPM *lpm = (struct LPM *)malloc(sizeof(struct LPM));
-  if (lpm == 0) {
-    return 0;
-  }
-
+static int dir248_allocate(struct LPM *lpm) {
   uint16_t *lpm_24 = (uint16_t *)malloc(LPM_24_MAX_ENTRIES * sizeof(uint16_t));
   if (lpm_24 == 0) {
-    free(lpm);
     return 0;
   }
 
   uint16_t *lpm_long = (uint16_t *)malloc(LPM_LONG_MAX_ENTRIES * sizeof(uint16_t));
   if (lpm_long == 0) {
     free(lpm_24);
-    free(lpm);
     return 0;
   }
 
@@ -113,22 +125,153 @@ int lpm_allocate(struct LPM **lpm_out) {
   fill_invalid(lpm_24, LPM_24_MAX_ENTRIES);
   fill_invalid(lpm_long, LPM_LONG_MAX_ENTRIES);
 
-  lpm->lpm_24                   = lpm_24;
-  lpm->lpm_long                 = lpm_long;
-  uint16_t lpm_long_first_index = 0;
-  lpm->lpm_long_index           = lpm_long_first_index;
+  lpm->lpm_24         = lpm_24;
+  lpm->lpm_long       = lpm_long;
+  lpm->lpm_long_index = 0;
+
+  return 1;
+}
+
+// --- prefixes scanned for the longest match, for any key the tables above cannot index
+
+// Compares the first `prefixlen` bits of two keys.
+static int bits_equal(const uint8_t *a, const uint8_t *b, uint32_t prefixlen) {
+  uint32_t whole = prefixlen / 8;
+
+  for (uint32_t i = 0; i < whole; i++) {
+    if (a[i] != b[i]) {
+      return 0;
+    }
+  }
+
+  uint32_t rest = prefixlen % 8;
+  if (rest == 0) {
+    return 1;
+  }
+
+  uint8_t mask = (uint8_t)(0xff << (8 - rest));
+  return (a[whole] & mask) == (b[whole] & mask);
+}
+
+static int scanned_update(struct LPM *lpm, const uint8_t *prefix, uint32_t prefixlen, int value) {
+  if (prefixlen > lpm->key_size * 8) {
+    return 0;
+  }
+
+  // An entry for the same prefix is replaced rather than added twice.
+  for (uint32_t i = 0; i < lpm->n_prefixes; i++) {
+    if (lpm->prefixes[i].prefixlen == prefixlen && bits_equal(lpm->prefixes[i].bits, prefix, prefixlen)) {
+      lpm->prefixes[i].value = value;
+      return 1;
+    }
+  }
+
+  if (lpm->n_prefixes == lpm->capacity) {
+    return 0;
+  }
+
+  struct lpm_prefix *entry = &lpm->prefixes[lpm->n_prefixes];
+  entry->bits              = (uint8_t *)malloc(lpm->key_size);
+  if (entry->bits == 0) {
+    return 0;
+  }
+
+  memcpy(entry->bits, prefix, lpm->key_size);
+  entry->prefixlen = prefixlen;
+  entry->value     = value;
+  lpm->n_prefixes++;
+
+  return 1;
+}
+
+static int scanned_lookup(struct LPM *lpm, const uint8_t *key, int *value_out) {
+  int found        = 0;
+  uint32_t longest = 0;
+
+  for (uint32_t i = 0; i < lpm->n_prefixes; i++) {
+    const struct lpm_prefix *entry = &lpm->prefixes[i];
+
+    if ((found && entry->prefixlen <= longest) || !bits_equal(entry->bits, key, entry->prefixlen)) {
+      continue;
+    }
+
+    longest    = entry->prefixlen;
+    *value_out = entry->value;
+    found      = 1;
+  }
+
+  return found;
+}
+
+// --- what callers see
+
+int lpm_allocate(uint32_t capacity, uint32_t key_size, struct LPM **lpm_out) {
+  struct LPM *lpm = (struct LPM *)calloc(1, sizeof(struct LPM));
+  if (lpm == 0) {
+    return 0;
+  }
+
+  lpm->key_size = key_size;
+  lpm->capacity = capacity;
+
+  if (key_size == sizeof(uint32_t)) {
+    if (!dir248_allocate(lpm)) {
+      free(lpm);
+      return 0;
+    }
+  } else {
+    lpm->prefixes = (struct lpm_prefix *)calloc(capacity, sizeof(struct lpm_prefix));
+    if (lpm->prefixes == 0) {
+      free(lpm);
+      return 0;
+    }
+  }
 
   *lpm_out = lpm;
   return 1;
 }
 
+int lpm_update(struct LPM *lpm, const void *prefix, uint32_t prefixlen, int value) {
+  if (lpm->key_size == sizeof(uint32_t)) {
+    uint32_t address;
+    memcpy(&address, prefix, sizeof(uint32_t));
+    return dir248_update(lpm, address, (uint8_t)prefixlen, (uint16_t)value);
+  }
+
+  return scanned_update(lpm, (const uint8_t *)prefix, prefixlen, value);
+}
+
+int lpm_lookup(struct LPM *lpm, const void *key, int *value_out) {
+  if (lpm->key_size == sizeof(uint32_t)) {
+    uint32_t address;
+    memcpy(&address, key, sizeof(uint32_t));
+
+    uint16_t value;
+    int found = dir248_lookup(lpm, address, &value);
+    if (found) {
+      *value_out = value;
+    }
+    return found;
+  }
+
+  return scanned_lookup(lpm, (const uint8_t *)key, value_out);
+}
+
 void lpm_free(struct LPM *lpm) {
-  free(lpm->lpm_24);
-  free(lpm->lpm_long);
+  if (lpm->key_size == sizeof(uint32_t)) {
+    free(lpm->lpm_24);
+    free(lpm->lpm_long);
+  } else {
+    for (uint32_t i = 0; i < lpm->n_prefixes; i++) {
+      free(lpm->prefixes[i].bits);
+    }
+    free(lpm->prefixes);
+  }
+
   free(lpm);
 }
 
-int lpm_lookup(struct LPM *lpm, uint32_t addr, uint16_t *value_out) {
+static int dir248_lookup(struct LPM *lpm, uint32_t addr, uint16_t *value_out) {
   addr = lpm_bswap32(addr);
 
   uint16_t *lpm_24   = lpm->lpm_24;
@@ -167,7 +310,7 @@ int lpm_lookup(struct LPM *lpm, uint32_t addr, uint16_t *value_out) {
   }
 }
 
-int lpm_update(struct LPM *lpm, uint32_t prefix, uint8_t prefixlen, uint16_t value) {
+static int dir248_update(struct LPM *lpm, uint32_t prefix, uint8_t prefixlen, uint16_t value) {
   prefix = lpm_bswap32(prefix);
 
   uint16_t *lpm_24   = lpm->lpm_24;
@@ -287,7 +430,7 @@ void lpm_from_file(struct LPM *lpm, const char *cfg_fname) {
       }
     }
 
-    lpm_update(lpm, ipv4_addr, subnet_size, device);
+    lpm_update(lpm, &ipv4_addr, subnet_size, device);
   }
 
   fclose(cfg_file);

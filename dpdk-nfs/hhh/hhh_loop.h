@@ -5,7 +5,7 @@
 #include "lib/state/map.h"
 #include "lib/state/vector.h"
 #include "lib/state/cht.h"
-#include "lib/state/lpm-dir-24-8.h"
+#include "lib/state/lpm.h"
 #include "lib/util/time.h"
 
 #include "ip_addr.h"

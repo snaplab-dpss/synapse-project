@@ -35,7 +35,7 @@ namespace libnf {
 #include <lib/state/cms.h>
 #include <lib/state/bloom-filter.h>
 #include <lib/state/token-bucket.h>
-#include <lib/state/lpm-dir-24-8.h>
+#include <lib/state/lpm.h>
 } // namespace libnf
 
 // libnf's headers define a handful of bare macros (a namespace can't contain them);

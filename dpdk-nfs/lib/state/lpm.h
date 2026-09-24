@@ -17,7 +17,10 @@ struct LPM;
 
 #define LPM_CONFIG_FNAME_LEN 512
 
-int lpm_allocate(struct LPM **lpm_out);
+// Longest-prefix match over a key of any fixed width. A 4-byte key -- an IPv4 address -- is served
+// by the DIR-24-8 tables this file is named after; anything wider by a list of prefixes scanned for
+// the longest one that matches, which is enough for the entry counts a lookup table carries.
+int lpm_allocate(uint32_t capacity, uint32_t key_size, struct LPM **lpm_out);
 void lpm_free(struct LPM *lpm);
 
 // Fill the lpm data structure with the prefix entries.
@@ -29,8 +32,9 @@ void lpm_free(struct LPM *lpm);
 // ...
 void lpm_from_file(struct LPM *lpm, const char *cfg_fname);
 
-// We assume that the prefix is in network byte order.
-int lpm_update(struct LPM *lpm, uint32_t prefix, uint8_t prefixlen, uint16_t value);
+// Adds a prefix of `prefixlen` bits, read from the front of `prefix`. A 4-byte key is taken in
+// network byte order, as an address is.
+int lpm_update(struct LPM *lpm, const void *prefix, uint32_t prefixlen, int value);
 
-// We assume that the address is in network byte order.
-int lpm_lookup(struct LPM *lpm, uint32_t addr, uint16_t *value_out);
+// Returns whether any prefix matches `key`, and through value_out the one that matched furthest.
+int lpm_lookup(struct LPM *lpm, const void *key, int *value_out);

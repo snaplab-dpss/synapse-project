@@ -102,7 +102,7 @@ set(LIBNF_C_SOURCES
     lib/state/cms.c
     lib/state/bloom-filter.c
     lib/state/token-bucket.c
-    lib/state/lpm-dir-24-8.c
+    lib/state/lpm.c
 )
 set(LIBNF_WRAP_DIR ${CMAKE_BINARY_DIR}/libnf_wrappers)
 file(MAKE_DIRECTORY ${LIBNF_WRAP_DIR})

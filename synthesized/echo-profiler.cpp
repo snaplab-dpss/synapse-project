@@ -7,7 +7,7 @@ extern "C" {
 #include <lib/state/cht.h>
 #include <lib/state/cms.h>
 #include <lib/state/token-bucket.h>
-#include <lib/state/lpm-dir-24-8.h>
+#include <lib/state/lpm.h>
 
 #include <lib/util/math.h>
 #include <lib/util/expirator.h>
