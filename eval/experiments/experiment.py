@@ -21,12 +21,16 @@ MIN_THROUGHPUT = 100  # 100 Mbps
 MAX_THROUGHPUT = 100_000  # 100 Gbps
 ITERATION_DURATION_SEC = 5
 MAX_ACCEPTABLE_LOSS = 0.001  # 0.1%
+# A probe that passes while delivering within this much of the load a higher requested rate delivered
+# when it failed was the same experiment: the traffic generator saturated, and the rates in between
+# can only re-toss the loss criterion's coin. The search stops there.
+SATURATION_TOLERANCE = 0.02
 PORT_SETUP_PRECISION = 0.1  # 10%
 PORT_SETUP_TIME_SEC = 5
 PORT_SETUP_RATE = 1  # 1 Mbps
 WARMUP_TIME_SEC = 5
 WARMUP_RATE = 1_000  # 1 Gbps
-REST_TIME_SEC = 10
+REST_TIME_SEC = 2
 BOGUS_RETRIES = 1
 MAX_WARMUP_RETRIES = 10
 
@@ -189,6 +193,7 @@ class Experiment:
         )
 
         current_rate = rate_upper
+        failed_upper_pps = None  # delivered load of the probe that set rate_upper
 
         # We iteratively refine the bounds until the difference between them is less than the specified precision.
         for i in range(search_steps):
@@ -228,12 +233,16 @@ class Experiment:
             pktgen.set_churn(churn)
             sleep(REST_TIME_SEC)
             measured_ports = set(tg_controller.broadcast_ports) | set(tg_controller.symmetric_ports)
+            # Traffic keeps flowing through the reads and into the next step's warmup: a pause
+            # longer than the NF's expiration time would empty its state, and the warmup would then
+            # spend passes reinstalling every flow. The window is therefore the time between the
+            # two counter reads, measured on the switch host where the snapshots are taken.
             mac_old = tg_controller.get_port_stats_from_meta_table()
             pktgen.reset_stats()
             sleep(ITERATION_DURATION_SEC)
-            pktgen.stop()
-            sleep(REST_TIME_SEC)
             mac_new = tg_controller.get_port_stats_from_meta_table()
+            window_sec = (mac_new.timestamp_ns - mac_old.timestamp_ns) / 1e9
+            self.log(f"Window {window_sec:.3f} s")
 
             nb_rx_pkts, nb_tx_pkts = self._mac_pkt_deltas(mac_old, mac_new, measured_ports)
 
@@ -252,12 +261,12 @@ class Experiment:
 
             report = ThroughputReport(
                 requested_bps=current_rate * 1_000_000,
-                pktgen_bps=int(pktgen_nb_tx_bits / ITERATION_DURATION_SEC),
-                pktgen_pps=int(pktgen_nb_tx_pkts / ITERATION_DURATION_SEC),
-                dut_ingress_bps=int(nb_tx_bits / ITERATION_DURATION_SEC),
-                dut_ingress_pps=int(nb_tx_pkts / ITERATION_DURATION_SEC),
-                dut_egress_bps=int(nb_rx_bits / ITERATION_DURATION_SEC),
-                dut_egress_pps=int(nb_rx_pkts / ITERATION_DURATION_SEC),
+                pktgen_bps=int(pktgen_nb_tx_bits / window_sec),
+                pktgen_pps=int(pktgen_nb_tx_pkts / window_sec),
+                dut_ingress_bps=int(nb_tx_bits / window_sec),
+                dut_ingress_pps=int(nb_tx_pkts / window_sec),
+                dut_egress_bps=int(nb_rx_bits / window_sec),
+                dut_egress_pps=int(nb_rx_pkts / window_sec),
                 loss=(1 - nb_rx_pkts / nb_tx_pkts) if nb_tx_pkts else 1,
             )
 
@@ -274,6 +283,7 @@ class Experiment:
 
             if report.loss > MAX_ACCEPTABLE_LOSS:
                 rate_upper = current_rate
+                failed_upper_pps = report.dut_ingress_pps
 
                 if current_rate == MIN_THROUGHPUT:
                     self.log("Lower bound reached, stopping search.")
@@ -287,6 +297,12 @@ class Experiment:
                 winner_report = report
                 rate_lower = current_rate
                 if current_rate == rate_upper:
+                    break
+                if failed_upper_pps is not None and report.dut_ingress_pps >= (1 - SATURATION_TOLERANCE) * failed_upper_pps:
+                    self.log(
+                        f"Delivered load saturated: {report.dut_ingress_pps / 1e6:.1f} Mpps at {current_rate:,} Mbps vs "
+                        f"{failed_upper_pps / 1e6:.1f} Mpps at {rate_upper:,} Mbps; higher requested rates are the same experiment, stopping search."
+                    )
                     break
 
             current_rate = int((rate_upper + rate_lower) / 2)

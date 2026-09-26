@@ -2,6 +2,7 @@
 
 import bfrt_grpc.client as gc
 import argparse
+import time
 import sys
 
 GRPC_SERVER_IP = "127.0.0.1"
@@ -655,7 +656,12 @@ def run_stats(bfrt_info, ports, op, from_ports_meta_table, flows_stats):
     if op == "get":
         print("====== Stats report ======")
         if args.meta:
+            # The switch host's clock at the snapshot, so a window between two reads can be measured
+            # where the counters were taken rather than around the whole command.
+            read_start = time.monotonic()
             stats = ports.get_ports_stats(dev_ports)
+            read_end = time.monotonic()
+            print("timestamp_ns:{}".format(int((read_start + read_end) / 2 * 1e9)))
             for dev_port in dev_ports:
                 port_stats = stats[dev_port]
                 rx_pkts = port_stats["FramesReceivedOK"]

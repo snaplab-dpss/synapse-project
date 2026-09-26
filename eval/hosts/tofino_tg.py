@@ -16,6 +16,13 @@ APP_NAME = "traffic-generator"
 
 
 @dataclass
+class MetaStats(dict):
+    """Per-port MAC counters from one `stats get --meta` read, with the switch host's clock at the snapshot."""
+
+    timestamp_ns: int = 0
+
+
+@dataclass
 class MetaPortStats:
     FramesReceivedOK: int
     FramesTransmittedOK: int
@@ -177,7 +184,7 @@ class TofinoTGController:
             self.host.log("Not all ports are up, waiting 5s and retrying...")
             time.sleep(5)
 
-    def get_port_stats_from_meta_table(self) -> dict[int, MetaPortStats]:
+    def get_port_stats_from_meta_table(self) -> MetaStats:
         target_dir = self.repo / "tofino" / self.app_name
 
         cmd = f"{self.env_vars} ./{self.app_name}.py stats get --meta"
@@ -191,12 +198,17 @@ class TofinoTGController:
             self.host.crash(f"{self.app_name} controller exited with code != 0.")
             exit(1)
 
-        stats = {}
+        stats = MetaStats()
         start_parsing = False
         for line in output.splitlines():
             if not start_parsing:
                 if line == "====== Stats report ======":
                     start_parsing = True
+                continue
+
+            timestamp = re.search(r"^timestamp_ns:(\d+)", line)
+            if timestamp:
+                stats.timestamp_ns = int(timestamp.group(1))
                 continue
 
             result = re.search(r"(\d+):(\d+):(\d+)", line)
