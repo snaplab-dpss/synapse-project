@@ -72,6 +72,8 @@ def main():
     parser.add_argument("--domains", type=str, default=None,
                         help="DNS mode: domains file, as a path on the pktgen host (default: dpdk-nfs/meta4/domains.txt in its repo)")
     parser.add_argument("--dns-ratio", type=float, default=0.0014, help="DNS mode: fraction of packets that are DNS responses")
+    parser.add_argument("--churn", type=int, default=0, help="Churn (fpm), as in the throughput sweeps")
+    parser.add_argument("--zipf-param", type=float, default=None, help="Zipf parameter of the flow distribution (default: uniform)")
     args = parser.parse_args()
 
     with open(args.config_file, "rb") as f:
@@ -123,7 +125,8 @@ def main():
         domains = args.domains or str(Path(repos["pktgen"]) / "dpdk-nfs" / "meta4" / "domains.txt")
         pktgen.launch(
             nb_flows=args.flows,
-            traffic_dist=TrafficDist.UNIFORM,
+            traffic_dist=TrafficDist.UNIFORM if args.zipf_param is None else TrafficDist.ZIPF,
+            **({} if args.zipf_param is None else {"zipf_param": args.zipf_param}),
             pkt_size=args.pkt_size,
             kvs_mode=False,
             dns_mode=args.dns_mode,
@@ -133,7 +136,7 @@ def main():
         pktgen.wait_launch()
 
         exp = Experiment(name=f"Baseline ({args.mode}, traffic-generator DUT)", log_file=logs["experiment"], iterations=1)
-        report = exp.find_stable_throughput(tg_controller=tg_controller, pktgen=pktgen, churn=0)
+        report = exp.find_stable_throughput(tg_controller=tg_controller, pktgen=pktgen, churn=args.churn)
 
         tx_Gbps = report.dut_ingress_bps / 1e9
         tx_Mpps = report.dut_ingress_pps / 1e6
