@@ -1,4 +1,4 @@
-from time import sleep
+from time import monotonic, sleep
 from datetime import datetime
 from typing import Optional
 from pathlib import Path
@@ -96,12 +96,18 @@ class Experiment:
         raise NotImplementedError
 
     def run_many(self, progress: Progress, step_progress: Progress) -> None:
+        # The live display shows only the experiment in progress; a finished one is printed once,
+        # above it, and its bar is hidden, so the display keeps its height however many experiments
+        # a sweep has (a live area taller than the terminal is cropped to "...").
+        started = monotonic()
         task_id = progress.add_task("", total=self.iterations, name=self.name)
         for iter in range(self.iterations):
             self.run(step_progress, iter)
             progress.update(task_id, advance=1)
 
-        progress.update(task_id, description="[bold green] done!")
+        progress.update(task_id, visible=False)
+        minutes, seconds = divmod(int(monotonic() - started), 60)
+        progress.console.print(f"[bold green]done[/] {self.name} ({minutes}m{seconds:02d}s)")
 
     def warmup_ports(
         self,
@@ -377,8 +383,9 @@ class ExperimentTracker:
         )
 
         self.progress_group = Group(
-            Group(self.step_progress, self.experiment_iters_progress),
             self.overall_progress,
+            self.experiment_iters_progress,
+            self.step_progress,
         )
 
         self.experiments: list[Experiment] = []
@@ -395,7 +402,7 @@ class ExperimentTracker:
             overall_task_id = self.overall_progress.add_task("", total=nb_exps)
 
             for i, exp in enumerate(self.experiments):
-                description = f"[bold #AAAAAA]({i} out of {nb_exps} experiments)"
+                description = f"[bold #AAAAAA]({i} of {nb_exps} experiments done, running {exp.name})"
                 self.overall_progress.update(overall_task_id, description=description)
                 exp.run_many(self.experiment_iters_progress, self.step_progress)
                 self.overall_progress.update(overall_task_id, advance=1)
