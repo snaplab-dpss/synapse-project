@@ -261,7 +261,6 @@ class Throughput(Experiment):
 
         self.tput_hosts.pktgen.close()
         self.tput_hosts.dut_controller.stop()
-        self.tput_hosts.tg_switch.kill_switchd()
 
         if self.kvs_server:
             self.kvs_server.kill_server()

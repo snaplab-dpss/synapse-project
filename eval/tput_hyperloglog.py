@@ -151,9 +151,6 @@ class HyperLogLogThroughput(Experiment):
         self.log("Launching HyperLogLog")
         self.hyperloglog.launch()
 
-        self.log("Launching pktgen")
-        self.tg_hosts.pktgen.launch(kvs_mode=False)
-
         self.log("Waiting for Tofino TG")
         self.tg_hosts.tg_switch.wait_ready()
 
@@ -170,10 +167,8 @@ class HyperLogLogThroughput(Experiment):
             route=self.route,
         )
 
-        self.log("Waiting for pktgen")
-        self.tg_hosts.pktgen.wait_launch()
-
         self.log("Starting experiment")
+        launched_s = None
 
         for s, churn_fpm in combinations:
             exp_key = (
@@ -191,16 +186,18 @@ class HyperLogLogThroughput(Experiment):
 
             step_progress.update(task_id, description=description)
 
-            self.log("Launching pktgen")
-            self.tg_hosts.pktgen.close()
-            self.tg_hosts.pktgen.launch(
-                nb_flows=self.total_flows,
-                traffic_dist=TrafficDist.ZIPF,
-                zipf_param=s,
-                kvs_mode=False,
-            )
-
-            self.tg_hosts.pktgen.wait_launch()
+            # pktgen is launched once per skew: churn is a runtime command, the flow sequence is not.
+            if s != launched_s:
+                self.log("Launching pktgen")
+                self.tg_hosts.pktgen.close()
+                self.tg_hosts.pktgen.launch(
+                    nb_flows=self.total_flows,
+                    traffic_dist=TrafficDist.ZIPF,
+                    zipf_param=s,
+                    kvs_mode=False,
+                )
+                self.tg_hosts.pktgen.wait_launch()
+                launched_s = s
 
             report = self.find_stable_throughput(
                 tg_controller=self.tg_hosts.tg_controller,

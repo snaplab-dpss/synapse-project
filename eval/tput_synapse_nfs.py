@@ -173,23 +173,23 @@ NFS = [
     #     churn=CHURN_FPM,
     #     zipf=ZIPF_PARAMS,
     # ),
-    # *[
-    #     SynapseNF(
-    #         name=build_synapse_nf_name("kvs", churn, s),
-    #         description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
-    #         data_out=Path(f"tput_synapse_kvs.csv"),
-    #         kvs_mode=True,
-    #         tcp_syn=False,
-    #         tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
-    #         controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
-    #         broadcast=lambda ports: ports,
-    #         symmetric=lambda _: [],
-    #         route=lambda _: [],
-    #         churn=[churn],
-    #         zipf=[s],
-    #     )
-    #     for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
-    # ],
+    *[
+        SynapseNF(
+            name=build_synapse_nf_name("kvs", churn, s),
+            description=f"Synapse {build_synapse_nf_name('kvs', churn, s)}",
+            data_out=Path(f"tput_synapse_kvs.csv"),
+            kvs_mode=True,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('kvs', churn, s)}.cpp"),
+            broadcast=lambda ports: ports,
+            symmetric=lambda _: [],
+            route=lambda _: [],
+            churn=[churn],
+            zipf=[s],
+        )
+        for churn, s in itertools.product(CHURN_FPM, ZIPF_PARAMS)
+    ],
     # *[
     #     SynapseNF(
     #         name=build_synapse_nf_name("fw", churn, s),
@@ -508,7 +508,6 @@ class SynapseThroughput(Experiment):
 
         self.tput_hosts.pktgen.close()
         self.tput_hosts.dut_controller.stop()
-        self.tput_hosts.tg_switch.kill_switchd()
 
         if self.kvs_mode:
             assert self.kvs_server is not None

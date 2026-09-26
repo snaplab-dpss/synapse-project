@@ -33,6 +33,7 @@ class SynapseController:
         self.debug = debug
         self.controller_cmd: Optional[RemoteCommand] = None
         self.exe: Optional[str] = None
+        self.compiled: set[Path] = set()  # sources built in this process; a source is built from scratch once
 
         self.host.test_connection()
 
@@ -96,7 +97,9 @@ class SynapseController:
         extra_args: list[tuple[str, Union[str, int, float]]] = [],
     ) -> None:
         src_path = self.repo / src_in_repo
-        self._compile(src_path)
+        if src_path not in self.compiled:
+            self._compile(src_path)
+            self.compiled.add(src_path)
 
         # The build script generates an executable with the same name as the source file
         # but without the extension.

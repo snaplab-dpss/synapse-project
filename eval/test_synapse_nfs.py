@@ -24,8 +24,8 @@ PIPELINES = 1
 DEBUG_MODE = False
 
 TOTAL_FLOWS = 40_000
-CHURN_FPM = 1_000_000
-ZIPF_PARAM = 1.2
+CHURN_FPM = 10_000
+ZIPF_PARAM = 1.0
 
 
 @dataclass
@@ -103,17 +103,17 @@ NFS = [
     #     symmetric=lambda _: [],
     #     route=lambda _: [],
     # ),
-    SynapseNF(
-        name=build_synapse_nf_name("kvs", CHURN_FPM, ZIPF_PARAM),
-        description=f"Synapse {build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}",
-        kvs_mode=True,
-        tcp_syn=False,
-        tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}.p4"),
-        controller=Path(f"synthesized/{build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}.cpp"),
-        broadcast=lambda ports: ports,
-        symmetric=lambda _: [],
-        route=lambda _: [],
-    ),
+    # SynapseNF(
+    #     name=build_synapse_nf_name("kvs", CHURN_FPM, ZIPF_PARAM),
+    #     description=f"Synapse {build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}",
+    #     kvs_mode=True,
+    #     tcp_syn=False,
+    #     tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}.p4"),
+    #     controller=Path(f"synthesized/{build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+    #     broadcast=lambda ports: ports,
+    #     symmetric=lambda _: [],
+    #     route=lambda _: [],
+    # ),
     # SynapseNF(
     #     name=build_synapse_nf_name("fw", CHURN_FPM, ZIPF_PARAM),
     #     description=f"Synapse {build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}",
@@ -266,9 +266,6 @@ class Test(Experiment):
             ports=self.dut_ports,
         )
 
-        self.log("Launching pktgen")
-        self.tput_hosts.pktgen.launch(kvs_mode=self.kvs_mode, tcp_syn=self.tcp_syn)
-
         self.log("Waiting for Tofino TG")
         self.tput_hosts.tg_switch.wait_ready()
 
@@ -279,9 +276,6 @@ class Test(Experiment):
             route=self.route,
         )
 
-        self.log("Waiting for pktgen")
-        self.tput_hosts.pktgen.wait_launch()
-
         self.log("Starting experiment")
 
         if self.kvs_mode:
@@ -291,11 +285,7 @@ class Test(Experiment):
             self.kvs_server.launch(delay_ns=self.delay_ns)
             self.kvs_server.wait_launch()
 
-        self.log("Waiting for the Synapse controller")
-        self.tput_hosts.dut_controller.wait_ready()
-
         self.log("Launching pktgen")
-        self.tput_hosts.pktgen.close()
         self.tput_hosts.pktgen.launch(
             nb_flows=int(self.total_flows / PIPELINES),
             traffic_dist=TrafficDist.ZIPF,
@@ -304,6 +294,9 @@ class Test(Experiment):
             kvs_get_ratio=KVS_GET_RATIO,
             tcp_syn=self.tcp_syn,
         )
+
+        self.log("Waiting for the Synapse controller")
+        self.tput_hosts.dut_controller.wait_ready()
 
         self.tput_hosts.pktgen.wait_launch()
 
