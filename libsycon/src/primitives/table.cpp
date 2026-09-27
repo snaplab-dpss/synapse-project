@@ -716,6 +716,44 @@ void Table::del_entry(const buffer_t &k) {
   ASSERT_BF_STATUS(bf_status);
 }
 
+void Table::add_entry_ternary(const buffer_t &k, const buffer_t &mask, u32 priority, const std::string &action_name,
+                              const std::vector<buffer_t> &params) {
+  bf_status_t bf_status;
+
+  set_key_ternary(k, mask, priority);
+  set_data(action_name, params);
+
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
+  bf_status = table->tableEntryAdd(*session, dev_tgt, flags, *key, *data);
+  ASSERT_BF_STATUS(bf_status);
+}
+
+void Table::del_entry_ternary(const buffer_t &k, const buffer_t &mask, u32 priority) {
+  bf_status_t bf_status;
+
+  set_key_ternary(k, mask, priority);
+
+  uint64_t flags;
+  BF_RT_FLAG_INIT(flags);
+  BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+
+  bf_status = table->tableEntryDel(*session, dev_tgt, flags, *key);
+  ASSERT_BF_STATUS(bf_status);
+}
+
+bits_t Table::get_ternary_key_size() const {
+  bits_t size = 0;
+  for (const table_field_t &field : key_fields) {
+    if (field.name != KEY_FIELD_NAME_MATCH_PRIORITY) {
+      size += field.size;
+    }
+  }
+  return size;
+}
+
 void Table::dump_data_fields() const {
   std::stringstream ss;
   dump_data_fields(ss);
@@ -777,6 +815,49 @@ void Table::set_key(const buffer_t &k) {
     case bfrt::DataType::BYTE_STREAM: {
       buffer_t slice = k.get_slice(offset, size);
       bf_status      = key->setValue(field.id, slice.data, size);
+      ASSERT_BF_STATUS(bf_status);
+    } break;
+    default: {
+      ERROR("TODO: Implement data type %d", static_cast<int>(data_type));
+    }
+    }
+
+    offset += size;
+  }
+}
+
+void Table::set_key_ternary(const buffer_t &k, const buffer_t &mask, u32 priority) {
+  bf_status_t bf_status;
+
+  assert(k.size == mask.size && "Key and mask sizes differ");
+
+  bf_status = table->keyReset(key.get());
+  ASSERT_BF_STATUS(bf_status);
+
+  bytes_t offset = 0;
+  for (const table_field_t &field : key_fields) {
+    if (field.name == KEY_FIELD_NAME_MATCH_PRIORITY) {
+      bf_status = key->setValue(field.id, static_cast<u64>(priority));
+      ASSERT_BF_STATUS(bf_status);
+      continue;
+    }
+
+    const bytes_t size = field.size / 8;
+
+    assert(k.size >= offset + size && "Key size is smaller than field size");
+
+    bfrt::DataType data_type;
+    table->keyFieldDataTypeGet(field.id, &data_type);
+
+    switch (data_type) {
+    case bfrt::DataType::UINT64: {
+      bf_status = key->setValueandMask(field.id, k.get(offset, size), mask.get(offset, size));
+      ASSERT_BF_STATUS(bf_status);
+    } break;
+    case bfrt::DataType::BYTE_STREAM: {
+      buffer_t key_slice  = k.get_slice(offset, size);
+      buffer_t mask_slice = mask.get_slice(offset, size);
+      bf_status           = key->setValueandMask(field.id, key_slice.data, mask_slice.data, size);
       ASSERT_BF_STATUS(bf_status);
     } break;
     default: {

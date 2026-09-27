@@ -14,3 +14,5 @@
 #include "fcfs_cached_table.h"
 #include "fcfs_cached_set.h"
 #include "meter.h"
+#include "lpm.h"
+#include "dns_name_lpm.h"

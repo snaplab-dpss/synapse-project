@@ -93,6 +93,12 @@ public:
   void add_or_mod_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);
   void del_entry(const buffer_t &k);
 
+  // Ternary tables: the key is matched under the mask, and among the entries matching a packet the
+  // one with the lowest priority value wins.
+  void add_entry_ternary(const buffer_t &k, const buffer_t &mask, u32 priority, const std::string &action_name, const std::vector<buffer_t> &params);
+  void del_entry_ternary(const buffer_t &k, const buffer_t &mask, u32 priority);
+  bits_t get_ternary_key_size() const;
+
   buffer_t get_key_value(const bfrt::BfRtTableKey *key) const;
 
   void dump_data_fields() const;
@@ -105,6 +111,7 @@ public:
 
 protected:
   void set_key(const buffer_t &k);
+  void set_key_ternary(const buffer_t &k, const buffer_t &mask, u32 priority);
   void set_data();
   void set_data(const std::string &action_name, const std::vector<buffer_t> &params);
 };

@@ -37,6 +37,7 @@ constexpr const char TOFINO_NO_ACTION_NAME[]         = "NoAction";
 
 constexpr const char DATA_FIELD_NAME_ENTRY_HIT_STATE[] = "$ENTRY_HIT_STATE";
 constexpr const char DATA_FIELD_NAME_ENTRY_TTL[]       = "$ENTRY_TTL";
+constexpr const char KEY_FIELD_NAME_MATCH_PRIORITY[]   = "$MATCH_PRIORITY";
 
 // A DirectMeter's rate and burst are data fields of its owner table's entry. A single rate two
 // colour policer programs the committed and peak parameters identically.

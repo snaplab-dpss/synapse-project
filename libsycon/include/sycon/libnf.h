@@ -25,6 +25,10 @@
 // libnf (they'd shadow the real compiler intrinsics); see math.h.
 #define LIBNF_SKIP_BUILTIN_DECLS
 
+// libnf's headers are C and compile under looser warnings than libsycon's -Werror.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-value"
+#pragma GCC diagnostic ignored "-Wunused-function"
 namespace libnf {
 #include <lib/util/math.h>
 #include <lib/util/crc32.h>
@@ -36,7 +40,9 @@ namespace libnf {
 #include <lib/state/bloom-filter.h>
 #include <lib/state/token-bucket.h>
 #include <lib/state/lpm.h>
+#include <lib/util/dns_hdr.h>
 } // namespace libnf
+#pragma GCC diagnostic pop
 
 // libnf's headers define a handful of bare macros (a namespace can't contain them);
 // undo the ones that would pollute / clash with controller or sycon code. `time_ns_t`
