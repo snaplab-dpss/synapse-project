@@ -30,16 +30,19 @@ using TrafficType = TrafficGenerator::TrafficType;
 // and the rest re-announce pairs already installed, as a client re-resolving after a TTL does.
 // --ignored-ratio puts that share of clients inside an ignored prefix, so their responses are
 // refused and their data goes unattributed; --unattributed-ratio sends that share of packets between
-// pairs that are never announced at all.
+// pairs that are never announced at all. --tcp-ratio is the share of pairs whose data travels over
+// TCP rather than UDP: the NF attributes either, but parses them apart.
 //
 // Domain patterns come from a file, one per line -- the same file the NF is configured with, so a
 // name emitted here is one the NF is watching for. A leading "*" stands for any label, and is
 // filled in with a random one.
 
-constexpr u32 DNS_TTL           = 60;
-constexpr u16 DATA_PORT         = 80;
-constexpr size_t DNS_MAX_LABELS = 4;  // labels of a name the NF reads
-constexpr size_t DNS_WILD_LABEL = 15; // length of a label made up for a wildcard: what the NF keeps of one
+constexpr u32 DNS_TTL                   = 60;
+constexpr u16 DATA_PORT                 = 80;
+constexpr size_t DNS_MAX_LABELS         = 4;  // labels of a name the NF reads
+constexpr size_t DNS_WILD_LABEL         = 15; // length of a label made up for a wildcard: what the NF keeps of one
+constexpr u8 TCP_ACK                    = 0x10;
+constexpr u8 TCP_DATA_OFFSET_NO_OPTIONS = 5 << 4;
 
 // A watched pattern, as its labels. "*" is a wildcard.
 using pattern_t = std::vector<std::string>;
@@ -55,6 +58,7 @@ struct m4_flow_t {
   u16 client_port; // network order
   size_t domain;   // index into the patterns
   pattern_t name;  // the pattern with its wildcards filled in
+  bool tcp;        // its data travels over TCP, not UDP
   bool announced;
 };
 
@@ -64,6 +68,7 @@ struct m4_config_t {
   double dns_ratio;
   double ignored_ratio;
   double unattributed_ratio;
+  double tcp_ratio;
   std::string resolver;
 };
 
@@ -167,6 +172,7 @@ private:
     flow.server      = random_addr();
     flow.client_port = random_port();
     flow.domain      = rng() % patterns.size();
+    flow.tcp         = unif(rng) < m4_config.tcp_ratio;
     flow.announced   = false;
 
     if (!ignored.empty() && unif(rng) < m4_config.ignored_ratio) {
@@ -227,15 +233,30 @@ private:
   }
 
   pkt_t data_packet(const m4_flow_t &flow) {
-    pkt_t pkt            = template_packet;
-    pkt.ip_hdr.src_addr  = flow.server;
-    pkt.ip_hdr.dst_addr  = flow.client;
+    pkt_t pkt           = template_packet;
+    pkt.ip_hdr.src_addr = flow.server;
+    pkt.ip_hdr.dst_addr = flow.client;
+
+    if (flow.tcp) {
+      // A TCP header over the template's UDP header + payload bytes.
+      pkt.ip_hdr.next_proto_id = IPPROTO_TCP;
+      tcp_hdr_t *tcp           = reinterpret_cast<tcp_hdr_t *>(&pkt.udp_hdr);
+      std::memset(tcp, 0, sizeof(tcp_hdr_t));
+      tcp->src_port  = htons(DATA_PORT);
+      tcp->dst_port  = flow.client_port;
+      tcp->data_off  = TCP_DATA_OFFSET_NO_OPTIONS;
+      tcp->tcp_flags = TCP_ACK;
+      tcp->rx_win    = htons(0xffff);
+      return pkt;
+    }
+
     pkt.udp_hdr.src_port = htons(DATA_PORT);
     pkt.udp_hdr.dst_port = flow.client_port;
     return pkt;
   }
 
-  static bool is_dns(const pkt_t &pkt) { return pkt.udp_hdr.src_port == htons(DNS_PORT); }
+  static bool is_dns(const pkt_t &pkt) { return pkt.ip_hdr.next_proto_id == IPPROTO_UDP && pkt.udp_hdr.src_port == htons(DNS_PORT); }
+  static bool is_tcp(const pkt_t &pkt) { return pkt.ip_hdr.next_proto_id == IPPROTO_TCP; }
 
 public:
   Meta4TrafficGenerator(const config_t &_config, const m4_config_t &_m4_config, const std::vector<pattern_t> &_patterns,
@@ -261,7 +282,10 @@ public:
   // A DNS response is captured whole, since the NF reads all of it; a data packet is headers only,
   // padded to the configured size like everyone else's.
   virtual bytes_t get_pkt_hdrs_len(const pkt_t &pkt) const override {
-    return is_dns(pkt) ? sizeof(ether_hdr_t) + ntohs(pkt.ip_hdr.total_length) : get_hdrs_len();
+    if (is_dns(pkt)) {
+      return sizeof(ether_hdr_t) + ntohs(pkt.ip_hdr.total_length);
+    }
+    return sizeof(ether_hdr_t) + sizeof(ipv4_hdr_t) + (is_tcp(pkt) ? sizeof(tcp_hdr_t) : sizeof(udp_hdr_t));
   }
 
   virtual bytes_t get_pkt_len(const pkt_t &pkt) const override {
@@ -331,6 +355,7 @@ int main(int argc, char *argv[]) {
   app.add_option("--ignored-ratio", m4_config.ignored_ratio, "Fraction of pairs whose client is in an ignored prefix.")->default_val(0.0);
   app.add_option("--unattributed-ratio", m4_config.unattributed_ratio, "Fraction of packets between pairs no response ever announces.")
       ->default_val(0.0);
+  app.add_option("--tcp-ratio", m4_config.tcp_ratio, "Fraction of pairs whose data travels over TCP rather than UDP.")->default_val(0.5);
   app.add_option("--resolver", m4_config.resolver, "Address the DNS responses come from.")->default_val("8.8.8.8");
   app.add_option("--seed", config.random_seed, "Random seed.")->default_val(std::random_device()());
   app.add_flag("--dry-run", config.dry_run, "Print out the configuration values without generating the pcaps.")->default_val(false);
@@ -368,6 +393,7 @@ int main(int argc, char *argv[]) {
   std::cout << "dns:          " << m4_config.dns_ratio << "\n";
   std::cout << "ignored:      " << m4_config.ignored_ratio << "\n";
   std::cout << "unattributed: " << m4_config.unattributed_ratio << "\n";
+  std::cout << "tcp:          " << m4_config.tcp_ratio << "\n";
   std::cout << "resolver:     " << m4_config.resolver << "\n";
   if (config.dry_run) {
     return 0;

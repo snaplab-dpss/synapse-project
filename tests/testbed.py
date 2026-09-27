@@ -184,6 +184,15 @@ def ensure_veths() -> None:
     subprocess.run([str(VETH_SETUP_SCRIPT)], check=True, stdout=PIPE, stderr=STDOUT)
 
 
+def invoking_user() -> dict:
+    """The user behind sudo, for subprocess.run: only the model needs root, and a build run as root
+    leaves the SDE's build tree and the controller binaries root-owned, which then blocks the
+    unprivileged builds (tools/synapse_nfs_builder.py)."""
+    if "SUDO_UID" in os.environ:
+        return {"user": int(os.environ["SUDO_UID"]), "group": int(os.environ["SUDO_GID"])}
+    return {}
+
+
 def build(p4: Path, controller: Path) -> None:
     """Compile+install the P4 program and, for a .cpp controller, build it (make skips what is up to date)."""
     env = sde_env()
@@ -211,6 +220,7 @@ def build(p4: Path, controller: Path) -> None:
                 env=env,
                 stdout=out,
                 stderr=STDOUT,
+                **invoking_user(),
             )
             if proc.returncode != 0:
                 raise TestbedError(f"make {target} failed for {source.name}; see {logfile}\n{tail(logfile)}")

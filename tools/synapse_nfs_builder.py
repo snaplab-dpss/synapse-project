@@ -29,7 +29,7 @@ PLOTS_DIR = PROJECT_DIR / "plots"
 SYNAPSE_BUILD_DIR = SYNAPSE_DIR / "build"
 SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
-DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "psd", "cl", "pol", "hyperloglog"]
+DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "psd", "cl", "pol", "hyperloglog", "meta4"]
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
 DEFAULT_ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
@@ -57,6 +57,7 @@ NFs = {
     "pol": NF("pol", "pol.bdd"),
     "hyperloglog": NF("hyperloglog", "hyperloglog.bdd"),
     "smartcookie": NF("smartcookie", "smartcookie.bdd"),
+    "meta4": NF("meta4", "meta4.bdd"),
 }
 
 

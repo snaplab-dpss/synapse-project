@@ -131,6 +131,18 @@ class TestFailure(Exception):
 
 # The solution under test, set by `run`. Only the controller-punt helpers below need it.
 _NF: Optional[str] = None
+_P4: Optional[Path] = None
+
+
+def program() -> str:
+    """The name of the program under test (its P4 file's stem)."""
+    assert _NF is not None, "run() has not started"
+    return _NF
+
+
+def p4_file() -> Path:
+    assert _P4 is not None, "run() has not started"
+    return _P4
 
 # Every packet the controller receives logs one of these (the debug controller, which is the one
 # testbed.py builds and runs).
@@ -510,8 +522,9 @@ def run(test: Callable[[Ports], None]) -> None:
     controller = args.controller.resolve()
     nf = p4.stem
 
-    global _NF
+    global _NF, _P4
     _NF = nf
+    _P4 = p4
 
     try:
         _resolve_program(p4)

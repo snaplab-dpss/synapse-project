@@ -71,6 +71,7 @@ NFS = {
     # The synthesized SmartCookie keeps the server on device 0, front panel port 1
     # (configs/tofino2-smartcookie.toml); the test's default is the hand-written program's layout.
     "smartcookie": NF("smartcookie", {"SC_SERVER_PORT": "1", "SC_SERVER_DEV": "0"}),
+    "meta4": NF("meta4", {}),
 }
 
 

@@ -32,6 +32,7 @@ import os
 import struct
 import sys
 from glob import glob
+import re
 from pathlib import Path
 from socket import inet_aton
 from time import sleep
@@ -39,6 +40,7 @@ from time import sleep
 from scapy.layers.dns import DNS  # noqa: F401  (registers the DNS dissector for printing)
 
 from util import *
+from util import p4_file, program
 
 PORT = 3
 
@@ -50,9 +52,32 @@ QTYPE_CNAME = 5
 QCLASS_IN = 1
 
 WATCH_LIST = testbed.PROJECT_DIR / "tofino" / "meta4" / "known_domains_v1.txt"
-QUERIED = "SwitchIngress.dns_total_queried"
-PACKETS = "SwitchEgress.packet_counts_table"
-BYTES = "SwitchEgress.byte_counts_table"
+QUERIED = "queried"
+PACKETS = "packets"
+BYTES = "bytes"
+
+
+def counter_registers(p4: Path) -> dict[str, str]:
+    """The registers holding the per-domain counters, by name in `p4`.
+
+    The expert names them. A synthesized program names a register by the address of the NF vector
+    it implements, and the NF allocates its per-domain vectors in order (dpdk-nfs/meta4/state.c):
+    dns_queried, dns_missed, pkt_counts, byte_counts, each of one entry per known domain; whichever
+    of them were kept on the data plane appear in that order, and dns_missed is not read here."""
+    text = p4.read_text()
+    if "dns_total_queried" in text:
+        return {QUERIED: "SwitchIngress.dns_total_queried", PACKETS: "SwitchEgress.packet_counts_table", BYTES: "SwitchEgress.byte_counts_table"}
+    # They are the registers sized by the NF's known-domains capacity: the group of at least three
+    # of one size (the session vector is one register of another).
+    by_size: dict[int, list[int]] = {}
+    for size, addr in re.findall(r"Register<bit<32>,_>\((\d+), 0\) vector_register_(\d+)_0;", text):
+        by_size.setdefault(int(size), []).append(int(addr))
+    groups = [sorted(addrs) for addrs in by_size.values() if len(addrs) >= 3]
+    if len(groups) != 1:
+        raise TestFailure(f"{p4.name}: expected one group of at least three same-sized registers for the per-domain counters, found {by_size}")
+    per_domain = groups[0]
+    names = [f"Ingress.vector_register_{addr}_0" for addr in per_domain]
+    return {QUERIED: names[0], PACKETS: names[-2], BYTES: names[-1]}
 
 PAUSE_BEYOND_TIMEOUT = 1.5  # the NFs' timeout is 1 s
 
@@ -123,9 +148,9 @@ class Counters:
         self.gc = gc
         # The controller was client 0 and has exited; a fresh client id avoids stepping on it.
         self.client = gc.ClientInterface("127.0.0.1:50052", 1, 0)
-        self.client.bind_pipeline_config("meta4")
-        info = self.client.bfrt_info_get("meta4")
-        self.tables = {name: info.table_get(name) for name in (QUERIED, PACKETS, BYTES)}
+        self.client.bind_pipeline_config(program())
+        info = self.client.bfrt_info_get(program())
+        self.tables = {counter: info.table_get(name) for counter, name in counter_registers(p4_file()).items()}
         self.target = gc.Target(device_id=0, pipe_id=0xFFFF)
 
     def read(self, table: str, index: int) -> int:
@@ -133,7 +158,9 @@ class Counters:
         key = t.make_key([self.gc.KeyTuple("$REGISTER_INDEX", index)])
         data = next(t.entry_get(self.target, [key], {"from_hw": True}))[0].to_dict()
         values = next(v for k, v in data.items() if not k.startswith("$") and k not in ("action_name", "is_default_entry"))
-        return sum(values) if isinstance(values, list) else values  # one value per pipe
+        # One value per pipe: the data plane counts in the traffic's pipe alone, where a
+        # controller write lands in every pipe, so summing them would count that write 4 times.
+        return values[PORT >> 7] if isinstance(values, list) else values
 
     def snapshot(self) -> dict:
         return {(table, i): self.read(table, i) for table in (QUERIED, PACKETS, BYTES) for i in range(len(DOMAINS))}
@@ -197,6 +224,13 @@ class Meta4Test:
             print(f"    byte_counts adds frame length {self.bytes_per_frame_offset:+d} (the expert subtracts 4 for an FCS)")
         expect_counters(before, after, {(PACKETS, i): 1, (BYTES, i): len(pkt) + self.bytes_per_frame_offset}, what)
 
+    def reannounce(self, name: str, server: str, client: str, domain: str) -> None:
+        """The response again, right before data whose attribution the test asserts. The C keeps a
+        pair alive on its data; a data-plane cache keeps it only while its responses keep coming (a
+        read cannot refresh a slot before comparing the key), so a pair announced once and left
+        alone for a second is legitimately gone there."""
+        self.response(f"re-announcing {name} before asserting on its data", name, server, client, domain=domain)
+
     def response(self, what: str, name: str, server: str, client: str, domain: str = None, answers: list = None, dport: int = 33333) -> None:
         """A DNS response; `domain` is the watched pattern it must be accounted to, None for none."""
         pkt = dns_packet(dns_message(name, answers if answers is not None else [address(server)]), dst=client, dport=dport)
@@ -219,6 +253,7 @@ def test(ports: Ports) -> None:
     t.response("www.google.com: the exact pattern wins over *.google.com", "www.google.com", s1, c1, domain="www.google.com")
     t.attributed("data server -> client on the learned pair", data_packet(s1, c1), "www.google.com")
     t.step("the same pair client -> server: not the tracked direction", data_packet(c1, s1), {}, unchanged=True)
+    t.reannounce("www.google.com", s1, c1, "www.google.com")
     t.attributed("TCP on the same pair: the transport does not matter", data_packet(s1, c1, proto="tcp"), "www.google.com")
 
     t.response("xyz.google.com: matched by *.google.com", "xyz.google.com", s2, c2, domain="*.google.com")
@@ -241,9 +276,20 @@ def test(ports: Ports) -> None:
     t.response("a second response for a pair already tracked: counted, pair refreshed", "www.google.com", s1, c1, domain="www.google.com")
     t.attributed("its data is still attributed", data_packet(s1, c1), "www.google.com")
 
-    step(f"a pair idle for {PAUSE_BEYOND_TIMEOUT} s is still attributed: the expert only expires on a DNS collision")
+    # Where the two disagree: the C expires an idle pair after its timeout, the expert only when a
+    # DNS response lands on its slot. Either way is its NF's, so both are accepted.
+    step(f"a pair idle for {PAUSE_BEYOND_TIMEOUT} s: the expert still attributes it, the C has expired it")
     sleep(PAUSE_BEYOND_TIMEOUT)
-    t.attributed("data after the pause", data_packet(s2, c2), "*.google.com")
+    before = t.counters.snapshot()
+    send_and_expect_back(ports, data_packet(s2, c2), "data after the pause")
+    after = t.counters.snapshot()
+    i = ID["*.google.com"]
+    if after[(PACKETS, i)] == before[(PACKETS, i)]:
+        print("    not counted: the pair expired (the C's timeout)")
+        expect_counters(before, after, {}, "data after the pause, the pair expired")
+    else:
+        print("    still attributed (the expert never expires an idle pair)")
+        expect_counters(before, after, {(PACKETS, i): 1, (BYTES, i): len(data_packet(s2, c2)) + t.bytes_per_frame_offset}, "data after the pause")
 
     step("a non-IPv4 frame comes back on its port, untouched")
     arp = build_non_ip_packet()
