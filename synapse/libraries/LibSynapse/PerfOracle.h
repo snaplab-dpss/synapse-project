@@ -115,7 +115,9 @@ public:
   void assert_final_state() const;
 
 private:
-  std::vector<pps_t> get_recirculated_egress(pps_t ingress) const;
+  // Fractional packets on purpose: see get_recirculated_egress.
+  double estimate_tput_exact(pps_t ingress) const;
+  std::vector<double> get_recirculated_egress(pps_t ingress) const;
 };
 
 } // namespace LibSynapse

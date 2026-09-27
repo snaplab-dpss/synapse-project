@@ -188,7 +188,7 @@ void PerfOracle::add_recirculated_traffic(hit_rate_t hr) {
   add_recirculated_traffic(ingress);
 }
 
-std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) const {
+std::vector<double> PerfOracle::get_recirculated_egress(pps_t global_ingress) const {
   // We assume a uniform distribution of traffic throughout pipes.
   // As such, we decompose this into a calculation of recirculation traffic for each pipe, and
   // add them all up at the end.
@@ -221,7 +221,7 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
   const bps_t global_ingress_bps = pps2bps(global_ingress, avg_pkt_size);
   const double Tin_bps_per_pipe  = (global_ingress_bps * recirc_ports_ingress.global.value) / recirculation_ports_capacities.size();
   if (Tin_bps_per_pipe == 0) {
-    return Tout;
+    return std::vector<double>(Tout.size(), 0.0);
   }
 
   assert(std::all_of(recirculation_ports_capacities.begin(), recirculation_ports_capacities.end(),
@@ -240,9 +240,10 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
       assert(static_cast<size_t>(rdepth + 1) < Tout.size());
       Tout[rdepth + 1] = global_ingress_bps * hr.value;
     }
-    std::vector<pps_t> Tout_pps(Tout.size());
+    const double bits_per_pkt = pps2bps(1, avg_pkt_size);
+    std::vector<double> Tout_pps(Tout.size());
     for (size_t i = 0; i < Tout.size(); i++) {
-      Tout_pps[i] = bps2pps(Tout[i], avg_pkt_size);
+      Tout_pps[i] = Tout[i] / bits_per_pkt;
     }
     return Tout_pps;
   }
@@ -326,9 +327,13 @@ std::vector<pps_t> PerfOracle::get_recirculated_egress(pps_t global_ingress) con
   }
   }
 
-  std::vector<pps_t> Tout_pps(Tout.size());
+  // In packets, kept fractional: the stable-throughput search below tolerates a few hundred pps
+  // of loss, and a plan bound by the controller loses about one pps per million of ingress, so
+  // every pps truncated here would move its estimate by ~1 Mpps.
+  const double bits_per_pkt = pps2bps(1, avg_pkt_size);
+  std::vector<double> Tout_pps(Tout.size());
   for (size_t i = 0; i < Tout.size(); i++) {
-    Tout_pps[i] = bps2pps(Tout[i], avg_pkt_size) * recirculation_ports_capacities.size();
+    Tout_pps[i] = Tout[i] / bits_per_pkt * recirculation_ports_capacities.size();
   }
 
   return Tout_pps;
@@ -343,10 +348,10 @@ bps_t PerfOracle::get_max_input_bps() const {
 
 pps_t PerfOracle::get_max_input_pps() const { return bps2pps(get_max_input_bps(), avg_pkt_size); }
 
-pps_t PerfOracle::estimate_tput(pps_t ingress) const {
+double PerfOracle::estimate_tput_exact(pps_t ingress) const {
   // 1. First we calculate the recirculation egress for each recirculation depth.
   // Recirculation traffic can only come from global ingress and other recirculation ports.
-  const std::vector<pps_t> recirc_egress = get_recirculated_egress(ingress);
+  const std::vector<double> recirc_egress = get_recirculated_egress(ingress);
 
   // The traffic leaving the recirculation ports at depth d (its (d+1)-th pass) is shared by
   // its consumers in proportion to their fraction of everything on that pass: the first-pass
@@ -355,23 +360,30 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     return depth == 0 ? recirc_ports_ingress.global : recirc_ports_ingress.get_hr_at_recirc_depth(depth - 1);
   };
 
+  // The traffic a consumer takes out of a recirculation pass: its fraction of everything on that
+  // pass. A pass nothing goes through (a zero-traffic branch that was recirculated) carries none.
+  const auto share_of_pass = [&](recirculation_depth_t depth, hit_rate_t hr) -> double {
+    const hit_rate_t pass = pass_hr(depth);
+    return pass > 0 ? recirc_egress.at(depth) * (hr / pass) : 0.0;
+  };
+
   // 2. Then we calculate the controller throughput (as it can be a bottleneck).
   // The controller can receive traffic from both global ingress and recirculation ports.
-  pps_t controller_tput = ingress * controller_ingress.global.value;
+  double controller_tput = ingress * controller_ingress.global.value;
   for (const auto &[recirc_depth, hr] : controller_ingress.recirc) {
-    controller_tput += recirc_egress.at(recirc_depth) * (hr / pass_hr(recirc_depth));
+    controller_tput += share_of_pass(recirc_depth, hr);
   }
 
-  controller_tput = std::min(controller_tput, controller_capacity);
+  controller_tput = std::min(controller_tput, static_cast<double>(controller_capacity));
 
   // 3. Finally we calculate the egress throughput for each front-panel port.
-  pps_t tput = 0;
+  double tput = 0;
 
   const hit_rate_t total_controller_hr = controller_ingress.get_total_hr();
   hit_rate_t unaccounted_controller_hr = total_controller_hr - controller_dropped_ingress;
 
   for (const auto &[fwd_port, port_ingress] : ports_ingress) {
-    pps_t port_tput = ingress * port_ingress.global.value;
+    double port_tput = ingress * port_ingress.global.value;
 
     if (total_controller_hr > 0) {
       const double rel_ctrl_hr = port_ingress.controller / total_controller_hr;
@@ -380,10 +392,10 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
     }
 
     for (const auto &[recirc_depth, hr] : port_ingress.recirc) {
-      port_tput += recirc_egress.at(recirc_depth) * (hr / pass_hr(recirc_depth));
+      port_tput += share_of_pass(recirc_depth, hr);
     }
 
-    const pps_t port_capacity = bps2pps(front_panel_ports_capacities.at(fwd_port), avg_pkt_size);
+    const double port_capacity = front_panel_ports_capacities.at(fwd_port) / static_cast<double>(pps2bps(1, avg_pkt_size));
 
     tput += std::min(port_tput, port_capacity);
   }
@@ -400,16 +412,20 @@ pps_t PerfOracle::estimate_tput(pps_t ingress) const {
 
   // We shouldn't need this here, but sometimes it happens...
   // We should investigate why.
-  tput = std::min(tput, ingress);
+  tput = std::min(tput, static_cast<double>(ingress));
 
   // And finally considering the switch bottleneck.
-  tput = std::min(tput, max_switch_capacity);
+  tput = std::min(tput, static_cast<double>(max_switch_capacity));
+
+  assert_or_panic(std::isfinite(tput), "Throughput estimate is not finite");
 
   // std::cerr << "Estimated throughput: " << tput2str(tput, "pps") << "\n";
   // std::cerr << "Estimated throughput (bps): " << tput2str(pps2bps(tput, avg_pkt_size), "bps") << "\n";
 
   return tput;
 }
+
+pps_t PerfOracle::estimate_tput(pps_t ingress) const { return static_cast<pps_t>(std::llround(estimate_tput_exact(ingress))); }
 
 void PerfOracle::assert_final_state() const {
   hit_rate_t egress_hr = 0_hr;
@@ -476,27 +492,32 @@ void PerfOracle::debug() const {
   std::cerr << "==========================================================\n";
 }
 
+// The loss a plan may sustain and still count as lossless.
 constexpr const pps_t STABLE_TPUT_PRECISION{500};
+// How finely the bisection pins the largest such ingress. Finer than the tolerance on purpose:
+// the score ranks throughputs at three significant digits, and plans whose models differ only
+// in floating-point noise must land on the same figure, not up to a tolerance apart.
+constexpr const pps_t STABLE_TPUT_SEARCH_PRECISION{1};
 
 pps_t PerfOracle::find_stable_tput(pps_t ingress) const {
-  pps_t egress = 0;
+  double egress = 0;
 
   ingress = estimate_tput(ingress);
 
   pps_t prev_ingress = ingress;
-  pps_t precision    = STABLE_TPUT_PRECISION + 1;
-  pps_t delta        = ingress;
+  pps_t precision    = STABLE_TPUT_SEARCH_PRECISION + 1;
+  double delta       = ingress;
   pps_t floor        = 0;
   pps_t ceil         = ingress;
 
   // Algorithm for converging to a stable throughput (basically a binary search).
   // Hopefully this won't take many iterations...
-  while (precision > STABLE_TPUT_PRECISION) {
-    const pps_t egress_estimation = estimate_tput(ingress);
-    const pps_t unavoidable_drop  = static_cast<pps_t>(ingress * get_dropped_ingress().value);
+  while (precision > STABLE_TPUT_SEARCH_PRECISION) {
+    const double egress_estimation = estimate_tput_exact(ingress);
+    const double unavoidable_drop  = ingress * get_dropped_ingress().value;
 
     prev_ingress = ingress;
-    egress       = std::min(ingress, egress_estimation + unavoidable_drop);
+    egress       = std::min(static_cast<double>(ingress), egress_estimation + unavoidable_drop);
     delta        = ingress - egress;
 
     if (delta <= STABLE_TPUT_PRECISION) {
@@ -509,7 +530,7 @@ pps_t PerfOracle::find_stable_tput(pps_t ingress) const {
     precision = ingress > prev_ingress ? ingress - prev_ingress : prev_ingress - ingress;
   }
 
-  return egress;
+  return static_cast<pps_t>(std::llround(egress));
 }
 
 } // namespace LibSynapse
