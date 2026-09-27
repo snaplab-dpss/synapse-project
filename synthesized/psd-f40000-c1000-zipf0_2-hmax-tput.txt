@@ -7,14 +7,14 @@ Args:
   Profile file:       psd-f40000-c1000-zipf0_2.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'240'000'000,65,-9,-12'512'960,0>
+  Score: <0,2'250'000'000,65,-9,-12'512'960,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
@@ -31,7 +31,7 @@ Stateful Implementations:
   1074109560: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       13 seconds
+  Elapsed time:       28 seconds
   Steps:              67
   Backtracks:         0
   Search space size:  197
@@ -111,9 +111,9 @@ Search Metadata:
     Node 163: 0
 
 Global Stats:
-  Num phase 1 speculations: 11'732 (100%)
-  Num phase 2 speculations: 159 (1.35527%)
-  Num speculated modules:   148'787
+  Num phase 1 speculations: 11'525 (100%)
+  Num phase 2 speculations: 159 (1.37961%)
+  Num speculated modules:   147'033
   Num EPs generated:        197
 
 Switch placement:

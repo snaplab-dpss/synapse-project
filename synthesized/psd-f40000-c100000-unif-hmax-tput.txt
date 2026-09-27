@@ -7,17 +7,17 @@ Args:
   Profile file:       psd-f40000-c100000-unif.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,388'000'000,73,-10,-14'670'080,-1>
-  Tput: 273.47 Gbps (388.45 Mpps)
-  Spec: 273.47 Gbps (388.45 Mpps)
-  Recirculations: 1
+  Score: <0,391'000'000,73,-10,-14'670'080,0>
+  Tput: 275.95 Gbps (391.98 Mpps)
+  Spec: 275.95 Gbps (391.98 Mpps)
+  Recirculations: 0
   BDD Progress: 73 / 82
   Stages: 10
   Memory Usage: 14670080 bits
@@ -31,13 +31,13 @@ Stateful Implementations:
   1074109560: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       11 seconds
-  Steps:              75
+  Elapsed time:       27 seconds
+  Steps:              74
   Backtracks:         0
-  Search space size:  227
-  Unfinished EPs:     152
+  Search space size:  225
+  Unfinished EPs:     151
   Finished EPs:       1
-  Avg BDD size:       66
+  Avg BDD size:       67
   Branching factor:   3
   Design space:       10^26
   Avg children per node:
@@ -64,7 +64,7 @@ Search Metadata:
     Node 193: 4
     Node 135: 2
     Node 194: 3
-    Node 136: 2.5
+    Node 136: 3
     Node 195: 3
     Node 137: 3
     Node 196: 3
@@ -129,10 +129,10 @@ Search Metadata:
     Node 163: 3
 
 Global Stats:
-  Num phase 1 speculations: 13'290 (100%)
-  Num phase 2 speculations: 141 (1.06095%)
-  Num speculated modules:   171'007
-  Num EPs generated:        227
+  Num phase 1 speculations: 14'250 (100%)
+  Num phase 2 speculations: 159 (1.11579%)
+  Num speculated modules:   179'572
+  Num EPs generated:        225
 
 Switch placement:
 

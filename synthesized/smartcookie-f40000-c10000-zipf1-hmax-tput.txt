@@ -7,8 +7,8 @@ Args:
   Profile file:       smartcookie-f40000-c10000-zipf1.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
@@ -27,7 +27,7 @@ Stateful Implementations:
   1073927040: Tofino::BloomFilter
 
 Search Metadata:
-  Elapsed time:       242 seconds
+  Elapsed time:       513 seconds
   Steps:              467
   Backtracks:         0
   Search space size:  3'061
@@ -495,9 +495,9 @@ Search Metadata:
     Node 52: 8
 
 Global Stats:
-  Num phase 1 speculations: 196'505 (100%)
-  Num phase 2 speculations: 832 (0.423399%)
-  Num speculated modules:   3'316'970
+  Num phase 1 speculations: 207'459 (100%)
+  Num phase 2 speculations: 1'984 (0.956334%)
+  Num speculated modules:   3'409'200
   Num EPs generated:        3'061
 
 Switch placement:

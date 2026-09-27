@@ -7,20 +7,20 @@ Args:
   Profile file:       nat-f40000-c10000-zipf1.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'240'000'000,69,-5,-26'236'288,0>
+  Score: <0,2'240'000'000,69,-5,-26'187'136,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
   BDD Progress: 69 / 75
   Stages: 5
-  Memory Usage: 26236288 bits
+  Memory Usage: 26187136 bits
 
 Stateful Implementations:
   1074102760: Tofino::VectorTable
@@ -30,7 +30,7 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       8 seconds
+  Elapsed time:       23 seconds
   Steps:              69
   Backtracks:         0
   Search space size:  217
@@ -119,9 +119,9 @@ Search Metadata:
     Node 154: 2
 
 Global Stats:
-  Num phase 1 speculations: 14'263 (100%)
-  Num phase 2 speculations: 176 (1.23396%)
-  Num speculated modules:   170'678
+  Num phase 1 speculations: 16'396 (100%)
+  Num phase 2 speculations: 206 (1.2564%)
+  Num speculated modules:   185'744
   Num EPs generated:        217
 
 Switch placement:
@@ -159,12 +159,12 @@ Objs: [fcfs_ct_1074053136_hash_142,fcfs_ct_1074053136_hash_163,fcfs_ct_107405313
 -------------------------------------
 -------------------------------------
 Stage 3
-SRAM: 71'680/1'310'720 B (5.46875%)
+SRAM: 68'608/1'310'720 B (5.23438%)
 TCAM: 0/67'584 B (0%)
-MapRAM: 71'680/786'432 B (9.11458%)
+MapRAM: 68'608/786'432 B (8.72396%)
 Logical IDs: 8/16
 Hash Dist Units: 0/6
-Exact Match Crossbar: 8/128 B (6.25%)
+Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [fcfs_ct_1074053136_reg_key_0,fcfs_ct_1074053136_reg_key_1,fcfs_ct_1074053136_reg_key_2,fcfs_ct_1074053136_reg_key_3]
 -------------------------------------
 -------------------------------------

@@ -585,6 +585,9 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
   cpu_hdr_extra_t *cpu_hdr_extra = packet_consume<cpu_hdr_extra_t>(pkt);
   LOG_DEBUG("[t=%lu] New packet (size=%u, code_path=%d)\n", now, size, bswap16(cpu_hdr->code_path));
 
+  // The packet as the NF sees it: without the cpu headers the data plane put in front of it.
+  const u16 pkt_len = static_cast<u16>(size - packet_consumed);
+
   cpu_hdr->egress_dev = 0;
   cpu_hdr->trigger_dataplane_execution = 0;
 
@@ -629,7 +632,7 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
         tb_key_1[2] = *(u8*)(hdr_1 + 18);
         tb_key_1[3] = *(u8*)(hdr_1 + 19);
         int tb_index_1;
-        int tb_tracing_0 = libnf::tb_trace(state->cpu_tb_1074041392, tb_key_1.data, size & 0xffffull, now, &tb_index_1);
+        int tb_tracing_0 = libnf::tb_trace(state->cpu_tb_1074041392, tb_key_1.data, pkt_len & 0xffffull, now, &tb_index_1);
         // EP node  2085
         // BDD node 143:if ((Eq (w32 0) (ReadLSB w32 (w32 0) successfuly_tracing__142))
         if ((0) == (tb_tracing_0)) {
@@ -668,7 +671,7 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
         // BDD node 141:if ((Eq (w32 0) (ReadLSB w32 (w32 0) is_tracing__140))
         // EP node  1613
         // BDD node 156:tb_update_and_check(tb:(w64 1074041392), index:(ReadLSB w32 (w32 0) index_out__140), time:(ReadLSB w64 (w32 0) next_time), pkt_len:(Extract w16 0 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))))
-        int tb_pass_0 = libnf::tb_update_and_check(state->cpu_tb_1074041392, tb_index_0, size & 0xffffull, now);
+        int tb_pass_0 = libnf::tb_update_and_check(state->cpu_tb_1074041392, tb_index_0, pkt_len & 0xffffull, now);
         // EP node  1689
         // BDD node 157:if ((Eq (w32 0) (ReadLSB w32 (w32 0) pass__156))
         if ((0) == (tb_pass_0)) {

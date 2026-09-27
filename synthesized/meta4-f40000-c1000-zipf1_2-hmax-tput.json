@@ -1,0 +1,698 @@
+{
+  "bdd": "meta4.bdd",
+  "global_stats": {
+    "num_execution_plans_generated": 350,
+    "num_phase1_speculations": 63073,
+    "num_phase2_speculations": 1022,
+    "num_speculated_modules": 1011871,
+    "time_per_instantiation_us": 1554,
+    "time_per_speculation_us": 37,
+    "total_time_spent_generating_execution_plans_us": 544122,
+    "total_time_spent_speculating_us": 37634015
+  },
+  "heuristic": {
+    "meta": [
+      {
+        "description": "1.58 Tbps (2.25 Gpps)",
+        "name": "Tput"
+      },
+      {
+        "description": "1.58 Tbps (2.25 Gpps)",
+        "name": "Spec"
+      },
+      {
+        "description": "0",
+        "name": "Recirculations"
+      },
+      {
+        "description": "108 / 112",
+        "name": "BDD Progress"
+      },
+      {
+        "description": "9",
+        "name": "Stages"
+      },
+      {
+        "description": "33601664 bits",
+        "name": "Memory Usage"
+      }
+    ],
+    "score": [
+      0,
+      2250000000,
+      108,
+      -9,
+      -33601664,
+      0
+    ]
+  },
+  "implementations": [
+    {
+      "addr": 1074149856,
+      "implementation": "Controller::Vector"
+    },
+    {
+      "addr": 1074132640,
+      "implementation": "Tofino::VectorRegister"
+    },
+    {
+      "addr": 1074082560,
+      "implementation": "Tofino::LPM"
+    },
+    {
+      "addr": 1074082784,
+      "implementation": "Tofino::LPM"
+    },
+    {
+      "addr": 1074184288,
+      "implementation": "Tofino::VectorRegister"
+    },
+    {
+      "addr": 1074167072,
+      "implementation": "Tofino::VectorRegister"
+    },
+    {
+      "addr": 1074115080,
+      "implementation": "Tofino::VectorRegister"
+    },
+    {
+      "addr": 1074132216,
+      "implementation": "Tofino::DchainTable"
+    },
+    {
+      "addr": 1074083024,
+      "implementation": "Tofino::MapTable"
+    }
+  ],
+  "name": "meta4-f40000-c1000-zipf1_2-hmax-tput",
+  "ports": [
+    {
+      "front_panel_port": 3,
+      "nf_device": 2,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 4,
+      "nf_device": 3,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 5,
+      "nf_device": 4,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 6,
+      "nf_device": 5,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 7,
+      "nf_device": 6,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 8,
+      "nf_device": 7,
+      "pipe": 1
+    },
+    {
+      "front_panel_port": 9,
+      "nf_device": 8,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 10,
+      "nf_device": 9,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 11,
+      "nf_device": 10,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 12,
+      "nf_device": 11,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 13,
+      "nf_device": 12,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 14,
+      "nf_device": 13,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 15,
+      "nf_device": 14,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 16,
+      "nf_device": 15,
+      "pipe": 2
+    },
+    {
+      "front_panel_port": 17,
+      "nf_device": 16,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 18,
+      "nf_device": 17,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 19,
+      "nf_device": 18,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 20,
+      "nf_device": 19,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 21,
+      "nf_device": 20,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 22,
+      "nf_device": 21,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 23,
+      "nf_device": 22,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 24,
+      "nf_device": 23,
+      "pipe": 3
+    },
+    {
+      "front_panel_port": 25,
+      "nf_device": 24,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 26,
+      "nf_device": 25,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 27,
+      "nf_device": 26,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 28,
+      "nf_device": 27,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 29,
+      "nf_device": 28,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 30,
+      "nf_device": 29,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 31,
+      "nf_device": 30,
+      "pipe": 0
+    },
+    {
+      "front_panel_port": 32,
+      "nf_device": 31,
+      "pipe": 0
+    }
+  ],
+  "profile_file": "meta4-f40000-c1000-zipf1_2.json",
+  "search_meta": {
+    "avg_bdd_size": 108,
+    "avg_children_per_node": [
+      {
+        "avg": 0.0,
+        "node_id": 109
+      },
+      {
+        "avg": 0.0,
+        "node_id": 108
+      },
+      {
+        "avg": 0.0,
+        "node_id": 107
+      },
+      {
+        "avg": 0.0,
+        "node_id": 106
+      },
+      {
+        "avg": 0.0,
+        "node_id": 99
+      },
+      {
+        "avg": 2.0,
+        "node_id": 117
+      },
+      {
+        "avg": 0.0,
+        "node_id": 105
+      },
+      {
+        "avg": 0.0,
+        "node_id": 98
+      },
+      {
+        "avg": 3.0,
+        "node_id": 116
+      },
+      {
+        "avg": 0.0,
+        "node_id": 104
+      },
+      {
+        "avg": 0.0,
+        "node_id": 97
+      },
+      {
+        "avg": 3.0,
+        "node_id": 115
+      },
+      {
+        "avg": 0.0,
+        "node_id": 103
+      },
+      {
+        "avg": 0.0,
+        "node_id": 96
+      },
+      {
+        "avg": 3.0,
+        "node_id": 114
+      },
+      {
+        "avg": 0.0,
+        "node_id": 102
+      },
+      {
+        "avg": 0.0,
+        "node_id": 95
+      },
+      {
+        "avg": 3.0,
+        "node_id": 113
+      },
+      {
+        "avg": 0.0,
+        "node_id": 101
+      },
+      {
+        "avg": 0.0,
+        "node_id": 94
+      },
+      {
+        "avg": 3.0,
+        "node_id": 112
+      },
+      {
+        "avg": 0.0,
+        "node_id": 100
+      },
+      {
+        "avg": 0.0,
+        "node_id": 93
+      },
+      {
+        "avg": 4.0,
+        "node_id": 111
+      },
+      {
+        "avg": 0.0,
+        "node_id": 92
+      },
+      {
+        "avg": 2.0,
+        "node_id": 122
+      },
+      {
+        "avg": 3.0,
+        "node_id": 110
+      },
+      {
+        "avg": 2.0,
+        "node_id": 91
+      },
+      {
+        "avg": 3.0,
+        "node_id": 121
+      },
+      {
+        "avg": 4.0,
+        "node_id": 90
+      },
+      {
+        "avg": 3.0,
+        "node_id": 120
+      },
+      {
+        "avg": 3.0,
+        "node_id": 89
+      },
+      {
+        "avg": 2.0,
+        "node_id": 84
+      },
+      {
+        "avg": 2.0,
+        "node_id": 66
+      },
+      {
+        "avg": 3.0,
+        "node_id": 119
+      },
+      {
+        "avg": 3.0,
+        "node_id": 88
+      },
+      {
+        "avg": 3.0,
+        "node_id": 83
+      },
+      {
+        "avg": 3.0,
+        "node_id": 65
+      },
+      {
+        "avg": 3.0,
+        "node_id": 118
+      },
+      {
+        "avg": 6.0,
+        "node_id": 87
+      },
+      {
+        "avg": 3.0,
+        "node_id": 82
+      },
+      {
+        "avg": 2.0,
+        "node_id": 77
+      },
+      {
+        "avg": 3.0,
+        "node_id": 64
+      },
+      {
+        "avg": 4.0,
+        "node_id": 150
+      },
+      {
+        "avg": 5.0,
+        "node_id": 86
+      },
+      {
+        "avg": 3.0,
+        "node_id": 81
+      },
+      {
+        "avg": 3.0,
+        "node_id": 76
+      },
+      {
+        "avg": 3.0,
+        "node_id": 63
+      },
+      {
+        "avg": 3.0,
+        "node_id": 149
+      },
+      {
+        "avg": 2.0,
+        "node_id": 127
+      },
+      {
+        "avg": 4.0,
+        "node_id": 85
+      },
+      {
+        "avg": 8.0,
+        "node_id": 57
+      },
+      {
+        "avg": 3.0,
+        "node_id": 53
+      },
+      {
+        "avg": 2.0,
+        "node_id": 140
+      },
+      {
+        "avg": 3.0,
+        "node_id": 128
+      },
+      {
+        "avg": 5.0,
+        "node_id": 69
+      },
+      {
+        "avg": 4.0,
+        "node_id": 143
+      },
+      {
+        "avg": 3.0,
+        "node_id": 56
+      },
+      {
+        "avg": 5.0,
+        "node_id": 142
+      },
+      {
+        "avg": 3.0,
+        "node_id": 52
+      },
+      {
+        "avg": 3.0,
+        "node_id": 139
+      },
+      {
+        "avg": 3.0,
+        "node_id": 80
+      },
+      {
+        "avg": 5.0,
+        "node_id": 68
+      },
+      {
+        "avg": 3.0,
+        "node_id": 141
+      },
+      {
+        "avg": 5.0,
+        "node_id": 51
+      },
+      {
+        "avg": 3.0,
+        "node_id": 138
+      },
+      {
+        "avg": 5.0,
+        "node_id": 79
+      },
+      {
+        "avg": 2.0,
+        "node_id": 43
+      },
+      {
+        "avg": 3.0,
+        "node_id": 44
+      },
+      {
+        "avg": 3.0,
+        "node_id": 132
+      },
+      {
+        "avg": 3.0,
+        "node_id": 73
+      },
+      {
+        "avg": 3.0,
+        "node_id": 45
+      },
+      {
+        "avg": 3.0,
+        "node_id": 133
+      },
+      {
+        "avg": 3.0,
+        "node_id": 74
+      },
+      {
+        "avg": 4.0,
+        "node_id": 46
+      },
+      {
+        "avg": 3.0,
+        "node_id": 151
+      },
+      {
+        "avg": 5.0,
+        "node_id": 47
+      },
+      {
+        "avg": 2.0,
+        "node_id": 152
+      },
+      {
+        "avg": 6.0,
+        "node_id": 48
+      },
+      {
+        "avg": 3.0,
+        "node_id": 136
+      },
+      {
+        "avg": 3.0,
+        "node_id": 49
+      },
+      {
+        "avg": 5.0,
+        "node_id": 137
+      },
+      {
+        "avg": 5.0,
+        "node_id": 78
+      },
+      {
+        "avg": 17.0,
+        "node_id": 50
+      },
+      {
+        "avg": 5.0,
+        "node_id": 67
+      },
+      {
+        "avg": 3.0,
+        "node_id": 126
+      },
+      {
+        "avg": 5.0,
+        "node_id": 70
+      },
+      {
+        "avg": 3.0,
+        "node_id": 129
+      },
+      {
+        "avg": 3.0,
+        "node_id": 134
+      },
+      {
+        "avg": 3.0,
+        "node_id": 75
+      },
+      {
+        "avg": 6.0,
+        "node_id": 144
+      },
+      {
+        "avg": 3.0,
+        "node_id": 54
+      },
+      {
+        "avg": 4.0,
+        "node_id": 58
+      },
+      {
+        "avg": 7.0,
+        "node_id": 71
+      },
+      {
+        "avg": 3.0,
+        "node_id": 130
+      },
+      {
+        "avg": 3.0,
+        "node_id": 123
+      },
+      {
+        "avg": 2.0,
+        "node_id": 135
+      },
+      {
+        "avg": 3.0,
+        "node_id": 145
+      },
+      {
+        "avg": 2.0,
+        "node_id": 55
+      },
+      {
+        "avg": 6.0,
+        "node_id": 59
+      },
+      {
+        "avg": 6.0,
+        "node_id": 72
+      },
+      {
+        "avg": 2.0,
+        "node_id": 131
+      },
+      {
+        "avg": 3.0,
+        "node_id": 124
+      },
+      {
+        "avg": 4.0,
+        "node_id": 146
+      },
+      {
+        "avg": 3.0,
+        "node_id": 60
+      },
+      {
+        "avg": 3.0,
+        "node_id": 125
+      },
+      {
+        "avg": 3.0,
+        "node_id": 147
+      },
+      {
+        "avg": 4.0,
+        "node_id": 61
+      },
+      {
+        "avg": 3.0,
+        "node_id": 148
+      },
+      {
+        "avg": 3.0,
+        "node_id": 62
+      }
+    ],
+    "backtracks": 0,
+    "branching_factor": 3.1818181818181817,
+    "elapsed_time_seconds": 275,
+    "finished_eps": 1,
+    "log10_design_space": 48,
+    "ss_size": 350,
+    "steps": 109,
+    "unfinished_eps": 241
+  },
+  "seed": 0,
+  "targets_config_file": "tofino2.toml",
+  "tput_estimation_bps": 1584000000000,
+  "tput_estimation_pps": 2250000000
+}

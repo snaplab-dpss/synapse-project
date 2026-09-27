@@ -7,14 +7,14 @@ Args:
   Profile file:       pol-f40000-c1000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'240'000'000,57,-4,-2'108'096,0>
+  Score: <0,2'250'000'000,57,-4,-2'108'096,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
@@ -28,7 +28,7 @@ Stateful Implementations:
   1074054008: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       1 seconds
+  Elapsed time:       2 seconds
   Steps:              58
   Backtracks:         0
   Search space size:  170

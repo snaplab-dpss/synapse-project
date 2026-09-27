@@ -2,13 +2,13 @@
   "bdd": "kvs.bdd",
   "global_stats": {
     "num_execution_plans_generated": 171,
-    "num_phase1_speculations": 7896,
+    "num_phase1_speculations": 8040,
     "num_phase2_speculations": 166,
-    "num_speculated_modules": 93006,
-    "time_per_instantiation_us": 1005,
-    "time_per_speculation_us": 10,
-    "total_time_spent_generating_execution_plans_us": 171869,
-    "total_time_spent_speculating_us": 990439
+    "num_speculated_modules": 94338,
+    "time_per_instantiation_us": 1807,
+    "time_per_speculation_us": 18,
+    "total_time_spent_generating_execution_plans_us": 309166,
+    "total_time_spent_speculating_us": 1766046
   },
   "heuristic": {
     "meta": [
@@ -477,7 +477,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.9365079365079363,
-    "elapsed_time_seconds": 6,
+    "elapsed_time_seconds": 13,
     "finished_eps": 1,
     "log10_design_space": 24,
     "ss_size": 171,
@@ -486,6 +486,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2-kvs.toml",
-  "tput_estimation_bps": 489858627456,
-  "tput_estimation_pps": 695821914
+  "tput_estimation_bps": 489858684480,
+  "tput_estimation_pps": 695821995
 }

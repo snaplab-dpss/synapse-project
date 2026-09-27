@@ -114,6 +114,10 @@ struct synapse_ingress_metadata_t {
   // dropped on the strength of this, after the table and outside its actions, because a packet
   // that still has the egress ahead of it must keep them: the egress parser extracts them.
   bit<2> leaving;
+  bit<16> pkt_len;
+  bit<1> pc_6;
+  bit<1> pc_8;
+  bit<1> pc_10;
 
 }
 
@@ -209,6 +213,9 @@ parser IngressParser(
   }
 
   state parser_init {
+    meta.pc_6 = 0;
+    meta.pc_8 = 0;
+    meta.pc_10 = 0;
     pkt.extract(hdr.hdr0);
     transition parser_6;
   }
@@ -222,6 +229,7 @@ parser IngressParser(
     }
   }
   state parser_7 {
+    meta.pc_6 = 1;
     pkt.extract(hdr.hdr1);
     transition parser_8;
   }
@@ -238,6 +246,7 @@ parser IngressParser(
     }
   }
   state parser_9 {
+    meta.pc_8 = 1;
     pkt.extract(hdr.hdr2);
     transition parser_10;
   }
@@ -260,6 +269,7 @@ parser IngressParser(
     }
   }
   state parser_11 {
+    meta.pc_10 = 1;
     pkt.extract(hdr.hdr3);
     transition parser_57;
   }
@@ -585,6 +595,10 @@ control CuckooHashBloomFilter(inout cuckoo_h cuckoo, out fwd_op_t fwd_op) {
 	}
 }
 
+@pa_solitary("ingress", "meta.pc_6")
+@pa_solitary("ingress", "meta.pc_8")
+@pa_solitary("ingress", "meta.pc_10")
+
 
 control Ingress(
   inout synapse_ingress_headers_t hdr,
@@ -761,6 +775,10 @@ control Ingress(
   }
 
   apply {
+    meta.pkt_len = 0;
+    if (hdr.hdr1.isValid()) {
+      meta.pkt_len = hdr.hdr1.data0[15:0] + 14;
+    }
 
     ingress_port_to_nf_dev.apply();
 
@@ -776,140 +794,149 @@ control Ingress(
       if(hdr.hdr0.isValid()) {
         // EP node  13:ParserCondition
         // BDD node 6:if
-        // EP node  14:Then
-        // BDD node 6:if
-        // EP node  26:ParserExtraction
-        // BDD node 7:packet_borrow_next_chunk
-        if(hdr.hdr1.isValid()) {
-          // EP node  52:ParserCondition
-          // BDD node 8:if
-          // EP node  53:Then
-          // BDD node 8:if
-          // EP node  74:ParserExtraction
-          // BDD node 9:packet_borrow_next_chunk
-          if(hdr.hdr2.isValid()) {
-            // EP node  117:ParserCondition
-            // BDD node 10:if
-            // EP node  118:Then
-            // BDD node 10:if
-            // EP node  148:ParserExtraction
-            // BDD node 11:packet_borrow_next_chunk
-            if(hdr.hdr3.isValid()) {
-              // EP node  222:If
-              // BDD node 12:if
-              if ((16w0x0000) != (meta.dev[15:0])){
-                // EP node  223:Then
-                // BDD node 12:if
-                // EP node  640:CuckooHashTableReadWrite
-                // BDD node 13:map_get
-                if (!hdr.cuckoo.isValid()) {
-                  build_cuckoo_hdr(hdr.hdr3.data1, hdr.hdr3.data2);
-                  if ((8w0x01) == (hdr.hdr3.data0)) {
-                    hdr.cuckoo.op = cuckoo_ops_t.UPDATE;
-                  } else {
-                    hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
+        if (meta.pc_6 == 1) {
+          // EP node  14:Then
+          // BDD node 6:if
+          // EP node  26:ParserExtraction
+          // BDD node 7:packet_borrow_next_chunk
+          if(hdr.hdr1.isValid()) {
+            // EP node  52:ParserCondition
+            // BDD node 8:if
+            if (meta.pc_8 == 1) {
+              // EP node  53:Then
+              // BDD node 8:if
+              // EP node  74:ParserExtraction
+              // BDD node 9:packet_borrow_next_chunk
+              if(hdr.hdr2.isValid()) {
+                // EP node  117:ParserCondition
+                // BDD node 10:if
+                if (meta.pc_10 == 1) {
+                  // EP node  118:Then
+                  // BDD node 10:if
+                  // EP node  148:ParserExtraction
+                  // BDD node 11:packet_borrow_next_chunk
+                  if(hdr.hdr3.isValid()) {
+                    // EP node  222:If
+                    // BDD node 12:if
+                    if ((16w0x0000) != (meta.dev[15:0])){
+                      // EP node  223:Then
+                      // BDD node 12:if
+                      // EP node  640:CuckooHashTableReadWrite
+                      // BDD node 13:map_get
+                      if (!hdr.cuckoo.isValid()) {
+                        build_cuckoo_hdr(hdr.hdr3.data1, hdr.hdr3.data2);
+                        if ((8w0x01) == (hdr.hdr3.data0)) {
+                          hdr.cuckoo.op = cuckoo_ops_t.UPDATE;
+                        } else {
+                          hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
+                        }
+                      }
+                      bool cuckoo_hash_table_1073923096_13_success0;
+                      cuckoo_hash_table.apply(meta.time, hdr.cuckoo, cuckoo_hash_table_1073923096_13_success0);
+                      cuckoo_bloom_filter.apply(hdr.cuckoo, fwd_op);
+                      if (hdr.cuckoo.op != cuckoo_ops_t.DONE) {
+                        build_recirc_hdr(CUCKOO_CODE_PATH);
+                      } else {
+                        // EP node  641:If
+                        // BDD node 13:map_get
+                        if ((8w0x01) == (hdr.hdr3.data0)){
+                          // EP node  642:Then
+                          // BDD node 13:map_get
+                          // EP node  644:If
+                          // BDD node 13:map_get
+                          if (cuckoo_hash_table_1073923096_13_success0){
+                            // EP node  645:Then
+                            // BDD node 13:map_get
+                            // EP node  2476:ModifyHeader
+                            // BDD node 42:packet_return_chunk
+                            rewrite_42();
+                            // EP node  2639:ModifyHeader
+                            // BDD node 43:packet_return_chunk
+                            rewrite_43();
+                            // EP node  2806:ModifyHeader
+                            // BDD node 44:packet_return_chunk
+                            rewrite_44();
+                            // EP node  2977:ModifyHeader
+                            // BDD node 45:packet_return_chunk
+                            rewrite_45();
+                            // EP node  3111:Forward
+                            // BDD node 46:FORWARD
+                            nf_dev[15:0] = meta.dev[15:0];
+                          } else {
+                            // EP node  646:Else
+                            // BDD node 13:map_get
+                            // EP node  1889:ModifyHeader
+                            // BDD node 18:packet_return_chunk
+                            rewrite_18();
+                            @in_hash { hdr.hdr3.data4 = meta.dev[7:0] ++ meta.dev[15:8]; }
+                            // EP node  2365:Forward
+                            // BDD node 22:FORWARD
+                            nf_dev[15:0] = 16w0x0000;
+                          }
+                        } else {
+                          // EP node  643:Else
+                          // BDD node 13:map_get
+                          // EP node  647:If
+                          // BDD node 13:map_get
+                          if (cuckoo_hash_table_1073923096_13_success0){
+                            // EP node  648:Then
+                            // BDD node 13:map_get
+                            // EP node  1254:ModifyHeader
+                            // BDD node 48:packet_return_chunk
+                            rewrite_48();
+                            // EP node  1389:ModifyHeader
+                            // BDD node 49:packet_return_chunk
+                            rewrite_49();
+                            // EP node  1528:ModifyHeader
+                            // BDD node 50:packet_return_chunk
+                            rewrite_50();
+                            // EP node  1671:ModifyHeader
+                            // BDD node 51:packet_return_chunk
+                            rewrite_51();
+                            // EP node  1784:Forward
+                            // BDD node 52:FORWARD
+                            nf_dev[15:0] = meta.dev[15:0];
+                          } else {
+                            // EP node  649:Else
+                            // BDD node 13:map_get
+                            // EP node  772:ModifyHeader
+                            // BDD node 33:packet_return_chunk
+                            rewrite_33();
+                            @in_hash { hdr.hdr3.data4 = meta.dev[7:0] ++ meta.dev[15:8]; }
+                            // EP node  1164:Forward
+                            // BDD node 37:FORWARD
+                            nf_dev[15:0] = 16w0x0000;
+                          }
+                        }
+                      }
+                    } else {
+                      // EP node  224:Else
+                      // BDD node 12:if
+                      // EP node  4769:Forward
+                      // BDD node 57:FORWARD
+                      nf_dev[15:0] = bswap16(hdr.hdr3.data4);
+                    }
                   }
-                }
-                bool cuckoo_hash_table_1073923096_13_success0;
-                cuckoo_hash_table.apply(meta.time, hdr.cuckoo, cuckoo_hash_table_1073923096_13_success0);
-                cuckoo_bloom_filter.apply(hdr.cuckoo, fwd_op);
-                if (hdr.cuckoo.op != cuckoo_ops_t.DONE) {
-                  build_recirc_hdr(CUCKOO_CODE_PATH);
                 } else {
-                  // EP node  641:If
-                  // BDD node 13:map_get
-                  if ((8w0x01) == (hdr.hdr3.data0)){
-                    // EP node  642:Then
-                    // BDD node 13:map_get
-                    // EP node  644:If
-                    // BDD node 13:map_get
-                    if (cuckoo_hash_table_1073923096_13_success0){
-                      // EP node  645:Then
-                      // BDD node 13:map_get
-                      // EP node  2476:ModifyHeader
-                      // BDD node 42:packet_return_chunk
-                      rewrite_42();
-                      // EP node  2639:ModifyHeader
-                      // BDD node 43:packet_return_chunk
-                      rewrite_43();
-                      // EP node  2806:ModifyHeader
-                      // BDD node 44:packet_return_chunk
-                      rewrite_44();
-                      // EP node  2977:ModifyHeader
-                      // BDD node 45:packet_return_chunk
-                      rewrite_45();
-                      // EP node  3111:Forward
-                      // BDD node 46:FORWARD
-                      nf_dev[15:0] = meta.dev[15:0];
-                    } else {
-                      // EP node  646:Else
-                      // BDD node 13:map_get
-                      // EP node  1889:ModifyHeader
-                      // BDD node 18:packet_return_chunk
-                      rewrite_18();
-                      @in_hash { hdr.hdr3.data4 = meta.dev[7:0] ++ meta.dev[15:8]; }
-                      // EP node  2365:Forward
-                      // BDD node 22:FORWARD
-                      nf_dev[15:0] = 16w0x0000;
-                    }
-                  } else {
-                    // EP node  643:Else
-                    // BDD node 13:map_get
-                    // EP node  647:If
-                    // BDD node 13:map_get
-                    if (cuckoo_hash_table_1073923096_13_success0){
-                      // EP node  648:Then
-                      // BDD node 13:map_get
-                      // EP node  1254:ModifyHeader
-                      // BDD node 48:packet_return_chunk
-                      rewrite_48();
-                      // EP node  1389:ModifyHeader
-                      // BDD node 49:packet_return_chunk
-                      rewrite_49();
-                      // EP node  1528:ModifyHeader
-                      // BDD node 50:packet_return_chunk
-                      rewrite_50();
-                      // EP node  1671:ModifyHeader
-                      // BDD node 51:packet_return_chunk
-                      rewrite_51();
-                      // EP node  1784:Forward
-                      // BDD node 52:FORWARD
-                      nf_dev[15:0] = meta.dev[15:0];
-                    } else {
-                      // EP node  649:Else
-                      // BDD node 13:map_get
-                      // EP node  772:ModifyHeader
-                      // BDD node 33:packet_return_chunk
-                      rewrite_33();
-                      @in_hash { hdr.hdr3.data4 = meta.dev[7:0] ++ meta.dev[15:8]; }
-                      // EP node  1164:Forward
-                      // BDD node 37:FORWARD
-                      nf_dev[15:0] = 16w0x0000;
-                    }
-                  }
+                  // EP node  119:Else
+                  // BDD node 10:if
+                  // EP node  4541:ParserReject
+                  // BDD node 61:DROP
                 }
-              } else {
-                // EP node  224:Else
-                // BDD node 12:if
-                // EP node  4769:Forward
-                // BDD node 57:FORWARD
-                nf_dev[15:0] = bswap16(hdr.hdr3.data4);
               }
+            } else {
+              // EP node  54:Else
+              // BDD node 8:if
+              // EP node  4184:ParserReject
+              // BDD node 64:DROP
             }
-            // EP node  119:Else
-            // BDD node 10:if
-            // EP node  4541:ParserReject
-            // BDD node 61:DROP
           }
-          // EP node  54:Else
-          // BDD node 8:if
-          // EP node  4184:ParserReject
-          // BDD node 64:DROP
+        } else {
+          // EP node  15:Else
+          // BDD node 6:if
+          // EP node  3705:ParserReject
+          // BDD node 66:DROP
         }
-        // EP node  15:Else
-        // BDD node 6:if
-        // EP node  3705:ParserReject
-        // BDD node 66:DROP
       }
 
     }

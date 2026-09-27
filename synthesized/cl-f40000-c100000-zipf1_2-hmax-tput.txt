@@ -7,16 +7,16 @@ Args:
   Profile file:       cl-f40000-c100000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,1'230'000'000,58,-9,-26'137'984,-1>
-  Tput: 869.47 Gbps (1.24 Gpps)
-  Spec: 869.47 Gbps (1.24 Gpps)
+  Score: <0,1'260'000'000,58,-9,-26'137'984,-1>
+  Tput: 890.42 Gbps (1.26 Gpps)
+  Spec: 890.42 Gbps (1.26 Gpps)
   Recirculations: 1
   BDD Progress: 58 / 63
   Stages: 9
@@ -30,7 +30,7 @@ Stateful Implementations:
   1074092960: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       18 seconds
+  Elapsed time:       43 seconds
   Steps:              59
   Backtracks:         0
   Search space size:  179

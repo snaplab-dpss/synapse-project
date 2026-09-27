@@ -7,15 +7,15 @@ Args:
   Profile file:       smartcookie-f40000-c0-zipf0_8.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
   Score: <0,284'000'000,456,-19,-4'722'304,-4>
-  Tput: 199.97 Gbps (284.04 Mpps)
+  Tput: 199.96 Gbps (284.04 Mpps)
   Spec: 199.96 Gbps (284.04 Mpps)
   Recirculations: 4
   BDD Progress: 456 / 460
@@ -27,7 +27,7 @@ Stateful Implementations:
   1073927040: Tofino::BloomFilter
 
 Search Metadata:
-  Elapsed time:       212 seconds
+  Elapsed time:       414 seconds
   Steps:              467
   Backtracks:         0
   Search space size:  3'061

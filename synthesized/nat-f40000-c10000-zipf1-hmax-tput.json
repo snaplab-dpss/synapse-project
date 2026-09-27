@@ -2,13 +2,13 @@
   "bdd": "nat.bdd",
   "global_stats": {
     "num_execution_plans_generated": 217,
-    "num_phase1_speculations": 14263,
-    "num_phase2_speculations": 176,
-    "num_speculated_modules": 170678,
-    "time_per_instantiation_us": 538,
-    "time_per_speculation_us": 21,
-    "total_time_spent_generating_execution_plans_us": 116941,
-    "total_time_spent_speculating_us": 3659073
+    "num_phase1_speculations": 16396,
+    "num_phase2_speculations": 206,
+    "num_speculated_modules": 185744,
+    "time_per_instantiation_us": 1275,
+    "time_per_speculation_us": 51,
+    "total_time_spent_generating_execution_plans_us": 276841,
+    "total_time_spent_speculating_us": 9497868
   },
   "heuristic": {
     "meta": [
@@ -33,7 +33,7 @@
         "name": "Stages"
       },
       {
-        "description": "26236288 bits",
+        "description": "26187136 bits",
         "name": "Memory Usage"
       }
     ],
@@ -42,7 +42,7 @@
       2240000000,
       69,
       -5,
-      -26236288,
+      -26187136,
       0
     ]
   },
@@ -536,7 +536,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.338709677419355,
-    "elapsed_time_seconds": 8,
+    "elapsed_time_seconds": 23,
     "finished_eps": 1,
     "log10_design_space": 28,
     "ss_size": 217,
@@ -545,6 +545,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 1583999664896,
-  "tput_estimation_pps": 2249999524
+  "tput_estimation_bps": 1583999648704,
+  "tput_estimation_pps": 2249999501
 }

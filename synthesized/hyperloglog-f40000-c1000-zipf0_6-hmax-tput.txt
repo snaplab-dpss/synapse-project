@@ -7,8 +7,8 @@ Args:
   Profile file:       hyperloglog-f40000-c1000-zipf0_6.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
@@ -28,7 +28,7 @@ Stateful Implementations:
   1073917816: Tofino::VectorRegister
 
 Search Metadata:
-  Elapsed time:       0 seconds
+  Elapsed time:       1 seconds
   Steps:              41
   Backtracks:         0
   Search space size:  155
@@ -123,9 +123,9 @@ Search Metadata:
     Node 61: 0
 
 Global Stats:
-  Num phase 1 speculations: 2'023 (100%)
-  Num phase 2 speculations: 13 (0.64261%)
-  Num speculated modules:   27'187
+  Num phase 1 speculations: 1'987 (100%)
+  Num phase 2 speculations: 13 (0.654253%)
+  Num speculated modules:   26'729
   Num EPs generated:        155
 
 Switch placement:

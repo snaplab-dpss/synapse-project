@@ -2,13 +2,13 @@
   "bdd": "psd.bdd",
   "global_stats": {
     "num_execution_plans_generated": 197,
-    "num_phase1_speculations": 11732,
+    "num_phase1_speculations": 11525,
     "num_phase2_speculations": 159,
-    "num_speculated_modules": 148787,
-    "time_per_instantiation_us": 470,
-    "time_per_speculation_us": 54,
-    "total_time_spent_generating_execution_plans_us": 92662,
-    "total_time_spent_speculating_us": 8043836
+    "num_speculated_modules": 147033,
+    "time_per_instantiation_us": 918,
+    "time_per_speculation_us": 112,
+    "total_time_spent_generating_execution_plans_us": 180955,
+    "total_time_spent_speculating_us": 16605651
   },
   "heuristic": {
     "meta": [
@@ -39,7 +39,7 @@
     ],
     "score": [
       0,
-      2240000000,
+      2250000000,
       65,
       -9,
       -12512960,
@@ -504,7 +504,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.7794117647058822,
-    "elapsed_time_seconds": 13,
+    "elapsed_time_seconds": 28,
     "finished_eps": 1,
     "log10_design_space": 21,
     "ss_size": 197,
@@ -513,6 +513,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 1583999999296,
-  "tput_estimation_pps": 2249999999
+  "tput_estimation_bps": 1584000000000,
+  "tput_estimation_pps": 2250000000
 }

@@ -7,8 +7,8 @@ Args:
   Profile file:       kvs-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
@@ -24,7 +24,7 @@ Stateful Implementations:
   1073923096: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       6 seconds
+  Elapsed time:       11 seconds
   Steps:              65
   Backtracks:         0
   Search space size:  189
@@ -104,9 +104,9 @@ Search Metadata:
     Node 52: 2
 
 Global Stats:
-  Num phase 1 speculations: 6'821 (100%)
-  Num phase 2 speculations: 136 (1.99384%)
-  Num speculated modules:   86'412
+  Num phase 1 speculations: 6'831 (100%)
+  Num phase 2 speculations: 136 (1.99092%)
+  Num speculated modules:   86'502
   Num EPs generated:        189
 
 Switch placement:

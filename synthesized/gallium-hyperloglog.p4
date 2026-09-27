@@ -107,6 +107,8 @@ struct synapse_ingress_metadata_t {
   bit<2> leaving;
   bit<32> find_first_set_bit_7_key;
   bit<32> find_first_set_bit_7_out;
+  bit<16> pkt_len;
+  bit<1> pc_4;
 
 }
 
@@ -202,6 +204,7 @@ parser IngressParser(
   }
 
   state parser_init {
+    meta.pc_4 = 0;
     pkt.extract(hdr.hdr0);
     transition parser_4;
   }
@@ -215,6 +218,7 @@ parser IngressParser(
     }
   }
   state parser_5 {
+    meta.pc_4 = 1;
     pkt.extract(hdr.hdr1);
     transition parser_31;
   }
@@ -227,6 +231,8 @@ parser IngressParser(
 
 }
 
+
+@pa_solitary("ingress", "meta.pc_4")
 
 
 control Ingress(
@@ -421,6 +427,10 @@ control Ingress(
 
 
   apply {
+    meta.pkt_len = 0;
+    if (hdr.hdr1.isValid()) {
+      meta.pkt_len = hdr.hdr1.data0[15:0] + 14;
+    }
 
     ingress_port_to_nf_dev.apply();
 
@@ -434,32 +444,35 @@ control Ingress(
       if(hdr.hdr0.isValid()) {
         // EP node  5:ParserCondition
         // BDD node 4:if
-        // EP node  6:Then
-        // BDD node 4:if
-        // EP node  16:ParserExtraction
-        // BDD node 5:packet_borrow_next_chunk
-        if(hdr.hdr1.isValid()) {
-          // EP node  33:HashObj
-          // BDD node 6:hash_obj
-          hash_6_calc();
-          bit<32> hll_hash0 = hash_6_value;
-          // EP node  60:FindFirstSetBit
-          // BDD node 7:find_first_set_bit
-          meta.find_first_set_bit_7_key = (hll_hash0) & (32w0x000fffff);
-          find_first_set_bit_7.apply();
-          // EP node  125:SendToController
-          // BDD node 8:vector_borrow
-          fwd_op = fwd_op_t.FORWARD_TO_CPU;
-          build_cpu_hdr(0);
-          hdr.cpu.time = meta.time;
-          hdr.cpu.find_first_set_bit_7_out = meta.find_first_set_bit_7_out;
-          hdr.cpu.hll_hash0 = hll_hash0;
-          hdr.cpu.dev = meta.dev;
+        if (meta.pc_4 == 1) {
+          // EP node  6:Then
+          // BDD node 4:if
+          // EP node  16:ParserExtraction
+          // BDD node 5:packet_borrow_next_chunk
+          if(hdr.hdr1.isValid()) {
+            // EP node  33:HashObj
+            // BDD node 6:hash_obj
+            hash_6_calc();
+            bit<32> hll_hash0 = hash_6_value;
+            // EP node  60:FindFirstSetBit
+            // BDD node 7:find_first_set_bit
+            meta.find_first_set_bit_7_key = (hll_hash0) & (32w0x000fffff);
+            find_first_set_bit_7.apply();
+            // EP node  125:SendToController
+            // BDD node 8:vector_borrow
+            fwd_op = fwd_op_t.FORWARD_TO_CPU;
+            build_cpu_hdr(0);
+            hdr.cpu.time = meta.time;
+            hdr.cpu.find_first_set_bit_7_out = meta.find_first_set_bit_7_out;
+            hdr.cpu.hll_hash0 = hll_hash0;
+            hdr.cpu.dev = meta.dev;
+          }
+        } else {
+          // EP node  7:Else
+          // BDD node 4:if
+          // EP node  180:ParserReject
+          // BDD node 81:DROP
         }
-        // EP node  7:Else
-        // BDD node 4:if
-        // EP node  180:ParserReject
-        // BDD node 81:DROP
       }
 
     }

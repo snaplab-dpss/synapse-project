@@ -5,10 +5,10 @@
     "num_phase1_speculations": 11085,
     "num_phase2_speculations": 183,
     "num_speculated_modules": 114740,
-    "time_per_instantiation_us": 542,
-    "time_per_speculation_us": 64,
-    "total_time_spent_generating_execution_plans_us": 97028,
-    "total_time_spent_speculating_us": 7362816
+    "time_per_instantiation_us": 992,
+    "time_per_speculation_us": 136,
+    "total_time_spent_generating_execution_plans_us": 177635,
+    "total_time_spent_speculating_us": 15713387
   },
   "heuristic": {
     "meta": [
@@ -504,7 +504,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1636363636363636,
-    "elapsed_time_seconds": 18,
+    "elapsed_time_seconds": 40,
     "finished_eps": 1,
     "log10_design_space": 21,
     "ss_size": 179,
@@ -513,6 +513,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 1583999655040,
-  "tput_estimation_pps": 2249999510
+  "tput_estimation_bps": 1583999655744,
+  "tput_estimation_pps": 2249999511
 }

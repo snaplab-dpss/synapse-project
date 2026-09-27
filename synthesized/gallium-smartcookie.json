@@ -2,22 +2,22 @@
   "bdd": "smartcookie.bdd",
   "global_stats": {
     "num_execution_plans_generated": 2484,
-    "num_phase1_speculations": 138637,
-    "num_phase2_speculations": 3989,
-    "num_speculated_modules": 2022310,
-    "time_per_instantiation_us": 189,
+    "num_phase1_speculations": 142353,
+    "num_phase2_speculations": 4125,
+    "num_speculated_modules": 2093344,
+    "time_per_instantiation_us": 413,
     "time_per_speculation_us": 0,
-    "total_time_spent_generating_execution_plans_us": 471251,
-    "total_time_spent_speculating_us": 662251
+    "total_time_spent_generating_execution_plans_us": 1026141,
+    "total_time_spent_speculating_us": 1858573
   },
   "heuristic": {
     "meta": [
       {
-        "description": "448.45 Kbps (637.00 pps)",
+        "description": "901.12 Kbps (1.28 Kpps)",
         "name": "Tput"
       },
       {
-        "description": "352.00 Kbps (500.00 pps)",
+        "description": "704.00 Kbps (1.00 Kpps)",
         "name": "Spec"
       }
     ],
@@ -2029,7 +2029,7 @@
     ],
     "backtracks": 1,
     "branching_factor": 2.6984649122807016,
-    "elapsed_time_seconds": 163,
+    "elapsed_time_seconds": 345,
     "finished_eps": 1,
     "log10_design_space": 111,
     "ss_size": 2484,
@@ -2038,6 +2038,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2-smartcookie.toml",
-  "tput_estimation_bps": 448448,
-  "tput_estimation_pps": 637
+  "tput_estimation_bps": 901120,
+  "tput_estimation_pps": 1280
 }

@@ -1,27 +1,27 @@
 {
   "bdd": "cl.bdd",
   "global_stats": {
-    "num_execution_plans_generated": 249,
-    "num_phase1_speculations": 13879,
-    "num_phase2_speculations": 202,
-    "num_speculated_modules": 142099,
-    "time_per_instantiation_us": 725,
-    "time_per_speculation_us": 61,
-    "total_time_spent_generating_execution_plans_us": 180722,
-    "total_time_spent_speculating_us": 8695494
+    "num_execution_plans_generated": 179,
+    "num_phase1_speculations": 11327,
+    "num_phase2_speculations": 183,
+    "num_speculated_modules": 115885,
+    "time_per_instantiation_us": 1238,
+    "time_per_speculation_us": 131,
+    "total_time_spent_generating_execution_plans_us": 221761,
+    "total_time_spent_speculating_us": 15210694
   },
   "heuristic": {
     "meta": [
       {
-        "description": "48.08 Gbps (68.29 Mpps)",
+        "description": "48.32 Gbps (68.64 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "48.08 Gbps (68.29 Mpps)",
+        "description": "48.32 Gbps (68.64 Mpps)",
         "name": "Spec"
       },
       {
-        "description": "3",
+        "description": "1",
         "name": "Recirculations"
       },
       {
@@ -29,7 +29,7 @@
         "name": "BDD Progress"
       },
       {
-        "description": "6",
+        "description": "9",
         "name": "Stages"
       },
       {
@@ -39,11 +39,11 @@
     ],
     "score": [
       0,
-      68200000,
+      68600000,
       58,
-      -6,
+      -9,
       -26137984,
-      -3
+      -1
     ]
   },
   "implementations": [
@@ -270,7 +270,7 @@
         "node_id": 146
       },
       {
-        "avg": 3.0,
+        "avg": 2.0,
         "node_id": 149
       },
       {
@@ -278,7 +278,7 @@
         "node_id": 178
       },
       {
-        "avg": 2.5,
+        "avg": 3.0,
         "node_id": 145
       },
       {
@@ -290,11 +290,11 @@
         "node_id": 177
       },
       {
-        "avg": 31.333333333333332,
+        "avg": 32.0,
         "node_id": 144
       },
       {
-        "avg": 3.0,
+        "avg": 4.0,
         "node_id": 172
       },
       {
@@ -326,7 +326,7 @@
         "node_id": 262
       },
       {
-        "avg": 2.5,
+        "avg": 3.0,
         "node_id": 135
       },
       {
@@ -474,7 +474,7 @@
         "node_id": 155
       },
       {
-        "avg": 4.0,
+        "avg": 3.0,
         "node_id": 161
       },
       {
@@ -502,17 +502,17 @@
         "node_id": 251
       }
     ],
-    "backtracks": 2,
-    "branching_factor": 3.151515151515152,
-    "elapsed_time_seconds": 22,
+    "backtracks": 0,
+    "branching_factor": 3.1636363636363636,
+    "elapsed_time_seconds": 42,
     "finished_eps": 1,
     "log10_design_space": 21,
-    "ss_size": 249,
-    "steps": 64,
-    "unfinished_eps": 185
+    "ss_size": 179,
+    "steps": 59,
+    "unfinished_eps": 120
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 48078738752,
-  "tput_estimation_pps": 68293663
+  "tput_estimation_bps": 48319684160,
+  "tput_estimation_pps": 68635915
 }

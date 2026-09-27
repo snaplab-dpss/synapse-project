@@ -7,15 +7,15 @@ Args:
   Profile file:       hyperloglog-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
   Score: <0,0,0,0,8,83>
-  Tput: 62.66 Kbps (89.00 pps)
+  Tput: 70.40 Kbps (100.00 pps)
   Spec: 0.00 bps (0.00 pps)
 
 Stateful Implementations:
@@ -24,7 +24,7 @@ Stateful Implementations:
   1073917816: Controller::Vector
 
 Search Metadata:
-  Elapsed time:       0 seconds
+  Elapsed time:       1 seconds
   Steps:              84
   Backtracks:         0
   Search space size:  156

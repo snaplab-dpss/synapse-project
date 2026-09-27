@@ -115,7 +115,6 @@ struct synapse_ingress_metadata_t {
   bit<32> power_of_two_13_key;
   bit<32> power_of_two_13_out;
   bit<32> op_sub_82_out;
-  bit<32> reg_incr0;
   bit<32> divide_16_denom;
   bit<32> vector_reg_value0;
   bit<32> ln_22_key;
@@ -124,6 +123,8 @@ struct synapse_ingress_metadata_t {
   bit<32> ln_35_key;
   bit<32> ln_35_out;
   bit<32> hdr_val1;
+  bit<16> pkt_len;
+  bit<1> pc_4;
 
 }
 
@@ -219,6 +220,7 @@ parser IngressParser(
   }
 
   state parser_init {
+    meta.pc_4 = 0;
     pkt.extract(hdr.hdr0);
     transition parser_4;
   }
@@ -232,6 +234,7 @@ parser IngressParser(
     }
   }
   state parser_5 {
+    meta.pc_4 = 1;
     pkt.extract(hdr.hdr1);
     transition parser_31;
   }
@@ -244,6 +247,8 @@ parser IngressParser(
 
 }
 
+
+@pa_solitary("ingress", "meta.pc_4")
 
 
 control Ingress(
@@ -551,7 +556,7 @@ control Ingress(
 
   RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1073935032_0) vector_register_1073935032_0_add_value_368 = {
     void apply(inout bit<32> value, out bit<32> out_value) {
-      value = value + meta.reg_incr0;
+      value = value + meta.op_sub_82_out;
       out_value = value;
     }
   };
@@ -746,6 +751,10 @@ control Ingress(
   }
 
   apply {
+    meta.pkt_len = 0;
+    if (hdr.hdr1.isValid()) {
+      meta.pkt_len = hdr.hdr1.data0[15:0] + 14;
+    }
 
     ingress_port_to_nf_dev.apply();
 
@@ -759,175 +768,177 @@ control Ingress(
       if(hdr.hdr0.isValid()) {
         // EP node  5:ParserCondition
         // BDD node 4:if
-        // EP node  6:Then
-        // BDD node 4:if
-        // EP node  16:ParserExtraction
-        // BDD node 5:packet_borrow_next_chunk
-        if(hdr.hdr1.isValid()) {
-          // EP node  33:HashObj
-          // BDD node 6:hash_obj
-          hash_6_calc();
-          bit<32> hll_hash0 = hash_6_value;
-          // EP node  60:FindFirstSetBit
-          // BDD node 7:find_first_set_bit
-          meta.find_first_set_bit_7_key = (hll_hash0) & (32w0x000fffff);
-          find_first_set_bit_7.apply();
-          // EP node  91:VectorRegisterReadConditionalUpdateSingleAction
-          // BDD node 8:vector_borrow
-          meta.vector_reg_index0 = (bit<6>)((hll_hash0) >> (32w0x0000001a));
-          regexec_vector_register_1073917816_0_read_conditional_write_return_other_91();
-          // EP node  135:PowerOfTwo
-          // BDD node 12:power_of_two
-          meta.power_of_two_12_key = (32w0x00000014) - (meta.vector_reg_shadow0);
-          power_of_two_12.apply();
-          // EP node  183:PowerOfTwo
-          // BDD node 13:power_of_two
-          meta.power_of_two_13_key = (32w0x00000014) - (meta.find_first_set_bit_7_out);
-          power_of_two_13.apply();
-          // EP node  236:Ignore
-          // BDD node 14:vector_borrow
-          // EP node  316:ArithmeticOp
-          // BDD node 82:op_sub
-          compute_op_sub_82();
-          // EP node  368:VectorRegisterUpdate
-          // BDD node 15:vector_return
-          meta.reg_incr0 = meta.op_sub_82_out;
-          bit<32> reg_new0 = vector_register_1073935032_0_add_value_368.execute(32w0x00000000);
-          // EP node  436:ArithmeticOp
-          // BDD node 83:op_add
-          // EP node  482:Divide
-          // BDD node 16:divide
-          meta.divide_16_denom = (32w0x04000000) - (reg_new0);
-          bit<32> quotient0 = divide_16_calc.execute(0);
-          // EP node  545:VectorRegisterReadConditionalIncrement
-          // BDD node 17:vector_borrow
-          meta.vector_reg_value0 = vector_register_1073952248_0_read_conditional_write_545.execute(32w0x00000000);
-          // EP node  646:If
-          // BDD node 18:if
-          if ((32w0x00000000) != (meta.vector_reg_shadow0)){
-            // EP node  647:Then
+        if (meta.pc_4 == 1) {
+          // EP node  6:Then
+          // BDD node 4:if
+          // EP node  16:ParserExtraction
+          // BDD node 5:packet_borrow_next_chunk
+          if(hdr.hdr1.isValid()) {
+            // EP node  33:HashObj
+            // BDD node 6:hash_obj
+            hash_6_calc();
+            bit<32> hll_hash0 = hash_6_value;
+            // EP node  60:FindFirstSetBit
+            // BDD node 7:find_first_set_bit
+            meta.find_first_set_bit_7_key = (hll_hash0) & (32w0x000fffff);
+            find_first_set_bit_7.apply();
+            // EP node  91:VectorRegisterReadConditionalUpdateSingleAction
+            // BDD node 8:vector_borrow
+            meta.vector_reg_index0 = (bit<6>)((hll_hash0) >> (32w0x0000001a));
+            regexec_vector_register_1073917816_0_read_conditional_write_return_other_91();
+            // EP node  135:PowerOfTwo
+            // BDD node 12:power_of_two
+            meta.power_of_two_12_key = (32w0x00000014) - (meta.vector_reg_shadow0);
+            power_of_two_12.apply();
+            // EP node  183:PowerOfTwo
+            // BDD node 13:power_of_two
+            meta.power_of_two_13_key = (32w0x00000014) - (meta.find_first_set_bit_7_out);
+            power_of_two_13.apply();
+            // EP node  236:Ignore
+            // BDD node 14:vector_borrow
+            // EP node  316:ArithmeticOp
+            // BDD node 82:op_sub
+            compute_op_sub_82();
+            // EP node  368:VectorRegisterUpdate
+            // BDD node 15:vector_return
+            bit<32> reg_new0 = vector_register_1073935032_0_add_value_368.execute(32w0x00000000);
+            // EP node  436:ArithmeticOp
+            // BDD node 83:op_add
+            // EP node  482:Divide
+            // BDD node 16:divide
+            meta.divide_16_denom = (32w0x04000000) - (reg_new0);
+            bit<32> quotient0 = divide_16_calc.execute(0);
+            // EP node  545:VectorRegisterReadConditionalIncrement
+            // BDD node 17:vector_borrow
+            meta.vector_reg_value0 = vector_register_1073952248_0_read_conditional_write_545.execute(32w0x00000000);
+            // EP node  646:If
             // BDD node 18:if
-            // EP node  746:If
-            // BDD node 20:if
-            bool cond0 = false;
-            if ((24w0x000000) == (quotient0[31:8])){
-              if ((quotient0[7:0]) < (8w0xa0)){
-                cond0 = true;
-              }
-            }
-            if (cond0) {
-              // EP node  747:Then
+            if ((32w0x00000000) != (meta.vector_reg_shadow0)){
+              // EP node  647:Then
+              // BDD node 18:if
+              // EP node  746:If
               // BDD node 20:if
-              // EP node  1124:If
-              // BDD node 21:if
-              if ((meta.vector_reg_value0) <= (32w0x0000003f)){
-                // EP node  1125:Then
-                // BDD node 21:if
-                // EP node  1218:Ln
-                // BDD node 22:ln
-                meta.ln_22_key = (32w0x00000040) - (meta.vector_reg_value0);
-                ln_22.apply();
-                // EP node  1503:ModifyHeader
-                // BDD node 24:packet_return_chunk
-                hdr_val0_calc();
-                rewrite_24();
-                @in_hash { hdr.hdr0.data3 = meta.hdr_val0[23:16] ++ meta.hdr_val0[31:24] ++ 8w0x00 ++ 8w0x00; }
-                @in_hash { hdr.hdr0.data2 = meta.hdr_val0[7:0] ++ meta.hdr_val0[15:8]; }
-                // EP node  1606:Forward
-                // BDD node 25:FORWARD
-                nf_dev[15:0] = meta.dev[15:0];
-              } else {
-                // EP node  1126:Else
-                // BDD node 21:if
-                // EP node  3642:ModifyHeader
-                // BDD node 27:packet_return_chunk
-                rewrite_27();
-                @in_hash { hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00; }
-                @in_hash { hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8]; }
-                // EP node  3979:Forward
-                // BDD node 28:FORWARD
-                nf_dev[15:0] = meta.dev[15:0];
-              }
-            } else {
-              // EP node  748:Else
-              // BDD node 20:if
-              // EP node  944:ModifyHeader
-              // BDD node 30:packet_return_chunk
-              rewrite_30();
-              @in_hash { hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00; }
-              @in_hash { hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8]; }
-              // EP node  1025:Forward
-              // BDD node 31:FORWARD
-              nf_dev[15:0] = meta.dev[15:0];
-            }
-          } else {
-            // EP node  648:Else
-            // BDD node 18:if
-            // EP node  1729:If
-            // BDD node 33:if
-            bool cond1 = false;
-            if ((24w0x000000) == (quotient0[31:8])){
-              if ((quotient0[7:0]) < (8w0xa0)){
-                cond1 = true;
-              }
-            }
-            if (cond1) {
-              // EP node  1730:Then
-              // BDD node 33:if
-              // EP node  1903:If
-              // BDD node 34:if
-              bool cond2 = false;
-              if ((24w0x000000) == (meta.vector_reg_value0[31:8])){
-                if ((meta.vector_reg_value0[7:0]) <= (8w0x3e)){
-                  cond2 = true;
+              bool cond0 = false;
+              if ((24w0x000000) == (quotient0[31:8])){
+                if ((quotient0[7:0]) < (8w0xa0)){
+                  cond0 = true;
                 }
               }
-              if (cond2) {
-                // EP node  1904:Then
-                // BDD node 34:if
-                // EP node  2024:Ln
-                // BDD node 35:ln
-                meta.ln_35_key = (32w0x0000003f) - (meta.vector_reg_value0);
-                ln_35.apply();
-                // EP node  2390:ModifyHeader
-                // BDD node 37:packet_return_chunk
-                hdr_val1_calc();
-                rewrite_37();
-                @in_hash { hdr.hdr0.data3 = meta.hdr_val1[23:16] ++ meta.hdr_val1[31:24] ++ 8w0x00 ++ 8w0x00; }
-                @in_hash { hdr.hdr0.data2 = meta.hdr_val1[7:0] ++ meta.hdr_val1[15:8]; }
-                // EP node  2520:Forward
-                // BDD node 38:FORWARD
-                nf_dev[15:0] = meta.dev[15:0];
+              if (cond0) {
+                // EP node  747:Then
+                // BDD node 20:if
+                // EP node  1124:If
+                // BDD node 21:if
+                if ((meta.vector_reg_value0) <= (32w0x0000003f)){
+                  // EP node  1125:Then
+                  // BDD node 21:if
+                  // EP node  1218:Ln
+                  // BDD node 22:ln
+                  meta.ln_22_key = (32w0x00000040) - (meta.vector_reg_value0);
+                  ln_22.apply();
+                  // EP node  1503:ModifyHeader
+                  // BDD node 24:packet_return_chunk
+                  hdr_val0_calc();
+                  rewrite_24();
+                  @in_hash { hdr.hdr0.data3 = meta.hdr_val0[23:16] ++ meta.hdr_val0[31:24] ++ 8w0x00 ++ 8w0x00; }
+                  @in_hash { hdr.hdr0.data2 = meta.hdr_val0[7:0] ++ meta.hdr_val0[15:8]; }
+                  // EP node  1606:Forward
+                  // BDD node 25:FORWARD
+                  nf_dev[15:0] = meta.dev[15:0];
+                } else {
+                  // EP node  1126:Else
+                  // BDD node 21:if
+                  // EP node  3642:ModifyHeader
+                  // BDD node 27:packet_return_chunk
+                  rewrite_27();
+                  @in_hash { hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00; }
+                  @in_hash { hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8]; }
+                  // EP node  3979:Forward
+                  // BDD node 28:FORWARD
+                  nf_dev[15:0] = meta.dev[15:0];
+                }
               } else {
-                // EP node  1905:Else
-                // BDD node 34:if
-                // EP node  3831:ModifyHeader
-                // BDD node 40:packet_return_chunk
-                rewrite_40();
+                // EP node  748:Else
+                // BDD node 20:if
+                // EP node  944:ModifyHeader
+                // BDD node 30:packet_return_chunk
+                rewrite_30();
                 @in_hash { hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00; }
                 @in_hash { hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8]; }
-                // EP node  4071:Forward
-                // BDD node 41:FORWARD
+                // EP node  1025:Forward
+                // BDD node 31:FORWARD
                 nf_dev[15:0] = meta.dev[15:0];
               }
             } else {
-              // EP node  1731:Else
+              // EP node  648:Else
+              // BDD node 18:if
+              // EP node  1729:If
               // BDD node 33:if
-              // EP node  2809:ModifyHeader
-              // BDD node 43:packet_return_chunk
-              rewrite_43();
-              @in_hash { hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00; }
-              @in_hash { hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8]; }
-              // EP node  2941:Forward
-              // BDD node 44:FORWARD
-              nf_dev[15:0] = meta.dev[15:0];
+              bool cond1 = false;
+              if ((24w0x000000) == (quotient0[31:8])){
+                if ((quotient0[7:0]) < (8w0xa0)){
+                  cond1 = true;
+                }
+              }
+              if (cond1) {
+                // EP node  1730:Then
+                // BDD node 33:if
+                // EP node  1903:If
+                // BDD node 34:if
+                bool cond2 = false;
+                if ((24w0x000000) == (meta.vector_reg_value0[31:8])){
+                  if ((meta.vector_reg_value0[7:0]) <= (8w0x3e)){
+                    cond2 = true;
+                  }
+                }
+                if (cond2) {
+                  // EP node  1904:Then
+                  // BDD node 34:if
+                  // EP node  2024:Ln
+                  // BDD node 35:ln
+                  meta.ln_35_key = (32w0x0000003f) - (meta.vector_reg_value0);
+                  ln_35.apply();
+                  // EP node  2390:ModifyHeader
+                  // BDD node 37:packet_return_chunk
+                  hdr_val1_calc();
+                  rewrite_37();
+                  @in_hash { hdr.hdr0.data3 = meta.hdr_val1[23:16] ++ meta.hdr_val1[31:24] ++ 8w0x00 ++ 8w0x00; }
+                  @in_hash { hdr.hdr0.data2 = meta.hdr_val1[7:0] ++ meta.hdr_val1[15:8]; }
+                  // EP node  2520:Forward
+                  // BDD node 38:FORWARD
+                  nf_dev[15:0] = meta.dev[15:0];
+                } else {
+                  // EP node  1905:Else
+                  // BDD node 34:if
+                  // EP node  3831:ModifyHeader
+                  // BDD node 40:packet_return_chunk
+                  rewrite_40();
+                  @in_hash { hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00; }
+                  @in_hash { hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8]; }
+                  // EP node  4071:Forward
+                  // BDD node 41:FORWARD
+                  nf_dev[15:0] = meta.dev[15:0];
+                }
+              } else {
+                // EP node  1731:Else
+                // BDD node 33:if
+                // EP node  2809:ModifyHeader
+                // BDD node 43:packet_return_chunk
+                rewrite_43();
+                @in_hash { hdr.hdr0.data3 = quotient0[23:16] ++ quotient0[31:24] ++ 8w0x00 ++ 8w0x00; }
+                @in_hash { hdr.hdr0.data2 = quotient0[7:0] ++ quotient0[15:8]; }
+                // EP node  2941:Forward
+                // BDD node 44:FORWARD
+                nf_dev[15:0] = meta.dev[15:0];
+              }
             }
           }
+        } else {
+          // EP node  7:Else
+          // BDD node 4:if
+          // EP node  3513:ParserReject
+          // BDD node 81:DROP
         }
-        // EP node  7:Else
-        // BDD node 4:if
-        // EP node  3513:ParserReject
-        // BDD node 81:DROP
       }
 
     }

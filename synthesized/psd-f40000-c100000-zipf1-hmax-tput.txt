@@ -7,16 +7,16 @@ Args:
   Profile file:       psd-f40000-c100000-zipf1.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,669'000'000,73,-10,-14'670'080,0>
-  Tput: 471.03 Gbps (669.07 Mpps)
-  Spec: 471.03 Gbps (669.07 Mpps)
+  Score: <0,672'000'000,73,-10,-14'670'080,0>
+  Tput: 473.78 Gbps (672.99 Mpps)
+  Spec: 473.78 Gbps (672.99 Mpps)
   Recirculations: 0
   BDD Progress: 73 / 82
   Stages: 10
@@ -31,7 +31,7 @@ Stateful Implementations:
   1074109560: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       10 seconds
+  Elapsed time:       23 seconds
   Steps:              74
   Backtracks:         0
   Search space size:  225

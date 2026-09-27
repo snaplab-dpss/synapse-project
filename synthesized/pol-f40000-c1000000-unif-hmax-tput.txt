@@ -7,36 +7,36 @@ Args:
   Profile file:       pol-f40000-c1000000-unif.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,16'000'000,57,-3,-2'108'096,-2>
-  Tput: 11.30 Gbps (16.04 Mpps)
-  Spec: 11.29 Gbps (16.04 Mpps)
-  Recirculations: 2
+  Score: <0,16'100'000,57,-4,-2'108'096,0>
+  Tput: 11.39 Gbps (16.17 Mpps)
+  Spec: 11.39 Gbps (16.17 Mpps)
+  Recirculations: 0
   BDD Progress: 57 / 60
-  Stages: 3
+  Stages: 4
   Memory Usage: 2108096 bits
 
 Stateful Implementations:
-  1074041392: Tofino::Meter
   1074071224: Tofino::VectorTable
+  1074041392: Tofino::Meter
   1074054008: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       1 seconds
-  Steps:              60
+  Elapsed time:       2 seconds
+  Steps:              58
   Backtracks:         0
-  Search space size:  169
-  Unfinished EPs:     109
+  Search space size:  170
+  Unfinished EPs:     112
   Finished EPs:       1
   Avg BDD size:       57
   Branching factor:   2
-  Design space:       10^22
+  Design space:       10^23
   Avg children per node:
     Node 166: 2
     Node 165: 2
@@ -46,24 +46,24 @@ Search Metadata:
     Node 163: 4
     Node 155: 0
     Node 154: 0
-    Node 172: 3
+    Node 172: 4
     Node 162: 4
     Node 153: 0
-    Node 171: 3
+    Node 171: 4
     Node 188: 4
     Node 152: 0
-    Node 170: 3
+    Node 170: 4
     Node 161: 4
     Node 151: 0
     Node 147: 0
     Node 182: 4
     Node 181: 3
-    Node 169: 3
-    Node 160: 4
+    Node 169: 4
+    Node 160: 5
     Node 150: 0
     Node 146: 0
     Node 180: 4
-    Node 168: 3
+    Node 168: 4
     Node 159: 3
     Node 149: 0
     Node 145: 0
@@ -81,14 +81,14 @@ Search Metadata:
     Node 156: 0
     Node 133: 3
     Node 184: 4
-    Node 132: 2.5
+    Node 132: 3
     Node 183: 3
     Node 131: 2
     Node 139: 4
-    Node 140: 2.5
+    Node 140: 3
     Node 175: 6
     Node 141: 3
-    Node 176: 5
+    Node 176: 4
     Node 142: 2
     Node 177: 4
     Node 148: 0
@@ -98,26 +98,36 @@ Search Metadata:
     Node 179: 4
 
 Global Stats:
-  Num phase 1 speculations: 4'509 (100%)
-  Num phase 2 speculations: 49 (1.08672%)
-  Num speculated modules:   81'145
-  Num EPs generated:        169
+  Num phase 1 speculations: 4'392 (100%)
+  Num phase 2 speculations: 47 (1.07013%)
+  Num speculated modules:   78'889
+  Num EPs generated:        170
 
 Switch placement:
 
 ====================== TNA Pipeline ======================
 -------------------------------------
 Stage 0
-SRAM: 262'864/1'310'720 B (20.0549%)
+SRAM: 720/1'310'720 B (0.0549316%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
-Logical IDs: 3/16
+Logical IDs: 2/16
 Hash Dist Units: 0/6
-Exact Match Crossbar: 10/128 B (7.8125%)
-Objs: [ingress_port_to_nf_dev,tb_140,vector_table_1074054008_137]
+Exact Match Crossbar: 6/128 B (4.6875%)
+Objs: [ingress_port_to_nf_dev,vector_table_1074054008_137]
 -------------------------------------
 -------------------------------------
 Stage 1
+SRAM: 262'144/1'310'720 B (20%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [tb_140]
+-------------------------------------
+-------------------------------------
+Stage 2
 SRAM: 648/1'310'720 B (0.0494385%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)
@@ -127,7 +137,7 @@ Exact Match Crossbar: 12/128 B (9.375%)
 Objs: [compute_op_and_188_a,vector_table_1074071224_159,vector_table_1074071224_167,vector_table_1074071224_175]
 -------------------------------------
 -------------------------------------
-Stage 2
+Stage 3
 SRAM: 0/1'310'720 B (0%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)

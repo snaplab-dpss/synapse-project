@@ -7,8 +7,8 @@ Args:
   Profile file:       kvs-f40000-c10000-zipf0_2.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       4 seconds
+  Elapsed time:       8 seconds
   Steps:              49
   Backtracks:         0
   Search space size:  171

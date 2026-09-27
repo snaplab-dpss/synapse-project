@@ -5,19 +5,19 @@
     "num_phase1_speculations": 11327,
     "num_phase2_speculations": 183,
     "num_speculated_modules": 115885,
-    "time_per_instantiation_us": 552,
-    "time_per_speculation_us": 63,
-    "total_time_spent_generating_execution_plans_us": 98932,
-    "total_time_spent_speculating_us": 7369692
+    "time_per_instantiation_us": 1125,
+    "time_per_speculation_us": 133,
+    "total_time_spent_generating_execution_plans_us": 201532,
+    "total_time_spent_speculating_us": 15526050
   },
   "heuristic": {
     "meta": [
       {
-        "description": "793.55 Gbps (1.13 Gpps)",
+        "description": "805.01 Gbps (1.14 Gpps)",
         "name": "Tput"
       },
       {
-        "description": "793.55 Gbps (1.13 Gpps)",
+        "description": "805.01 Gbps (1.14 Gpps)",
         "name": "Spec"
       },
       {
@@ -39,7 +39,7 @@
     ],
     "score": [
       0,
-      1120000000,
+      1140000000,
       58,
       -9,
       -26137984,
@@ -504,7 +504,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1636363636363636,
-    "elapsed_time_seconds": 19,
+    "elapsed_time_seconds": 42,
     "finished_eps": 1,
     "log10_design_space": 21,
     "ss_size": 179,
@@ -513,6 +513,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2.toml",
-  "tput_estimation_bps": 793549924288,
-  "tput_estimation_pps": 1127201597
+  "tput_estimation_bps": 805011846144,
+  "tput_estimation_pps": 1143482736
 }

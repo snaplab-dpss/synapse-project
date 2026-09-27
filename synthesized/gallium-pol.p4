@@ -117,6 +117,9 @@ struct synapse_ingress_metadata_t {
   bit<2> leaving;
   bit<32> vector_reg_value0;
   bit<16> vector_reg_value1;
+  bit<16> pkt_len;
+  bit<1> pc_133;
+  bit<1> pc_135;
   bit<1> to_egress;
 
 }
@@ -218,6 +221,8 @@ parser IngressParser(
   }
 
   state parser_init {
+    meta.pc_133 = 0;
+    meta.pc_135 = 0;
     pkt.extract(hdr.hdr0);
     transition parser_133;
   }
@@ -231,6 +236,7 @@ parser IngressParser(
     }
   }
   state parser_134 {
+    meta.pc_133 = 1;
     pkt.extract(hdr.hdr1);
     transition parser_135;
   }
@@ -248,6 +254,7 @@ parser IngressParser(
     }
   }
   state parser_136 {
+    meta.pc_135 = 1;
     pkt.extract(hdr.hdr2);
     transition parser_181;
   }
@@ -260,6 +267,9 @@ parser IngressParser(
 
 }
 
+
+@pa_solitary("ingress", "meta.pc_133")
+@pa_solitary("ingress", "meta.pc_135")
 
 
 control Ingress(
@@ -420,6 +430,10 @@ control Ingress(
   }
 
   apply {
+    meta.pkt_len = 0;
+    if (hdr.hdr1.isValid()) {
+      meta.pkt_len = hdr.hdr1.data1[15:0] + 14;
+    }
     meta.to_egress = 0;
 
     ingress_port_to_nf_dev.apply();
@@ -436,64 +450,70 @@ control Ingress(
       if(hdr.hdr0.isValid()) {
         // EP node  13:ParserCondition
         // BDD node 133:if
-        // EP node  14:Then
-        // BDD node 133:if
-        // EP node  26:ParserExtraction
-        // BDD node 134:packet_borrow_next_chunk
-        if(hdr.hdr1.isValid()) {
-          // EP node  58:ParserCondition
-          // BDD node 135:if
-          // EP node  59:Then
-          // BDD node 135:if
-          // EP node  98:ParserExtraction
-          // BDD node 136:packet_borrow_next_chunk
-          if(hdr.hdr2.isValid()) {
-            // EP node  141:VectorRegisterLookup
-            // BDD node 137:vector_borrow
-            regexec_vector_register_1074054008_0_read_141();
-            // EP node  211:Ignore
-            // BDD node 138:vector_return
-            // EP node  275:If
-            // BDD node 139:if
-            if ((32w0x00000000) == (meta.vector_reg_value0)){
-              // EP node  276:Then
-              // BDD node 139:if
-              // EP node  363:SendToController
-              // BDD node 140:tb_is_tracing
-              fwd_op = fwd_op_t.FORWARD_TO_CPU;
-              build_cpu_hdr(0);
-              hdr.cpu.time = meta.time;
-              hdr.cpu.vector_reg_value0 = meta.vector_reg_value0;
-              hdr.cpu.dev = meta.dev;
+        if (meta.pc_133 == 1) {
+          // EP node  14:Then
+          // BDD node 133:if
+          // EP node  26:ParserExtraction
+          // BDD node 134:packet_borrow_next_chunk
+          if(hdr.hdr1.isValid()) {
+            // EP node  58:ParserCondition
+            // BDD node 135:if
+            if (meta.pc_135 == 1) {
+              // EP node  59:Then
+              // BDD node 135:if
+              // EP node  98:ParserExtraction
+              // BDD node 136:packet_borrow_next_chunk
+              if(hdr.hdr2.isValid()) {
+                // EP node  141:VectorRegisterLookup
+                // BDD node 137:vector_borrow
+                regexec_vector_register_1074054008_0_read_141();
+                // EP node  211:Ignore
+                // BDD node 138:vector_return
+                // EP node  275:If
+                // BDD node 139:if
+                if ((32w0x00000000) == (meta.vector_reg_value0)){
+                  // EP node  276:Then
+                  // BDD node 139:if
+                  // EP node  363:SendToController
+                  // BDD node 140:tb_is_tracing
+                  fwd_op = fwd_op_t.FORWARD_TO_CPU;
+                  build_cpu_hdr(0);
+                  hdr.cpu.time = meta.time;
+                  hdr.cpu.vector_reg_value0 = meta.vector_reg_value0;
+                  hdr.cpu.dev = meta.dev;
+                } else {
+                  // EP node  277:Else
+                  // BDD node 139:if
+                  // EP node  388:VectorRegisterLookup
+                  // BDD node 175:vector_borrow
+                  regexec_vector_register_1074071224_0_read_388();
+                  // EP node  517:Ignore
+                  // BDD node 176:vector_return
+                  // EP node  625:SendToEgress
+                  // BDD node 177:packet_return_chunk
+                  meta.to_egress = 1;
+                  hdr.recirc.setValid();
+                  hdr.egress_state.setValid();
+                  hdr.egress_state.code_path = 0;
+                  hdr.egress_state.time = meta.time;
+                  hdr.egress_state.e32_0 = meta.dev;
+                  hdr.egress_state.e16_0 = meta.vector_reg_value1;
+                  nf_dev[15:0] = hdr.egress_state.e16_0;
+                }
+              }
             } else {
-              // EP node  277:Else
-              // BDD node 139:if
-              // EP node  388:VectorRegisterLookup
-              // BDD node 175:vector_borrow
-              regexec_vector_register_1074071224_0_read_388();
-              // EP node  517:Ignore
-              // BDD node 176:vector_return
-              // EP node  625:SendToEgress
-              // BDD node 177:packet_return_chunk
-              meta.to_egress = 1;
-              hdr.recirc.setValid();
-              hdr.egress_state.setValid();
-              hdr.egress_state.code_path = 0;
-              hdr.egress_state.time = meta.time;
-              hdr.egress_state.e32_0 = meta.dev;
-              hdr.egress_state.e16_0 = meta.vector_reg_value1;
-              nf_dev[15:0] = hdr.egress_state.e16_0;
+              // EP node  60:Else
+              // BDD node 135:if
+              // EP node  1437:ParserReject
+              // BDD node 185:DROP
             }
           }
-          // EP node  60:Else
-          // BDD node 135:if
-          // EP node  1437:ParserReject
-          // BDD node 185:DROP
+        } else {
+          // EP node  15:Else
+          // BDD node 133:if
+          // EP node  1271:ParserReject
+          // BDD node 187:DROP
         }
-        // EP node  15:Else
-        // BDD node 133:if
-        // EP node  1271:ParserReject
-        // BDD node 187:DROP
       }
 
     }

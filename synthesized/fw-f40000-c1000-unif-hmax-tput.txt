@@ -7,14 +7,14 @@ Args:
   Profile file:       fw-f40000-c1000-unif.json
   Seed:               0
   Targets:
-    Tofino (53 modules)
-    Ctrl (98 modules)
+    Tofino (54 modules)
+    Ctrl (102 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'240'000'000,48,-3,-13'990'272,0>
+  Score: <0,2'250'000'000,48,-3,-13'990'272,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
@@ -29,7 +29,7 @@ Stateful Implementations:
   1074076488: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       11 seconds
+  Elapsed time:       26 seconds
   Steps:              49
   Backtracks:         0
   Search space size:  154
@@ -94,9 +94,9 @@ Search Metadata:
     Node 159: 0
 
 Global Stats:
-  Num phase 1 speculations: 10'968 (100%)
-  Num phase 2 speculations: 227 (2.06966%)
-  Num speculated modules:   121'671
+  Num phase 1 speculations: 11'232 (100%)
+  Num phase 2 speculations: 227 (2.02101%)
+  Num speculated modules:   121'896
   Num EPs generated:        154
 
 Switch placement:
