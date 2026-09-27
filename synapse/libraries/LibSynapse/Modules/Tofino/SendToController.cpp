@@ -658,6 +658,9 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Controller_DataplaneLPMAllocate:
     case ModuleType::Controller_DataplaneLPMUpdate:
     case ModuleType::Controller_DataplaneLPMLookup:
+    case ModuleType::Controller_LPMAllocate:
+    case ModuleType::Controller_LPMUpdate:
+    case ModuleType::Controller_LPMLookup:
     case ModuleType::Controller_DnsGetResponse:
     case ModuleType::Controller_DataplaneCMSAllocate:
     case ModuleType::Controller_DataplaneCMSQuery:

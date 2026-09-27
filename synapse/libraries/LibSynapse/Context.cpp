@@ -759,6 +759,9 @@ std::ostream &operator<<(std::ostream &os, DSImpl impl) {
   case DSImpl::Controller_ConsistentHashTable:
     os << "Controller::Cht";
     break;
+  case DSImpl::Controller_LPM:
+    os << "Controller::LPM";
+    break;
   case DSImpl::Controller_TokenBucket:
     os << "Controller::TB";
     break;

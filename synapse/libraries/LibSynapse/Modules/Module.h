@@ -142,6 +142,9 @@ enum class ModuleType {
   Controller_DataplaneLPMAllocate,
   Controller_DataplaneLPMUpdate,
   Controller_DataplaneLPMLookup,
+  Controller_LPMAllocate,
+  Controller_LPMUpdate,
+  Controller_LPMLookup,
   Controller_DataplaneGuardedMapTableAllocate,
   Controller_DataplaneGuardedMapTableLookup,
   Controller_DataplaneGuardedMapTableUpdate,
@@ -685,6 +688,15 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneLPMLookup:
     os << "Controller_DataplaneLPMLookup";
+    break;
+  case ModuleType::Controller_LPMAllocate:
+    os << "Controller_LPMAllocate";
+    break;
+  case ModuleType::Controller_LPMUpdate:
+    os << "Controller_LPMUpdate";
+    break;
+  case ModuleType::Controller_LPMLookup:
+    os << "Controller_LPMLookup";
     break;
   case ModuleType::Controller_CMSAllocate:
     os << "Controller_CMSAllocate";

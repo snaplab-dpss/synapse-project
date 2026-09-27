@@ -95,6 +95,9 @@
 #include <LibSynapse/Modules/Controller/DataplaneLPMAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneLPMUpdate.h>
 #include <LibSynapse/Modules/Controller/DataplaneLPMLookup.h>
+#include <LibSynapse/Modules/Controller/LPMAllocate.h>
+#include <LibSynapse/Modules/Controller/LPMUpdate.h>
+#include <LibSynapse/Modules/Controller/LPMLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneIntegerAllocatorAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneIntegerAllocatorFreeIndex.h>
 #include <LibSynapse/Modules/Controller/CMSAllocate.h>
@@ -207,6 +210,9 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneLPMAllocateFactory>());
               f.push_back(std::make_unique<DataplaneLPMUpdateFactory>());
               f.push_back(std::make_unique<DataplaneLPMLookupFactory>());
+              f.push_back(std::make_unique<LPMAllocateFactory>());
+              f.push_back(std::make_unique<LPMUpdateFactory>());
+              f.push_back(std::make_unique<LPMLookupFactory>());
               f.push_back(std::make_unique<DataplaneIntegerAllocatorAllocateFactory>());
               f.push_back(std::make_unique<DataplaneIntegerAllocatorFreeIndexFactory>());
               f.push_back(std::make_unique<CMSAllocateFactory>());

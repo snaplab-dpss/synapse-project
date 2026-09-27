@@ -24,10 +24,10 @@ using LibBDD::bf_config_t;
 using LibBDD::cht_config_t;
 using LibBDD::cms_config_t;
 using LibBDD::dchain_config_t;
+using LibBDD::lpm_config_t;
 using LibBDD::map_coalescing_objs_t;
 using LibBDD::map_config_t;
 using LibBDD::symbol_translation_t;
-using LibBDD::lpm_config_t;
 using LibBDD::tb_config_t;
 using LibBDD::vector_config_t;
 
@@ -67,6 +67,7 @@ enum class DSImpl {
   Controller_CountMinSketch,
   Controller_BloomFilter,
   Controller_TokenBucket,
+  Controller_LPM,
 
   // ========================================
   // x86

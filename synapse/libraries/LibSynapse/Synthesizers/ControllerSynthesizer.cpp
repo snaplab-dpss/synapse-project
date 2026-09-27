@@ -2495,6 +2495,52 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+// The LPM kept by the controller itself: libnf's, the very structure the NF's C code runs (as
+// the controller's token bucket), rather than the switch's ternary table.
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::LPMAllocate *node) {
+  const code_t name = "cpu_lpm_" + std::to_string(node->get_obj());
+
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+  state_fields.indent();
+  state_fields << "libnf::LPM *" << name << " = nullptr;\n";
+
+  coder_t &nf_init = get(MARKER_NF_INIT);
+  nf_init.indent();
+  nf_init << "libnf::lpm_allocate(" << transpiler.transpile(node->get_capacity()) << ", " << transpiler.transpile(node->get_key_size())
+          << ", &state->" << name << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::LPMUpdate *node) {
+  coder_t &coder = get_current_coder();
+
+  const code_t name      = "cpu_lpm_" + std::to_string(node->get_obj());
+  const var_t prefix_var = transpile_buffer_decl_and_set(coder, "lpm_prefix", node->get_prefix(), true, /*memory_image=*/true);
+
+  coder.indent();
+  coder << "libnf::lpm_update(state->" << name << ", " << prefix_var.name << ".data, " << transpiler.transpile(node->get_prefixlen()) << ", "
+        << transpiler.transpile(node->get_value()) << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::LPMLookup *node) {
+  coder_t &coder = get_current_coder();
+
+  const code_t name     = "cpu_lpm_" + std::to_string(node->get_obj());
+  const var_t key_var   = transpile_buffer_decl_and_set(coder, "lpm_key", node->get_key(), true, /*memory_image=*/true);
+  const var_t value_var = alloc_var("lpm_value", node->get_value(), {}, NO_OPTION);
+  const var_t match_var = alloc_var("lpm_match", node->get_match(), {}, NO_OPTION);
+
+  coder.indent();
+  coder << "int " << value_var.name << " = 0;\n";
+  coder.indent();
+  coder << "int " << match_var.name << " = libnf::lpm_lookup(state->" << name << ", " << key_var.name << ".data, &" << value_var.name << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterAllocate *node) {
   const addr_t obj = node->get_obj();
 

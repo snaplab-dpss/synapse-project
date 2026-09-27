@@ -128,6 +128,9 @@ class DataplaneMeterIsTracing;
 class DataplaneLPMAllocate;
 class DataplaneLPMUpdate;
 class DataplaneLPMLookup;
+class LPMAllocate;
+class LPMUpdate;
+class LPMLookup;
 class DataplaneIntegerAllocatorAllocate;
 class DataplaneIntegerAllocatorFreeIndex;
 class DataplaneCMSAllocate;
@@ -382,6 +385,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMLookup *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::LPMAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::LPMUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::LPMLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *m) { return Action::doChildren; }

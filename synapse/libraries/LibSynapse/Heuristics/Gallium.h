@@ -66,6 +66,7 @@ private:
       case DSImpl::Tofino_VectorRegister:
       case DSImpl::Tofino_CountMinSketch:
       case DSImpl::Tofino_BloomFilter:
+      case DSImpl::Tofino_LPM: // A longest-prefix match is a table match; Gallium never met one only because Click has none.
         break;
 
         // ========================================
@@ -80,7 +81,6 @@ private:
       case DSImpl::Tofino_HeavyHitterTable:
       case DSImpl::Tofino_IntegerAllocator:
       case DSImpl::Tofino_CuckooHashTable:
-      case DSImpl::Tofino_LPM:
         count++;
         break;
 
@@ -95,6 +95,7 @@ private:
       case DSImpl::Controller_CountMinSketch:
       case DSImpl::Controller_BloomFilter:
       case DSImpl::Controller_TokenBucket:
+      case DSImpl::Controller_LPM:
         break;
 
         // ========================================

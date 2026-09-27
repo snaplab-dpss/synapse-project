@@ -269,6 +269,9 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::LPMAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::LPMUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::LPMLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSAllocate *node) override final;
