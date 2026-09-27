@@ -54,6 +54,7 @@ class BloomFilterQuery;
 class BloomFilterSet;
 class BloomFilterQueryAndSet;
 class LPMLookup;
+class DnsGetResponse;
 class CuckooHashTableReadWrite;
 class HashObj;
 class CountTrailingZeros;
@@ -69,6 +70,7 @@ class RotateLeftShifts;
 namespace Controller {
 class Ignore;
 class ParseHeader;
+class DnsGetResponse;
 class ModifyHeader;
 class ChecksumUpdate;
 class If;
@@ -123,6 +125,9 @@ class DataplaneHHTableOutOfBandUpdate;
 class DataplaneMeterAllocate;
 class DataplaneMeterInsert;
 class DataplaneMeterIsTracing;
+class DataplaneLPMAllocate;
+class DataplaneLPMUpdate;
+class DataplaneLPMLookup;
 class DataplaneIntegerAllocatorAllocate;
 class DataplaneIntegerAllocatorFreeIndex;
 class DataplaneCMSAllocate;
@@ -269,6 +274,7 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterSet *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterQueryAndSet *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DnsGetResponse *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HashObj *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CountTrailingZeros *m) { return Action::doChildren; }
@@ -286,6 +292,7 @@ public:
 
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ignore *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::ParseHeader *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DnsGetResponse *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::ModifyHeader *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::ChecksumUpdate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::If *m) { return Action::doChildren; }
@@ -372,6 +379,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterIsTracing *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMAllocate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *m) { return Action::doChildren; }

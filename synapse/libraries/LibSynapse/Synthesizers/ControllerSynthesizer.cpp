@@ -201,7 +201,16 @@ klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitNotOptimized(c
 }
 
 klee::ExprVisitor::Action ControllerSynthesizer::Transpiler::visitSelect(const klee::SelectExpr &e) {
-  panic("TODO: visitSelect");
+  coder_t &coder = coders.top();
+
+  klee::ref<klee::Expr> cond     = e.getKid(0);
+  klee::ref<klee::Expr> on_true  = e.getKid(1);
+  klee::ref<klee::Expr> on_false = e.getKid(2);
+
+  coder << "((" << transpile(cond, loaded_opt) << ")";
+  coder << " ? (" << transpile(on_true, loaded_opt) << ")";
+  coder << " : (" << transpile(on_false, loaded_opt) << "))";
+
   return Action::skipChildren();
 }
 
@@ -809,10 +818,10 @@ void ControllerSynthesizer::synthesize() {
   symbol_t device  = bdd->get_device();
   symbol_t pkt_len = bdd->get_packet_len();
 
-  // The nf_process parameters, under their own names (a unique name would be now_0, which
-  // nothing declares).
+  // The nf_process parameter and the template's own locals, under their own names (a unique name
+  // would be now_0, which nothing declares).
   alloc_var("now", now.expr, {}, EXACT_NAME);
-  alloc_var("size", pkt_len.expr, {}, EXACT_NAME);
+  alloc_var("pkt_len", pkt_len.expr, {}, EXACT_NAME);
 
   // The packet's time is the switch's, shipped first after the cpu header (handoff_layout), not
   // the host's. The ingress keeps it as ingress_mac_tstamp[47:16], so the low 16 bits are gone: a
@@ -1126,6 +1135,60 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   coder << "packet_consume(";
   coder << "pkt";
   coder << ", " << transpiler.transpile(length);
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DnsGetResponse *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t msg_addr               = node->get_msg_addr();
+  const klee::ref<klee::Expr> length  = node->get_length();
+  const klee::ref<klee::Expr> name    = node->get_dns_name();
+  const klee::ref<klee::Expr> address = node->get_address();
+  const klee::ref<klee::Expr> found   = node->get_found();
+
+  const std::optional<var_t> msg = vars.get_by_addr(msg_addr);
+  assert(msg.has_value() && "DNS message header not found");
+
+  // After a punt the address and whether there was one arrive with the packet: the data plane
+  // parsed them past records it stepped over, which the packet no longer carries. The name is
+  // before those and is parsed here again. The address is the packet's bytes, the NF's uint32_t
+  // as it sits in memory, so the CPU header field is taken as it is, not as a number.
+  const bool shipped = vars.get(found, TRANSPILER_OPT_NO_OPTION).has_value();
+
+  const var_t name_var = alloc_var("dns_name", name, {}, IS_BUFFER);
+  coder.indent();
+  coder << "buffer_t " << name_var.name << "(" << name->getWidth() / 8 << ");\n";
+
+  if (shipped) {
+    // The shipped word is read as a big-endian number; swapping it back gives the field as it is.
+    const std::optional<var_t> shipped_address = vars.get(address, TRANSPILER_OPT_NO_OPTION);
+    assert(shipped_address.has_value() && "The address was not shipped with the found flag");
+    const var_t address_var   = alloc_var("dns_address", address, {}, NO_OPTION);
+    const code_t parsed_after = create_unique_name("dns_address_parsed");
+    coder.indent();
+    coder << "u32 " << address_var.name << " = bswap32(" << shipped_address->name << ");\n";
+    coder.indent();
+    coder << "u32 " << parsed_after << ";\n";
+    coder.indent();
+    coder << "libnf::dns_get_response((const libnf::dns_hdr *)" << msg->name << ", " << transpiler.transpile(length) << ", (libnf::dns_name *)"
+          << name_var.name << ".data, &" << parsed_after << ");\n";
+    return EPVisitor::Action::doChildren;
+  }
+
+  const var_t address_var = alloc_var("dns_address", address, {}, NO_OPTION);
+  const var_t found_var   = alloc_var("dns_response_found", found, {}, NO_OPTION);
+
+  coder.indent();
+  coder << "u32 " << address_var.name << ";\n";
+  coder.indent();
+  coder << "int " << found_var.name << " = libnf::dns_get_response(";
+  coder << "(const libnf::dns_hdr *)" << msg->name;
+  coder << ", " << transpiler.transpile(length);
+  coder << ", (libnf::dns_name *)" << name_var.name << ".data";
+  coder << ", &" << address_var.name;
   coder << ");\n";
 
   return EPVisitor::Action::doChildren;
@@ -1791,11 +1854,25 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   if (cell.has_value()) {
     cell_name = cell->name;
   } else {
-    cell_name = create_unique_name("vector_cell");
+    // Bound like VectorRead binds them: the new bytes are expressions over the borrowed value.
+    const Call *vector_return = dynamic_cast<const Call *>(node->get_node());
+    assert(vector_return && "Vector write node is not a call");
+    const klee::ref<klee::Expr> value = vector_return->get_vector_borrow_from_return()->get_call().extra_vars.at("borrowed_cell").second;
+    const bits_t width                = value->getWidth();
+
+    const var_t cell_var = alloc_var("vector_cell", value, value_addr, IS_PTR);
+    cell_name            = cell_var.name;
     coder.indent();
     coder << "u8 *" << cell_name << ";\n";
     coder.indent();
     coder << "libnf::vector_borrow(state->" << vecname << ", " << transpiler.transpile(index) << ", (void **)&" << cell_name << ");\n";
+
+    if (width == 8 || width == 16 || width == 32 || width == 64) {
+      const code_t type    = Transpiler::type_from_size(width);
+      const var_t val_copy = alloc_var("vector_value", value, {}, NO_OPTION);
+      coder.indent();
+      coder << type << " " << val_copy.name << " = *(" << type << " *)" << cell_name << ";\n";
+    }
   }
 
   // Apply the modified bytes through the borrowed pointer (like ModifyHeader), then
@@ -2052,6 +2129,38 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> new_value = node->get_new_value();
 
   const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
+
+  // A cell computed from a number (a counter) is written big-endian, as the data plane holds
+  // numbers; one copied from the packet (a KVS value) is bytes in the NF's order.
+  const bytes_t size = new_value->getWidth() / 8;
+
+  // The value read before the write is the data plane's when its borrow ran there; a write-only
+  // borrow is ignored there (VectorWrite has the same case), so it is read here when the new
+  // value is computed from it (an initialization writes constants: reading first would cost a
+  // switch read per cell for nothing).
+  const auto uses_old_value = [&]() {
+    const std::unordered_set<std::string> old_symbols = symbol_t::get_symbols_names(old_value);
+    for (const std::string &symbol : symbol_t::get_symbols_names(new_value)) {
+      if (old_symbols.contains(symbol)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  if (!vars.get(old_value, TRANSPILER_OPT_NO_OPTION).has_value() && uses_old_value()) {
+    const code_t old_cells = create_unique_name(vector_register->id + "_old_cell");
+    coder.indent();
+    coder << "buffer_t " << old_cells << "(" << size << ");\n";
+    coder.indent();
+    coder << "state->" << vector_register->id << ".get(" << transpiler.transpile(index) << ", " << old_cells << ");\n";
+    if (size <= 8) {
+      const var_t old_var = alloc_var(vector_register->id + "_old", old_value, {}, NO_OPTION);
+      coder.indent();
+      coder << Transpiler::type_from_expr(old_value) << " " << old_var.name << " = " << old_cells << ".get(0, " << size << ");\n";
+    } else {
+      alloc_var(old_cells, old_value, {}, IS_BUFFER | SKIP_ALLOC);
+    }
+  }
 
   const var_t value_var = transpile_buffer_decl_and_set(coder, vector_register->id + "_value", new_value, true);
 
@@ -2448,6 +2557,65 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   return EPVisitor::Action::doChildren;
 }
 
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMAllocate *node) {
+  const addr_t obj = node->get_obj();
+
+  const Tofino::LPM *lpm = get_unique_tofino_ds_from_obj<Tofino::LPM>(ep, obj);
+
+  transpile_lpm_decl(lpm);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMUpdate *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                      = node->get_obj();
+  const klee::ref<klee::Expr> prefix    = node->get_prefix();
+  const klee::ref<klee::Expr> prefixlen = node->get_prefixlen();
+  const klee::ref<klee::Expr> value     = node->get_value();
+
+  const Tofino::LPM *lpm = get_unique_tofino_ds_from_obj<Tofino::LPM>(ep, obj);
+
+  const var_t prefix_var = transpile_buffer_decl_and_set(coder, lpm->id + "_prefix", prefix, true, /*memory_image=*/true);
+
+  coder.indent();
+  coder << "state->" << lpm->id << ".update(";
+  coder << prefix_var.name;
+  coder << ", " << transpiler.transpile(prefixlen);
+  coder << ", " << transpiler.transpile(value);
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMLookup *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                  = node->get_obj();
+  const klee::ref<klee::Expr> key   = node->get_key();
+  const klee::ref<klee::Expr> value = node->get_value();
+  const klee::ref<klee::Expr> match = node->get_match();
+
+  const Tofino::LPM *lpm = get_unique_tofino_ds_from_obj<Tofino::LPM>(ep, obj);
+
+  const var_t key_var   = transpile_buffer_decl_and_set(coder, lpm->id + "_key", key, true);
+  const var_t value_var = alloc_var("value", value, {}, NO_OPTION);
+  const var_t match_var = alloc_var("match", match, {}, NO_OPTION);
+
+  coder.indent();
+  coder << "u32 " << value_var.name << ";\n";
+
+  coder.indent();
+  coder << "bool " << match_var.name << " = ";
+  coder << "state->" << lpm->id << ".lookup(";
+  coder << key_var.name;
+  coder << ", " << value_var.name;
+  coder << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *node) {
   coder_t &coder = get_current_coder();
   coder.indent();
@@ -2817,6 +2985,27 @@ void ControllerSynthesizer::transpile_meter_decl(const EP *ep, const Tofino::Met
   state_member_init_list.push_back(member_init_list.dump());
 }
 
+void ControllerSynthesizer::transpile_lpm_decl(const Tofino::LPM *lpm) {
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+
+  const code_t name = assert_unique_name(lpm->id);
+
+  // A DNS name's prefixes are written in the data plane's piece layout (Tofino::DnsGetResponse).
+  state_fields.indent();
+  state_fields << (lpm->dns_name_key ? "DnsNameLPM " : "LPM ") << name << ";\n";
+
+  synapse_data_structures_instances.push_back(name);
+
+  coder_t member_init_list;
+  member_init_list << name;
+  member_init_list << "(";
+  member_init_list << "\"" << name << "\",";
+  member_init_list << "\"" << gress() << lpm->id << "\"";
+  member_init_list << ")";
+
+  state_member_init_list.push_back(member_init_list.dump());
+}
+
 void ControllerSynthesizer::transpile_map_set_table_decl(const Tofino::MapSetTable *map_set_table) {
   coder_t &state_fields = get(MARKER_STATE_FIELDS);
 
@@ -3132,45 +3321,64 @@ void ControllerSynthesizer::transpile_bf_decl(const Tofino::BloomFilter *bf, tim
 // computed value (e.g. `counter + 1` written back to a register) is numeric as well, and writing
 // it byte-wise from its LSB would store it byte-swapped. An expression is numeric unless every
 // one of its bytes is a plain byte read.
+// Whether a value is a number (a constant, an arithmetic result, a symbol the controller holds
+// in a word: an LPM's result, an allocated index) rather than bytes of the packet (a KVS value
+// copied from the request). A number goes into a data-plane register big-endian; packet bytes go
+// in as they lie. Anything wider than a word is bytes either way.
 static bool is_numeric_buffer_value(klee::ref<klee::Expr> expr) {
-  if (is_constant(expr)) {
-    return true;
+  if (expr->getWidth() > 64) {
+    return false; // Wider than a word: set byte by byte (a 65-byte DNS name prefix).
   }
 
-  if (expr->getWidth() > 64 || expr->getKind() == klee::Expr::Concat) {
-    return false;
+  const std::unordered_set<std::string> symbols = symbol_t::get_symbols_names(expr);
+  const bool packet                             = symbols.contains("packet_chunks");
+
+  if (expr->getKind() == klee::Expr::Concat) {
+    // Several symbols side by side is a key: bytes. One symbol read whole is a word the
+    // controller holds (a number) unless it is a slice of the packet (bytes).
+    return symbols.size() == 1 && !packet;
   }
 
-  const bytes_t size = expr->getWidth() / 8;
-  for (bytes_t i = 0; i < size; i++) {
-    klee::ref<klee::Expr> byte = solver_toolbox.exprBuilder->Extract(expr, i * 8, 8);
-    if (byte->getKind() != klee::Expr::Read) {
-      return true;
-    }
+  if (!packet) {
+    return true; // A constant, an arithmetic result, or a byte of a word.
   }
 
-  return false;
+  // A single byte read from the packet is bytes; anything computed from packet bytes
+  // (SmartCookie's clock, shifted out of a datagram) is a number.
+  return expr->getKind() != klee::Expr::Read;
 }
 
+// A buffer of the NF's bytes. A number goes in big-endian, as the data plane holds numbers; a
+// memory image (an LPM prefix: whatever bytes the NF keeps at the address it passes) goes in as
+// the NF's memory is laid out, first byte first.
 ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name,
-                                                                                  klee::ref<klee::Expr> expr, bool skip_alloc) {
-  const var_t var    = alloc_var(proposed_name, expr, {}, IS_BUFFER | (skip_alloc ? SKIP_ALLOC : NO_OPTION));
+                                                                                  klee::ref<klee::Expr> expr, bool skip_alloc, bool memory_image) {
   const bytes_t size = expr->getWidth() / 8;
+
+  // Transpiled before the buffer stands for the expression: a value computed from a cell read
+  // right before (a counter's `old + n`) must name that read, not the buffer being filled.
+  const bool numeric = !memory_image && is_numeric_buffer_value(expr);
+  code_t number;
+  std::vector<code_t> bytes;
+  if (numeric) {
+    number = transpiler.transpile(expr);
+  } else {
+    for (klee::ref<klee::Expr> byte : bytes_in_expr(expr, !memory_image)) {
+      bytes.push_back(transpiler.transpile(byte));
+    }
+    assert(size == bytes.size() && "Size mismatch");
+  }
+
+  const var_t var = alloc_var(proposed_name, expr, {}, IS_BUFFER | (skip_alloc ? SKIP_ALLOC : NO_OPTION));
 
   coder.indent();
   coder << "buffer_t " << var.name << "(" << size << ");\n";
 
-  if (is_numeric_buffer_value(expr)) {
+  if (numeric) {
     coder.indent();
-    coder << var.name << ".set(0, " << size << ", " << transpiler.transpile(expr) << ");\n";
+    coder << var.name << ".set(0, " << size << ", " << number << ");\n";
     return var;
   }
-
-  std::vector<code_t> bytes;
-  for (klee::ref<klee::Expr> byte : bytes_in_expr(expr, true)) {
-    bytes.push_back(transpiler.transpile(byte));
-  }
-  assert(size == bytes.size() && "Size mismatch");
 
   for (bytes_t i = 0; i < size; i++) {
     coder.indent();

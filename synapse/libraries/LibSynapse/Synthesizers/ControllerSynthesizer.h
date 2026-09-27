@@ -179,6 +179,7 @@ private:
 
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ignore *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ParseHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DnsGetResponse *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ModifyHeader *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ChecksumUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::If *node) override final;
@@ -265,6 +266,9 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterIsTracing *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::CMSAllocate *node) override final;
@@ -299,9 +303,11 @@ private:
   var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr, var_alloc_opt_t opt);
   code_path_t alloc_recirc_coder();
 
-  var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr, bool skip_alloc);
+  var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr, bool skip_alloc,
+                                      bool memory_image = false);
   void transpile_map_table_decl(const Tofino::MapTable *map_table);
   void transpile_meter_decl(const EP *ep, const Tofino::Meter *meter);
+  void transpile_lpm_decl(const Tofino::LPM *lpm);
   void transpile_map_set_table_decl(const Tofino::MapSetTable *map_set_table);
   void transpile_guarded_map_table_decl(const Tofino::GuardedMapTable *guarded_map_table);
   void transpile_vector_table_decl(const EP *ep, const Tofino::VectorTable *vector_table);

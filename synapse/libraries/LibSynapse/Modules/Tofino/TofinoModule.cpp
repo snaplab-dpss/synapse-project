@@ -274,7 +274,9 @@ std::optional<klee::ref<klee::Expr>> TofinoModuleFactory::get_register_increment
     }
   }
 
-  return delta;
+  // A widened value can arrive as a chain of casts (ZExt of an Extract of a ZExt); what the
+  // action computes is the simplified form.
+  return LibCore::simplify(delta);
 }
 
 bool TofinoModuleFactory::is_compute_module(const Module *module) {

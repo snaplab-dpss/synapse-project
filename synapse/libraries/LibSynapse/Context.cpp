@@ -3,6 +3,7 @@
 #include <LibSynapse/Walk.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
 #include <LibSynapse/Modules/Tofino/ParserCondition.h>
+#include <LibSynapse/Modules/Tofino/DnsGetResponse.h>
 #include <LibBDD/Unroll.h>
 #include <LibCore/Solver.h>
 #include <LibCore/Expr.h>
@@ -189,6 +190,14 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       S().tb_configs[addr]      = cfg;
       continue;
     }
+
+    if (call.function_name == "lpm_allocate") {
+      klee::ref<klee::Expr> obj = call.args.at("lpm_out").out;
+      const addr_t addr         = expr_addr_to_obj_addr(obj);
+      const lpm_config_t cfg    = get_lpm_config_from_bdd(*bdd, addr);
+      S().lpm_configs[addr]     = cfg;
+      continue;
+    }
   }
 }
 
@@ -206,6 +215,10 @@ void Context::bdd_pre_processing_get_structural_fields(const BDD *bdd) {
       if (call_node->guess_header_fields_from_packet_borrow(header)) {
         S().expr_structs.push_back(header);
       }
+    } else if (call.function_name == "dns_get_response") {
+      klee::ref<klee::Expr> name = call.args.at("name").out;
+      S().expr_structs.push_back({name, Tofino::DnsGetResponse::name_fields(name)});
+      S().dns_names.push_back(name);
     } else if (call.function_name == "vector_borrow") {
       expr_struct_t value_struct;
       if (call_node->guess_value_fields_from_vector_borrow(value_struct)) {
@@ -295,6 +308,12 @@ void Context::bdd_pre_processing_build_tofino_parser(const BDD *bdd) {
             const BDDNode *last_parser_op = parser_ops->get_last_op(node, direction);
 
             tofino_ctx->parser_transition(node, hdr, last_parser_op, direction);
+            parser_ops->nodes.push_back(node);
+          } else if (call.function_name == "dns_get_response") {
+            std::optional<bool> direction;
+            const BDDNode *last_parser_op = parser_ops->get_last_op(node, direction);
+
+            tofino_ctx->parser_dns_response(node, last_parser_op, direction);
             parser_ops->nodes.push_back(node);
           }
 
@@ -518,6 +537,20 @@ const cht_config_t &Context::get_cht_config(addr_t addr) const {
 const tb_config_t &Context::get_tb_config(addr_t addr) const {
   assert(S().tb_configs.find(addr) != S().tb_configs.end() && "TB not found");
   return S().tb_configs.at(addr);
+}
+
+bool Context::is_dns_name(klee::ref<klee::Expr> expr) const {
+  for (klee::ref<klee::Expr> name : S().dns_names) {
+    if (solver_toolbox.are_exprs_always_equal(name, expr)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const lpm_config_t &Context::get_lpm_config(addr_t addr) const {
+  assert(S().lpm_configs.find(addr) != S().lpm_configs.end() && "LPM not found");
+  return S().lpm_configs.at(addr);
 }
 
 std::optional<map_coalescing_objs_t> Context::get_map_coalescing_objs(addr_t obj) const {

@@ -301,7 +301,15 @@ public:
                                          bool required_additional_table = true);
   static bool can_reuse_fcfs_ct(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity, bool required_additional_table = true);
   static std::vector<u32> enum_fcfs_ct_cache_capacities(u32 capacity);
-  static hit_rate_t get_fcfs_ct_cache_hit_rate(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key, u32 cache_capacity);
+  // The chance a cached insert finds its slot free, for a table of `cache_capacity` slots: the mean
+  // of the share of the inserted pairs that get a slot of their own (`map_op`, the read before the
+  // insert, sees every pair once) and the share of the traffic those pairs carry, measured where
+  // the traffic reads the map (its busiest map_get: an NF may insert on one kind of packet and
+  // serve another, as meta4 learns pairs from DNS responses and counts their data).
+  static hit_rate_t get_fcfs_cache_success_rate(const Context &ctx, const BDD *bdd, const BDDNode *map_op, klee::ref<klee::Expr> key,
+                                                u32 cache_capacity);
+  static hit_rate_t get_fcfs_ct_cache_hit_rate(const Context &ctx, const BDD *bdd, const BDDNode *map_op, klee::ref<klee::Expr> key,
+                                               u32 cache_capacity);
 
   // ======================================================================
   //  FCFS Cached Set
@@ -315,7 +323,8 @@ public:
                                          bool required_additional_table = true);
   static bool can_reuse_fcfs_cs(const EP *ep, const BDDNode *node, addr_t obj, u32 cache_capacity, bool required_additional_table = true);
   static std::vector<u32> enum_fcfs_cs_cache_capacities(u32 capacity);
-  static hit_rate_t get_fcfs_cs_cache_hit_rate(const Context &ctx, const BDDNode *map_put, klee::ref<klee::Expr> key, u32 cache_capacity);
+  static hit_rate_t get_fcfs_cs_cache_hit_rate(const Context &ctx, const BDD *bdd, const BDDNode *map_op, klee::ref<klee::Expr> key,
+                                               u32 cache_capacity);
 
   // ======================================================================
   //  Heavy Hitter Table
@@ -352,8 +361,10 @@ public:
   //  LPM
   // ======================================================================
 
-  static LPM *build_lpm(const EP *ep, const BDDNode *node, addr_t obj);
-  static bool can_build_lpm(const EP *ep, const BDDNode *node, addr_t obj);
+  static LPM *build_lpm(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> original_key,
+                        const std::vector<klee::ref<klee::Expr>> &keys);
+  static bool can_build_lpm(const EP *ep, const BDDNode *node, addr_t obj, klee::ref<klee::Expr> original_key,
+                            const std::vector<klee::ref<klee::Expr>> &keys);
 
   // ======================================================================
   //  Cuckoo Hash Table

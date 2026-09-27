@@ -94,6 +94,11 @@ void TofinoContext::parser_transition(const BDDNode *node, klee::ref<klee::Expr>
   tna.parser.mutate().add_extract(leaf_id, id, hdr, direction);
 }
 
+void TofinoContext::parser_dns_response(const BDDNode *node, const BDDNode *last_parser_op, std::optional<bool> direction) {
+  assert(last_parser_op && "A DNS response follows its header");
+  tna.parser.mutate().add_dns_response(last_parser_op->get_id(), node->get_id(), direction);
+}
+
 void TofinoContext::parser_accept(const BDDNode *node, const BDDNode *last_parser_op, std::optional<bool> direction) {
   const bdd_node_id_t id = node->get_id();
 

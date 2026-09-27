@@ -50,6 +50,7 @@
 #include <LibSynapse/Modules/Tofino/BloomFilterQuery.h>
 #include <LibSynapse/Modules/Tofino/BloomFilterQueryAndSet.h>
 #include <LibSynapse/Modules/Tofino/LPMLookup.h>
+#include <LibSynapse/Modules/Tofino/DnsGetResponse.h>
 #include <LibSynapse/Modules/Tofino/CuckooHashTableReadWrite.h>
 #include <LibSynapse/Modules/Tofino/HashObj.h>
 #include <LibSynapse/Modules/Tofino/ComputeTableCountTrailingZeros.h>
@@ -112,6 +113,7 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<BloomFilterQueryFactory>());
               f.push_back(std::make_unique<BloomFilterQueryAndSetFactory>());
               f.push_back(std::make_unique<LPMLookupFactory>());
+              f.push_back(std::make_unique<DnsGetResponseFactory>());
               f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
               f.push_back(std::make_unique<HashObjFactory>());
               f.push_back(std::make_unique<CountTrailingZerosFactory>());

@@ -9,6 +9,8 @@
 #include <LibSynapse/Modules/Controller/Else.h>
 #include <LibSynapse/Modules/Controller/AbortTransaction.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapTableLookup.h>
+#include <LibSynapse/Modules/Controller/DataplaneLPMLookup.h>
+#include <LibSynapse/Modules/Controller/DnsGetResponse.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapSetTableAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneMapSetTableLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneGuardedMapTableLookup.h>
@@ -21,6 +23,7 @@
 #include <LibSynapse/Modules/Controller/DataplaneHHTableRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneMeterIsTracing.h>
 
+#include <LibSynapse/Modules/Tofino/DnsGetResponse.h>
 #include <LibSynapse/Modules/Tofino/ParserExtraction.h>
 #include <LibSynapse/Modules/Tofino/If.h>
 #include <LibSynapse/Modules/Tofino/MapTableLookup.h>
@@ -216,6 +219,8 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     } else if (module->get_type() == ModuleType::Tofino_ParserExtraction) {
       prev_modules.insert(prev_modules.begin(), prev_module);
       branch_conditions_found = true;
+    } else if (module->get_type() == ModuleType::Tofino_DnsGetResponse) {
+      prev_modules.insert(prev_modules.begin(), prev_module);
     } else if (module->get_target() == TargetType::Tofino) {
       const TofinoModule *tofino_module  = dynamic_cast<const TofinoModule *>(module);
       const std::unordered_set<DS_ID> ds = tofino_module->get_generated_ds();
@@ -516,8 +521,37 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Tofino_IntegerAllocatorIsAllocated: {
       panic("TODO: implement controller constraints checker logic for IntegerAllocatorIsAllocated");
     } break;
+    case ModuleType::Tofino_DnsGetResponse: {
+      // The name is read from the packet again; the address, and whether there was one, come
+      // with the packet: the records the parser stepped over are gone from it.
+      const DnsGetResponse *dns_get_response = dynamic_cast<const DnsGetResponse *>(prev.module);
+
+      Controller::DnsGetResponse *ctrl_dns_get_response =
+          new Controller::DnsGetResponse(active_leaf.next, dns_get_response->get_msg_addr(), dns_get_response->get_length(),
+                                         dns_get_response->get_dns_name(), dns_get_response->get_address(), dns_get_response->get_found());
+
+      EPNode *dns_get_response_ep_node = new EPNode(ctrl_dns_get_response);
+      initial_controller_logic.update(dns_get_response_ep_node);
+
+      if (dns_get_response->get_node()) {
+        initial_controller_logic.extra_symbols.add(dns_get_response->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(
+            dynamic_cast<const Call *>(dns_get_response->get_node())->get_local_symbols().filter_by_base("dns_name"));
+      }
+    } break;
     case ModuleType::Tofino_LPMLookup: {
-      panic("TODO: implement controller constraints checker logic for LPMLookup");
+      const LPMLookup *lpm_lookup = dynamic_cast<const LPMLookup *>(prev.module);
+
+      Controller::DataplaneLPMLookup *ctrl_lpm_lookup = new Controller::DataplaneLPMLookup(
+          active_leaf.next, lpm_lookup->get_obj(), lpm_lookup->get_original_key(), lpm_lookup->get_value(), lpm_lookup->get_match());
+
+      EPNode *lpm_lookup_ep_node = new EPNode(ctrl_lpm_lookup);
+      initial_controller_logic.update(lpm_lookup_ep_node);
+
+      if (lpm_lookup->get_node()) {
+        initial_controller_logic.extra_symbols.add(lpm_lookup->get_node()->get_used_symbols());
+        initial_controller_logic.controller_generated_symbols.add(dynamic_cast<const Call *>(lpm_lookup->get_node())->get_local_symbols());
+      }
     } break;
 
       // ========================================
@@ -621,6 +655,10 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Controller_DataplaneMeterAllocate:
     case ModuleType::Controller_DataplaneMeterInsert:
     case ModuleType::Controller_DataplaneMeterIsTracing:
+    case ModuleType::Controller_DataplaneLPMAllocate:
+    case ModuleType::Controller_DataplaneLPMUpdate:
+    case ModuleType::Controller_DataplaneLPMLookup:
+    case ModuleType::Controller_DnsGetResponse:
     case ModuleType::Controller_DataplaneCMSAllocate:
     case ModuleType::Controller_DataplaneCMSQuery:
     case ModuleType::Controller_DataplaneBloomFilterAllocate:
@@ -736,6 +774,15 @@ std::vector<impl_t> SendToControllerFactory::process_node(const EP *ep, const BD
   symbols.remove(initial_controller_logic.controller_generated_symbols);
   symbols.remove("packet_chunks");
   symbols.remove("next_time");
+
+  // A write-only vector_borrow is ignored on this side, so the value it stands for was never
+  // read here: the controller's write borrows or reads the cell itself.
+  for (const EPNode *prev = active_leaf.node; prev; prev = prev->get_prev()) {
+    const Module *prev_module = prev->get_module();
+    if (prev_module->get_type() == ModuleType::Tofino_Ignore && prev_module->get_node() && prev_module->get_node()->get_type() == BDDNodeType::Call) {
+      symbols.remove(dynamic_cast<const Call *>(prev_module->get_node())->get_local_symbols());
+    }
+  }
 
   Module *module   = new SendToController(node, symbols);
   EPNode *s2c_node = new EPNode(module);

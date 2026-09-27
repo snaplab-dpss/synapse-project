@@ -122,6 +122,7 @@ public:
 
   void parser_transition(const BDDNode *_node, klee::ref<klee::Expr> hdr, const BDDNode *last_parser_op, std::optional<bool> direction);
   void parser_select(const BDDNode *_node, const parser_select_t &select, const BDDNode *last_parser_op, std::optional<bool> direction);
+  void parser_dns_response(const BDDNode *_node, const BDDNode *last_parser_op, std::optional<bool> direction);
   void parser_accept(const BDDNode *_node, const BDDNode *last_parser_op, std::optional<bool> direction);
   void parser_reject(const BDDNode *_node, const BDDNode *last_parser_op, std::optional<bool> direction);
 

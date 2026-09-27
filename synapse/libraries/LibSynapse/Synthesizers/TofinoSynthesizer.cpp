@@ -124,6 +124,7 @@ constexpr const char *const MARKER_INGRESS_PARSER_DECLARATIONS = "INGRESS_PARSER
 // The clock in the egress: the ingress's, carried in the egress-state header (see the crossing).
 constexpr const char *const EGRESS_TIME                         = "hdr.egress_state.time";
 constexpr const char *const MARKER_INGRESS_CONTROL              = "INGRESS_CONTROL";
+constexpr const char *const MARKER_INGRESS_PRAGMAS              = "INGRESS_PRAGMAS";
 constexpr const char *const MARKER_INGRESS_CONTROL_APPLY        = "INGRESS_CONTROL_APPLY";
 constexpr const char *const MARKER_INGRESS_CONTROL_APPLY_RECIRC = "INGRESS_CONTROL_APPLY_RECIRC";
 constexpr const char *const MARKER_INGRESS_DEPARSER             = "INGRESS_DEPARSER";
@@ -866,6 +867,33 @@ code_t TofinoSynthesizer::get_parser_state_name(const ParserState *state, bool s
   return coder.dump();
 }
 
+// A register's index. Two of them on paths that exclude each other look overlayable to bf-p4c,
+// which then also orders the tables writing one after those reading the other; a register read
+// on one path and written on the other has no stage left to sit in (Meta4's domain register:
+// read on the data path, written from a lookup result on the DNS path).
+void TofinoSynthesizer::declare_no_overlay(const var_t &var) { declare_pragma("pa_no_overlay", var); }
+
+void TofinoSynthesizer::note_register_gress(const DS_ID &id) {
+  const auto [it, first] = register_gress.insert({id, in_egress});
+  assert_or_panic(first || it->second == in_egress, "Register %s is used from both the ingress and the egress", id.c_str());
+}
+
+void TofinoSynthesizer::declare_pragma(const code_t &pragma, const var_t &var) {
+  coder_t &pragmas = code_template.get(MARKER_INGRESS_PRAGMAS);
+  pragmas << "@" << pragma << "(\"" << (in_egress ? "egress" : "ingress") << "\", \"" << var.name << "\")\n";
+}
+
+// A table's hit flag, as metadata. Not @pa_solitary: bf-p4c 9.13.4 then fails the PHV allocation
+// of NAT's cached-table programs ("Container H4 contains fields which overlap"), and the
+// placement trouble the pragma once solved (Meta4's domain register, gated by one table's hit and
+// written from another's result) is settled by @pa_no_overlay on the register indices and the
+// folded register increments.
+void TofinoSynthesizer::assign_hit(const var_t &hit_var, coder_t &coder, const code_t &value) {
+  declare_var_in_ingress_metadata(hit_var);
+  coder.indent();
+  coder << hit_var.name << " = " << value << ";\n";
+}
+
 void TofinoSynthesizer::declare_var_in_ingress_metadata(const var_t &var) {
   coder_t &ingress_metadata = get(MARKER_INGRESS_METADATA);
   if (!ingress_metadata_var_names.contains(var.name)) {
@@ -979,6 +1007,7 @@ void TofinoSynthesizer::emit_register_execute(const code_t &lhs, const code_t &a
     // it allocates a fresh uniquely-named metadata field and never collapses back onto the local.
     const var_t idx_var = alloc_var(exec_action + "_index", index, IS_INGRESS_METADATA);
     declare_var_in_ingress_metadata(idx_var);
+    declare_no_overlay(idx_var);
     ingress_apply.indent();
     ingress_apply << idx_var.name << " = " << index_code << ";\n";
     action_index = idx_var.name;
@@ -1157,7 +1186,7 @@ void TofinoSynthesizer::transpile_table_decl(const Table *table, const std::vect
   ingress << "\n";
 }
 
-void TofinoSynthesizer::transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device) {
+void TofinoSynthesizer::transpile_lpm_decl(const LPM *lpm, const std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> value) {
   coder_t &ingress = get(MARKER_INGRESS_CONTROL);
 
   if (declared_ds.find(lpm->id) != declared_ds.end()) {
@@ -1166,13 +1195,23 @@ void TofinoSynthesizer::transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr>
 
   declared_ds.insert(lpm->id);
 
-  const code_t action_name = lpm->id + "_get_device";
-  transpile_action_decl(action_name, {device}, false);
+  const code_t action_name = lpm->id + "_set_value";
+  transpile_action_decl(action_name, {value}, false);
 
-  const std::string key_name = "ipv4_addr";
-  const var_t key_var        = alloc_var(key_name, addr);
-
-  key_var.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, key_var.expr->getWidth()));
+  // One ternary field per key field; the controller writes each prefix with its mask and a priority
+  // by its length, which is what makes the ternary match a longest-prefix one. A field that is a
+  // variable already (a header field, a metadata word) is matched as it is; the others are copied.
+  std::vector<var_t> &key_vars = lpm_keys_vars[lpm->id];
+  for (size_t i = 0; i < keys.size(); i++) {
+    const std::optional<var_t> existing = ingress_vars.get(keys[i]);
+    if (existing && existing->name.find('[') == code_t::npos && existing->name.find("++") == code_t::npos && existing->size == keys[i]->getWidth()) {
+      key_vars.push_back(*existing);
+      continue;
+    }
+    const var_t key_var = alloc_var(lpm->id + "_key_" + std::to_string(i), keys[i], EXACT_NAME | SKIP_STACK_ALLOC);
+    key_var.declare(ingress, TofinoSynthesizer::Transpiler::transpile_literal(0, key_var.expr->getWidth()));
+    key_vars.push_back(key_var);
+  }
 
   ingress.indent();
   ingress << "table " << lpm->id << " {\n";
@@ -1182,8 +1221,10 @@ void TofinoSynthesizer::transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr>
   ingress << "key = {\n";
   ingress.inc();
 
-  ingress.indent();
-  ingress << key_var.name << ": ternary;\n";
+  for (const var_t &key_var : key_vars) {
+    ingress.indent();
+    ingress << key_var.name << ": ternary;\n";
+  }
 
   ingress.dec();
   ingress.indent();
@@ -1227,6 +1268,11 @@ static bits_t register_index_bits(u32 capacity) {
 }
 
 void TofinoSynthesizer::transpile_register_decl(const Register *reg) {
+  // A register is one instance in one gress: the state the egress updates is not the state a
+  // later ingress pass reads. The search does not model this (a plan of Meta4's once used a
+  // register from both), so it is caught here rather than compiled into a program bf-p4c rejects.
+  note_register_gress(reg->id);
+
   // * Template:
   // Register<{VALUE_WIDTH}, _>({CAPACITY}, {INIT_VALUE}) {NAME};
   // * Example:
@@ -2370,6 +2416,7 @@ TofinoSynthesizer::TofinoSynthesizer(const EP *_ep, std::filesystem::path _out_f
                                              {MARKER_INGRESS_METADATA, 1},
                                              {MARKER_INGRESS_PARSER, 1},
                                              {MARKER_INGRESS_PARSER_DECLARATIONS, 1},
+                                             {MARKER_INGRESS_PRAGMAS, 0},
                                              {MARKER_INGRESS_CONTROL, 1},
                                              {MARKER_INGRESS_CONTROL_APPLY, 3},
                                              {MARKER_INGRESS_CONTROL_APPLY_RECIRC, 3},
@@ -3804,6 +3851,12 @@ void TofinoSynthesizer::synthesize() {
   alloc_var("meta.dev", device.expr, EXACT_NAME);
   alloc_var("meta.time", solver_toolbox.exprBuilder->Extract(time.expr, 0, 64), EXACT_NAME);
 
+  // The NF reads the packet length as 16 bits (transpile_pkt_len).
+  const symbol_t pkt_len = bdd->get_packet_len();
+  if (!pkt_len.expr.isNull()) {
+    alloc_var("meta.pkt_len", solver_toolbox.exprBuilder->Extract(pkt_len.expr, 0, 16), EXACT_NAME);
+  }
+
   ingress_vars.push();
 
   // The chunks a ChecksumUpdate covers, for the extraction visitor's header layout: the headers
@@ -3946,6 +3999,8 @@ void TofinoSynthesizer::synthesize() {
       decision << "ig_tm_md.bypass_egress = 1;\n";
     }
   }
+
+  transpile_pkt_len(target_ep);
 
   // Transpile the parser after the whole EP has been visited so we have all the headers available.
 
@@ -4499,8 +4554,167 @@ void TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node) {
   EPVisitor::visit(ep, ep_node);
 }
 
+// The packet length the NF reads (pkt_len). The ingress has no frame length -- only the egress
+// intrinsic metadata carries one -- but it has the IPv4 total length, which is the frame's less the
+// link header and any padding: what the NF counts, for every frame that is not padded.
+void TofinoSynthesizer::transpile_pkt_len(const EP *ep) {
+  const symbol_t pkt_len = ep->get_bdd()->get_packet_len();
+  if (pkt_len.expr.isNull()) {
+    return;
+  }
+
+  bool used = false;
+  std::vector<const EPNode *> pending{ep->get_root()};
+  while (!pending.empty() && !used) {
+    const EPNode *ep_node = pending.back();
+    pending.pop_back();
+    const Module *module = ep_node->get_module();
+    if (module && module->get_target() == TargetType::Tofino && module->get_node() && module->get_node()->get_used_symbols().has(pkt_len.name)) {
+      used = true;
+    }
+    for (const EPNode *child : ep_node->get_children()) {
+      pending.push_back(child);
+    }
+  }
+  if (!used) {
+    return;
+  }
+
+  // The IPv4 chunk: the one the parser extracts when the ethertype (the 16 bits before it) selects
+  // 0x0800, and how many bytes of link header come before it.
+  struct ip_chunk_t {
+    klee::ref<klee::Expr> hdr;
+    bytes_t offset;
+  };
+  std::optional<ip_chunk_t> ip;
+  std::function<void(const ParserState *, bytes_t)> walk = [&](const ParserState *state, bytes_t offset) {
+    if (!state || ip.has_value()) {
+      return;
+    }
+    switch (state->type) {
+    case ParserStateType::Extract: {
+      const ParserStateExtract *extract = dynamic_cast<const ParserStateExtract *>(state);
+      walk(extract->next, offset + extract->hdr->getWidth() / 8);
+    } break;
+    case ParserStateType::DnsResponse: {
+      walk(dynamic_cast<const ParserStateDnsResponse *>(state)->next, offset);
+    } break;
+    case ParserStateType::Select: {
+      const ParserStateSelect *select = dynamic_cast<const ParserStateSelect *>(state);
+      for (const parser_selection_t &selection : select->selections) {
+        for (klee::ref<klee::Expr> value : selection.values) {
+          if (selection.target->getWidth() != 16 || !is_constant(value)) {
+            continue;
+          }
+          const u64 v = solver_toolbox.value_from_expr(value);
+          if (v != 0x0800 && v != 0x0008) {
+            continue;
+          }
+          const ParserState *taken = selection.negated ? select->on_false : select->on_true;
+          if (taken && taken->type == ParserStateType::Extract) {
+            ip = ip_chunk_t{dynamic_cast<const ParserStateExtract *>(taken)->hdr, offset};
+            return;
+          }
+        }
+      }
+      walk(select->on_true, offset);
+      walk(select->on_false, offset);
+    } break;
+    case ParserStateType::Terminate:
+      break;
+    }
+  };
+  walk(get_tofino_parser(ep).get_initial_state(), 0);
+  assert_or_panic(ip.has_value(), "pkt_len is read but no IPv4 header is parsed");
+
+  // The total length is the chunk's bytes 2 and 3, as a slice of the field they came out in.
+  const std::vector<hdr_field_t> &fields = hdr_fields_by_hdr.at(chunk_key(ip->hdr));
+  const std::optional<var_t> ip_var      = hdr_vars.get(ip->hdr);
+  assert(ip_var && "IPv4 header not found");
+  code_t total_len;
+  for (const hdr_field_t &field : fields) {
+    if (field.offset <= 2 && 4 <= field.offset + field.width / 8) {
+      const bits_t hi = field.width - 1 - 8 * (2 - field.offset);
+      total_len       = field.name + "[" + std::to_string(hi) + ":" + std::to_string(hi - 15) + "]";
+    }
+  }
+  assert_or_panic(!total_len.empty(), "The IPv4 total length is split across fields");
+
+  const var_t var(code_t("meta.pkt_len"), solver_toolbox.exprBuilder->Extract(pkt_len.expr, 0, 16), 16, false, false, false);
+  declare_var_in_ingress_metadata(var);
+
+  coder_t &init = code_template.get(MARKER_INGRESS_APPLY_START);
+  init.indent();
+  init << "meta.pkt_len = 0;\n";
+  init.indent();
+  init << "if (" << ip_var->name << ".isValid()) {\n";
+  init.inc();
+  init.indent();
+  init << "meta.pkt_len = " << total_len << " + " << ip->offset << ";\n";
+  init.dec();
+  init.indent();
+  init << "}\n";
+}
+
+// The branch a parser condition takes is recorded for the ingress: a flag per condition, cleared
+// when parsing starts and set in the state the true branch leads to. Emitting both branches'
+// tables back to back with nothing telling them apart ran both on every packet (Meta4: a DNS
+// response also went through the session lookup and the counters), and made bf-p4c order the
+// tables of one branch after the other's.
 void TofinoSynthesizer::transpile_parser(const Parser &parser) {
   coder_t &ingress_parser = get(MARKER_INGRESS_PARSER);
+
+  std::unordered_map<const ParserState *, std::vector<code_t>> state_flags;
+  {
+    std::vector<code_t> cleared;
+    std::vector<const ParserState *> pending{parser.get_initial_state()};
+    std::unordered_set<const ParserState *> seen;
+    while (!pending.empty()) {
+      const ParserState *state = pending.back();
+      pending.pop_back();
+      if (!state || seen.count(state)) {
+        continue;
+      }
+      seen.insert(state);
+      switch (state->type) {
+      case ParserStateType::Extract:
+        pending.push_back(dynamic_cast<const ParserStateExtract *>(state)->next);
+        break;
+      case ParserStateType::DnsResponse:
+        pending.push_back(dynamic_cast<const ParserStateDnsResponse *>(state)->next);
+        break;
+      case ParserStateType::Select: {
+        const ParserStateSelect *select = dynamic_cast<const ParserStateSelect *>(state);
+        const ParserState *on_true      = select->selections.empty() ? (select->constant_branch ? select->on_true : nullptr) : select->on_true;
+        for (bdd_node_id_t id : state->ids) {
+          const code_t flag = parser_condition_flag(id);
+          const var_t var(flag, nullptr, 1, false, false, false);
+          declare_var_in_ingress_metadata(var);
+          // The parser writes whole containers: a flag set in one state would clear another
+          // flag packed with it and set in an earlier state (SmartCookie's UDP path lost its
+          // length check's flag to the port check's). One container per flag.
+          declare_pragma("pa_solitary", var);
+          cleared.push_back(flag + " = 0;");
+          if (on_true) {
+            state_flags[on_true].push_back(flag + " = 1;");
+          }
+        }
+        pending.push_back(select->on_true);
+        pending.push_back(select->on_false);
+      } break;
+      case ParserStateType::Terminate:
+        break;
+      }
+    }
+    std::vector<code_t> &initial = state_flags[parser.get_initial_state()];
+    initial.insert(initial.begin(), cleared.begin(), cleared.end());
+  }
+  auto emit_flags = [&ingress_parser, &state_flags](const ParserState *state) {
+    for (const code_t &line : state_flags[state]) {
+      ingress_parser.indent();
+      ingress_parser << line << "\n";
+    }
+  };
 
   std::vector<const ParserState *> states{parser.get_initial_state()};
   bool state_init = true;
@@ -4533,6 +4747,7 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
       ingress_parser << "state " << state_name << " {\n";
 
       ingress_parser.inc();
+      emit_flags(state);
       ingress_parser.indent();
       ingress_parser << "pkt.extract(" << hdr_var->name << ");\n";
 
@@ -4615,6 +4830,7 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
         ingress_parser.indent();
         ingress_parser << "state " << state_name << " {\n";
         ingress_parser.inc();
+        emit_flags(state);
         ingress_parser.indent();
         ingress_parser << "transition " << get_parser_state_name(taken, false) << ";\n";
         ingress_parser.dec();
@@ -4628,6 +4844,7 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
       ingress_parser << "state " << state_name << " {\n";
 
       ingress_parser.inc();
+      emit_flags(state);
       ingress_parser.indent();
       ingress_parser << "transition " << get_selection_state_name(0) << ";\n";
 
@@ -4669,13 +4886,18 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
         // 16-bit device selects on the 32-bit meta.dev).
         const std::optional<var_t> selector = ingress_vars.get(selection.target);
         const bits_t selector_width = selector ? (selector->name == "meta.dev" ? 32 : selector->size) : 0; // meta.dev: the template's bit<32>.
+        // A packet field is read little-endian by the NF and is big-endian in the parser, so a
+        // constant it is compared to is swapped -- unless the NF already read it big-endian.
+        const std::optional<LibCore::consecutive_bytes_t> target_bytes = LibCore::get_consecutive_bytes(selection.target);
+        const transpiler_opt_t label_opt =
+            target_bytes && target_bytes->network_order ? TRANSPILER_OPT_NO_OPTION : TRANSPILER_OPT_SWAP_CONST_ENDIANNESS;
         for (klee::ref<klee::Expr> value : selection.values) {
           klee::ref<klee::Expr> label = value;
           if (selector_width > value->getWidth() && is_constant(value)) {
             label = solver_toolbox.exprBuilder->ZExt(value, selector_width);
           }
           ingress_parser.indent();
-          ingress_parser << transpiler.transpile(label, TRANSPILER_OPT_SWAP_CONST_ENDIANNESS) << ": " << on_match << ";\n";
+          ingress_parser << transpiler.transpile(label, label_opt) << ": " << on_match << ";\n";
         }
 
         ingress_parser.indent();
@@ -4693,6 +4915,11 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
       states.push_back(select->on_true);
       states.push_back(select->on_false);
     } break;
+    case ParserStateType::DnsResponse: {
+      const ParserStateDnsResponse *dns_response = dynamic_cast<const ParserStateDnsResponse *>(state);
+      transpile_dns_response_parser(dns_response, state_init, state_flags[state]);
+      states.push_back(dns_response->next);
+    } break;
     case ParserStateType::Terminate: {
       const ParserStateTerminate *terminate = dynamic_cast<const ParserStateTerminate *>(state);
       const code_t state_name               = get_parser_state_name(state, state_init);
@@ -4701,6 +4928,7 @@ void TofinoSynthesizer::transpile_parser(const Parser &parser) {
       ingress_parser << "state " << state_name << " {\n";
 
       ingress_parser.inc();
+      emit_flags(state);
       ingress_parser.indent();
       ingress_parser << "transition ";
       if (terminate->accept) {
@@ -5361,9 +5589,37 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::ParserCondition *node) {
-  parser_vars[node->get_node()->get_id()] = ingress_vars.squash_hdrs_only();
-  return EPVisitor::Action::doChildren;
+  const bdd_node_id_t id = node->get_node()->get_id();
+  parser_vars[id]        = ingress_vars.squash_hdrs_only();
+
+  const std::vector<EPNode *> &children = ep_node->get_children();
+  assert(children.size() == 2 && "ParserCondition must have 2 children");
+
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  ingress_apply.indent();
+  ingress_apply << "if (" << parser_condition_flag(id) << " == 1) {\n";
+  ingress_apply.inc();
+  ingress_vars.push();
+  visit(ep, children[0]);
+  ingress_vars.pop();
+  ingress_apply.dec();
+
+  ingress_apply.indent();
+  ingress_apply << "} else {\n";
+  ingress_apply.inc();
+  ingress_vars.push();
+  visit(ep, children[1]);
+  ingress_vars.pop();
+  ingress_apply.dec();
+
+  ingress_apply.indent();
+  ingress_apply << "}\n";
+
+  return EPVisitor::Action::skipChildren;
 }
+
+code_t TofinoSynthesizer::parser_condition_flag(bdd_node_id_t id) const { return (in_egress ? "eg_md.pc_" : "meta.pc_") + std::to_string(id); }
 
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::Then *node) { return EPVisitor::Action::doChildren; }
 
@@ -6387,8 +6643,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   if (hit) {
-    const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL);
-    hit_var.declare(ingress_apply, table->id + ".apply().hit");
+    const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA);
+    assign_hit(hit_var, ingress_apply, table->id + ".apply().hit");
   } else {
     ingress_apply.indent();
     ingress_apply << table->id << ".apply();\n";
@@ -6494,8 +6750,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.indent();
   ingress_apply << color.name << " = " << METER_COLOR_GREEN << ";\n";
 
-  const var_t hit_var = alloc_var("is_tracing", hit, FORCE_BOOL);
-  hit_var.declare(ingress_apply, meter_id + ".apply().hit");
+  const var_t hit_var = alloc_var("is_tracing", hit, FORCE_BOOL | IS_INGRESS_METADATA);
+  assign_hit(hit_var, ingress_apply, meter_id + ".apply().hit");
 
   // A DirectMeter has no index: the bucket IS the table entry. The symbol exists because
   // tb_is_tracing declares it, and a hand-off ships whatever the node declares, so it needs a
@@ -6535,8 +6791,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   }
 
   if (hit) {
-    const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL);
-    hit_var.declare(ingress_apply, table->id + ".apply().hit");
+    const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA);
+    assign_hit(hit_var, ingress_apply, table->id + ".apply().hit");
   } else {
     ingress_apply.indent();
     ingress_apply << table->id << ".apply();\n";
@@ -6573,9 +6829,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
 
   if (hit) {
     const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA);
-    declare_var_in_ingress_metadata(hit_var);
-    ingress_apply.indent();
-    ingress_apply << hit_var.name << " = " << table->id << ".apply().hit;\n";
+    assign_hit(hit_var, ingress_apply, table->id + ".apply().hit");
   } else {
     ingress_apply.indent();
     ingress_apply << table->id << ".apply();\n";
@@ -6692,8 +6946,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << key_var.name << " = " << transpiled_key << ";\n";
 
   if (hit) {
-    var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL);
-    hit_var.declare(ingress_apply, table->id + ".apply().hit");
+    var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA);
+    assign_hit(hit_var, ingress_apply, table->id + ".apply().hit");
   } else {
     ingress_apply.indent();
     ingress_apply << table->id << ".apply();\n";
@@ -6784,17 +7038,29 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   if (increment_delta.has_value() && regs.size() == 1) {
     const Register *reg = regs[0];
 
+    // A register's stateful ALU has one PHV input, so every table executing the register reads
+    // the increment of every other, and an increment written on a path after another path's
+    // execution has no stage to go to (Meta4's per-domain counters, bumped on the data path and
+    // again on the DNS path). A constant goes into the action itself, and a value the parser
+    // already holds is read where it is; only a computed increment needs a field of its own.
     const code_t delta_code = transpiler.transpile(*increment_delta);
-    const var_t delta_var   = alloc_var("reg_incr", *increment_delta, IS_INGRESS_METADATA);
-    declare_var_in_ingress_metadata(delta_var);
-
-    ingress_apply.indent();
-    ingress_apply << delta_var.name << " = " << delta_code << ";\n";
+    code_t increment;
+    if (is_constant(*increment_delta)) {
+      increment = delta_code;
+    } else if (const std::optional<var_t> held = ingress_vars.get(*increment_delta); held && held->name == delta_code && !held->is_header_field) {
+      increment = held->name;
+    } else {
+      const var_t delta_var = alloc_var("reg_incr", *increment_delta, IS_INGRESS_METADATA);
+      declare_var_in_ingress_metadata(delta_var);
+      ingress_apply.indent();
+      ingress_apply << delta_var.name << " = " << delta_code << ";\n";
+      increment = delta_var.name;
+    }
 
     const code_t action_name = build_register_action_name(reg, RegisterActionType::AddValue, ep_node);
     transpile_register_action_decl(reg, action_name, RegisterActionType::AddValue,
                                    register_action_extras_t{
-                                       .external_var             = delta_var.name,
+                                       .external_var             = increment,
                                        .extra_constant           = {},
                                        .extra_condition          = {},
                                        .write_value              = {},
@@ -6999,28 +7265,342 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   return EPVisitor::Action::doChildren;
 }
 
+namespace {
+
+using Tofino::DnsGetResponse;
+
+// The headers the parser takes a DNS response's question and records into, in wire order: a label
+// is its length byte and one header per piece (DnsGetResponse::SLOT_CHUNKS).
+code_t dns_label_hdr(u32 slot) { return "hdr.dns_l" + std::to_string(slot); }
+code_t dns_chunk_hdr(u32 slot, const DnsGetResponse::slot_chunk_t &chunk) { return dns_label_hdr(slot) + "_" + chunk.suffix; }
+code_t dns_name_field(u32 slot, const code_t &suffix) { return "dns_name_l" + std::to_string(slot) + "_" + suffix; }
+
+constexpr const char *DNS_LABELS_VAR         = "meta.dns_labels";
+constexpr const char *DNS_RESPONSE_FOUND_VAR = "meta.dns_response_found";
+constexpr const char *DNS_ADDRESS_VAR        = "meta.dns_address";
+
+// The expert's CNAME walk: the record's RDATA length goes in the parser counter and the parser
+// advances a byte per step; over 50 bytes it takes 50 in one step first.
+constexpr const u32 DNS_CNAME_CUT = 50;
+
+} // namespace
+
+void TofinoSynthesizer::transpile_dns_response_decls() {
+  if (dns_response_declared) {
+    return;
+  }
+  dns_response_declared = true;
+
+  coder_t &custom_hdrs  = get(MARKER_CUSTOM_HEADERS);
+  coder_t &ingress_hdrs = get(MARKER_INGRESS_HEADERS);
+  coder_t &parser_decl  = get(MARKER_INGRESS_PARSER_DECLARATIONS);
+
+  custom_hdrs << "header dns_label_h {\n  bit<8> len;\n}\n";
+  for (const DnsGetResponse::slot_chunk_t &chunk : DnsGetResponse::SLOT_CHUNKS) {
+    custom_hdrs << "header dns_" << chunk.suffix << "_h {\n  bit<" << chunk.size * 8 << "> v;\n}\n";
+  }
+  custom_hdrs << "header dns_query_tc_h {\n  bit<16> qtype;\n  bit<16> qclass;\n}\n";
+  custom_hdrs << "header dns_answer_h {\n  bit<16> name;\n  bit<16> rr_type;\n  bit<16> rr_class;\n  bit<32> ttl;\n  bit<8> rd_length_hi;\n  bit<8> "
+                 "rd_length_lo;\n}\n";
+  custom_hdrs << "header dns_a_ip_h {\n  bit<32> address;\n}\n";
+
+  auto declare_hdr = [&ingress_hdrs](const code_t &type, const code_t &name) {
+    ingress_hdrs.indent();
+    ingress_hdrs << type << " " << name.substr(4) << ";\n";
+  };
+
+  for (u32 slot = 0; slot < DnsGetResponse::MAX_LABELS; slot++) {
+    declare_hdr("dns_label_h", dns_label_hdr(slot));
+    for (const DnsGetResponse::slot_chunk_t &chunk : DnsGetResponse::SLOT_CHUNKS) {
+      declare_hdr(code_t("dns_") + chunk.suffix + "_h", dns_chunk_hdr(slot, chunk));
+    }
+  }
+  declare_hdr("dns_label_h", dns_label_hdr(DnsGetResponse::MAX_LABELS)); // The name's terminator after a full name.
+  declare_hdr("dns_query_tc_h", "hdr.dns_query_tc");
+  declare_hdr("dns_answer_h", "hdr.dns_cname");
+  declare_hdr("dns_answer_h", "hdr.dns_answer");
+  declare_hdr("dns_a_ip_h", "hdr.dns_a_ip");
+
+  parser_decl.indent();
+  parser_decl << "ParserCounter() dns_counter;\n";
+}
+
+EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::DnsGetResponse *node) {
+  coder_t &ingress       = get(MARKER_INGRESS_CONTROL);
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  const std::vector<klee::ref<klee::Expr>> fields = DnsGetResponse::name_fields(node->get_dns_name());
+
+  const bool declare = !dns_response_declared;
+  transpile_dns_response_decls();
+
+  // The count and whether an address was found are the parser's. The address is the A record's,
+  // copied out of it: a punted response reaches the controller without the records the parser
+  // stepped over, so the address travels with the packet (SendToController), as the packet's bytes.
+  const var_t labels_var  = alloc_var(DNS_LABELS_VAR, fields[0], EXACT_NAME);
+  const var_t found_var   = alloc_var(DNS_RESPONSE_FOUND_VAR, node->get_found(), EXACT_NAME);
+  const var_t address_var = alloc_var(DNS_ADDRESS_VAR, node->get_address(), EXACT_NAME);
+
+  if (declare) {
+    declare_var_in_ingress_metadata(labels_var);
+    declare_var_in_ingress_metadata(found_var);
+    declare_var_in_ingress_metadata(address_var);
+  }
+
+  ingress_apply.indent();
+  ingress_apply << DNS_ADDRESS_VAR << " = hdr.dns_a_ip.address;\n";
+
+  // The labels in the NF's order, the top-level one first: the parser fills the positions in wire
+  // order, so an action per label count moves them across, piece by piece.
+  size_t field = 1;
+  for (u32 slot = 0; slot < DnsGetResponse::MAX_LABELS; slot++) {
+    const var_t len_var = alloc_var(dns_name_field(slot, "len"), fields[field++], EXACT_NAME | HEADER_FIELD);
+    if (declare) {
+      len_var.declare(ingress);
+    }
+    for (const DnsGetResponse::slot_chunk_t &chunk : DnsGetResponse::SLOT_CHUNKS) {
+      const var_t chunk_var = alloc_var(dns_name_field(slot, chunk.suffix), fields[field++], EXACT_NAME | HEADER_FIELD);
+      if (declare) {
+        chunk_var.declare(ingress);
+      }
+    }
+  }
+  assert(field == fields.size());
+
+  if (declare) {
+    for (u32 labels = 1; labels <= DnsGetResponse::MAX_LABELS; labels++) {
+      ingress.indent();
+      ingress << "action dns_name_build_" << labels << "() {\n";
+      ingress.inc();
+      for (u32 wire_slot = 0; wire_slot < labels; wire_slot++) {
+        const u32 slot = labels - 1 - wire_slot;
+        ingress.indent();
+        ingress << dns_name_field(slot, "len") << " = " << dns_label_hdr(wire_slot) << ".len;\n";
+        for (const DnsGetResponse::slot_chunk_t &chunk : DnsGetResponse::SLOT_CHUNKS) {
+          ingress.indent();
+          ingress << dns_name_field(slot, chunk.suffix) << " = " << dns_chunk_hdr(wire_slot, chunk) << ".v;\n";
+        }
+      }
+      ingress.dec();
+      ingress.indent();
+      ingress << "}\n";
+    }
+
+    ingress.indent();
+    ingress << "table dns_name_build {\n";
+    ingress.inc();
+    ingress.indent();
+    ingress << "key = { " << DNS_LABELS_VAR << ": exact; }\n";
+    ingress.indent();
+    ingress << "actions = {";
+    for (u32 labels = 1; labels <= DnsGetResponse::MAX_LABELS; labels++) {
+      ingress << " dns_name_build_" << labels << ";";
+    }
+    ingress << " }\n";
+    ingress.indent();
+    ingress << "const entries = {\n";
+    ingress.inc();
+    for (u32 labels = 1; labels <= DnsGetResponse::MAX_LABELS; labels++) {
+      ingress.indent();
+      ingress << labels << ": dns_name_build_" << labels << "();\n";
+    }
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+    ingress.indent();
+    ingress << "size = " << DnsGetResponse::MAX_LABELS << ";\n";
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+  }
+
+  ingress_apply.indent();
+  ingress_apply << "dns_name_build.apply();\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+void TofinoSynthesizer::transpile_dns_response_parser(const ParserStateDnsResponse *state, bool state_init, const std::vector<code_t> &flags) {
+  coder_t &parser = get(MARKER_INGRESS_PARSER);
+
+  transpile_dns_response_decls();
+
+  const code_t entry = get_parser_state_name(state, state_init);
+  assert(state->next && "Next state not found");
+  const code_t next = get_parser_state_name(state->next, false);
+
+  auto open_state = [&parser](const code_t &name) {
+    parser.indent();
+    parser << "state " << name << " {\n";
+    parser.inc();
+  };
+  auto close_state = [&parser]() {
+    parser.dec();
+    parser.indent();
+    parser << "}\n";
+  };
+  auto line = [&parser](const code_t &code) {
+    parser.indent();
+    parser << code << "\n";
+  };
+  auto label_state     = [&entry](u32 slot) { return entry + "_label_" + std::to_string(slot); };
+  auto label_len_state = [&entry](u32 slot, u32 len) { return entry + "_label_" + std::to_string(slot) + "_len_" + std::to_string(len); };
+  auto end_state       = [&entry](u32 labels) { return entry + "_end_" + std::to_string(labels); };
+
+  // Nothing found and no labels yet. The pieces a label does not fill are left alone: an entry
+  // matching that label does not look at them.
+  open_state(entry);
+  for (const code_t &flag : flags) {
+    line(flag);
+  }
+  line(code_t(DNS_LABELS_VAR) + " = 0;");
+  line(code_t(DNS_RESPONSE_FOUND_VAR) + " = 0;");
+  line("transition " + label_state(0) + ";");
+  close_state();
+
+  // A label: its length byte, then the chunks its length's bits select. A zero length ends the
+  // name; a label longer than a slot is not one the NF can hold.
+  for (u32 slot = 0; slot < DnsGetResponse::MAX_LABELS; slot++) {
+    open_state(label_state(slot));
+    line("pkt.extract(" + dns_label_hdr(slot) + ");");
+    line("transition select (" + dns_label_hdr(slot) + ".len) {");
+    parser.inc();
+    line("0: " + end_state(slot) + ";");
+    for (u32 len = 1; len <= DnsGetResponse::LABEL_BYTES; len++) {
+      line(std::to_string(len) + ": " + label_len_state(slot, len) + ";");
+    }
+    line("default: accept;");
+    parser.dec();
+    line("}");
+    close_state();
+
+    const code_t after = slot + 1 < DnsGetResponse::MAX_LABELS ? label_state(slot + 1) : entry + "_terminator";
+    for (u32 len = 1; len <= DnsGetResponse::LABEL_BYTES; len++) {
+      open_state(label_len_state(slot, len));
+      for (const DnsGetResponse::slot_chunk_t &chunk : DnsGetResponse::SLOT_CHUNKS) {
+        if (len & chunk.size) {
+          line("pkt.extract(" + dns_chunk_hdr(slot, chunk) + ");");
+        }
+      }
+      line("transition " + after + ";");
+      close_state();
+    }
+  }
+
+  // After a full name only its terminator can follow.
+  open_state(entry + "_terminator");
+  line("pkt.extract(" + dns_label_hdr(DnsGetResponse::MAX_LABELS) + ");");
+  line("transition select (" + dns_label_hdr(DnsGetResponse::MAX_LABELS) + ".len) {");
+  parser.inc();
+  line("0: " + end_state(DnsGetResponse::MAX_LABELS) + ";");
+  line("default: accept;");
+  parser.dec();
+  line("}");
+  close_state();
+
+  for (u32 labels = 0; labels <= DnsGetResponse::MAX_LABELS; labels++) {
+    open_state(end_state(labels));
+    line(code_t(DNS_LABELS_VAR) + " = " + std::to_string(labels) + ";");
+    line("transition " + entry + "_query_tc;");
+    close_state();
+  }
+
+  open_state(entry + "_query_tc");
+  line("pkt.extract(hdr.dns_query_tc);");
+  line("transition " + entry + "_answer;");
+  close_state();
+
+  // The record type is 16 bits into a record. Looked at ahead so that CNAMEs land in a header of
+  // their own, stepped over, and the A record in one extracted once: the parser rejects a packet
+  // that extracts a header twice.
+  open_state(entry + "_answer");
+  line("transition select (pkt.lookahead<bit<32>>()[15:0]) {");
+  parser.inc();
+  line("1: " + entry + "_a;");
+  line("5: " + entry + "_cname;");
+  line("default: accept;");
+  parser.dec();
+  line("}");
+  close_state();
+
+  open_state(entry + "_a");
+  line("pkt.extract(hdr.dns_answer);");
+  line("pkt.extract(hdr.dns_a_ip);");
+  line(code_t(DNS_RESPONSE_FOUND_VAR) + " = 1;");
+  line("transition " + next + ";");
+  close_state();
+
+  open_state(entry + "_cname");
+  line("pkt.extract(hdr.dns_cname);");
+  line("transition select (hdr.dns_cname.rd_length_lo) {");
+  parser.inc();
+  for (u32 len = 1; len <= DNS_CNAME_CUT; len++) {
+    line(std::to_string(len) + ": " + entry + "_cname_skip;");
+  }
+  line("default: " + entry + "_cname_skip_cut;");
+  parser.dec();
+  line("}");
+  close_state();
+
+  open_state(entry + "_cname_skip");
+  line("dns_counter.set(hdr.dns_cname.rd_length_lo);");
+  line("transition select (dns_counter.is_zero()) {");
+  parser.inc();
+  line("true: " + entry + "_answer;");
+  line("false: " + entry + "_cname_byte;");
+  parser.dec();
+  line("}");
+  close_state();
+
+  open_state(entry + "_cname_skip_cut");
+  line("dns_counter.set(hdr.dns_cname.rd_length_lo);");
+  line("pkt.advance(" + std::to_string(DNS_CNAME_CUT * 8) + ");");
+  line("dns_counter.decrement(8w" + std::to_string(DNS_CNAME_CUT) + ");");
+  line("transition select (dns_counter.is_zero()) {");
+  parser.inc();
+  line("true: " + entry + "_answer;");
+  line("false: " + entry + "_cname_byte;");
+  parser.dec();
+  line("}");
+  close_state();
+
+  open_state(entry + "_cname_byte");
+  line("pkt.advance(8);");
+  line("dns_counter.decrement(8w1);");
+  line("transition select (dns_counter.is_zero()) {");
+  parser.inc();
+  line("true: " + entry + "_answer;");
+  line("false: " + entry + "_cname_byte;");
+  parser.dec();
+  line("}");
+  close_state();
+}
+
 EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) {
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
 
-  DS_ID lpm_id                 = node->get_lpm_id();
-  klee::ref<klee::Expr> addr   = node->get_addr();
-  klee::ref<klee::Expr> device = node->get_device();
-  klee::ref<klee::Expr> match  = node->get_match();
+  const DS_ID lpm_id                             = node->get_lpm_id();
+  const std::vector<klee::ref<klee::Expr>> &keys = node->get_keys();
+  const klee::ref<klee::Expr> value              = node->get_value();
+  const klee::ref<klee::Expr> match              = node->get_match();
 
   const LPM *lpm = get_tofino_ds<LPM>(ep, lpm_id);
 
-  transpile_lpm_decl(lpm, addr, device);
+  transpile_lpm_decl(lpm, keys, value);
 
-  const code_t transpiled_key = transpiler.transpile(addr);
+  const std::vector<var_t> &key_vars = lpm_keys_vars.at(lpm->id);
+  assert(key_vars.size() == keys.size());
+  for (size_t i = 0; i < keys.size(); i++) {
+    const code_t key_code = transpiler.transpile(keys[i]);
+    if (key_code == key_vars[i].name) {
+      continue; // Matched as it is.
+    }
+    ingress_apply.indent();
+    ingress_apply << key_vars[i].name << " = " << key_code << ";\n";
+  }
 
-  std::optional<var_t> key_var = ingress_vars.get(addr);
-  assert(key_var && "Key is not a variable");
-
-  ingress_apply.indent();
-  ingress_apply << key_var->name << " = " << transpiled_key << ";\n";
-
-  var_t hit_var = alloc_var("hit", match, FORCE_BOOL);
-  hit_var.declare(ingress_apply, lpm_id + ".apply().hit");
+  var_t hit_var = alloc_var("hit", match, FORCE_BOOL | IS_INGRESS_METADATA);
+  assign_hit(hit_var, ingress_apply, lpm_id + ".apply().hit");
 
   return EPVisitor::Action::doChildren;
 }
@@ -7067,8 +7647,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << key_var.name << " = " << transpiler.transpile(key_expr) << ";\n";
   }
 
-  const var_t hit_var = hit.has_value() ? alloc_var("hit", hit->expr, FORCE_BOOL) : alloc_var("hit", 32, EXACT_NAME | FORCE_BOOL);
-  hit_var.declare(ingress_apply, table->id + ".apply().hit");
+  const var_t hit_var = hit.has_value() ? alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA)
+                                        : alloc_var("hit", 32, EXACT_NAME | FORCE_BOOL | IS_INGRESS_METADATA);
+  assign_hit(hit_var, ingress_apply, table->id + ".apply().hit");
 
   // Only consult the dataplane cache on a table miss: the hash calculator writes the slot into the
   // value variable's low bits, which on a hit would clobber the index the controller installed.
@@ -7173,8 +7754,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << key_var.name << " = " << transpiler.transpile(key_expr) << ";\n";
   }
 
-  const var_t hit_var = hit.has_value() ? alloc_var("hit", hit->expr, FORCE_BOOL) : alloc_var("hit", 32, EXACT_NAME | FORCE_BOOL);
-  hit_var.declare(ingress_apply, table->id + ".apply().hit");
+  const var_t hit_var = hit.has_value() ? alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA)
+                                        : alloc_var("hit", 32, EXACT_NAME | FORCE_BOOL | IS_INGRESS_METADATA);
+  assign_hit(hit_var, ingress_apply, table->id + ".apply().hit");
 
   const var_t cached_insert_success_var = alloc_var("cached_insert_success", cached_insert_success.expr);
   cached_insert_success_var.declare(ingress_apply, "0");
@@ -7450,8 +8032,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << key_var.name << " = " << transpiler.transpile(key_expr) << ";\n";
   }
 
-  const var_t hit_var = alloc_var("hit", hit.expr, FORCE_BOOL);
-  hit_var.declare(ingress_apply, table->id + ".apply().hit");
+  const var_t hit_var = alloc_var("hit", hit.expr, FORCE_BOOL | IS_INGRESS_METADATA);
+  assign_hit(hit_var, ingress_apply, table->id + ".apply().hit");
 
   ingress_apply.indent();
   ingress_apply << hash_calculator << "();\n";
@@ -7545,8 +8127,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << key_var.name << " = " << transpiler.transpile(key_expr) << ";\n";
   }
 
-  const var_t hit_var = hit.has_value() ? alloc_var("hit", hit->expr, FORCE_BOOL) : alloc_var("hit", 32, EXACT_NAME | FORCE_BOOL);
-  hit_var.declare(ingress_apply, table->id + ".apply().hit");
+  const var_t hit_var = hit.has_value() ? alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA)
+                                        : alloc_var("hit", 32, EXACT_NAME | FORCE_BOOL | IS_INGRESS_METADATA);
+  assign_hit(hit_var, ingress_apply, table->id + ".apply().hit");
 
   const var_t cached_insert_success_var = alloc_var("cached_insert_success", cached_insert_success.expr);
   cached_insert_success_var.declare(ingress_apply, "0");
@@ -7781,8 +8364,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << key_var.name << " = " << transpiler.transpile(key_var.expr) << ";\n";
   }
 
-  const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL);
-  hit_var.declare(ingress_apply, table->id + ".apply().hit");
+  const var_t hit_var = alloc_var("hit", hit->expr, FORCE_BOOL | IS_INGRESS_METADATA);
+  assign_hit(hit_var, ingress_apply, table->id + ".apply().hit");
 
   const code_t packet_sampler_out_value = packet_sampler_action_name + "_out_value";
   ingress_apply.indent();

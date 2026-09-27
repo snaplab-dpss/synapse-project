@@ -40,9 +40,9 @@ std::vector<impl_t> ParserExtractionFactory::process_node(const EP *ep, const BD
   klee::ref<klee::Expr> hdr           = call.extra_vars.at("the_chunk").second;
   klee::ref<klee::Expr> length_expr   = call.args.at("length").expr;
 
-  // Relevant for IPv4 options, but left for future work.
-  assert(!call_node->is_hdr_parse_with_var_len() && "Not implemented");
-  const bytes_t length  = solver_toolbox.value_from_expr(length_expr);
+  // A chunk borrowed with a symbolic length (a DNS message) is extracted up to its fixed part,
+  // the header; what follows is walked by the parser states DnsGetResponse stands for.
+  const bytes_t length  = call_node->is_hdr_parse_with_var_len() ? hdr->getWidth() / 8 : solver_toolbox.value_from_expr(length_expr);
   const addr_t hdr_addr = expr_addr_to_obj_addr(hdr_addr_expr);
 
   const std::vector<expr_struct_t> &headers = ep->get_ctx().get_expr_structs();
@@ -84,7 +84,7 @@ std::unique_ptr<Module> ParserExtractionFactory::create(const BDD *bdd, const Co
   klee::ref<klee::Expr> length_expr   = call.args.at("length").expr;
 
   const addr_t hdr_addr = expr_addr_to_obj_addr(hdr_addr_expr);
-  const bytes_t length  = solver_toolbox.value_from_expr(length_expr);
+  const bytes_t length  = call_node->is_hdr_parse_with_var_len() ? hdr->getWidth() / 8 : solver_toolbox.value_from_expr(length_expr);
 
   const std::vector<expr_struct_t> &headers = ctx.get_expr_structs();
   std::vector<klee::ref<klee::Expr>> hdr_fields_guess;

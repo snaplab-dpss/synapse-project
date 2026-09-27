@@ -6,6 +6,7 @@
 
 #include <LibSynapse/Modules/Controller/Ignore.h>
 #include <LibSynapse/Modules/Controller/ParseHeader.h>
+#include <LibSynapse/Modules/Controller/DnsGetResponse.h>
 #include <LibSynapse/Modules/Controller/ModifyHeader.h>
 #include <LibSynapse/Modules/Controller/If.h>
 #include <LibSynapse/Modules/Controller/Then.h>
@@ -91,6 +92,9 @@
 #include <LibSynapse/Modules/Controller/DataplaneMeterAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneMeterInsert.h>
 #include <LibSynapse/Modules/Controller/DataplaneMeterIsTracing.h>
+#include <LibSynapse/Modules/Controller/DataplaneLPMAllocate.h>
+#include <LibSynapse/Modules/Controller/DataplaneLPMUpdate.h>
+#include <LibSynapse/Modules/Controller/DataplaneLPMLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneIntegerAllocatorAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneIntegerAllocatorFreeIndex.h>
 #include <LibSynapse/Modules/Controller/CMSAllocate.h>
@@ -115,6 +119,7 @@ struct ControllerTarget : public Target {
               std::vector<std::unique_ptr<ModuleFactory>> f;
               f.push_back(std::make_unique<IgnoreFactory>());
               f.push_back(std::make_unique<ParseHeaderFactory>());
+              f.push_back(std::make_unique<DnsGetResponseFactory>());
               f.push_back(std::make_unique<ModifyHeaderFactory>());
               f.push_back(std::make_unique<ChecksumUpdateFactory>());
               f.push_back(std::make_unique<IfFactory>());
@@ -199,6 +204,9 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<TokenBucketExpireFactory>());
               f.push_back(std::make_unique<DataplaneMeterAllocateFactory>());
               f.push_back(std::make_unique<DataplaneMeterInsertFactory>());
+              f.push_back(std::make_unique<DataplaneLPMAllocateFactory>());
+              f.push_back(std::make_unique<DataplaneLPMUpdateFactory>());
+              f.push_back(std::make_unique<DataplaneLPMLookupFactory>());
               f.push_back(std::make_unique<DataplaneIntegerAllocatorAllocateFactory>());
               f.push_back(std::make_unique<DataplaneIntegerAllocatorFreeIndexFactory>());
               f.push_back(std::make_unique<CMSAllocateFactory>());

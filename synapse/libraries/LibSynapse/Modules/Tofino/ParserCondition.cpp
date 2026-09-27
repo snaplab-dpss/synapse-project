@@ -39,6 +39,8 @@ void add_selections(std::vector<parser_selection_t> &selections, const std::vect
 
 namespace {
 
+klee::ref<klee::Expr> find_read(klee::ref<klee::Expr> expr, const std::string &symbol);
+
 // The selections of a condition on packet fields: a field's values from each comparison, an Or's
 // sides pooled by field.
 std::vector<parser_selection_t> build_selections(klee::ref<klee::Expr> condition) {
@@ -62,6 +64,64 @@ std::vector<parser_selection_t> build_selections(klee::ref<klee::Expr> condition
     add_selections(selections, lhs_sel);
     add_selections(selections, rhs_sel);
     return selections;
+  } break;
+  case klee::Expr::Kind::And: {
+    // An And of negated comparisons is the De Morgan dual of the Or: the emitter chains negated
+    // selections so that any match settles the condition as false and only falling off the end
+    // of the chain reaches the true branch. Mixed chains are not expressible that way.
+    klee::ref<klee::Expr> lhs = condition->getKid(0);
+    klee::ref<klee::Expr> rhs = condition->getKid(1);
+
+    std::vector<parser_selection_t> selections;
+    add_selections(selections, build_selections(lhs));
+    add_selections(selections, build_selections(rhs));
+    for (const parser_selection_t &s : selections) {
+      assert_or_panic(s.negated, "Parser condition not implemented (And of a non-negated comparison): %s", expr_to_string(condition).c_str());
+    }
+    return selections;
+  } break;
+  case klee::Expr::Kind::Ule:
+  case klee::Expr::Kind::Ult: {
+    // A length the packet carries against the packet length: whether a chunk fits. The parser
+    // finds out by extracting it, and stops on its own if it does not.
+    if (!find_read(condition, "pkt_len").isNull()) {
+      return {};
+    }
+
+    // A bound on a field, as the values under it: `20 <= len` is "len is none of 0..19". Small
+    // bounds only; the select lists every value.
+    klee::ref<klee::Expr> lhs = condition->getKid(0);
+    klee::ref<klee::Expr> rhs = condition->getKid(1);
+
+    const bool lhs_is_constant = is_constant(lhs);
+    const bool rhs_is_constant = is_constant(rhs);
+    assert_or_panic(lhs_is_constant != rhs_is_constant, "Parser condition not implemented: %s", expr_to_string(condition).c_str());
+
+    const bool strict = condition->getKind() == klee::Expr::Kind::Ult;
+    u64 bound;
+    if (rhs_is_constant) {
+      // field <= c: 0..c; field < c: 0..c-1
+      selection.target = lhs;
+      bound            = solver_toolbox.value_from_expr(rhs) + (strict ? 0 : 1);
+    } else {
+      // c <= field: none of 0..c-1; c < field: none of 0..c
+      selection.target  = rhs;
+      selection.negated = true;
+      bound             = solver_toolbox.value_from_expr(lhs) + (strict ? 1 : 0);
+    }
+
+    // The comparison widens the field (a 16-bit length compared as 64 bits); the select is on the
+    // field itself, and the values are all below the bound, so they fit its width.
+    while (selection.target->getKind() == klee::Expr::Kind::ZExt) {
+      selection.target = selection.target->getKid(0);
+    }
+
+    constexpr const u64 MAX_ENUMERATED_VALUES = 64;
+    assert_or_panic(bound <= MAX_ENUMERATED_VALUES, "Parser condition bound too wide to enumerate: %s", expr_to_string(condition).c_str());
+
+    for (u64 value = 0; value < bound; value++) {
+      selection.values.push_back(solver_toolbox.exprBuilder->Constant(value, selection.target->getWidth()));
+    }
   } break;
   case klee::Expr::Kind::Ne:
     selection.negated = true;
@@ -130,9 +190,13 @@ bool packet_length_branch(klee::ref<klee::Expr> condition) {
     return true;
   }
 
-  assert_or_panic(solver_toolbox.is_expr_always_false(a_frame, condition),
-                  "Parser condition on the packet length not settled by the minimum frame: %s", expr_to_string(condition).c_str());
-  return false;
+  if (solver_toolbox.is_expr_always_false(a_frame, condition)) {
+    return false;
+  }
+
+  // The packet length against a length the packet carries: whether a chunk fits. The parser finds
+  // out by extracting it, and stops on its own if it does not.
+  return true;
 }
 
 } // namespace
@@ -189,18 +253,6 @@ std::vector<impl_t> ParserConditionFactory::process_node(const EP *ep, const BDD
   // We are working under the assumption that before parsing a header we always perform some kind of checking.
   if (!(on_true_borrows.size() > 0 || on_false_borrows.size() > 0)) {
     todo();
-  }
-
-  if (on_true_borrows.size() != on_false_borrows.size()) {
-    const BDDNode *conditional_borrow = on_true_borrows.size() > on_false_borrows.size() ? on_true_borrows[0] : on_false_borrows[0];
-
-    // Relevant for IPv4 options, but left for future work.
-    if (conditional_borrow->get_type() == BDDNodeType::Call) {
-      const Call *cb = dynamic_cast<const Call *>(conditional_borrow);
-      if (cb->is_hdr_parse_with_var_len()) {
-        todo();
-      }
-    }
   }
 
   assert(branch_node->get_on_true() && "Branch node without on_true");

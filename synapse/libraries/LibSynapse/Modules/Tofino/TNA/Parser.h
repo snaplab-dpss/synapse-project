@@ -23,7 +23,7 @@ using LibCore::solver_toolbox;
 struct ParserState;
 using states_t = std::unordered_map<bdd_node_id_t, ParserState *>;
 
-enum class ParserStateType { Extract, Select, Terminate };
+enum class ParserStateType { Extract, Select, DnsResponse, Terminate };
 
 struct parser_selection_t {
   klee::ref<klee::Expr> target;
@@ -259,6 +259,42 @@ struct ParserStateExtract : public ParserState {
   }
 };
 
+// The walk over a DNS response after its header: the question's labels, then the records up to
+// the A one. Its states are not in the BDD (the NF reads the message whole and calls
+// dns_get_response); the synthesizer spells them out.
+struct ParserStateDnsResponse : public ParserState {
+  ParserState *next;
+
+  ParserStateDnsResponse(bdd_node_id_t _id) : ParserState(_id, ParserStateType::DnsResponse), next(nullptr) {}
+
+  std::string dump(int lvl = 0) const override {
+    std::stringstream ss;
+
+    ss << ParserState::dump(lvl);
+    ss << "dns_response\n";
+
+    lvl++;
+
+    if (next) {
+      ss << next->dump(lvl + 1);
+    }
+
+    return ss.str();
+  }
+
+  ParserState *clone() const {
+    ParserStateDnsResponse *clone = new ParserStateDnsResponse(*this);
+    clone->next                   = next ? next->clone() : nullptr;
+    return clone;
+  }
+
+  void record(states_t &states) override {
+    ParserState::record(states);
+    if (next)
+      next->record(states);
+  }
+};
+
 class Parser {
 private:
   ParserState *initial_state;
@@ -306,6 +342,11 @@ public:
   void add_select(bdd_node_id_t id, const parser_select_t &select) {
     ParserState *new_state = new ParserStateSelect(id, select);
     add_state(new_state);
+  }
+
+  void add_dns_response(bdd_node_id_t leaf_id, bdd_node_id_t id, std::optional<bool> direction) {
+    ParserState *new_state = new ParserStateDnsResponse(id);
+    add_state(leaf_id, new_state, direction);
   }
 
   void accept(bdd_node_id_t id) {
@@ -379,6 +420,16 @@ private:
       }
 
       assert(dynamic_cast<ParserStateTerminate *>(extractor->next)->accept == accepted && "Invalid parser");
+    } break;
+    case ParserStateType::DnsResponse: {
+      assert(!direction.has_value() && "Invalid parser");
+      ParserStateDnsResponse *dns_response = dynamic_cast<ParserStateDnsResponse *>(leaf);
+
+      if (!dns_response->next || dns_response->next->type != ParserStateType::Terminate) {
+        return false;
+      }
+
+      assert(dynamic_cast<ParserStateTerminate *>(dns_response->next)->accept == accepted && "Invalid parser");
     } break;
     case ParserStateType::Select: {
       assert(direction.has_value() && "Invalid parser");
@@ -458,6 +509,11 @@ private:
       assert(!extractor->next && "Invalid parser");
       extractor->next = old_next_state;
     } break;
+    case ParserStateType::DnsResponse: {
+      ParserStateDnsResponse *dns_response = dynamic_cast<ParserStateDnsResponse *>(new_state);
+      assert(!dns_response->next && "Invalid parser");
+      dns_response->next = old_next_state;
+    } break;
     case ParserStateType::Select: {
       ParserStateSelect *condition = dynamic_cast<ParserStateSelect *>(new_state);
       assert(!condition->on_true && "Invalid parser");
@@ -487,6 +543,11 @@ private:
       assert(!direction.has_value() && "Invalid parser");
       ParserStateExtract *extractor = dynamic_cast<ParserStateExtract *>(leaf);
       set_next(extractor->next, new_state);
+    } break;
+    case ParserStateType::DnsResponse: {
+      assert(!direction.has_value() && "Invalid parser");
+      ParserStateDnsResponse *dns_response = dynamic_cast<ParserStateDnsResponse *>(leaf);
+      set_next(dns_response->next, new_state);
     } break;
     case ParserStateType::Select: {
       assert(direction.has_value() && "Invalid parser");

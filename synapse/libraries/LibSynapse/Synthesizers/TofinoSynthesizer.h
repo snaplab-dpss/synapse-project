@@ -422,6 +422,7 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HHTableOutOfBandUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DnsGetResponse *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncrement *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSIncAndQuery *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CMSQuery *node) override final;
@@ -546,6 +547,19 @@ private:
   void transpile_bf_query_apply(const BloomFilter *bf, const std::vector<code_t> &row_actions, const var_t &estimate_value);
 
   void transpile_parser(const Parser &parser);
+  void transpile_dns_response_parser(const ParserStateDnsResponse *state, bool state_init, const std::vector<code_t> &flags);
+  code_t parser_condition_flag(bdd_node_id_t id) const;
+  void transpile_dns_response_decls();
+
+  void transpile_pkt_len(const EP *ep);
+  void declare_no_overlay(const var_t &var);
+  void note_register_gress(const DS_ID &id);
+  std::unordered_map<DS_ID, bool> register_gress; // in the egress?
+  void declare_pragma(const code_t &pragma, const var_t &var);
+  void assign_hit(const var_t &hit_var, coder_t &coder, const code_t &value);
+  std::unordered_map<DS_ID, std::vector<var_t>> lpm_keys_vars;
+
+  bool dns_response_declared = false;
   void transpile_action_decl(const code_t &action_name, const std::vector<code_t> &body);
   void transpile_action_decl(const code_t &action_name, const std::vector<klee::ref<klee::Expr>> &params, bool params_are_buffers);
   void transpile_table_decl(const Table *table, const std::vector<klee::ref<klee::Expr>> &keys, const std::vector<klee::ref<klee::Expr>> &values,
@@ -582,7 +596,7 @@ private:
   void transpile_fcfs_ct_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, const var_t &fcfs_ct_value, code_t &hash_calculator,
                                           code_t &output_hash);
   void transpile_fcfs_cs_decl(const FCFSCachedSet *fcfs_cs, const EPNode *ep_node);
-  void transpile_lpm_decl(const LPM *lpm, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> device);
+  void transpile_lpm_decl(const LPM *lpm, const std::vector<klee::ref<klee::Expr>> &keys, klee::ref<klee::Expr> value);
 
   void transpile_cms_hash_calculator_decl(const CountMinSketch *cms, const EPNode *ep_node, const std::vector<var_t> &keys_vars);
   void transpile_cms_decl(const CountMinSketch *cms, const EPNode *ep_node);

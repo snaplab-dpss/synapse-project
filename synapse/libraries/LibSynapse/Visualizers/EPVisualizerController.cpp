@@ -41,6 +41,7 @@ EPVisitor::Action EPViz::visit(const EP *ep, const EPNode *ep_node, const Contro
 }
 
 SHOW_MODULE_NAME(Controller::ParseHeader)
+SHOW_MODULE_NAME(Controller::DnsGetResponse)
 SHOW_MODULE_NAME(Controller::ModifyHeader)
 SHOW_MODULE_NAME(Controller::ChecksumUpdate)
 SHOW_MODULE_NAME(Controller::Then)
@@ -107,6 +108,8 @@ SHOW_MODULE_NAME(Controller::TokenBucketUpdateAndCheck)
 SHOW_MODULE_NAME(Controller::TokenBucketExpire)
 SHOW_MODULE_NAME(Controller::DataplaneMeterInsert)
 SHOW_MODULE_NAME(Controller::DataplaneMeterIsTracing)
+SHOW_MODULE_NAME(Controller::DataplaneLPMUpdate)
+SHOW_MODULE_NAME(Controller::DataplaneLPMLookup)
 SHOW_MODULE_NAME(Controller::DataplaneIntegerAllocatorFreeIndex)
 SHOW_MODULE_NAME(Controller::CMSUpdate)
 SHOW_MODULE_NAME(Controller::CMSQuery)
@@ -137,6 +140,7 @@ SHOW_MODULE_NAME(Controller::DataplaneFCFSCachedSetAllocate)
 SHOW_MODULE_NAME(Controller::DataplaneHHTableAllocate)
 SHOW_MODULE_NAME(Controller::DataplaneIntegerAllocatorAllocate)
 SHOW_MODULE_NAME(Controller::DataplaneMeterAllocate)
+SHOW_MODULE_NAME(Controller::DataplaneLPMAllocate)
 SHOW_MODULE_NAME(Controller::DataplaneCuckooHashTableAllocate)
 
 } // namespace LibSynapse

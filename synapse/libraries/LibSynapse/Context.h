@@ -27,6 +27,7 @@ using LibBDD::dchain_config_t;
 using LibBDD::map_coalescing_objs_t;
 using LibBDD::map_config_t;
 using LibBDD::symbol_translation_t;
+using LibBDD::lpm_config_t;
 using LibBDD::tb_config_t;
 using LibBDD::vector_config_t;
 
@@ -138,6 +139,8 @@ private:
     std::unordered_map<addr_t, bf_config_t> bf_configs;
     std::unordered_map<addr_t, cht_config_t> cht_configs;
     std::unordered_map<addr_t, tb_config_t> tb_configs;
+    std::unordered_map<addr_t, lpm_config_t> lpm_configs;
+    std::vector<klee::ref<klee::Expr>> dns_names;
 
     std::vector<map_coalescing_objs_t> coalescing_candidates;
     std::unordered_set<addr_t> dchains_used_exclusively_for_linking_maps_with_vectors;
@@ -186,6 +189,8 @@ public:
   const bf_config_t &get_bf_config(addr_t addr) const;
   const cht_config_t &get_cht_config(addr_t addr) const;
   const tb_config_t &get_tb_config(addr_t addr) const;
+  const lpm_config_t &get_lpm_config(addr_t addr) const;
+  bool is_dns_name(klee::ref<klee::Expr> expr) const;
 
   std::optional<map_coalescing_objs_t> get_map_coalescing_objs(addr_t obj) const;
   bool is_dchain_used_exclusively_for_linking_maps_with_vectors(addr_t dchain) const;

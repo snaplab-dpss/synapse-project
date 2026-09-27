@@ -51,6 +51,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::ChecksumUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::LPMLookup *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DnsGetResponse *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::MapSetTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::GuardedMapTableGuardCheck *node) override final;
@@ -97,6 +98,7 @@ public:
 
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::Ignore *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ParseHeader *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DnsGetResponse *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ModifyHeader *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::ChecksumUpdate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::If *node) override final;
@@ -164,6 +166,8 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketExpire *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterInsert *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterIsTracing *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorFreeIndex *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCMSQuery *node) override final;
@@ -193,6 +197,7 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneHHTableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneIntegerAllocatorAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneMeterAllocate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneLPMAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneCuckooHashTableAllocate *node) override final;
 
   // ========================================

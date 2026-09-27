@@ -152,6 +152,11 @@ std::vector<impl_t> SendToEgressFactory::process_node(const EP *ep, const BDDNod
   if (TofinoModuleFactory::data_structure_call_ahead(node)) {
     return decline("every way forward runs into a data-structure call before a route");
   }
+  // The egress parser extracts the headers the ingress did, in order; it cannot replay a parse
+  // that still has to select on the packet.
+  if (!node->get_future_functions({"packet_borrow_next_chunk"}, true).empty()) {
+    return decline("a header extraction lies ahead");
+  }
   if (!work_remains) {
     return decline("nothing left to do past the cut");
   }

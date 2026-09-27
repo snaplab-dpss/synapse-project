@@ -278,6 +278,35 @@ cht_config_t get_cht_config_from_bdd(const BDD &bdd, addr_t cht_addr) {
   panic("Should have found cht configuration");
 }
 
+lpm_config_t get_lpm_config_from_bdd(const BDD &bdd, addr_t lpm_addr) {
+  const std::vector<Call *> &init = bdd.get_init();
+
+  for (const Call *call_node : init) {
+    const call_t &call = call_node->get_call();
+
+    if (call.function_name != "lpm_allocate")
+      continue;
+
+    klee::ref<klee::Expr> capacity = call.args.at("capacity").expr;
+    klee::ref<klee::Expr> key_size = call.args.at("key_size").expr;
+    klee::ref<klee::Expr> lpm_out  = call.args.at("lpm_out").out;
+
+    assert(!capacity.isNull() && "Invalid capacity");
+    assert(!key_size.isNull() && "Invalid key_size");
+    assert(!lpm_out.isNull() && "Invalid lpm_out");
+
+    if (expr_addr_to_obj_addr(lpm_out) != lpm_addr)
+      continue;
+
+    const u64 capacity_value    = solver_toolbox.value_from_expr(capacity);
+    const bits_t key_size_value = solver_toolbox.value_from_expr(key_size) * 8;
+
+    return lpm_config_t{capacity_value, key_size_value};
+  }
+
+  panic("LPM %lu not allocated in the BDD's init", lpm_addr);
+}
+
 tb_config_t get_tb_config_from_bdd(const BDD &bdd, addr_t tb_addr) {
   const std::vector<Call *> &init = bdd.get_init();
 

@@ -183,6 +183,7 @@ parser IngressParser(
 }
 
 /*@{CONTROL_BLOCKS}@*/
+/*@{INGRESS_PRAGMAS}@*/
 
 control Ingress(
   inout synapse_ingress_headers_t hdr,

@@ -70,6 +70,7 @@ enum class ModuleType {
   Tofino_BloomFilterSet,
   Tofino_BloomFilterQueryAndSet,
   Tofino_LPMLookup,
+  Tofino_DnsGetResponse,
   Tofino_CuckooHashTableReadWrite,
   Tofino_HashObj,
   Tofino_CountTrailingZeros,
@@ -87,6 +88,7 @@ enum class ModuleType {
 
   Controller_Ignore,
   Controller_ParseHeader,
+  Controller_DnsGetResponse,
   Controller_ModifyHeader,
   Controller_ChecksumUpdate,
   Controller_If,
@@ -137,6 +139,9 @@ enum class ModuleType {
   Controller_DataplaneMeterAllocate,
   Controller_DataplaneMeterInsert,
   Controller_DataplaneMeterIsTracing,
+  Controller_DataplaneLPMAllocate,
+  Controller_DataplaneLPMUpdate,
+  Controller_DataplaneLPMLookup,
   Controller_DataplaneGuardedMapTableAllocate,
   Controller_DataplaneGuardedMapTableLookup,
   Controller_DataplaneGuardedMapTableUpdate,
@@ -366,6 +371,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Tofino_LPMLookup:
     os << "Tofino_LPMLookup";
     break;
+  case ModuleType::Tofino_DnsGetResponse:
+    os << "Tofino_DnsGetResponse";
+    break;
   case ModuleType::Tofino_CuckooHashTableReadWrite:
     os << "Tofino_CuckooHashTableReadWrite";
     break;
@@ -401,6 +409,9 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_ParseHeader:
     os << "Controller_ParseHeader";
+    break;
+  case ModuleType::Controller_DnsGetResponse:
+    os << "Controller_DnsGetResponse";
     break;
   case ModuleType::Controller_ModifyHeader:
     os << "Controller_ModifyHeader";
@@ -665,6 +676,15 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Controller_DataplaneMeterIsTracing:
     os << "Controller_DataplaneMeterIsTracing";
+    break;
+  case ModuleType::Controller_DataplaneLPMAllocate:
+    os << "Controller_DataplaneLPMAllocate";
+    break;
+  case ModuleType::Controller_DataplaneLPMUpdate:
+    os << "Controller_DataplaneLPMUpdate";
+    break;
+  case ModuleType::Controller_DataplaneLPMLookup:
+    os << "Controller_DataplaneLPMLookup";
     break;
   case ModuleType::Controller_CMSAllocate:
     os << "Controller_CMSAllocate";
