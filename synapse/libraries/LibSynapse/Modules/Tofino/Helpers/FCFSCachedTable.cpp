@@ -175,14 +175,33 @@ hit_rate_t round(hit_rate_t hr) {
   return hr;
 }
 
-hit_rate_t TofinoModuleFactory::get_fcfs_ct_cache_hit_rate(const Context &ctx, const BDDNode *map_op, klee::ref<klee::Expr> key, u32 cache_capacity) {
-  const flow_stats_t flow_stats = ctx.get_profiler().get_flow_stats(map_op, key);
-  const u32 mask                = cache_capacity - 1;
-  assert_or_panic(flow_stats.crc32_hashes_per_mask.contains(mask), "Failed to find crc32 hash for mask %u", mask);
-  const u64 total_hashes            = flow_stats.crc32_hashes_per_mask.at(mask);
-  const hit_rate_t top_k_hr         = flow_stats.calculate_top_k_hit_rate(total_hashes);
-  const hit_rate_t success_hit_rate = hit_rate_t((top_k_hr.value + hit_rate_t(total_hashes, flow_stats.flows).value), 2);
-  return success_hit_rate;
+hit_rate_t TofinoModuleFactory::get_fcfs_cache_success_rate(const Context &ctx, const BDD *bdd, const BDDNode *map_op, klee::ref<klee::Expr> key,
+                                                            u32 cache_capacity) {
+  const Profiler &profiler = ctx.get_profiler();
+
+  const flow_stats_t inserted = profiler.get_flow_stats(map_op, key);
+  const u32 mask              = cache_capacity - 1;
+  assert_or_panic(inserted.crc32_hashes_per_mask.contains(mask), "Failed to find crc32 hash for mask %u", mask);
+  const u64 own_slots = inserted.crc32_hashes_per_mask.at(mask);
+
+  const Call *map_call = dynamic_cast<const Call *>(map_op);
+  const addr_t map     = LibCore::expr_addr_to_obj_addr(map_call->get_call().args.at("map").expr);
+
+  const Call *busiest_read = map_call;
+  for (const Call *map_get : bdd->get_map_gets(map)) {
+    if (profiler.get_hr(map_get) > profiler.get_hr(busiest_read)) {
+      busiest_read = map_get;
+    }
+  }
+  const flow_stats_t served = profiler.get_flow_stats(busiest_read, busiest_read->get_call().args.at("key").in);
+
+  const hit_rate_t top_k_hr = served.calculate_top_k_hit_rate(own_slots);
+  return hit_rate_t((top_k_hr.value + hit_rate_t(own_slots, inserted.flows).value), 2);
+}
+
+hit_rate_t TofinoModuleFactory::get_fcfs_ct_cache_hit_rate(const Context &ctx, const BDD *bdd, const BDDNode *map_op, klee::ref<klee::Expr> key,
+                                                           u32 cache_capacity) {
+  return get_fcfs_cache_success_rate(ctx, bdd, map_op, key, cache_capacity);
 }
 
 } // namespace Tofino

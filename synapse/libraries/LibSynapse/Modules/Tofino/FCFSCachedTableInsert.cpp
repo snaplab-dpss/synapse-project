@@ -218,8 +218,8 @@ rebuilt_bdd_result_t rebuild_bdd(EP *new_ep, const pattern_t &pattern, const fcf
   const Call *map_get          = pattern.map_put->get_past_map_get_from_map_put();
   const Call *target_for_stats = map_get ? map_get : pattern.map_put;
 
-  const hit_rate_t cache_hit_rate =
-      TofinoModuleFactory::get_fcfs_ct_cache_hit_rate(new_ep->get_ctx(), target_for_stats, fcfs_ct_data.original_key, cache_capacity);
+  const hit_rate_t cache_hit_rate = TofinoModuleFactory::get_fcfs_ct_cache_hit_rate(new_ep->get_ctx(), new_ep->get_bdd(), target_for_stats,
+                                                                                    fcfs_ct_data.original_key, cache_capacity);
 
   new_ep->get_mutable_ctx().get_mutable_profiler().insert_relative(pattern.dchain_allocate_new_index->get_ordered_branch_constraints(),
                                                                    cached_insert_success_condition, cache_hit_rate);
@@ -302,11 +302,6 @@ std::optional<spec_impl_t> FCFSCachedTableInsertFactory::speculate(const EP *ep,
     return {};
   }
 
-  if (speculations.ctx.get_ds_usage_counts().contains({map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable}) &&
-      speculations.ctx.get_ds_usage_counts().at({map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable}) >= 2) {
-    return {};
-  }
-
   bool requires_recirculation = false;
   if (was_ds_already_used(ep->get_leaf_ep_node_from_bdd_node(node), speculations, node, map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable,
                           build_fcfs_ct_id(map_coalescing_objs->map))) {
@@ -325,7 +320,7 @@ std::optional<spec_impl_t> FCFSCachedTableInsertFactory::speculate(const EP *ep,
 
   for (u32 cache_capacity : allowed_cache_capacities) {
     const hit_rate_t cache_hit_rate =
-        TofinoModuleFactory::get_fcfs_ct_cache_hit_rate(ep->get_ctx(), target_for_stats, data.original_key, cache_capacity);
+        TofinoModuleFactory::get_fcfs_ct_cache_hit_rate(ep->get_ctx(), ep->get_bdd(), target_for_stats, data.original_key, cache_capacity);
 
     if (!can_build_or_reuse_fcfs_ct(ep, node, map_coalescing_objs->map, data.original_key, data.capacity, cache_capacity, false)) {
       continue;
@@ -382,11 +377,6 @@ std::vector<impl_t> FCFSCachedTableInsertFactory::process_node(const EP *ep, con
 
   if (!ep->get_ctx().can_impl_ds(map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable) ||
       !ep->get_ctx().can_impl_ds(map_coalescing_objs->dchain, DSImpl::Tofino_FCFSCachedTable)) {
-    return {};
-  }
-
-  if (ep->get_ctx().get_ds_usage_counts().contains({map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable}) &&
-      ep->get_ctx().get_ds_usage_counts().at({map_coalescing_objs->map, DSImpl::Tofino_FCFSCachedTable}) >= 2) {
     return {};
   }
 
