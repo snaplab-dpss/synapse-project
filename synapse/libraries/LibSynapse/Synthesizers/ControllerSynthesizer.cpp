@@ -2418,7 +2418,9 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 }
 
 // The token bucket kept by the controller itself: libnf's, the very structure the NF's C code
-// runs, rather than a hardware meter. Every one of these is the BDD call it came from.
+// runs, rather than a hardware meter. Every one of these is the BDD call it came from; the
+// allocation goes through sycon's wrapper so the test-only rate and burst apply to it as to a meter
+// (qualified: the libnf::TokenBucket argument would otherwise pull libnf's own in by ADL).
 EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::TokenBucketAllocate *node) {
   const code_t name = "cpu_tb_" + std::to_string(node->get_tb_addr());
 
@@ -2428,7 +2430,7 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
 
   coder_t &nf_init = get(MARKER_NF_INIT);
   nf_init.indent();
-  nf_init << "libnf::tb_allocate(" << transpiler.transpile(node->get_capacity()) << ", " << transpiler.transpile(node->get_rate()) << ", "
+  nf_init << "sycon::tb_allocate(" << transpiler.transpile(node->get_capacity()) << ", " << transpiler.transpile(node->get_rate()) << ", "
           << transpiler.transpile(node->get_burst()) << ", " << transpiler.transpile(node->get_key_size()) << ", &state->" << name << ");\n";
 
   return EPVisitor::Action::doChildren;

@@ -267,7 +267,7 @@ def start_model(nf: str) -> None:
     log("tofino-model is up")
 
 
-def start_controller(controller: Path, nf: str) -> None:
+def start_controller(controller: Path, nf: str, controller_args: tuple[str, ...] = ()) -> None:
     env = sde_env()
     binary = controller_binary(controller)
     if not binary.is_file():
@@ -278,7 +278,7 @@ def start_controller(controller: Path, nf: str) -> None:
 
     with open(logfile, "w") as out:
         proc = subprocess.Popen(
-            [str(binary), "--ports", *[str(p) for p in FRONT_PANEL_PORTS], "--model"],
+            [str(binary), "--ports", *[str(p) for p in FRONT_PANEL_PORTS], "--model", *controller_args],
             cwd=nf_log_dir(nf),
             env=env,
             stdout=out,
@@ -380,7 +380,9 @@ def down() -> None:
     _kill(lambda: _pgrep(r"run_tofino_model\.sh"), "run_tofino_model.sh")
 
 
-def up(p4: Path, controller: Path, do_build: bool = True) -> None:
+def up(p4: Path, controller: Path, do_build: bool = True, controller_args: tuple[str, ...] = ()) -> None:
+    """`controller_args` go on the controller's command line (a test's own settings, like
+    --test-token-bucket-bytes-per-sec); a controller script gets none."""
     require_root()
     ensure_veths()
     nf = p4.stem
@@ -395,7 +397,7 @@ def up(p4: Path, controller: Path, do_build: bool = True) -> None:
             start_switchd(nf)
             run_controller_script(controller, nf)
         else:
-            start_controller(controller, nf)
+            start_controller(controller, nf, controller_args)
     except TestbedError:
         down()
         raise

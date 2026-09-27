@@ -99,7 +99,7 @@ void sycon::nf_init() {
   state->forwarding_tbl.add_fwd_nf_dev_entry(31, asic_get_dev_port(32));
   // BDD node 0:tb_allocate(capacity:(w32 65536), rate:(w64 17179869184), burst:(w64 131072), key_size:(w32 4), tb_out:(w64 1074041072)[(w64 0) -> (w64 1074041392)])
   // Module TokenBucketAllocate
-  libnf::tb_allocate(65536, 17179869184ULL, 131072, 4, &state->cpu_tb_1074041392);
+  sycon::tb_allocate(65536, 17179869184ULL, 131072, 4, &state->cpu_tb_1074041392);
   // BDD node 1:vector_allocate(elem_size:(w32 4), capacity:(w32 32), vector_out:(w64 1074041080)[(w64 0) -> (w64 1074054008)])
   // Module DataplaneVectorRegisterAllocate
   // BDD node 2:vector_allocate(elem_size:(w32 2), capacity:(w32 32), vector_out:(w64 1074041088)[(w64 0) -> (w64 1074071224)])

@@ -5,6 +5,7 @@
 #include "synapse_ds.h"
 #include "../config.h"
 #include "../primitives/table.h"
+#include "../token_bucket.h"
 #include "../time.h"
 
 namespace sycon {
@@ -22,7 +23,7 @@ private:
 
 public:
   Meter(const std::string &_name, const std::string &table_name, u64 rate, u64 burst, std::optional<time_ms_t> timeout = std::nullopt)
-      : SynapseDS(_name), table(table_name), spec({rate, burst}) {
+      : SynapseDS(_name), table(table_name), spec(token_bucket_spec(rate, burst)) {
     if (timeout.has_value()) {
       table.set_notify_mode(timeout.value(), this, Meter::expiration_callback, true);
     }

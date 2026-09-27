@@ -29,6 +29,12 @@ void parse_args(int argc, char *argv[]) {
   app.add_flag("--model", args.model, "Run for the tofino model")->default_val(DEFAULT_RUN_WITH_MODEL);
   app.add_option("--tna", args.tna_version, "TNA version")->default_val(DEFAULT_TNA_VERSION);
   app.add_option("--ports", args.ports, "Frontend ports")->required();
+  CLI::Option *test_tb_rate  = app.add_option("--test-token-bucket-bytes-per-sec", args.test_token_bucket_bytes_per_sec,
+                                              "Testing only: the rate every token bucket is built with, instead of the NF's");
+  CLI::Option *test_tb_burst = app.add_option("--test-token-bucket-burst-bytes", args.test_token_bucket_burst_bytes,
+                                              "Testing only: the burst every token bucket is built with, instead of the NF's");
+  test_tb_rate->needs(test_tb_burst);
+  test_tb_burst->needs(test_tb_rate);
 
   nf_args(app);
 

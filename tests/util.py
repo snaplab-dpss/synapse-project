@@ -500,7 +500,7 @@ def step(msg: str) -> None:
     print(f"[*] {msg}", flush=True)
 
 
-def run(test: Callable[[Ports], None]) -> None:
+def run(test: Callable[[Ports], None], controller_args: tuple[str, ...] = ()) -> None:
     """
     Entry point for NF test scripts.
 
@@ -543,7 +543,7 @@ def run(test: Callable[[Ports], None]) -> None:
     try:
         testbed.require_root()
         if args.up:
-            testbed.up(p4, controller, do_build=not args.no_build)
+            testbed.up(p4, controller, do_build=not args.no_build, controller_args=controller_args)
         else:
             testbed.assert_up(p4, controller)
     except testbed.TestbedError as e:
