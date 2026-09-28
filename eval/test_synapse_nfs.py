@@ -27,6 +27,12 @@ TOTAL_FLOWS = 40_000
 CHURN_FPM = 10_000
 ZIPF_PARAM = 1.0
 
+# Meta4's traffic is pktgen's DNS mode (see deps/pktgen/README.md): pairs announced by DNS
+# responses drawn from the watch list the C NF was built with, then data server -> client, the
+# workload its profiles were built from. The DNS response ratio is the paper's.
+DNS_RATIO = 0.0014
+DOMAINS_FILE_IN_REPO = Path("dpdk-nfs/meta4/domains.txt")
+
 
 @dataclass
 class SynapseNF:
@@ -39,6 +45,8 @@ class SynapseNF:
     broadcast: Callable[[list[int]], list[int]]
     symmetric: Callable[[list[int]], list[int]]
     route: Callable[[list[int]], list[tuple[int, int]]]
+    # Meta4's traffic, DNS responses then data; the domains file is read on the pktgen host.
+    dns_mode: bool = False
 
 
 def build_synapse_nf_name(nf: str, churn: int, zipf: float) -> str:
@@ -47,151 +55,195 @@ def build_synapse_nf_name(nf: str, churn: int, zipf: float) -> str:
     return f"{nf}-f{TOTAL_FLOWS}-c{churn}-{dist}-h{heuristic}"
 
 
-NFS = [
-    # SynapseNF(
-    #     name="gallium-kvs",
-    #     description="Gallium KVS",
-    #     kvs_mode=True,
-    #     tcp_syn=False,
-    #     tofino=Path("synthesized/gallium-kvs.p4"),
-    #     controller=Path("synthesized/gallium-kvs.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name="gallium-fw",
-    #     description="Gallium FW",
-    #     kvs_mode=False,
-    #     tcp_syn=False,
-    #     tofino=Path("synthesized/gallium-fw.p4"),
-    #     controller=Path("synthesized/gallium-fw.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name="gallium-cl",
-    #     description="Gallium CL",
-    #     kvs_mode=False,
-    #     tcp_syn=False,
-    #     tofino=Path("synthesized/gallium-cl.p4"),
-    #     controller=Path("synthesized/gallium-cl.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name="gallium-pol",
-    #     description="Gallium Policer",
-    #     kvs_mode=False,
-    #     tcp_syn=False,
-    #     tofino=Path("synthesized/gallium-pol.p4"),
-    #     controller=Path("synthesized/gallium-pol.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name="gallium-hyperloglog",
-    #     description="Gallium HyperLogLog",
-    #     kvs_mode=False,
-    #     tcp_syn=False,
-    #     tofino=Path("synthesized/gallium-hyperloglog.p4"),
-    #     controller=Path("synthesized/gallium-hyperloglog.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name=build_synapse_nf_name("kvs", CHURN_FPM, ZIPF_PARAM),
-    #     description=f"Synapse {build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}",
-    #     kvs_mode=True,
-    #     tcp_syn=False,
-    #     tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}.p4"),
-    #     controller=Path(f"synthesized/{build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name=build_synapse_nf_name("fw", CHURN_FPM, ZIPF_PARAM),
-    #     description=f"Synapse {build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}",
-    #     kvs_mode=False,
-    #     tcp_syn=False,
-    #     tofino=Path(f"synthesized/{build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}.p4"),
-    #     controller=Path(f"synthesized/{build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name=build_synapse_nf_name("nat", CHURN_FPM, ZIPF_PARAM),
-    #     description=f"Synapse {build_synapse_nf_name('nat', CHURN_FPM, ZIPF_PARAM)}",
-    #     kvs_mode=False,
-    #     tcp_syn=False,
-    #     tofino=Path(f"synthesized/{build_synapse_nf_name('nat', CHURN_FPM, ZIPF_PARAM)}.p4"),
-    #     controller=Path(f"synthesized/{build_synapse_nf_name('nat', CHURN_FPM, ZIPF_PARAM)}.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name=build_synapse_nf_name("psd", CHURN_FPM, ZIPF_PARAM),
-    #     description=f"Synapse {build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}",
-    #     kvs_mode=False,
-    #     tcp_syn=False,
-    #     tofino=Path(f"synthesized/{build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}.p4"),
-    #     controller=Path(f"synthesized/{build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name=build_synapse_nf_name("cl", CHURN_FPM, ZIPF_PARAM),
-    #     description=f"Synapse {build_synapse_nf_name('cl', CHURN_FPM, ZIPF_PARAM)}",
-    #     kvs_mode=False,
-    #     tcp_syn=False,
-    #     tofino=Path(f"synthesized/{build_synapse_nf_name('cl', CHURN_FPM, ZIPF_PARAM)}.p4"),
-    #     controller=Path(f"synthesized/{build_synapse_nf_name('cl', CHURN_FPM, ZIPF_PARAM)}.cpp"),
-    #     broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-    #     symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-    #     route=lambda _: [],
-    # ),
-    SynapseNF(
-        name=build_synapse_nf_name("pol", CHURN_FPM, ZIPF_PARAM),
-        description=f"Synapse {build_synapse_nf_name('pol', CHURN_FPM, ZIPF_PARAM)}",
-        kvs_mode=False,
-        tcp_syn=False,
-        tofino=Path(f"synthesized/{build_synapse_nf_name('pol', CHURN_FPM, ZIPF_PARAM)}.p4"),
-        controller=Path(f"synthesized/{build_synapse_nf_name('pol', CHURN_FPM, ZIPF_PARAM)}.cpp"),
-        broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
-        symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
-        route=lambda _: [],
-    ),
-    # SynapseNF(
-    #     name=build_synapse_nf_name("hyperloglog", CHURN_FPM, ZIPF_PARAM),
-    #     description=f"Synapse {build_synapse_nf_name('hyperloglog', CHURN_FPM, ZIPF_PARAM)}",
-    #     kvs_mode=False,
-    #     tcp_syn=False,
-    #     tofino=Path(f"synthesized/{build_synapse_nf_name('hyperloglog', CHURN_FPM, ZIPF_PARAM)}.p4"),
-    #     controller=Path(f"synthesized/{build_synapse_nf_name('hyperloglog', CHURN_FPM, ZIPF_PARAM)}.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    # ),
-    # SynapseNF(
-    #     name=build_synapse_nf_name("smartcookie", CHURN_FPM, ZIPF_PARAM),
-    #     description=f"Synapse {build_synapse_nf_name('smartcookie', CHURN_FPM, ZIPF_PARAM)}",
-    #     kvs_mode=False,
-    #     tcp_syn=True,
-    #     tofino=Path(f"synthesized/{build_synapse_nf_name('smartcookie', CHURN_FPM, ZIPF_PARAM)}.p4"),
-    #     controller=Path(f"synthesized/{build_synapse_nf_name('smartcookie', CHURN_FPM, ZIPF_PARAM)}.cpp"),
-    #     broadcast=lambda ports: ports,
-    #     symmetric=lambda _: [],
-    #     route=lambda _: [],
-    # ),
-]
+def nf_key(nf: SynapseNF) -> str:
+    """What --nfs selects by: a gallium program's name, or the NF a synapse solution was synthesized for."""
+    return nf.name if nf.name.startswith("gallium-") else nf.name.split("-f")[0]
+
+
+def nfs(churn_fpm: int, zipf_param: float) -> list[SynapseNF]:
+    """The programs under test: each synapse one is the solution synthesized for this workload."""
+    CHURN_FPM = churn_fpm
+    ZIPF_PARAM = zipf_param
+    return [
+        SynapseNF(
+            name="gallium-kvs",
+            description="Gallium KVS",
+            kvs_mode=True,
+            tcp_syn=False,
+            tofino=Path("synthesized/gallium-kvs.p4"),
+            controller=Path("synthesized/gallium-kvs.cpp"),
+            broadcast=lambda ports: ports,
+            symmetric=lambda _: [],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name="gallium-fw",
+            description="Gallium FW",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path("synthesized/gallium-fw.p4"),
+            controller=Path("synthesized/gallium-fw.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name="gallium-nat",
+            description="Gallium NAT",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path("synthesized/gallium-nat.p4"),
+            controller=Path("synthesized/gallium-nat.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name="gallium-meta4",
+            description="Gallium Meta4",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path("synthesized/gallium-meta4.p4"),
+            controller=Path("synthesized/gallium-meta4.cpp"),
+            broadcast=lambda ports: ports,
+            symmetric=lambda _: [],
+            route=lambda _: [],
+            dns_mode=True,
+        ),
+        SynapseNF(
+            name="gallium-cl",
+            description="Gallium CL",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path("synthesized/gallium-cl.p4"),
+            controller=Path("synthesized/gallium-cl.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name="gallium-pol",
+            description="Gallium Policer",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path("synthesized/gallium-pol.p4"),
+            controller=Path("synthesized/gallium-pol.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name="gallium-hyperloglog",
+            description="Gallium HyperLogLog",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path("synthesized/gallium-hyperloglog.p4"),
+            controller=Path("synthesized/gallium-hyperloglog.cpp"),
+            broadcast=lambda ports: ports,
+            symmetric=lambda _: [],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name=build_synapse_nf_name("kvs", CHURN_FPM, ZIPF_PARAM),
+            description=f"Synapse {build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}",
+            kvs_mode=True,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+            broadcast=lambda ports: ports,
+            symmetric=lambda _: [],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name=build_synapse_nf_name("fw", CHURN_FPM, ZIPF_PARAM),
+            description=f"Synapse {build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('fw', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name=build_synapse_nf_name("nat", CHURN_FPM, ZIPF_PARAM),
+            description=f"Synapse {build_synapse_nf_name('nat', CHURN_FPM, ZIPF_PARAM)}",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('nat', CHURN_FPM, ZIPF_PARAM)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('nat', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name=build_synapse_nf_name("psd", CHURN_FPM, ZIPF_PARAM),
+            description=f"Synapse {build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('psd', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name=build_synapse_nf_name("cl", CHURN_FPM, ZIPF_PARAM),
+            description=f"Synapse {build_synapse_nf_name('cl', CHURN_FPM, ZIPF_PARAM)}",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('cl', CHURN_FPM, ZIPF_PARAM)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('cl', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name=build_synapse_nf_name("pol", CHURN_FPM, ZIPF_PARAM),
+            description=f"Synapse {build_synapse_nf_name('pol', CHURN_FPM, ZIPF_PARAM)}",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('pol', CHURN_FPM, ZIPF_PARAM)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('pol', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name=build_synapse_nf_name("hyperloglog", CHURN_FPM, ZIPF_PARAM),
+            description=f"Synapse {build_synapse_nf_name('hyperloglog', CHURN_FPM, ZIPF_PARAM)}",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('hyperloglog', CHURN_FPM, ZIPF_PARAM)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('hyperloglog', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+            broadcast=lambda ports: ports,
+            symmetric=lambda _: [],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name=build_synapse_nf_name("smartcookie", CHURN_FPM, ZIPF_PARAM),
+            description=f"Synapse {build_synapse_nf_name('smartcookie', CHURN_FPM, ZIPF_PARAM)}",
+            kvs_mode=False,
+            tcp_syn=True,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('smartcookie', CHURN_FPM, ZIPF_PARAM)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('smartcookie', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+            broadcast=lambda ports: ports,
+            symmetric=lambda _: [],
+            route=lambda _: [],
+        ),
+        SynapseNF(
+            name=build_synapse_nf_name("meta4", CHURN_FPM, ZIPF_PARAM),
+            description=f"Synapse {build_synapse_nf_name('meta4', CHURN_FPM, ZIPF_PARAM)}",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('meta4', CHURN_FPM, ZIPF_PARAM)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('meta4', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+            broadcast=lambda ports: ports,
+            symmetric=lambda _: [],
+            route=lambda _: [],
+            dns_mode=True,
+        ),
+    ]
 
 
 class Test(Experiment):
@@ -209,6 +261,7 @@ class Test(Experiment):
         route: list[tuple[int, int]],
         kvs_mode: bool,
         tcp_syn: bool,
+        dns_mode: bool,
         # Synapse
         p4_src_in_repo: Path,
         controller_src_in_repo: Path,
@@ -217,6 +270,7 @@ class Test(Experiment):
         total_flows: int,
         zipf_param: float,
         churn_fpm: int,
+        domains: str,
         # Logs
         experiment_log_file: Optional[str] = None,
     ) -> None:
@@ -235,6 +289,7 @@ class Test(Experiment):
         self.route = route
         self.kvs_mode = kvs_mode
         self.tcp_syn = tcp_syn
+        self.dns_mode = dns_mode
 
         # Synapse
         self.p4_src_in_repo = p4_src_in_repo
@@ -245,6 +300,7 @@ class Test(Experiment):
         self.total_flows = total_flows
         self.zipf_param = zipf_param
         self.churn_fpm = churn_fpm
+        self.domains = domains
 
         assert not self.kvs_mode or (self.kvs_server is not None)
 
@@ -293,6 +349,9 @@ class Test(Experiment):
             kvs_mode=self.kvs_mode,
             kvs_get_ratio=KVS_GET_RATIO,
             tcp_syn=self.tcp_syn,
+            dns_mode=self.dns_mode,
+            domains=self.domains,
+            dns_ratio=DNS_RATIO,
         )
 
         self.log("Waiting for the Synapse controller")
@@ -328,6 +387,9 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-c", "--config-file", type=Path, default=EVAL_DIR / "experiment_config.toml", help="Path to config file")
+    parser.add_argument("--churn", type=int, default=CHURN_FPM, help="Churn (fpm); a synapse NF runs the solution synthesized for it")
+    parser.add_argument("--zipf-param", type=float, default=ZIPF_PARAM, help="Zipf parameter (0 = uniform); likewise")
+    parser.add_argument("--nfs", nargs="+", required=True, choices=[nf_key(nf) for nf in nfs(CHURN_FPM, ZIPF_PARAM)], help="The programs to test (a synapse NF runs the solution synthesized for --churn/--zipf-param)")
 
     args = parser.parse_args()
 
@@ -355,7 +417,10 @@ def main():
     symmetric = []
     route = []
 
-    for nf in NFS:
+    # The domains file as pktgen sees it, in its own copy of the repo.
+    domains = str(Path(config["repo"]["pktgen"]) / DOMAINS_FILE_IN_REPO)
+
+    for nf in [nf for nf in nfs(args.churn, args.zipf_param) if nf_key(nf) in args.nfs]:
         broadcast = nf.broadcast(tg_dut_ports)
         symmetric = nf.symmetric(tg_dut_ports)
         route = nf.route(tg_dut_ports)
@@ -377,12 +442,14 @@ def main():
             route=route,
             kvs_mode=nf.kvs_mode,
             tcp_syn=nf.tcp_syn,
+            dns_mode=nf.dns_mode,
             p4_src_in_repo=nf.tofino,
             controller_src_in_repo=nf.controller,
             dut_ports=dut_ports,
             total_flows=TOTAL_FLOWS,
-            zipf_param=ZIPF_PARAM,
-            churn_fpm=CHURN_FPM,
+            zipf_param=args.zipf_param,
+            churn_fpm=args.churn,
+            domains=domains,
             experiment_log_file=log_file,
         )
 
