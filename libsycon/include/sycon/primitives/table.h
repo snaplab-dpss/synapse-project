@@ -81,6 +81,7 @@ public:
   table_action_t get_action(const std::string &name) const;
 
   void set_notify_mode(time_ms_t timeout_value, void *cookie, const bfrt::BfRtIdleTmoExpiryCb &callback, bool enable);
+  time_ms_t get_entry_ttl(const buffer_t &k);
 
   void add_entry(const buffer_t &k);
   void add_entry(const buffer_t &k, const std::string &action_name, const std::vector<buffer_t> &params);

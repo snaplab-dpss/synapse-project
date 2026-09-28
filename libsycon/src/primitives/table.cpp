@@ -703,6 +703,29 @@ void Table::add_or_mod_entry(const buffer_t &k, const std::string &action_name, 
   ASSERT_BF_STATUS(bf_status);
 }
 
+// Read from software: that is where notify mode keeps the timeout, refreshed by the same sweep
+// that reports the expiries this is asked about.
+time_ms_t Table::get_entry_ttl(const buffer_t &k) {
+  assert(time_aware && "Table has no idle timeout");
+
+  set_key(k);
+
+  bf_status_t bf_status = table->dataReset(data.get());
+  ASSERT_BF_STATUS(bf_status);
+
+  bf_status = table->tableEntryGet(*session, dev_tgt, *key, bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_SW, data.get());
+  if (bf_status == BF_OBJECT_NOT_FOUND) {
+    return 0;
+  }
+  ASSERT_BF_STATUS(bf_status);
+
+  u64 ttl   = 0;
+  bf_status = data->getValue(entry_ttl_data_id, &ttl);
+  ASSERT_BF_STATUS(bf_status);
+
+  return ttl;
+}
+
 void Table::del_entry(const buffer_t &k) {
   bf_status_t bf_status;
 

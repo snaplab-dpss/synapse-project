@@ -16,7 +16,6 @@ namespace sycon {
 class MapSetTable : public SynapseDS {
 private:
   std::unordered_set<buffer_t, buffer_hash_t> cache;
-  std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
   std::vector<Table> tables;
   u32 capacity;
   bits_t key_size;
@@ -123,12 +122,8 @@ private:
       ERROR("Target table %s not found", table_name.c_str());
     }
 
-    map_table->expirations_per_key[key_buffer].insert(table_name);
-    LOG_DEBUG("Expiration callback invoked for key %s on table %s (total expirations for this key: %lu)", key_buffer.to_string().c_str(),
-              table_name.c_str(), map_table->expirations_per_key[key_buffer].size());
-    if (map_table->expirations_per_key[key_buffer].size() == map_table->tables.size()) {
+    if (expired_everywhere(map_table->tables, key_buffer)) {
       map_table->del(key_buffer);
-      map_table->expirations_per_key.erase(key_buffer);
     }
 
     cfg.commit_dataplane_notification_transaction();

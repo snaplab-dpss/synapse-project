@@ -17,7 +17,6 @@ namespace sycon {
 class FCFSCachedTable : public SynapseDS {
 private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
-  std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
   std::vector<u32> control_plane_free_indices;
   std::unordered_set<u32> control_plane_allocated_indices;
 
@@ -39,7 +38,6 @@ public:
     assert(cache_capacity < capacity && "Cache capacity must be less than the total capacity, otherwise we can't handle hash collisions");
 
     cache.reserve(capacity);
-    expirations_per_key.reserve(capacity);
     control_plane_free_indices.reserve(capacity - cache_capacity);
 
     for (u32 i = cache_capacity; i < capacity; i++) {
@@ -200,10 +198,8 @@ private:
       ERROR("Target table %s not found", table_name.c_str());
     }
 
-    fcfs_ct->expirations_per_key[key_buffer].insert(table_name);
-    if (fcfs_ct->expirations_per_key[key_buffer].size() == fcfs_ct->tables.size()) {
+    if (expired_everywhere(fcfs_ct->tables, key_buffer)) {
       fcfs_ct->del(key_buffer);
-      fcfs_ct->expirations_per_key.erase(key_buffer);
     }
 
     cfg.commit_dataplane_notification_transaction();

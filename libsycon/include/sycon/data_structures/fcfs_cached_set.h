@@ -17,7 +17,6 @@ namespace sycon {
 class FCFSCachedSet : public SynapseDS {
 private:
   std::unordered_set<buffer_t, buffer_hash_t> cache;
-  std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
 
   std::vector<Table> tables;
 
@@ -119,10 +118,8 @@ private:
       ERROR("Target table %s not found", table_name.c_str());
     }
 
-    fcfs_ct->expirations_per_key[key_buffer].insert(table_name);
-    if (fcfs_ct->expirations_per_key[key_buffer].size() == fcfs_ct->tables.size()) {
+    if (expired_everywhere(fcfs_ct->tables, key_buffer)) {
       fcfs_ct->del(key_buffer);
-      fcfs_ct->expirations_per_key.erase(key_buffer);
     }
 
     cfg.commit_dataplane_notification_transaction();

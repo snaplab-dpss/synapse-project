@@ -17,7 +17,6 @@ namespace sycon {
 class GuardedMapTable : public SynapseDS {
 private:
   std::unordered_map<buffer_t, u32, buffer_hash_t> cache;
-  std::unordered_map<buffer_t, std::unordered_set<std::string>, buffer_hash_t> expirations_per_key;
   bool guard_cache;
 
   std::vector<Table> tables;
@@ -144,10 +143,8 @@ private:
       ERROR("Target table %s not found", table_name.c_str());
     }
 
-    map_table->expirations_per_key[key_buffer].insert(table_name);
-    if (map_table->expirations_per_key[key_buffer].size() == map_table->tables.size()) {
+    if (expired_everywhere(map_table->tables, key_buffer)) {
       map_table->del(key_buffer);
-      map_table->expirations_per_key.erase(key_buffer);
     }
 
     cfg.commit_dataplane_notification_transaction();

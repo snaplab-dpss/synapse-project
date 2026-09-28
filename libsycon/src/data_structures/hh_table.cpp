@@ -290,10 +290,8 @@ void HHTable::expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfR
     ERROR("Target table %s not found", table_name.c_str());
   }
 
-  hh_table->expirations_per_key[key_buffer].insert(table_name);
-  if (hh_table->expirations_per_key[key_buffer].size() == hh_table->tables.size()) {
+  if (expired_everywhere(hh_table->tables, key_buffer)) {
     hh_table->remove(key_buffer);
-    hh_table->expirations_per_key.erase(key_buffer);
   }
 
   cfg.commit_dataplane_notification_transaction();
