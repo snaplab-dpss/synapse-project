@@ -516,6 +516,7 @@ private:
   struct fcfs_cs_internals_t {
     code_t liveness_query;
     code_t liveness_query_and_refresh;
+    code_t punt_gate_claim;
     std::vector<var_t> keys;
     std::map<std::pair<DS_ID, RegisterActionType>, code_t> keys_reg_actions;
   };
@@ -525,12 +526,22 @@ private:
   struct fcfs_ct_internals_t {
     code_t liveness_query;
     code_t liveness_query_and_refresh;
+    code_t punt_gate_claim;
     std::vector<var_t> keys;
     std::map<std::pair<DS_ID, RegisterActionType>, code_t> keys_reg_actions;
     std::map<std::pair<DS_ID, RegisterActionType>, code_t> index_to_keys_reg_actions;
   };
 
   fcfs_ct_internals_t fcfs_ct_get_internals(const FCFSCachedTable *fcfs_ct);
+
+  // The punt gate of a cached structure (reg_punt_gate): declared with the structure, and applied
+  // where a cached insert fails. The gate's verdict lives in a control-scope bool, recorded per EP
+  // node so that the SendToController below it drops the packet instead when the gate said no.
+  bool punt_gate_declared = false;
+  std::unordered_map<u64, code_t> punt_gate_vars;
+  void transpile_punt_gate_decl(const Register *reg, const code_t &claim_action);
+  code_t declare_punt_gate_var(coder_t &ingress_apply, const EPNode *ep_node);
+  void transpile_punt_gate_claim(const code_t &claim_action, const code_t &hash_value, const code_t &punt_var, const EPNode *ep_node);
 
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_reg_actions(const CountMinSketch *cms);
   std::unordered_map<RegisterActionType, std::vector<code_t>> cms_get_rows_actions(const CountMinSketch *cms);

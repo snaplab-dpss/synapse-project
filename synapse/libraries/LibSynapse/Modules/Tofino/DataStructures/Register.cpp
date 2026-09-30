@@ -100,6 +100,9 @@ void Register::debug() const {
     case RegisterActionType::IntegerAllocatorHeadReadAndUpdate:
       ss << "INTEGER_ALLOCATOR_HEAD_READ_AND_UPDATE";
       break;
+    case RegisterActionType::ClaimIfStale:
+      ss << "CLAIM_IF_STALE";
+      break;
     }
     first = false;
   }

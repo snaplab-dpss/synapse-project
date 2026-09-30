@@ -22,6 +22,12 @@ Register build_reg_liveness(const tna_properties_t &properties, DS_ID id, u32 ca
                   {RegisterActionType::QueryTimestamp, RegisterActionType::QueryAndRefreshTimestamp});
 }
 
+Register build_reg_punt_gate(const tna_properties_t &properties, DS_ID id, u32 cache_capacity) {
+  const bits_t hash_size  = bits_from_pow2_capacity(cache_capacity);
+  const bits_t value_size = 32;
+  return Register(properties, id + "_reg_punt_gate", cache_capacity, hash_size, value_size, {RegisterActionType::ClaimIfStale});
+}
+
 std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID id, const std::vector<bits_t> &elements_sizes, u32 cache_capacity) {
   std::vector<Register> registers;
 
@@ -43,7 +49,8 @@ std::vector<Register> build_cache_keys(const tna_properties_t &properties, DS_ID
 FCFSCachedSet::FCFSCachedSet(const tna_properties_t &properties, DS_ID _id, u32 _op, u32 _cache_capacity, u32 _capacity,
                              const std::vector<bits_t> &_keys_sizes)
     : DS(DSType::FCFSCachedSet, false, _id), cache_capacity(_cache_capacity), capacity(_capacity), keys_sizes(_keys_sizes),
-      reg_liveness(build_reg_liveness(properties, id, cache_capacity)), cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)) {
+      reg_liveness(build_reg_liveness(properties, id, cache_capacity)), cache_keys(build_cache_keys(properties, id, keys_sizes, cache_capacity)),
+      reg_punt_gate(build_reg_punt_gate(properties, id, cache_capacity)) {
   assert(cache_capacity > 0);
   assert(capacity > 0);
   assert(cache_capacity <= capacity);
@@ -52,7 +59,8 @@ FCFSCachedSet::FCFSCachedSet(const tna_properties_t &properties, DS_ID _id, u32 
 
 FCFSCachedSet::FCFSCachedSet(const FCFSCachedSet &other)
     : DS(other.type, other.primitive, other.id), cache_capacity(other.cache_capacity), capacity(other.capacity), keys_sizes(other.keys_sizes),
-      tables(other.tables), reg_liveness(other.reg_liveness), cache_keys(other.cache_keys), hashes(other.hashes) {}
+      tables(other.tables), reg_liveness(other.reg_liveness), cache_keys(other.cache_keys), reg_punt_gate(other.reg_punt_gate), hashes(other.hashes) {
+}
 
 DS *FCFSCachedSet::clone() const { return new FCFSCachedSet(*this); }
 
@@ -69,6 +77,7 @@ void FCFSCachedSet::debug() const {
   for (const Register &cache_key : cache_keys) {
     cache_key.debug();
   }
+  reg_punt_gate.debug();
   for (const Hash &hash : hashes) {
     hash.debug();
   }
@@ -93,6 +102,10 @@ std::vector<std::unordered_set<const DS *>> FCFSCachedSet::get_internal() const 
   for (const Register &cache_key : cache_keys) {
     internal_ds.back().insert(&cache_key);
   }
+
+  // Claimed only once the keys have been compared, so it follows them.
+  internal_ds.emplace_back();
+  internal_ds.back().insert(&reg_punt_gate);
 
   return internal_ds;
 }

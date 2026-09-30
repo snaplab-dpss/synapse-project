@@ -964,6 +964,9 @@ code_t TofinoSynthesizer::build_register_action_name(const Register *reg, Regist
   case RegisterActionType::IntegerAllocatorHeadReadAndUpdate:
     coder << "int_alloc_head_read_and_update";
     break;
+  case RegisterActionType::ClaimIfStale:
+    coder << "claim_if_stale";
+    break;
   }
 
   if (node) {
@@ -1692,6 +1695,37 @@ void TofinoSynthesizer::transpile_register_action_decl(const Register *reg, cons
     ingress.indent();
     ingress << "}\n";
   } break;
+  case RegisterActionType::ClaimIfStale: {
+    assert_or_panic(extras.has_value() && extras->external_var.has_value(), "Expected the deadline the stamp is compared with");
+    ingress.indent();
+    ingress << "void apply(inout bit<32> stamp, out bool claimed) {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "if (stamp < " << extras->external_var.value() << ") {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "claimed = true;\n";
+    ingress.indent();
+    ingress << "stamp = meta.time;\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "} else {\n";
+    ingress.inc();
+
+    ingress.indent();
+    ingress << "claimed = false;\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+
+    ingress.dec();
+    ingress.indent();
+    ingress << "}\n";
+  } break;
   case RegisterActionType::CheckValue: {
     assert_or_panic(extras.has_value() && extras->external_var.has_value(), "Expected a global variable for crosschecking the value");
     ingress.indent();
@@ -1939,6 +1973,8 @@ void TofinoSynthesizer::transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, c
       transpile_register_action_decl(&reg_key, fcfs_ct_internals.keys_reg_actions.at({reg_key.id, action_type}), action_type, extras);
     }
   }
+
+  transpile_punt_gate_decl(&fcfs_ct->reg_punt_gate, fcfs_ct_internals.punt_gate_claim);
 }
 
 void TofinoSynthesizer::transpile_fcfs_cs_decl(const FCFSCachedSet *fcfs_cs, const EPNode *ep_node) {
@@ -1974,6 +2010,66 @@ void TofinoSynthesizer::transpile_fcfs_cs_decl(const FCFSCachedSet *fcfs_cs, con
       transpile_register_action_decl(&reg_key, fcfs_cs_internals.keys_reg_actions.at({reg_key.id, action_type}), action_type, extras);
     }
   }
+
+  transpile_punt_gate_decl(&fcfs_cs->reg_punt_gate, fcfs_cs_internals.punt_gate_claim);
+}
+
+// Ticks of the data plane's clock (ingress_mac_tstamp[47:16], 65.5 us) a slot stays claimed after
+// a punt: a flow the controller is installing sends one packet up per window and loses the rest,
+// instead of every packet until its entry lands. 8.4 ms covers the controller's install latency
+// when it is not flooded, which this is what keeps it from being.
+constexpr const u64 PUNT_GATE_TICKS{128};
+
+void TofinoSynthesizer::transpile_punt_gate_decl(const Register *reg, const code_t &claim_action) {
+  if (!punt_gate_declared) {
+    punt_gate_declared = true;
+    code_template.get(MARKER_INGRESS_METADATA) << "  bit<32> punt_deadline; // meta.time minus the punt gate's window\n";
+    coder_t &apply_start = code_template.get(MARKER_INGRESS_APPLY_START);
+    apply_start.indent();
+    apply_start << "meta.punt_deadline = meta.time - " << PUNT_GATE_TICKS << ";\n";
+  }
+
+  transpile_register_decl(reg);
+  transpile_register_action_decl(reg, claim_action, RegisterActionType::ClaimIfStale,
+                                 register_action_extras_t{
+                                     .external_var             = "meta.punt_deadline",
+                                     .extra_constant           = {},
+                                     .extra_condition          = {},
+                                     .write_value              = {},
+                                     .temporary_transpilations = {},
+                                 });
+}
+
+code_t TofinoSynthesizer::declare_punt_gate_var(coder_t &ingress_apply, const EPNode *ep_node) {
+  // At control scope, as the key match counters: the gate's action assigns it.
+  coder_t &ingress      = get(MARKER_INGRESS_CONTROL);
+  const code_t punt_var = create_unique_name("punt_allowed");
+  ingress.indent();
+  ingress << "bool " << punt_var << " = true;\n";
+  punt_gate_vars[ep_node->get_id()] = punt_var;
+  return punt_var;
+}
+
+void TofinoSynthesizer::transpile_punt_gate_claim(const code_t &claim_action, const code_t &hash_value, const code_t &punt_var,
+                                                  const EPNode *ep_node) {
+  coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
+
+  // Its own action, as the key checks: a register executed at a computed index must not have a
+  // constant-bearing statement fused into it (emit_register_execute).
+  const code_t action_name = create_unique_name("punt_gate_" + std::to_string(ep_node->get_id()));
+  coder_t action_body;
+  action_body.indent();
+  action_body << punt_var << " = " << claim_action << ".execute(" << hash_value << ");\n";
+  transpile_action_decl(action_name, action_body.split_lines());
+
+  ingress_apply.indent();
+  ingress_apply << "else {\n";
+  ingress_apply.inc();
+  ingress_apply.indent();
+  ingress_apply << action_name << "();\n";
+  ingress_apply.dec();
+  ingress_apply.indent();
+  ingress_apply << "}\n";
 }
 
 code_t TofinoSynthesizer::var_t::get_type() const { return force_bool ? "bool" : TofinoSynthesizer::Transpiler::type_from_size(size); }
@@ -5014,6 +5110,19 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   coder_t &ingress_apply = get(MARKER_INGRESS_CONTROL_APPLY);
   const Symbols &symbols = node->get_symbols();
 
+  // Under a cached structure's punt gate, the packet only goes up if the gate let it.
+  std::optional<code_t> punt_gate;
+  for (const EPNode *above = ep_node->get_prev(); above && !punt_gate; above = above->get_prev()) {
+    if (auto found = punt_gate_vars.find(above->get_id()); found != punt_gate_vars.end()) {
+      punt_gate = found->second;
+    }
+  }
+  if (punt_gate) {
+    ingress_apply.indent();
+    ingress_apply << "if (" << *punt_gate << ") {\n";
+    ingress_apply.inc();
+  }
+
   ingress_apply.indent();
   ingress_apply << "fwd_op = fwd_op_t.FORWARD_TO_CPU;\n";
   ingress_apply.indent();
@@ -5087,6 +5196,18 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     ingress_apply << var->name;
     ingress_apply << ";";
     ingress_apply << (via_hash ? " }\n" : "\n");
+  }
+
+  if (punt_gate) {
+    ingress_apply.dec();
+    ingress_apply.indent();
+    ingress_apply << "} else {\n";
+    ingress_apply.inc();
+    ingress_apply.indent();
+    ingress_apply << "fwd_op = fwd_op_t.DROP;\n";
+    ingress_apply.dec();
+    ingress_apply.indent();
+    ingress_apply << "}\n";
   }
 
   return EPVisitor::Action::doChildren;
@@ -7761,6 +7882,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const var_t cached_insert_success_var = alloc_var("cached_insert_success", cached_insert_success.expr);
   cached_insert_success_var.declare(ingress_apply, "0");
 
+  const code_t punt_var = declare_punt_gate_var(ingress_apply, ep_node);
+
   ingress_apply.indent();
   ingress_apply << "if (!" << hit_var.name << ") {\n";
   ingress_apply.inc();
@@ -7806,6 +7929,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.dec();
   ingress_apply.indent();
   ingress_apply << "}\n";
+
+  // The slot is another live flow's: the packet goes to the controller, gated.
+  transpile_punt_gate_claim(fcfs_ct_internals.punt_gate_claim, hash_value, punt_var, ep_node);
 
   ingress_apply.dec();
   ingress_apply.indent();
@@ -7886,6 +8012,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << "bool " << is_alive_var_name << " = ";
   ingress_apply << fcfs_ct_internals.liveness_query_and_refresh << ".execute((bit<32>)" << hash_value << ");\n";
 
+  const code_t punt_var = declare_punt_gate_var(ingress_apply, ep_node);
+
   ingress_apply.indent();
   ingress_apply << "if (!" << is_alive_var_name << ") {\n";
   ingress_apply.inc();
@@ -7901,6 +8029,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.dec();
   ingress_apply.indent();
   ingress_apply << "}\n";
+
+  // The slot is another live flow's: the packet goes to the controller, gated.
+  transpile_punt_gate_claim(fcfs_ct_internals.punt_gate_claim, hash_value, punt_var, ep_node);
 
   return EPVisitor::Action::doChildren;
 }
@@ -7945,6 +8076,7 @@ TofinoSynthesizer::fcfs_cs_internals_t TofinoSynthesizer::fcfs_cs_get_internals(
 
   internals.liveness_query             = build_register_action_name(&fcfs_cs->reg_liveness, RegisterActionType::QueryTimestamp);
   internals.liveness_query_and_refresh = build_register_action_name(&fcfs_cs->reg_liveness, RegisterActionType::QueryAndRefreshTimestamp);
+  internals.punt_gate_claim            = build_register_action_name(&fcfs_cs->reg_punt_gate, RegisterActionType::ClaimIfStale);
 
   for (size_t i = 0; i < fcfs_cs->keys_sizes.size(); i++) {
     const code_t key_name = fcfs_cs->id + "_key_" + std::to_string(fcfs_cs->keys_sizes[i]) + "b_" + std::to_string(i);
@@ -7972,6 +8104,7 @@ TofinoSynthesizer::fcfs_ct_internals_t TofinoSynthesizer::fcfs_ct_get_internals(
 
   internals.liveness_query             = build_register_action_name(&fcfs_ct->reg_liveness, RegisterActionType::QueryTimestamp);
   internals.liveness_query_and_refresh = build_register_action_name(&fcfs_ct->reg_liveness, RegisterActionType::QueryAndRefreshTimestamp);
+  internals.punt_gate_claim            = build_register_action_name(&fcfs_ct->reg_punt_gate, RegisterActionType::ClaimIfStale);
 
   for (size_t i = 0; i < fcfs_ct->keys_sizes.size(); i++) {
     const code_t key_name = fcfs_ct->id + "_key_" + std::to_string(fcfs_ct->keys_sizes[i]) + "b_" + std::to_string(i);
@@ -8134,6 +8267,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   const var_t cached_insert_success_var = alloc_var("cached_insert_success", cached_insert_success.expr);
   cached_insert_success_var.declare(ingress_apply, "0");
 
+  const code_t punt_var = declare_punt_gate_var(ingress_apply, ep_node);
+
   ingress_apply.indent();
   ingress_apply << "if (!" << hit_var.name << ") {\n";
   ingress_apply.inc();
@@ -8179,6 +8314,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.dec();
   ingress_apply.indent();
   ingress_apply << "}\n";
+
+  // The slot is another live flow's: the packet goes to the controller, gated.
+  transpile_punt_gate_claim(fcfs_cs_internals.punt_gate_claim, hash_value, punt_var, ep_node);
 
   ingress_apply.dec();
   ingress_apply.indent();
@@ -8248,6 +8386,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply << "bool " << is_alive_var_name << " = ";
   ingress_apply << fcfs_cs_internals.liveness_query_and_refresh << ".execute(" << hash_value << ");\n";
 
+  const code_t punt_var = declare_punt_gate_var(ingress_apply, ep_node);
+
   ingress_apply.indent();
   ingress_apply << "if (!" << is_alive_var_name << ") {\n";
   ingress_apply.inc();
@@ -8263,6 +8403,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   ingress_apply.dec();
   ingress_apply.indent();
   ingress_apply << "}\n";
+
+  // The slot is another live flow's: the packet goes to the controller, gated.
+  transpile_punt_gate_claim(fcfs_cs_internals.punt_gate_claim, hash_value, punt_var, ep_node);
 
   return EPVisitor::Action::doChildren;
 }

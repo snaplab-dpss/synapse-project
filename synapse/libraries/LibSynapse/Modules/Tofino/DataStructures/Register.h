@@ -38,6 +38,9 @@ enum class RegisterActionType {
   QueryAndRefreshTimestamp,
   CheckValue,
   IntegerAllocatorHeadReadAndUpdate,
+  // Claims the slot if its stamp is older than a deadline: the stamp becomes now and the
+  // packet is told so. A punt gate: one packet per slot per window goes to the controller.
+  ClaimIfStale,
 };
 
 enum class RegisterActionOutValueSize { SameAsStoredValue, Bool, UInt8, UInt16, UInt32 };
@@ -55,6 +58,7 @@ const std::unordered_map<RegisterActionType, RegisterActionOutValueSize> registe
     {RegisterActionType::CalculateDiff, RegisterActionOutValueSize::SameAsStoredValue},
     {RegisterActionType::SampleEveryFourth, RegisterActionOutValueSize::SameAsStoredValue},
     {RegisterActionType::QueryTimestamp, RegisterActionOutValueSize::Bool},
+    {RegisterActionType::ClaimIfStale, RegisterActionOutValueSize::Bool},
     {RegisterActionType::QueryAndRefreshTimestamp, RegisterActionOutValueSize::Bool},
     {RegisterActionType::CheckValue, RegisterActionOutValueSize::UInt8},
     {RegisterActionType::IntegerAllocatorHeadReadAndUpdate, RegisterActionOutValueSize::SameAsStoredValue},
