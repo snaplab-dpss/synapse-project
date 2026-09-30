@@ -112,6 +112,7 @@ struct synapse_ingress_metadata_t {
   bit<32> fcfs_cs_1074044080_key_32b_1;
   bit<16> fcfs_cs_1074044080_key_16b_2;
   bit<16> fcfs_cs_1074044080_key_16b_3;
+  bit<32> punt_deadline; // meta.time minus the punt gate's window
   bool hit0;
   bool hit1;
   bit<16> pkt_len;
@@ -502,6 +503,18 @@ control Ingress(
     }
   };
 
+  Register<bit<32>,_>(256, 0) fcfs_cs_1074044080_reg_punt_gate;
+  RegisterAction<bit<32>, bit<8>, bool>(fcfs_cs_1074044080_reg_punt_gate) fcfs_cs_1074044080_reg_punt_gate_claim_if_stale = {
+    void apply(inout bit<32> stamp, out bool claimed) {
+      if (stamp < meta.punt_deadline) {
+        claimed = true;
+        stamp = meta.time;
+      } else {
+        claimed = false;
+      }
+    }
+  };
+
   table fcfs_cs_1074044080_table_142 {
     key = {
       meta.fcfs_cs_1074044080_key_32b_0: exact;
@@ -576,6 +589,7 @@ control Ingress(
       meta.fcfs_cs_1074044080_key_16b_3
       });
   }
+  bool punt_allowed0 = true;
   bit<8> match_counter1 = 0;
   action fcfs_cs_1074044080_check_key_0_155() {
     match_counter1 = match_counter1 + fcfs_cs_1074044080_reg_key_0_check_value.execute(fcfs_cs_1074044080_hash_155_value);
@@ -588,6 +602,9 @@ control Ingress(
   }
   action fcfs_cs_1074044080_check_key_3_155() {
     match_counter1 = match_counter1 + fcfs_cs_1074044080_reg_key_3_check_value.execute(fcfs_cs_1074044080_hash_155_value);
+  }
+  action punt_gate_9730() {
+    punt_allowed0 = fcfs_cs_1074044080_reg_punt_gate_claim_if_stale.execute(fcfs_cs_1074044080_hash_155_value);
   }
   bit<16> vector_table_1074093704_175_get_value_param0 = 16w0;
   action vector_table_1074093704_175_get_value(bit<16> _vector_table_1074093704_175_get_value_param0) {
@@ -621,6 +638,7 @@ control Ingress(
 
 
   apply {
+    meta.punt_deadline = meta.time - 128;
     meta.pkt_len = 0;
     if (hdr.hdr1.isValid()) {
       meta.pkt_len = hdr.hdr1.data0[15:0] + 14;
@@ -728,6 +746,9 @@ control Ingress(
                       if (match_counter1 == 4) {
                         meta.hit1 = true;
                       }
+                      else {
+                        punt_gate_9730();
+                      }
                     } else {
                       fcfs_cs_1074044080_reg_key_0_write.execute(fcfs_cs_1074044080_hash_155_value);
                       fcfs_cs_1074044080_reg_key_1_write.execute(fcfs_cs_1074044080_hash_155_value);
@@ -774,11 +795,15 @@ control Ingress(
                       // BDD node 155:map_get
                       // EP node  2841:SendToController
                       // BDD node 263:tofino_force_send_to_controller
-                      fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                      build_cpu_hdr(0);
-                      hdr.cpu.time = meta.time;
-                      hdr.cpu.cached_insert_success0 = cached_insert_success0;
-                      hdr.cpu.dev = meta.dev;
+                      if (punt_allowed0) {
+                        fwd_op = fwd_op_t.FORWARD_TO_CPU;
+                        build_cpu_hdr(0);
+                        hdr.cpu.time = meta.time;
+                        hdr.cpu.cached_insert_success0 = cached_insert_success0;
+                        hdr.cpu.dev = meta.dev;
+                      } else {
+                        fwd_op = fwd_op_t.DROP;
+                      }
                     }
                   }
                 }

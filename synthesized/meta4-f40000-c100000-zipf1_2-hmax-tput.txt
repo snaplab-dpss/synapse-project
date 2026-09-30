@@ -8,19 +8,19 @@ Args:
   Seed:               0
   Targets:
     Tofino (54 modules)
-    Ctrl (102 modules)
+    Ctrl (105 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,771'000'000,114,-9,-28'795'648,0>
+  Score: <0,771'000'000,114,-10,-31'154'944,0>
   Tput: 543.22 Gbps (771.63 Mpps)
   Spec: 543.22 Gbps (771.62 Mpps)
   Recirculations: 0
   BDD Progress: 114 / 121
-  Stages: 9
-  Memory Usage: 28795648 bits
+  Stages: 10
+  Memory Usage: 31154944 bits
 
 Stateful Implementations:
   1074149856: Controller::Vector
@@ -34,7 +34,7 @@ Stateful Implementations:
   1074083024: Tofino::FCFSCachedTable
 
 Search Metadata:
-  Elapsed time:       306 seconds
+  Elapsed time:       300 seconds
   Steps:              114
   Backtracks:         0
   Search space size:  367
@@ -243,6 +243,16 @@ Objs: [fcfs_ct_1074083024_reg_key_0,fcfs_ct_1074083024_reg_key_1]
 -------------------------------------
 -------------------------------------
 Stage 6
+SRAM: 147'456/1'310'720 B (11.25%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 147'456/786'432 B (18.75%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 2/128 B (1.5625%)
+Objs: [fcfs_ct_1074083024_reg_punt_gate]
+-------------------------------------
+-------------------------------------
+Stage 7
 SRAM: 278'528/1'310'720 B (21.25%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 278'528/786'432 B (35.4167%)
@@ -252,7 +262,7 @@ Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [vector_register_1074115080_0]
 -------------------------------------
 -------------------------------------
-Stage 7
+Stage 8
 SRAM: 24'576/1'310'720 B (1.875%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 24'576/786'432 B (3.125%)
@@ -262,7 +272,7 @@ Exact Match Crossbar: 4/128 B (3.125%)
 Objs: [vector_register_1074167072_0]
 -------------------------------------
 -------------------------------------
-Stage 8
+Stage 9
 SRAM: 24'576/1'310'720 B (1.875%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 24'576/786'432 B (3.125%)

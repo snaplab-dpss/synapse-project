@@ -111,6 +111,7 @@ struct synapse_ingress_metadata_t {
   bit<2> leaving;
   bit<32> key_32b_0;
   bit<32> fcfs_ct_1074048392_key_32b_0;
+  bit<32> punt_deadline; // meta.time minus the punt gate's window
   bool hit0;
   bit<32> vector_reg_value0;
   bit<32> regexec_vector_register_1074079432_0_read_1648_index0;
@@ -456,6 +457,18 @@ control Ingress(
     }
   };
 
+  Register<bit<32>,_>(8192, 0) fcfs_ct_1074048392_reg_punt_gate;
+  RegisterAction<bit<32>, bit<13>, bool>(fcfs_ct_1074048392_reg_punt_gate) fcfs_ct_1074048392_reg_punt_gate_claim_if_stale = {
+    void apply(inout bit<32> stamp, out bool claimed) {
+      if (stamp < meta.punt_deadline) {
+        claimed = true;
+        stamp = meta.time;
+      } else {
+        claimed = false;
+      }
+    }
+  };
+
   bit<32> fcfs_ct_1074048392_table_145_get_value_param0 = 32w0;
   action fcfs_ct_1074048392_table_145_get_value(bit<32> _fcfs_ct_1074048392_table_145_get_value_param0) {
     fcfs_ct_1074048392_table_145_get_value_param0 = _fcfs_ct_1074048392_table_145_get_value_param0;
@@ -479,9 +492,13 @@ control Ingress(
       });
       fcfs_ct_1074048392_table_145_get_value_param0[12:0] = fcfs_ct_1074048392_hash_145_value;
   }
+  bool punt_allowed0 = true;
   bit<8> match_counter0 = 0;
   action fcfs_ct_1074048392_check_key_0_145() {
     match_counter0 = match_counter0 + fcfs_ct_1074048392_reg_key_0_check_value.execute(fcfs_ct_1074048392_hash_145_value);
+  }
+  action punt_gate_8500() {
+    punt_allowed0 = fcfs_ct_1074048392_reg_punt_gate_claim_if_stale.execute(fcfs_ct_1074048392_hash_145_value);
   }
   Register<bit<32>,_>(65536, 0) vector_register_1074079432_0;
 
@@ -693,6 +710,7 @@ control Ingress(
 
 
   apply {
+    meta.punt_deadline = meta.time - 128;
     meta.pkt_len = 0;
     if (hdr.hdr1.isValid()) {
       meta.pkt_len = hdr.hdr1.data0[15:0] + 14;
@@ -752,6 +770,9 @@ control Ingress(
                       if (match_counter0 == 1) {
                         meta.hit0 = true;
                       }
+                      else {
+                        punt_gate_8500();
+                      }
                     } else {
                       fcfs_ct_1074048392_reg_key_0_write.execute(fcfs_ct_1074048392_hash_145_value);
                       cached_insert_success0 = 1;
@@ -791,12 +812,16 @@ control Ingress(
                         // BDD node 172:if
                         // EP node  6163:SendToController
                         // BDD node 173:vector_return
-                        fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                        build_cpu_hdr(1);
-                        hdr.cpu.time = meta.time;
-                        hdr.cpu.bf_1074096984_estimate = meta.bf_1074096984_estimate;
-                        hdr.cpu.vector_reg_value0 = meta.vector_reg_value0;
-                        hdr.cpu.dev = meta.dev;
+                        if (punt_allowed0) {
+                          fwd_op = fwd_op_t.FORWARD_TO_CPU;
+                          build_cpu_hdr(1);
+                          hdr.cpu.time = meta.time;
+                          hdr.cpu.bf_1074096984_estimate = meta.bf_1074096984_estimate;
+                          hdr.cpu.vector_reg_value0 = meta.vector_reg_value0;
+                          hdr.cpu.dev = meta.dev;
+                        } else {
+                          fwd_op = fwd_op_t.DROP;
+                        }
                       } else {
                         // EP node  5546:Else
                         // BDD node 172:if
@@ -856,11 +881,15 @@ control Ingress(
                       // BDD node 145:map_get
                       // EP node  2909:SendToController
                       // BDD node 300:tofino_force_send_to_controller
-                      fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                      build_cpu_hdr(0);
-                      hdr.cpu.time = meta.time;
-                      hdr.cpu.cached_insert_success0 = cached_insert_success0;
-                      hdr.cpu.dev = meta.dev;
+                      if (punt_allowed0) {
+                        fwd_op = fwd_op_t.FORWARD_TO_CPU;
+                        build_cpu_hdr(0);
+                        hdr.cpu.time = meta.time;
+                        hdr.cpu.cached_insert_success0 = cached_insert_success0;
+                        hdr.cpu.dev = meta.dev;
+                      } else {
+                        fwd_op = fwd_op_t.DROP;
+                      }
                     }
                   }
                 } else {

@@ -113,6 +113,7 @@ struct synapse_ingress_metadata_t {
   bit<32> fcfs_cs_1074047984_key_32b_0;
   bit<32> fcfs_cs_1074047984_key_32b_1;
   bit<32> fcfs_cs_1074047984_key_32b_2;
+  bit<32> punt_deadline; // meta.time minus the punt gate's window
   bool hit0;
   bit<64> key_64b_0;
   bit<16> pkt_len;
@@ -486,6 +487,18 @@ control Ingress(
     }
   };
 
+  Register<bit<32>,_>(4096, 0) fcfs_cs_1074047984_reg_punt_gate;
+  RegisterAction<bit<32>, bit<12>, bool>(fcfs_cs_1074047984_reg_punt_gate) fcfs_cs_1074047984_reg_punt_gate_claim_if_stale = {
+    void apply(inout bit<32> stamp, out bool claimed) {
+      if (stamp < meta.punt_deadline) {
+        claimed = true;
+        stamp = meta.time;
+      } else {
+        claimed = false;
+      }
+    }
+  };
+
   table fcfs_cs_1074047984_table_144 {
     key = {
       meta.fcfs_cs_1074047984_key_32b_0: exact;
@@ -695,6 +708,10 @@ control Ingress(
       meta.fcfs_cs_1074047984_key_32b_2
       });
   }
+  bool punt_allowed0 = true;
+  action punt_gate_23700() {
+    punt_allowed0 = fcfs_cs_1074047984_reg_punt_gate_claim_if_stale.execute(fcfs_cs_1074047984_hash_149_value);
+  }
   bit<16> vector_table_1074110176_160_get_value_param0 = 16w0;
   action vector_table_1074110176_160_get_value(bit<16> _vector_table_1074110176_160_get_value_param0) {
     vector_table_1074110176_160_get_value_param0 = _vector_table_1074110176_160_get_value_param0;
@@ -742,6 +759,7 @@ control Ingress(
 
 
   apply {
+    meta.punt_deadline = meta.time - 128;
     meta.pkt_len = 0;
     if (hdr.hdr1.isValid()) {
       meta.pkt_len = hdr.hdr1.data0[15:0] + 14;
@@ -767,6 +785,9 @@ control Ingress(
           fcfs_cs_1074047984_reg_key_2_write.execute(fcfs_cs_1074047984_hash_149_value);
           cached_insert_success0 = 1;
         }
+        else {
+          punt_gate_23700();
+        }
         // EP node  2371:If
         // BDD node 149:dchain_allocate_new_index
         if ((cached_insert_success0) != (32w0x00000000)){
@@ -786,12 +807,16 @@ control Ingress(
           // BDD node 149:dchain_allocate_new_index
           // EP node  2518:SendToController
           // BDD node 266:tofino_force_send_to_controller
-          fwd_op = fwd_op_t.FORWARD_TO_CPU;
-          build_cpu_hdr(0);
-          hdr.cpu.time = meta.time;
-          hdr.cpu.cached_insert_success0 = cached_insert_success0;
-          hdr.cpu.f32_0 = hdr.recirc.f32_0;
-          hdr.cpu.dev = meta.dev;
+          if (punt_allowed0) {
+            fwd_op = fwd_op_t.FORWARD_TO_CPU;
+            build_cpu_hdr(0);
+            hdr.cpu.time = meta.time;
+            hdr.cpu.cached_insert_success0 = cached_insert_success0;
+            hdr.cpu.f32_0 = hdr.recirc.f32_0;
+            hdr.cpu.dev = meta.dev;
+          } else {
+            fwd_op = fwd_op_t.DROP;
+          }
         }
       }
 

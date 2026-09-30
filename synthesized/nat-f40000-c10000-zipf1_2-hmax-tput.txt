@@ -8,19 +8,19 @@ Args:
   Seed:               0
   Targets:
     Tofino (54 modules)
-    Ctrl (102 modules)
+    Ctrl (105 modules)
     x86 (30 modules)
   No reorder:         0
   Not greedy:         0
 
 Winner:
-  Score: <0,2'240'000'000,69,-5,-26'141'056,0>
+  Score: <0,2'240'000'000,69,-6,-26'404'224,0>
   Tput: 1.58 Tbps (2.25 Gpps)
   Spec: 1.58 Tbps (2.25 Gpps)
   Recirculations: 0
   BDD Progress: 69 / 75
-  Stages: 5
-  Memory Usage: 26141056 bits
+  Stages: 6
+  Memory Usage: 26404224 bits
 
 Stateful Implementations:
   1074102760: Tofino::VectorTable
@@ -169,6 +169,16 @@ Objs: [fcfs_ct_1074053136_reg_key_0,fcfs_ct_1074053136_reg_key_1,fcfs_ct_1074053
 -------------------------------------
 -------------------------------------
 Stage 4
+SRAM: 16'448/1'310'720 B (1.25488%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 16'448/786'432 B (2.09147%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 1/128 B (0.78125%)
+Objs: [fcfs_ct_1074053136_reg_punt_gate]
+-------------------------------------
+-------------------------------------
+Stage 5
 SRAM: 648/1'310'720 B (0.0494385%)
 TCAM: 0/67'584 B (0%)
 MapRAM: 0/786'432 B (0%)

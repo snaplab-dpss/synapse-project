@@ -173,6 +173,7 @@ struct synapse_ingress_metadata_t {
   bit<2> leaving;
   bit<32> fcfs_ct_1074083024_key_32b_0;
   bit<32> fcfs_ct_1074083024_key_32b_1;
+  bit<32> punt_deadline; // meta.time minus the punt gate's window
   bool hit0;
   bit<32> vector_reg_value0;
   bit<32> regexec_vector_register_1074115080_0_read_592_index0;
@@ -1126,6 +1127,18 @@ control Ingress(
     }
   };
 
+  Register<bit<32>,_>(1024, 0) fcfs_ct_1074083024_reg_punt_gate;
+  RegisterAction<bit<32>, bit<10>, bool>(fcfs_ct_1074083024_reg_punt_gate) fcfs_ct_1074083024_reg_punt_gate_claim_if_stale = {
+    void apply(inout bit<32> stamp, out bool claimed) {
+      if (stamp < meta.punt_deadline) {
+        claimed = true;
+        stamp = meta.time;
+      } else {
+        claimed = false;
+      }
+    }
+  };
+
   bit<32> fcfs_ct_1074083024_table_50_get_value_param0 = 32w0;
   action fcfs_ct_1074083024_table_50_get_value(bit<32> _fcfs_ct_1074083024_table_50_get_value_param0) {
     fcfs_ct_1074083024_table_50_get_value_param0 = _fcfs_ct_1074083024_table_50_get_value_param0;
@@ -1355,12 +1368,16 @@ control Ingress(
       });
       fcfs_ct_1074083024_table_89_get_value_param0[9:0] = fcfs_ct_1074083024_hash_89_value;
   }
+  bool punt_allowed0 = true;
   bit<8> match_counter1 = 0;
   action fcfs_ct_1074083024_check_key_0_89() {
     match_counter1 = match_counter1 + fcfs_ct_1074083024_reg_key_0_check_value.execute(fcfs_ct_1074083024_hash_89_value);
   }
   action fcfs_ct_1074083024_check_key_1_89() {
     match_counter1 = match_counter1 + fcfs_ct_1074083024_reg_key_1_check_value.execute(fcfs_ct_1074083024_hash_89_value);
+  }
+  action punt_gate_69040() {
+    punt_allowed0 = fcfs_ct_1074083024_reg_punt_gate_claim_if_stale.execute(fcfs_ct_1074083024_hash_89_value);
   }
 
   RegisterAction<bit<32>, bit<32>, void>(vector_register_1074115080_0) vector_register_1074115080_0_write_7983 = {
@@ -1443,6 +1460,7 @@ control Ingress(
 
 
   apply {
+    meta.punt_deadline = meta.time - 128;
     meta.pkt_len = 0;
     if (hdr.hdr1.isValid()) {
       meta.pkt_len = hdr.hdr1.data0[15:0] + 14;
@@ -1609,6 +1627,9 @@ control Ingress(
                                     if (match_counter1 == 2) {
                                       meta.hit3 = true;
                                     }
+                                    else {
+                                      punt_gate_69040();
+                                    }
                                   } else {
                                     fcfs_ct_1074083024_reg_key_0_write.execute(fcfs_ct_1074083024_hash_89_value);
                                     fcfs_ct_1074083024_reg_key_1_write.execute(fcfs_ct_1074083024_hash_89_value);
@@ -1653,13 +1674,17 @@ control Ingress(
                                     // BDD node 89:map_get
                                     // EP node  9446:SendToController
                                     // BDD node 291:tofino_force_send_to_controller
-                                    fwd_op = fwd_op_t.FORWARD_TO_CPU;
-                                    build_cpu_hdr(0);
-                                    hdr.cpu.time = meta.time;
-                                    hdr.cpu.cached_insert_success0 = cached_insert_success0;
-                                    hdr.cpu.dns_response_found = meta.dns_response_found;
-                                    hdr.cpu.dns_address = meta.dns_address;
-                                    hdr.cpu.dev = meta.dev;
+                                    if (punt_allowed0) {
+                                      fwd_op = fwd_op_t.FORWARD_TO_CPU;
+                                      build_cpu_hdr(0);
+                                      hdr.cpu.time = meta.time;
+                                      hdr.cpu.cached_insert_success0 = cached_insert_success0;
+                                      hdr.cpu.dns_response_found = meta.dns_response_found;
+                                      hdr.cpu.dns_address = meta.dns_address;
+                                      hdr.cpu.dev = meta.dev;
+                                    } else {
+                                      fwd_op = fwd_op_t.DROP;
+                                    }
                                   }
                                 }
                               } else {

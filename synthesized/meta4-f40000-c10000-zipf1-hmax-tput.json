@@ -5,10 +5,10 @@
     "num_phase1_speculations": 76657,
     "num_phase2_speculations": 1115,
     "num_speculated_modules": 1076626,
-    "time_per_instantiation_us": 1103,
-    "time_per_speculation_us": 23,
-    "total_time_spent_generating_execution_plans_us": 405142,
-    "total_time_spent_speculating_us": 25568354
+    "time_per_instantiation_us": 1769,
+    "time_per_speculation_us": 27,
+    "total_time_spent_generating_execution_plans_us": 649263,
+    "total_time_spent_speculating_us": 30018374
   },
   "heuristic": {
     "meta": [
@@ -29,11 +29,11 @@
         "name": "BDD Progress"
       },
       {
-        "description": "9",
+        "description": "10",
         "name": "Stages"
       },
       {
-        "description": "24609536 bits",
+        "description": "24875776 bits",
         "name": "Memory Usage"
       }
     ],
@@ -41,8 +41,8 @@
       0,
       2240000000,
       114,
-      -9,
-      -24609536,
+      -10,
+      -24875776,
       0
     ]
   },
@@ -752,7 +752,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.279279279279279,
-    "elapsed_time_seconds": 247,
+    "elapsed_time_seconds": 282,
     "finished_eps": 1,
     "log10_design_space": 51,
     "ss_size": 367,
