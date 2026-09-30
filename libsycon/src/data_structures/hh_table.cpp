@@ -290,7 +290,7 @@ void HHTable::expiration_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfR
     ERROR("Target table %s not found", table_name.c_str());
   }
 
-  if (expired_everywhere(hh_table->tables, key_buffer)) {
+  if (expired_everywhere(hh_table->tables, key_buffer, table_name)) {
     hh_table->remove(key_buffer);
   }
 

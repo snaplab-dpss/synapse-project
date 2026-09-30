@@ -198,7 +198,7 @@ private:
       ERROR("Target table %s not found", table_name.c_str());
     }
 
-    if (expired_everywhere(fcfs_ct->tables, key_buffer)) {
+    if (expired_everywhere(fcfs_ct->tables, key_buffer, table_name)) {
       fcfs_ct->del(key_buffer);
     }
 

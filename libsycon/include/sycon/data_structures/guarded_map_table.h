@@ -143,7 +143,7 @@ private:
       ERROR("Target table %s not found", table_name.c_str());
     }
 
-    if (expired_everywhere(map_table->tables, key_buffer)) {
+    if (expired_everywhere(map_table->tables, key_buffer, table_name)) {
       map_table->del(key_buffer);
     }
 

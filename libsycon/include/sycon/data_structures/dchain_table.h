@@ -160,7 +160,7 @@ private:
 
     buffer_t index_key(4);
     index_key.set(0, 4, index);
-    if (expired_everywhere(dchain_table->tables, index_key)) {
+    if (expired_everywhere(dchain_table->tables, index_key, table_name)) {
       dchain_table->free_index(index);
     }
 
