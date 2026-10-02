@@ -7,8 +7,8 @@
     "num_speculated_modules": 193808,
     "time_per_instantiation_us": 197,
     "time_per_speculation_us": 0,
-    "total_time_spent_generating_execution_plans_us": 49370,
-    "total_time_spent_speculating_us": 164329
+    "total_time_spent_generating_execution_plans_us": 49442,
+    "total_time_spent_speculating_us": 164020
   },
   "heuristic": {
     "meta": [

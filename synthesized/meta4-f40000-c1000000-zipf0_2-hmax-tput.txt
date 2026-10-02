@@ -34,7 +34,7 @@ Stateful Implementations:
   1074083024: Tofino::FCFSCachedTable
 
 Search Metadata:
-  Elapsed time:       236 seconds
+  Elapsed time:       224 seconds
   Steps:              114
   Backtracks:         0
   Search space size:  367

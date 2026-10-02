@@ -693,11 +693,11 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
       // EP node  3660
       // BDD node 165:vector_inc_or_swap(vector:(w64 1074072832), index:(And w32 (ReadLSB w32 (w32 0) hash__164) (w32 1023)), pair:(w64 1074323578)[(Concat w64 (w8 0) (Concat w56 (w8 0) (Concat w48 (w8 0) (Concat w40 (w8 1) (And w32 (ReadLSB w32 (w32 268) packet_chunks) (w32 16777215)))))) -> (ReadLSB w64 (w32 0) pair_out__165)], key_size:(w32 4), evict:(w32 1), value_size:(w32 4))
       buffer_t pair_0(8);
-      pair_0.set(0, 4, (*(u32*)(hdr_1 + 12)) & (16777215));
-      pair_0.set(4, 1, 1);
-      pair_0.set(5, 1, 0);
-      pair_0.set(6, 1, 0);
-      pair_0.set(7, 1, 0);
+      pair_0.set_little_endian(0, 4, (*(u32*)(hdr_1 + 12)) & (16777215));
+      pair_0.set_little_endian(4, 1, 1);
+      pair_0.set_little_endian(5, 1, 0);
+      pair_0.set_little_endian(6, 1, 0);
+      pair_0.set_little_endian(7, 1, 0);
       libnf::vector_inc_or_swap(state->cpu_vector_1074072832, (hash_0) & (1023), pair_0.data, 4, 4, 1);
       // EP node  3754
       // BDD node 166:crc32_hasher_hash(hasher:(w64 1074183352), data:(w64 1074323578)[(ReadLSB w32 (w32 0) pair_out__165)], size:(w32 4))

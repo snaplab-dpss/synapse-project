@@ -5,10 +5,10 @@
     "num_phase1_speculations": 78115,
     "num_phase2_speculations": 1135,
     "num_speculated_modules": 1088905,
-    "time_per_instantiation_us": 1627,
-    "time_per_speculation_us": 19,
-    "total_time_spent_generating_execution_plans_us": 597327,
-    "total_time_spent_speculating_us": 20716448
+    "time_per_instantiation_us": 1078,
+    "time_per_speculation_us": 16,
+    "total_time_spent_generating_execution_plans_us": 395931,
+    "total_time_spent_speculating_us": 18309094
   },
   "heuristic": {
     "meta": [
@@ -752,7 +752,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.279279279279279,
-    "elapsed_time_seconds": 205,
+    "elapsed_time_seconds": 195,
     "finished_eps": 1,
     "log10_design_space": 51,
     "ss_size": 367,
