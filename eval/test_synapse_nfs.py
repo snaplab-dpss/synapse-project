@@ -144,6 +144,17 @@ def nfs(churn_fpm: int, zipf_param: float) -> list[SynapseNF]:
             route=lambda _: [],
         ),
         SynapseNF(
+            name="gallium-hhh",
+            description="Gallium HHH",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path("synthesized/gallium-hhh.p4"),
+            controller=Path("synthesized/gallium-hhh.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
+        ),
+        SynapseNF(
             name=build_synapse_nf_name("kvs", CHURN_FPM, ZIPF_PARAM),
             description=f"Synapse {build_synapse_nf_name('kvs', CHURN_FPM, ZIPF_PARAM)}",
             kvs_mode=True,
@@ -242,6 +253,17 @@ def nfs(churn_fpm: int, zipf_param: float) -> list[SynapseNF]:
             symmetric=lambda _: [],
             route=lambda _: [],
             dns_mode=True,
+        ),
+        SynapseNF(
+            name=build_synapse_nf_name("hhh", CHURN_FPM, ZIPF_PARAM),
+            description=f"Synapse {build_synapse_nf_name('hhh', CHURN_FPM, ZIPF_PARAM)}",
+            kvs_mode=False,
+            tcp_syn=False,
+            tofino=Path(f"synthesized/{build_synapse_nf_name('hhh', CHURN_FPM, ZIPF_PARAM)}.p4"),
+            controller=Path(f"synthesized/{build_synapse_nf_name('hhh', CHURN_FPM, ZIPF_PARAM)}.cpp"),
+            broadcast=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 0],
+            symmetric=lambda ports: [p for i, p in enumerate(ports) if i % 2 == 1],
+            route=lambda _: [],
         ),
     ]
 

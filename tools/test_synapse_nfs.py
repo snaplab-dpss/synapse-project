@@ -67,6 +67,7 @@ NFS = {
     "kvs": NF("kvs", {}),
     "psd": NF("psd", {}),
     "pol": NF("pol", {}),
+    "hhh": NF("hhh", {}),
     "hyperloglog": NF("hyperloglog", {}),
     # The synthesized SmartCookie keeps the server on device 0, front panel port 1
     # (configs/tofino2-smartcookie.toml); the test's default is the hand-written program's layout.
@@ -153,8 +154,8 @@ def preflight(solutions: list[Solution], skip_build: bool) -> None:
             if not f.is_file():
                 problems.append(f"missing {f} (synthesize it first: tools/synapse_batcher.py --synthesize)")
         if skip_build:
-            if not testbed.controller_binary(solution.name).is_file():
-                problems.append(f"--skip-build but {solution.name}'s controller was never built ({testbed.controller_binary(solution.name)})")
+            if not testbed.controller_binary(solution.cpp).is_file():
+                problems.append(f"--skip-build but {solution.name}'s controller was never built ({testbed.controller_binary(solution.cpp)})")
             if "SDE_INSTALL" in env and not installed_p4_conf(solution.name).is_file():
                 problems.append(f"--skip-build but {solution.name}'s P4 is not installed in the SDE ({installed_p4_conf(solution.name)})")
 

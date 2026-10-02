@@ -53,6 +53,7 @@ NFs = {
     "psd": NF("psd", "psd.bdd"),
     "cl": NF("cl", "cl.bdd"),
     "pol": NF("pol", "pol.bdd"),
+    "hhh": NF("hhh", "hhh.bdd"),
     "hyperloglog": NF("hyperloglog", "hyperloglog.bdd"),
     "smartcookie": NF("smartcookie", "smartcookie.bdd"),
     "meta4": NF("meta4", "meta4.bdd"),

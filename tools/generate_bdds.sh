@@ -42,4 +42,5 @@ run() {
 # run "cl"
 # run "psd"
 # run "lb"
-run "hyperloglog"
+# run "hyperloglog"
+run "hhh"

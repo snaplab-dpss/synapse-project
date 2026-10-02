@@ -584,6 +584,86 @@ profile_cl() {
 
 export -f profile_cl
 
+profile_hhh() {
+    flows=$1
+    churn=$2
+    zipf_param=$3
+
+    distribution="unif"
+    if [ "$zipf_param" != "0" ]; then
+        distribution="zipf"
+    fi
+
+    pcap="hhh-f$flows-c$churn-$distribution"
+    if [ "$distribution" == "zipf" ]; then
+        s=$(python -c "print(str(int($zipf_param) if int($zipf_param) == $zipf_param else $zipf_param).replace('.','_'))")
+        pcap="$pcap${s}"
+    fi
+
+    echo "Generating profile for $pcap"
+
+    report=$pcap
+
+    log_and_run $SYNTHESIZED_DIR/build/hhh-profiler \
+        $PROFILES_DIR/$report.json \
+        --warmup 3:$PCAPS_DIR/$pcap-dev3-warmup.pcap \
+        --warmup 5:$PCAPS_DIR/$pcap-dev5-warmup.pcap \
+        --warmup 7:$PCAPS_DIR/$pcap-dev7-warmup.pcap \
+        --warmup 9:$PCAPS_DIR/$pcap-dev9-warmup.pcap \
+        --warmup 11:$PCAPS_DIR/$pcap-dev11-warmup.pcap \
+        --warmup 13:$PCAPS_DIR/$pcap-dev13-warmup.pcap \
+        --warmup 15:$PCAPS_DIR/$pcap-dev15-warmup.pcap \
+        --warmup 17:$PCAPS_DIR/$pcap-dev17-warmup.pcap \
+        --warmup 19:$PCAPS_DIR/$pcap-dev19-warmup.pcap \
+        --warmup 21:$PCAPS_DIR/$pcap-dev21-warmup.pcap \
+        --warmup 23:$PCAPS_DIR/$pcap-dev23-warmup.pcap \
+        --warmup 25:$PCAPS_DIR/$pcap-dev25-warmup.pcap \
+        --warmup 27:$PCAPS_DIR/$pcap-dev27-warmup.pcap \
+        --warmup 29:$PCAPS_DIR/$pcap-dev29-warmup.pcap \
+        --warmup 31:$PCAPS_DIR/$pcap-dev31-warmup.pcap \
+        2:$PCAPS_DIR/$pcap-dev2.pcap \
+        3:$PCAPS_DIR/$pcap-dev3.pcap \
+        4:$PCAPS_DIR/$pcap-dev4.pcap \
+        5:$PCAPS_DIR/$pcap-dev5.pcap \
+        6:$PCAPS_DIR/$pcap-dev6.pcap \
+        7:$PCAPS_DIR/$pcap-dev7.pcap \
+        8:$PCAPS_DIR/$pcap-dev8.pcap \
+        9:$PCAPS_DIR/$pcap-dev9.pcap \
+        10:$PCAPS_DIR/$pcap-dev10.pcap \
+        11:$PCAPS_DIR/$pcap-dev11.pcap \
+        12:$PCAPS_DIR/$pcap-dev12.pcap \
+        13:$PCAPS_DIR/$pcap-dev13.pcap \
+        14:$PCAPS_DIR/$pcap-dev14.pcap \
+        15:$PCAPS_DIR/$pcap-dev15.pcap \
+        16:$PCAPS_DIR/$pcap-dev16.pcap \
+        17:$PCAPS_DIR/$pcap-dev17.pcap \
+        18:$PCAPS_DIR/$pcap-dev18.pcap \
+        19:$PCAPS_DIR/$pcap-dev19.pcap \
+        20:$PCAPS_DIR/$pcap-dev20.pcap \
+        21:$PCAPS_DIR/$pcap-dev21.pcap \
+        22:$PCAPS_DIR/$pcap-dev22.pcap \
+        23:$PCAPS_DIR/$pcap-dev23.pcap \
+        24:$PCAPS_DIR/$pcap-dev24.pcap \
+        25:$PCAPS_DIR/$pcap-dev25.pcap \
+        26:$PCAPS_DIR/$pcap-dev26.pcap \
+        27:$PCAPS_DIR/$pcap-dev27.pcap \
+        28:$PCAPS_DIR/$pcap-dev28.pcap \
+        29:$PCAPS_DIR/$pcap-dev29.pcap \
+        30:$PCAPS_DIR/$pcap-dev30.pcap \
+        31:$PCAPS_DIR/$pcap-dev31.pcap
+    
+    log_and_run $SYNAPSE_DIR/build/bin/bdd-visualizer \
+        --in $BDDS_DIR/hhh.bdd \
+        --profile $PROFILES_DIR/$report.json \
+        --out $PROFILES_DIR/$report.dot
+    
+    log_and_run $TOOLS_DIR/profile_stats.py \
+        $PROFILES_DIR/$report.json \
+        --out $PROFILES_DIR/$report.txt
+}
+
+export -f profile_hhh
+
 generate_profiles_echo() {
     flows=40000
 
@@ -654,11 +734,21 @@ generate_profiles_cl() {
         ::: $TRAFFIC
 }
 
+generate_profiles_hhh() {
+    flows=40000
+
+    parallel \
+        -j $(nproc) --verbose \
+        profile_hhh $flows \
+        ::: $CHURN \
+        ::: $TRAFFIC
+}
+
 main() {
     parallel \
         -j $(nproc) --verbose \
         gen_and_build_profiler \
-        ::: echo hyperloglog fwd fw nat kvs cl
+        ::: echo hyperloglog fwd fw nat kvs cl hhh
 
     generate_profiles_echo
     generate_profiles_hyperloglog
@@ -667,6 +757,7 @@ main() {
     generate_profiles_nat
     generate_profiles_kvs
     # generate_profiles_cl
+    generate_profiles_hhh
 }
 
 main

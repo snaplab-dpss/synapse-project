@@ -189,6 +189,29 @@ generate_pcaps_cl() {
         ::: "${TRAFFIC[@]}"
 }
 
+######################
+# Hierarchical HH   #
+######################
+
+generate_pcaps_hhh() {
+    flows=40000
+    devs="2,3 4,5 6,7 8,9 10,11 12,13 14,15 16,17 18,19 20,21 22,23 24,25 26,27 28,29 30,31"
+    parallel \
+        -j $(nproc) --verbose \
+        eval \
+        $SYNAPSE_DIR/build/bin/pcap-generator-hhh \
+        --out $PCAPS_DIR \
+        --packets $TOTAL_PACKETS \
+        --flows $flows \
+        --packet-size $PACKET_SIZE \
+        --churn {1} \
+        --traffic {2} \
+        --devs $devs \
+        --seed 0 \
+        ::: $CHURN \
+        ::: "${TRAFFIC[@]}"
+}
+
 ###################
 #      Meta4      #
 ###################
@@ -222,3 +245,4 @@ generate_pcaps_nat
 generate_pcaps_kvs
 generate_pcaps_meta4
 # generate_pcaps_cl
+generate_pcaps_hhh

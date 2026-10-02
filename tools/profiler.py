@@ -27,7 +27,7 @@ SYNAPSE_BIN_DIR = SYNAPSE_BUILD_DIR / "bin"
 
 DEVICES = list(range(2, 32))
 
-DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd", "pol", "hyperloglog", "smartcookie", "meta4"]
+DEFAULT_NFS = ["echo", "fwd", "fw", "nat", "kvs", "cl", "psd", "pol", "hyperloglog", "smartcookie", "meta4", "hhh"]
 # DEFAULT_RATE = [100_000_000_000]  # 100 Gbps
 # DEFAULT_TOTAL_PACKETS = [160_000_000]
 DEFAULT_RATE = [10_000_000_000]  # 10 Gbps
@@ -78,6 +78,7 @@ NFs = {
     "psd": NF("psd", "psd.bdd", "pcap-generator-psd", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
     "cl": NF("cl", "cl.bdd", "pcap-generator-cl", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
     "pol": NF("pol", "pol.bdd", "pcap-generator-pol", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
+    "hhh": NF("hhh", "hhh.bdd", "pcap-generator-hhh", warmup_devices=odd_warmup_devices(), unique_devices=DEVICES[:2], fwd_rules=connect_every_other_dev()),
     "hyperloglog": NF("hyperloglog", "hyperloglog.bdd", "pcap-generator-hyperloglog", warmup_devices=[], unique_devices=DEVICES[:2], fwd_rules=[]),
     # The server is on device 0 (the NF's default) and replays its own pcap; every other device is a client.
     "smartcookie": NF("smartcookie", "smartcookie.bdd", "pcap-generator-smartcookie", warmup_devices=[], unique_devices=[0, DEVICES[0]], fwd_rules=[],
