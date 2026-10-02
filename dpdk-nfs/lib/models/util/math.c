@@ -56,3 +56,23 @@ unsigned ln(unsigned x, unsigned scale) {
   klee_trace_param_u32(scale, "scale");
   return klee_int("ln");
 }
+
+void crc32_hasher_init(struct crc32_hasher *hasher, const struct crc32_config *config) {
+  klee_trace_ret();
+  klee_trace_param_u64((uint64_t)hasher, "hasher");
+  klee_trace_param_u32(config->coeff, "polynomial");
+  klee_trace_param_u32(config->reversed, "reversed");
+  klee_trace_param_u32(config->init, "init");
+  klee_trace_param_u32(config->xor_out, "xor_out");
+
+  hasher->config = *config;
+}
+
+uint32_t crc32_hasher_hash(const struct crc32_hasher *hasher, const void *data, size_t size) {
+  klee_trace_ret();
+  klee_trace_param_u64((uint64_t)hasher, "hasher");
+  klee_trace_param_tagged_ptr((void *)data, size, "data", "data", TD_IN);
+  klee_trace_param_u32(size, "size");
+
+  return klee_int("hash");
+}

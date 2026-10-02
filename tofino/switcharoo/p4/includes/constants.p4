@@ -46,7 +46,7 @@ const bit<8> KVS_STATUS_CUCKOO	= 2; // hack
 
 const bit<16> CUCKOO_PORT = 670;
 
-// Table 2's CRC-32 (entry 1 of the polynomial bank in dpdk-nfs/lib/util/crc32.h; a primitive
+// Table 2's CRC-32 (entry 1 of the polynomial bank in dpdk-nfs/lib/util/math.h; a primitive
 // polynomial, coprime with table 1's built-in CRC-32). The two tables MUST hash with different
 // polynomials: a CRC is affine over GF(2), so one CRC with two salts only yields h2 = h1 ^ const,
 // which makes the two tables two ways of one bucket instead of two independent homes, and a key

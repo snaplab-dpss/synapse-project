@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Which degree-32 polynomials should the CRC32_BANK (dpdk-nfs/lib/util/crc32.h) hold?
+Which degree-32 polynomials should the CRC32_BANK (dpdk-nfs/lib/util/math.h) hold?
 
 Question: the bank gives each row of a bloom filter / count-min sketch its own CRC-32 polynomial,
 so the rows collide on different key pairs. Two rows are as independent as their polynomials are
@@ -110,7 +110,7 @@ def classify(poly: int) -> str:
     return "reducible"
 
 
-LIBNF_HEADER = "dpdk-nfs/lib/util/crc32.h"
+LIBNF_HEADER = "dpdk-nfs/lib/util/math.h"
 SYNAPSE_HEADER = "synapse/libraries/LibSynapse/Modules/Tofino/DataStructures/Hash.h"
 
 

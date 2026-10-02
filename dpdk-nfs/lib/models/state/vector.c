@@ -74,8 +74,8 @@ void vector_set_entry_condition(struct Vector *vector, vector_entry_condition *c
   vector->ent_cond_state = state;
 }
 
-void vector_set_layout(struct Vector *vector, struct str_field_descr *value_fields, int field_count,
-                       struct nested_field_descr *val_nest_fields, int nest_field_count, char *type_tag) {
+void vector_set_layout(struct Vector *vector, struct str_field_descr *value_fields, int field_count, struct nested_field_descr *val_nest_fields,
+                       int nest_field_count, char *type_tag) {
   // Do not trace. This function is an internal knob of the model.
   klee_assert(field_count < PREALLOC_SIZE);
   memcpy(vector->fields, value_fields, sizeof(struct str_field_descr) * field_count);
@@ -100,13 +100,12 @@ void vector_borrow(struct Vector *vector, int index, void **val_out) {
   klee_trace_extra_ptr(cell, vector->elem_size, "borrowed_cell", vector->cell_type, TD_OUT);
   {
     for (int i = 0; i < vector->field_count; ++i) {
-      klee_trace_extra_ptr_field_arr(cell, vector->fields[i].offset, vector->fields[i].width, vector->fields[i].count,
-                                     vector->fields[i].name, TD_OUT);
+      klee_trace_extra_ptr_field_arr(cell, vector->fields[i].offset, vector->fields[i].width, vector->fields[i].count, vector->fields[i].name,
+                                     TD_OUT);
     }
     for (int i = 0; i < vector->nested_field_count; ++i) {
-      klee_trace_extra_ptr_nested_field_arr(cell, vector->nest_fields[i].base_offset, vector->nest_fields[i].offset,
-                                            vector->nest_fields[i].width, vector->nest_fields[i].count, vector->nest_fields[i].name,
-                                            TD_OUT);
+      klee_trace_extra_ptr_nested_field_arr(cell, vector->nest_fields[i].base_offset, vector->nest_fields[i].offset, vector->nest_fields[i].width,
+                                            vector->nest_fields[i].count, vector->nest_fields[i].name, TD_OUT);
     }
   }
 
@@ -138,8 +137,7 @@ void vector_return(struct Vector *vector, int index, void *value) {
     }
     for (int i = 0; i < vector->nested_field_count; ++i) {
       klee_trace_param_ptr_nested_field_arr_directed(vector->data, vector->nest_fields[i].base_offset, vector->nest_fields[i].offset,
-                                                     vector->nest_fields[i].width, vector->nest_fields[i].count,
-                                                     vector->nest_fields[i].name, TD_IN);
+                                                     vector->nest_fields[i].width, vector->nest_fields[i].count, vector->nest_fields[i].name, TD_IN);
     }
   }
 
@@ -168,6 +166,27 @@ void vector_clear(struct Vector *vector) {
     memset(vector->data[i], 0, vector->elem_size);
     klee_forbid_access(vector->data[i], vector->elem_size, "private state");
   }
+}
+
+void vector_inc_or_swap(struct Vector *vector, int index, void *pair, unsigned key_size, unsigned value_size, int evict) {
+  klee_trace_param_u64((uint64_t)vector, "vector");
+  klee_trace_param_i32(index, "index");
+  klee_trace_param_tagged_ptr(pair, vector->elem_size, "pair", vector->cell_type, TD_BOTH);
+  klee_trace_param_u32(key_size, "key_size");
+  klee_trace_param_u32(value_size, "value_size");
+  klee_trace_param_i32(evict, "evict");
+
+  klee_assert(key_size + value_size == (unsigned)vector->elem_size);
+
+  klee_make_symbolic(pair, vector->elem_size, "pair_out");
+}
+
+int vector_periodic_clear(struct Vector *vector, time_ns_t now, time_ns_t interval) {
+  klee_trace_ret();
+  klee_trace_param_u64((uint64_t)vector, "vector");
+  klee_trace_param_i64(now, "time");
+  klee_trace_param_i64(interval, "interval");
+  return klee_int("cleared");
 }
 
 int vector_sample_lt(struct Vector *vector, int samples, void *threshold, int *index_out) {

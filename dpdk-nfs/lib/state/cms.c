@@ -8,14 +8,13 @@
 #include "lib/state/vector.h"
 #include "lib/util/time.h"
 #include "lib/util/math.h"
-#include "lib/util/crc32.h"
 #include "lib/util/compute.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 struct CMS {
   struct Vector *buckets;
-  struct crc32_hasher *hashers; // One per row, each with its own polynomial (see crc32.h).
+  struct crc32_hasher *hashers; // One per row, each with its own polynomial (see math.h).
 
   uint32_t height;
   uint32_t width;

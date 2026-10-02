@@ -90,7 +90,6 @@ file(GLOB SOURCES
 set(LIBNF_DIR ${PROJECT_SOURCE_DIR}/../dpdk-nfs)
 set(LIBNF_C_SOURCES
     lib/util/math.c
-    lib/util/crc32.c
     lib/util/time.c
     lib/util/expirator.c
     lib/state/vector.c
@@ -158,8 +157,10 @@ SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
         CLI11::CLI11
-    PRIVATE
+        # The headers start threads (VectorRegister's periodic clear), so every program that
+        # includes them links pthread too.
         Threads::Threads
+    PRIVATE
         absl::synchronization
         ${PCAP_LIBRARIES}
         ${SDE_LIBRARIES}

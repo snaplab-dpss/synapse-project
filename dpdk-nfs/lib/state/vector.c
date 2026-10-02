@@ -8,6 +8,7 @@ struct Vector {
   char *data;
   int elem_size;
   unsigned capacity;
+  time_ns_t last_clear;
 };
 
 int vector_allocate(int elem_size, unsigned capacity, struct Vector **vector_out) {
@@ -23,9 +24,10 @@ int vector_allocate(int elem_size, unsigned capacity, struct Vector **vector_out
     *vector_out = old_vector_val;
     return 0;
   }
-  (*vector_out)->data      = data_alloc;
-  (*vector_out)->elem_size = elem_size;
-  (*vector_out)->capacity  = capacity;
+  (*vector_out)->data       = data_alloc;
+  (*vector_out)->elem_size  = elem_size;
+  (*vector_out)->capacity   = capacity;
+  (*vector_out)->last_clear = 0;
 
   for (unsigned i = 0; i < capacity; ++i) {
     memset((*vector_out)->data + elem_size * (int)i, 0, elem_size);
@@ -39,6 +41,54 @@ void vector_borrow(struct Vector *vector, int index, void **val_out) { *val_out 
 void vector_return(struct Vector *vector, int index, void *value) {}
 
 void vector_clear(struct Vector *vector) { memset(vector->data, 0, vector->elem_size * vector->capacity); }
+
+int vector_periodic_clear(struct Vector *vector, time_ns_t now, time_ns_t interval) {
+  if (vector->last_clear == 0) {
+    vector->last_clear = now;
+    return 0;
+  }
+
+  if (now - vector->last_clear < interval) {
+    return 0;
+  }
+
+  vector_clear(vector);
+  vector->last_clear = now;
+
+  return 1;
+}
+
+static uint64_t read_le(const uint8_t *bytes, unsigned size) {
+  uint64_t value = 0;
+  for (unsigned i = 0; i < size; i++) {
+    value |= (uint64_t)bytes[i] << (8 * i);
+  }
+  return value;
+}
+
+static void write_le(uint8_t *bytes, unsigned size, uint64_t value) {
+  for (unsigned i = 0; i < size; i++) {
+    bytes[i] = (value >> (8 * i)) & 0xff;
+  }
+}
+
+void vector_inc_or_swap(struct Vector *vector, int index, void *pair, unsigned key_size, unsigned value_size, int evict) {
+  uint8_t *cell       = (uint8_t *)(vector->data + index * vector->elem_size);
+  uint8_t *pair_bytes = (uint8_t *)pair;
+
+  if (memcmp(cell, pair_bytes, key_size) == 0) {
+    write_le(cell + key_size, value_size, read_le(cell + key_size, value_size) + read_le(pair_bytes + key_size, value_size));
+    memset(pair_bytes, 0, key_size + value_size);
+    return;
+  }
+
+  if (evict || read_le(cell + key_size, value_size) < read_le(pair_bytes + key_size, value_size)) {
+    uint8_t evicted[key_size + value_size];
+    memcpy(evicted, cell, key_size + value_size);
+    memcpy(cell, pair_bytes, key_size + value_size);
+    memcpy(pair_bytes, evicted, key_size + value_size);
+  }
+}
 
 int vector_sample_lt(struct Vector *vector, int samples, void *threshold, int *index_out) {
   for (int i = 0; i < samples; i++) {

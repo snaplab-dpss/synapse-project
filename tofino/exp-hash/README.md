@@ -8,7 +8,7 @@ init, xor))`, with libsycon and libnf computing bit-identical indices in softwar
 CRC does each `CRCPolynomial` configuration compute, and does `Hash<bit<10>>` keep the low or the
 high bits?
 
-**Setup.** `gen_crcpoly.py` generates `crcpoly.p4` from the bank in `dpdk-nfs/lib/util/crc32.h`
+**Setup.** `gen_crcpoly.py` generates `crcpoly.p4` from the bank in `dpdk-nfs/lib/util/math.h`
 (parsed by `random_experiments/crc32_polynomials.py`): the built-in `CRC32` and every bank entry
 hash `{ipv4.src, tcp.dport}` (`msb = false`, `extended = false`); the 32-bit results and two
 10-bit truncations are appended to the packet, which loops back to its ingress port.

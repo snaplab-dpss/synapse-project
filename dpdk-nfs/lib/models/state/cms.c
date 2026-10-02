@@ -10,7 +10,6 @@
 #include <string.h>
 
 #include "lib/util/math.h"
-#include "lib/util/crc32.h"
 
 static int calculate_str_size(struct str_field_descr *descr, int len) {
   int rez = 0;

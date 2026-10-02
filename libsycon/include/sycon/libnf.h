@@ -31,7 +31,6 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 namespace libnf {
 #include <lib/util/math.h>
-#include <lib/util/crc32.h>
 #include <lib/state/vector.h>
 #include <lib/state/map.h>
 #include <lib/state/double-chain.h>
