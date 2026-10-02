@@ -51,8 +51,11 @@ public:
       return;
     }
     std::thread([this, interval]() {
-      while (true) {
+      while (!cfg.quitting) {
         std::this_thread::sleep_for(std::chrono::milliseconds(interval));
+        if (cfg.quitting) {
+          break;
+        }
         tick(interval);
       }
     }).detach();

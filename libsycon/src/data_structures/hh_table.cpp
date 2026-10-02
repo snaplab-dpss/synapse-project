@@ -30,8 +30,11 @@ HHTable::HHTable(const std::string &_name, const std::vector<std::string> &table
   }
 
   std::thread([this]() {
-    while (true) {
+    while (!cfg.quitting) {
       std::this_thread::sleep_for(std::chrono::seconds(RESET_TIMER));
+      if (cfg.quitting) {
+        break;
+      }
       cfg.begin_transaction();
       clear_counters();
       cfg.commit_transaction();

@@ -50,6 +50,7 @@ static void *bf_switchd_nominated_signal_thread(void *arg) {
     case SIGTERM:
       LOG_DEBUG("~~~ NF exit ~~~");
       nf_exit();
+      cfg.stop_periodic_threads();
       bf_switchd_exit_sighandler(signum);
       exit(0);
     case SIGUSR1:

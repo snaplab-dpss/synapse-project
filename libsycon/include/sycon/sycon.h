@@ -39,6 +39,7 @@ void run_bench_cli();
     LOG_DEBUG("Warning: running in debug mode");                                                                                                     \
     LOOP("Controller is running.");                                                                                                                  \
   }                                                                                                                                                  \
-  nf_exit();
+  nf_exit();                                                                                                                                         \
+  cfg.stop_periodic_threads();
 
 } // namespace sycon

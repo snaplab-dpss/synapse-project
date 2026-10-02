@@ -21,8 +21,11 @@ CountMinSketch::CountMinSketch(const std::string &_name, const std::vector<std::
   }
 
   std::thread([this]() {
-    while (true) {
+    while (!cfg.quitting) {
       std::this_thread::sleep_for(std::chrono::milliseconds(periodic_cleanup_interval));
+      if (cfg.quitting) {
+        break;
+      }
       cfg.begin_transaction();
       cleanup();
       cfg.commit_transaction();

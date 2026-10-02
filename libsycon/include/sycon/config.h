@@ -9,6 +9,8 @@ extern "C" {
 #include "log.h"
 #include "time.h"
 
+#include <atomic>
+
 namespace sycon {
 
 // DPDK's implementation of an atomic 16b compare and set operation.
@@ -73,6 +75,17 @@ extern struct config_t {
   }
 
   void unlock() { atom = 0; }
+
+  // The periodic threads (sketch cleanups, register clears) tick until the controller quits; a
+  // tick that begins once the switch session is gone fails. Quitting raises the flag, which the
+  // threads check before every tick, and takes the lock, which a tick in flight holds until its
+  // commit: after this returns no tick touches the switch again.
+  std::atomic<bool> quitting{false};
+
+  void stop_periodic_threads() {
+    quitting = true;
+    lock();
+  }
 
   void begin_dataplane_notification_transaction() {
     atomic64_inc(&pending_dataplane_notifications);
