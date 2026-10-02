@@ -63,6 +63,16 @@ NFS = [
         "barplot_output_file": PLOTS_DIR / "tput_synapse_cl_barplot.pdf",
     },
     {
+        "title": "POL",
+        "data_file": DATA_DIR / "tput_synapse_pol.csv",
+        "bps_output_file": PLOTS_DIR / "tput_synapse_pol_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_synapse_pol_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_pol_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_pol_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_synapse_pol_heatmap.pdf",
+        "barplot_output_file": PLOTS_DIR / "tput_synapse_pol_barplot.pdf",
+    },
+    {
         "title": "HLL",
         "data_file": DATA_DIR / "tput_synapse_hyperloglog.csv",
         "bps_output_file": PLOTS_DIR / "tput_synapse_hyperloglog_bps.pdf",
@@ -81,6 +91,16 @@ NFS = [
         "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_smartcookie_pps_scatter.pdf",
         "heatmap_output_file": PLOTS_DIR / "tput_synapse_smartcookie_heatmap.pdf",
         "barplot_output_file": PLOTS_DIR / "tput_synapse_smartcookie_barplot.pdf",
+    },
+    {
+        "title": "Meta4",
+        "data_file": DATA_DIR / "tput_synapse_meta4.csv",
+        "bps_output_file": PLOTS_DIR / "tput_synapse_meta4_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_synapse_meta4_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_meta4_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_meta4_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_synapse_meta4_heatmap.pdf",
+        "barplot_output_file": PLOTS_DIR / "tput_synapse_meta4_barplot.pdf",
     },
     {
         "title": "Gallium KVS",
@@ -133,6 +153,16 @@ NFS = [
         "barplot_output_file": PLOTS_DIR / "tput_gallium_cl_barplot.pdf",
     },
     {
+        "title": "Gallium POL",
+        "data_file": DATA_DIR / "tput_gallium_pol.csv",
+        "bps_output_file": PLOTS_DIR / "tput_gallium_pol_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_gallium_pol_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_gallium_pol_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_gallium_pol_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_gallium_pol_heatmap.pdf",
+        "barplot_output_file": PLOTS_DIR / "tput_gallium_pol_barplot.pdf",
+    },
+    {
         "title": "Gallium HLL",
         "data_file": DATA_DIR / "tput_gallium_hyperloglog.csv",
         "bps_output_file": PLOTS_DIR / "tput_gallium_hyperloglog_bps.pdf",
@@ -151,6 +181,16 @@ NFS = [
         "pps_scatter_output_file": PLOTS_DIR / "tput_gallium_smartcookie_pps_scatter.pdf",
         "heatmap_output_file": PLOTS_DIR / "tput_gallium_smartcookie_heatmap.pdf",
         "barplot_output_file": PLOTS_DIR / "tput_gallium_smartcookie_barplot.pdf",
+    },
+    {
+        "title": "Gallium Meta4",
+        "data_file": DATA_DIR / "tput_gallium_meta4.csv",
+        "bps_output_file": PLOTS_DIR / "tput_gallium_meta4_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_gallium_meta4_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_gallium_meta4_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_gallium_meta4_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_gallium_meta4_heatmap.pdf",
+        "barplot_output_file": PLOTS_DIR / "tput_gallium_meta4_barplot.pdf",
     },
 ]
 
