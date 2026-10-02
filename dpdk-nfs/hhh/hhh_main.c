@@ -3,8 +3,6 @@
 
 #include <rte_byteorder.h>
 
-#include "lib/util/expirator.h"
-
 #include "nf.h"
 #include "nf-log.h"
 #include "nf-util.h"
@@ -12,155 +10,165 @@
 #include "hhh_config.h"
 #include "hhh_state.h"
 
-#define SWAP_ENDIANNESS_32_BIT(n) (((n >> 24) & 0x000000ff) | ((n >> 8) & 0x0000ff00) | ((n << 8) & 0x00ff0000) | ((n << 24) & 0xff000000))
-
 struct nf_config config;
 struct State *state;
 
-bool nf_init(void) {
-  uint64_t link_capacity = config.link_capacity;
-  uint8_t threshold      = config.threshold;
-  uint32_t subnets_mask  = config.subnets_mask;
-  unsigned capacity      = config.dyn_capacity;
-  uint32_t dev_count     = rte_eth_dev_count_avail();
+bool is_internal(uint16_t device) {
+  bool is_int_dev;
 
-  state = alloc_state(link_capacity, threshold, subnets_mask, capacity, dev_count);
+  int *is_internal;
+  vector_borrow(state->int_devices, device, (void **)&is_internal);
+  is_int_dev = (*is_internal != 0);
+  vector_return(state->int_devices, device, is_internal);
+
+  return is_int_dev;
+}
+
+uint16_t get_dst_dev(uint16_t src_dev) {
+  uint16_t dst_dev;
+
+  uint16_t *destination_device;
+  vector_borrow(state->fwd_rules, src_dev, (void **)&destination_device);
+  dst_dev = *destination_device;
+  vector_return(state->fwd_rules, src_dev, destination_device);
+
+  if (src_dev == dst_dev) {
+    return DROP;
+  }
+
+  return dst_dev;
+}
+
+bool nf_init(void) {
+  uint32_t stages    = config.stages;
+  uint32_t width     = config.width;
+  time_ns_t interval = config.interval * 1000; // us to ns
+  uint32_t dev_count = rte_eth_dev_count_avail();
+
+  state = alloc_state(stages, width, interval, dev_count);
 
   return state != NULL;
 }
 
-int64_t expire_entries(time_ns_t time) {
-  assert(time >= 0); // we don't support the past
-  time_ns_t exp_time = NS_TO_S_MULTIPLIER * config.burst / state->threshold_rate;
-  uint64_t time_u    = (uint64_t)time;
-  // OK because time >= config.burst / threshold_rate >= 0
-  time_ns_t min_time = time_u - exp_time;
-  int64_t freed      = 0;
-  for (int i = 0; i < state->n_subnets; i++) {
-    freed += expire_items_single_map(state->allocators[i], state->subnets[i], state->subnet_indexers[i], min_time);
+#ifdef ENABLE_LOG
+// The debug build reports, once per interval and just before the tables start afresh, the
+// heaviest prefixes each level holds. Reporting a prefix zeroes its count so the next rank is
+// found by the same scan; the tables are cleared right after anyway.
+#define TOP_REPORTED 3
+
+void report_top_counts(const char *level, struct Vector *counts, uint32_t entries) {
+  for (int rank = 1; rank <= TOP_REPORTED; rank++) {
+    uint32_t best_count = 0;
+    uint32_t best_key   = 0;
+    for (uint32_t i = 0; i < entries; i++) {
+      uint32_t *count;
+      vector_borrow(counts, i, (void **)&count);
+      if (*count > best_count) {
+        best_count = *count;
+        best_key   = i;
+      }
+      vector_return(counts, i, count);
+    }
+    if (best_count == 0) {
+      return;
+    }
+    uint32_t *count;
+    vector_borrow(counts, best_key, (void **)&count);
+    *count = 0;
+    vector_return(counts, best_key, count);
+    NF_DEBUG("TOP %s #%d: %u.%u.%u.%u count %u", level, rank, (best_key >> 0) & 0xff, (best_key >> 8) & 0xff, (best_key >> 16) & 0xff,
+             (best_key >> 24) & 0xff, best_count);
   }
-  return freed;
 }
 
-bool allocate(uint32_t masked_src, int i_subnet, uint16_t size, time_ns_t time) {
-  int index = -1;
-
-  int allocated = dchain_allocate_new_index(state->allocators[i_subnet], &index, time);
-
-  if (!allocated) {
-    // Nothing we can do...
-    NF_DEBUG("No more space in the HHH subnet match tables");
-    return false;
+void report_top_slots(const char *level, struct Vector **tables, uint32_t stages, uint32_t width) {
+  for (int rank = 1; rank <= TOP_REPORTED; rank++) {
+    uint32_t best_count = 0;
+    uint32_t best_key   = 0;
+    for (uint32_t s = 0; s < stages; s++) {
+      for (uint32_t i = 0; i < width; i++) {
+        struct hp_slot *slot;
+        vector_borrow(tables[s], i, (void **)&slot);
+        if (slot->count > best_count) {
+          best_count = slot->count;
+          best_key   = slot->key;
+        }
+        vector_return(tables[s], i, slot);
+      }
+    }
+    if (best_count == 0) {
+      return;
+    }
+    // A prefix may sit in several stages (HashPipe's duplicates); they count together.
+    uint32_t total = 0;
+    for (uint32_t s = 0; s < stages; s++) {
+      for (uint32_t i = 0; i < width; i++) {
+        struct hp_slot *slot;
+        vector_borrow(tables[s], i, (void **)&slot);
+        if (slot->key == best_key) {
+          total += slot->count;
+          slot->count = 0;
+        }
+        vector_return(tables[s], i, slot);
+      }
+    }
+    NF_DEBUG("TOP %s #%d: %u.%u.%u.%u count %u", level, rank, (best_key >> 0) & 0xff, (best_key >> 8) & 0xff, (best_key >> 16) & 0xff,
+             (best_key >> 24) & 0xff, total);
   }
-
-  uint32_t *key              = NULL;
-  struct DynamicValue *value = NULL;
-
-  vector_borrow(state->subnets[i_subnet], index, (void **)&key);
-  vector_borrow(state->subnet_buckets[i_subnet], index, (void **)&value);
-
-  *key = masked_src;
-
-  assert(config.burst >= size);
-  value->bucket_size = config.burst - size;
-  value->bucket_time = time;
-
-  map_put(state->subnet_indexers[i_subnet], key, index);
-
-  vector_return(state->subnets[i_subnet], index, key);
-  vector_return(state->subnet_buckets[i_subnet], index, value);
-
-  return true;
 }
 
-void update_buckets(uint32_t src, uint16_t size, time_ns_t time) {
-  int index     = -1;
-  uint32_t mask = 0;
+static time_ns_t last_report = 0;
 
-  bool captured_hh     = false;
-  uint32_t hh          = 0;
-  uint8_t hh_subnet_sz = 0;
-
-  uint32_t subnets_mask = config.subnets_mask;
-
-  for (int subnet = 0, subnet_i = -1; subnet < 32; subnet++, subnets_mask >>= 1) {
-    mask = (mask >> 1) | (1 << 31);
-
-    if (!(subnets_mask & 1)) {
-      continue;
-    }
-
-    subnet_i++;
-    uint32_t masked_src = src & SWAP_ENDIANNESS_32_BIT(mask);
-    int present         = map_get(state->subnet_indexers[subnet_i], &masked_src, &index);
-
-    if (!present) {
-      // NF_DEBUG("  [psz:%02d] src    %u.%u.%u.%u", (int)i +
-      // config.min_subnet,
-      //          (src >> 0) & 0xff, (src >> 8) & 0xff, (src >> 16) & 0xff,
-      //          (src >> 24) & 0xff);
-      // NF_DEBUG("  [psz:%02d] mask   %u.%u.%u.%u", (int)i +
-      // config.min_subnet,
-      //          (rte_bswap32(mask) >> 0) & 0xff, (rte_bswap32(mask) >> 8)
-      //          & 0xff, (rte_bswap32(mask) >> 16) & 0xff,
-      //          (rte_bswap32(mask) >> 24) & 0xff);
-      // NF_DEBUG("  New subnet %u.%u.%u.%u/%d", (masked_src >> 0) & 0xff,
-      //          (masked_src >> 8) & 0xff, (masked_src >> 16) & 0xff,
-      //          (masked_src >> 24) & 0xff, (int)i + config.min_subnet);
-
-      bool allocated = allocate(masked_src, subnet_i, size, time);
-
-      // Not much we can do...
-      if (!allocated) {
-        return;
-      }
-
-      continue;
-    }
-
-    dchain_rejuvenate_index(state->allocators[subnet_i], index, time);
-
-    struct DynamicValue *value = NULL;
-    vector_borrow(state->subnet_buckets[subnet_i], index, (void **)&value);
-
-    assert(0 <= time);
-    uint64_t time_u = (uint64_t)time;
-    assert(sizeof(time_ns_t) == sizeof(int64_t));
-    assert(value->bucket_time >= 0);
-    assert(value->bucket_time <= time_u);
-    uint64_t time_diff = time_u - value->bucket_time;
-
-    if (time_diff < (config.burst * NS_TO_S_MULTIPLIER) / state->threshold_rate) {
-      uint64_t added_tokens = (time_diff * state->threshold_rate) / NS_TO_S_MULTIPLIER;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtautological-compare"
-      vigor_note(0 <= time_diff * state->threshold_rate / NS_TO_S_MULTIPLIER);
-#pragma GCC diagnostic pop
-      assert(value->bucket_size <= config.burst);
-      value->bucket_size += added_tokens;
-      if (value->bucket_size > config.burst) {
-        value->bucket_size = config.burst;
-      }
-    } else {
-      value->bucket_size = config.burst;
-    }
-
-    value->bucket_time = time_u;
-
-    if (value->bucket_size > size) {
-      value->bucket_size -= size;
-    } else {
-      captured_hh  = true;
-      hh           = masked_src;
-      hh_subnet_sz = subnet + 1;
-    }
-
-    vector_return(state->subnet_buckets[subnet_i], index, value);
+void report_tables(time_ns_t now) {
+  if (last_report == 0) {
+    last_report = now;
+    return;
   }
+  if (now - last_report < state->interval) {
+    return;
+  }
+  last_report = now;
+  report_top_counts("/8", state->counts8, 256);
+  report_top_counts("/16", state->counts16, 65536);
+  report_top_slots("/24", state->tables24, state->stages, state->width);
+}
+#endif // ENABLE_LOG
 
-  if (captured_hh) {
-    NF_DEBUG("HH detected: %0u.%u.%u.%u => %u.%u.%u.%u/%d", (src >> 0) & 0xff, (src >> 8) & 0xff, (src >> 16) & 0xff, (src >> 24) & 0xff,
-             (hh >> 0) & 0xff, (hh >> 8) & 0xff, (hh >> 16) & 0xff, (hh >> 24) & 0xff, hh_subnet_sz);
+// Every table counts one interval at a time.
+void start_interval_if_elapsed(time_ns_t now) {
+  vector_periodic_clear(state->counts8, now, state->interval);
+  vector_periodic_clear(state->counts16, now, state->interval);
+  for (uint32_t s = 0; s < state->stages; s++) {
+    vector_periodic_clear(state->tables24[s], now, state->interval);
+  }
+}
+
+// The /8 and /16 prefixes are few enough to count exactly, one counter per prefix. The address is
+// read as stored in the packet, so its first octets are the low bytes of `src`.
+void count_short_prefixes(uint32_t src) {
+  uint32_t *count8;
+  vector_borrow(state->counts8, src & 0xff, (void **)&count8);
+  *count8 += 1;
+  vector_return(state->counts8, src & 0xff, count8);
+
+  uint32_t *count16;
+  vector_borrow(state->counts16, src & 0xffff, (void **)&count16);
+  *count16 += 1;
+  vector_return(state->counts16, src & 0xffff, count16);
+}
+
+// HashPipe (Sivaraman et al., SOSR '17) over the /24 prefixes: a pipeline of tables that keeps
+// the heaviest prefixes and evicts the lighter ones. The prefix is always inserted at the first
+// stage; whatever it displaces is carried to the next stage, where it hashes to a slot and the
+// lighter of the two is carried on, so that after the last stage the lightest of the sampled
+// slots is gone. A hit anywhere adds the carried count to the slot, and an empty pair is carried
+// from then on.
+void count_long_prefix(uint32_t src) {
+  struct hp_slot carried = {.key = src & 0xffffff, .count = 1};
+
+  for (uint32_t s = 0; s < state->stages; s++) {
+    uint32_t slot = crc32_hasher_hash(state->hashers[s], &carried.key, sizeof(carried.key)) & (state->width - 1);
+    vector_inc_or_swap(state->tables24[s], slot, &carried, sizeof(carried.key), sizeof(carried.count), s == 0);
   }
 }
 
@@ -169,23 +177,29 @@ int nf_process(uint16_t device, uint8_t **buffer, uint16_t packet_length, time_n
 
   struct rte_ipv4_hdr *rte_ipv4_header = nf_then_get_ipv4_header(rte_ether_header, buffer);
   if (rte_ipv4_header == NULL) {
+    NF_DEBUG("Not IPv4, dropping");
     return DROP;
   }
 
-  expire_entries(now);
+  struct tcpudp_hdr *tcpudp_header = nf_then_get_tcpudp_header(rte_ipv4_header, buffer);
+  if (tcpudp_header == NULL) {
+    NF_DEBUG("Not TCP/UDP, dropping");
+    return DROP;
+  }
 
-  if (device == config.lan_device) {
+#ifdef ENABLE_LOG
+  report_tables(now);
+#endif // ENABLE_LOG
+
+  start_interval_if_elapsed(now);
+
+  if (is_internal(device)) {
     // Simply forward outgoing packets.
-    NF_DEBUG("Outgoing packet. Not checking for heavy hitters.");
-    return config.wan_device;
-  } else if (device == config.wan_device) {
-    update_buckets(rte_ipv4_header->src_addr, packet_length, now);
-
-    // And just forward to LAN, we analyze without policing.
-    return config.lan_device;
+    NF_DEBUG("Outgoing packet. Not counting.");
   } else {
-    // Drop any other packets.
-    NF_DEBUG("Unknown port. Dropping.");
-    return DROP;
+    count_short_prefixes(rte_ipv4_header->src_addr);
+    count_long_prefix(rte_ipv4_header->src_addr);
   }
+
+  return get_dst_dev(device);
 }

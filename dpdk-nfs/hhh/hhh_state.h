@@ -3,16 +3,20 @@
 
 #include "hhh_loop.h"
 
+#include "lib/util/math.h"
+
 struct State {
-  struct Map **subnet_indexers;
-  struct DoubleChain **allocators;
-  struct Vector **subnet_buckets;
-  struct Vector **subnets;
-  uint64_t threshold_rate; // B/s
-  int n_subnets;
-  uint32_t capacity;
+  struct Vector *counts8;        // packets per /8 this interval, indexed by the first octet
+  struct Vector *counts16;       // packets per /16 this interval, indexed by the first two octets
+  struct Vector **tables24;      // the /24 HashPipe: one table of `width` hp_slots per stage
+  struct crc32_hasher **hashers; // the stages' hash functions, one polynomial each
+  struct Vector *int_devices;
+  struct Vector *fwd_rules;
+  uint32_t stages;
+  uint32_t width;
+  time_ns_t interval;
   uint32_t dev_count;
 };
 
-struct State *alloc_state(uint64_t link_capacity, uint8_t threshold, uint32_t subnets_mask, uint32_t capacity, uint32_t dev_count);
+struct State *alloc_state(uint32_t stages, uint32_t width, time_ns_t interval, uint32_t dev_count);
 #endif //_STATE_H_INCLUDED_

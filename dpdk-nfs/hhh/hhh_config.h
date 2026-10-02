@@ -1,30 +1,28 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "nf.h"
 
 struct nf_config {
-  // LAN (i.e. internal) device
-  uint16_t lan_device;
+  struct {
+    uint16_t *devices;
+    size_t n;
+  } internal_devs;
 
-  // WAN device, i.e. external
-  uint16_t wan_device;
+  struct {
+    uint16_t *src_dev;
+    uint16_t *dst_dev;
+    size_t n;
+  } fwd_rules;
 
-  // Link capacity in b/s
-  uint64_t link_capacity;
+  // Stages of the /24 HashPipe (at most CRC32_BANK_SIZE, one polynomial each)
+  uint32_t stages;
 
-  // HHH threshold in %
-  uint8_t threshold;
+  // Slots per stage of the /24 HashPipe (a power of two)
+  uint32_t width;
 
-  // List of subnets that the HHH is configured to check.
-  // Bit 0 of subnets_mask corresponds to subnet /0,
-  // bit 1 to subnet /1, etc.
-  uint32_t subnets_mask;
-
-  // HHH burst size in B
-  uint64_t burst;
-
-  // Size of the dynamic filtering table
-  uint32_t dyn_capacity;
+  // Counting interval in microseconds: every table starts afresh after it
+  uint64_t interval;
 };
