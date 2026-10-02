@@ -7,9 +7,9 @@ Args:
   Profile file:       psd-f40000-c0-zipf0_8.json
   Seed:               0
   Targets:
-    Tofino (54 modules)
-    Ctrl (102 modules)
-    x86 (30 modules)
+    Tofino (56 modules)
+    Ctrl (110 modules)
+    x86 (33 modules)
   No reorder:         0
   Not greedy:         0
 
@@ -31,7 +31,7 @@ Stateful Implementations:
   1074109560: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       29 seconds
+  Elapsed time:       28 seconds
   Steps:              67
   Backtracks:         0
   Search space size:  197

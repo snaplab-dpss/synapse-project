@@ -7,9 +7,9 @@ Args:
   Profile file:       pol-f40000-c100000-zipf0_8.json
   Seed:               0
   Targets:
-    Tofino (54 modules)
-    Ctrl (102 modules)
-    x86 (30 modules)
+    Tofino (56 modules)
+    Ctrl (110 modules)
+    x86 (33 modules)
   No reorder:         0
   Not greedy:         0
 
@@ -28,7 +28,7 @@ Stateful Implementations:
   1074054008: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       2 seconds
+  Elapsed time:       1 seconds
   Steps:              58
   Backtracks:         0
   Search space size:  170

@@ -7,9 +7,9 @@ Args:
   Profile file:       meta4-f40000-c1000000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (54 modules)
-    Ctrl (105 modules)
-    x86 (30 modules)
+    Tofino (56 modules)
+    Ctrl (110 modules)
+    x86 (33 modules)
   No reorder:         0
   Not greedy:         0
 
@@ -34,7 +34,7 @@ Stateful Implementations:
   1074083024: Tofino::FCFSCachedTable
 
 Search Metadata:
-  Elapsed time:       257 seconds
+  Elapsed time:       232 seconds
   Steps:              114
   Backtracks:         0
   Search space size:  367

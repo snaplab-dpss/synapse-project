@@ -7,9 +7,9 @@ Args:
   Profile file:       hyperloglog-f40000-c1000000-zipf0_6.json
   Seed:               0
   Targets:
-    Tofino (54 modules)
-    Ctrl (102 modules)
-    x86 (30 modules)
+    Tofino (56 modules)
+    Ctrl (110 modules)
+    x86 (33 modules)
   No reorder:         0
   Not greedy:         0
 
@@ -123,9 +123,9 @@ Search Metadata:
     Node 61: 0
 
 Global Stats:
-  Num phase 1 speculations: 1'987 (100%)
-  Num phase 2 speculations: 13 (0.654253%)
-  Num speculated modules:   26'729
+  Num phase 1 speculations: 1'998 (100%)
+  Num phase 2 speculations: 13 (0.650651%)
+  Num speculated modules:   27'026
   Num EPs generated:        155
 
 Switch placement:

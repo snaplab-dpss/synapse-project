@@ -7,9 +7,9 @@ Args:
   Profile file:       nat-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (54 modules)
-    Ctrl (105 modules)
-    x86 (30 modules)
+    Tofino (56 modules)
+    Ctrl (110 modules)
+    x86 (33 modules)
   No reorder:         0
   Not greedy:         0
 
@@ -30,7 +30,7 @@ Stateful Implementations:
   1074085544: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       23 seconds
+  Elapsed time:       16 seconds
   Steps:              69
   Backtracks:         0
   Search space size:  217

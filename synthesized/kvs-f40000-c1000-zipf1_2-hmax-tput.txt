@@ -7,9 +7,9 @@ Args:
   Profile file:       kvs-f40000-c1000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (54 modules)
-    Ctrl (102 modules)
-    x86 (30 modules)
+    Tofino (56 modules)
+    Ctrl (110 modules)
+    x86 (33 modules)
   No reorder:         0
   Not greedy:         0
 
@@ -28,7 +28,7 @@ Stateful Implementations:
   1073923096: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       11 seconds
+  Elapsed time:       10 seconds
   Steps:              49
   Backtracks:         0
   Search space size:  171
@@ -139,7 +139,7 @@ MapRAM: 573'444/786'432 B (72.9172%)
 Logical IDs: 7/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 21/128 B (16.4062%)
-Objs: [hh_table_1073923096_cms_row_0,hh_table_1073923096_cms_row_1,hh_table_1073923096_digest,hh_table_1073923096_hash_calc_0,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_3,hh_table_1073923096_threshold]
+Objs: [hh_table_1073923096_cms_row_0,hh_table_1073923096_cms_row_3,hh_table_1073923096_digest,hh_table_1073923096_hash_calc_0,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_3,hh_table_1073923096_threshold]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -149,7 +149,7 @@ MapRAM: 557'056/786'432 B (70.8333%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [hh_table_1073923096_cms_row_2,hh_table_1073923096_cms_row_3]
+Objs: [hh_table_1073923096_cms_row_1,hh_table_1073923096_cms_row_2]
 -------------------------------------
 -------------------------------------
 Stage 4

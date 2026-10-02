@@ -7,9 +7,9 @@ Args:
   Profile file:       hyperloglog-f40000-c10000-zipf1_2.json
   Seed:               0
   Targets:
-    Tofino (54 modules)
-    Ctrl (102 modules)
-    x86 (30 modules)
+    Tofino (56 modules)
+    Ctrl (110 modules)
+    x86 (33 modules)
   No reorder:         0
   Not greedy:         0
 
@@ -24,7 +24,7 @@ Stateful Implementations:
   1073917816: Controller::Vector
 
 Search Metadata:
-  Elapsed time:       1 seconds
+  Elapsed time:       0 seconds
   Steps:              84
   Backtracks:         0
   Search space size:  156
@@ -119,9 +119,9 @@ Search Metadata:
     Node 61: 0
 
 Global Stats:
-  Num phase 1 speculations: 264 (100%)
-  Num phase 2 speculations: 4 (1.51515%)
-  Num speculated modules:   5'915
+  Num phase 1 speculations: 275 (100%)
+  Num phase 2 speculations: 4 (1.45455%)
+  Num speculated modules:   6'212
   Num EPs generated:        156
 
 Switch placement:

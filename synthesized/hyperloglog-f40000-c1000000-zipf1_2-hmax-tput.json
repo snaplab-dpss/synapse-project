@@ -2,13 +2,13 @@
   "bdd": "hyperloglog.bdd",
   "global_stats": {
     "num_execution_plans_generated": 155,
-    "num_phase1_speculations": 1977,
+    "num_phase1_speculations": 1988,
     "num_phase2_speculations": 13,
-    "num_speculated_modules": 26770,
-    "time_per_instantiation_us": 441,
-    "time_per_speculation_us": 1,
-    "total_time_spent_generating_execution_plans_us": 68381,
-    "total_time_spent_speculating_us": 31536
+    "num_speculated_modules": 27067,
+    "time_per_instantiation_us": 272,
+    "time_per_speculation_us": 0,
+    "total_time_spent_generating_execution_plans_us": 42271,
+    "total_time_spent_speculating_us": 16496
   },
   "heuristic": {
     "meta": [
@@ -552,7 +552,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.3734939759036147,
-    "elapsed_time_seconds": 1,
+    "elapsed_time_seconds": 0,
     "finished_eps": 1,
     "log10_design_space": 22,
     "ss_size": 155,
