@@ -73,8 +73,8 @@ struct buffer_t {
     return data[i];
   }
 
-  // Get the value of a buffer at a given offset and width.
-  // Returned value is little-endian.
+  // The bytes at `offset` read as a big-endian number (the first byte is the most significant),
+  // which is how a number is kept in a buffer bound for the data plane.
   u64 get(bytes_t offset, bytes_t width) const {
     assert(width > 0 && "Width must be greater than 0");
     assert(offset + width <= size && "Offset and width must be within buffer bounds");
@@ -93,6 +93,21 @@ struct buffer_t {
   }
 
   u8 get(bytes_t offset) const { return get(offset, 1); }
+
+  // The bytes at `offset` read as a little-endian number: a value as the NF keeps it in memory.
+  u64 get_little_endian(bytes_t offset, bytes_t width) const {
+    assert(width > 0 && "Width must be greater than 0");
+    assert(offset + width <= size && "Offset and width must be within buffer bounds");
+    assert(width <= 8 && "Width must be less than or equal to 8 bytes");
+
+    u64 value = 0;
+    for (bytes_t i = width; i-- > 0;) {
+      value <<= 8;
+      value |= data[offset + i];
+    }
+
+    return value;
+  }
 
   u64 get() const { return get(0, size); }
 
@@ -118,7 +133,9 @@ struct buffer_t {
     }
   }
 
-  void set_big_endian(bytes_t offset, bytes_t width, u64 value) {
+  // Writes `value` little-endian (least significant byte first), as the NF lays a number out in
+  // memory; `set` writes it big-endian.
+  void set_little_endian(bytes_t offset, bytes_t width, u64 value) {
     assert(width > 0 && "Width must be greater than 0");
     assert(offset + width <= size && "Offset and width must be within buffer bounds");
     assert(width <= 8 && "Width must be less than or equal to 8 bytes");

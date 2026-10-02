@@ -114,6 +114,28 @@ public:
     }
   }
 
+  // The cell as `pipe` holds it: the pipe a packet came through has the data plane's latest
+  // value of its cell, while the others may hold what the controller last wrote, which the max
+  // over the pipes would mistake for the live one once the data plane swapped in a lighter cell.
+  void get(u32 index, buffer_t &v, u16 pipe) {
+    assert(index < capacity);
+    v = buffer_t(value_size / 8);
+
+    bytes_t offset = 0;
+    for (Register &reg : registers) {
+      const bytes_t reg_value_size = reg.get_value_size() / 8;
+      if (reg.is_paired()) {
+        const auto [lo, hi] = reg.get_pair(index, pipe);
+        v.set(offset, reg_value_size, lo);
+        v.set(offset + reg_value_size, reg_value_size, hi);
+        offset += 2 * reg_value_size;
+        continue;
+      }
+      v.set(offset, reg_value_size, reg.get(index, pipe));
+      offset += reg_value_size;
+    }
+  }
+
   void put(u32 index, const buffer_t &v) {
     assert(index < capacity);
     assert(v.size == value_size / 8);

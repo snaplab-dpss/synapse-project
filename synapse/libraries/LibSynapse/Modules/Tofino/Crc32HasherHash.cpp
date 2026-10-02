@@ -13,12 +13,48 @@ using LibCore::solver_toolbox;
 
 namespace {
 
-// The width the hash is used at: a hash that only indexes a register through `hash & (2^k - 1)`
-// (the next node's index) is computed k bits wide, so the hash unit's output is the index itself
-// and no stage is spent masking it.
+// Does any node after `next` read a symbol of `expr`?
+bool used_beyond(const BDDNode *next, klee::ref<klee::Expr> expr) {
+  const std::unordered_set<std::string> symbols = LibCore::symbol_t::get_symbols_names(expr);
+  bool used                                     = false;
+  if (next->get_next()) {
+    next->get_next()->visit_nodes([&](const BDDNode *n) {
+      std::unordered_set<std::string> names;
+      const auto collect = [&names](klee::ref<klee::Expr> e) {
+        if (!e.isNull()) {
+          names.merge(LibCore::symbol_t::get_symbols_names(e));
+        }
+      };
+      if (n->get_type() == BDDNodeType::Call) {
+        const call_t &c = dynamic_cast<const Call *>(n)->get_call();
+        for (const auto &[name, arg] : c.args) {
+          collect(arg.expr);
+          collect(arg.in);
+          collect(arg.out);
+        }
+        collect(c.ret);
+      } else if (n->get_type() == BDDNodeType::Branch) {
+        collect(dynamic_cast<const LibBDD::Branch *>(n)->get_condition());
+      }
+      for (const std::string &symbol : symbols) {
+        if (names.contains(symbol)) {
+          used = true;
+          return LibBDD::BDDNodeVisitAction::Stop;
+        }
+      }
+      return LibBDD::BDDNodeVisitAction::Continue;
+    });
+  }
+  return used;
+}
+
+// The width the hash is used at: a hash whose only use is indexing a register through
+// `hash & (2^k - 1)` (the next node's index) is computed k bits wide, so the hash unit's output is
+// the index itself and no stage is spent masking it. A hash read again later keeps its width: a
+// punt in between ships the whole symbol to the controller.
 bits_t used_hash_width(const Call *node, klee::ref<klee::Expr> hash) {
   const BDDNode *next = node->get_next();
-  if (!next || next->get_type() != BDDNodeType::Call) {
+  if (!next || next->get_type() != BDDNodeType::Call || used_beyond(next, hash)) {
     return hash->getWidth();
   }
   const call_t &call = dynamic_cast<const Call *>(next)->get_call();

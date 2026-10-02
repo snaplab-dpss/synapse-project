@@ -77,7 +77,7 @@ public:
         bf_status = data->getValue(field.id, field_size, value.data());
         ASSERT_BF_STATUS(bf_status);
         for (size_t i = 0; i < field_size; i++) {
-          digest_buffer.set_big_endian(offset + i, 1, value[i]);
+          digest_buffer[offset + i] = value[i];
         }
       } else {
         u64 digest_field_value;

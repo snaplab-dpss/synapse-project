@@ -23,6 +23,7 @@ public:
   Register(Register &&other) = delete;
 
   std::vector<u32> get_per_pipe(u32 i);
+  u32 get(u32 i, u16 pipe);
   u32 get_max(u32 i);
   u32 get_min(u32 i);
 
@@ -32,6 +33,10 @@ public:
   bool is_paired() const { return paired; }
   // Both halves of a pair cell, each the maximum over the pipes (see VectorRegister::get).
   std::pair<u32, u32> get_pair_max(u32 i);
+  // Both halves of a pair cell as one pipe holds them.
+  std::pair<u32, u32> get_pair(u32 i, u16 pipe);
+  // The pipe a port belongs to: 128 ports per pipe.
+  static u16 pipe_of(u16 dev_port) { return dev_port >> 7; }
   void set_pair(u32 i, u32 lo, u32 hi);
   // Resets every entry to the register's P4 initial value (0 for every register synapse emits).
   void reset_all_entries();

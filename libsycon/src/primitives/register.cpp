@@ -65,6 +65,25 @@ std::vector<u32> Register::get_per_pipe(u32 i) {
   return values_per_pipe_32b;
 }
 
+u32 Register::get(u32 i, u16 pipe) {
+  key_setup(i);
+  data_reset();
+
+  bf_rt_target_t target = dev_tgt;
+  target.pipe_id        = pipe;
+
+  bfrt::BfRtTable::BfRtTableGetFlag flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
+  bf_status_t bf_status                  = table->tableEntryGet(*session, target, *key, flag, data.get());
+  ASSERT_BF_STATUS(bf_status);
+
+  std::vector<u64> values;
+  bf_status = data->getValue(value_id, &values);
+  ASSERT_BF_STATUS(bf_status);
+  assert(values.size() == 1);
+
+  return static_cast<u32>(values[0]);
+}
+
 u32 Register::get_max(u32 i) {
   std::vector<u32> values_per_pipe = get_per_pipe(i);
   return *std::max_element(values_per_pipe.begin(), values_per_pipe.end());
@@ -124,6 +143,31 @@ std::pair<u32, u32> Register::get_pair_max(u32 i) {
   }
 
   return {static_cast<u32>(lo_per_pipe[live]), static_cast<u32>(hi_per_pipe[live])};
+}
+
+std::pair<u32, u32> Register::get_pair(u32 i, u16 pipe) {
+  assert(paired && "Not a pair register");
+
+  key_setup(i);
+  data_reset();
+
+  bf_rt_target_t target = dev_tgt;
+  target.pipe_id        = pipe;
+
+  bfrt::BfRtTable::BfRtTableGetFlag flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
+  bf_status_t bf_status                  = table->tableEntryGet(*session, target, *key, flag, data.get());
+  ASSERT_BF_STATUS(bf_status);
+
+  std::vector<u64> lo_values;
+  bf_status = data->getValue(value_id, &lo_values);
+  ASSERT_BF_STATUS(bf_status);
+
+  std::vector<u64> hi_values;
+  bf_status = data->getValue(hi_id, &hi_values);
+  ASSERT_BF_STATUS(bf_status);
+
+  assert(lo_values.size() == 1 && hi_values.size() == 1);
+  return {static_cast<u32>(lo_values[0]), static_cast<u32>(hi_values[0])};
 }
 
 void Register::set_pair(u32 i, u32 lo, u32 hi) {

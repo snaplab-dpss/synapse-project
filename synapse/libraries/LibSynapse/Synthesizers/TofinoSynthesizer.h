@@ -104,7 +104,8 @@ private:
     bool force_bool;
     bool is_header_field;
     bool is_buffer;
-    bool transient = false; // A step's own temporary (an operand, a shift half): never carried past a cut.
+    bool transient   = false; // A step's own temporary (an operand, a shift half): never carried past a cut.
+    bool holds_bytes = false; // Packet bytes in wire order (a hash input, a key); the NF's number is their byte swap.
 
     var_t() = default;
     var_t(const code_t &_name, klee::ref<klee::Expr> _expr, bits_t _size, bool _force_bool, bool _is_header_field, bool _is_buffer)
@@ -196,6 +197,7 @@ private:
   static constexpr const alloc_opt_t BUFFER              = 0b0010000;
   static constexpr const alloc_opt_t FORCE_BOOL          = 0b0100000;
   static constexpr const alloc_opt_t IS_INGRESS_METADATA = 0b1000000;
+  static constexpr const alloc_opt_t HOLDS_BYTES         = 0b10000000;
 
   const std::filesystem::path out_file;
   Template code_template;

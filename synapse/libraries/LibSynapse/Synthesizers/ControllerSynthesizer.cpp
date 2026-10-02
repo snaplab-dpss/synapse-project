@@ -2108,35 +2108,56 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   const klee::ref<klee::Expr> pair_out = node->get_pair_out();
   const bytes_t key_size               = node->get_key_size() / 8;
   const bytes_t pair_size              = pair_in->getWidth() / 8;
+  const bytes_t count_size             = pair_size - key_size;
 
   const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
 
-  // The pair as the NF holds it (key bytes, then the count), the cell as the register holds it.
-  const var_t pair_var  = transpile_buffer_decl_and_set(coder, vector_register->id + "_pair", pair_in, true, true);
-  const code_t cell_var = create_unique_name(vector_register->id + "_cell");
-  coder.indent();
-  coder << "buffer_t " << cell_var << "(" << pair_size << ");\n";
-  coder.indent();
-  coder << "state->" << vector_register->id << ".get(" << transpiler.transpile(index) << ", " << cell_var << ");\n";
+  // The pair as the NF holds it: the key's bytes, then the count little-endian. The cell as the
+  // register holds it: the key's bytes too, then the count as a number (big-endian in the buffer,
+  // like every register value). The two only differ in the count's byte order.
+  const var_t pair_var = transpile_buffer_decl_and_set(coder, vector_register->id + "_pair", pair_in, true, true);
 
-  const code_t cell_key   = cell_var + ".get(0, " + std::to_string(key_size) + ")";
-  const code_t cell_count = cell_var + ".get(" + std::to_string(key_size) + ", " + std::to_string(key_size) + ")";
-  const code_t pair_key   = pair_var.name + ".get(0, " + std::to_string(key_size) + ")";
-  const code_t pair_count = pair_var.name + ".get(" + std::to_string(key_size) + ", " + std::to_string(key_size) + ")";
+  // The packet is processed inside one transaction, and a read from the switch in it does not
+  // see the transaction's own writes: a cell this packet already wrote is taken from the buffer
+  // that wrote it, which stays in scope for the rest of the path.
+  code_t cell_var;
+  if (const std::optional<var_t> written = vars.get(dataplane_cell_key(obj, index), TRANSPILER_OPT_NO_OPTION)) {
+    cell_var = written->name;
+  } else {
+    cell_var = create_unique_name(vector_register->id + "_cell");
+    coder.indent();
+    coder << "buffer_t " << cell_var << "(" << pair_size << ");\n";
+    coder.indent();
+    // The copy of the pipe the packet came through: the data plane's latest (VectorRegister::get).
+    coder << "state->" << vector_register->id << ".get(" << transpiler.transpile(index) << ", " << cell_var
+          << ", Register::pipe_of(bswap16(cpu_hdr->ingress_port)));\n";
+    bind_buffer(cell_var, dataplane_cell_key(obj, index));
+  }
+
+  const code_t cell_key    = cell_var + ".get(0, " + std::to_string(key_size) + ")";
+  const code_t pair_key    = pair_var.name + ".get(0, " + std::to_string(key_size) + ")";
+  const code_t cell_count  = cell_var + ".get(" + std::to_string(key_size) + ", " + std::to_string(count_size) + ")";
+  const code_t pair_count  = pair_var.name + ".get_little_endian(" + std::to_string(key_size) + ", " + std::to_string(count_size) + ")";
+  const code_t count_range = std::to_string(key_size) + ", " + std::to_string(count_size);
 
   coder.indent();
   coder << "if (" << cell_key << " == " << pair_key << ") {\n";
   coder.inc();
   coder.indent();
-  coder << cell_var << ".set(" << key_size << ", " << key_size << ", " << cell_count << " + " << pair_count << ");\n";
+  coder << cell_var << ".set(" << count_range << ", " << cell_count << " + " << pair_count << ");\n";
   coder.indent();
   coder << pair_var.name << " = buffer_t(" << pair_size << ");\n";
   coder.dec();
   coder.indent();
   coder << "} else if (" << (node->get_evict() ? "true" : cell_count + " < " + pair_count) << ") {\n";
   coder.inc();
+  // Each side's count changes byte order as it changes hands.
+  coder.indent();
+  coder << cell_var << ".set_little_endian(" << count_range << ", " << cell_count << ");\n";
   coder.indent();
   coder << "std::swap(" << cell_var << ", " << pair_var.name << ");\n";
+  coder.indent();
+  coder << cell_var << ".set(" << count_range << ", " << cell_var << ".get_little_endian(" << count_range << "));\n";
   coder.dec();
   coder.indent();
   coder << "}\n";
@@ -3060,6 +3081,12 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
   return var;
 }
 
+// What names a cell of a dataplane register the packet has written: the register's object and
+// the cell's index, as one expression no BDD value equals.
+klee::ref<klee::Expr> ControllerSynthesizer::dataplane_cell_key(addr_t obj, klee::ref<klee::Expr> index) {
+  return solver_toolbox.exprBuilder->Concat(index, solver_toolbox.exprBuilder->Constant(obj, 64));
+}
+
 // A buffer already declared (a call's in/out argument) now holds the call's output symbol.
 void ControllerSynthesizer::bind_buffer(const code_t &name, klee::ref<klee::Expr> expr) {
   vars.insert_back(var_t{
@@ -3595,7 +3622,8 @@ ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_se
   if (!words.empty()) {
     for (size_t i = 0; i < words.size(); i++) {
       coder.indent();
-      coder << var.name << ".set(" << word_codes[i].first << ", " << words[i].second->getWidth() / 8 << ", " << word_codes[i].second << ");\n";
+      coder << var.name << ".set_little_endian(" << word_codes[i].first << ", " << words[i].second->getWidth() / 8 << ", " << word_codes[i].second
+            << ");\n";
     }
     return var;
   }

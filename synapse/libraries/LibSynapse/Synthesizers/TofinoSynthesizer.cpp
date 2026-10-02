@@ -2126,7 +2126,9 @@ TofinoSynthesizer::var_t TofinoSynthesizer::var_t::get_slice(bits_t offset, bits
     slice_expr = solver_toolbox.exprBuilder->Extract(expr, offset, slice_size);
   }
 
-  return var_t(original_name, original_expr, original_size, slice_name, slice_expr, slice_size, force_bool, is_header_field, is_buffer);
+  var_t slice(original_name, original_expr, original_size, slice_name, slice_expr, slice_size, force_bool, is_header_field, is_buffer);
+  slice.holds_bytes = holds_bytes;
+  return slice;
 }
 
 code_t TofinoSynthesizer::var_t::get_stem() const {
@@ -5074,7 +5076,8 @@ TofinoSynthesizer::var_t TofinoSynthesizer::alloc_var(const code_t &proposed_nam
     name = (in_egress ? "eg_md." : "meta.") + name;
   }
 
-  const var_t var(name, expr, expr->getWidth(), option & FORCE_BOOL, option & (HEADER | HEADER_FIELD), option & BUFFER);
+  var_t var(name, expr, expr->getWidth(), option & FORCE_BOOL, option & (HEADER | HEADER_FIELD), option & BUFFER);
+  var.holds_bytes = option & HOLDS_BYTES;
 
   if (!(option & SKIP_STACK_ALLOC)) {
     if (option & HEADER) {
@@ -5210,7 +5213,8 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
     if (widened) {
       ingress_apply << "(" << Transpiler::type_from_size(symbol_width) << ")";
     }
-    ingress_apply << var->name;
+    // The controller reads the header as numbers: packet bytes held in wire order go byte-swapped.
+    ingress_apply << (var->holds_bytes ? Transpiler::swap_endianness(var->name, var->size) : var->name);
     ingress_apply << ";";
     ingress_apply << (via_hash ? " }\n" : "\n");
   }
@@ -9459,18 +9463,18 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // pair is in metadata already and is read from there.
   const klee::ref<klee::Expr> key_in_expr   = solver_toolbox.exprBuilder->Extract(pair_in, 0, key_size);
   const klee::ref<klee::Expr> count_in_expr = solver_toolbox.exprBuilder->Extract(pair_in, key_size, key_size);
-  const auto carried_in                     = [&](const std::string &name, klee::ref<klee::Expr> expr, const code_t &code) -> var_t {
+  const auto carried_in = [&](const std::string &name, klee::ref<klee::Expr> expr, const code_t &code, alloc_opt_t option) -> var_t {
     if (const std::optional<var_t> held = ingress_vars.get(expr); held && held->name == code && !held->is_header_field) {
       return *held;
     }
-    const var_t var = alloc_var(name, expr, IS_INGRESS_METADATA);
+    const var_t var = alloc_var(name, expr, IS_INGRESS_METADATA | option);
     declare_var_in_ingress_metadata(var);
     ingress_apply.indent();
     ingress_apply << var.name << " = " << code << ";\n";
     return var;
   };
-  const var_t key_in   = carried_in("carried_key", key_in_expr, transpile_bytes(key_in_expr));
-  const var_t count_in = carried_in("carried_count", count_in_expr, transpiler.transpile(count_in_expr));
+  const var_t key_in   = carried_in("carried_key", key_in_expr, transpile_bytes(key_in_expr), HOLDS_BYTES);
+  const var_t count_in = carried_in("carried_count", count_in_expr, transpiler.transpile(count_in_expr), 0);
 
   const code_t action_name = build_register_action_name(reg, RegisterActionType::IncOrSwap, ep_node);
   transpile_inc_or_swap_action_decl(reg, action_name, key_in.name, count_in.name, evict);
@@ -9493,7 +9497,9 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
       solver_toolbox.value_from_expr(index->getKid(1)) == (1ull << index_bits) - 1) {
     index_field = ingress_vars.get(solver_toolbox.exprBuilder->Extract(index->getKid(0), 0, index_bits));
   }
-  if (index_field && index_field->size == index_bits && !index_field->is_header_field) {
+  // A field of the index width and nothing else: a slice of a wider hash is computed into one.
+  if (index_field && index_field->size == index_bits && !index_field->is_header_field &&
+      std::regex_match(index_field->name, std::regex("[A-Za-z_][A-Za-z0-9_.]*"))) {
     index_code = index_field->name;
   } else {
     index_code                  = transpile_number(index);
@@ -9517,7 +9523,7 @@ EPVisitor::Action TofinoSynthesizer::visit(const EP *ep, const EPNode *ep_node, 
   // lighter; an evicting stage swaps on every miss), unchanged when the cell kept its own.
   const klee::ref<klee::Expr> key_out_expr   = solver_toolbox.exprBuilder->Extract(pair_out, 0, key_size);
   const klee::ref<klee::Expr> count_out_expr = solver_toolbox.exprBuilder->Extract(pair_out, key_size, key_size);
-  const var_t key_out                        = alloc_var("carried_key", key_out_expr, IS_INGRESS_METADATA);
+  const var_t key_out                        = alloc_var("carried_key", key_out_expr, IS_INGRESS_METADATA | HOLDS_BYTES);
   const var_t count_out                      = alloc_var("carried_count", count_out_expr, IS_INGRESS_METADATA);
   declare_var_in_ingress_metadata(key_out);
   declare_var_in_ingress_metadata(count_out);
@@ -9720,7 +9726,7 @@ void TofinoSynthesizer::emit_hash_of_object(const EP *ep, DS_ID hash_id, klee::r
       hash_inputs.push_back(input);
       continue;
     }
-    const var_t input_var = alloc_var(hash_id + "_in", *it, IS_INGRESS_METADATA);
+    const var_t input_var = alloc_var(hash_id + "_in", *it, IS_INGRESS_METADATA | HOLDS_BYTES);
     declare_var_in_ingress_metadata(input_var);
     ingress_apply.indent();
     ingress_apply << input_var.name << " = " << input << ";\n";
@@ -11254,7 +11260,8 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
     const var_t var = out_var(*producer, *theirs);
     out_vars.insert({op_id, var});
     if (!module_out.isNull()) {
-      const var_t alias(var.name, module_out, module_out->getWidth(), false, var.is_header_field, false);
+      var_t alias(var.name, module_out, module_out->getWidth(), false, var.is_header_field, false);
+      alias.holds_bytes = var.holds_bytes;
       ingress_vars.insert_back(alias, /*allow_duplicates=*/true);
     }
     return true;
@@ -11298,7 +11305,8 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
                                                             : out_var_sized(original.id, original.width);
     out_vars.insert({op_id, var});
     if (!module_out.isNull()) {
-      const var_t alias(var.name, module_out, module_out->getWidth(), false, var.is_header_field, false);
+      var_t alias(var.name, module_out, module_out->getWidth(), false, var.is_header_field, false);
+      alias.holds_bytes = var.holds_bytes;
       ingress_vars.insert_back(alias, /*allow_duplicates=*/true);
     }
     reused_op_ids.insert(op_id);
@@ -11439,7 +11447,8 @@ void TofinoSynthesizer::emit_compute_run(const EP *ep, const EPNode *first) {
       const bool planned = slot_fields.contains(op->get_op_id());
       if (std::optional<var_t> held =
               tofino_ctx->is_shared_compute_action(op->get_action_id()) || planned ? std::nullopt : ingress_vars.get(op->get_value())) {
-        const var_t alias(held->name, op->get_out(), op->get_out()->getWidth(), false, held->is_header_field, false);
+        var_t alias(held->name, op->get_out(), op->get_out()->getWidth(), false, held->is_header_field, false);
+        alias.holds_bytes = held->holds_bytes;
         ingress_vars.insert_back(alias, /*allow_duplicates=*/true);
         continue;
       }

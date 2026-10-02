@@ -312,6 +312,7 @@ private:
   code_path_t alloc_recirc_coder();
 
   void bind_buffer(const code_t &name, klee::ref<klee::Expr> expr);
+  static klee::ref<klee::Expr> dataplane_cell_key(addr_t obj, klee::ref<klee::Expr> index);
   var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr, bool skip_alloc,
                                       bool memory_image = false);
   void transpile_map_table_decl(const Tofino::MapTable *map_table);
