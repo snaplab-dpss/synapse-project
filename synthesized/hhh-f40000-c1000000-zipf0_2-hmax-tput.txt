@@ -1,0 +1,272 @@
+===================== Synapse Report ====================
+Args:
+  Input BDD file:     hhh.bdd
+  Name:               hhh-f40000-c1000000-zipf0_2-hmax-tput
+  Targets config:     tofino2.toml
+  Heuristic:          max-tput
+  Profile file:       hhh-f40000-c1000000-zipf0_2.json
+  Seed:               0
+  Targets:
+    Tofino (56 modules)
+    Ctrl (110 modules)
+    x86 (33 modules)
+  No reorder:         0
+  Not greedy:         0
+
+Winner:
+  Score: <0,2'250'000'000,53,-16,-6'710'272,0>
+  Tput: 1.58 Tbps (2.25 Gpps)
+  Spec: 1.58 Tbps (2.25 Gpps)
+  Recirculations: 0
+  BDD Progress: 53 / 53
+  Stages: 16
+  Memory Usage: 6710272 bits
+
+Stateful Implementations:
+  1074163992: Tofino::VectorRegister
+  1074145760: Tofino::VectorRegister
+  1074127528: Tofino::VectorRegister
+  1074109296: Tofino::VectorRegister
+  1074072832: Tofino::VectorRegister
+  1074055552: Tofino::VectorRegister
+  1074207288: Tofino::VectorTable
+  1074091064: Tofino::VectorRegister
+  1074038336: Tofino::VectorRegister
+  1074190072: Tofino::VectorTable
+
+Search Metadata:
+  Elapsed time:       6 seconds
+  Steps:              53
+  Backtracks:         0
+  Search space size:  250
+  Unfinished EPs:     197
+  Finished EPs:       1
+  Avg BDD size:       53
+  Branching factor:   4
+  Design space:       10^32
+  Avg children per node:
+    Node 183: 2
+    Node 182: 2
+    Node 181: 4
+    Node 180: 4
+    Node 179: 4
+    Node 178: 4
+    Node 177: 4
+    Node 176: 3
+    Node 175: 3
+    Node 174: 4
+    Node 173: 4
+    Node 172: 4
+    Node 171: 4
+    Node 170: 4
+    Node 169: 4
+    Node 168: 4
+    Node 167: 4
+    Node 191: 2
+    Node 190: 3
+    Node 166: 3
+    Node 189: 5
+    Node 165: 3
+    Node 188: 5
+    Node 164: 3
+    Node 151: 9
+    Node 194: 2
+    Node 150: 10
+    Node 193: 3
+    Node 149: 11
+    Node 192: 3
+    Node 163: 3
+    Node 148: 12
+    Node 147: 13
+    Node 195: 3
+    Node 146: 4
+    Node 145: 3
+    Node 196: 2
+    Node 144: 2
+    Node 152: 8
+    Node 153: 7
+    Node 154: 6
+    Node 155: 5
+    Node 184: 10
+    Node 156: 4
+    Node 185: 6
+    Node 157: 6
+    Node 186: 6
+    Node 158: 4
+    Node 187: 5
+    Node 159: 6
+    Node 160: 4
+    Node 161: 3
+    Node 162: 4
+
+Global Stats:
+  Num phase 1 speculations: 23'388 (100%)
+  Num phase 2 speculations: 392 (1.67607%)
+  Num speculated modules:   193'808
+  Num EPs generated:        250
+
+Switch placement:
+
+====================== TNA Pipeline ======================
+-------------------------------------
+Stage 0
+SRAM: 720/1'310'720 B (0.0549316%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 6/128 B (4.6875%)
+Objs: [ingress_port_to_nf_dev,vector_table_1074190072_157]
+-------------------------------------
+-------------------------------------
+Stage 1
+SRAM: 17'408/1'310'720 B (1.32812%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 17'408/786'432 B (2.21354%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1074038336_0]
+-------------------------------------
+-------------------------------------
+Stage 2
+SRAM: 278'528/1'310'720 B (21.25%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 278'528/786'432 B (35.4167%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1074055552_0]
+-------------------------------------
+-------------------------------------
+Stage 3
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [hash_164]
+-------------------------------------
+-------------------------------------
+Stage 4
+SRAM: 20'480/1'310'720 B (1.5625%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 20'480/786'432 B (2.60417%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1074072832_0]
+-------------------------------------
+-------------------------------------
+Stage 5
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [hash_166]
+-------------------------------------
+-------------------------------------
+Stage 6
+SRAM: 20'480/1'310'720 B (1.5625%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 20'480/786'432 B (2.60417%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1074091064_0]
+-------------------------------------
+-------------------------------------
+Stage 7
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [hash_168]
+-------------------------------------
+-------------------------------------
+Stage 8
+SRAM: 20'480/1'310'720 B (1.5625%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 20'480/786'432 B (2.60417%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1074109296_0]
+-------------------------------------
+-------------------------------------
+Stage 9
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [hash_170]
+-------------------------------------
+-------------------------------------
+Stage 10
+SRAM: 20'480/1'310'720 B (1.5625%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 20'480/786'432 B (2.60417%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1074127528_0]
+-------------------------------------
+-------------------------------------
+Stage 11
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [hash_172]
+-------------------------------------
+-------------------------------------
+Stage 12
+SRAM: 20'480/1'310'720 B (1.5625%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 20'480/786'432 B (2.60417%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1074145760_0]
+-------------------------------------
+-------------------------------------
+Stage 13
+SRAM: 0/1'310'720 B (0%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [hash_174]
+-------------------------------------
+-------------------------------------
+Stage 14
+SRAM: 20'480/1'310'720 B (1.5625%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 20'480/786'432 B (2.60417%)
+Logical IDs: 1/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 4/128 B (3.125%)
+Objs: [vector_register_1074163992_0]
+-------------------------------------
+-------------------------------------
+Stage 15
+SRAM: 432/1'310'720 B (0.032959%)
+TCAM: 0/67'584 B (0%)
+MapRAM: 0/786'432 B (0%)
+Logical IDs: 2/16
+Hash Dist Units: 0/6
+Exact Match Crossbar: 8/128 B (6.25%)
+Objs: [vector_table_1074207288_176,vector_table_1074207288_184]
+-------------------------------------
+==========================================================
+========================================================
