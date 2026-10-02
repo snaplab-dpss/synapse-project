@@ -27,6 +27,8 @@ const std::unordered_set<std::string> functions_cannot_cross_branches{
     "packet_return_chunk",
     "vector_borrow",
     "vector_return",
+    "vector_periodic_clear",
+    "vector_inc_or_swap",
     "map_put",
     "map_erase",
     "dchain_allocate_new_index",
@@ -444,6 +446,8 @@ using can_reorder_stateful_op_fn = bool (*)(const BDD *bdd, const BDDNode *ancho
 const std::unordered_map<std::string, can_reorder_stateful_op_fn> can_reorder_handlers{
     {"vector_borrow", vector_can_reorder},
     {"vector_return", vector_can_reorder},
+    {"vector_periodic_clear", vector_can_reorder},
+    {"vector_inc_or_swap", vector_can_reorder},
     {"map_get", map_can_reorder},
     {"map_put", map_can_reorder},
     {"map_erase", map_can_reorder},

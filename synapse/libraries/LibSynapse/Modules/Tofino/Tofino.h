@@ -53,6 +53,8 @@
 #include <LibSynapse/Modules/Tofino/DnsGetResponse.h>
 #include <LibSynapse/Modules/Tofino/CuckooHashTableReadWrite.h>
 #include <LibSynapse/Modules/Tofino/HashObj.h>
+#include <LibSynapse/Modules/Tofino/Crc32HasherHash.h>
+#include <LibSynapse/Modules/Tofino/VectorIncOrSwap.h>
 #include <LibSynapse/Modules/Tofino/ComputeTableCountTrailingZeros.h>
 #include <LibSynapse/Modules/Tofino/ComputeTableFindFirstSetBit.h>
 #include <LibSynapse/Modules/Tofino/ComputeTablePowerOfTwo.h>
@@ -116,6 +118,8 @@ struct TofinoTarget : public Target {
               f.push_back(std::make_unique<DnsGetResponseFactory>());
               f.push_back(std::make_unique<CuckooHashTableReadWriteFactory>());
               f.push_back(std::make_unique<HashObjFactory>());
+              f.push_back(std::make_unique<Crc32HasherHashFactory>());
+              f.push_back(std::make_unique<VectorIncOrSwapFactory>());
               f.push_back(std::make_unique<CountTrailingZerosFactory>());
               f.push_back(std::make_unique<FindFirstSetBitFactory>());
               f.push_back(std::make_unique<PowerOfTwoFactory>());

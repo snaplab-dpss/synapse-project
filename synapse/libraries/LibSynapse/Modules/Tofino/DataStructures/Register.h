@@ -41,6 +41,10 @@ enum class RegisterActionType {
   // Claims the slot if its stamp is older than a deadline: the stamp becomes now and the
   // packet is told so. A punt gate: one packet per slot per window goes to the controller.
   ClaimIfStale,
+  // A {key, count} pair cell (libnf's vector_inc_or_swap): counts the carried pair if the keys
+  // match, swaps it in if the cell is lighter (or always, on an evicting stage), else keeps the
+  // cell. Returns the old pair and the SALU predicate telling which happened (Tofino 2).
+  IncOrSwap,
 };
 
 enum class RegisterActionOutValueSize { SameAsStoredValue, Bool, UInt8, UInt16, UInt32 };

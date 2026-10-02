@@ -57,6 +57,8 @@ SHOW_MODULE_NAME(Tofino::Else)
 
 // HLL math + compute-table modules and the conditional-increment register.
 SHOW_MODULE_NAME(Tofino::HashObj)
+SHOW_MODULE_NAME(Tofino::Crc32HasherHash)
+SHOW_MODULE_NAME(Tofino::VectorIncOrSwap)
 SHOW_MODULE_NAME(Tofino::Divide)
 SHOW_MODULE_NAME(Tofino::CountTrailingZeros)
 SHOW_MODULE_NAME(Tofino::FindFirstSetBit)

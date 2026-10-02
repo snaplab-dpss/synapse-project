@@ -95,6 +95,7 @@ bool should_ignore(const Context &ctx, const BDDNode *node) {
       "tb_expire",
       "cms_periodic_cleanup",
       "bf_periodic_cleanup",
+      "vector_periodic_clear",
   };
 
   if (functions_to_always_ignore.find(call.function_name) != functions_to_always_ignore.end()) {

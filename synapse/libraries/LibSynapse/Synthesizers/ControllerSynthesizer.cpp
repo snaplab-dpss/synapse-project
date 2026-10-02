@@ -1,4 +1,6 @@
 #include <LibSynapse/Synthesizers/ControllerSynthesizer.h>
+
+#include <iomanip>
 #include <LibSynapse/Modules/x86/x86.h>
 #include <LibSynapse/ExecutionPlan.h>
 #include <LibSynapse/Modules/Tofino/TofinoContext.h>
@@ -2092,7 +2094,124 @@ EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_no
   addr_t obj = node->get_obj();
 
   const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
-  transpile_vector_register_decl(vector_register);
+  transpile_vector_register_decl(vector_register, ep->get_ctx().get_vector_periodic_clear_interval(obj).value_or(0));
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorIncOrSwap *node) {
+  coder_t &coder = get_current_coder();
+
+  const addr_t obj                     = node->get_obj();
+  const klee::ref<klee::Expr> index    = node->get_index();
+  const klee::ref<klee::Expr> pair_in  = node->get_pair_in();
+  const klee::ref<klee::Expr> pair_out = node->get_pair_out();
+  const bytes_t key_size               = node->get_key_size() / 8;
+  const bytes_t pair_size              = pair_in->getWidth() / 8;
+
+  const Tofino::VectorRegister *vector_register = get_unique_tofino_ds_from_obj<Tofino::VectorRegister>(ep, obj);
+
+  // The pair as the NF holds it (key bytes, then the count), the cell as the register holds it.
+  const var_t pair_var  = transpile_buffer_decl_and_set(coder, vector_register->id + "_pair", pair_in, true, true);
+  const code_t cell_var = create_unique_name(vector_register->id + "_cell");
+  coder.indent();
+  coder << "buffer_t " << cell_var << "(" << pair_size << ");\n";
+  coder.indent();
+  coder << "state->" << vector_register->id << ".get(" << transpiler.transpile(index) << ", " << cell_var << ");\n";
+
+  const code_t cell_key   = cell_var + ".get(0, " + std::to_string(key_size) + ")";
+  const code_t cell_count = cell_var + ".get(" + std::to_string(key_size) + ", " + std::to_string(key_size) + ")";
+  const code_t pair_key   = pair_var.name + ".get(0, " + std::to_string(key_size) + ")";
+  const code_t pair_count = pair_var.name + ".get(" + std::to_string(key_size) + ", " + std::to_string(key_size) + ")";
+
+  coder.indent();
+  coder << "if (" << cell_key << " == " << pair_key << ") {\n";
+  coder.inc();
+  coder.indent();
+  coder << cell_var << ".set(" << key_size << ", " << key_size << ", " << cell_count << " + " << pair_count << ");\n";
+  coder.indent();
+  coder << pair_var.name << " = buffer_t(" << pair_size << ");\n";
+  coder.dec();
+  coder.indent();
+  coder << "} else if (" << (node->get_evict() ? "true" : cell_count + " < " + pair_count) << ") {\n";
+  coder.inc();
+  coder.indent();
+  coder << "std::swap(" << cell_var << ", " << pair_var.name << ");\n";
+  coder.dec();
+  coder.indent();
+  coder << "}\n";
+
+  coder.indent();
+  coder << "state->" << vector_register->id << ".put(" << transpiler.transpile(index) << ", " << cell_var << ");\n";
+
+  bind_buffer(pair_var.name, pair_out);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorIncOrSwap *node) {
+  coder_t &coder = get_current_coder();
+
+  const code_t vecname                 = "cpu_vector_" + std::to_string(node->get_vector_addr());
+  const klee::ref<klee::Expr> pair_in  = node->get_pair_in();
+  const klee::ref<klee::Expr> pair_out = node->get_pair_out();
+
+  const var_t pair_var = transpile_buffer_decl_and_set(coder, "pair", pair_in, true, true);
+
+  coder.indent();
+  coder << "libnf::vector_inc_or_swap(state->" << vecname << ", " << transpiler.transpile(node->get_index()) << ", " << pair_var.name << ".data, "
+        << transpiler.transpile(node->get_key_size()) << ", " << transpiler.transpile(node->get_value_size()) << ", "
+        << transpiler.transpile(node->get_evict()) << ");\n";
+
+  bind_buffer(pair_var.name, pair_out);
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::VectorPeriodicClear *node) {
+  coder_t &coder = get_current_coder();
+
+  const code_t vecname = "cpu_vector_" + std::to_string(node->get_vector_addr());
+
+  coder.indent();
+  coder << "libnf::vector_periodic_clear(state->" << vecname << ", " << transpiler.transpile(node->get_time()) << ", "
+        << transpiler.transpile(node->get_interval()) << ");\n";
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Crc32HasherInit *node) {
+  const code_t name                           = "crc32_hasher_" + std::to_string(node->get_hasher());
+  const LibBDD::crc32_hasher_config_t &config = node->get_config();
+
+  coder_t &state_fields = get(MARKER_STATE_FIELDS);
+  state_fields.indent();
+  state_fields << "CRC32 " << name << ";\n";
+
+  const auto hex = [](u32 value) {
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::setw(8) << std::setfill('0') << value;
+    return ss.str();
+  };
+
+  coder_t member_init_list;
+  member_init_list << name << "(libnf::crc32_config{\"\", " << hex(config.polynomial) << ", " << (config.reversed ? "true" : "false") << ", "
+                   << hex(config.init) << ", " << hex(config.xor_out) << "})";
+  state_member_init_list.push_back(member_init_list.dump());
+
+  return EPVisitor::Action::doChildren;
+}
+
+EPVisitor::Action ControllerSynthesizer::visit(const EP *ep, const EPNode *ep_node, const Controller::Crc32HasherHash *node) {
+  coder_t &coder = get_current_coder();
+
+  const code_t name                = "crc32_hasher_" + std::to_string(node->get_hasher());
+  const klee::ref<klee::Expr> hash = node->get_hash();
+  const var_t data_var             = transpile_buffer_decl_and_set(coder, "hash_data", node->get_in(), true, true);
+  const var_t hash_var             = alloc_var("hash", hash, {}, NO_OPTION);
+
+  coder.indent();
+  coder << "u32 " << hash_var.name << " = state->" << name << ".hash(" << data_var.name << ");\n";
 
   return EPVisitor::Action::doChildren;
 }
@@ -2941,6 +3060,18 @@ ControllerSynthesizer::var_t ControllerSynthesizer::alloc_var(const code_t &prop
   return var;
 }
 
+// A buffer already declared (a call's in/out argument) now holds the call's output symbol.
+void ControllerSynthesizer::bind_buffer(const code_t &name, klee::ref<klee::Expr> expr) {
+  vars.insert_back(var_t{
+      .name      = name,
+      .expr      = expr,
+      .addr      = std::nullopt,
+      .is_ptr    = false,
+      .is_buffer = true,
+      .is_header = false,
+  });
+}
+
 code_t ControllerSynthesizer::create_unique_name(const code_t &prefix) {
   if (reserved_var_names.find(prefix) == reserved_var_names.end()) {
     reserved_var_names[prefix] = 0;
@@ -3196,10 +3327,11 @@ void ControllerSynthesizer::transpile_dchain_table_decl(const Tofino::DchainTabl
   state_member_init_list.push_back(member_init_list.dump());
 }
 
-void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorRegister *vector_register) {
+void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorRegister *vector_register, time_ns_t periodic_clear_interval) {
   coder_t &state_fields = get(MARKER_STATE_FIELDS);
 
-  const code_t name = assert_unique_name(vector_register->id);
+  const code_t name                          = assert_unique_name(vector_register->id);
+  const time_ms_t periodic_clear_interval_ms = periodic_clear_interval / MILLION;
 
   state_fields.indent();
   state_fields << "VectorRegister " << name << ";\n";
@@ -3215,6 +3347,9 @@ void ControllerSynthesizer::transpile_vector_register_decl(const Tofino::VectorR
     member_init_list << "\"" << gress() << reg.id << "\",";
   }
   member_init_list << "}";
+  if (periodic_clear_interval_ms > 0) {
+    member_init_list << ", " << periodic_clear_interval_ms << "LL";
+  }
   member_init_list << ")";
 
   state_member_init_list.push_back(member_init_list.dump());
@@ -3408,13 +3543,42 @@ ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_se
   const bool numeric = !memory_image && is_numeric_buffer_value(expr);
   code_t number;
   std::vector<code_t> bytes;
+  std::vector<std::pair<bytes_t, klee::ref<klee::Expr>>> words; // A memory image's parts wider than a byte, with their offsets.
   if (numeric) {
     number = transpiler.transpile(expr);
-  } else {
+  } else if (memory_image && expr->getKind() == klee::Expr::Concat) {
+    // A struct the NF built from computed words (HashPipe's {key = addr & mask, count = 1}): a
+    // byte of such a word is an extract of the whole concat the transpiler cannot name, so each
+    // part is written whole at its offset, the lowest part first.
+    std::vector<klee::ref<klee::Expr>> parts; // Highest part first.
+    const std::function<void(klee::ref<klee::Expr>)> flatten = [&](klee::ref<klee::Expr> e) {
+      if (e->getKind() == klee::Expr::Concat) {
+        flatten(e->getKid(0));
+        flatten(e->getKid(1));
+      } else {
+        parts.push_back(e);
+      }
+    };
+    flatten(expr);
+    bytes_t offset = 0;
+    for (auto it = parts.rbegin(); it != parts.rend(); ++it) {
+      assert((*it)->getWidth() % 8 == 0 && "A part of a memory image is whole bytes");
+      words.emplace_back(offset, *it);
+      offset += (*it)->getWidth() / 8;
+    }
+    if (std::all_of(words.begin(), words.end(), [](const auto &word) { return word.second->getWidth() == 8; })) {
+      words.clear(); // Bytes side by side (a key of packet fields): written byte by byte, below.
+    }
+  }
+  if (!numeric && words.empty()) {
     for (klee::ref<klee::Expr> byte : bytes_in_expr(expr, !memory_image)) {
       bytes.push_back(transpiler.transpile(byte));
     }
     assert(size == bytes.size() && "Size mismatch");
+  }
+  std::vector<std::pair<bytes_t, code_t>> word_codes;
+  for (const auto &[offset, word] : words) {
+    word_codes.emplace_back(offset, transpiler.transpile(word));
   }
 
   const var_t var = alloc_var(proposed_name, expr, {}, IS_BUFFER | (skip_alloc ? SKIP_ALLOC : NO_OPTION));
@@ -3425,6 +3589,14 @@ ControllerSynthesizer::var_t ControllerSynthesizer::transpile_buffer_decl_and_se
   if (numeric) {
     coder.indent();
     coder << var.name << ".set(0, " << size << ", " << number << ");\n";
+    return var;
+  }
+
+  if (!words.empty()) {
+    for (size_t i = 0; i < words.size(); i++) {
+      coder.indent();
+      coder << var.name << ".set(" << word_codes[i].first << ", " << words[i].second->getWidth() / 8 << ", " << word_codes[i].second << ");\n";
+    }
     return var;
   }
 

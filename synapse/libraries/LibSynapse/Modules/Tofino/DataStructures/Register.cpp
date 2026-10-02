@@ -103,6 +103,9 @@ void Register::debug() const {
     case RegisterActionType::ClaimIfStale:
       ss << "CLAIM_IF_STALE";
       break;
+    case RegisterActionType::IncOrSwap:
+      ss << "INC_OR_SWAP";
+      break;
     }
     first = false;
   }

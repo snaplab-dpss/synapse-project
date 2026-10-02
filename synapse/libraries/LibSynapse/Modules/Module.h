@@ -73,6 +73,8 @@ enum class ModuleType {
   Tofino_DnsGetResponse,
   Tofino_CuckooHashTableReadWrite,
   Tofino_HashObj,
+  Tofino_Crc32HasherHash,
+  Tofino_VectorIncOrSwap,
   Tofino_CountTrailingZeros,
   Tofino_FindFirstSetBit,
   Tofino_PowerOfTwo,
@@ -119,6 +121,11 @@ enum class ModuleType {
   Controller_DataplaneVectorRegisterAllocate,
   Controller_DataplaneVectorRegisterLookup,
   Controller_DataplaneVectorRegisterUpdate,
+  Controller_DataplaneVectorIncOrSwap,
+  Controller_VectorIncOrSwap,
+  Controller_VectorPeriodicClear,
+  Controller_Crc32HasherInit,
+  Controller_Crc32HasherHash,
   Controller_DataplaneFCFSCachedTableAllocate,
   Controller_DataplaneFCFSCachedTableRead,
   Controller_DataplaneFCFSCachedTableWrite,
@@ -225,6 +232,9 @@ enum class ModuleType {
   x86_ExpireItemsSingleMapIteratively,
   x86_ChtFindBackend,
   x86_HashObj,
+  x86_Crc32HasherHash,
+  x86_VectorIncOrSwap,
+  x86_VectorPeriodicClear,
   x86_TokenBucketIsTracing,
   x86_TokenBucketTrace,
   x86_TokenBucketUpdateAndCheck,
@@ -382,6 +392,12 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::Tofino_HashObj:
     os << "Tofino_HashObj";
+    break;
+  case ModuleType::Tofino_Crc32HasherHash:
+    os << "Tofino_Crc32HasherHash";
+    break;
+  case ModuleType::Tofino_VectorIncOrSwap:
+    os << "Tofino_VectorIncOrSwap";
     break;
   case ModuleType::Tofino_CountTrailingZeros:
     os << "Tofino_CountTrailingZeros";
@@ -656,6 +672,21 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
   case ModuleType::Controller_DataplaneVectorRegisterUpdate:
     os << "Controller_DataplaneVectorRegisterUpdate";
     break;
+  case ModuleType::Controller_DataplaneVectorIncOrSwap:
+    os << "Controller_DataplaneVectorIncOrSwap";
+    break;
+  case ModuleType::Controller_VectorIncOrSwap:
+    os << "Controller_VectorIncOrSwap";
+    break;
+  case ModuleType::Controller_VectorPeriodicClear:
+    os << "Controller_VectorPeriodicClear";
+    break;
+  case ModuleType::Controller_Crc32HasherInit:
+    os << "Controller_Crc32HasherInit";
+    break;
+  case ModuleType::Controller_Crc32HasherHash:
+    os << "Controller_Crc32HasherHash";
+    break;
   case ModuleType::Controller_TokenBucketAllocate:
     os << "Controller_TokenBucketAllocate";
     break;
@@ -802,6 +833,15 @@ inline std::ostream &operator<<(std::ostream &os, ModuleType type) {
     break;
   case ModuleType::x86_HashObj:
     os << "x86_HashObj";
+    break;
+  case ModuleType::x86_Crc32HasherHash:
+    os << "x86_Crc32HasherHash";
+    break;
+  case ModuleType::x86_VectorIncOrSwap:
+    os << "x86_VectorIncOrSwap";
+    break;
+  case ModuleType::x86_VectorPeriodicClear:
+    os << "x86_VectorPeriodicClear";
     break;
   case ModuleType::x86_TokenBucketIsTracing:
     os << "x86_TokenBucketIsTracing";

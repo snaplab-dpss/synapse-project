@@ -237,6 +237,11 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorIncOrSwap *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorIncOrSwap *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorPeriodicClear *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::Crc32HasherInit *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::Crc32HasherHash *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocate *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *node) override final;
@@ -306,6 +311,7 @@ private:
   var_t alloc_var(const code_t &name, klee::ref<klee::Expr> expr, std::optional<addr_t> addr, var_alloc_opt_t opt);
   code_path_t alloc_recirc_coder();
 
+  void bind_buffer(const code_t &name, klee::ref<klee::Expr> expr);
   var_t transpile_buffer_decl_and_set(coder_t &coder, const code_t &proposed_name, klee::ref<klee::Expr> expr, bool skip_alloc,
                                       bool memory_image = false);
   void transpile_map_table_decl(const Tofino::MapTable *map_table);
@@ -315,7 +321,7 @@ private:
   void transpile_guarded_map_table_decl(const Tofino::GuardedMapTable *guarded_map_table);
   void transpile_vector_table_decl(const EP *ep, const Tofino::VectorTable *vector_table);
   void transpile_dchain_table_decl(const Tofino::DchainTable *dchain_table, time_ns_t expiration_time);
-  void transpile_vector_register_decl(const Tofino::VectorRegister *vector_register);
+  void transpile_vector_register_decl(const Tofino::VectorRegister *vector_register, time_ns_t periodic_clear_interval);
   void transpile_hh_table_decl(const Tofino::HHTable *hh_table, time_ns_t expiration_time);
   void transpile_fcfs_cs_decl(const Tofino::FCFSCachedSet *fcfs_cs, time_ns_t expiration_time);
   void transpile_fcfs_ct_decl(const Tofino::FCFSCachedTable *fcfs_ct, time_ns_t expiration_time);

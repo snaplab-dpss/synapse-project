@@ -94,6 +94,51 @@ void Register::set(u32 i, u32 value, u16 pipe_id) {
   ASSERT_BF_STATUS(bf_status);
 }
 
+std::pair<u32, u32> Register::get_pair_max(u32 i) {
+  assert(paired && "Not a pair register");
+
+  key_setup(i);
+  data_reset();
+
+  bfrt::BfRtTable::BfRtTableGetFlag flag = bfrt::BfRtTable::BfRtTableGetFlag::GET_FROM_HW;
+  bf_status_t bf_status                  = table->tableEntryGet(*session, dev_tgt, *key, flag, data.get());
+  ASSERT_BF_STATUS(bf_status);
+
+  std::vector<u64> lo_per_pipe;
+  bf_status = data->getValue(value_id, &lo_per_pipe);
+  ASSERT_BF_STATUS(bf_status);
+
+  std::vector<u64> hi_per_pipe;
+  bf_status = data->getValue(hi_id, &hi_per_pipe);
+  ASSERT_BF_STATUS(bf_status);
+
+  assert(!lo_per_pipe.empty() && lo_per_pipe.size() == hi_per_pipe.size());
+
+  // The live pipe holds the pair; the others hold what the controller last wrote (zeros, or an
+  // older pair), so the pair whose count is largest is the live one.
+  size_t live = 0;
+  for (size_t p = 1; p < hi_per_pipe.size(); p++) {
+    if (hi_per_pipe[p] > hi_per_pipe[live]) {
+      live = p;
+    }
+  }
+
+  return {static_cast<u32>(lo_per_pipe[live]), static_cast<u32>(hi_per_pipe[live])};
+}
+
+void Register::set_pair(u32 i, u32 lo, u32 hi) {
+  assert(paired && "Not a pair register");
+
+  key_setup(i);
+  data_setup(lo);
+
+  bf_status_t bf_status = data->setValue(hi_id, static_cast<u64>(hi));
+  ASSERT_BF_STATUS(bf_status);
+
+  bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
+  ASSERT_BF_STATUS(bf_status);
+}
+
 void Register::reset_all_entries() {
   // A single stateful-table reset instruction (pipe_stful_table_reset) instead of one entry
   // modification per index: for the tens of thousands of cells the sketches use, the latter

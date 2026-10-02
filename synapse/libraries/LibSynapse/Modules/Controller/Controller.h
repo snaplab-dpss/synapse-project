@@ -64,6 +64,11 @@
 #include <LibSynapse/Modules/Controller/DataplaneVectorRegisterAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorRegisterLookup.h>
 #include <LibSynapse/Modules/Controller/DataplaneVectorRegisterUpdate.h>
+#include <LibSynapse/Modules/Controller/DataplaneVectorIncOrSwap.h>
+#include <LibSynapse/Modules/Controller/VectorIncOrSwap.h>
+#include <LibSynapse/Modules/Controller/VectorPeriodicClear.h>
+#include <LibSynapse/Modules/Controller/Crc32HasherInit.h>
+#include <LibSynapse/Modules/Controller/Crc32HasherHash.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableAllocate.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableRead.h>
 #include <LibSynapse/Modules/Controller/DataplaneFCFSCachedTableWrite.h>
@@ -180,6 +185,11 @@ struct ControllerTarget : public Target {
               f.push_back(std::make_unique<DataplaneVectorRegisterAllocateFactory>());
               f.push_back(std::make_unique<DataplaneVectorRegisterLookupFactory>());
               f.push_back(std::make_unique<DataplaneVectorRegisterUpdateFactory>());
+              f.push_back(std::make_unique<DataplaneVectorIncOrSwapFactory>());
+              f.push_back(std::make_unique<VectorIncOrSwapFactory>());
+              f.push_back(std::make_unique<VectorPeriodicClearFactory>());
+              f.push_back(std::make_unique<Crc32HasherInitFactory>());
+              f.push_back(std::make_unique<Crc32HasherHashFactory>());
               f.push_back(std::make_unique<DataplaneFCFSCachedTableAllocateFactory>());
               f.push_back(std::make_unique<DataplaneFCFSCachedTableReadFactory>());
               f.push_back(std::make_unique<DataplaneFCFSCachedTableWriteFactory>());

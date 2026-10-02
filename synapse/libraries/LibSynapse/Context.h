@@ -23,6 +23,7 @@ using LibBDD::BDD;
 using LibBDD::bf_config_t;
 using LibBDD::cht_config_t;
 using LibBDD::cms_config_t;
+using LibBDD::crc32_hasher_config_t;
 using LibBDD::dchain_config_t;
 using LibBDD::lpm_config_t;
 using LibBDD::map_coalescing_objs_t;
@@ -141,6 +142,8 @@ private:
     std::unordered_map<addr_t, cht_config_t> cht_configs;
     std::unordered_map<addr_t, tb_config_t> tb_configs;
     std::unordered_map<addr_t, lpm_config_t> lpm_configs;
+    std::unordered_map<addr_t, crc32_hasher_config_t> crc32_hasher_configs;
+    std::unordered_map<addr_t, time_ns_t> vector_periodic_clear_intervals;
     std::vector<klee::ref<klee::Expr>> dns_names;
 
     std::vector<map_coalescing_objs_t> coalescing_candidates;
@@ -191,6 +194,9 @@ public:
   const cht_config_t &get_cht_config(addr_t addr) const;
   const tb_config_t &get_tb_config(addr_t addr) const;
   const lpm_config_t &get_lpm_config(addr_t addr) const;
+  const crc32_hasher_config_t &get_crc32_hasher_config(addr_t addr) const;
+  // The interval the NF clears the vector at, if it does (vector_periodic_clear).
+  std::optional<time_ns_t> get_vector_periodic_clear_interval(addr_t addr) const;
   bool is_dns_name(klee::ref<klee::Expr> expr) const;
 
   std::optional<map_coalescing_objs_t> get_map_coalescing_objs(addr_t obj) const;

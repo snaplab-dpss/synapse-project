@@ -1,0 +1,40 @@
+#pragma once
+
+#include <LibSynapse/Modules/Controller/ControllerModule.h>
+
+namespace LibSynapse {
+namespace Controller {
+
+// vector_periodic_clear on the controller's own (libnf) vector.
+class VectorPeriodicClear : public ControllerModule {
+private:
+  addr_t vector_addr;
+  klee::ref<klee::Expr> time;
+  klee::ref<klee::Expr> interval;
+
+public:
+  VectorPeriodicClear(const BDDNode *_node, addr_t _vector_addr, klee::ref<klee::Expr> _time, klee::ref<klee::Expr> _interval)
+      : ControllerModule(ModuleType::Controller_VectorPeriodicClear, "VectorPeriodicClear", _node), vector_addr(_vector_addr), time(_time),
+        interval(_interval) {}
+
+  virtual EPVisitor::Action visit(EPVisitor &visitor, const EP *ep, const EPNode *ep_node) const override { return visitor.visit(ep, ep_node, this); }
+
+  virtual Module *clone() const override { return new VectorPeriodicClear(node, vector_addr, time, interval); }
+
+  addr_t get_vector_addr() const { return vector_addr; }
+  klee::ref<klee::Expr> get_time() const { return time; }
+  klee::ref<klee::Expr> get_interval() const { return interval; }
+};
+
+class VectorPeriodicClearFactory : public ControllerModuleFactory {
+public:
+  VectorPeriodicClearFactory() : ControllerModuleFactory(ModuleType::Controller_VectorPeriodicClear, "VectorPeriodicClear") {}
+
+protected:
+  virtual std::optional<spec_impl_t> speculate(const EP *ep, const BDDNode *node, const speculations_t &speculations) const override;
+  virtual std::vector<impl_t> process_node(const EP *ep, const BDDNode *node, SymbolManager *symbol_manager) const override;
+  virtual std::unique_ptr<Module> create(const BDD *bdd, const Context &ctx, const BDDNode *node) const override;
+};
+
+} // namespace Controller
+} // namespace LibSynapse

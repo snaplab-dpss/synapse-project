@@ -133,6 +133,8 @@ private:
   success_condition_t vector_return(coder_t &, const Call *);
   success_condition_t vector_clear(coder_t &, const Call *);
   success_condition_t vector_sample_lt(coder_t &, const Call *);
+  success_condition_t vector_periodic_clear(coder_t &, const Call *);
+  success_condition_t vector_inc_or_swap(coder_t &, const Call *);
   success_condition_t dchain_allocate_new_index(coder_t &, const Call *);
   success_condition_t dchain_rejuvenate_index(coder_t &, const Call *);
   success_condition_t dchain_expire_one(coder_t &, const Call *);
@@ -153,6 +155,8 @@ private:
   success_condition_t lpm_from_file(coder_t &, const Call *);
   success_condition_t dns_get_response(coder_t &, const Call *);
   success_condition_t hash_obj(coder_t &, const Call *);
+  success_condition_t crc32_hasher_init(coder_t &, const Call *);
+  success_condition_t crc32_hasher_hash(coder_t &, const Call *);
   success_condition_t count_trailing_zeros(coder_t &, const Call *);
   success_condition_t find_first_set_bit(coder_t &, const Call *);
   success_condition_t min(coder_t &, const Call *);
@@ -171,6 +175,7 @@ private:
   bool stack_find_or_create_tmp_slice_var(klee::ref<klee::Expr> expr, coder_t &coder, var_t &var);
   void stack_add(const var_t &var);
   void stack_replace(const var_t &var, klee::ref<klee::Expr> new_expr);
+  void stack_remove(const var_t &var);
 
   var_t build_var_ptr(const std::string &base_name, klee::ref<klee::Expr> addr, klee::ref<klee::Expr> value, coder_t &coder, bool &found_in_stack);
   var_t build_var(const std::string &name, klee::ref<klee::Expr> expr);

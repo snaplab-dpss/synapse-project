@@ -689,6 +689,8 @@ BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, st
                             POPULATE_SYNTHESIZER(vector_return),
                             POPULATE_SYNTHESIZER(vector_clear),
                             POPULATE_SYNTHESIZER(vector_sample_lt),
+                            POPULATE_SYNTHESIZER(vector_periodic_clear),
+                            POPULATE_SYNTHESIZER(vector_inc_or_swap),
                             POPULATE_SYNTHESIZER(dchain_allocate_new_index),
                             POPULATE_SYNTHESIZER(dchain_rejuvenate_index),
                             POPULATE_SYNTHESIZER(dchain_expire_one),
@@ -709,6 +711,8 @@ BDDSynthesizer::BDDSynthesizer(const BDD *_bdd, BDDSynthesizerTarget _target, st
                             POPULATE_SYNTHESIZER(lpm_from_file),
                             POPULATE_SYNTHESIZER(dns_get_response),
                             POPULATE_SYNTHESIZER(hash_obj),
+                            POPULATE_SYNTHESIZER(crc32_hasher_init),
+                            POPULATE_SYNTHESIZER(crc32_hasher_hash),
                             POPULATE_SYNTHESIZER(count_trailing_zeros),
                             POPULATE_SYNTHESIZER(find_first_set_bit),
                             POPULATE_SYNTHESIZER(min),
@@ -1486,6 +1490,64 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::vector_sample_lt(coder_t &co
   return f;
 }
 
+BDDSynthesizer::success_condition_t BDDSynthesizer::vector_periodic_clear(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> vector_addr = call.args.at("vector").expr;
+  klee::ref<klee::Expr> time        = call.args.at("time").expr;
+  klee::ref<klee::Expr> interval    = call.args.at("interval").expr;
+
+  symbol_t cleared = call_node->get_local_symbol("cleared");
+
+  var_t c = build_var("cleared", cleared.expr);
+
+  coder.indent();
+  coder << "int " << c.name << " = ";
+  coder << "vector_periodic_clear(";
+  coder << stack_get(vector_addr).name << ", ";
+  coder << transpiler.transpile(time) << ", ";
+  coder << transpiler.transpile(interval);
+  coder << ")";
+  coder << ";\n";
+
+  stack_add(c);
+
+  return c;
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::vector_inc_or_swap(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> vector_addr = call.args.at("vector").expr;
+  klee::ref<klee::Expr> index       = call.args.at("index").expr;
+  klee::ref<klee::Expr> pair_addr   = call.args.at("pair").expr;
+  klee::ref<klee::Expr> pair_in     = call.args.at("pair").in;
+  klee::ref<klee::Expr> pair_out    = call.args.at("pair").out;
+  klee::ref<klee::Expr> key_size    = call.args.at("key_size").expr;
+  klee::ref<klee::Expr> value_size  = call.args.at("value_size").expr;
+  klee::ref<klee::Expr> evict       = call.args.at("evict").expr;
+
+  bool pair_in_stack;
+  var_t p = build_var_ptr("pair", pair_addr, pair_in, coder, pair_in_stack);
+
+  coder.indent();
+  coder << "vector_inc_or_swap(";
+  coder << stack_get(vector_addr).name << ", ";
+  coder << transpiler.transpile(index) << ", ";
+  coder << p.name << ", ";
+  coder << transpiler.transpile(key_size) << ", ";
+  coder << transpiler.transpile(value_size) << ", ";
+  coder << transpiler.transpile(evict);
+  coder << ");\n";
+
+  if (!pair_in_stack) {
+    stack_add(p);
+  }
+  stack_replace(p, pair_out);
+
+  return {};
+}
+
 BDDSynthesizer::success_condition_t BDDSynthesizer::dchain_allocate(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
@@ -2183,6 +2245,64 @@ BDDSynthesizer::success_condition_t BDDSynthesizer::hash_obj(coder_t &coder, con
   return {};
 }
 
+BDDSynthesizer::success_condition_t BDDSynthesizer::crc32_hasher_init(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> hasher_addr = call.args.at("hasher").expr;
+  klee::ref<klee::Expr> polynomial  = call.args.at("polynomial").expr;
+  klee::ref<klee::Expr> reversed    = call.args.at("reversed").expr;
+  klee::ref<klee::Expr> init        = call.args.at("init").expr;
+  klee::ref<klee::Expr> xor_out     = call.args.at("xor_out").expr;
+
+  var_t hasher_var = build_var("hasher", hasher_addr);
+
+  coder_t &coder_nf_state = code_template.get(MARKER_NF_STATE);
+  coder_nf_state.indent();
+  coder_nf_state << "struct crc32_hasher *" << hasher_var.name << ";\n";
+
+  const code_t config_name = hasher_var.name + "_config";
+
+  coder.indent();
+  coder << hasher_var.name << " = (struct crc32_hasher *)malloc(sizeof(struct crc32_hasher));\n";
+  coder.indent();
+  coder << "const struct crc32_config " << config_name << " = {\"\", " << transpiler.transpile(polynomial) << ", " << transpiler.transpile(reversed)
+        << ", " << transpiler.transpile(init) << ", " << transpiler.transpile(xor_out) << "};\n";
+  coder.indent();
+  coder << "crc32_hasher_init(" << hasher_var.name << ", &" << config_name << ");\n";
+
+  stack_add(hasher_var);
+
+  return {};
+}
+
+BDDSynthesizer::success_condition_t BDDSynthesizer::crc32_hasher_hash(coder_t &coder, const Call *call_node) {
+  const call_t &call = call_node->get_call();
+
+  klee::ref<klee::Expr> hasher_addr = call.args.at("hasher").expr;
+  klee::ref<klee::Expr> data_addr   = call.args.at("data").expr;
+  klee::ref<klee::Expr> data        = call.args.at("data").in;
+  klee::ref<klee::Expr> size        = call.args.at("size").expr;
+
+  bool data_in_stack;
+  var_t d = build_var_ptr("data", data_addr, data, coder, data_in_stack);
+
+  var_t h = build_var("hash", call.ret);
+
+  coder.indent();
+  coder << "uint32_t " << h.name << " = crc32_hasher_hash(" << stack_get(hasher_addr).name << ", " << d.name << ", " << transpiler.transpile(size)
+        << ");\n";
+
+  stack_add(h);
+
+  if (!data_in_stack) {
+    stack_add(d);
+  } else {
+    stack_replace(d, data);
+  }
+
+  return {};
+}
+
 BDDSynthesizer::success_condition_t BDDSynthesizer::count_trailing_zeros(coder_t &coder, const Call *call_node) {
   const call_t &call = call_node->get_call();
 
@@ -2497,12 +2617,30 @@ void BDDSynthesizer::stack_add(const var_t &var) {
   frame.vars.push_back(var);
 }
 
+void BDDSynthesizer::stack_remove(const var_t &var) {
+  for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+    std::vector<var_t> &vars = it->vars;
+    for (auto v = vars.begin(); v != vars.end(); ++v) {
+      if (v->name == var.name) {
+        vars.erase(v);
+        return;
+      }
+    }
+  }
+}
+
 void BDDSynthesizer::stack_replace(const var_t &var, klee::ref<klee::Expr> new_expr) {
   for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
     stack_frame_t &frame = *it;
     for (var_t &v : frame.vars) {
       if (v.name == var.name) {
         klee::ref<klee::Expr> old_expr = v.expr;
+        // Re-stating the leading part of a wider object (a field passed on its own, unchanged by
+        // the call) leaves the object as it is.
+        if (old_expr->getWidth() > new_expr->getWidth() &&
+            solver_toolbox.are_exprs_always_equal(solver_toolbox.exprBuilder->Extract(old_expr, 0, new_expr->getWidth()), new_expr)) {
+          return;
+        }
         assert(old_expr->getWidth() == new_expr->getWidth() && "Width mismatch");
         v.expr = new_expr;
         return;
@@ -2531,7 +2669,24 @@ BDDSynthesizer::var_t BDDSynthesizer::build_var_ptr(const std::string &base_name
   bytes_t size = value->getWidth() / 8;
 
   var_t var;
-  if (!(found_in_stack = stack_find(addr, var))) {
+  found_in_stack = stack_find(addr, var);
+
+  // A narrower object at this address is a leading field of this one (a struct whose first
+  // field was passed on its own, e.g. hashed, before the struct). This buffer supersedes it:
+  // the field's expression stays findable as a slice of the new one.
+  if (found_in_stack && !var.addr.isNull() && solver_toolbox.are_exprs_always_equal(var.addr, addr) && var.expr->getWidth() < value->getWidth()) {
+    stack_remove(var);
+    found_in_stack = false;
+  }
+
+  // The value is the leading part of a wider object here (a struct's first field, read after the
+  // struct): the buffer already holds it, nothing to copy.
+  if (found_in_stack && !var.addr.isNull() && solver_toolbox.are_exprs_always_equal(var.addr, addr) && var.expr->getWidth() > value->getWidth() &&
+      solver_toolbox.are_exprs_always_equal(solver_toolbox.exprBuilder->Extract(var.expr, 0, value->getWidth()), value)) {
+    return var;
+  }
+
+  if (!found_in_stack) {
     var = build_var(base_name, value, addr);
     coder.indent();
     coder << "uint8_t " << var.name << "[" << size << "];\n";

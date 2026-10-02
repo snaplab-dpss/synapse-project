@@ -28,6 +28,9 @@
 #include <LibSynapse/Modules/x86/CMSIncrement.h>
 #include <LibSynapse/Modules/x86/CMSPeriodicCleanup.h>
 #include <LibSynapse/Modules/x86/HashObj.h>
+#include <LibSynapse/Modules/x86/Crc32HasherHash.h>
+#include <LibSynapse/Modules/x86/VectorIncOrSwap.h>
+#include <LibSynapse/Modules/x86/VectorPeriodicClear.h>
 #include <LibSynapse/Modules/x86/ChtFindBackend.h>
 #include <LibSynapse/Modules/x86/TokenBucketExpire.h>
 #include <LibSynapse/Modules/x86/TokenBucketIsTracing.h>
@@ -68,6 +71,9 @@ struct x86Target : public Target {
               f.push_back(std::make_unique<CMSIncrementFactory>());
               f.push_back(std::make_unique<CMSPeriodicCleanupFactory>());
               f.push_back(std::make_unique<HashObjFactory>());
+              f.push_back(std::make_unique<Crc32HasherHashFactory>());
+              f.push_back(std::make_unique<VectorIncOrSwapFactory>());
+              f.push_back(std::make_unique<VectorPeriodicClearFactory>());
               f.push_back(std::make_unique<ChtFindBackendFactory>());
               f.push_back(std::make_unique<TokenBucketExpireFactory>());
               f.push_back(std::make_unique<TokenBucketIsTracingFactory>());

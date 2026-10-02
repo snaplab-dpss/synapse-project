@@ -114,8 +114,10 @@ std::optional<If::phv_limitation_workaround_t> get_phv_limitation_workaround(kle
       {{klee::Expr::Int32, klee::Expr::Kind::Sgt}, If::ConditionActionHelper::CheckSignBitForGreaterThan32b},
   };
 
+  bool negated = false;
   if (expr->getKind() == klee::Expr::Kind::Not) {
-    expr = expr->getKid(0);
+    expr    = expr->getKid(0);
+    negated = true;
   }
 
   if (expr->getNumKids() != 2) {
@@ -124,6 +126,45 @@ std::optional<If::phv_limitation_workaround_t> get_phv_limitation_workaround(kle
 
   const klee::Expr::Width width = expr->getKid(0)->getWidth();
   const klee::Expr::Kind kind   = expr->getKind();
+
+  if (width == klee::Expr::Int32) {
+    // Every unsigned inequality is `x < y` or `x <= y` for some operand order, and the negation
+    // of one is the other with the operands swapped.
+    klee::ref<klee::Expr> lhs = expr->getKid(0);
+    klee::ref<klee::Expr> rhs = expr->getKid(1);
+    std::optional<bool> strict;
+    switch (kind) {
+    case klee::Expr::Kind::Ult:
+      strict = true;
+      break;
+    case klee::Expr::Kind::Ule:
+      strict = false;
+      break;
+    case klee::Expr::Kind::Ugt:
+      strict = true;
+      std::swap(lhs, rhs);
+      break;
+    case klee::Expr::Kind::Uge:
+      strict = false;
+      std::swap(lhs, rhs);
+      break;
+    default:
+      break;
+    }
+    if (strict) {
+      if (negated) {
+        strict = !*strict;
+        std::swap(lhs, rhs);
+      }
+      return If::phv_limitation_workaround_t(*strict ? If::ConditionActionHelper::CheckTopBitsForUnsignedLessThan32b
+                                                     : If::ConditionActionHelper::CheckTopBitsForUnsignedLessThanOrEqual32b,
+                                             lhs, rhs);
+    }
+  }
+
+  if (negated) {
+    return {};
+  }
 
   auto found_it = kind_to_action_helper.find({width, kind});
   if (found_it == kind_to_action_helper.end()) {
@@ -153,7 +194,7 @@ std::optional<klee::ref<klee::Expr>> rewrite_constant_comparison(klee::ref<klee:
     return {};
   }
 
-  u64 c = constant->getZExtValue();
+  u64 c        = constant->getZExtValue();
   auto rebuild = [&](klee::ref<klee::Expr> l, klee::ref<klee::Expr> r) {
     return kind == klee::Expr::Kind::Ult ? solver_toolbox.exprBuilder->Ult(l, r) : solver_toolbox.exprBuilder->Ule(l, r);
   };
@@ -300,7 +341,8 @@ std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna
       if (rhs_const && !dynamic_cast<klee::ConstantExpr *>(simplified->getKid(0).get())) {
         const u64 c = rhs_const->getZExtValue();
         if (c > 0 && is_power_of_two(c)) {
-          simplified = solver_toolbox.exprBuilder->Ule(simplified->getKid(0), solver_toolbox.exprBuilder->Constant(c - 1, simplified->getKid(0)->getWidth()));
+          simplified =
+              solver_toolbox.exprBuilder->Ule(simplified->getKid(0), solver_toolbox.exprBuilder->Constant(c - 1, simplified->getKid(0)->getWidth()));
         }
       }
     }
@@ -329,8 +371,7 @@ std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna
 
     // A direct arithmetic comparison operand or a wide inequality must be sliced (see
     // above), even if the PHV-byte estimate says it fits; else take the raw-gateway path.
-    if (!has_direct_arithmetic_comparison_operand(simplified) && !is_wide_const_inequality(simplified) &&
-        tna.condition_meets_phv_limit(simplified)) {
+    if (!has_direct_arithmetic_comparison_operand(simplified) && !is_wide_const_inequality(simplified) && tna.condition_meets_phv_limit(simplified)) {
       If::condition_t cond(simplified);
       collect_materializable_operands(simplified, cond.operands_to_materialize);
       conditions.push_back(cond);
@@ -341,16 +382,17 @@ std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna
     // equivalent expression of narrow slices, then feed that back through the
     // same pipeline (split_condition + re-validation) so the If module ends up
     // with ready-to-emit sub-conditions.
+    // The slices may not fit either (a 16-bit range is still beyond a gateway); then the
+    // original comparison gets the sign-bit lowering below.
     if (std::optional<klee::ref<klee::Expr>> rewritten = rewrite_constant_comparison(simplified)) {
       std::vector<If::condition_t> sub = get_compatible_conditions(tna, *rewritten);
-      if (sub.empty()) {
-        return {};
+      if (!sub.empty()) {
+        conditions.insert(conditions.end(), sub.begin(), sub.end());
+        continue;
       }
-      conditions.insert(conditions.end(), sub.begin(), sub.end());
-      continue;
     }
 
-    // Fall back to the legacy signed sign-bit render-helper (single gateway).
+    // Fall back to the sign-bit render-helpers (single gateway).
     if (std::optional<If::phv_limitation_workaround_t> phv_limitation_workaround = get_phv_limitation_workaround(simplified)) {
       conditions.push_back({simplified, *phv_limitation_workaround});
       continue;
@@ -371,8 +413,9 @@ std::vector<If::materialized_operand_t> get_operands_to_materialize(const BDDNod
   std::vector<If::materialized_operand_t> operands;
   for (const If::condition_t &condition : conditions) {
     for (const klee::ref<klee::Expr> &operand : condition.operands_to_materialize) {
-      const bool seen = std::any_of(operands.begin(), operands.end(),
-                                    [&operand](const If::materialized_operand_t &o) { return solver_toolbox.are_exprs_always_equal(o.expr, operand); });
+      const bool seen = std::any_of(operands.begin(), operands.end(), [&operand](const If::materialized_operand_t &o) {
+        return solver_toolbox.are_exprs_always_equal(o.expr, operand);
+      });
       if (seen) {
         continue;
       }
@@ -409,12 +452,14 @@ std::optional<spec_impl_t> IfFactory::speculate(const EP *ep, const BDDNode *nod
 
   // The operands are compute steps ahead of the gateway; the gateway itself ends the run.
   std::optional<spec_impl_t> spec = speculate_compute_step(
-      ep, node, [&](ComputeStepBuilder &builder) -> std::optional<DS_ID> {
+      ep, node,
+      [&](ComputeStepBuilder &builder) -> std::optional<DS_ID> {
         if (!place_operand_ops(builder, ep, node, operands, &speculations)) {
           return {};
         }
         return operands.back().action_id;
-      }, speculations);
+      },
+      speculations);
   if (spec) {
     spec->compute_step = false;
     spec->compute_actions.clear();
@@ -448,13 +493,12 @@ std::vector<impl_t> IfFactory::process_node(const EP *ep, const BDDNode *node, S
   if (operands.empty()) {
     new_ep = std::make_unique<EP>(*ep);
   } else {
-    std::optional<compute_step_t> step =
-        implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) -> std::optional<DS_ID> {
-          if (!place_operand_ops(builder, ep, node, operands, nullptr)) {
-            return {};
-          }
-          return operands.back().action_id;
-        });
+    std::optional<compute_step_t> step = implement_compute_step(ep, node, [&](ComputeStepBuilder &builder) -> std::optional<DS_ID> {
+      if (!place_operand_ops(builder, ep, node, operands, nullptr)) {
+        return {};
+      }
+      return operands.back().action_id;
+    });
     if (!step) {
       return {};
     }
@@ -497,7 +541,7 @@ std::unique_ptr<Module> IfFactory::create(const BDD *bdd, const Context &ctx, co
   klee::ref<klee::Expr> condition = branch_node->get_condition();
   const Tofino::TNA &tna          = ctx.get_target_ctx<TofinoContext>()->get_tna();
 
-  const std::vector<If::condition_t> conditions   = get_compatible_conditions(tna, condition);
+  const std::vector<If::condition_t> conditions    = get_compatible_conditions(tna, condition);
   std::vector<If::materialized_operand_t> operands = get_operands_to_materialize(node, conditions);
   for (If::materialized_operand_t &operand : operands) {
     operand.action_id = ctx.get_target_ctx<TofinoContext>()->find_compute_action(operand.op_id);

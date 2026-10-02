@@ -57,6 +57,8 @@ class LPMLookup;
 class DnsGetResponse;
 class CuckooHashTableReadWrite;
 class HashObj;
+class Crc32HasherHash;
+class VectorIncOrSwap;
 class CountTrailingZeros;
 class FindFirstSetBit;
 class PowerOfTwo;
@@ -107,6 +109,11 @@ class DataplaneDchainTableRefreshIndex;
 class DataplaneVectorRegisterAllocate;
 class DataplaneVectorRegisterLookup;
 class DataplaneVectorRegisterUpdate;
+class DataplaneVectorIncOrSwap;
+class VectorIncOrSwap;
+class VectorPeriodicClear;
+class Crc32HasherInit;
+class Crc32HasherHash;
 class DataplaneFCFSCachedTableAllocate;
 class DataplaneFCFSCachedTableRead;
 class DataplaneFCFSCachedTableWrite;
@@ -206,6 +213,9 @@ class CMSCountMin;
 class CMSPeriodicCleanup;
 class ChtFindBackend;
 class HashObj;
+class Crc32HasherHash;
+class VectorIncOrSwap;
+class VectorPeriodicClear;
 class TokenBucketIsTracing;
 class TokenBucketTrace;
 class TokenBucketUpdateAndCheck;
@@ -280,6 +290,8 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::DnsGetResponse *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HashObj *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Crc32HasherHash *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorIncOrSwap *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CountTrailingZeros *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FindFirstSetBit *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Tofino::PowerOfTwo *m) { return Action::doChildren; }
@@ -353,6 +365,11 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterLookup *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterUpdate *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorIncOrSwap *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorIncOrSwap *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorPeriodicClear *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Crc32HasherInit *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::Crc32HasherHash *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocate *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *m) { return Action::doChildren; }
@@ -438,6 +455,9 @@ public:
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::DchainFreeIndex *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::ChtFindBackend *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::HashObj *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::Crc32HasherHash *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorIncOrSwap *m) { return Action::doChildren; }
+  virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorPeriodicClear *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketIsTracing *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketTrace *m) { return Action::doChildren; }
   virtual Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketUpdateAndCheck *m) { return Action::doChildren; }

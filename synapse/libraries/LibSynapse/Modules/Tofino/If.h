@@ -13,6 +13,10 @@ public:
     CheckSignBitForLessThanOrEqual32b,
     CheckSignBitForGreaterThan32b,
     CheckSignBitForGreaterThanOrEqual32b,
+    // Unsigned 32-bit `a < b` / `a <= b`: the difference's sign bit decides only when both
+    // operands lie in the same half of the range, so the gateway also reads their top bits.
+    CheckTopBitsForUnsignedLessThan32b,
+    CheckTopBitsForUnsignedLessThanOrEqual32b,
   };
 
   struct phv_limitation_workaround_t {

@@ -63,6 +63,8 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalUpdateSingleAction *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorRegisterReadConditionalIncrement *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HashObj *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Crc32HasherHash *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorIncOrSwap *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Divide *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CountTrailingZeros *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FindFirstSetBit *node) override final;
@@ -148,6 +150,11 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::RotateLeft *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterLookup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorRegisterUpdate *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneVectorIncOrSwap *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorIncOrSwap *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::VectorPeriodicClear *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::Crc32HasherInit *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Controller::Crc32HasherHash *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableRead *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Controller::DataplaneFCFSCachedTableAllocateAndWrite *node) override final;
@@ -232,6 +239,9 @@ public:
   Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSCountMin *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::CMSPeriodicCleanup *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::HashObj *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::Crc32HasherHash *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorIncOrSwap *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const x86::VectorPeriodicClear *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::ChtFindBackend *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketIsTracing *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const x86::TokenBucketTrace *node) override final;

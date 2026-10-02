@@ -212,6 +212,67 @@ cms_config_t get_cms_config_from_bdd(const BDD &bdd, addr_t cms_addr) {
   panic("Should have found cms configuration");
 }
 
+crc32_hasher_config_t get_crc32_hasher_config_from_bdd(const BDD &bdd, addr_t hasher_addr) {
+  const std::vector<Call *> &init = bdd.get_init();
+
+  for (const Call *call_node : init) {
+    const call_t &call = call_node->get_call();
+
+    if (call.function_name != "crc32_hasher_init")
+      continue;
+
+    klee::ref<klee::Expr> hasher     = call.args.at("hasher").expr;
+    klee::ref<klee::Expr> polynomial = call.args.at("polynomial").expr;
+    klee::ref<klee::Expr> reversed   = call.args.at("reversed").expr;
+    klee::ref<klee::Expr> init_value = call.args.at("init").expr;
+    klee::ref<klee::Expr> xor_out    = call.args.at("xor_out").expr;
+
+    assert(!hasher.isNull() && "Invalid hasher");
+    assert(!polynomial.isNull() && "Invalid polynomial");
+    assert(!reversed.isNull() && "Invalid reversed");
+    assert(!init_value.isNull() && "Invalid init");
+    assert(!xor_out.isNull() && "Invalid xor_out");
+
+    if (expr_addr_to_obj_addr(hasher) != hasher_addr)
+      continue;
+
+    return crc32_hasher_config_t{
+        .polynomial = static_cast<u32>(solver_toolbox.value_from_expr(polynomial)),
+        .reversed   = solver_toolbox.value_from_expr(reversed) != 0,
+        .init       = static_cast<u32>(solver_toolbox.value_from_expr(init_value)),
+        .xor_out    = static_cast<u32>(solver_toolbox.value_from_expr(xor_out)),
+    };
+  }
+
+  panic("Should have found crc32 hasher configuration");
+}
+
+std::optional<time_ns_t> get_vector_periodic_clear_interval_from_bdd(const BDD &bdd, addr_t vector_addr) {
+  std::optional<time_ns_t> interval;
+
+  bdd.get_root()->visit_nodes([&](const BDDNode *node) {
+    if (node->get_type() != BDDNodeType::Call) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const call_t &call = dynamic_cast<const Call *>(node)->get_call();
+    if (call.function_name != "vector_periodic_clear") {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    if (expr_addr_to_obj_addr(call.args.at("vector").expr) != vector_addr) {
+      return BDDNodeVisitAction::Continue;
+    }
+
+    const time_ns_t found = solver_toolbox.value_from_expr(call.args.at("interval").expr);
+    assert((!interval.has_value() || *interval == found) && "A vector cleared at two intervals");
+    interval = found;
+    return BDDNodeVisitAction::Continue;
+  });
+
+  return interval;
+}
+
 bf_config_t get_bf_config_from_bdd(const BDD &bdd, addr_t bf_addr) {
   const std::vector<Call *> &init = bdd.get_init();
 

@@ -148,6 +148,17 @@ void Context::bdd_pre_processing_get_ds_configs(const BDD *bdd) {
       const addr_t addr         = expr_addr_to_obj_addr(obj);
       const vector_config_t cfg = get_vector_config_from_bdd(*bdd, addr);
       S().vector_configs[addr]  = cfg;
+      if (const std::optional<time_ns_t> interval = get_vector_periodic_clear_interval_from_bdd(*bdd, addr)) {
+        S().vector_periodic_clear_intervals[addr] = *interval;
+      }
+      continue;
+    }
+
+    if (call.function_name == "crc32_hasher_init") {
+      klee::ref<klee::Expr> obj       = call.args.at("hasher").expr;
+      const addr_t addr               = expr_addr_to_obj_addr(obj);
+      const crc32_hasher_config_t cfg = get_crc32_hasher_config_from_bdd(*bdd, addr);
+      S().crc32_hasher_configs[addr]  = cfg;
       continue;
     }
 
@@ -522,6 +533,19 @@ const dchain_config_t &Context::get_dchain_config(addr_t addr) const {
 const cms_config_t &Context::get_cms_config(addr_t addr) const {
   assert(S().cms_configs.find(addr) != S().cms_configs.end() && "CMS not found");
   return S().cms_configs.at(addr);
+}
+
+const crc32_hasher_config_t &Context::get_crc32_hasher_config(addr_t addr) const {
+  assert(S().crc32_hasher_configs.find(addr) != S().crc32_hasher_configs.end() && "CRC32 hasher not found");
+  return S().crc32_hasher_configs.at(addr);
+}
+
+std::optional<time_ns_t> Context::get_vector_periodic_clear_interval(addr_t addr) const {
+  auto found_it = S().vector_periodic_clear_intervals.find(addr);
+  if (found_it == S().vector_periodic_clear_intervals.end()) {
+    return {};
+  }
+  return found_it->second;
 }
 
 const bf_config_t &Context::get_bf_config(addr_t addr) const {

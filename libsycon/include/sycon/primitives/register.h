@@ -7,7 +7,7 @@ namespace sycon {
 // A P4 Register<T, _>. T is either a plain bit<N> (bfrt data field "<name>.f1") or a struct of
 // two fields (bfrt data fields "<name>.lo" and "<name>.hi", e.g. the pair used by
 // read-conditional-write-return-other actions). For a pair, get/set operate on `lo` (the value
-// half) and `hi` is only reported by dump().
+// half); get_pair_max/set_pair handle both halves.
 class Register : public MetaTable {
 private:
   bf_rt_id_t index_id;
@@ -28,6 +28,11 @@ public:
 
   void set(u32 i, u32 value);
   void set(u32 i, u32 value, u16 pipe_id);
+
+  bool is_paired() const { return paired; }
+  // Both halves of a pair cell, each the maximum over the pipes (see VectorRegister::get).
+  std::pair<u32, u32> get_pair_max(u32 i);
+  void set_pair(u32 i, u32 lo, u32 hi);
   // Resets every entry to the register's P4 initial value (0 for every register synapse emits).
   void reset_all_entries();
 

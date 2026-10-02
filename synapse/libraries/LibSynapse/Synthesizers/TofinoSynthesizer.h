@@ -431,6 +431,8 @@ private:
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::BloomFilterSet *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CuckooHashTableReadWrite *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::HashObj *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::Crc32HasherHash *node) override final;
+  Action visit(const EP *ep, const EPNode *ep_node, const Tofino::VectorIncOrSwap *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::CountTrailingZeros *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::FindFirstSetBit *node) override final;
   Action visit(const EP *ep, const EPNode *ep_node, const Tofino::PowerOfTwo *node) override final;
@@ -587,8 +589,10 @@ private:
     std::map<klee::ref<klee::Expr>, code_t> temporary_transpilations;
   };
 
+  // `index_bits` narrows the action's index type to the register's addressing width (the
+  // caller then executes it with a field of that width).
   void transpile_register_action_decl(const Register *reg, const code_t &action_name, RegisterActionType type,
-                                      std::optional<register_action_extras_t> extras = std::nullopt);
+                                      std::optional<register_action_extras_t> extras = std::nullopt, std::optional<bits_t> index_bits = std::nullopt);
   // Emit a register `.execute()`. When the index is a computed (non-constant) value the
   // register is placed by bf-p4c as a keyless `hash_action` table (hash distribution for
   // addressing), which is legal only if its action carries NO action data -- and bf-p4c
@@ -598,10 +602,12 @@ private:
   // regexec_* actions). For a constant index we emit it inline, unchanged. `lhs` is the
   // (metadata) destination of the returned value, or empty for a value-less execute.
   void emit_register_execute(const code_t &lhs, const code_t &action_name, const klee::ref<klee::Expr> &index, const code_t &index_code,
-                             const EPNode *ep_node);
+                             const EPNode *ep_node, const std::vector<code_t> &extra_outs = {});
   static code_t crc_polynomial_args(const crc32_config_t &poly);
   void transpile_hash_decl(const Hash *hash);
-  void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash);
+  // `output_hash` is declared at control scope unless given (then a field the caller declared).
+  void transpile_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, code_t &hash_calculator, code_t &output_hash,
+                                  bool output_declared = false);
   void transpile_digest_decl(const Digest *digest);
   void transpile_fcfs_ct_decl(const FCFSCachedTable *fcfs_ct, const EPNode *ep_node);
   void transpile_fcfs_ct_hash_calculation(const Hash *hash, const std::vector<code_t> &inputs, const var_t &fcfs_ct_value, code_t &hash_calculator,
@@ -622,6 +628,14 @@ private:
   std::unordered_map<code_t, std::vector<code_t>> bf_action_inputs; // A row action -> the key inputs it hashes.
   void transpile_cuckoo_hash_table_decl(const CuckooHashTable *cuckoo_hash_table);
   void transpile_if_condition(const If::condition_t &condition);
+  // The hash unit `hash_id` over the object's bytes, bound to the hash symbol.
+  void emit_hash_of_object(const EP *ep, DS_ID hash_id, klee::ref<klee::Expr> in, klee::ref<klee::Expr> hash);
+  void transpile_inc_or_swap_action_decl(const Register *reg, const code_t &action_name, const code_t &key_in, const code_t &count_in, bool evict);
+  // Packet bytes the NF read little-endian, as they are or under bytewise operators and constants.
+  bool is_masked_packet_read(klee::ref<klee::Expr> expr) const;
+  code_t transpile_bytes(klee::ref<klee::Expr> expr);
+  code_t transpile_number(klee::ref<klee::Expr> expr);
+  code_t transpile_unsigned_less_than_32b(klee::ref<klee::Expr> a, klee::ref<klee::Expr> b);
   void transpile_digest(const Digest &digest, const std::vector<code_t> &fields);
 
   void declare_var_in_ingress_metadata(const var_t &var);

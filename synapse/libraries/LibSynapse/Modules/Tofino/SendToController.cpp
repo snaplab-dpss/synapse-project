@@ -591,6 +591,8 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Tofino_BloomFilterQueryAndSet:
     case ModuleType::Tofino_CuckooHashTableReadWrite:
     case ModuleType::Tofino_HashObj:
+    case ModuleType::Tofino_Crc32HasherHash:
+    case ModuleType::Tofino_VectorIncOrSwap:
     case ModuleType::Tofino_CountTrailingZeros:
     case ModuleType::Tofino_FindFirstSetBit:
     case ModuleType::Tofino_PowerOfTwo:
@@ -635,6 +637,11 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::Controller_DataplaneVectorRegisterAllocate:
     case ModuleType::Controller_DataplaneVectorRegisterLookup:
     case ModuleType::Controller_DataplaneVectorRegisterUpdate:
+    case ModuleType::Controller_DataplaneVectorIncOrSwap:
+    case ModuleType::Controller_VectorIncOrSwap:
+    case ModuleType::Controller_VectorPeriodicClear:
+    case ModuleType::Controller_Crc32HasherInit:
+    case ModuleType::Controller_Crc32HasherHash:
     case ModuleType::Controller_DataplaneFCFSCachedTableAllocate:
     case ModuleType::Controller_DataplaneFCFSCachedTableRead:
     case ModuleType::Controller_DataplaneFCFSCachedTableWrite:
@@ -731,6 +738,9 @@ initial_controller_logic_t build_initial_controller_logic(const BDD *bdd, const 
     case ModuleType::x86_ExpireItemsSingleMapIteratively:
     case ModuleType::x86_ChtFindBackend:
     case ModuleType::x86_HashObj:
+    case ModuleType::x86_Crc32HasherHash:
+    case ModuleType::x86_VectorIncOrSwap:
+    case ModuleType::x86_VectorPeriodicClear:
     case ModuleType::x86_TokenBucketIsTracing:
     case ModuleType::x86_TokenBucketTrace:
     case ModuleType::x86_TokenBucketUpdateAndCheck:

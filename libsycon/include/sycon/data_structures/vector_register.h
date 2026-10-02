@@ -1,10 +1,15 @@
 #pragma once
 
 #include <array>
+#include <functional>
+#include <map>
+#include <mutex>
 #include <optional>
+#include <thread>
 #include <vector>
 
 #include "synapse_ds.h"
+#include "../config.h"
 #include "../constants.h"
 #include "../primitives/register.h"
 #include "../time.h"
@@ -12,24 +17,78 @@
 
 namespace sycon {
 
+// The NF clears every vector of an interval in the same packet (vector_periodic_clear is called on
+// each with the one `now`), so their intervals stay in lockstep: one thread per interval clears
+// all its registers in one transaction, which a thread per register, each with its own phase,
+// would not.
+class PeriodicClear {
+private:
+  std::mutex mutex;
+  std::map<time_ms_t, std::vector<std::function<void()>>> clears_by_interval;
+
+  PeriodicClear() = default;
+
+  void tick(time_ms_t interval) {
+    const std::lock_guard<std::mutex> lock(mutex);
+    cfg.begin_transaction();
+    for (const std::function<void()> &clear : clears_by_interval[interval]) {
+      clear();
+    }
+    cfg.commit_transaction();
+  }
+
+public:
+  static PeriodicClear &instance() {
+    static PeriodicClear periodic_clear;
+    return periodic_clear;
+  }
+
+  void add(time_ms_t interval, std::function<void()> clear) {
+    const std::lock_guard<std::mutex> lock(mutex);
+    std::vector<std::function<void()>> &clears = clears_by_interval[interval];
+    clears.push_back(std::move(clear));
+    if (clears.size() > 1) {
+      return;
+    }
+    std::thread([this, interval]() {
+      while (true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(interval));
+        tick(interval);
+      }
+    }).detach();
+  }
+};
+
 class VectorRegister : public SynapseDS {
 private:
   std::vector<Register> registers;
   size_t capacity;
   bits_t value_size;
+  const time_ms_t periodic_clear_interval;
 
 public:
-  VectorRegister(const std::string &_name, const std::vector<std::string> &register_names) : SynapseDS(_name), capacity(0), value_size(0) {
+  VectorRegister(const std::string &_name, const std::vector<std::string> &register_names, time_ms_t _periodic_clear_interval = 0)
+      : SynapseDS(_name), capacity(0), value_size(0), periodic_clear_interval(_periodic_clear_interval) {
     assert(!register_names.empty() && "Register names must not be empty");
 
     for (const std::string &name : register_names) {
       registers.emplace_back(name);
       capacity = registers.back().get_capacity();
-      value_size += registers.back().get_value_size();
+      value_size += registers.back().get_value_size() * (registers.back().is_paired() ? 2 : 1);
     }
 
     for (const Register &reg : registers) {
       assert(reg.get_capacity() == capacity);
+    }
+
+    if (periodic_clear_interval > 0) {
+      PeriodicClear::instance().add(periodic_clear_interval, [this]() { clear(); });
+    }
+  }
+
+  void clear() {
+    for (Register &reg : registers) {
+      reg.reset_all_entries();
     }
   }
 
@@ -43,6 +102,13 @@ public:
     bytes_t offset = 0;
     for (Register &reg : registers) {
       const bytes_t reg_value_size = reg.get_value_size() / 8;
+      if (reg.is_paired()) {
+        const auto [lo, hi] = reg.get_pair_max(index);
+        v.set(offset, reg_value_size, lo);
+        v.set(offset + reg_value_size, reg_value_size, hi);
+        offset += 2 * reg_value_size;
+        continue;
+      }
       v.set(offset, reg_value_size, reg.get_max(index));
       offset += reg_value_size;
     }
@@ -55,7 +121,12 @@ public:
     bytes_t offset = 0;
     for (Register &reg : registers) {
       const bytes_t reg_value_size = reg.get_value_size() / 8;
-      const u32 value              = v.get(offset, reg_value_size);
+      if (reg.is_paired()) {
+        reg.set_pair(index, v.get(offset, reg_value_size), v.get(offset + reg_value_size, reg_value_size));
+        offset += 2 * reg_value_size;
+        continue;
+      }
+      const u32 value = v.get(offset, reg_value_size);
       reg.set(index, value);
 
       offset += reg_value_size;

@@ -71,6 +71,8 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"vector_borrow", {"vector_data"}},
     {"vector_return", {}},
     {"vector_sample_lt", {"found_sample", "sample_index"}},
+    {"vector_periodic_clear", {"cleared"}},
+    {"vector_inc_or_swap", {"pair_out"}},
 
     {"dchain_allocate", {"is_dchain_allocated"}},
     {"dchain_is_index_allocated", {"is_index_allocated"}},
@@ -109,6 +111,9 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"cht_find_preferred_available_backend", {"chosen_backend", "prefered_backend_found"}},
 
     {"hash_obj", {"hash"}},
+
+    {"crc32_hasher_init", {}},
+    {"crc32_hasher_hash", {"hash"}},
 
     {"dns_get_response", {"dns_name", "dns_address", "dns_response_found"}},
 

@@ -1277,6 +1277,8 @@ bool TofinoModuleFactory::data_structure_call_ahead(const BDDNode *from) {
   static const std::unordered_set<std::string> ds_backed_calls{
       "vector_borrow",
       "vector_return",
+      "vector_inc_or_swap",
+      "vector_periodic_clear",
       "map_get",
       "map_put",
       "map_erase",

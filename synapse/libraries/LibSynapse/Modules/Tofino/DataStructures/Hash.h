@@ -32,7 +32,7 @@ struct crc32_config_t {
 // coprime, so every entry is a primitive polynomial. Entry 0 is the IEEE 802.3 CRC-32 (TNA's
 // built-in HashAlgorithm_t.CRC32), which the single-hash structures keep using.
 //
-// This table MUST equal libnf's CRC32_BANK (dpdk-nfs/lib/util/crc32.h), which the controllers and
+// This table MUST equal libnf's CRC32_BANK (dpdk-nfs/lib/util/math.h), which the controllers and
 // the C NFs index with: random_experiments/crc32_polynomials.py checks both and their primitivity.
 constexpr size_t CRC32_BANK_SIZE = 16;
 
