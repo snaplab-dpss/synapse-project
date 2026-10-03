@@ -73,6 +73,16 @@ NFS = [
         "barplot_output_file": PLOTS_DIR / "tput_synapse_pol_barplot.pdf",
     },
     {
+        "title": "HHH",
+        "data_file": DATA_DIR / "tput_synapse_hhh.csv",
+        "bps_output_file": PLOTS_DIR / "tput_synapse_hhh_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_synapse_hhh_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_synapse_hhh_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_synapse_hhh_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_synapse_hhh_heatmap.pdf",
+        "barplot_output_file": PLOTS_DIR / "tput_synapse_hhh_barplot.pdf",
+    },
+    {
         "title": "HLL",
         "data_file": DATA_DIR / "tput_synapse_hyperloglog.csv",
         "bps_output_file": PLOTS_DIR / "tput_synapse_hyperloglog_bps.pdf",
@@ -161,6 +171,16 @@ NFS = [
         "pps_scatter_output_file": PLOTS_DIR / "tput_gallium_pol_pps_scatter.pdf",
         "heatmap_output_file": PLOTS_DIR / "tput_gallium_pol_heatmap.pdf",
         "barplot_output_file": PLOTS_DIR / "tput_gallium_pol_barplot.pdf",
+    },
+    {
+        "title": "Gallium HHH",
+        "data_file": DATA_DIR / "tput_gallium_hhh.csv",
+        "bps_output_file": PLOTS_DIR / "tput_gallium_hhh_bps.pdf",
+        "pps_output_file": PLOTS_DIR / "tput_gallium_hhh_pps.pdf",
+        "bps_scatter_output_file": PLOTS_DIR / "tput_gallium_hhh_bps_scatter.pdf",
+        "pps_scatter_output_file": PLOTS_DIR / "tput_gallium_hhh_pps_scatter.pdf",
+        "heatmap_output_file": PLOTS_DIR / "tput_gallium_hhh_heatmap.pdf",
+        "barplot_output_file": PLOTS_DIR / "tput_gallium_hhh_barplot.pdf",
     },
     {
         "title": "Gallium HLL",
