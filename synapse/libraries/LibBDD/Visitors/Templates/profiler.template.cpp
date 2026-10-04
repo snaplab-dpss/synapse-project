@@ -563,7 +563,7 @@ struct LnStats {
 
 PcapReader warmup_reader;
 PcapReader reader;
-std::unordered_map<int, MapStats> stats_per_map;
+std::unordered_map<uint64_t, MapStats> stats_per_map;
 std::unordered_map<int, PortStats> forwarding_stats_per_route_op;
 std::unordered_map<uint64_t, uint64_t> node_pkt_counter;
 std::unordered_map<int, LnStats> ln_stats_per_node;

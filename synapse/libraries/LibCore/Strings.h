@@ -1,6 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace LibCore {
@@ -50,11 +52,14 @@ inline bool natural_compare(const std::string &a, const std::string &b) {
       while (j < b.size() && std::isdigit(b[j]))
         ++j;
 
-      const int num_a = std::stoi(a.substr(start_i, i - start_i));
-      const int num_b = std::stoi(b.substr(start_j, j - start_j));
+      // Compared as digit strings (shorter is smaller, then lexicographic), which is numeric
+      // order for any length: object addresses in names overflow an int.
+      std::string_view num_a(a.data() + start_i, i - start_i), num_b(b.data() + start_j, j - start_j);
+      num_a.remove_prefix(std::min(num_a.find_first_not_of('0'), num_a.size()));
+      num_b.remove_prefix(std::min(num_b.find_first_not_of('0'), num_b.size()));
 
       if (num_a != num_b)
-        return num_a < num_b;
+        return num_a.size() != num_b.size() ? num_a.size() < num_b.size() : num_a < num_b;
     } else {
       if (a[i] != b[j])
         return a[i] < b[j];
