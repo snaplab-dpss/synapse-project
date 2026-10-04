@@ -52,6 +52,7 @@ QTYPE_CNAME = 5
 QCLASS_IN = 1
 
 WATCH_LIST = testbed.PROJECT_DIR / "tofino" / "meta4" / "known_domains_v1.txt"
+BDD_FILE = testbed.PROJECT_DIR / "bdds" / "meta4.bdd"
 QUERIED = "queried"
 PACKETS = "packets"
 BYTES = "bytes"
@@ -63,16 +64,19 @@ def counter_registers(p4: Path) -> dict[str, str]:
     The expert names them. A synthesized program names a register by the address of the NF vector
     it implements, and the NF allocates its per-domain vectors in order (dpdk-nfs/meta4/state.c):
     dns_queried, dns_missed, pkt_counts, byte_counts, each of one entry per known domain; whichever
-    of them were kept on the data plane appear in that order, and dns_missed is not read here."""
+    of them were kept on the data plane appear in that order, and dns_missed is not read here. The
+    BDD records that order (the addresses alone do not: KLEE's allocator hands them out in no
+    particular order)."""
     text = p4.read_text()
     if "dns_total_queried" in text:
         return {QUERIED: "SwitchIngress.dns_total_queried", PACKETS: "SwitchEgress.packet_counts_table", BYTES: "SwitchEgress.byte_counts_table"}
+    allocated = [int(a) for a in re.findall(r"vector_allocate\(vector_out:\(w64 \d+\)&\[\(w64 0\)->\(w64 (\d+)\)\]", BDD_FILE.read_text())]
     # They are the registers sized by the NF's known-domains capacity: the group of at least three
     # of one size (the session vector is one register of another).
     by_size: dict[int, list[int]] = {}
     for size, addr in re.findall(r"Register<bit<32>,_>\((\d+), 0\) vector_register_(\d+)_0;", text):
         by_size.setdefault(int(size), []).append(int(addr))
-    groups = [sorted(addrs) for addrs in by_size.values() if len(addrs) >= 3]
+    groups = [sorted(addrs, key=allocated.index) for addrs in by_size.values() if len(addrs) >= 3]
     if len(groups) != 1:
         raise TestFailure(f"{p4.name}: expected one group of at least three same-sized registers for the per-domain counters, found {by_size}")
     per_domain = groups[0]
