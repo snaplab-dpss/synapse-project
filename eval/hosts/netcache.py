@@ -130,9 +130,16 @@ class NetCacheController:
         if self.controller_cmd.exit_status_ready():
             self.host.crash("Controller exited unexpectedly")
 
+        # From here until kill_controller nothing else reads the controller's output, so keep
+        # draining it in the background: otherwise the controller fills the SSH channel, blocks in
+        # write(), and stops serving reports in the middle of the experiment.
+        self.controller_cmd.spawn_output_reader_thread()
+
         self.ready = True
 
     def kill_controller(self) -> None:
+        if self.controller_cmd:
+            self.controller_cmd.stop_output_reader_thread()
         self.host.run_command("sudo killall netcache-controller")
         self.switchd_cmd = None
         self.ready = False
