@@ -17,7 +17,6 @@ public:
   ProcessQuery();
   ~ProcessQuery();
 
-  std::vector<std::vector<uint32_t>> sample_values();
   void update_cache(struct netcache_hdr_t *nc_hdr);
 };
 

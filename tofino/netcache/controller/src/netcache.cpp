@@ -83,56 +83,130 @@ bool Controller::process_pkt(pkt_hdr_t *pkt_hdr, uint32_t packet_size) {
     return false;
   }
 
-  DEBUG("It's an HH report packet (available keys: %lu)", available_keys.size());
+  process_report(nc_hdr);
+
+  return false;
+}
+
+void Controller::enable_key_expiry() { keys.set_idle_timeout(KEY_IDLE_TIMEOUT_MS, expiry_callback, this); }
+
+void Controller::expiry_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie) {
+  Controller *controller = reinterpret_cast<Controller *>(cookie);
+
+  std::array<uint8_t, KV_KEY_SIZE> expired_key;
+  controller->keys.get_key(key, expired_key.data());
+
+  controller->begin_transaction();
+
+  // The key may have been evicted by a probe between the expiry and this callback.
+  if (controller->cached_keys.find(expired_key) != controller->cached_keys.end()) {
+    for (const auto &[index, cached_key] : controller->key_storage) {
+      if (cached_key != expired_key) {
+        continue;
+      }
+
+      controller->keys.del_entry(expired_key.data());
+      controller->cached_keys.erase(expired_key);
+      controller->key_storage[index] = {0};
+      controller->available_keys.insert(index);
+      controller->reg_v.allocate(index, 0);
+      break;
+    }
+  }
+
+  controller->end_transaction();
+}
+
+void Controller::register_digest_callback() {
+  bf_status_t bf_status = hh_digest->bfRtLearnCallbackRegister(session, dev_tgt, digest_callback, this);
+  ASSERT_BF_STATUS(bf_status);
+}
+
+bf_status_t Controller::digest_callback(const bf_rt_target_t &bf_rt_tgt, const std::shared_ptr<bfrt::BfRtSession> session,
+                                        std::vector<std::unique_ptr<bfrt::BfRtLearnData>> learn_data, bf_rt_learn_msg_hdl *const learn_msg_hdl,
+                                        const void *cookie) {
+  Controller *controller = const_cast<Controller *>(reinterpret_cast<const Controller *>(cookie));
+
+  for (const std::unique_ptr<bfrt::BfRtLearnData> &entry : learn_data) {
+    // Only the key and the count are read from a report.
+    netcache_hdr_t report = {};
+
+    // The key keeps the packet's byte order, which the keys table and the controller's map use.
+    bf_status_t bf_status;
+    if (controller->hh_digest_key_is_ptr) {
+      bf_status = entry->getValue(controller->hh_digest_key_id, KV_KEY_SIZE, report.key);
+      ASSERT_BF_STATUS(bf_status);
+    } else {
+      uint64_t key;
+      bf_status = entry->getValue(controller->hh_digest_key_id, &key);
+      ASSERT_BF_STATUS(bf_status);
+      for (size_t i = 0; i < KV_KEY_SIZE; ++i) {
+        report.key[i] = (key >> ((KV_KEY_SIZE - 1 - i) * 8)) & 0xFF;
+      }
+    }
+
+    uint64_t count;
+    bf_status = entry->getValue(controller->hh_digest_count_id, &count);
+    ASSERT_BF_STATUS(bf_status);
+    for (size_t i = 0; i < KV_VAL_SIZE; ++i) {
+      report.val[i] = (count >> (i * 8)) & 0xFF;
+    }
+
+    // One transaction per report, as on the CPU-port path: a key is served by the data plane as
+    // soon as its own report is handled, not when the whole batch has been.
+    controller->begin_transaction();
+    controller->process_report(&report);
+    controller->end_transaction();
+  }
+
+  bf_status_t bf_status = controller->hh_digest->bfRtLearnNotifyAck(session, learn_msg_hdl);
+  ASSERT_BF_STATUS(bf_status);
+
+  return BF_SUCCESS;
+}
+
+void Controller::process_report(netcache_hdr_t *nc_hdr) {
+  DEBUG("It's an HH report (available keys: %lu)", available_keys.size());
 
   if (!available_keys.empty()) {
     DEBUG("Writing key to cache directly");
     ProcessQuery::process_query->update_cache(nc_hdr);
-    return false;
+    return;
   }
 
   DEBUG("Cache full, probing some keys...");
 
-  std::vector<std::vector<uint32_t>> sampl_vec = ProcessQuery::process_query->sample_values();
-
-  // Retrieve the index of the smallest counter value from the vector.
-  uint32_t smallest_val = std::numeric_limits<uint32_t>::max();
-  int smallest_idx      = 0;
-
-  for (size_t i = 0; i < sampl_vec.size(); ++i) {
-    if (sampl_vec[i][1] < smallest_val) {
-      smallest_val = sampl_vec[i][1];
-      smallest_idx = i;
-    }
-  }
-
-  // If the data plane value counter < the HH report counter,
-  // Evict the data plane key/value and send the HH report to the server.
+  // The HH report carries the key's sketch count.
   uint32_t val = 0;
   for (size_t i = 0; i < 4; ++i) {
     val |= (static_cast<uint32_t>(nc_hdr->val[KV_VAL_SIZE - 4 + i]) << (i * 8));
   }
-  if (sampl_vec[smallest_idx][1] < val) {
-    // Remove the key from the keys table and the controller map.
-    // Insert the corresponding index to the available_keys set.
 
-    const std::array<uint8_t, KV_KEY_SIZE> &key_tmp = key_storage[sampl_vec[smallest_idx][0]];
+  // Probe random cached keys and evict the first one colder than the reported key: each probe is a
+  // hardware register read, so stopping at the first candidate bounds the cost of a report by the
+  // probe budget instead of always paying all of it.
+  std::uniform_int_distribution<uint16_t> random_index(0, get_cache_capacity() - 1);
+  for (uint32_t i = 0; i < args.sample_size; ++i) {
+    const uint16_t index        = random_index(random_generator);
+    const uint32_t cached_count = reg_key_count.retrieve(index, true);
+
+    if (cached_count >= val) {
+      continue;
+    }
+
+    const std::array<uint8_t, KV_KEY_SIZE> &key_tmp = key_storage[index];
     uint8_t key[KV_KEY_SIZE];
     std::memcpy(key, key_tmp.data(), sizeof(key_tmp));
 
     keys.del_entry(key);
     cached_keys.erase(key_tmp);
-    key_storage[sampl_vec[smallest_idx][0]] = {0};
-    available_keys.insert(sampl_vec[smallest_idx][0]);
-
-    // Remove the corresponding value from the value registers.
-
-    reg_v.allocate(sampl_vec[smallest_idx][0], 0);
+    key_storage[index] = {0};
+    available_keys.insert(index);
+    reg_v.allocate(index, 0);
+    break;
   }
 
   ProcessQuery::process_query->update_cache(nc_hdr);
-
-  return false;
 }
 
 } // namespace netcache

@@ -57,7 +57,7 @@ const bit<16> NC_PORT = 670;
 #define SKETCH_IDX_WIDTH			13
 #define SKETCH_ENTRIES				(1 << SKETCH_IDX_WIDTH)
 // Heavy hitter threshold
-#define HH_THRES					127
+#define HH_THRES					1023
 
 typedef bit<NC_KEY_WIDTH>			key_t;
 typedef bit<NC_KEY_IDX_WIDTH>		keyIdx_t;

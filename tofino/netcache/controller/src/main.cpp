@@ -24,7 +24,8 @@ volatile bool stop_reset_timer = false;
 std::shared_ptr<netcache::ProcessQuery> netcache::ProcessQuery::process_query;
 
 void reset_counters() {
-  auto last_ts = std::chrono::steady_clock::now();
+  auto last_ts                     = std::chrono::steady_clock::now();
+  int resets_since_key_count_reset = 0;
 
   while (!stop_reset_timer) {
     auto cur_ts       = std::chrono::steady_clock::now();
@@ -35,7 +36,10 @@ void reset_counters() {
 
       netcache::Controller::controller->begin_transaction();
 
-      netcache::Controller::controller->reg_key_count.set_all_false();
+      if (++resets_since_key_count_reset == KEY_COUNT_RESET_PERIODS) {
+        netcache::Controller::controller->reg_key_count.set_all_false();
+        resets_since_key_count_reset = 0;
+      }
 
       netcache::Controller::controller->reg_cm_0.set_all_false();
       netcache::Controller::controller->reg_cm_1.set_all_false();
@@ -83,12 +87,14 @@ int main(int argc, char **argv) {
   bf_switchd_context_t *switchd_ctx = netcache::init_bf_switchd(args.run_ucli, args.tna_version);
   netcache::setup_controller(args);
 
-  if (args.cache_activated) {
-    netcache::register_pcie_pkt_ops();
-  }
-
   auto instance                         = new netcache::ProcessQuery();
   netcache::ProcessQuery::process_query = std::shared_ptr<netcache::ProcessQuery>(instance);
+
+  if (args.cache_activated) {
+    netcache::register_pcie_pkt_ops();
+    netcache::Controller::controller->register_digest_callback();
+    netcache::Controller::controller->enable_key_expiry();
+  }
 
   std::thread reset_thread;
   if (args.cache_activated) {

@@ -70,29 +70,4 @@ void ProcessQuery::update_cache(netcache_hdr_t *nc_hdr) {
   Controller::controller->available_keys.erase(it);
 }
 
-std::vector<std::vector<uint32_t>> ProcessQuery::sample_values() {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-
-  // Generate k random indexes.
-
-  std::uniform_int_distribution<> dis(0, Controller::controller->get_cache_capacity() - 1);
-  std::unordered_set<int> elems;
-
-  while (elems.size() < Controller::controller->args.sample_size) {
-    elems.insert(dis(gen));
-  }
-
-  std::vector<int> sampl_index(elems.begin(), elems.end());
-
-  // Vector that stores all key indexes and counters randomly sampled from the switch.
-  std::vector<std::vector<uint32_t>> sampl_vec;
-
-  for (int i : sampl_index) {
-    sampl_vec.push_back({(uint16_t)i, Controller::controller->reg_key_count.retrieve(i, true)});
-  }
-
-  return sampl_vec;
-}
-
 } // namespace netcache

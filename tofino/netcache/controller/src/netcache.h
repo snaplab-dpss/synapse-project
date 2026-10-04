@@ -8,6 +8,7 @@
 #include <map>
 
 #include "bf_rt/bf_rt_init.hpp"
+#include "bf_rt/bf_rt_learn.hpp"
 #include "constants.h"
 #include "packet.h"
 #include "tables/fwd.h"
@@ -98,9 +99,16 @@ public:
     }
   };
 
+  std::mt19937 random_generator{std::random_device{}()};
   std::map<uint16_t, std::array<uint8_t, KV_KEY_SIZE>> key_storage;
   std::unordered_set<uint16_t> available_keys;
   std::unordered_set<std::array<uint8_t, KV_KEY_SIZE>, key_hash_t, key_cmp_t> cached_keys;
+
+  // HH reports arrive as digests.
+  const bfrt::BfRtLearn *hh_digest;
+  bf_rt_id_t hh_digest_key_id;
+  bool hh_digest_key_is_ptr;
+  bf_rt_id_t hh_digest_count_id;
 
   Controller(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const args_t &_args)
       : info(_info), session(_session), dev_tgt(_dev_tgt), ports(_info, _session, _dev_tgt), args(_args), atom(0),
@@ -149,6 +157,15 @@ public:
 
     // Configure mirror session.
     configure_mirroring(128, cpu_port);
+
+    bf_status_t bf_status = info->bfrtLearnFromNameGet("SwitchIngressDeparser.hh_digest", &hh_digest);
+    ASSERT_BF_STATUS(bf_status);
+    bf_status = hh_digest->learnFieldIdGet("key", &hh_digest_key_id);
+    ASSERT_BF_STATUS(bf_status);
+    bf_status = hh_digest->learnFieldIsPtrGet(hh_digest_key_id, &hh_digest_key_is_ptr);
+    ASSERT_BF_STATUS(bf_status);
+    bf_status = hh_digest->learnFieldIdGet("count", &hh_digest_count_id);
+    ASSERT_BF_STATUS(bf_status);
 
     if (!args.cache_activated) {
       return;
@@ -274,6 +291,14 @@ public:
   }
 
   bool process_pkt(pkt_hdr_t *pkt_hdr, uint32_t packet_size);
+  void process_report(netcache_hdr_t *nc_hdr);
+
+  void register_digest_callback();
+  void enable_key_expiry();
+  static void expiry_callback(const bf_rt_target_t &dev_tgt, const bfrt::BfRtTableKey *key, void *cookie);
+  static bf_status_t digest_callback(const bf_rt_target_t &bf_rt_tgt, const std::shared_ptr<bfrt::BfRtSession> session,
+                                     std::vector<std::unique_ptr<bfrt::BfRtLearnData>> learn_data, bf_rt_learn_msg_hdl *const learn_msg_hdl,
+                                     const void *cookie);
 
   static void init(const bfrt::BfRtInfo *_info, std::shared_ptr<bfrt::BfRtSession> _session, bf_rt_target_t _dev_tgt, const args_t &args);
 };

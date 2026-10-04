@@ -26,6 +26,9 @@ private:
   data_fields_t data_fields;
   actions_t actions;
 
+  bf_rt_id_t entry_ttl_id{0};
+  uint64_t entry_ttl_ms{0};
+
 public:
   Keys(const bfrt::BfRtInfo *info, std::shared_ptr<bfrt::BfRtSession> session, const bf_rt_target_t &dev_tgt)
       : Table(info, session, dev_tgt, "SwitchIngress.keys") {
@@ -40,6 +43,30 @@ public:
     init_data_with_actions({
         {"key_idx", {actions.set_key_idx, &data_fields.key_idx}},
     });
+  }
+
+  void set_idle_timeout(uint32_t timeout_ms, const bfrt::BfRtIdleTmoExpiryCb &callback, void *cookie) {
+    std::unique_ptr<bfrt::BfRtTableAttributes> attr;
+    auto bf_status = table->attributeAllocate(bfrt::TableAttributesType::IDLE_TABLE_RUNTIME, bfrt::TableAttributesIdleTableMode::NOTIFY_MODE, &attr);
+    ASSERT_BF_STATUS(bf_status);
+
+    bf_status = attr->idleTableNotifyModeSet(true, callback, timeout_ms, timeout_ms, timeout_ms, cookie);
+    ASSERT_BF_STATUS(bf_status);
+
+    uint64_t flags;
+    BF_RT_FLAG_INIT(flags);
+    BF_RT_FLAG_SET(flags, BF_RT_FROM_HW);
+    bf_status = table->tableAttributesSet(*session, dev_tgt, flags, *attr.get());
+    ASSERT_BF_STATUS(bf_status);
+
+    bf_status = table->dataFieldIdGet("$ENTRY_TTL", &entry_ttl_id);
+    ASSERT_BF_STATUS(bf_status);
+    entry_ttl_ms = timeout_ms;
+  }
+
+  void get_key(const bfrt::BfRtTableKey *expired, uint8_t *cache_key) {
+    auto bf_status = expired->getValue(key_fields.cache_key, KV_KEY_SIZE, cache_key);
+    ASSERT_BF_STATUS(bf_status);
   }
 
   void add_entry(uint8_t *cache_key, uint16_t key_idx) {
@@ -79,6 +106,11 @@ private:
 
     bf_status = data->setValue(data_fields.key_idx, static_cast<uint64_t>(key_idx));
     ASSERT_BF_STATUS(bf_status);
+
+    if (entry_ttl_id != 0) {
+      bf_status = data->setValue(entry_ttl_id, entry_ttl_ms);
+      ASSERT_BF_STATUS(bf_status);
+    }
   }
 };
 

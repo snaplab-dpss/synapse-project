@@ -21,3 +21,13 @@ constexpr const int SWITCH_PACKET_MAX_BUFFER_SIZE = 10000;
 #define KV_VAL_SIZE 4
 
 #define BURST_SIZE 1
+
+// The cached keys' counters are cleared every this many sketch resets: a reported key competes
+// against counts accumulated over several periods, not against counters just zeroed with the
+// sketch, which would let any report displace a cached key right after every reset.
+#define KEY_COUNT_RESET_PERIODS 3
+
+// A cached key whose traffic stops for this long frees its slot. Without it a slot is reclaimed
+// only when a random probe happens to land on it, so under churn a growing share of the cache
+// holds keys that no longer receive traffic.
+#define KEY_IDLE_TIMEOUT_MS 1000

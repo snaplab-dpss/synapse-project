@@ -60,6 +60,13 @@ struct ingress_metadata_t {
 	bit<8> cache_hit;
 	pkt_type_t pkt_type;
 	MirrorId_t mirror_session;
+	bit<16> cm_result;
+}
+
+// HH report: the key and its sketch count.
+struct hh_digest_t {
+	bit<32> key;
+	bit<16> count;
 }
 
 header mirror_bridged_metadata_h {

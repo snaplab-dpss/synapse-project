@@ -54,6 +54,7 @@ control SwitchIngress(
 		}
 
 		size = NC_ENTRIES * 2; // To actually get NC_ENTRIES, because of collisions.
+		idle_timeout = true;
 	}
 
 	action update_pkt_udp() {
@@ -192,11 +193,9 @@ control SwitchIngress(
 					cm.apply(hdr, cm_result);
 					// Check cm result against threshold (HH_THRES).
 					if (cm_result > HH_THRES) {
-						// If confirmed HH, inform the controller through mirroring.
-						// FIXME: we should get these values from the control plane.
-						// Otherwise, we lose the PUT value.
-						hdr.netcache.val = (bit<NC_VAL_WIDTH>)cm_result;
-						set_mirror_pkt();
+						// If confirmed HH, inform the controller through a digest.
+						ig_md.cm_result = cm_result;
+						ig_dprsr_md.digest_type = 1;
 					}
 				}
 			}
