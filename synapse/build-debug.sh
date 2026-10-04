@@ -14,6 +14,7 @@ cmake \
   -B "$BUILD_DIR" \
   -S "$PROJECT_DIR" \
   -DENABLE_ADDRESS_SANITIZER=0 \
-  -DCMAKE_BUILD_TYPE=Debug
+  -DCMAKE_BUILD_TYPE=Debug \
+  "$@"
 
 ninja -C "$BUILD_DIR"

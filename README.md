@@ -23,6 +23,8 @@ Then build the NF library, `make -C dpdk-nfs lib`, and Synapse (see below).
 
 You should only need to run each of these scripts *once*. If you are using our container script (`tools/dev/run_dev_container.sh`), notice that it already installs all the requires system package dependencies. Therefore, you need only run the `build_deps.sh` *once* inside the container.
 
+`build_deps.sh` also downloads [Gurobi](https://www.gurobi.com) into `deps/gurobi1300` (the package is public). Synapse's build then decides which solver its placer uses: Gurobi when the package and a license file are found, Z3 otherwise (`-DENABLE_GUROBI=ON|OFF` forces it, e.g. `synapse/build-release.sh -DENABLE_GUROBI=OFF`). The license is yours to obtain (free for academics) and goes to `deps/gurobi1300/gurobi.lic` (register it with `tools/deps/add_gurobi_to_paths.sh deps/gurobi1300 deps/gurobi1300/gurobi.lic` if `build_deps.sh` already ran) or to `~/gurobi.lic`; rebuild Synapse after adding one.
+
 After running `build_deps.sh`, a new file will appear on the project root directory: `paths.sh`. You should always source this file (`source paths.sh`) when working on this project, as it exports the relevant environmental variables.
 
 **Useful tip**: this project makes heavy use of Graphviz to render BDDs, Execution Plans, and Search Spaces as graphs. All these Graphviz files are typically encoded as a `.dot` file. You can render these files [xdot](https://github.com/jrfonseca/xdot.py), which is installed during the setup phase.

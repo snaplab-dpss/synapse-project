@@ -29,6 +29,12 @@ SYNAPSE_BUILD_DIR="$SYNAPSE_DIR/build"
 LLVM_VERSION=16
 LLVM_DIR="/usr/lib/llvm-$LLVM_VERSION"
 
+# The Gurobi package is a public download; the license is not: get one at https://www.gurobi.com
+# (free for academics) and keep it at $GUROBI_LICENSE or ~/gurobi.lic.
+GUROBI_VERSION=13.0.0
+GUROBI_DIR="$DEPS_DIR/gurobi$(echo $GUROBI_VERSION | tr -d .)"
+GUROBI_LICENSE="$GUROBI_DIR/gurobi.lic"
+GUROBI_URL="https://packages.gurobi.com/${GUROBI_VERSION%.*}/gurobi${GUROBI_VERSION}_linux64.tar.gz"
 
 # Checks if a variable is set in a file. If it is not in the file, add it with
 # given value, otherwise change the value to match the current one.
@@ -225,6 +231,34 @@ source_install_json() {
 	echo "Done."
 }
 
+clean_gurobi() {
+	rm -rf "$GUROBI_DIR/linux64"
+}
+
+install_gurobi() {
+	echo "Installing Gurobi $GUROBI_VERSION (optional)..."
+
+	if [ ! -d "$GUROBI_DIR/linux64" ]; then
+		mkdir -p "$GUROBI_DIR"
+		# The tarball unpacks as gurobi<version>/linux64.
+		if ! wget -qO - "$GUROBI_URL" | tar -xzf - -C "$DEPS_DIR"; then
+			echo "Could not download $GUROBI_URL; Synapse will be built without Gurobi."
+			rm -rf "$GUROBI_DIR/linux64"
+			return 0
+		fi
+	fi
+
+	add_var_to_paths_file "GUROBI_HOME" "$GUROBI_DIR/linux64"
+
+	if [ -f "$GUROBI_LICENSE" ]; then
+		add_var_to_paths_file "GRB_LICENSE_FILE" "$GUROBI_LICENSE"
+	elif [ ! -f "$HOME/gurobi.lic" ]; then
+		echo "No Gurobi license at $GUROBI_LICENSE or ~/gurobi.lic: Synapse will place with Z3 until one is in place."
+	fi
+
+	echo "Done."
+}
+
 # libnf is built with `make -C dpdk-nfs lib`; only its directory goes on the library path here.
 add_libnf_to_paths() {
 	add_multiline_var_to_paths_file "LD_LIBRARY_PATH" "$DPDK_NFS_DIR/build:\${LD_LIBRARY_PATH:-}"
@@ -242,6 +276,7 @@ install() {
 	source_install_klee_uclibc
 	source_install_klee
 	source_install_json
+	install_gurobi
 	add_libnf_to_paths
 	add_synapse_to_paths
 }
@@ -252,6 +287,7 @@ reinstall() {
 	clean_klee_uclibc
 	clean_klee
 	clean_json
+	clean_gurobi
 	install
 }
 

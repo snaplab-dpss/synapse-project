@@ -18,6 +18,7 @@ cmake \
   -DCMAKE_EXE_LINKER_FLAGS="-pg -g" \
   -DCMAKE_SHARED_LINKER_FLAGS="-pg -g" \
   -DENABLE_ADDRESS_SANITIZER=0 \
-  -DCMAKE_BUILD_TYPE=Release
+  -DCMAKE_BUILD_TYPE=Release \
+  "$@"
 
 ninja -C "$BUILD_DIR"
