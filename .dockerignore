@@ -1,3 +1,20 @@
-Dockerfile
-docker-compose.yml
+# The image gets the sources (submodules included) and builds them itself: no git history,
+# no build outputs, no generated data, nothing that only the Tofino SDE container uses.
+.git
+**/.git
+build
+**/build
+**/x86_64-native-linuxapp-gcc
+**/__pycache__
+**/klee-out-*
+**/klee-last
+deps/gurobi*
 env
+pcaps
+profiles
+synthesized
+tofino
+plots/plots
+gmon.out
+paths.sh
+paths-container.sh

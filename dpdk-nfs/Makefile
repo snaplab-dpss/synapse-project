@@ -49,8 +49,7 @@ OUT_DIR=build
 
 # DPDK stuff
 ifneq ($(shell pkg-config --exists libdpdk && echo 0),0)
-	$(error Error: pkg-config could not find dpdk)
-	exit 1
+$(error pkg-config could not find libdpdk: source paths.sh)
 endif
 
 PKGCONF ?= pkg-config
@@ -121,47 +120,37 @@ CLEAN_ALL_COMMAND := $(CLEAN_BUILD_ARTIFACTS_COMMAND) && rm -rf *.bdd *.dot $(OU
 # Compilation
 COMPILE_COMMAND := clang
 # Linking with klee-uclibc, but without some methods we are modeling
-# (not sure why they're in klee-uclibc.bca);
-# also purge the pointless GNU linker warnings
-# so KLEE doesn't warn about module asm
-LINK_COMMAND := llvm-ar x $(KLEE_BUILD_PATH)/Release+Debug+Asserts/lib/klee-uclibc.bca && \
-				rm -f sleep.os vfprintf.os socket.os fflush_unlocked.os fflush.os && \
-				llvm-link -o nf_raw.bc  *.os *.bc && \
-				llvm-dis -o nf_raw.ll nf_raw.bc && \
-				sed -i -e 's/module asm ".section .gnu.warning.*"//g' \
-					   -e 's/module asm "\\09.previous"//g' \
-					   -e 's/module asm ""//g' \
-					   nf_raw.ll && \
-				llvm-as -o nf_raw.bc nf_raw.ll
+# (not sure why they're in klee-uclibc.bca)
+LINK_COMMAND := llvm-ar x $(KLEE_BUILD_PATH)/runtime/lib/klee-uclibc.bca && \
+				rm -f sleep.os vfprintf.os socket.os fflush_unlocked.os fflush.os \
+					  sprintf.os snprintf.os vsnprintf.os asprintf.os vasprintf.os && \
+				llvm-link -o nf_raw.bc  *.os *.bc
 # Optimization; analyze and remove as much provably dead code as possible
 # (exceptions are models;
 #  also, mem* functions, not sure why it DCEs them since they are used...
 #  and sscanf, which is accessed via its __isoc99_sscanf alias
 #  maybe related to LLVM having intrinsics for them?)
-# We tried adding '-constprop -ipconstprop -ipsccp -correlated-propagation
-#                  -loop-deletion -dce -die -dse -adce -deadargelim -instsimplify';
-# this works but the traced prefixes seem messed up :(
 OPT_EXCEPTIONS := sscanf,memset,memcpy,memmove,stub_abort,stub_free,stub_hardware_read,stub_hardware_write,stub_prefetch,stub_rdtsc,stub_socket,stub_strerror,stub_delay
-OPT_COMMAND := opt -basicaa -basiccg -internalize \
+OPT_COMMAND := opt -passes=internalize,globaldce \
 				   -internalize-public-api-list=main,$(OPT_EXCEPTIONS) \
-				   -globaldce nf_raw.bc \
-				   > nf.bc
-# KLEE verification;
-# if something takes longer than expected,
-# try --max-solver-time=3 --debug-report-symbdex (to avoid symbolic indices)
+				   nf_raw.bc -o nf.bc
+# KLEE symbolic execution: every completed path leaves a .call_path (the calls traced
+# with klee_trace_*, see lib/models) with constant widths printed, which the call
+# path reader needs; no call may reach code without bitcode (every external has a
+# model); the allocator's start addresses keep the objects' addresses, which the
+# call paths carry, the same from run to run.
 VERIF_COMMAND := /usr/bin/time -v \
-				 klee -no-externals \
-					  -allocate-determ \
-					  -allocate-determ-start-address=0x00040000000 \
-					  -allocate-determ-size=1000 \
-					  -dump-call-traces \
-					  -dump-call-trace-prefixes \
-					  -solver-backend=z3 \
-					  -exit-on-error \
-					  -max-memory=750000 \
-					  -search=dfs \
-					  -condone-undeclared-havocs \
-					  --debug-report-symbdex \
+				 klee --external-calls=none \
+					  --dump-call-traces \
+					  --pc-all-const-widths \
+					  --kdalloc-globals-start-address=0x10000000000 --kdalloc-globals-size=4 \
+					  --kdalloc-constants-start-address=0x11000000000 --kdalloc-constants-size=4 \
+					  --kdalloc-heap-start-address=0x12000000000 --kdalloc-heap-size=16 \
+					  --kdalloc-stack-start-address=0x18000000000 --kdalloc-stack-size=4 \
+					  --solver-backend=z3 \
+					  --exit-on-error \
+					  --max-memory=750000 \
+					  --search=dfs \
 					  nf.bc
 
 # =======================
@@ -174,6 +163,9 @@ VERIF_COMMAND := /usr/bin/time -v \
 #              also no unused-value, DPDK triggers that...
 VERIF_FLAGS := -c -g -emit-llvm -fsanitize=signed-integer-overflow -Wno-unused-value
 VERIF_FLAGS += -msse4.2 # needed for __builtin_ia32_crc32si
+VERIF_FLAGS += -include assert.h # klee_assert expands to __assert_fail
+VERIF_FLAGS += -fcommon # the DPDK models define globals in headers, once per includer
+VERIF_FLAGS += -Xclang -disable-O0-optnone # or KLEE's CFG simplification skips every function
 # Basic includes: NF root, KLEE
 VERIF_INCLUDES := -I $(SELF_DIR) -I $(KLEE_INCLUDE)
 # Basic defines

@@ -1,15 +1,14 @@
 [submodule "deps/dpdk"]
 	path = deps/dpdk
 	url = https://github.com/DPDK/dpdk.git
-[submodule "deps/llvm"]
-	path = deps/llvm
-	url = https://github.com/snaplab-dpss/maestro-llvm.git
 [submodule "deps/klee"]
 	path = deps/klee
-	url = https://github.com/snaplab-dpss/maestro-klee.git
+	url = https://github.com/snaplab-dpss/synapse-klee.git
+	branch = synapse
 [submodule "deps/klee-uclibc"]
 	path = deps/klee-uclibc
-	url = https://github.com/snaplab-dpss/maestro-klee-uclibc.git
+	url = https://github.com/snaplab-dpss/synapse-klee-uclibc.git
+	branch = synapse
 [submodule "deps/z3"]
 	path = deps/z3
 	url = https://github.com/Z3Prover/z3.git

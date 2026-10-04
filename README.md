@@ -2,7 +2,7 @@
 
 ## System
 
-This project was tested on Ubuntu 20.04, 22.04, and 24.04. If you want to run on other OSes, we recommend you use a docker container (check out the `tools/dev/run_dev_container.sh` script).
+This project was tested on Ubuntu 22.04 and 24.04. If you want to run on other OSes, we recommend you use a docker container: the `Dockerfile` at the root of the project installs the system packages, copies the project in and builds it (so `docker build` is the whole installation check), and `tools/dev/run_dev_container.sh` runs it with your checkout mounted over that copy (run `tools/deps/build_deps.sh` once in it).
 
 ## Setup
 
@@ -17,7 +17,9 @@ $ git submodule update --init --recursive
 We now need to build and install all dependencies. We provide a couple of useful tools for this:
 
 - `tools/deps/install_package_deps.sh`: install system package dependencies
-- `tools/deps/build_deps.sh`: build project dependencies
+- `tools/deps/build_deps.sh`: build project dependencies (DPDK, Z3, klee-uclibc, KLEE, nlohmann JSON)
+
+Then build the NF library, `make -C dpdk-nfs lib`, and Synapse (see below).
 
 You should only need to run each of these scripts *once*. If you are using our container script (`tools/dev/run_dev_container.sh`), notice that it already installs all the requires system package dependencies. Therefore, you need only run the `build_deps.sh` *once* inside the container.
 
@@ -115,36 +117,22 @@ $ cd dpdk-nfs/fwd
 $ make symbex
 KLEE: output directory is "~/synapse-project/dpdk-nfs/fwd/klee-out-0"
 KLEE: Using Z3 solver backend
-KLEE: Deterministic memory allocation starting from 0x40000000
-KLEE: WARNING: undefined reference to function: kill (UNSAFE)!
+KLEE: Deterministic allocator: Using quarantine queue size 8
+KLEE: Deterministic allocator: globals (start-address=0x10000000000 size=4 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x11000000000 size=4 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x12000000000 size=16 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x18000000000 size=4 GiB)
+KLEE: WARNING: undefined reference to function: klee_trace_ret
 KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: Deterministic memory allocation starting from 0x40000000
 
-KLEE: done: total instructions = 220410
-KLEE: done: completed paths = 5
-KLEE: done: generated tests = 5
-        Command being timed: "klee -no-externals -allocate-determ -allocate-determ-start-address=0x00040000000 -allocate-determ-size=1000 -dump-call-traces -dump-call-trace-prefixes -solver-backend=z3 -exit-on-error -max-memory=750000 -search=dfs -condone-undeclared-havocs --debug-report-symbdex nf.bc --lcores=0 --no-shconf --no-telemetry -- --lan 0 --wan 1"
-        User time (seconds): 1.10
-        System time (seconds): 0.03
-        Percent of CPU this job got: 96%
-        Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.17
-        Average shared text size (kbytes): 0
-        Average unshared data size (kbytes): 0
-        Average stack size (kbytes): 0
-        Average total size (kbytes): 0
-        Maximum resident set size (kbytes): 39260
-        Average resident set size (kbytes): 0
-        Major (requiring I/O) page faults: 159
-        Minor (reclaiming a frame) page faults: 5813
-        Voluntary context switches: 581
-        Involuntary context switches: 2
-        Swaps: 0
-        File system inputs: 54640
-        File system outputs: 5384
-        Socket messages sent: 0
-        Socket messages received: 0
-        Signals delivered: 0
-        Page size (bytes): 4096
+KLEE: done: total instructions = 418241
+KLEE: done: completed paths = 3
+KLEE: done: partially completed paths = 0
+KLEE: done: generated tests = 3
+        Command being timed: "klee --external-calls=none --dump-call-traces --pc-all-const-widths --kdalloc-globals-start-address=0x10000000000 --kdalloc-globals-size=4 --kdalloc-constants-start-address=0x11000000000 --kdalloc-constants-size=4 --kdalloc-heap-start-address=0x12000000000 --kdalloc-heap-size=16 --kdalloc-stack-start-address=0x18000000000 --kdalloc-stack-size=4 --solver-backend=z3 --exit-on-error --max-memory=750000 --search=dfs nf.bc --lcores=0 --no-shconf --no-telemetry -- --fwd-rule 0,1 --fwd-rule 1,0 ..."
+        User time (seconds): 0.29
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.31
+        Maximum resident set size (kbytes): 107208
         Exit status: 0
 </pre>
 

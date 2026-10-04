@@ -13,7 +13,6 @@ PATHSFILE="$ROOT_DIR/paths.sh"
 # Dependencies
 DPDK_DIR="$DEPS_DIR/dpdk"
 KLEE_DIR="$DEPS_DIR/klee"
-LLVM_DIR="$DEPS_DIR/llvm"
 KLEE_UCLIBC_DIR="$DEPS_DIR/klee-uclibc"
 Z3_DIR="$DEPS_DIR/z3"
 JSON_DIR="$DEPS_DIR/json"
@@ -23,10 +22,13 @@ DPDK_TARGET=x86_64-native-linuxapp-gcc
 DPDK_BUILD_DIR="$DPDK_DIR/$DPDK_TARGET"
 KLEE_BUILD_PATH="$KLEE_DIR/build"
 KLEE_UCLIBC_LIB_DIR="$KLEE_UCLIBC_DIR/lib"
-LLVM_RELEASE_DIR="$LLVM_DIR/Release"
 Z3_BUILD_DIR="$Z3_DIR/build"
 JSON_BUILD_DIR="$JSON_DIR/build"
 SYNAPSE_BUILD_DIR="$SYNAPSE_DIR/build"
+
+LLVM_VERSION=16
+LLVM_DIR="/usr/lib/llvm-$LLVM_VERSION"
+
 
 # Checks if a variable is set in a file. If it is not in the file, add it with
 # given value, otherwise change the value to match the current one.
@@ -84,7 +86,9 @@ source_install_z3() {
 	echo "Installing Z3..."
 
 	pushd "$Z3_DIR"
-		git clean -fx # https://github.com/Z3Prover/z3/issues/6552
+		# Stale generated files break the build (https://github.com/Z3Prover/z3/issues/6552);
+		# a copy without git history (the Docker image) has none.
+		if git rev-parse --git-dir > /dev/null 2>&1; then git clean -fx; fi
 		python3 scripts/mk_make.py -p "$Z3_BUILD_DIR"
 
 		pushd "$Z3_BUILD_DIR"
@@ -97,38 +101,16 @@ source_install_z3() {
 	echo "Done."
 }
 
-clean_llvm() {
-	rm -rf "$LLVM_RELEASE_DIR"
-	pushd "$LLVM_DIR"
-		rm -rf Makefile.config
-		make clean || true
-	popd
-}
+setup_llvm() {
+	echo "Using the system's LLVM $LLVM_VERSION..."
 
-source_install_llvm() {
-	echo "Installing LLVM..."
-	
-	add_multiline_var_to_paths_file "PATH" "$LLVM_RELEASE_DIR/bin:\$PATH"
-
-	pushd "$LLVM_DIR"
-		CXXFLAGS="-frtti" \
-		CC=cc \
-		CXX=c++ \
-			./configure \
-					--enable-optimized \
-					--disable-assertions \
-					--enable-targets=host \
-					--with-python=$(which python3) \
-					--enable-cxx11
-		
-		make clean || true
-
-		# Painfully slow, but allowing the compilation to use many cores
-		# consumes a lot of memory, and crashes some systems.
-		make -j8
-	popd
+	if [ ! -x "$LLVM_DIR/bin/llvm-config" ]; then
+		echo "LLVM $LLVM_VERSION not found at $LLVM_DIR: run tools/deps/install_package_deps.sh first."
+		exit 1
+	fi
 
 	add_var_to_paths_file "LLVM_DIR" "$LLVM_DIR"
+	add_multiline_var_to_paths_file "PATH" "$LLVM_DIR/bin:\$PATH"
 
 	echo "Done."
 }
@@ -162,8 +144,8 @@ source_install_klee_uclibc() {
 
 		./configure \
 			--make-llvm-lib \
-			--with-llvm-config="$LLVM_DIR/Release/bin/llvm-config" \
-			--with-cc="$LLVM_DIR/Release/bin/clang"
+			--with-llvm-config="$LLVM_DIR/bin/llvm-config" \
+			--with-cc="$LLVM_DIR/bin/clang"
 
 		cp "$ROOT_DIR/setup/klee-uclibc.config" '.config'
 		
@@ -187,29 +169,36 @@ source_install_klee() {
 
 	add_multiline_var_to_paths_file "PATH" "$KLEE_BUILD_PATH/bin:\$PATH"
 
+	# KLEE copies klee-uclibc's libc.a into its runtime at build time: build klee-uclibc first.
+	# PIC because synapse links the KLEE archives into its shared libraries; no tcmalloc so that
+	# synapse does not inherit it as a dependency.
 	pushd $KLEE_DIR
 		[ -d "$KLEE_BUILD_PATH" ] || mkdir -p "$KLEE_BUILD_PATH"
 		pushd $KLEE_BUILD_PATH
-			[ -f "Makefile" ] || \
-				CMAKE_PREFIX_PATH="$Z3_DIR/build" \
-				CMAKE_INCLUDE_PATH="$Z3_DIR/build/include/" \
-				cmake \
-				-DENABLE_UNIT_TESTS=OFF \
-				-DBUILD_SHARED_LIBS=OFF \
-				-DLLVM_CONFIG_BINARY="$LLVM_DIR/Release/bin/llvm-config" \
-				-DLLVMCC="$LLVM_DIR/Release/bin/clang" \
-				-DLLVMCXX="$LLVM_DIR/Release/bin/clang++" \
-				-DENABLE_SOLVER_Z3=ON \
-				-DENABLE_KLEE_UCLIBC=ON \
-				-DKLEE_UCLIBC_PATH="$KLEE_UCLIBC_DIR" \
-				-DENABLE_POSIX_RUNTIME=ON \
-				-DENABLE_KLEE_ASSERTS=ON \
-				-DENABLE_DOXYGEN=OFF \
+			[ -f "build.ninja" ] || \
+				cmake -G Ninja \
 				-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+				-DLLVM_DIR="$LLVM_DIR/lib/cmake/llvm" \
+				-DLLVMCC="$LLVM_DIR/bin/clang" \
+				-DLLVMCXX="$LLVM_DIR/bin/clang++" \
+				-DENABLE_SOLVER_Z3=ON \
+				-DCMAKE_PREFIX_PATH="$Z3_BUILD_DIR" \
+				-DENABLE_SOLVER_STP=OFF \
+				-DENABLE_SOLVER_METASMT=OFF \
+				-DENABLE_POSIX_RUNTIME=ON \
+				-DKLEE_UCLIBC_PATH="$KLEE_UCLIBC_DIR" \
+				-DENABLE_UNIT_TESTS=OFF \
+				-DENABLE_SYSTEM_TESTS=OFF \
+				-DENABLE_KLEE_ASSERTS=ON \
+				-DENABLE_TCMALLOC=OFF \
+				-DENABLE_DOCS=OFF \
 				-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
 				$KLEE_DIR
 
-			make -kj $(nproc) || exit 1
+			ninja || exit 1
+			# KLEE copies the archive when it configures, not when it builds: a klee-uclibc
+			# rebuilt afterwards would otherwise not reach the runtime.
+			cp "$KLEE_UCLIBC_LIB_DIR/libc.a" "$KLEE_BUILD_PATH/runtime/lib/klee-uclibc.bca"
 		popd
 	popd
 
@@ -236,41 +225,30 @@ source_install_json() {
 	echo "Done."
 }
 
-build_libnf() {
-	pushd "$DPDK_NFS_DIR"
-		make lib
-	popd
-
+# libnf is built with `make -C dpdk-nfs lib`; only its directory goes on the library path here.
+add_libnf_to_paths() {
 	add_multiline_var_to_paths_file "LD_LIBRARY_PATH" "$DPDK_NFS_DIR/build:\${LD_LIBRARY_PATH:-}"
-	sudo ldconfig
 }
 
-build_synapse() {
-	echo "Building Synapse..."
-
-	pushd "$SYNAPSE_DIR"
-		./build-release.sh
-	popd
-
+# Synapse itself is built with synapse/build-release.sh; only its binaries go on the PATH here.
+add_synapse_to_paths() {
 	add_multiline_var_to_paths_file "PATH" "$SYNAPSE_BUILD_DIR/bin:\$PATH"
-	echo "Done."
 }
 
 install() {
 	source_install_dpdk
 	source_install_z3
-	source_install_llvm
+	setup_llvm
 	source_install_klee_uclibc
 	source_install_klee
 	source_install_json
-	build_libnf
-	build_synapse
+	add_libnf_to_paths
+	add_synapse_to_paths
 }
 
 reinstall() {
 	clean_dpdk
 	clean_z3
-	clean_llvm
 	clean_klee_uclibc
 	clean_klee
 	clean_json

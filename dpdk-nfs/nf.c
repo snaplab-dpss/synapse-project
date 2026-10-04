@@ -110,9 +110,8 @@ static int nf_init_device(uint16_t device, struct rte_mempool *mbuf_pool) {
 static void worker_loop() {
   unsigned lcore_id      = 0; /* no multicore support for now */
   time_ns_t start        = start_time();
-  int loop_termination   = klee_int("loop_termination");
   unsigned devices_count = rte_eth_dev_count_avail();
-  while (klee_induce_invariants() & loop_termination) {
+  {
     nf_loop_iteration_border(lcore_id, start);
     time_ns_t now   = current_time();
     uint16_t device = klee_range(0, devices_count, "DEVICE");

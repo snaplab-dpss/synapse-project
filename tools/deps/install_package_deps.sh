@@ -2,7 +2,19 @@
 
 set -euo pipefail
 
+# KLEE builds against the system's LLVM: Ubuntu 24.04 ships it, older releases get it from apt.llvm.org.
+LLVM_VERSION=16
+
 sudo apt-get update -qq
+
+if ! apt-cache show llvm-$LLVM_VERSION-dev > /dev/null 2>&1; then
+	echo "Adding apt.llvm.org for LLVM $LLVM_VERSION..."
+	sudo apt-get install -yqq wget lsb-release software-properties-common gnupg
+	wget -qO /tmp/llvm.sh https://apt.llvm.org/llvm.sh
+	sudo bash /tmp/llvm.sh $LLVM_VERSION
+	rm -f /tmp/llvm.sh
+fi
+
 sudo apt-get install -yqq \
 	man \
 	build-essential \
@@ -30,4 +42,5 @@ sudo apt-get install -yqq \
 	bison flex zlib1g-dev libncurses5-dev libpcap-dev \
 	opam m4 libgmp-dev \
 	linux-headers-generic libnuma-dev \
-	clang-format
+	clang-format \
+	llvm-$LLVM_VERSION-dev llvm-$LLVM_VERSION-tools clang-$LLVM_VERSION libsqlite3-dev ninja-build

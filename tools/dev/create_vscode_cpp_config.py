@@ -15,8 +15,7 @@ def create_vscode_cpp_config(sde_path=None, gurobi_path=None):
                 "includePath": [
                     # Third party dependencies
                     "${workspaceFolder}/deps/dpdk/x86_64-native-linuxapp-gcc/include",
-                    "${workspaceFolder}/deps/llvm/include",
-                    "${workspaceFolder}/deps/llvm/tools/clang/include",
+                    "/usr/lib/llvm-16/include",
                     "${workspaceFolder}/deps/klee/include",
                     "${workspaceFolder}/deps/klee/build/include",
                     "${workspaceFolder}/deps/z3/build/include",

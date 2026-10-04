@@ -34,7 +34,7 @@ if ! docker image inspect "synapse:latest" >/dev/null 2>&1; then
     docker build \
         --build-arg BUILDPLATFORM=$PLATFORM \
         --platform=$PLATFORM \
-        -f $SCRIPT_DIR/Dockerfile \
+        -f $ROOT_DIR/Dockerfile \
         -t $CONTAINER_NAME \
         $ROOT_DIR
 fi
@@ -55,11 +55,11 @@ docker run \
    --privileged \
    --network host \
    --platform=$PLATFORM \
-   -v $HOME/.ssh:/home/ubuntu/.ssh:ro \
-   -v $HOME/.gitconfig:/home/ubuntu/.gitconfig:ro \
-   -v $ROOT_DIR:/home/ubuntu/synapse-project \
+   -v $HOME/.ssh:/home/synapse/.ssh:ro \
+   -v $HOME/.gitconfig:/home/synapse/.gitconfig:ro \
+   -v $ROOT_DIR:/home/synapse/synapse-project \
    -e DISPLAY=$DISPLAY \
    -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket \
-   -v ~/.Xauthority:/home/ubuntu/.Xauthority \
+   -v ~/.Xauthority:/home/synapse/.Xauthority \
    -it \
    $CONTAINER_NAME

@@ -5,10 +5,6 @@
 #include <errno.h>
 #include <stdio.h>
 
-#ifdef KLEE_VERIFICATION
-#include <klee/klee.h>
-#endif
-
 int stub_socket(int family, int type, int protocol) {
   // "On success, a file descriptor for the new socket is returned.  On error,
   // -1 is returned, and errno is set appropriately."
@@ -18,12 +14,6 @@ int stub_socket(int family, int type, int protocol) {
   return -1;
 }
 
-#ifdef KLEE_VERIFICATION
-
-__attribute__((constructor)) static void stub_socket_init(void) { klee_alias_function("socket", "stub_socket"); }
-
-#else
-
+// Under KLEE the uclibc socket is left out of the link (see the Makefile), so this
+// definition is the one the program calls.
 int socket(int family, int type, int protocol) { return stub_socket(family, type, protocol); }
-
-#endif
