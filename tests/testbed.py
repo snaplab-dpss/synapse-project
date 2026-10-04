@@ -378,6 +378,23 @@ def down() -> None:
     _switchd_stdin = None
     _kill(lambda: _pgrep(r"^tofino-model\b"), "tofino-model")
     _kill(lambda: _pgrep(r"run_tofino_model\.sh"), "run_tofino_model.sh")
+    # A killed model lingers a few seconds in D/Z state with its command line already gone, so
+    # pgrep misses it while it still holds its port; a model started into that port hangs.
+    _wait_for(lambda: not (_listening_ports() & set(TESTBED_PORTS)), STOP_TIMEOUT_SEC, "testbed ports to free")
+
+
+# The model's DRU link with bf_switchd (8001/8002) and the controller's RPC port (9090).
+TESTBED_PORTS = (8001, 8002, 9090)
+
+
+def _listening_ports() -> set[int]:
+    out = subprocess.run(["ss", "-lntH"], stdout=PIPE, stderr=STDOUT, text=True).stdout
+    ports = set()
+    for line in out.splitlines():
+        cols = line.split()
+        if len(cols) > 3 and ":" in cols[3]:
+            ports.add(int(cols[3].rsplit(":", 1)[1]))
+    return ports
 
 
 def up(p4: Path, controller: Path, do_build: bool = True, controller_args: tuple[str, ...] = ()) -> None:
