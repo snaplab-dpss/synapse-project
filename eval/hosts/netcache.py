@@ -62,6 +62,7 @@ class NetCacheController:
 
         self._compile()
 
+        self.controller_cmd = None
         self.ready = False
 
     def _clean(self) -> None:
