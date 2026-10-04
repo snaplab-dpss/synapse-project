@@ -3,62 +3,62 @@ digraph G {
 Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"194"[label="194:drop()\lHR=0.00000000
 Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"193"[label="193:packet_return_chunk(\l  p:1074309352,\l  the_chunk:1073761024[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"192"[label="192:packet_return_chunk(\l  p:1074309352,\l  the_chunk:1073761280[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"188"[label="188:packet_return_chunk(\l  p:1074309352,\l  the_chunk:1073761024[packet_chunks])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"187"[label="187:packet_return_chunk(\l  p:1074309352,\l  the_chunk:1073761280[packet_chunks[256:276]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"185"[label="185:vector_return(\l  vector:1074207288,\l  index:DEVICE,\l  value:1074221184[vector_data__184])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"193"[label="193:packet_return_chunk(\l  p:1250372354160,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"192"[label="192:packet_return_chunk(\l  p:1250372354160,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"188"[label="188:packet_return_chunk(\l  p:1250372354160,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"187"[label="187:packet_return_chunk(\l  p:1250372354160,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"185"[label="185:vector_return(\l  vector:1252519837696,\l  index:DEVICE,\l  value:1240099979264[vector_data__184])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"183"[label="183:drop()\lHR=0.00000000
 Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"180"[label="180:packet_return_chunk(\l  p:1074309352,\l  the_chunk:1073761024[packet_chunks])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"179"[label="179:packet_return_chunk(\l  p:1074309352,\l  the_chunk:1073761280[packet_chunks[256:276]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"175"[label="175:vector_inc_or_swap(\l  vector:1074163992,\l  index:(hash__174 & 1023),\l  pair:1074323578[pair_out__173 -> pair_out__175],\l  key_size:4,\l  evict:0,\l  value_size:4)\l=>{pair_out__175}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"172"[label="172:crc32_hasher_hash(\l  hasher:1074187240,\l  data:1074323578[pair_out__171],\l  size:4) -> hash__172\l=>{hash__172}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"180"[label="180:packet_return_chunk(\l  p:1250372354160,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"179"[label="179:packet_return_chunk(\l  p:1250372354160,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"175"[label="175:vector_inc_or_swap(\l  vector:1248224862208,\l  index:(hash__174 & 1023),\l  pair:1649888198656[pair_out__173 -> pair_out__175],\l  key_size:4,\l  evict:0,\l  value_size:4)\l=>{pair_out__175}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"172"[label="172:crc32_hasher_hash(\l  hasher:1245406298112,\l  data:1649888198656[pair_out__171],\l  size:4) -> hash__172\l=>{hash__172}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"191"[label="191:drop()\lHR=0.00000000
 Drop={0.00000000}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"171"[label="171:vector_inc_or_swap(\l  vector:1074127528,\l  index:(hash__170 & 1023),\l  pair:1074323578[pair_out__169 -> pair_out__171],\l  key_size:4,\l  evict:0,\l  value_size:4)\l=>{pair_out__171}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"170"[label="170:crc32_hasher_hash(\l  hasher:1074185944,\l  data:1074323578[pair_out__169],\l  size:4) -> hash__170\l=>{hash__170}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"154"[label="154:vector_periodic_clear(\l  vector:1074127528,\l  time:next_time,\l  interval:1000000000) -> cleared__154\l=>{cleared__154}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"153"[label="153:vector_periodic_clear(\l  vector:1074109296,\l  time:next_time,\l  interval:1000000000) -> cleared__153\l=>{cleared__153}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"186"[label="186:packet_return_chunk(\l  p:1074309352,\l  the_chunk:1073761536[packet_chunks[512:516]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"160"[label="160:vector_borrow(\l  vector:1074038336,\l  index:(packet_chunks[268:272] & 255),\l  val_out:1074322816[ -> 1074052232])\l=>{vector_data__160}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"152"[label="152:vector_periodic_clear(\l  vector:1074091064,\l  time:next_time,\l  interval:1000000000) -> cleared__152\l=>{cleared__152}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"151"[label="151:vector_periodic_clear(\l  vector:1074072832,\l  time:next_time,\l  interval:1000000000) -> cleared__151\l=>{cleared__151}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"148"[label="148:packet_borrow_next_chunk(\l  p:1074309352,\l  length:4,\l  chunk:1074321040[ -> 1073761536])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"184"[label="184:vector_borrow(\l  vector:1074207288,\l  index:DEVICE,\l  val_out:1074327160[ -> 1074221184])\l=>{vector_data__184}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"162"[label="162:vector_borrow(\l  vector:1074055552,\l  index:(packet_chunks[268:272] & 65535),\l  val_out:1074322848[ -> 1074069448])\l=>{vector_data__162}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"150"[label="150:vector_periodic_clear(\l  vector:1074055552,\l  time:next_time,\l  interval:1000000000) -> cleared__150\l=>{cleared__150}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"146"[label="146:packet_borrow_next_chunk(\l  p:1074309352,\l  length:20,\l  chunk:1074320384[ -> 1073761280])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"195"[label="195:packet_return_chunk(\l  p:1074309352,\l  the_chunk:1073761024[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"178"[label="178:packet_return_chunk(\l  p:1074309352,\l  the_chunk:1073761536[packet_chunks[512:516]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"157"[label="157:vector_borrow(\l  vector:1074190072,\l  index:DEVICE,\l  val_out:1074322264[ -> 1074203968])\l=>{vector_data__157}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"177"[label="177:vector_return(\l  vector:1074207288,\l  index:DEVICE,\l  value:1074221184[vector_data__176])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"174"[label="174:crc32_hasher_hash(\l  hasher:1074188536,\l  data:1074323578[pair_out__173],\l  size:4) -> hash__174\l=>{hash__174}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"171"[label="171:vector_inc_or_swap(\l  vector:1253056708608,\l  index:(hash__170 & 1023),\l  pair:1649888198656[pair_out__169 -> pair_out__171],\l  key_size:4,\l  evict:0,\l  value_size:4)\l=>{pair_out__171}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"170"[label="170:crc32_hasher_hash(\l  hasher:1244600991744,\l  data:1649888198656[pair_out__169],\l  size:4) -> hash__170\l=>{hash__170}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"154"[label="154:vector_periodic_clear(\l  vector:1253056708608,\l  time:next_time,\l  interval:1000000000) -> cleared__154\l=>{cleared__154}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"153"[label="153:vector_periodic_clear(\l  vector:1246614245376,\l  time:next_time,\l  interval:1000000000) -> cleared__153\l=>{cleared__153}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"186"[label="186:packet_return_chunk(\l  p:1250372354160,\l  the_chunk:1101625557504[packet_chunks[512:516]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"160"[label="160:vector_borrow(\l  vector:1249835474944,\l  index:(packet_chunks[268:272] & 255),\l  val_out:1649821089792[ -> 1239903371264])\l=>{vector_data__160}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"152"[label="152:vector_periodic_clear(\l  vector:1248761733120,\l  time:next_time,\l  interval:1000000000) -> cleared__152\l=>{cleared__152}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"151"[label="151:vector_periodic_clear(\l  vector:1251982962688,\l  time:next_time,\l  interval:1000000000) -> cleared__151\l=>{cleared__151}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"148"[label="148:packet_borrow_next_chunk(\l  p:1250372354160,\l  length:4,\l  chunk:1649888198656[ -> 1101625557504])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"184"[label="184:vector_borrow(\l  vector:1252519837696,\l  index:DEVICE,\l  val_out:1649821089792[ -> 1240099979264])\l=>{vector_data__184}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"162"[label="162:vector_borrow(\l  vector:1247687987200,\l  index:(packet_chunks[268:272] & 65535),\l  val_out:1649854644224[ -> 1240134057984])\l=>{vector_data__162}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"150"[label="150:vector_periodic_clear(\l  vector:1247687987200,\l  time:next_time,\l  interval:1000000000) -> cleared__150\l=>{cleared__150}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"146"[label="146:packet_borrow_next_chunk(\l  p:1250372354160,\l  length:20,\l  chunk:1649888198656[ -> 1101625557248])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"195"[label="195:packet_return_chunk(\l  p:1250372354160,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"178"[label="178:packet_return_chunk(\l  p:1250372354160,\l  the_chunk:1101625557504[packet_chunks[512:516]])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"157"[label="157:vector_borrow(\l  vector:1246077374464,\l  index:DEVICE,\l  val_out:1649888198656[ -> 1240167088128])\l=>{vector_data__157}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"177"[label="177:vector_return(\l  vector:1252519837696,\l  index:DEVICE,\l  value:1240099979264[vector_data__176])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"174"[label="174:crc32_hasher_hash(\l  hasher:1244869427200,\l  data:1649888198656[pair_out__173],\l  size:4) -> hash__174\l=>{hash__174}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"145"[label="145:((8 == packet_chunks[12:14]) & (20 <= (... + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
-	"156"[label="156:vector_periodic_clear(\l  vector:1074163992,\l  time:next_time,\l  interval:1000000000) -> cleared__156\l=>{cleared__156}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"155"[label="155:vector_periodic_clear(\l  vector:1074145760,\l  time:next_time,\l  interval:1000000000) -> cleared__155\l=>{cleared__155}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"168"[label="168:crc32_hasher_hash(\l  hasher:1074184648,\l  data:1074323578[pair_out__167],\l  size:4) -> hash__168\l=>{hash__168}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"164"[label="164:crc32_hasher_hash(\l  hasher:1074182056,\l  data:1074323578[(packet_chunks[268:272] & 16777215)],\l  size:4) -> hash__164\l=>{hash__164}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"158"[label="158:vector_return(\l  vector:1074190072,\l  index:DEVICE,\l  value:1074203968[vector_data__157])\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"144"[label="144:packet_borrow_next_chunk(\l  p:1074309352,\l  length:14,\l  chunk:1074319648[ -> 1073761024])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"245"[label="245:packet_borrow_next_chunk(\l  p:1074309352,\l  length:14,\l  chunk:1074319648[ -> 1073761024])\l=>{packet_chunks}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"246"[label="246:packet_borrow_next_chunk(\l  p:1074309352,\l  length:20,\l  chunk:1074320384[ -> 1073761280])\l=>{packet_chunks}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"247"[label="247:packet_borrow_next_chunk(\l  p:1074309352,\l  length:4,\l  chunk:1074321040[ -> 1073761536])\l=>{packet_chunks}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"156"[label="156:vector_periodic_clear(\l  vector:1248224862208,\l  time:next_time,\l  interval:1000000000) -> cleared__156\l=>{cleared__156}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"155"[label="155:vector_periodic_clear(\l  vector:1250909220864,\l  time:next_time,\l  interval:1000000000) -> cleared__155\l=>{cleared__155}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"168"[label="168:crc32_hasher_hash(\l  hasher:1245272080384,\l  data:1649888198656[pair_out__167],\l  size:4) -> hash__168\l=>{hash__168}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"164"[label="164:crc32_hasher_hash(\l  hasher:1245003644928,\l  data:1649888198656[(packet_chunks[268:272] & 16777215)],\l  size:4) -> hash__164\l=>{hash__164}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"158"[label="158:vector_return(\l  vector:1246077374464,\l  index:DEVICE,\l  value:1240167088128[vector_data__157])\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"144"[label="144:packet_borrow_next_chunk(\l  p:1250372354160,\l  length:14,\l  chunk:1649888198656[ -> 1101625556992])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"245"[label="245:packet_borrow_next_chunk(\l  p:1250372354160,\l  length:14,\l  chunk:1649888198656[ -> 1101625556992])\l=>{packet_chunks}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"246"[label="246:packet_borrow_next_chunk(\l  p:1250372354160,\l  length:20,\l  chunk:1649888198656[ -> 1101625557248])\l=>{packet_chunks}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"247"[label="247:packet_borrow_next_chunk(\l  p:1250372354160,\l  length:4,\l  chunk:1649888198656[ -> 1101625557504])\l=>{packet_chunks}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"190"[label="190:fwd(vector_data__184)\lHR=0.50000000
 Fwd={
 5:0.03333333,11:0.03333333,15:0.03333333,31:0.03333333,
 17:0.03333333,19:0.03333333,7:0.03333333,9:0.03333333,
 13:0.03333333,29:0.03333333,21:0.03333333,23:0.03333333,
 25:0.03333333,27:0.03333333,3:0.03333333}",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"173"[label="173:vector_inc_or_swap(\l  vector:1074145760,\l  index:(hash__172 & 1023),\l  pair:1074323578[pair_out__171 -> pair_out__173],\l  key_size:4,\l  evict:0,\l  value_size:4)\l=>{pair_out__173}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"161"[label="161:vector_return(\l  vector:1074038336,\l  index:(packet_chunks[268:272] & 255),\l  value:1074052232[(1 + vector_data__160)])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"163"[label="163:vector_return(\l  vector:1074055552,\l  index:(packet_chunks[268:272] & 65535),\l  value:1074069448[(1 + vector_data__162)])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"165"[label="165:vector_inc_or_swap(\l  vector:1074072832,\l  index:(hash__164 & 1023),\l  pair:1074323578[0++0++0++1++(packet_chunks[268:272] & 16777215) -> pair_out__165],\l  key_size:4,\l  evict:1,\l  value_size:4)\l=>{pair_out__165}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"173"[label="173:vector_inc_or_swap(\l  vector:1250909220864,\l  index:(hash__172 & 1023),\l  pair:1649888198656[pair_out__171 -> pair_out__173],\l  key_size:4,\l  evict:0,\l  value_size:4)\l=>{pair_out__173}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"161"[label="161:vector_return(\l  vector:1249835474944,\l  index:(packet_chunks[268:272] & 255),\l  value:1239903371264[(1 + vector_data__160)])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"163"[label="163:vector_return(\l  vector:1247687987200,\l  index:(packet_chunks[268:272] & 65535),\l  value:1240134057984[(1 + vector_data__162)])\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"165"[label="165:vector_inc_or_swap(\l  vector:1251982962688,\l  index:(hash__164 & 1023),\l  pair:1649888198656[0++0++0++1++(packet_chunks[268:272] & 16777215) -> pair_out__165],\l  key_size:4,\l  evict:1,\l  value_size:4)\l=>{pair_out__165}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"181"[label="181:!(DEVICE == vector_data__176)\nHR=0.50000000",shape=ellipse,style="filled,",fillcolor="#7f007f54",border=0,];
-	"176"[label="176:vector_borrow(\l  vector:1074207288,\l  index:DEVICE,\l  val_out:1074325176[ -> 1074221184])\l=>{vector_data__176}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"166"[label="166:crc32_hasher_hash(\l  hasher:1074183352,\l  data:1074323578[pair_out__165],\l  size:4) -> hash__166\l=>{hash__166}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
-	"149"[label="149:vector_periodic_clear(\l  vector:1074038336,\l  time:next_time,\l  interval:1000000000) -> cleared__149\l=>{cleared__149}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"167"[label="167:vector_inc_or_swap(\l  vector:1074091064,\l  index:(hash__166 & 1023),\l  pair:1074323578[pair_out__165 -> pair_out__167],\l  key_size:4,\l  evict:0,\l  value_size:4)\l=>{pair_out__167}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"176"[label="176:vector_borrow(\l  vector:1252519837696,\l  index:DEVICE,\l  val_out:1650005639168[ -> 1240099979264])\l=>{vector_data__176}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"166"[label="166:crc32_hasher_hash(\l  hasher:1244735209472,\l  data:1649888198656[pair_out__165],\l  size:4) -> hash__166\l=>{hash__166}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"149"[label="149:vector_periodic_clear(\l  vector:1249835474944,\l  time:next_time,\l  interval:1000000000) -> cleared__149\l=>{cleared__149}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"167"[label="167:vector_inc_or_swap(\l  vector:1248761733120,\l  index:(hash__166 & 1023),\l  pair:1649888198656[pair_out__165 -> pair_out__167],\l  key_size:4,\l  evict:0,\l  value_size:4)\l=>{pair_out__167}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"189"[label="189:!(DEVICE == vector_data__184)\nHR=0.50000000",shape=ellipse,style="filled,",fillcolor="#7f007f54",border=0,];
 	"182"[label="182:fwd(vector_data__176)\lHR=0.50000000
 Fwd={
@@ -68,7 +68,7 @@ Fwd={
 24:0.03333333,26:0.03333333,28:0.03333333}",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"147"[label="147:(((6 == packet_chunks[265]) | (17 == packet_chunks[265])) & (4 <= (-34 + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"159"[label="159:!vector_data__157\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
-	"169"[label="169:vector_inc_or_swap(\l  vector:1074109296,\l  index:(hash__168 & 1023),\l  pair:1074323578[pair_out__167 -> pair_out__169],\l  key_size:4,\l  evict:0,\l  value_size:4)\l=>{pair_out__169}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
+	"169"[label="169:vector_inc_or_swap(\l  vector:1246614245376,\l  index:(hash__168 & 1023),\l  pair:1649888198656[pair_out__167 -> pair_out__169],\l  key_size:4,\l  evict:0,\l  value_size:4)\l=>{pair_out__169}\lHR=0.50000000",shape=box,style="filled,",fillcolor="#7f007f54",border=0,];
 	"144" -> "145";
 	"145" -> "146" [label="True"];
 	"145" -> "195" [label="False"];

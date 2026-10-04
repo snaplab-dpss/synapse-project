@@ -5,19 +5,19 @@
     "num_phase1_speculations": 207459,
     "num_phase2_speculations": 1984,
     "num_speculated_modules": 3409200,
-    "time_per_instantiation_us": 704,
+    "time_per_instantiation_us": 516,
     "time_per_speculation_us": 0,
-    "total_time_spent_generating_execution_plans_us": 2156449,
-    "total_time_spent_speculating_us": 941753
+    "total_time_spent_generating_execution_plans_us": 1581309,
+    "total_time_spent_speculating_us": 674504
   },
   "heuristic": {
     "meta": [
       {
-        "description": "187.99 Gbps (267.03 Mpps)",
+        "description": "188.50 Gbps (267.75 Mpps)",
         "name": "Tput"
       },
       {
-        "description": "187.99 Gbps (267.03 Mpps)",
+        "description": "188.50 Gbps (267.75 Mpps)",
         "name": "Spec"
       },
       {
@@ -48,11 +48,11 @@
   },
   "implementations": [
     {
-      "addr": 1073939616,
+      "addr": 1247687987200,
       "implementation": "Tofino::VectorTable"
     },
     {
-      "addr": 1073927040,
+      "addr": 1249835474944,
       "implementation": "Tofino::BloomFilter"
     }
   ],
@@ -2045,7 +2045,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 6.629385964912281,
-    "elapsed_time_seconds": 412,
+    "elapsed_time_seconds": 288,
     "finished_eps": 1,
     "log10_design_space": 352,
     "ss_size": 3061,
@@ -2054,6 +2054,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2-smartcookie.toml",
-  "tput_estimation_bps": 187986571520,
-  "tput_estimation_pps": 267026380
+  "tput_estimation_bps": 188495438912,
+  "tput_estimation_pps": 267749203
 }

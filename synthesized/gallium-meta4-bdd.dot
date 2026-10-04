@@ -1,20 +1,20 @@
 digraph G {
 	"152"[label="152:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"151"[label="151:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"148"[label="148:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
-	"147"[label="147:vector_return(\l  vector:1074184288,\l  index:vector_data__142,\l  value:1074198184[(vector_data__146 + pkt_len)])\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
-	"142"[label="142:vector_borrow(\l  vector:1074115080,\l  index:allocated_index__136,\l  val_out:1074306344[ -> 1074128976])\l=>{vector_data__142}\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
+	"151"[label="151:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"148"[label="148:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
+	"147"[label="147:vector_return(\l  vector:1248224866304,\l  index:vector_data__142,\l  value:1240032346112[(vector_data__146 + pkt_len)])\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
+	"142"[label="142:vector_borrow(\l  vector:1248761737216,\l  index:allocated_index__136,\l  val_out:1649879810048[ -> 1240150835200])\l=>{vector_data__142}\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
 	"140"[label="140:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"139"[label="139:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"136"[label="136:map_get(\l  map:1074083024,\l  key:1074306298[packet_chunks[268:272]++packet_chunks[272:276]],\l  value_out:1074306320[4294967295 -> allocated_index__136]) -> map_has_this_key__136\l=>{map_has_this_key__136,allocated_index__136}\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
+	"139"[label="139:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"136"[label="136:map_get(\l  map:1247687991296,\l  key:1649812701184[packet_chunks[268:272]++packet_chunks[272:276]],\l  value_out:1649686872064[4294967295 -> allocated_index__136]) -> map_has_this_key__136\l=>{map_has_this_key__136,allocated_index__136}\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
 	"135"[label="135:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"132"[label="132:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"132"[label="132:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"131"[label="131:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"130"[label="130:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"130"[label="130:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"150"[label="150:fwd(DEVICE)\lHR=0.34482173
 Fwd={
 6:0.01149388,5:0.01149423,4:0.01149388,10:0.01149388,
@@ -25,13 +25,13 @@ Fwd={
 20:0.01149388,21:0.01149423,22:0.01149388,23:0.01149423,
 24:0.01149388,25:0.01149423,26:0.01149388,27:0.01149423,
 28:0.01149388,3:0.01149423}",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
-	"129"[label="129:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"126"[label="126:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"123"[label="123:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764960[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"144"[label="144:vector_borrow(\l  vector:1074167072,\l  index:vector_data__142,\l  val_out:1074307872[ -> 1074180968])\l=>{vector_data__144}\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
-	"120"[label="120:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"119"[label="119:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"118"[label="118:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764960[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"129"[label="129:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"126"[label="126:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"123"[label="123:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557760[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"144"[label="144:vector_borrow(\l  vector:1253056708608,\l  index:vector_data__142,\l  val_out:1649997250560[ -> 1240166563840])\l=>{vector_data__144}\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
+	"120"[label="120:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"119"[label="119:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"118"[label="118:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557760[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"117"[label="117:fwd(DEVICE)\lHR=0.00140549
 Fwd={
 6:0.00004717,5:0.00004656,4:0.00004717,10:0.00004717,
@@ -42,31 +42,31 @@ Fwd={
 20:0.00004717,21:0.00004656,22:0.00004717,23:0.00004656,
 24:0.00004717,25:0.00004656,26:0.00004717,27:0.00004656,
 28:0.00004717,3:0.00004656}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"115"[label="115:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"114"[label="114:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"113"[label="113:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764960[packet_chunks[768:780]])\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"112"[label="112:vector_return(\l  vector:1074115080,\l  index:allocated_index__89,\l  value:1074128976[lpm_lookup_result__78])\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"110"[label="110:dchain_rejuvenate_index(\l  chain:1074132216,\l  index:allocated_index__89,\l  time:next_time) -> 1\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"115"[label="115:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"114"[label="114:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"113"[label="113:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557760[packet_chunks[768:780]])\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"112"[label="112:vector_return(\l  vector:1248761737216,\l  index:allocated_index__89,\l  value:1240150835200[lpm_lookup_result__78])\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"110"[label="110:dchain_rejuvenate_index(\l  chain:1241111330816,\l  index:allocated_index__89,\l  time:next_time) -> 1\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"266"[label="266:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"262"[label="262:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764960[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"121"[label="121:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"260"[label="260:vector_borrow(\l  vector:1074149856,\l  index:lpm_lookup_result__78,\l  val_out:1074298136[ -> 1074163752])\l=>{vector_data__93}\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"106"[label="106:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"105"[label="105:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764960[packet_chunks[768:780]])\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"128"[label="128:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"104"[label="104:vector_return(\l  vector:1074115080,\l  index:new_index__91,\l  value:1074128976[lpm_lookup_result__78])\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"262"[label="262:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557760[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"121"[label="121:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"260"[label="260:vector_borrow(\l  vector:1250909216768,\l  index:lpm_lookup_result__78,\l  val_out:1650055970816[ -> 1239892885504])\l=>{vector_data__93}\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"106"[label="106:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"105"[label="105:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557760[packet_chunks[768:780]])\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"128"[label="128:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"104"[label="104:vector_return(\l  vector:1248761737216,\l  index:new_index__91,\l  value:1240150835200[lpm_lookup_result__78])\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"99"[label="99:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"149"[label="149:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
-	"145"[label="145:vector_return(\l  vector:1074167072,\l  index:vector_data__142,\l  value:1074180968[(1 + vector_data__144)])\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
-	"98"[label="98:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"97"[label="97:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"149"[label="149:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
+	"145"[label="145:vector_return(\l  vector:1253056708608,\l  index:vector_data__142,\l  value:1240166563840[(1 + vector_data__144)])\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
+	"98"[label="98:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"97"[label="97:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"68"[label="68:((255 < ...) ? 255 : (... + ...) <= (-42 + pkt_len))\nHR=0.00140585",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
-	"65"[label="65:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"65"[label="65:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
 	"72"[label="72:!dns_response_found__71\nHR=0.00140585",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
-	"64"[label="64:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
-	"63"[label="63:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"64"[label="64:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"63"[label="63:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
 	"127"[label="127:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"66"[label="66:fwd(DEVICE)\lHR=0.65377242
@@ -80,86 +80,86 @@ Fwd={
 24:0.02179228,25:0.02179255,26:0.02179228,27:0.02179255,
 28:0.02179228,3:0.02179255}",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
 	"70"[label="70:(packet_chunks[770] & 128)\nHR=0.00140585",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
-	"263"[label="263:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"263"[label="263:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"77"[label="77:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"111"[label="111:vector_borrow(\l  vector:1074115080,\l  index:allocated_index__89,\l  val_out:1074297600[ -> 1074128976])\l=>{vector_data__111}\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"103"[label="103:vector_borrow(\l  vector:1074115080,\l  index:new_index__91,\l  val_out:1074297664[ -> 1074128976])\l=>{vector_data__103}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"61"[label="61:vector_borrow(\l  vector:1074184288,\l  index:vector_data__57,\l  val_out:1074292664[ -> 1074198184])\l=>{vector_data__61}\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
-	"108"[label="108:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"48"[label="48:packet_borrow_next_chunk(\l  p:1074278008,\l  length:8,\l  chunk:1074290064[ -> 1073764704])\l=>{packet_chunks}\lHR=0.65517827",shape=box,style="filled,",fillcolor="#a7005754",border=0,];
-	"101"[label="101:map_put(\l  map:1074083024,\l  key:1074110744[dns_address__71[0:4]++packet_chunks[272:276]],\l  value:new_index__91)\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"279"[label="279:packet_borrow_next_chunk(\l  p:1074278008,\l  length:(255 < ...) ? 255 : (... + ...),\l  chunk:1074294568[ -> 1073764960])\l=>{packet_chunks}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"71"[label="71:dns_get_response(\l  msg:1073764960,\l  length:(255 < (... + ...)) ? 255 : (18446744073709551608 + packet_chunks[516]++packet_chunks[517]),\l  name:1074293946[(w520 2301726274279086786788049091456702431672693012400990637267555395138682126198037617476387644221781821374740527937143581812446784211669698219510115368197401515) -> dns_name__71],\l  address:1074294024[0 -> dns_address__71]) -> dns_response_found__71\l=>{dns_name__71,dns_address__71,dns_response_found__71}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"111"[label="111:vector_borrow(\l  vector:1248761737216,\l  index:allocated_index__89,\l  val_out:1649896587264[ -> 1240150835200])\l=>{vector_data__111}\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"103"[label="103:vector_borrow(\l  vector:1248761737216,\l  index:new_index__91,\l  val_out:1649930141696[ -> 1240150835200])\l=>{vector_data__103}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"61"[label="61:vector_borrow(\l  vector:1248224866304,\l  index:vector_data__57,\l  val_out:1650055970816[ -> 1240032346112])\l=>{vector_data__61}\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"108"[label="108:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"48"[label="48:packet_borrow_next_chunk(\l  p:1247151124592,\l  length:8,\l  chunk:1650022416384[ -> 1101625557504])\l=>{packet_chunks}\lHR=0.65517827",shape=box,style="filled,",fillcolor="#a7005754",border=0,];
+	"101"[label="101:map_put(\l  map:1247687991296,\l  key:1240037588992[dns_address__71[0:4]++packet_chunks[272:276]],\l  value:new_index__91)\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"279"[label="279:packet_borrow_next_chunk(\l  p:1247151124592,\l  length:(255 < ...) ? 255 : (... + ...),\l  chunk:1650055970816[ -> 1101625557760])\l=>{packet_chunks}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"71"[label="71:dns_get_response(\l  msg:1101625557760,\l  length:(255 < (... + ...)) ? 255 : (18446744073709551608 + packet_chunks[516]++packet_chunks[517]),\l  name:1650978717696[(w520 2301726274279086786788049091456702431672693012400990637267555395138682126198037617476387644221781821374740527937143581812446784211669698219510115368197401515) -> dns_name__71],\l  address:1649745592320[0 -> dns_address__71]) -> dns_response_found__71\l=>{dns_name__71,dns_address__71,dns_response_found__71}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"92"[label="92:!not_out_of_space__91\nHR=0.00000036",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
-	"277"[label="277:packet_borrow_next_chunk(\l  p:1074278008,\l  length:20,\l  chunk:1074289408[ -> 1073764448])\l=>{packet_chunks}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"96"[label="96:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"43"[label="43:expire_items_single_map(\l  chain:1074132216,\l  vector:1074096848,\l  time:(18446744072709551616 + next_time),\l  map:1074083024) -> number_of_freed_flows__43\l=>{number_of_freed_flows__43}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"277"[label="277:packet_borrow_next_chunk(\l  p:1247151124592,\l  length:20,\l  chunk:1649997250560[ -> 1101625557248])\l=>{packet_chunks}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"96"[label="96:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"43"[label="43:expire_items_single_map(\l  chain:1241111330816,\l  vector:1251982962688,\l  time:(18446744072709551616 + next_time),\l  map:1247687991296) -> number_of_freed_flows__43\l=>{number_of_freed_flows__43}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
 	"47"[label="47:((17 == packet_chunks[265]) & (8 <= (-34 + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"49"[label="49:(!(13568 == packet_chunks[514:516]) & !(13568 == packet_chunks[512:514]))\nHR=0.65517827",shape=ellipse,style="filled,",fillcolor="#a7005754",border=0,];
-	"133"[label="133:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"80"[label="80:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764960[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"133"[label="133:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"80"[label="80:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557760[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"86"[label="86:!lpm_lookup_match__85\nHR=0.00140585",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
-	"53"[label="53:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"44"[label="44:packet_borrow_next_chunk(\l  p:1074278008,\l  length:14,\l  chunk:1074288672[ -> 1073764192])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"56"[label="56:dchain_rejuvenate_index(\l  chain:1074132216,\l  index:allocated_index__50,\l  time:next_time) -> 1\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"53"[label="53:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"44"[label="44:packet_borrow_next_chunk(\l  p:1247151124592,\l  length:14,\l  chunk:1649997250560[ -> 1101625556992])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"56"[label="56:dchain_rejuvenate_index(\l  chain:1241111330816,\l  index:allocated_index__50,\l  time:next_time) -> 1\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
 	"79"[label="79:!lpm_lookup_match__78\nHR=0.00140585",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
-	"60"[label="60:vector_return(\l  vector:1074167072,\l  index:vector_data__57,\l  value:1074180968[(1 + vector_data__59)])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"60"[label="60:vector_return(\l  vector:1253056708608,\l  index:vector_data__57,\l  value:1240166563840[(1 + vector_data__59)])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
 	"51"[label="51:!map_has_this_key__50\nHR=0.65377242",shape=ellipse,style="filled,",fillcolor="#a6005854",border=0,];
-	"57"[label="57:vector_borrow(\l  vector:1074115080,\l  index:allocated_index__50,\l  val_out:1074290512[ -> 1074128976])\l=>{vector_data__57}\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"57"[label="57:vector_borrow(\l  vector:1248761737216,\l  index:allocated_index__50,\l  val_out:1650014027776[ -> 1240150835200])\l=>{vector_data__57}\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
 	"45"[label="45:((8 == packet_chunks[12:14]) & (20 <= (... + ...)))\nHR=1.00000000",shape=ellipse,style="filled,",fillcolor="#ff000054",border=0,];
 	"67"[label="67:(20 <= packet_chunks[516]++packet_chunks[517])\nHR=0.00140585",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
-	"59"[label="59:vector_borrow(\l  vector:1074167072,\l  index:vector_data__57,\l  val_out:1074292216[ -> 1074180968])\l=>{vector_data__59}\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
-	"50"[label="50:map_get(\l  map:1074083024,\l  key:1074290466[packet_chunks[268:272]++packet_chunks[272:276]],\l  value_out:1074290488[4294967295 -> allocated_index__50]) -> map_has_this_key__50\l=>{map_has_this_key__50,allocated_index__50}\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
-	"54"[label="54:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"52"[label="52:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"264"[label="264:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"46"[label="46:packet_borrow_next_chunk(\l  p:1074278008,\l  length:20,\l  chunk:1074289408[ -> 1073764448])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
-	"62"[label="62:vector_return(\l  vector:1074184288,\l  index:vector_data__57,\l  value:1074198184[(vector_data__61 + pkt_len)])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"59"[label="59:vector_borrow(\l  vector:1253056708608,\l  index:vector_data__57,\l  val_out:1649997250560[ -> 1240166563840])\l=>{vector_data__59}\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"50"[label="50:map_get(\l  map:1247687991296,\l  key:1650030804992[packet_chunks[268:272]++packet_chunks[272:276]],\l  value_out:1649745592320[4294967295 -> allocated_index__50]) -> map_has_this_key__50\l=>{map_has_this_key__50,allocated_index__50}\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"54"[label="54:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"52"[label="52:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"264"[label="264:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"46"[label="46:packet_borrow_next_chunk(\l  p:1247151124592,\l  length:20,\l  chunk:1649997250560[ -> 1101625557248])\l=>{packet_chunks}\lHR=1.00000000",shape=box,style="filled,",fillcolor="#ff000054",border=0,];
+	"62"[label="62:vector_return(\l  vector:1248224866304,\l  index:vector_data__57,\l  value:1240032346112[(vector_data__61 + pkt_len)])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
 	"55"[label="55:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"73"[label="73:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764960[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"146"[label="146:vector_borrow(\l  vector:1074184288,\l  index:vector_data__142,\l  val_out:1074308320[ -> 1074198184])\l=>{vector_data__146}\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
-	"74"[label="74:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"143"[label="143:vector_return(\l  vector:1074115080,\l  index:allocated_index__136,\l  value:1074128976[vector_data__142])\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
-	"75"[label="75:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"261"[label="261:vector_return(\l  vector:1074149856,\l  index:lpm_lookup_result__78,\l  value:1074163752[(1 + vector_data__93)])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"76"[label="76:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"141"[label="141:dchain_rejuvenate_index(\l  chain:1074132216,\l  index:allocated_index__136,\l  time:next_time) -> 1\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
+	"73"[label="73:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557760[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"146"[label="146:vector_borrow(\l  vector:1248224866304,\l  index:vector_data__142,\l  val_out:1649988861952[ -> 1240032346112])\l=>{vector_data__146}\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
+	"74"[label="74:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"143"[label="143:vector_return(\l  vector:1248761737216,\l  index:allocated_index__136,\l  value:1240150835200[vector_data__142])\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
+	"75"[label="75:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"261"[label="261:vector_return(\l  vector:1250909216768,\l  index:lpm_lookup_result__78,\l  value:1239892885504[(1 + vector_data__93)])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"76"[label="76:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"141"[label="141:dchain_rejuvenate_index(\l  chain:1241111330816,\l  index:allocated_index__136,\l  time:next_time) -> 1\lHR=0.34482173",shape=box,style="filled,",fillcolor="#5700a754",border=0,];
 	"90"[label="90:!map_has_this_key__89\nHR=0.00140585",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
-	"78"[label="78:lpm_lookup(\l  lpm:1074082560,\l  prefix:1074293946[dns_name__71],\l  value_out:1074294044[4294967295 -> lpm_lookup_result__78]) -> lpm_lookup_match__78\l=>{lpm_lookup_match__78,lpm_lookup_result__78}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"82"[label="82:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"89"[label="89:map_get(\l  map:1074083024,\l  key:1074294078[dns_address__71[0:4]++packet_chunks[272:276]],\l  value_out:1074297576[4294967295 -> allocated_index__89]) -> map_has_this_key__89\l=>{map_has_this_key__89,allocated_index__89}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"69"[label="69:packet_borrow_next_chunk(\l  p:1074278008,\l  length:(255 < ...) ? 255 : (... + ...),\l  chunk:1074294568[ -> 1073764960])\l=>{packet_chunks}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"81"[label="81:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"95"[label="95:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764960[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"138"[label="138:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"83"[label="83:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"134"[label="134:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"58"[label="58:vector_return(\l  vector:1074115080,\l  index:allocated_index__50,\l  value:1074128976[vector_data__57])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
+	"78"[label="78:lpm_lookup(\l  lpm:1240977113088,\l  prefix:1650978717696[dns_name__71],\l  value_out:1649628151808[4294967295 -> lpm_lookup_result__78]) -> lpm_lookup_match__78\l=>{lpm_lookup_match__78,lpm_lookup_result__78}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"82"[label="82:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"89"[label="89:map_get(\l  map:1247687991296,\l  key:1649997250560[dns_address__71[0:4]++packet_chunks[272:276]],\l  value_out:1649762369536[4294967295 -> allocated_index__89]) -> map_has_this_key__89\l=>{map_has_this_key__89,allocated_index__89}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"69"[label="69:packet_borrow_next_chunk(\l  p:1247151124592,\l  length:(255 < ...) ? 255 : (... + ...),\l  chunk:1650055970816[ -> 1101625557760])\l=>{packet_chunks}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"81"[label="81:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"95"[label="95:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557760[packet_chunks[768:780]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"138"[label="138:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"83"[label="83:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"134"[label="134:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"58"[label="58:vector_return(\l  vector:1248761737216,\l  index:allocated_index__50,\l  value:1240150835200[vector_data__57])\lHR=0.65377242",shape=box,style="filled,",fillcolor="#a6005854",border=0,];
 	"84"[label="84:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"85"[label="85:lpm_lookup(\l  lpm:1074082784,\l  prefix:1073764464[packet_chunks[272:276]],\l  value_out:1074294064[0 -> lpm_lookup_result__85]) -> lpm_lookup_match__85\l=>{lpm_lookup_match__85,lpm_lookup_result__85}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"85"[label="85:lpm_lookup(\l  lpm:1240306024448,\l  prefix:1101625557264[packet_chunks[272:276]],\l  value_out:1649712037888[0 -> lpm_lookup_result__85]) -> lpm_lookup_match__85\l=>{lpm_lookup_match__85,lpm_lookup_result__85}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
 	"137"[label="137:!map_has_this_key__136\nHR=0.34482173",shape=ellipse,style="filled,",fillcolor="#5700a754",border=0,];
-	"88"[label="88:vector_return(\l  vector:1074132640,\l  index:lpm_lookup_result__78,\l  value:1074146536[(1 + vector_data__87)])\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"257"[label="257:guarded_map_table_guard_check()\l=>{guarded_map_table_1074083024_91}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"107"[label="107:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"275"[label="275:(guarded_map_table_1074083024_91[0] != 0)\nHR=0.00000036",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
+	"88"[label="88:vector_return(\l  vector:1246614245376,\l  index:lpm_lookup_result__78,\l  value:1240161320960[(1 + vector_data__87)])\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"257"[label="257:guarded_map_table_guard_check()\l=>{guarded_map_table_1247687991296_91}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"107"[label="107:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"275"[label="275:(guarded_map_table_1247687991296_91[0] != 0)\nHR=0.00000036",shape=ellipse,style="filled,",fillcolor="#0000fe54",border=0,];
 	"122"[label="122:fwd(DEVICE)\lHR=0.00000000
 Fwd={}",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"116"[label="116:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"91"[label="91:dchain_allocate_new_index(\l  chain:1074132216,\l  index_out:1074297576[4294967295 -> new_index__91],\l  time:next_time) -> not_out_of_space__91\l=>{not_out_of_space__91,new_index__91}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"125"[label="125:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764448[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"116"[label="116:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00140549",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"91"[label="91:dchain_allocate_new_index(\l  chain:1241111330816,\l  index_out:1649762369536[4294967295 -> new_index__91],\l  time:next_time) -> not_out_of_space__91\l=>{not_out_of_space__91,new_index__91}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"125"[label="125:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557248[packet_chunks[256:276]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"109"[label="109:fwd(DEVICE)\lHR=0.00000036
 Fwd={
 30:0.00000036}",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"276"[label="276:packet_borrow_next_chunk(\l  p:1074278008,\l  length:14,\l  chunk:1074288672[ -> 1073764192])\l=>{packet_chunks}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"265"[label="265:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764192[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"87"[label="87:vector_borrow(\l  vector:1074132640,\l  index:lpm_lookup_result__78,\l  val_out:1074297128[ -> 1074146536])\l=>{vector_data__87}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"278"[label="278:packet_borrow_next_chunk(\l  p:1074278008,\l  length:8,\l  chunk:1074290064[ -> 1073764704])\l=>{packet_chunks}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
-	"124"[label="124:packet_return_chunk(\l  p:1074278008,\l  the_chunk:1073764704[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"93"[label="93:vector_borrow(\l  vector:1074149856,\l  index:lpm_lookup_result__78,\l  val_out:1074298136[ -> 1074163752])\l=>{vector_data__93}\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
-	"94"[label="94:vector_return(\l  vector:1074149856,\l  index:lpm_lookup_result__78,\l  value:1074163752[(1 + vector_data__93)])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"276"[label="276:packet_borrow_next_chunk(\l  p:1247151124592,\l  length:14,\l  chunk:1649997250560[ -> 1101625556992])\l=>{packet_chunks}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"265"[label="265:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625556992[packet_chunks])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"87"[label="87:vector_borrow(\l  vector:1246614245376,\l  index:lpm_lookup_result__78,\l  val_out:1650022416384[ -> 1240161320960])\l=>{vector_data__87}\lHR=0.00140585",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"278"[label="278:packet_borrow_next_chunk(\l  p:1247151124592,\l  length:8,\l  chunk:1650022416384[ -> 1101625557504])\l=>{packet_chunks}\lHR=0.00000036",shape=box,style="filled,",fillcolor="#0000fe54",border=0,];
+	"124"[label="124:packet_return_chunk(\l  p:1247151124592,\l  the_chunk:1101625557504[packet_chunks[512:520]])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"93"[label="93:vector_borrow(\l  vector:1250909216768,\l  index:lpm_lookup_result__78,\l  val_out:1650055970816[ -> 1239892885504])\l=>{vector_data__93}\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
+	"94"[label="94:vector_return(\l  vector:1250909216768,\l  index:lpm_lookup_result__78,\l  value:1239892885504[(1 + vector_data__93)])\lHR=0.00000000",shape=box,style="filled,",fillcolor="#0000ff54",border=0,];
 	"43" -> "44";
 	"44" -> "45";
 	"45" -> "46" [label="True"];

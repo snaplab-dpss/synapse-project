@@ -23,19 +23,19 @@ Winner:
   Memory Usage: 6710272 bits
 
 Stateful Implementations:
-  1074163992: Tofino::VectorRegister
-  1074145760: Tofino::VectorRegister
-  1074127528: Tofino::VectorRegister
-  1074109296: Tofino::VectorRegister
-  1074072832: Tofino::VectorRegister
-  1074055552: Tofino::VectorRegister
-  1074207288: Tofino::VectorTable
-  1074091064: Tofino::VectorRegister
-  1074038336: Tofino::VectorRegister
-  1074190072: Tofino::VectorTable
+  1248224862208: Tofino::VectorRegister
+  1246614245376: Tofino::VectorRegister
+  1253056708608: Tofino::VectorRegister
+  1251982962688: Tofino::VectorRegister
+  1248761733120: Tofino::VectorRegister
+  1247687987200: Tofino::VectorRegister
+  1250909220864: Tofino::VectorRegister
+  1249835474944: Tofino::VectorRegister
+  1252519837696: Tofino::VectorTable
+  1246077374464: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       5 seconds
+  Elapsed time:       3 seconds
   Steps:              53
   Backtracks:         0
   Search space size:  250
@@ -116,7 +116,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [ingress_port_to_nf_dev,vector_table_1074190072_157]
+Objs: [ingress_port_to_nf_dev,vector_table_1246077374464_157]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -126,7 +126,7 @@ MapRAM: 17'408/786'432 B (2.21354%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074038336_0]
+Objs: [vector_register_1249835474944_0]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -136,7 +136,7 @@ MapRAM: 278'528/786'432 B (35.4167%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074055552_0]
+Objs: [vector_register_1247687987200_0]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -156,7 +156,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074072832_0]
+Objs: [vector_register_1251982962688_0]
 -------------------------------------
 -------------------------------------
 Stage 5
@@ -176,7 +176,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074091064_0]
+Objs: [vector_register_1248761733120_0]
 -------------------------------------
 -------------------------------------
 Stage 7
@@ -196,7 +196,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074109296_0]
+Objs: [vector_register_1246614245376_0]
 -------------------------------------
 -------------------------------------
 Stage 9
@@ -216,7 +216,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074127528_0]
+Objs: [vector_register_1253056708608_0]
 -------------------------------------
 -------------------------------------
 Stage 11
@@ -236,7 +236,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074145760_0]
+Objs: [vector_register_1250909220864_0]
 -------------------------------------
 -------------------------------------
 Stage 13
@@ -256,7 +256,7 @@ MapRAM: 20'480/786'432 B (2.60417%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074163992_0]
+Objs: [vector_register_1248224862208_0]
 -------------------------------------
 -------------------------------------
 Stage 15
@@ -266,7 +266,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [vector_table_1074207288_176,vector_table_1074207288_184]
+Objs: [vector_table_1252519837696_176,vector_table_1252519837696_184]
 -------------------------------------
 ==========================================================
 ========================================================

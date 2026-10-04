@@ -23,12 +23,12 @@ Winner:
   Memory Usage: 7867776 bits
 
 Stateful Implementations:
-  1073954136: Tofino::CuckooHashTable
-  1073971272: Tofino::CuckooHashTable
-  1073923096: Tofino::CuckooHashTable
+  1251982962688: Tofino::CuckooHashTable
+  1240708677632: Tofino::CuckooHashTable
+  1249835474944: Tofino::CuckooHashTable
 
 Search Metadata:
-  Elapsed time:       4 seconds
+  Elapsed time:       3 seconds
   Steps:              44
   Backtracks:         0
   Search space size:  155
@@ -119,7 +119,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [cuckoo_hash_table_1073923096_hash_calc_0,ingress_port_to_nf_dev]
+Objs: [cuckoo_hash_table_1249835474944_hash_calc_0,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -129,7 +129,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [cuckoo_hash_table_1073923096_hash_calc_1]
+Objs: [cuckoo_hash_table_1249835474944_hash_calc_1]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -139,7 +139,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [cuckoo_hash_table_1073923096_hash_calc_2]
+Objs: [cuckoo_hash_table_1249835474944_hash_calc_2]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -149,7 +149,7 @@ MapRAM: 32'768/786'432 B (4.16667%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [cuckoo_hash_table_1073923096_reg_k_1]
+Objs: [cuckoo_hash_table_1249835474944_reg_k_1]
 -------------------------------------
 -------------------------------------
 Stage 4
@@ -159,7 +159,7 @@ MapRAM: 32'768/786'432 B (4.16667%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [cuckoo_hash_table_1073923096_reg_k_2]
+Objs: [cuckoo_hash_table_1249835474944_reg_k_2]
 -------------------------------------
 -------------------------------------
 Stage 5
@@ -169,7 +169,7 @@ MapRAM: 32'768/786'432 B (4.16667%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [cuckoo_hash_table_1073923096_reg_v_1]
+Objs: [cuckoo_hash_table_1249835474944_reg_v_1]
 -------------------------------------
 -------------------------------------
 Stage 6
@@ -179,7 +179,7 @@ MapRAM: 32'768/786'432 B (4.16667%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [cuckoo_hash_table_1073923096_reg_v_2]
+Objs: [cuckoo_hash_table_1249835474944_reg_v_2]
 -------------------------------------
 -------------------------------------
 Stage 7
@@ -189,7 +189,7 @@ MapRAM: 32'768/786'432 B (4.16667%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [cuckoo_hash_table_1073923096_reg_ts_1]
+Objs: [cuckoo_hash_table_1249835474944_reg_ts_1]
 -------------------------------------
 -------------------------------------
 Stage 8
@@ -199,7 +199,7 @@ MapRAM: 32'768/786'432 B (4.16667%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [cuckoo_hash_table_1073923096_reg_ts_2]
+Objs: [cuckoo_hash_table_1249835474944_reg_ts_2]
 -------------------------------------
 -------------------------------------
 Stage 9
@@ -209,7 +209,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [cuckoo_hash_table_1073923096_hash_old_key]
+Objs: [cuckoo_hash_table_1249835474944_hash_old_key]
 -------------------------------------
 -------------------------------------
 Stage 10
@@ -219,7 +219,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [cuckoo_hash_table_1073923096_hash_new_key]
+Objs: [cuckoo_hash_table_1249835474944_hash_new_key]
 -------------------------------------
 -------------------------------------
 Stage 11
@@ -229,7 +229,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [cuckoo_hash_table_1073923096_hash_old_key_2]
+Objs: [cuckoo_hash_table_1249835474944_hash_old_key_2]
 -------------------------------------
 -------------------------------------
 Stage 12
@@ -239,7 +239,7 @@ MapRAM: 147'456/786'432 B (18.75%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [cuckoo_hash_table_1073923096_swap_transient]
+Objs: [cuckoo_hash_table_1249835474944_swap_transient]
 -------------------------------------
 -------------------------------------
 Stage 13
@@ -249,7 +249,7 @@ MapRAM: 147'456/786'432 B (18.75%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [cuckoo_hash_table_1073923096_swapped_transient]
+Objs: [cuckoo_hash_table_1249835474944_swapped_transient]
 -------------------------------------
 ==========================================================
 ========================================================

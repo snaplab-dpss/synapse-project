@@ -19,13 +19,13 @@ Winner:
   Spec: 1.18 Tbps (1.68 Gpps)
 
 Stateful Implementations:
-  1074093704: Tofino::VectorRegister
-  1074076064: Tofino::DchainTable
-  1074044080: Tofino::GuardedMapTable
-  1074076488: Tofino::VectorTable
+  1248761733120: Tofino::VectorRegister
+  1249835474944: Tofino::GuardedMapTable
+  1240352161792: Tofino::DchainTable
+  1251982962688: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       16 seconds
+  Elapsed time:       11 seconds
   Steps:              59
   Backtracks:         0
   Search space size:  185
@@ -112,7 +112,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [ingress_port_to_nf_dev,vector_table_1074076488_139]
+Objs: [ingress_port_to_nf_dev,vector_table_1251982962688_139]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -122,7 +122,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [guarded_map_table_1074044080_142,guarded_map_table_1074044080_155]
+Objs: [guarded_map_table_1249835474944_142,guarded_map_table_1249835474944_155]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -132,7 +132,7 @@ MapRAM: 16'385/786'432 B (2.08346%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 13/128 B (10.1562%)
-Objs: [guarded_map_table_1074044080_155,guarded_map_table_1074044080_guard]
+Objs: [guarded_map_table_1249835474944_155,guarded_map_table_1249835474944_guard]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -142,7 +142,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [dchain_table_1074076064_148,dchain_table_1074076064_174]
+Objs: [dchain_table_1240352161792_148,dchain_table_1240352161792_174]
 -------------------------------------
 -------------------------------------
 Stage 4
@@ -152,7 +152,7 @@ MapRAM: 16'448/786'432 B (2.09147%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074093704_0]
+Objs: [vector_register_1248761733120_0]
 -------------------------------------
 ==========================================================
 ========================================================

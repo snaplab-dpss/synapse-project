@@ -5,10 +5,10 @@
     "num_phase1_speculations": 6831,
     "num_phase2_speculations": 136,
     "num_speculated_modules": 86502,
-    "time_per_instantiation_us": 1560,
-    "time_per_speculation_us": 21,
-    "total_time_spent_generating_execution_plans_us": 294899,
-    "total_time_spent_speculating_us": 1820234
+    "time_per_instantiation_us": 852,
+    "time_per_speculation_us": 7,
+    "total_time_spent_generating_execution_plans_us": 161186,
+    "total_time_spent_speculating_us": 659127
   },
   "heuristic": {
     "meta": [
@@ -32,15 +32,15 @@
   },
   "implementations": [
     {
-      "addr": 1073954136,
+      "addr": 1251982962688,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1073971272,
+      "addr": 1240708677632,
       "implementation": "Tofino::DchainTable"
     },
     {
-      "addr": 1073923096,
+      "addr": 1249835474944,
       "implementation": "Tofino::GuardedMapTable"
     }
   ],
@@ -481,7 +481,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 2.786764705882353,
-    "elapsed_time_seconds": 10,
+    "elapsed_time_seconds": 5,
     "finished_eps": 1,
     "log10_design_space": 24,
     "ss_size": 189,

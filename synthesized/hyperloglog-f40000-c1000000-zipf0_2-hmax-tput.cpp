@@ -6,16 +6,16 @@ using namespace sycon;
 struct state_t : public nf_state_t {
   IngressPortToNFDev ingress_port_to_nf_dev;
   ForwardingTbl forwarding_tbl;
-  VectorRegister vector_register_1073917816;
-  VectorRegister vector_register_1073935032;
-  VectorRegister vector_register_1073952248;
+  VectorRegister vector_register_1249835474944;
+  VectorRegister vector_register_1247687987200;
+  VectorRegister vector_register_1251982962688;
 
   state_t()
     : ingress_port_to_nf_dev(),
       forwarding_tbl(),
-      vector_register_1073917816("vector_register_1073917816",{"Ingress.vector_register_1073917816_0",}),
-      vector_register_1073935032("vector_register_1073935032",{"Ingress.vector_register_1073935032_0",}),
-      vector_register_1073952248("vector_register_1073952248",{"Ingress.vector_register_1073952248_0",})
+      vector_register_1249835474944("vector_register_1249835474944",{"Ingress.vector_register_1249835474944_0",}),
+      vector_register_1247687987200("vector_register_1247687987200",{"Ingress.vector_register_1247687987200_0",}),
+      vector_register_1251982962688("vector_register_1251982962688",{"Ingress.vector_register_1251982962688_0",})
     {}
 };
 
@@ -98,11 +98,11 @@ void sycon::nf_init() {
   state->forwarding_tbl.add_fwd_nf_dev_entry(30, asic_get_dev_port(31));
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 31);
   state->forwarding_tbl.add_fwd_nf_dev_entry(31, asic_get_dev_port(32));
-  // BDD node 0:vector_allocate(elem_size:(w32 4), capacity:(w32 64), vector_out:(w64 1073917528)[(w64 0) -> (w64 1073917816)])
+  // BDD node 0:vector_allocate(elem_size:(w32 4), capacity:(w32 64), vector_out:(w64 1241782419456)[(w64 0) -> (w64 1249835474944)])
   // Module DataplaneVectorRegisterAllocate
-  // BDD node 1:vector_allocate(elem_size:(w32 4), capacity:(w32 1), vector_out:(w64 1073917536)[(w64 0) -> (w64 1073935032)])
+  // BDD node 1:vector_allocate(elem_size:(w32 4), capacity:(w32 1), vector_out:(w64 1241782419464)[(w64 0) -> (w64 1247687987200)])
   // Module DataplaneVectorRegisterAllocate
-  // BDD node 2:vector_allocate(elem_size:(w32 4), capacity:(w32 1), vector_out:(w64 1073917544)[(w64 0) -> (w64 1073952248)])
+  // BDD node 2:vector_allocate(elem_size:(w32 4), capacity:(w32 1), vector_out:(w64 1241782419472)[(w64 0) -> (w64 1251982962688)])
   // Module DataplaneVectorRegisterAllocate
 
 }

@@ -5,10 +5,10 @@
     "num_phase1_speculations": 23388,
     "num_phase2_speculations": 392,
     "num_speculated_modules": 193808,
-    "time_per_instantiation_us": 192,
+    "time_per_instantiation_us": 104,
     "time_per_speculation_us": 0,
-    "total_time_spent_generating_execution_plans_us": 48008,
-    "total_time_spent_speculating_us": 124363
+    "total_time_spent_generating_execution_plans_us": 26179,
+    "total_time_spent_speculating_us": 75301
   },
   "heuristic": {
     "meta": [
@@ -48,43 +48,43 @@
   },
   "implementations": [
     {
-      "addr": 1074163992,
+      "addr": 1248224862208,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074145760,
+      "addr": 1246614245376,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074127528,
+      "addr": 1253056708608,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074109296,
+      "addr": 1251982962688,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074072832,
+      "addr": 1248761733120,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074055552,
+      "addr": 1247687987200,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074207288,
+      "addr": 1250909220864,
+      "implementation": "Tofino::VectorRegister"
+    },
+    {
+      "addr": 1249835474944,
+      "implementation": "Tofino::VectorRegister"
+    },
+    {
+      "addr": 1252519837696,
       "implementation": "Tofino::VectorTable"
     },
     {
-      "addr": 1074091064,
-      "implementation": "Tofino::VectorRegister"
-    },
-    {
-      "addr": 1074038336,
-      "implementation": "Tofino::VectorRegister"
-    },
-    {
-      "addr": 1074190072,
+      "addr": 1246077374464,
       "implementation": "Tofino::VectorTable"
     }
   ],
@@ -460,7 +460,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 4.716981132075472,
-    "elapsed_time_seconds": 5,
+    "elapsed_time_seconds": 3,
     "finished_eps": 1,
     "log10_design_space": 32,
     "ss_size": 250,

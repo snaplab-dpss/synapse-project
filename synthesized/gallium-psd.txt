@@ -19,15 +19,15 @@ Winner:
   Spec: 352.00 Kbps (500.00 pps)
 
 Stateful Implementations:
-  1074079432: Tofino::VectorRegister
-  1074096984: Tofino::BloomFilter
-  1074096568: Tofino::DchainTable
-  1074126776: Tofino::VectorTable
-  1074048392: Tofino::GuardedMapTable
-  1074109560: Tofino::VectorTable
+  1248761733120: Tofino::BloomFilter
+  1241094553600: Tofino::DchainTable
+  1251982962688: Tofino::VectorRegister
+  1253056708608: Tofino::VectorTable
+  1249835474944: Tofino::GuardedMapTable
+  1246614245376: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       27 seconds
+  Elapsed time:       12 seconds
   Steps:              75
   Backtracks:         0
   Search space size:  190
@@ -129,7 +129,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [ingress_port_to_nf_dev,vector_table_1074109560_142]
+Objs: [ingress_port_to_nf_dev,vector_table_1246614245376_142]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -139,7 +139,7 @@ MapRAM: 16'385/786'432 B (2.08346%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 5/128 B (3.90625%)
-Objs: [guarded_map_table_1074048392_145,guarded_map_table_1074048392_guard]
+Objs: [guarded_map_table_1249835474944_145,guarded_map_table_1249835474944_guard]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -149,7 +149,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [dchain_table_1074096568_167,vector_table_1074126776_192,vector_table_1074126776_270]
+Objs: [dchain_table_1241094553600_167,vector_table_1253056708608_192,vector_table_1253056708608_270]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -159,7 +159,7 @@ MapRAM: 278'528/786'432 B (35.4167%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074079432_0]
+Objs: [vector_register_1251982962688_0]
 -------------------------------------
 -------------------------------------
 Stage 4
@@ -169,7 +169,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_hash_0,bf_1074096984_row_0]
+Objs: [bf_1248761733120_hash_0,bf_1248761733120_row_0]
 -------------------------------------
 -------------------------------------
 Stage 5
@@ -179,7 +179,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_hash_1,bf_1074096984_row_1]
+Objs: [bf_1248761733120_hash_1,bf_1248761733120_row_1]
 -------------------------------------
 -------------------------------------
 Stage 6
@@ -189,7 +189,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_hash_2,bf_1074096984_row_2]
+Objs: [bf_1248761733120_hash_2,bf_1248761733120_row_2]
 -------------------------------------
 -------------------------------------
 Stage 7
@@ -199,7 +199,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_hash_3,bf_1074096984_row_3]
+Objs: [bf_1248761733120_hash_3,bf_1248761733120_row_3]
 -------------------------------------
 ==========================================================
 ========================================================

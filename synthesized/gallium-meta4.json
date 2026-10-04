@@ -5,10 +5,10 @@
     "num_phase1_speculations": 77016,
     "num_phase2_speculations": 1062,
     "num_speculated_modules": 1135060,
-    "time_per_instantiation_us": 1065,
-    "time_per_speculation_us": 21,
-    "total_time_spent_generating_execution_plans_us": 398669,
-    "total_time_spent_speculating_us": 24688355
+    "time_per_instantiation_us": 761,
+    "time_per_speculation_us": 12,
+    "total_time_spent_generating_execution_plans_us": 284858,
+    "total_time_spent_speculating_us": 13979447
   },
   "heuristic": {
     "meta": [
@@ -32,39 +32,39 @@
   },
   "implementations": [
     {
-      "addr": 1074149856,
-      "implementation": "Tofino::VectorRegister"
-    },
-    {
-      "addr": 1074132640,
-      "implementation": "Tofino::VectorRegister"
-    },
-    {
-      "addr": 1074082560,
+      "addr": 1240306024448,
       "implementation": "Tofino::LPM"
     },
     {
-      "addr": 1074082784,
+      "addr": 1240977113088,
       "implementation": "Tofino::LPM"
     },
     {
-      "addr": 1074184288,
+      "addr": 1248224866304,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074167072,
+      "addr": 1250909216768,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074115080,
+      "addr": 1253056708608,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074132216,
+      "addr": 1246614245376,
+      "implementation": "Tofino::VectorRegister"
+    },
+    {
+      "addr": 1248761737216,
+      "implementation": "Tofino::VectorRegister"
+    },
+    {
+      "addr": 1241111330816,
       "implementation": "Tofino::DchainTable"
     },
     {
-      "addr": 1074083024,
+      "addr": 1247687991296,
       "implementation": "Tofino::GuardedMapTable"
     }
   ],
@@ -696,7 +696,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.175213675213675,
-    "elapsed_time_seconds": 219,
+    "elapsed_time_seconds": 154,
     "finished_eps": 1,
     "log10_design_space": 51,
     "ss_size": 374,

@@ -19,11 +19,11 @@ Winner:
   Spec: 704.00 Kbps (1.00 Kpps)
 
 Stateful Implementations:
-  1073939616: Tofino::VectorRegister
-  1073927040: Tofino::BloomFilter
+  1247687987200: Tofino::VectorRegister
+  1249835474944: Tofino::BloomFilter
 
 Search Metadata:
-  Elapsed time:       253 seconds
+  Elapsed time:       162 seconds
   Steps:              490
   Backtracks:         1
   Search space size:  2'484
@@ -507,7 +507,7 @@ MapRAM: 163'844/786'432 B (20.8338%)
 Logical IDs: 8/16
 Hash Dist Units: 2/6
 Exact Match Crossbar: 21/128 B (16.4062%)
-Objs: [bf_1073927040_hash_0,bf_1073927040_row_0,compute_op_lshr_457,ingress_port_to_nf_dev,vector_register_1073939616_0]
+Objs: [bf_1249835474944_hash_0,bf_1249835474944_row_0,compute_op_lshr_457,ingress_port_to_nf_dev,vector_register_1247687987200_0]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -517,7 +517,7 @@ MapRAM: 147'456/786'432 B (18.75%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 15/128 B (11.7188%)
-Objs: [bf_1073927040_hash_1,bf_1073927040_row_1]
+Objs: [bf_1249835474944_hash_1,bf_1249835474944_row_1]
 -------------------------------------
 -------------------------------------
 Stage 2

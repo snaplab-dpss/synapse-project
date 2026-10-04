@@ -23,12 +23,12 @@ Winner:
   Memory Usage: 20217776 bits
 
 Stateful Implementations:
-  1073954136: Tofino::VectorRegister
-  1073971272: Tofino::HHTable
-  1073923096: Tofino::HHTable
+  1251982962688: Tofino::VectorRegister
+  1240708677632: Tofino::HHTable
+  1249835474944: Tofino::HHTable
 
 Search Metadata:
-  Elapsed time:       10 seconds
+  Elapsed time:       5 seconds
   Steps:              49
   Backtracks:         0
   Search space size:  171
@@ -119,7 +119,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [hh_table_1073923096_table_13,ingress_port_to_nf_dev]
+Objs: [hh_table_1249835474944_table_13,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -129,7 +129,7 @@ MapRAM: 65'537/786'432 B (8.33346%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 5/128 B (3.90625%)
-Objs: [hh_table_1073923096_cached_counters,hh_table_1073923096_packet_sampler]
+Objs: [hh_table_1249835474944_cached_counters,hh_table_1249835474944_packet_sampler]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -139,7 +139,7 @@ MapRAM: 573'444/786'432 B (72.9172%)
 Logical IDs: 7/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 21/128 B (16.4062%)
-Objs: [hh_table_1073923096_cms_row_0,hh_table_1073923096_cms_row_2,hh_table_1073923096_digest,hh_table_1073923096_hash_calc_0,hh_table_1073923096_hash_calc_1,hh_table_1073923096_hash_calc_2,hh_table_1073923096_hash_calc_3,hh_table_1073923096_threshold]
+Objs: [hh_table_1249835474944_cms_row_0,hh_table_1249835474944_cms_row_3,hh_table_1249835474944_digest,hh_table_1249835474944_hash_calc_0,hh_table_1249835474944_hash_calc_1,hh_table_1249835474944_hash_calc_2,hh_table_1249835474944_hash_calc_3,hh_table_1249835474944_threshold]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -149,7 +149,7 @@ MapRAM: 557'056/786'432 B (70.8333%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [hh_table_1073923096_cms_row_1,hh_table_1073923096_cms_row_3]
+Objs: [hh_table_1249835474944_cms_row_1,hh_table_1249835474944_cms_row_2]
 -------------------------------------
 -------------------------------------
 Stage 4
@@ -159,7 +159,7 @@ MapRAM: 49'152/786'432 B (6.25%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1073954136_0]
+Objs: [vector_register_1251982962688_0]
 -------------------------------------
 ==========================================================
 ========================================================

@@ -563,7 +563,7 @@ struct LnStats {
 
 PcapReader warmup_reader;
 PcapReader reader;
-std::unordered_map<int, MapStats> stats_per_map;
+std::unordered_map<uint64_t, MapStats> stats_per_map; // by the map's address
 std::unordered_map<int, PortStats> forwarding_stats_per_route_op;
 std::unordered_map<uint64_t, uint64_t> node_pkt_counter;
 std::unordered_map<int, LnStats> ln_stats_per_node;
@@ -1103,8 +1103,8 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  stats_per_map[1074047984ULL].init(158);
-  stats_per_map[1074047984ULL].init(144);
+  stats_per_map[1249835474944ULL].init(158);
+  stats_per_map[1249835474944ULL].init(144);
   forwarding_stats_per_route_op.insert({187, PortStats{}});
   forwarding_stats_per_route_op.insert({185, PortStats{}});
   forwarding_stats_per_route_op.insert({176, PortStats{}});
@@ -1223,7 +1223,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[11] = *(hdr3+3);
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074047984ULL].update(144, key, 12, now);
+        stats_per_map[1249835474944ULL].update(144, key, 12, now);
         // BDDNode 145
         inc_path_counter(145);
         if ((0) == (map_hit)) {
@@ -1275,7 +1275,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
               inc_path_counter(158);
               memcpy((void*)vector_value_out67, (void*)key, 12);
               map_put(map, vector_value_out67, index);
-              stats_per_map[1074047984ULL].update(158, vector_value_out67, 12, now);
+              stats_per_map[1249835474944ULL].update(158, vector_value_out67, 12, now);
               // BDDNode 159
               inc_path_counter(159);
               // BDDNode 160

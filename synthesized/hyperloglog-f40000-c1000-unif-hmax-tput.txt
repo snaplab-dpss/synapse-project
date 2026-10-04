@@ -23,12 +23,12 @@ Winner:
   Memory Usage: 1072768 bits
 
 Stateful Implementations:
-  1073952248: Tofino::VectorRegister
-  1073935032: Tofino::VectorRegister
-  1073917816: Tofino::VectorRegister
+  1251982962688: Tofino::VectorRegister
+  1247687987200: Tofino::VectorRegister
+  1249835474944: Tofino::VectorRegister
 
 Search Metadata:
-  Elapsed time:       1 seconds
+  Elapsed time:       0 seconds
   Steps:              41
   Backtracks:         0
   Search space size:  155
@@ -159,7 +159,7 @@ MapRAM: 16'640/786'432 B (2.11589%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1073917816_0]
+Objs: [vector_register_1249835474944_0]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -199,7 +199,7 @@ MapRAM: 16'388/786'432 B (2.08384%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1073935032_0]
+Objs: [vector_register_1247687987200_0]
 -------------------------------------
 -------------------------------------
 Stage 7
@@ -229,7 +229,7 @@ MapRAM: 16'388/786'432 B (2.08384%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1073952248_0]
+Objs: [vector_register_1251982962688_0]
 -------------------------------------
 -------------------------------------
 Stage 10

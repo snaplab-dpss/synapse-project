@@ -19,12 +19,12 @@ Winner:
   Spec: 118.68 Gbps (168.57 Mpps)
 
 Stateful Implementations:
-  1073954136: Tofino::VectorRegister
-  1073971272: Tofino::DchainTable
-  1073923096: Tofino::GuardedMapTable
+  1251982962688: Tofino::VectorRegister
+  1240708677632: Tofino::DchainTable
+  1249835474944: Tofino::GuardedMapTable
 
 Search Metadata:
-  Elapsed time:       10 seconds
+  Elapsed time:       5 seconds
   Steps:              65
   Backtracks:         0
   Search space size:  189
@@ -120,7 +120,7 @@ MapRAM: 16'385/786'432 B (2.08346%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 7/128 B (5.46875%)
-Objs: [guarded_map_table_1073923096_13,guarded_map_table_1073923096_guard,ingress_port_to_nf_dev]
+Objs: [guarded_map_table_1249835474944_13,guarded_map_table_1249835474944_guard,ingress_port_to_nf_dev]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -130,7 +130,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [dchain_table_1073971272_38]
+Objs: [dchain_table_1240708677632_38]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -140,7 +140,7 @@ MapRAM: 49'152/786'432 B (6.25%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1073954136_0]
+Objs: [vector_register_1251982962688_0]
 -------------------------------------
 ==========================================================
 ========================================================

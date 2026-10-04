@@ -80,7 +80,7 @@ header hdr1_h {
   bit<32> data3;
   bit<32> data4;
 }
-struct vector_register_1073917816_0_pair_t {
+struct vector_register_1249835474944_0_pair_t {
   bit<32> lo;
   bit<32> hi;
 }
@@ -441,11 +441,11 @@ control Ingress(
     }
   }
 
-  Register<vector_register_1073917816_0_pair_t,_>(64) vector_register_1073917816_0;
+  Register<vector_register_1249835474944_0_pair_t,_>(64) vector_register_1249835474944_0;
 
-  RegisterAction<vector_register_1073917816_0_pair_t, bit<6>, bit<32>>(vector_register_1073917816_0) vector_register_1073917816_0_read_conditional_write_return_other_91 = {
-    void apply(inout vector_register_1073917816_0_pair_t value, out bit<32> out_value) {
-      vector_register_1073917816_0_pair_t in_value = value;
+  RegisterAction<vector_register_1249835474944_0_pair_t, bit<6>, bit<32>>(vector_register_1249835474944_0) vector_register_1249835474944_0_read_conditional_write_return_other_91 = {
+    void apply(inout vector_register_1249835474944_0_pair_t value, out bit<32> out_value) {
+      vector_register_1249835474944_0_pair_t in_value = value;
       if ((in_value.lo) < (meta.find_first_set_bit_7_out)) {
         value.lo = meta.find_first_set_bit_7_out;
         value.hi = in_value.lo;
@@ -457,8 +457,8 @@ control Ingress(
     }
   };
 
-  action regexec_vector_register_1073917816_0_read_conditional_write_return_other_91() {
-    meta.vector_reg_shadow0 = vector_register_1073917816_0_read_conditional_write_return_other_91.execute(meta.vector_reg_index0);
+  action regexec_vector_register_1249835474944_0_read_conditional_write_return_other_91() {
+    meta.vector_reg_shadow0 = vector_register_1249835474944_0_read_conditional_write_return_other_91.execute(meta.vector_reg_index0);
   }
   action power_of_two_12_get_value(bit<32> v) {
     meta.power_of_two_12_out = v;
@@ -552,9 +552,9 @@ control Ingress(
     meta.op_sub_82_out = meta.power_of_two_12_out - meta.power_of_two_13_out;
   }
 
-  Register<bit<32>,_>(1, 0) vector_register_1073935032_0;
+  Register<bit<32>,_>(1, 0) vector_register_1247687987200_0;
 
-  RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1073935032_0) vector_register_1073935032_0_add_value_368 = {
+  RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1247687987200_0) vector_register_1247687987200_0_add_value_368 = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       value = value + meta.op_sub_82_out;
       out_value = value;
@@ -570,9 +570,9 @@ control Ingress(
     }
   };
 
-  Register<bit<32>,_>(1, 0) vector_register_1073952248_0;
+  Register<bit<32>,_>(1, 0) vector_register_1251982962688_0;
 
-  RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1073952248_0) vector_register_1073952248_0_read_conditional_write_545 = {
+  RegisterAction<bit<32>, bit<32>, bit<32>>(vector_register_1251982962688_0) vector_register_1251982962688_0_read_conditional_write_545 = {
     void apply(inout bit<32> value, out bit<32> out_value) {
       out_value = value;
       if ((32w0x00000000) == (meta.vector_reg_shadow0)) {
@@ -785,7 +785,7 @@ control Ingress(
             // EP node  91:VectorRegisterReadConditionalUpdateSingleAction
             // BDD node 8:vector_borrow
             meta.vector_reg_index0 = (bit<6>)((hll_hash0) >> (32w0x0000001a));
-            regexec_vector_register_1073917816_0_read_conditional_write_return_other_91();
+            regexec_vector_register_1249835474944_0_read_conditional_write_return_other_91();
             // EP node  135:PowerOfTwo
             // BDD node 12:power_of_two
             meta.power_of_two_12_key = (32w0x00000014) - (meta.vector_reg_shadow0);
@@ -801,7 +801,7 @@ control Ingress(
             compute_op_sub_82();
             // EP node  368:VectorRegisterUpdate
             // BDD node 15:vector_return
-            bit<32> reg_new0 = vector_register_1073935032_0_add_value_368.execute(32w0x00000000);
+            bit<32> reg_new0 = vector_register_1247687987200_0_add_value_368.execute(32w0x00000000);
             // EP node  436:ArithmeticOp
             // BDD node 83:op_add
             // EP node  482:Divide
@@ -810,7 +810,7 @@ control Ingress(
             bit<32> quotient0 = divide_16_calc.execute(0);
             // EP node  545:VectorRegisterReadConditionalIncrement
             // BDD node 17:vector_borrow
-            meta.vector_reg_value0 = vector_register_1073952248_0_read_conditional_write_545.execute(32w0x00000000);
+            meta.vector_reg_value0 = vector_register_1251982962688_0_read_conditional_write_545.execute(32w0x00000000);
             // EP node  646:If
             // BDD node 18:if
             if ((32w0x00000000) != (meta.vector_reg_shadow0)){

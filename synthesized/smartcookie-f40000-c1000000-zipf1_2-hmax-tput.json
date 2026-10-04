@@ -5,10 +5,10 @@
     "num_phase1_speculations": 207459,
     "num_phase2_speculations": 1984,
     "num_speculated_modules": 3409200,
-    "time_per_instantiation_us": 782,
+    "time_per_instantiation_us": 458,
     "time_per_speculation_us": 0,
-    "total_time_spent_generating_execution_plans_us": 2394207,
-    "total_time_spent_speculating_us": 1106067
+    "total_time_spent_generating_execution_plans_us": 1402132,
+    "total_time_spent_speculating_us": 638853
   },
   "heuristic": {
     "meta": [
@@ -48,11 +48,11 @@
   },
   "implementations": [
     {
-      "addr": 1073939616,
+      "addr": 1247687987200,
       "implementation": "Tofino::VectorTable"
     },
     {
-      "addr": 1073927040,
+      "addr": 1249835474944,
       "implementation": "Tofino::BloomFilter"
     }
   ],
@@ -2045,7 +2045,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 6.629385964912281,
-    "elapsed_time_seconds": 445,
+    "elapsed_time_seconds": 263,
     "finished_eps": 1,
     "log10_design_space": 352,
     "ss_size": 3061,
@@ -2054,6 +2054,6 @@
   },
   "seed": 0,
   "targets_config_file": "tofino2-smartcookie.toml",
-  "tput_estimation_bps": 183943521344,
-  "tput_estimation_pps": 261283411
+  "tput_estimation_bps": 183939317760,
+  "tput_estimation_pps": 261277440
 }

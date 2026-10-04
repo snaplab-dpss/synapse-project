@@ -19,9 +19,9 @@ Winner:
   Spec: 352.00 Kbps (500.00 pps)
 
 Stateful Implementations:
-  1074041392: Controller::TB
-  1074071224: Tofino::VectorRegister
-  1074054008: Tofino::VectorRegister
+  1249835474944: Controller::TB
+  1251982962688: Tofino::VectorRegister
+  1247687987200: Tofino::VectorRegister
 
 Search Metadata:
   Elapsed time:       1 seconds
@@ -110,7 +110,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [ingress_port_to_nf_dev,vector_register_1074054008_0]
+Objs: [ingress_port_to_nf_dev,vector_register_1247687987200_0]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -120,7 +120,7 @@ MapRAM: 16'448/786'432 B (2.09147%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074071224_0]
+Objs: [vector_register_1251982962688_0]
 -------------------------------------
 ==========================================================
 ========================================================

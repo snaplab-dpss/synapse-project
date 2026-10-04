@@ -23,14 +23,14 @@ Winner:
   Memory Usage: 25641152 bits
 
 Stateful Implementations:
-  1074102760: Tofino::VectorTable
-  1074066960: Tofino::VectorTable
-  1074053136: Tofino::MapTable
-  1074085120: Tofino::DchainTable
-  1074085544: Tofino::VectorTable
+  1248761733120: Tofino::VectorTable
+  1247687987200: Tofino::VectorTable
+  1249835474944: Tofino::MapTable
+  1240352161792: Tofino::DchainTable
+  1251982962688: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       24 seconds
+  Elapsed time:       14 seconds
   Steps:              62
   Backtracks:         0
   Search space size:  190
@@ -119,7 +119,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [ingress_port_to_nf_dev,vector_table_1074085544_139]
+Objs: [ingress_port_to_nf_dev,vector_table_1251982962688_139]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -129,7 +129,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [dchain_table_1074085120_142,dchain_table_1074085120_146,dchain_table_1074085120_181,map_table_1074053136_163]
+Objs: [dchain_table_1240352161792_142,dchain_table_1240352161792_146,dchain_table_1240352161792_181,map_table_1249835474944_163]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -139,7 +139,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 16/128 B (12.5%)
-Objs: [map_table_1074053136_163,vector_table_1074066960_144]
+Objs: [map_table_1249835474944_163,vector_table_1247687987200_144]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -149,7 +149,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [vector_table_1074066960_144,vector_table_1074102760_149,vector_table_1074102760_183]
+Objs: [vector_table_1247687987200_144,vector_table_1248761733120_149,vector_table_1248761733120_183]
 -------------------------------------
 ==========================================================
 ========================================================

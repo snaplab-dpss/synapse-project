@@ -23,12 +23,12 @@ Winner:
   Memory Usage: 2108096 bits
 
 Stateful Implementations:
-  1074071224: Tofino::VectorTable
-  1074041392: Tofino::Meter
-  1074054008: Tofino::VectorTable
+  1251982962688: Tofino::VectorTable
+  1249835474944: Tofino::Meter
+  1247687987200: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       2 seconds
+  Elapsed time:       1 seconds
   Steps:              58
   Backtracks:         0
   Search space size:  168
@@ -114,7 +114,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [ingress_port_to_nf_dev,vector_table_1074054008_137]
+Objs: [ingress_port_to_nf_dev,vector_table_1247687987200_137]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -134,7 +134,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [compute_op_and_188_a,vector_table_1074071224_159,vector_table_1074071224_167,vector_table_1074071224_175]
+Objs: [compute_op_and_188_a,vector_table_1251982962688_159,vector_table_1251982962688_167,vector_table_1251982962688_175]
 -------------------------------------
 -------------------------------------
 Stage 3

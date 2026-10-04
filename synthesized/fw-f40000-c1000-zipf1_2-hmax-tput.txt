@@ -23,13 +23,13 @@ Winner:
   Memory Usage: 13990272 bits
 
 Stateful Implementations:
-  1074093704: Tofino::VectorTable
-  1074076064: Tofino::MapSetTable
-  1074044080: Tofino::MapSetTable
-  1074076488: Tofino::VectorTable
+  1248761733120: Tofino::VectorTable
+  1249835474944: Tofino::MapSetTable
+  1240352161792: Tofino::MapSetTable
+  1251982962688: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       16 seconds
+  Elapsed time:       10 seconds
   Steps:              49
   Backtracks:         0
   Search space size:  154
@@ -110,7 +110,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [ingress_port_to_nf_dev,vector_table_1074076488_139]
+Objs: [ingress_port_to_nf_dev,vector_table_1251982962688_139]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -120,7 +120,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [map_set_table_1074044080_142,map_set_table_1074044080_155]
+Objs: [map_set_table_1249835474944_142,map_set_table_1249835474944_155]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -130,7 +130,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 20/128 B (15.625%)
-Objs: [map_set_table_1074044080_155,vector_table_1074093704_149,vector_table_1074093704_175]
+Objs: [map_set_table_1249835474944_155,vector_table_1248761733120_149,vector_table_1248761733120_175]
 -------------------------------------
 ==========================================================
 ========================================================

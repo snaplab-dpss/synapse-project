@@ -5,10 +5,10 @@
     "num_phase1_speculations": 57725,
     "num_phase2_speculations": 837,
     "num_speculated_modules": 927784,
-    "time_per_instantiation_us": 1061,
-    "time_per_speculation_us": 32,
-    "total_time_spent_generating_execution_plans_us": 371594,
-    "total_time_spent_speculating_us": 29705456
+    "time_per_instantiation_us": 678,
+    "time_per_speculation_us": 13,
+    "total_time_spent_generating_execution_plans_us": 237573,
+    "total_time_spent_speculating_us": 12924386
   },
   "heuristic": {
     "meta": [
@@ -48,39 +48,39 @@
   },
   "implementations": [
     {
-      "addr": 1074149856,
+      "addr": 1240306024448,
+      "implementation": "Tofino::LPM"
+    },
+    {
+      "addr": 1240977113088,
+      "implementation": "Tofino::LPM"
+    },
+    {
+      "addr": 1248224866304,
+      "implementation": "Tofino::VectorRegister"
+    },
+    {
+      "addr": 1250909216768,
       "implementation": "Controller::Vector"
     },
     {
-      "addr": 1074132640,
+      "addr": 1253056708608,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074082560,
-      "implementation": "Tofino::LPM"
-    },
-    {
-      "addr": 1074082784,
-      "implementation": "Tofino::LPM"
-    },
-    {
-      "addr": 1074184288,
+      "addr": 1246614245376,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074167072,
+      "addr": 1248761737216,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074115080,
-      "implementation": "Tofino::VectorRegister"
-    },
-    {
-      "addr": 1074132216,
+      "addr": 1241111330816,
       "implementation": "Tofino::DchainTable"
     },
     {
-      "addr": 1074083024,
+      "addr": 1247687991296,
       "implementation": "Tofino::MapTable"
     }
   ],
@@ -684,7 +684,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.1818181818181817,
-    "elapsed_time_seconds": 238,
+    "elapsed_time_seconds": 137,
     "finished_eps": 1,
     "log10_design_space": 48,
     "ss_size": 350,

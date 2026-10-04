@@ -14,20 +14,20 @@ Args:
   Not greedy:         0
 
 Winner:
-  Score: <0,287'000'000,456,-19,-4'722'304,-4>
-  Tput: 202.66 Gbps (287.87 Mpps)
-  Spec: 202.66 Gbps (287.87 Mpps)
+  Score: <0,289'000'000,456,-19,-4'722'304,-4>
+  Tput: 203.61 Gbps (289.22 Mpps)
+  Spec: 203.61 Gbps (289.22 Mpps)
   Recirculations: 4
   BDD Progress: 456 / 460
   Stages: 19
   Memory Usage: 4722304 bits
 
 Stateful Implementations:
-  1073939616: Tofino::VectorTable
-  1073927040: Tofino::BloomFilter
+  1247687987200: Tofino::VectorTable
+  1249835474944: Tofino::BloomFilter
 
 Search Metadata:
-  Elapsed time:       409 seconds
+  Elapsed time:       229 seconds
   Steps:              467
   Backtracks:         0
   Search space size:  3'061
@@ -511,7 +511,7 @@ MapRAM: 147'456/786'432 B (18.75%)
 Logical IDs: 13/16
 Hash Dist Units: 6/6
 Exact Match Crossbar: 25/128 B (19.5312%)
-Objs: [bf_1073927040_hash_0,bf_1073927040_row_0,compute_op_shl_379_a,compute_op_sub_333,compute_op_xor_303,compute_op_xor_361,compute_op_xor_364,compute_op_xor_399,ingress_port_to_nf_dev,vector_table_1073939616_105,vector_table_1073939616_88]
+Objs: [bf_1249835474944_hash_0,bf_1249835474944_row_0,compute_op_shl_379_a,compute_op_sub_333,compute_op_xor_303,compute_op_xor_361,compute_op_xor_364,compute_op_xor_399,ingress_port_to_nf_dev,vector_table_1247687987200_105,vector_table_1247687987200_88]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -521,7 +521,7 @@ MapRAM: 147'456/786'432 B (18.75%)
 Logical IDs: 8/16
 Hash Dist Units: 6/6
 Exact Match Crossbar: 15/128 B (11.7188%)
-Objs: [bf_1073927040_hash_1,bf_1073927040_row_1,compute_op_lshr_334,compute_op_shl_379,compute_op_xor_381,compute_rotate_left_119]
+Objs: [bf_1249835474944_hash_1,bf_1249835474944_row_1,compute_op_lshr_334,compute_op_shl_379,compute_op_xor_381,compute_rotate_left_119]
 -------------------------------------
 -------------------------------------
 Stage 2

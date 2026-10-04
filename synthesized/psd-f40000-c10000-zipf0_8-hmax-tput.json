@@ -5,10 +5,10 @@
     "num_phase1_speculations": 13899,
     "num_phase2_speculations": 159,
     "num_speculated_modules": 176617,
-    "time_per_instantiation_us": 928,
-    "time_per_speculation_us": 66,
-    "total_time_spent_generating_execution_plans_us": 208917,
-    "total_time_spent_speculating_us": 11721841
+    "time_per_instantiation_us": 427,
+    "time_per_speculation_us": 25,
+    "total_time_spent_generating_execution_plans_us": 96291,
+    "total_time_spent_speculating_us": 4460901
   },
   "heuristic": {
     "meta": [
@@ -48,27 +48,27 @@
   },
   "implementations": [
     {
-      "addr": 1074079432,
+      "addr": 1251982962688,
       "implementation": "Tofino::VectorRegister"
     },
     {
-      "addr": 1074126776,
+      "addr": 1253056708608,
       "implementation": "Tofino::VectorTable"
     },
     {
-      "addr": 1074096984,
+      "addr": 1248761733120,
       "implementation": "Tofino::BloomFilter"
     },
     {
-      "addr": 1074096568,
+      "addr": 1241094553600,
       "implementation": "Tofino::FCFSCachedTable"
     },
     {
-      "addr": 1074048392,
+      "addr": 1249835474944,
       "implementation": "Tofino::FCFSCachedTable"
     },
     {
-      "addr": 1074109560,
+      "addr": 1246614245376,
       "implementation": "Tofino::VectorTable"
     }
   ],
@@ -576,7 +576,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 3.101449275362319,
-    "elapsed_time_seconds": 25,
+    "elapsed_time_seconds": 12,
     "finished_eps": 1,
     "log10_design_space": 26,
     "ss_size": 225,

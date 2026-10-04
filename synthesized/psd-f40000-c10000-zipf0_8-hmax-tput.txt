@@ -23,15 +23,15 @@ Winner:
   Memory Usage: 13359360 bits
 
 Stateful Implementations:
-  1074079432: Tofino::VectorRegister
-  1074126776: Tofino::VectorTable
-  1074096984: Tofino::BloomFilter
-  1074096568: Tofino::FCFSCachedTable
-  1074048392: Tofino::FCFSCachedTable
-  1074109560: Tofino::VectorTable
+  1251982962688: Tofino::VectorRegister
+  1253056708608: Tofino::VectorTable
+  1248761733120: Tofino::BloomFilter
+  1241094553600: Tofino::FCFSCachedTable
+  1249835474944: Tofino::FCFSCachedTable
+  1246614245376: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       25 seconds
+  Elapsed time:       12 seconds
   Steps:              74
   Backtracks:         0
   Search space size:  225
@@ -145,7 +145,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [ingress_port_to_nf_dev,vector_table_1074109560_142]
+Objs: [ingress_port_to_nf_dev,vector_table_1246614245376_142]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -155,7 +155,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [fcfs_ct_1074048392_table_145]
+Objs: [fcfs_ct_1249835474944_table_145]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -165,7 +165,7 @@ MapRAM: 278'528/786'432 B (35.4167%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [fcfs_ct_1074048392_hash_145,fcfs_ct_1074048392_reg_liveness]
+Objs: [fcfs_ct_1249835474944_hash_145,fcfs_ct_1249835474944_reg_liveness]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -175,7 +175,7 @@ MapRAM: 32'768/786'432 B (4.16667%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [fcfs_ct_1074048392_reg_key_0]
+Objs: [fcfs_ct_1249835474944_reg_key_0]
 -------------------------------------
 -------------------------------------
 Stage 4
@@ -185,7 +185,7 @@ MapRAM: 32'768/786'432 B (4.16667%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [fcfs_ct_1074048392_reg_punt_gate]
+Objs: [fcfs_ct_1249835474944_reg_punt_gate]
 -------------------------------------
 -------------------------------------
 Stage 5
@@ -195,7 +195,7 @@ MapRAM: 278'528/786'432 B (35.4167%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 4/128 B (3.125%)
-Objs: [vector_register_1074079432_0]
+Objs: [vector_register_1251982962688_0]
 -------------------------------------
 -------------------------------------
 Stage 6
@@ -205,7 +205,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_hash_0,bf_1074096984_row_0]
+Objs: [bf_1248761733120_hash_0,bf_1248761733120_row_0]
 -------------------------------------
 -------------------------------------
 Stage 7
@@ -215,7 +215,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_hash_1,bf_1074096984_row_1]
+Objs: [bf_1248761733120_hash_1,bf_1248761733120_row_1]
 -------------------------------------
 -------------------------------------
 Stage 8
@@ -225,7 +225,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_hash_2,bf_1074096984_row_2]
+Objs: [bf_1248761733120_hash_2,bf_1248761733120_row_2]
 -------------------------------------
 -------------------------------------
 Stage 9
@@ -235,7 +235,7 @@ MapRAM: 16'512/786'432 B (2.09961%)
 Logical IDs: 4/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 8/128 B (6.25%)
-Objs: [bf_1074096984_hash_3,bf_1074096984_row_3]
+Objs: [bf_1248761733120_hash_3,bf_1248761733120_row_3]
 -------------------------------------
 -------------------------------------
 Stage 10
@@ -245,7 +245,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [vector_table_1074126776_161,vector_table_1074126776_186,vector_table_1074126776_192]
+Objs: [vector_table_1253056708608_161,vector_table_1253056708608_186,vector_table_1253056708608_192]
 -------------------------------------
 ==========================================================
 ========================================================

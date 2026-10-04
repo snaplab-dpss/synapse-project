@@ -23,13 +23,13 @@ Winner:
   Memory Usage: 36536384 bits
 
 Stateful Implementations:
-  1074093704: Tofino::VectorTable
-  1074076064: Tofino::FCFSCachedSet
-  1074044080: Tofino::FCFSCachedSet
-  1074076488: Tofino::VectorTable
+  1248761733120: Tofino::VectorTable
+  1249835474944: Tofino::FCFSCachedSet
+  1240352161792: Tofino::FCFSCachedSet
+  1251982962688: Tofino::VectorTable
 
 Search Metadata:
-  Elapsed time:       17 seconds
+  Elapsed time:       10 seconds
   Steps:              56
   Backtracks:         0
   Search space size:  178
@@ -125,7 +125,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [ingress_port_to_nf_dev,vector_table_1074076488_139]
+Objs: [ingress_port_to_nf_dev,vector_table_1251982962688_139]
 -------------------------------------
 -------------------------------------
 Stage 1
@@ -135,7 +135,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 24/128 B (18.75%)
-Objs: [fcfs_cs_1074044080_table_142,fcfs_cs_1074044080_table_155]
+Objs: [fcfs_cs_1249835474944_table_142,fcfs_cs_1249835474944_table_155]
 -------------------------------------
 -------------------------------------
 Stage 2
@@ -145,7 +145,7 @@ MapRAM: 278'528/786'432 B (35.4167%)
 Logical IDs: 5/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 38/128 B (29.6875%)
-Objs: [fcfs_cs_1074044080_hash_142,fcfs_cs_1074044080_hash_155,fcfs_cs_1074044080_reg_liveness,fcfs_cs_1074044080_table_155]
+Objs: [fcfs_cs_1249835474944_hash_142,fcfs_cs_1249835474944_hash_155,fcfs_cs_1249835474944_reg_liveness,fcfs_cs_1249835474944_table_155]
 -------------------------------------
 -------------------------------------
 Stage 3
@@ -155,7 +155,7 @@ MapRAM: 704'512/786'432 B (89.5833%)
 Logical IDs: 6/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 6/128 B (4.6875%)
-Objs: [fcfs_cs_1074044080_reg_key_0,fcfs_cs_1074044080_reg_key_1,fcfs_cs_1074044080_reg_key_2]
+Objs: [fcfs_cs_1249835474944_reg_key_0,fcfs_cs_1249835474944_reg_key_1,fcfs_cs_1249835474944_reg_key_2]
 -------------------------------------
 -------------------------------------
 Stage 4
@@ -165,7 +165,7 @@ MapRAM: 147'456/786'432 B (18.75%)
 Logical IDs: 2/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [fcfs_cs_1074044080_reg_key_3]
+Objs: [fcfs_cs_1249835474944_reg_key_3]
 -------------------------------------
 -------------------------------------
 Stage 5
@@ -175,7 +175,7 @@ MapRAM: 278'528/786'432 B (35.4167%)
 Logical IDs: 1/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 2/128 B (1.5625%)
-Objs: [fcfs_cs_1074044080_reg_punt_gate]
+Objs: [fcfs_cs_1249835474944_reg_punt_gate]
 -------------------------------------
 -------------------------------------
 Stage 6
@@ -185,7 +185,7 @@ MapRAM: 0/786'432 B (0%)
 Logical IDs: 3/16
 Hash Dist Units: 0/6
 Exact Match Crossbar: 12/128 B (9.375%)
-Objs: [vector_table_1074093704_149,vector_table_1074093704_168,vector_table_1074093704_175]
+Objs: [vector_table_1248761733120_149,vector_table_1248761733120_168,vector_table_1248761733120_175]
 -------------------------------------
 ==========================================================
 ========================================================

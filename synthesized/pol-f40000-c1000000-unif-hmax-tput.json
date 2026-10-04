@@ -5,10 +5,10 @@
     "num_phase1_speculations": 4392,
     "num_phase2_speculations": 47,
     "num_speculated_modules": 78889,
-    "time_per_instantiation_us": 138,
+    "time_per_instantiation_us": 110,
     "time_per_speculation_us": 0,
-    "total_time_spent_generating_execution_plans_us": 23556,
-    "total_time_spent_speculating_us": 22766
+    "total_time_spent_generating_execution_plans_us": 18869,
+    "total_time_spent_speculating_us": 18682
   },
   "heuristic": {
     "meta": [
@@ -48,15 +48,15 @@
   },
   "implementations": [
     {
-      "addr": 1074071224,
+      "addr": 1251982962688,
       "implementation": "Tofino::VectorTable"
     },
     {
-      "addr": 1074041392,
+      "addr": 1249835474944,
       "implementation": "Tofino::Meter"
     },
     {
-      "addr": 1074054008,
+      "addr": 1247687987200,
       "implementation": "Tofino::VectorTable"
     }
   ],

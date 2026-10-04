@@ -6,14 +6,14 @@ using namespace sycon;
 struct state_t : public nf_state_t {
   IngressPortToNFDev ingress_port_to_nf_dev;
   ForwardingTbl forwarding_tbl;
-  BloomFilter bf_1073927040;
-  VectorTable vector_table_1073939616;
+  BloomFilter bf_1249835474944;
+  VectorTable vector_table_1247687987200;
 
   state_t()
     : ingress_port_to_nf_dev(),
       forwarding_tbl(),
-      bf_1073927040("bf_1073927040",{"Ingress.bf_1073927040_row_0", "Ingress.bf_1073927040_row_1", }, 0LL),
-      vector_table_1073939616("vector_table_1073939616",{"Ingress.vector_table_1073939616_105","Ingress.vector_table_1073939616_88",})
+      bf_1249835474944("bf_1249835474944",{"Ingress.bf_1249835474944_row_0", "Ingress.bf_1249835474944_row_1", }, 0LL),
+      vector_table_1247687987200("vector_table_1247687987200",{"Ingress.vector_table_1247687987200_105","Ingress.vector_table_1247687987200_88",})
     {}
 };
 
@@ -98,9 +98,9 @@ void sycon::nf_init() {
   state->forwarding_tbl.add_fwd_nf_dev_entry(30, asic_get_dev_port(31));
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 31);
   state->forwarding_tbl.add_fwd_nf_dev_entry(31, asic_get_dev_port(32));
-  // BDD node 0:bf_allocate(height:(w32 2), width:(w32 1048576), key_size:(w16 12), cleanup_interval:(w64 0), bf_out:(w64 1073926768)[(w64 0) -> (w64 1073927040)])
+  // BDD node 0:bf_allocate(height:(w32 2), width:(w32 1048576), key_size:(w16 12), cleanup_interval:(w64 0), bf_out:(w64 1240708677632)[(w64 0) -> (w64 1249835474944)])
   // Module DataplaneBloomFilterAllocate
-  // BDD node 1:vector_allocate(elem_size:(w32 4), capacity:(w32 1), vector_out:(w64 1073926776)[(w64 0) -> (w64 1073939616)])
+  // BDD node 1:vector_allocate(elem_size:(w32 4), capacity:(w32 1), vector_out:(w64 1240708677640)[(w64 0) -> (w64 1247687987200)])
   // Module DataplaneVectorTableAllocate
 
 }
@@ -152,22 +152,22 @@ nf_process_result_t sycon::nf_process(time_ns_t now, u8 *pkt, u16 size) {
 
   if (bswap16(cpu_hdr->code_path) == 0) {
     // EP node  730472
-    // BDD node 212:vector_return(vector:(w64 1073939616), index:(w32 0), value:(w64 1073953512)[(Sub w32 (ReadLSB w32 (w32 0) unrolled__226) (Concat w32 (Concat w24 (ReadMSB w16 (w32 768) packet_chunks) (Read w8 (w32 770) packet_chunks)) (Read w8 (w32 771) packet_chunks)))])
+    // BDD node 212:vector_return(vector:(w64 1247687987200), index:(w32 0), value:(w64 1239634935808)[(Sub w32 (ReadLSB w32 (w32 0) unrolled__226) (Concat w32 (Concat w24 (ReadMSB w16 (w32 768) packet_chunks) (Read w8 (w32 770) packet_chunks)) (Read w8 (w32 771) packet_chunks)))])
     u8* hdr_0 = packet_consume(pkt, 14);
     // EP node  730473
-    // BDD node 212:vector_return(vector:(w64 1073939616), index:(w32 0), value:(w64 1073953512)[(Sub w32 (ReadLSB w32 (w32 0) unrolled__226) (Concat w32 (Concat w24 (ReadMSB w16 (w32 768) packet_chunks) (Read w8 (w32 770) packet_chunks)) (Read w8 (w32 771) packet_chunks)))])
+    // BDD node 212:vector_return(vector:(w64 1247687987200), index:(w32 0), value:(w64 1239634935808)[(Sub w32 (ReadLSB w32 (w32 0) unrolled__226) (Concat w32 (Concat w24 (ReadMSB w16 (w32 768) packet_chunks) (Read w8 (w32 770) packet_chunks)) (Read w8 (w32 771) packet_chunks)))])
     u8* hdr_1 = packet_consume(pkt, 20);
     // EP node  730474
-    // BDD node 212:vector_return(vector:(w64 1073939616), index:(w32 0), value:(w64 1073953512)[(Sub w32 (ReadLSB w32 (w32 0) unrolled__226) (Concat w32 (Concat w24 (ReadMSB w16 (w32 768) packet_chunks) (Read w8 (w32 770) packet_chunks)) (Read w8 (w32 771) packet_chunks)))])
+    // BDD node 212:vector_return(vector:(w64 1247687987200), index:(w32 0), value:(w64 1239634935808)[(Sub w32 (ReadLSB w32 (w32 0) unrolled__226) (Concat w32 (Concat w24 (ReadMSB w16 (w32 768) packet_chunks) (Read w8 (w32 770) packet_chunks)) (Read w8 (w32 771) packet_chunks)))])
     u8* hdr_2 = packet_consume(pkt, 8);
     // EP node  730475
-    // BDD node 212:vector_return(vector:(w64 1073939616), index:(w32 0), value:(w64 1073953512)[(Sub w32 (ReadLSB w32 (w32 0) unrolled__226) (Concat w32 (Concat w24 (ReadMSB w16 (w32 768) packet_chunks) (Read w8 (w32 770) packet_chunks)) (Read w8 (w32 771) packet_chunks)))])
+    // BDD node 212:vector_return(vector:(w64 1247687987200), index:(w32 0), value:(w64 1239634935808)[(Sub w32 (ReadLSB w32 (w32 0) unrolled__226) (Concat w32 (Concat w24 (ReadMSB w16 (w32 768) packet_chunks) (Read w8 (w32 770) packet_chunks)) (Read w8 (w32 771) packet_chunks)))])
     u8* hdr_3 = packet_consume(pkt, 4);
     // EP node  730477
-    // BDD node 212:vector_return(vector:(w64 1073939616), index:(w32 0), value:(w64 1073953512)[(Sub w32 (ReadLSB w32 (w32 0) unrolled__226) (Concat w32 (Concat w24 (ReadMSB w16 (w32 768) packet_chunks) (Read w8 (w32 770) packet_chunks)) (Read w8 (w32 771) packet_chunks)))])
-    buffer_t vector_table_1073939616_value_0(4);
-    vector_table_1073939616_value_0.set(0, 4, (bswap64(cpu_hdr_extra->unrolled__226) & 0xffffffffull) - (bswap32(*(u32*)hdr_3)));
-    state->vector_table_1073939616.write(0, vector_table_1073939616_value_0);
+    // BDD node 212:vector_return(vector:(w64 1247687987200), index:(w32 0), value:(w64 1239634935808)[(Sub w32 (ReadLSB w32 (w32 0) unrolled__226) (Concat w32 (Concat w24 (ReadMSB w16 (w32 768) packet_chunks) (Read w8 (w32 770) packet_chunks)) (Read w8 (w32 771) packet_chunks)))])
+    buffer_t vector_table_1247687987200_value_0(4);
+    vector_table_1247687987200_value_0.set(0, 4, (bswap64(cpu_hdr_extra->unrolled__226) & 0xffffffffull) - (bswap32(*(u32*)hdr_3)));
+    state->vector_table_1247687987200.write(0, vector_table_1247687987200_value_0);
     // EP node  732782
     // BDD node 217:DROP
     result.forward = false;

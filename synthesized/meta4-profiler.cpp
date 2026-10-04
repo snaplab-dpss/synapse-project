@@ -563,7 +563,7 @@ struct LnStats {
 
 PcapReader warmup_reader;
 PcapReader reader;
-std::unordered_map<int, MapStats> stats_per_map;
+std::unordered_map<uint64_t, MapStats> stats_per_map; // by the map's address
 std::unordered_map<int, PortStats> forwarding_stats_per_route_op;
 std::unordered_map<uint64_t, uint64_t> node_pkt_counter;
 std::unordered_map<int, LnStats> ln_stats_per_node;
@@ -3116,10 +3116,10 @@ bool nf_init() {
   ports.push_back(26);
   ports.push_back(27);
   ports.push_back(28);
-  stats_per_map[1074083024ULL].init(136);
-  stats_per_map[1074083024ULL].init(101);
-  stats_per_map[1074083024ULL].init(89);
-  stats_per_map[1074083024ULL].init(50);
+  stats_per_map[1247687991296ULL].init(136);
+  stats_per_map[1247687991296ULL].init(101);
+  stats_per_map[1247687991296ULL].init(89);
+  stats_per_map[1247687991296ULL].init(50);
   forwarding_stats_per_route_op.insert({152, PortStats{}});
   forwarding_stats_per_route_op.insert({66, PortStats{}});
   forwarding_stats_per_route_op.insert({131, PortStats{}});
@@ -3287,7 +3287,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
         key[7] = *(hdr2+15);
         int value;
         int map_hit = map_get(map, key, &value);
-        stats_per_map[1074083024ULL].update(50, key, 8, now);
+        stats_per_map[1247687991296ULL].update(50, key, 8, now);
         // BDDNode 51
         inc_path_counter(51);
         if ((0) == (map_hit)) {
@@ -3439,7 +3439,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                     key2[7] = *(dns_address+3);
                     int value2;
                     int map_hit2 = map_get(map, key2, &value2);
-                    stats_per_map[1074083024ULL].update(89, key2, 8, now);
+                    stats_per_map[1247687991296ULL].update(89, key2, 8, now);
                     // BDDNode 90
                     inc_path_counter(90);
                     if ((0) == (map_hit2)) {
@@ -3484,7 +3484,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
                         inc_path_counter(101);
                         *(uint64_t*)vector_cell6 = *(uint64_t*)key2;
                         map_put(map, vector_cell6, index);
-                        stats_per_map[1074083024ULL].update(101, vector_cell6, 8, now);
+                        stats_per_map[1247687991296ULL].update(101, vector_cell6, 8, now);
                         // BDDNode 102
                         inc_path_counter(102);
                         // BDDNode 103
@@ -3624,7 +3624,7 @@ int nf_process(uint16_t device, uint8_t *buffer, uint16_t packet_length, time_ns
       key3[7] = *(hdr2+15);
       int value3;
       int map_hit3 = map_get(map, key3, &value3);
-      stats_per_map[1074083024ULL].update(136, key3, 8, now);
+      stats_per_map[1247687991296ULL].update(136, key3, 8, now);
       // BDDNode 137
       inc_path_counter(137);
       if ((0) == (map_hit3)) {

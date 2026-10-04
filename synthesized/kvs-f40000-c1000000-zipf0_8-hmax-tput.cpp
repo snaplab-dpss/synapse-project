@@ -94,11 +94,11 @@ void sycon::nf_init() {
   state->forwarding_tbl.add_fwd_nf_dev_entry(30, asic_get_dev_port(31));
   state->ingress_port_to_nf_dev.add_entry(asic_get_dev_port(32), 31);
   state->forwarding_tbl.add_fwd_nf_dev_entry(31, asic_get_dev_port(32));
-  // BDD node 0:map_allocate(capacity:(w32 8192), key_size:(w32 4), map_out:(w64 1073922824)[(w64 0) -> (w64 1073923096)])
+  // BDD node 0:map_allocate(capacity:(w32 8192), key_size:(w32 4), map_out:(w64 1242856161280)[(w64 0) -> (w64 1249835474944)])
   // Module DataplaneCuckooHashTableAllocate
-  // BDD node 2:vector_allocate(elem_size:(w32 4), capacity:(w32 8192), vector_out:(w64 1073922840)[(w64 0) -> (w64 1073954136)])
+  // BDD node 2:vector_allocate(elem_size:(w32 4), capacity:(w32 8192), vector_out:(w64 1242856161296)[(w64 0) -> (w64 1251982962688)])
   // Module DataplaneCuckooHashTableAllocate
-  // BDD node 3:dchain_allocate(index_range:(w32 8192), chain_out:(w64 1073922848)[ -> (w64 1073971272)])
+  // BDD node 3:dchain_allocate(index_range:(w32 8192), chain_out:(w64 1242856161304)[ -> (w64 1240708677632)])
   // Module DataplaneCuckooHashTableAllocate
 
 }

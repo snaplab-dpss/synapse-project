@@ -831,8 +831,8 @@ control Ingress(
                           hdr.cuckoo.op = cuckoo_ops_t.LOOKUP;
                         }
                       }
-                      bool cuckoo_hash_table_1073923096_13_success0;
-                      cuckoo_hash_table.apply(meta.time, hdr.cuckoo, cuckoo_hash_table_1073923096_13_success0);
+                      bool cuckoo_hash_table_1249835474944_13_success0;
+                      cuckoo_hash_table.apply(meta.time, hdr.cuckoo, cuckoo_hash_table_1249835474944_13_success0);
                       cuckoo_bloom_filter.apply(hdr.cuckoo, fwd_op);
                       if (hdr.cuckoo.op != cuckoo_ops_t.DONE) {
                         build_recirc_hdr(CUCKOO_CODE_PATH);
@@ -844,7 +844,7 @@ control Ingress(
                           // BDD node 13:map_get
                           // EP node  644:If
                           // BDD node 13:map_get
-                          if (cuckoo_hash_table_1073923096_13_success0){
+                          if (cuckoo_hash_table_1249835474944_13_success0){
                             // EP node  645:Then
                             // BDD node 13:map_get
                             // EP node  1928:ModifyHeader
@@ -878,7 +878,7 @@ control Ingress(
                           // BDD node 13:map_get
                           // EP node  647:If
                           // BDD node 13:map_get
-                          if (cuckoo_hash_table_1073923096_13_success0){
+                          if (cuckoo_hash_table_1249835474944_13_success0){
                             // EP node  648:Then
                             // BDD node 13:map_get
                             // EP node  772:ModifyHeader

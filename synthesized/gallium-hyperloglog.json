@@ -5,10 +5,10 @@
     "num_phase1_speculations": 275,
     "num_phase2_speculations": 4,
     "num_speculated_modules": 6212,
-    "time_per_instantiation_us": 241,
-    "time_per_speculation_us": 2,
-    "total_time_spent_generating_execution_plans_us": 37605,
-    "total_time_spent_speculating_us": 15138
+    "time_per_instantiation_us": 127,
+    "time_per_speculation_us": 1,
+    "total_time_spent_generating_execution_plans_us": 19871,
+    "total_time_spent_speculating_us": 6770
   },
   "heuristic": {
     "meta": [
@@ -32,15 +32,15 @@
   },
   "implementations": [
     {
-      "addr": 1073952248,
+      "addr": 1251982962688,
       "implementation": "Controller::Vector"
     },
     {
-      "addr": 1073935032,
+      "addr": 1247687987200,
       "implementation": "Controller::Vector"
     },
     {
-      "addr": 1073917816,
+      "addr": 1249835474944,
       "implementation": "Controller::Vector"
     }
   ],
@@ -536,7 +536,7 @@
     ],
     "backtracks": 0,
     "branching_factor": 1.216867469879518,
-    "elapsed_time_seconds": 1,
+    "elapsed_time_seconds": 0,
     "finished_eps": 1,
     "log10_design_space": 3,
     "ss_size": 156,
