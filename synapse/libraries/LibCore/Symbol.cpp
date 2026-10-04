@@ -2,7 +2,7 @@
 #include <LibCore/Expr.h>
 #include <LibCore/Debug.h>
 
-#include <klee/util/ExprVisitor.h>
+#include <klee/Expr/ExprVisitor.h>
 
 #include <regex>
 

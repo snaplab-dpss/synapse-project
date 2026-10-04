@@ -19,7 +19,7 @@ bool expr_reads_symbol(klee::ref<klee::Expr> expr, const std::string &symbol) {
     return false;
   }
   if (expr->getKind() == klee::Expr::Read) {
-    return dynamic_cast<klee::ReadExpr *>(expr.get())->updates.root->name == symbol;
+    return llvm::dyn_cast<klee::ReadExpr>(expr.get())->updates.root->name == symbol;
   }
   for (unsigned i = 0; i < expr->getNumKids(); i++) {
     if (expr_reads_symbol(expr->getKid(i), symbol)) {
@@ -202,7 +202,8 @@ std::vector<impl_t> VectorRegisterReadConditionalIncrementFactory::process_node(
 
   vector_register->add_register_action(RegisterActionType::ReadConditionalWrite);
 
-  Module *module = new VectorRegisterReadConditionalIncrement(node, vector_register->id, data.obj, data.index, data.value, data.write_value, condition);
+  Module *module =
+      new VectorRegisterReadConditionalIncrement(node, vector_register->id, data.obj, data.index, data.value, data.write_value, condition);
   EPNode *ep_node = new EPNode(module);
 
   Context &ctx = new_ep->get_mutable_ctx();

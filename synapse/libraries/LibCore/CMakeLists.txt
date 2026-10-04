@@ -17,7 +17,6 @@ target_compile_definitions(Core PRIVATE ${LLVM_DEFINITIONS})
 
 target_link_options(Core PRIVATE "-Wl,--whole-archive")
 target_link_libraries(Core PRIVATE ${KLEE_LIBRARIES})
-target_link_libraries(Core PRIVATE ${LLVM_LIBRARIES})
 target_link_libraries(Core PRIVATE ${Z3_LIBRARIES})
 target_link_libraries(Core PRIVATE ${CURSES_LIBRARIES})
 target_link_libraries(Core PRIVATE Threads::Threads)
@@ -26,5 +25,7 @@ target_link_libraries(Core PRIVATE ZLIB::ZLIB)
 target_link_options(Core PRIVATE "-Wl,--no-whole-archive")
 
 target_link_libraries(Core PUBLIC ${PCAP_LIBRARY})
+# KLEE's headers, public to every user of Core, inline LLVM code.
+target_link_libraries(Core PUBLIC ${LLVM_LIBRARIES})
 
 target_compile_options(Core PRIVATE ${GLOBAL_COMPILATION_FLAGS})

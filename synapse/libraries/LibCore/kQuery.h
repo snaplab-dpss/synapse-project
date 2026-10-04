@@ -5,8 +5,8 @@
 #include <vector>
 #include <memory>
 
-#include <klee/ExprBuilder.h>
-#include <klee/Expr.h>
+#include <klee/Expr/ExprBuilder.h>
+#include <klee/Expr/Expr.h>
 
 namespace LibCore {
 

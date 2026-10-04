@@ -64,11 +64,11 @@ code_t BDDSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr) {
       coder << "LL";
     }
   } else {
-    visit(expr);
-
-    // HACK: clear the visited map so we force the transpiler to revisit all
-    // expressions.
-    visited.clear();
+    // A visitor skips what it already visited, so each expression gets a fresh one.
+    Transpiler visitor(synthesizer);
+    visitor.coders.emplace();
+    visitor.visit(expr);
+    coder << visitor.coders.top().dump();
   }
 
   code_t code = coder.dump();

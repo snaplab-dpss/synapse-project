@@ -20,11 +20,11 @@ struct divide_data_t {
 divide_data_t get_divide_data(const Call *node) {
   const call_t &call = node->get_call();
 
-  klee::ref<klee::Expr> denominator     = call.args.at("denominator").expr;
-  klee::ref<klee::Expr> numerator_expr  = call.args.at("numerator").expr;
-  klee::ref<klee::Expr> quotient        = call.ret;
+  klee::ref<klee::Expr> denominator    = call.args.at("denominator").expr;
+  klee::ref<klee::Expr> numerator_expr = call.args.at("numerator").expr;
+  klee::ref<klee::Expr> quotient       = call.ret;
 
-  const klee::ConstantExpr *numerator_const = dynamic_cast<klee::ConstantExpr *>(numerator_expr.get());
+  const klee::ConstantExpr *numerator_const = llvm::dyn_cast<klee::ConstantExpr>(numerator_expr.get());
   assert(numerator_const && "Divide numerator must be a compile-time constant");
 
   const divide_data_t data = {
@@ -67,7 +67,7 @@ std::vector<impl_t> DivideFactory::process_node(const EP *ep, const BDDNode *nod
   const divide_data_t data = get_divide_data(call_node);
 
   const tna_properties_t &properties = ep->get_ctx().get_target_ctx<TofinoContext>()->get_tna().tna_config.properties;
-  Register *reg = new Register(properties, data.reg_id, 1, 8, data.quotient->getWidth(), {RegisterActionType::Read});
+  Register *reg                      = new Register(properties, data.reg_id, 1, 8, data.quotient->getWidth(), {RegisterActionType::Read});
 
   Module *module  = new Divide(node, data.reg_id, data.denominator, data.numerator, data.quotient);
   EPNode *ep_node = new EPNode(module);

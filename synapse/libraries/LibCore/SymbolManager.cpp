@@ -2,8 +2,8 @@
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
 
-#include <klee/util/ExprVisitor.h>
-#include <klee/Constraints.h>
+#include <klee/Expr/ExprVisitor.h>
+#include <klee/Expr/Constraints.h>
 
 #include <iostream>
 
@@ -53,11 +53,11 @@ public:
 
   klee::ref<klee::Expr> rename(klee::ref<klee::Expr> expr) { return expr.isNull() ? expr : visit(expr); }
 
-  klee::ConstraintManager rename(const klee::ConstraintManager &constraints) {
-    klee::ConstraintManager renamed_constraints;
+  klee::ConstraintSet rename(const klee::ConstraintSet &constraints) {
+    klee::ConstraintSet renamed_constraints;
     for (klee::ref<klee::Expr> constraint : constraints) {
       klee::ref<klee::Expr> renamed_constraint = rename(constraint);
-      renamed_constraints.addConstraint(renamed_constraint);
+      klee::ConstraintManager(renamed_constraints).addConstraint(renamed_constraint);
     }
     return renamed_constraints;
   }

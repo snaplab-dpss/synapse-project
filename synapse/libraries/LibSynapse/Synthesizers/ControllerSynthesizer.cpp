@@ -132,11 +132,12 @@ code_t ControllerSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, 
       panic("FIXME: incompatible endian swap size %d", size);
     }
   } else {
-    visit(expr);
-
-    // HACK: clear the visited map so we force the transpiler to revisit all
-    // expressions.
-    visited.clear();
+    // A visitor skips what it already visited, so each expression gets a fresh one.
+    Transpiler visitor(synthesizer);
+    visitor.loaded_opt = loaded_opt;
+    visitor.coders.emplace();
+    visitor.visit(expr);
+    coder << visitor.coders.top().dump();
   }
 
   code_t code = coder.dump();

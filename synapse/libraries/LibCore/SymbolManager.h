@@ -6,8 +6,8 @@
 #include <vector>
 #include <unordered_map>
 
-#include <klee/Expr.h>
-#include <klee/util/ArrayCache.h>
+#include <klee/Expr/Expr.h>
+#include <klee/Expr/ArrayCache.h>
 
 namespace LibCore {
 

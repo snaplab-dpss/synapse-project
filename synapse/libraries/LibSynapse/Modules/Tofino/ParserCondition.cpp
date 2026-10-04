@@ -182,8 +182,8 @@ bool packet_length_branch(klee::ref<klee::Expr> condition) {
   klee::ref<klee::Expr> pkt_len = find_read(condition, "pkt_len");
   assert_or_panic(!pkt_len.isNull(), "Parser condition with nothing to select on: %s", expr_to_string(condition).c_str());
 
-  klee::ConstraintManager a_frame;
-  a_frame.addConstraint(
+  klee::ConstraintSet a_frame;
+  klee::ConstraintManager(a_frame).addConstraint(
       solver_toolbox.exprBuilder->Uge(pkt_len, solver_toolbox.exprBuilder->Constant(MIN_PKT_SIZE_BYTES - CRC_SIZE_BYTES, pkt_len->getWidth())));
 
   if (solver_toolbox.is_expr_always_true(a_frame, condition)) {

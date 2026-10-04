@@ -11,7 +11,7 @@
 #include <vector>
 #include <list>
 
-#include <klee/Constraints.h>
+#include <klee/Expr/Constraints.h>
 
 namespace LibBDD {
 

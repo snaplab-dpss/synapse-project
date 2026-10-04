@@ -15,7 +15,7 @@
 #include <unordered_set>
 #include <functional>
 #include <regex>
-#include <klee/util/ExprVisitor.h>
+#include <klee/Expr/ExprVisitor.h>
 
 namespace LibSynapse {
 namespace Tofino {

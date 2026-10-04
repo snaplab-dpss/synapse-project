@@ -876,7 +876,7 @@ void BDD::deserialize(const std::filesystem::path &fpath) {
         break;
 
       klee::ref<klee::Expr> constraint = pop_expr(exprs);
-      base_constraints.addConstraint(constraint);
+      klee::ConstraintManager(base_constraints).addConstraint(constraint);
     } break;
 
     case state_t::STATE_INIT: {

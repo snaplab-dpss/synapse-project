@@ -7,7 +7,7 @@
 #include <LibCore/Math.h>
 #include <LibCore/Expr.h>
 
-#include <klee/util/ExprVisitor.h>
+#include <klee/Expr/ExprVisitor.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -33,7 +33,7 @@ public:
   Action visitRead(const klee::ReadExpr &e) override final {
     assert(e.index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
 
-    const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(e.index.get());
+    const klee::ConstantExpr *index_const = llvm::dyn_cast<klee::ConstantExpr>(e.index.get());
     const bytes_t byte                    = index_const->getZExtValue();
     const std::string name                = e.updates.root->name;
     const symbolic_read_t symbolic_read{byte, name};
@@ -189,8 +189,8 @@ std::optional<klee::ref<klee::Expr>> rewrite_constant_comparison(klee::ref<klee:
   klee::ref<klee::Expr> lhs = expr->getKid(0);
   klee::ref<klee::Expr> rhs = expr->getKid(1);
 
-  const klee::ConstantExpr *constant = dynamic_cast<klee::ConstantExpr *>(rhs.get());
-  if (!constant || dynamic_cast<klee::ConstantExpr *>(lhs.get())) {
+  const klee::ConstantExpr *constant = llvm::dyn_cast<klee::ConstantExpr>(rhs.get());
+  if (!constant || llvm::dyn_cast<klee::ConstantExpr>(lhs.get())) {
     return {};
   }
 
@@ -208,10 +208,10 @@ std::optional<klee::ref<klee::Expr>> rewrite_constant_comparison(klee::ref<klee:
     klee::ref<klee::Expr> a0 = lhs->getKid(0);
     klee::ref<klee::Expr> a1 = lhs->getKid(1);
     klee::ref<klee::Expr> add_var;
-    const klee::ConstantExpr *add_const = dynamic_cast<klee::ConstantExpr *>(a0.get());
+    const klee::ConstantExpr *add_const = llvm::dyn_cast<klee::ConstantExpr>(a0.get());
     if (add_const) {
       add_var = a1;
-    } else if ((add_const = dynamic_cast<klee::ConstantExpr *>(a1.get()))) {
+    } else if ((add_const = llvm::dyn_cast<klee::ConstantExpr>(a1.get()))) {
       add_var = a0;
     }
     if (!add_const) {
@@ -337,8 +337,8 @@ std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna
     // `x < 2^k` is the same as `x <= 2^k-1`; normalize so the mask-match check below
     // (and the PHV-byte model, which treats 2^k-1 constants as free) see it.
     if (simplified->getKind() == klee::Expr::Kind::Ult) {
-      const klee::ConstantExpr *rhs_const = dynamic_cast<klee::ConstantExpr *>(simplified->getKid(1).get());
-      if (rhs_const && !dynamic_cast<klee::ConstantExpr *>(simplified->getKid(0).get())) {
+      const klee::ConstantExpr *rhs_const = llvm::dyn_cast<klee::ConstantExpr>(simplified->getKid(1).get());
+      if (rhs_const && !llvm::dyn_cast<klee::ConstantExpr>(simplified->getKid(0).get())) {
         const u64 c = rhs_const->getZExtValue();
         if (c > 0 && is_power_of_two(c)) {
           simplified =
@@ -356,8 +356,8 @@ std::vector<If::condition_t> IfFactory::get_compatible_conditions(const TNA &tna
       if (k != klee::Expr::Kind::Ult && k != klee::Expr::Kind::Ule) {
         return false;
       }
-      const klee::ConstantExpr *rhs_const = dynamic_cast<klee::ConstantExpr *>(e->getKid(1).get());
-      const bool lhs_const                = dynamic_cast<klee::ConstantExpr *>(e->getKid(0).get()) != nullptr;
+      const klee::ConstantExpr *rhs_const = llvm::dyn_cast<klee::ConstantExpr>(e->getKid(1).get());
+      const bool lhs_const                = llvm::dyn_cast<klee::ConstantExpr>(e->getKid(0).get()) != nullptr;
       if (!rhs_const || lhs_const || e->getKid(0)->getWidth() <= 8) {
         return false;
       }

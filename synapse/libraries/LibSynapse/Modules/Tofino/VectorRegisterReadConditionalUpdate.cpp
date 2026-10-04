@@ -50,7 +50,7 @@ bool symbol_used_in_subtree(const BDDNode *root, const std::string &symbol) {
           continue;
         }
         if (cur->getKind() == klee::Expr::Read) {
-          names.insert(dynamic_cast<klee::ReadExpr *>(cur.get())->updates.root->name);
+          names.insert(llvm::dyn_cast<klee::ReadExpr>(cur.get())->updates.root->name);
         }
         for (unsigned i = 0; i < cur->getNumKids(); i++) {
           stack.push_back(cur->getKid(i));

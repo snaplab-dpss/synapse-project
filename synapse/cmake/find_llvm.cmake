@@ -6,12 +6,12 @@ if (DEFINED ENV{LLVM_DIR} AND NOT "$ENV{LLVM_DIR}" STREQUAL "")
   set(LLVM_DIR "$ENV{LLVM_DIR}")
   message(STATUS "LLVM_DIR: $ENV{LLVM_DIR}")
 else()
-  set(_DEFAULT_LLVM_DIR "${EXTERNAL_DEPS_DIR}/llvm")
+  set(_DEFAULT_LLVM_DIR "/usr/lib/llvm-16")
   if (EXISTS "${_DEFAULT_LLVM_DIR}")
     set(LLVM_DIR "${_DEFAULT_LLVM_DIR}")
-    message(STATUS "LLVM_DIR not set; using bundled LLVM at ${LLVM_DIR}")
+    message(STATUS "LLVM_DIR not set; using the system's LLVM at ${LLVM_DIR}")
   else()
-    message(FATAL_ERROR "LLVM_DIR is not set. Set LLVM_DIR, export LLVM_DIR, or place LLVM at ${_DEFAULT_LLVM_DIR}.")
+    message(FATAL_ERROR "LLVM_DIR is not set. Set LLVM_DIR, export LLVM_DIR, or install LLVM at ${_DEFAULT_LLVM_DIR}.")
   endif()
 endif()
 
@@ -43,7 +43,8 @@ else()
   # to CMake.
   find_program(LLVM_CONFIG_BINARY
     NAMES llvm-config
-    HINTS "${LLVM_DIR}/Release/bin"
+    HINTS "${LLVM_DIR}/bin"
+    NO_DEFAULT_PATH
   )
   message(STATUS "LLVM_CONFIG_BINARY: ${LLVM_CONFIG_BINARY}")
 
@@ -244,7 +245,8 @@ endforeach()
 set(LLVM_DEFINITIONS "${_new_llvm_definitions}")
 unset(_new_llvm_definitions)
 
-file(GLOB_RECURSE LLVM_LIBRARIES ${LLVM_LIBRARY_DIRS}/*.a)
+# LLVM's shared library, as KLEE links it.
+_run_llvm_config(LLVM_LIBRARIES "--link-shared" "--libfiles")
 
 message(STATUS "LLVM_DEFINITIONS: ${LLVM_DEFINITIONS}")
 message(STATUS "LLVM_INCLUDE_DIRS: ${LLVM_INCLUDE_DIRS}")

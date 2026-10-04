@@ -5,8 +5,8 @@
 #include <unordered_set>
 #include <optional>
 
-#include <klee/Expr.h>
-#include <klee/Constraints.h>
+#include <klee/Expr/Expr.h>
+#include <klee/Expr/Constraints.h>
 
 namespace LibCore {
 
@@ -63,8 +63,8 @@ bool match_byte_swap_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &
 klee::ref<klee::Expr> canonicalize_byte_swaps(klee::ref<klee::Expr> expr);
 
 i64 get_constant_signed(klee::ref<klee::Expr> expr);
-bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr);
-klee::ConstraintManager join_managers(const klee::ConstraintManager &m1, const klee::ConstraintManager &m2);
+bool manager_contains(const klee::ConstraintSet &constraints, klee::ref<klee::Expr> expr);
+klee::ConstraintSet join_managers(const klee::ConstraintSet &m1, const klee::ConstraintSet &m2);
 addr_t expr_addr_to_obj_addr(klee::ref<klee::Expr> obj_addr);
 klee::ref<klee::Expr> constraint_from_expr(klee::ref<klee::Expr> expr);
 klee::ref<klee::Expr> filter(klee::ref<klee::Expr> expr, const std::vector<std::string> &allowed_symbols);

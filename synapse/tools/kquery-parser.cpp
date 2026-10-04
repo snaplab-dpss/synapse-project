@@ -258,9 +258,9 @@ void test7() {
   klee::ref<klee::Expr> success_condition =
       solver_toolbox.exprBuilder->Ne(not_out_of_space.expr, solver_toolbox.exprBuilder->Constant(0, not_out_of_space.expr->getWidth()));
 
-  klee::ConstraintManager constraints;
+  klee::ConstraintSet constraints;
   for (auto expr : kQuery.values) {
-    constraints.addConstraint(expr);
+    klee::ConstraintManager(constraints).addConstraint(expr);
   }
 
   std::cerr << "Constraints:\n";

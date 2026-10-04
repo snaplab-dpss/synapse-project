@@ -11,11 +11,10 @@
 #include <vector>
 
 #include <llvm/Support/MemoryBuffer.h>
-#include <klee/ExprBuilder.h>
-#include <klee/perf-contracts.h>
-#include <klee/Constraints.h>
-#include <klee/Solver.h>
-#include <expr/Parser.h>
+#include <klee/Expr/ExprBuilder.h>
+#include <klee/Expr/Constraints.h>
+#include <klee/Solver/Solver.h>
+#include <klee/Expr/Parser/Parser.h>
 
 namespace LibBDD {
 
@@ -70,7 +69,7 @@ std::unique_ptr<call_path_t> load_call_path(const std::filesystem::path &fpath, 
         call_path->symbols = kQuery.symbols;
 
         for (klee::ref<klee::Expr> constraint : kQuery.constraints) {
-          call_path->constraints.addConstraint(constraint);
+          klee::ConstraintManager(call_path->constraints).addConstraint(constraint);
         }
 
         for (klee::ref<klee::Expr> value : kQuery.values) {

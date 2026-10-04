@@ -9,7 +9,8 @@
 #include <regex>
 #include <unordered_map>
 
-#include <klee/util/ExprVisitor.h>
+#include <klee/Expr/ExprVisitor.h>
+#include <llvm/Support/CommandLine.h>
 
 namespace LibCore {
 
@@ -102,7 +103,7 @@ public:
   Action visitRead(const klee::ReadExpr &e) {
     assert(e.index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
 
-    const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(e.index.get());
+    const klee::ConstantExpr *index_const = llvm::dyn_cast<klee::ConstantExpr>(e.index.get());
     const bytes_t byte                    = index_const->getZExtValue();
     const std::string name                = e.updates.root->name;
 
@@ -153,7 +154,7 @@ public:
       return printer.get_result();
     }
 
-    klee::ConstantExpr *constant = dynamic_cast<klee::ConstantExpr *>(expr.get());
+    klee::ConstantExpr *constant = llvm::dyn_cast<klee::ConstantExpr>(expr.get());
     std::stringstream ss;
 
     if (use_signed) {
@@ -216,7 +217,7 @@ public:
     klee::ref<klee::Expr> index = e.index;
 
     assert(index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
-    klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
+    klee::ConstantExpr *index_const = llvm::dyn_cast<klee::ConstantExpr>(index.get());
     u64 i                           = index_const->getZExtValue();
 
     std::stringstream ss;
@@ -748,7 +749,7 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset, bytes_t &siz
 
     klee::ref<klee::Expr> index = read->index;
     if (index->getKind() == klee::Expr::Constant) {
-      klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
+      klee::ConstantExpr *index_const = llvm::dyn_cast<klee::ConstantExpr>(index.get());
       offset                          = index_const->getZExtValue();
       size                            = read->getWidth() / 8;
       return true;
@@ -914,7 +915,7 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
   bits_t width = expr->getWidth();
 
   if (expr->getKind() == klee::Expr::Kind::Constant) {
-    klee::ConstantExpr *constant = dynamic_cast<klee::ConstantExpr *>(expr.get());
+    klee::ConstantExpr *constant = llvm::dyn_cast<klee::ConstantExpr>(expr.get());
     assert(width <= 64 && "Width too big");
     value = constant->getZExtValue(width);
   } else {
@@ -930,22 +931,22 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
   return -((~value + 1) & mask);
 }
 
-bool manager_contains(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) {
+bool manager_contains(const klee::ConstraintSet &constraints, klee::ref<klee::Expr> expr) {
   auto found_it =
       std::find_if(constraints.begin(), constraints.end(), [&](klee::ref<klee::Expr> e) { return solver_toolbox.are_exprs_always_equal(e, expr); });
   return found_it != constraints.end();
 }
 
-klee::ConstraintManager join_managers(const klee::ConstraintManager &m1, const klee::ConstraintManager &m2) {
-  klee::ConstraintManager m;
+klee::ConstraintSet join_managers(const klee::ConstraintSet &m1, const klee::ConstraintSet &m2) {
+  klee::ConstraintSet m;
 
   for (klee::ref<klee::Expr> c : m1) {
-    m.addConstraint(c);
+    klee::ConstraintManager(m).addConstraint(c);
   }
 
   for (klee::ref<klee::Expr> c : m2) {
     if (!manager_contains(m, c))
-      m.addConstraint(c);
+      klee::ConstraintManager(m).addConstraint(c);
   }
 
   return m;
@@ -1059,12 +1060,12 @@ std::vector<std::optional<symbolic_read_t>> break_expr_by_reads(klee::ref<klee::
     groups.insert(groups.end(), lsb_bytes.begin(), lsb_bytes.end());
     groups.insert(groups.end(), msb_bytes.begin(), msb_bytes.end());
   } else if (expr->getKind() == klee::Expr::Read) {
-    const klee::ReadExpr *read        = dynamic_cast<const klee::ReadExpr *>(expr.get());
+    const klee::ReadExpr *read        = llvm::dyn_cast<const klee::ReadExpr>(expr.get());
     const std::string name            = read->updates.root->name;
     const klee::ref<klee::Expr> index = read->index;
 
     assert(index->getKind() == klee::Expr::Constant && "Non-constant index");
-    klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
+    klee::ConstantExpr *index_const = llvm::dyn_cast<klee::ConstantExpr>(index.get());
     bytes_t offset                  = index_const->getZExtValue();
 
     symbolic_read_t symbolic_read{offset, name};
@@ -1170,7 +1171,7 @@ expr_groups_t get_expr_groups(klee::ref<klee::Expr> expr) {
     const std::string symbol    = read->updates.root->name;
 
     assert(index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
-    const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
+    const klee::ConstantExpr *index_const = llvm::dyn_cast<klee::ConstantExpr>(index.get());
     const bytes_t current_byte            = index_const->getZExtValue();
 
     bool appended_to_group = false;
@@ -1257,7 +1258,7 @@ std::vector<expr_group_t> get_expr_groups_from_condition(klee::ref<klee::Expr> e
     const std::string symbol    = read->updates.root->name;
 
     assert(index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
-    const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(index.get());
+    const klee::ConstantExpr *index_const = llvm::dyn_cast<klee::ConstantExpr>(index.get());
     const bytes_t current_byte            = index_const->getZExtValue();
 
     bool appended_to_group = false;
@@ -1345,7 +1346,7 @@ bool simplify_extract_0_zext_conditional(klee::ref<klee::Expr> extract_expr, kle
     return false;
   }
 
-  klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  klee::ExtractExpr *extract = llvm::dyn_cast<klee::ExtractExpr>(extract_expr.get());
 
   if (extract->offset != 0 || extract->width != 1) {
     return false;
@@ -1355,7 +1356,7 @@ bool simplify_extract_0_zext_conditional(klee::ref<klee::Expr> extract_expr, kle
     return false;
   }
 
-  klee::ZExtExpr *zext = dynamic_cast<klee::ZExtExpr *>(extract->expr.get());
+  klee::ZExtExpr *zext = llvm::dyn_cast<klee::ZExtExpr>(extract->expr.get());
 
   if (!is_conditional(zext->src)) {
     return false;
@@ -1370,7 +1371,7 @@ bool simplify_extract_0_same_width(klee::ref<klee::Expr> extract_expr, klee::ref
     return false;
   }
 
-  klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  klee::ExtractExpr *extract = llvm::dyn_cast<klee::ExtractExpr>(extract_expr.get());
 
   if (extract->offset != 0) {
     return false;
@@ -1391,7 +1392,7 @@ bool simplify_extract_of_concats(klee::ref<klee::Expr> extract_expr, klee::ref<k
     return false;
   }
 
-  const klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  const klee::ExtractExpr *extract = llvm::dyn_cast<klee::ExtractExpr>(extract_expr.get());
   const bits_t offset              = extract->offset;
   klee::ref<klee::Expr> expr       = extract->expr;
   const bits_t size                = extract->width;
@@ -1450,7 +1451,7 @@ bool simplify_extract_ext(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Ex
     return false;
   }
 
-  const klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  const klee::ExtractExpr *extract = llvm::dyn_cast<klee::ExtractExpr>(extract_expr.get());
   bits_t offset                    = extract->offset;
   klee::ref<klee::Expr> expr       = extract->expr;
   bits_t size                      = extract->width;
@@ -1466,11 +1467,11 @@ bool simplify_extract_ext(klee::ref<klee::Expr> extract_expr, klee::ref<klee::Ex
   klee::ref<klee::Expr> src;
   klee::Expr::Width ext_size;
   if (expr->getKind() == klee::Expr::Kind::ZExt) {
-    klee::ZExtExpr *zext = dynamic_cast<klee::ZExtExpr *>(expr.get());
+    klee::ZExtExpr *zext = llvm::dyn_cast<klee::ZExtExpr>(expr.get());
     src                  = zext->src;
     ext_size             = zext->width;
   } else {
-    klee::SExtExpr *sext = dynamic_cast<klee::SExtExpr *>(expr.get());
+    klee::SExtExpr *sext = llvm::dyn_cast<klee::SExtExpr>(expr.get());
     src                  = sext->src;
     ext_size             = sext->width;
   }
@@ -1500,7 +1501,7 @@ bool simplify_extract_read(klee::ref<klee::Expr> extract_expr, klee::ref<klee::E
     return false;
   }
 
-  const klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(extract_expr.get());
+  const klee::ExtractExpr *extract = llvm::dyn_cast<klee::ExtractExpr>(extract_expr.get());
   const bits_t offset              = extract->offset;
   const bits_t size                = extract->width;
   klee::ref<klee::Expr> expr       = extract->expr;
@@ -1564,7 +1565,7 @@ bool is_extract_0_cond(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &cond_e
     return false;
   }
 
-  auto extract = dynamic_cast<klee::ExtractExpr *>(expr.get());
+  auto extract = llvm::dyn_cast<klee::ExtractExpr>(expr.get());
 
   if (extract->offset != 0) {
     return false;
@@ -2224,6 +2225,16 @@ std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
     expr_str = "(null)";
     return expr_str;
   }
+
+  // Every constant is printed with its width, as in the call paths and BDD files.
+  static const bool print_all_const_widths = [] {
+    llvm::cl::Option *option = llvm::cl::getRegisteredOptions().lookup("pc-all-const-widths");
+    assert(option && "KLEE's printer options are not registered");
+    static_cast<llvm::cl::opt<bool> *>(option)->setValue(true);
+    return true;
+  }();
+  (void)print_all_const_widths;
+
   llvm::raw_string_ostream os(expr_str);
   expr->print(os);
   os.str();
@@ -2267,18 +2278,18 @@ bool match_endian_swap_16_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Ex
     return false;
   }
 
-  klee::ExtractExpr *extract = dynamic_cast<klee::ExtractExpr *>(expr.get());
+  klee::ExtractExpr *extract = llvm::dyn_cast<klee::ExtractExpr>(expr.get());
   if (extract->width != 16 || extract->expr->getKind() != klee::Expr::Or) {
     return false;
   }
 
-  klee::OrExpr *or_expr = dynamic_cast<klee::OrExpr *>(extract->expr.get());
+  klee::OrExpr *or_expr = llvm::dyn_cast<klee::OrExpr>(extract->expr.get());
   if (or_expr->getWidth() != 32 || or_expr->left->getKind() != klee::Expr::Shl || or_expr->right->getKind() != klee::Expr::AShr) {
     return false;
   }
 
-  klee::ShlExpr *shl_expr   = dynamic_cast<klee::ShlExpr *>(or_expr->left.get());
-  klee::AShrExpr *ashr_expr = dynamic_cast<klee::AShrExpr *>(or_expr->right.get());
+  klee::ShlExpr *shl_expr   = llvm::dyn_cast<klee::ShlExpr>(or_expr->left.get());
+  klee::AShrExpr *ashr_expr = llvm::dyn_cast<klee::AShrExpr>(or_expr->right.get());
 
   if (shl_expr->left->getKind() != klee::Expr::And || ashr_expr->left->getKind() != klee::Expr::And) {
     return false;
@@ -2294,8 +2305,8 @@ bool match_endian_swap_16_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Ex
     return false;
   }
 
-  klee::AndExpr *and_lhs = dynamic_cast<klee::AndExpr *>(shl_expr->left.get());
-  klee::AndExpr *and_rhs = dynamic_cast<klee::AndExpr *>(ashr_expr->left.get());
+  klee::AndExpr *and_lhs = llvm::dyn_cast<klee::AndExpr>(shl_expr->left.get());
+  klee::AndExpr *and_rhs = llvm::dyn_cast<klee::AndExpr>(ashr_expr->left.get());
 
   if (and_lhs->left->getKind() != klee::Expr::ZExt || and_rhs->left->getKind() != klee::Expr::ZExt) {
     return false;
@@ -2311,8 +2322,8 @@ bool match_endian_swap_16_pattern(klee::ref<klee::Expr> expr, klee::ref<klee::Ex
     return false;
   }
 
-  klee::ZExtExpr *zext_lhs = dynamic_cast<klee::ZExtExpr *>(and_lhs->left.get());
-  klee::ZExtExpr *zext_rhs = dynamic_cast<klee::ZExtExpr *>(and_rhs->left.get());
+  klee::ZExtExpr *zext_lhs = llvm::dyn_cast<klee::ZExtExpr>(and_lhs->left.get());
+  klee::ZExtExpr *zext_rhs = llvm::dyn_cast<klee::ZExtExpr>(and_rhs->left.get());
 
   if (!solver_toolbox.are_exprs_always_equal(zext_lhs->src, zext_rhs->src)) {
     return false;
@@ -2344,7 +2355,7 @@ std::optional<consecutive_bytes_t> get_consecutive_bytes(klee::ref<klee::Expr> e
     if (leaf->getKind() != klee::Expr::Read || leaf->getWidth() != 8) {
       return {};
     }
-    const klee::ReadExpr *read = dynamic_cast<const klee::ReadExpr *>(leaf.get());
+    const klee::ReadExpr *read = llvm::dyn_cast<const klee::ReadExpr>(leaf.get());
     if (!is_constant(read->index)) {
       return {};
     }

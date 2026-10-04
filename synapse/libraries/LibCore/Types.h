@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstdint>
-#include <klee/Expr.h>
+#include <klee/Expr/Expr.h>
 
+#include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 
 using u64 = __UINT64_TYPE__;
 using u32 = __UINT32_TYPE__;

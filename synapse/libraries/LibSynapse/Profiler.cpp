@@ -407,8 +407,8 @@ ProfilerNode *Profiler::get_node(const std::vector<klee::ref<klee::Expr>> &const
 
       klee::ref<klee::Expr> cnstr = constraints[i];
 
-      klee::ConstraintManager manager;
-      manager.addConstraint(current->constraint);
+      klee::ConstraintSet manager;
+      klee::ConstraintManager(manager).addConstraint(current->constraint);
 
       const bool always_true  = solver_toolbox.is_expr_always_true(manager, cnstr);
       const bool always_false = solver_toolbox.is_expr_always_false(manager, cnstr);

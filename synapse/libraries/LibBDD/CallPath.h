@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <vector>
 
-#include <klee/Constraints.h>
+#include <klee/Expr/Constraints.h>
 
 namespace LibBDD {
 
@@ -43,7 +43,7 @@ bool are_calls_equal(call_t c1, call_t c2);
 
 struct call_path_t {
   std::string file_name;
-  klee::ConstraintManager constraints;
+  klee::ConstraintSet constraints;
   calls_t calls;
   Symbols symbols;
 };

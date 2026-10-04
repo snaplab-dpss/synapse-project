@@ -214,7 +214,7 @@ bool is_plain_vector_read(klee::ref<klee::Expr> expr) {
   case klee::Expr::Concat:
     return is_plain_vector_read(expr->getKid(0)) && is_plain_vector_read(expr->getKid(1));
   case klee::Expr::Read: {
-    const klee::ReadExpr *read = dynamic_cast<const klee::ReadExpr *>(expr.get());
+    const klee::ReadExpr *read = llvm::dyn_cast<const klee::ReadExpr>(expr.get());
     return symbol_t::base_from_name(read->updates.root->name) == "vector_data";
   }
   default:
@@ -298,10 +298,13 @@ code_t TofinoSynthesizer::Transpiler::transpile(klee::ref<klee::Expr> expr, tran
     } else if (std::optional<var_t> var = synthesizer->ingress_vars.get(expr, loaded_opt)) {
       coder << var->name;
     } else {
-      visit(expr);
-
-      // HACK: clear the visited map so we force the transpiler to revisit all expressions.
-      visited.clear();
+      // A visitor skips what it already visited, so each expression gets a fresh one.
+      Transpiler visitor(synthesizer);
+      visitor.loaded_opt               = loaded_opt;
+      visitor.temporary_transpilations = temporary_transpilations;
+      visitor.coders.emplace();
+      visitor.visit(expr);
+      coder << visitor.coders.top().dump();
     }
   }
 
@@ -9637,7 +9640,7 @@ bool TofinoSynthesizer::is_masked_packet_read(klee::ref<klee::Expr> expr) const 
   case klee::Expr::ZExt:
     return is_masked_packet_read(expr->getKid(0));
   case klee::Expr::Extract: {
-    const klee::ExtractExpr *extract = dynamic_cast<const klee::ExtractExpr *>(expr.get());
+    const klee::ExtractExpr *extract = llvm::dyn_cast<const klee::ExtractExpr>(expr.get());
     return extract->offset % 8 == 0 && extract->width % 8 == 0 && is_masked_packet_read(expr->getKid(0));
   }
   default:

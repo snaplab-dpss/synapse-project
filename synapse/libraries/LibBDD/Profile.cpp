@@ -321,7 +321,7 @@ bdd_profile_t build_random_bdd_profile(const BDD &bdd, const std::unordered_set<
           assert(std::find(devices.begin(), devices.end(), device) != devices.end() && "Invalid device");
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
         } else {
-          const klee::ConstraintManager constraints = bdd.get_constraints(node);
+          const klee::ConstraintSet constraints = bdd.get_constraints(node);
 
           std::vector<u16> candidate_devices;
           for (const u16 dev : devices) {
@@ -464,7 +464,7 @@ bdd_profile_t build_uniform_bdd_profile(const BDD &bdd, const std::unordered_set
           assert(devices.contains(device) && "Invalid device");
           bdd_profile.forwarding_stats[node->get_id()].ports[device] = current_counter;
         } else {
-          const klee::ConstraintManager constraints = bdd.get_constraints(node);
+          const klee::ConstraintSet constraints = bdd.get_constraints(node);
 
           std::unordered_set<u16> candidate_devices;
           for (const u16 dev : devices) {

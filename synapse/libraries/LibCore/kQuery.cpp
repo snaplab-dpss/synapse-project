@@ -4,12 +4,11 @@
 #include <unordered_map>
 
 #include <llvm/Support/MemoryBuffer.h>
-#include <klee/ExprBuilder.h>
-#include <klee/perf-contracts.h>
-#include <klee/Constraints.h>
-#include <klee/Solver.h>
-#include <expr/Parser.h>
-#include <klee/util/ExprVisitor.h>
+#include <klee/Expr/ExprBuilder.h>
+#include <klee/Expr/Constraints.h>
+#include <klee/Solver/Solver.h>
+#include <klee/Expr/Parser/Parser.h>
+#include <klee/Expr/ExprVisitor.h>
 
 namespace LibCore {
 
@@ -21,8 +20,7 @@ private:
   std::unordered_map<const klee::Expr *, klee::ref<klee::Expr>> replacements;
 
 public:
-  ArrayReplacer(const std::vector<const klee::Array *> &arrays)
-      : klee::ExprVisitor::ExprVisitor(true), builder(klee::createDefaultExprBuilder()) {
+  ArrayReplacer(const std::vector<const klee::Array *> &arrays) : klee::ExprVisitor::ExprVisitor(true), builder(klee::createDefaultExprBuilder()) {
     for (const klee::Array *array : arrays) {
       name_to_array.insert({array->name, array});
     }
@@ -59,39 +57,23 @@ public:
   }
 };
 
-// The LLVM MemoryBufferMem is private, and using MemoryBuffer::getMemBuffer causes memory
-// leaks. This is a workaround to create a MemoryBufferMem.
-class MemoryBufferMem : public llvm::MemoryBuffer {
-public:
-  MemoryBufferMem(llvm::StringRef InputData, bool RequiresNullTerminator) {
-    init(InputData.begin(), InputData.end(), RequiresNullTerminator);
-  }
-
-  virtual const char *getBufferIdentifier() const override {
-    // The name is stored after the class itself.
-    return reinterpret_cast<const char *>(this + 1);
-  }
-
-  virtual BufferKind getBufferKind() const override { return MemoryBuffer_Malloc; }
-};
-
 } // namespace
 
 std::string kQuery_t::dump(const SymbolManager *manager) const {
   std::stringstream kQuery_builder;
 
   for (const klee::Array *array : manager->get_arrays()) {
-    kQuery_builder << "array " << array->getName();
-    kQuery_builder << "[" << array->getSize() << "]";
+    kQuery_builder << "array " << array->name;
+    kQuery_builder << "[" << array->size << "]";
     kQuery_builder << " : ";
-    kQuery_builder << "w" << array->getDomain();
+    kQuery_builder << "w" << array->domain;
     kQuery_builder << " -> ";
-    kQuery_builder << "w" << array->getRange();
+    kQuery_builder << "w" << array->range;
     kQuery_builder << " = ";
     if (array->isSymbolicArray()) {
       kQuery_builder << "symbolic";
     } else {
-      kQuery_builder << "[" << array->getSize() << "]";
+      kQuery_builder << "[" << array->size << "]";
     }
     kQuery_builder << "\n";
   }
@@ -118,7 +100,7 @@ kQuery_t kQueryParser::parse(const std::string &kQueryStr) {
   kQuery_t kQuery;
   std::vector<std::unique_ptr<klee::expr::Decl>> decls;
 
-  std::unique_ptr<MemoryBufferMem> mb = std::make_unique<MemoryBufferMem>(kQueryStr, false);
+  std::unique_ptr<llvm::MemoryBuffer> mb = llvm::MemoryBuffer::getMemBuffer(kQueryStr, "", false);
   std::unique_ptr<klee::expr::Parser> parser =
       std::unique_ptr<klee::expr::Parser>(klee::expr::Parser::Create("kQueryParser", mb.get(), builder.get(), false));
 
@@ -126,10 +108,10 @@ kQuery_t kQueryParser::parse(const std::string &kQueryStr) {
     assert(!parser->GetNumErrors() && "Error parsing kquery in call path file.");
     decls.emplace_back(decl);
 
-    if (klee::expr::ArrayDecl *array_decl = dyn_cast<klee::expr::ArrayDecl>(decl)) {
+    if (klee::expr::ArrayDecl *array_decl = llvm::dyn_cast<klee::expr::ArrayDecl>(decl)) {
       symbol_t symbol = manager->store_clone(array_decl->Root);
       kQuery.symbols.add(symbol);
-    } else if (klee::expr::QueryCommand *qc = dyn_cast<klee::expr::QueryCommand>(decl)) {
+    } else if (klee::expr::QueryCommand *qc = llvm::dyn_cast<klee::expr::QueryCommand>(decl)) {
       for (klee::ref<klee::Expr> expr : qc->Constraints)
         kQuery.constraints.push_back(expr);
       for (klee::ref<klee::Expr> value : qc->Values)
@@ -151,17 +133,17 @@ klee::ref<klee::Expr> kQueryParser::parse_expr(const std::string &expr_str) {
   std::stringstream kQuery_builder;
 
   for (const klee::Array *array : manager->get_arrays()) {
-    kQuery_builder << "array " << array->getName();
-    kQuery_builder << "[" << array->getSize() << "]";
+    kQuery_builder << "array " << array->name;
+    kQuery_builder << "[" << array->size << "]";
     kQuery_builder << " : ";
-    kQuery_builder << "w" << array->getDomain();
+    kQuery_builder << "w" << array->domain;
     kQuery_builder << " -> ";
-    kQuery_builder << "w" << array->getRange();
+    kQuery_builder << "w" << array->range;
     kQuery_builder << " = ";
     if (array->isSymbolicArray()) {
       kQuery_builder << "symbolic";
     } else {
-      kQuery_builder << "[" << array->getSize() << "]";
+      kQuery_builder << "[" << array->size << "]";
     }
     kQuery_builder << "\n";
   }

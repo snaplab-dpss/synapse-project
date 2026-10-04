@@ -1,7 +1,7 @@
 #include <LibSynapse/Modules/Tofino/TNA/TNA.h>
 #include <LibCore/Math.h>
 
-#include <klee/util/ExprVisitor.h>
+#include <klee/Expr/ExprVisitor.h>
 
 namespace LibSynapse {
 namespace Tofino {
@@ -29,7 +29,7 @@ public:
   Action visitRead(const klee::ReadExpr &e) override final {
     assert(e.index->getKind() == klee::Expr::Kind::Constant && "Non-constant index");
 
-    const klee::ConstantExpr *index_const = dynamic_cast<klee::ConstantExpr *>(e.index.get());
+    const klee::ConstantExpr *index_const = llvm::dyn_cast<klee::ConstantExpr>(e.index.get());
     const bytes_t byte                    = index_const->getZExtValue();
     const std::string name                = e.updates.root->name;
     const symbolic_read_t symbolic_read{byte, name};
@@ -102,7 +102,7 @@ void TNA::debug() const { pipeline.debug(); }
 std::vector<tofino_port_t> TNA::plausible_ingress_ports_in_bdd_node(const BDD *bdd, const BDDNode *node) const {
   std::vector<tofino_port_t> plausible_ports;
 
-  const klee::ConstraintManager constraints = bdd->get_constraints(node);
+  const klee::ConstraintSet constraints = bdd->get_constraints(node);
   for (const tofino_port_t port : tna_config.ports) {
     klee::ref<klee::Expr> handles_port = solver_toolbox.exprBuilder->Eq(
         bdd->get_device().expr, solver_toolbox.exprBuilder->Constant(port.nf_device, bdd->get_device().expr->getWidth()));
@@ -147,7 +147,7 @@ bool TNA::is_simple_conditional_expr(klee::ref<klee::Expr> condition) const {
   case klee::Expr::Kind::And: {
     klee::ref<klee::Expr> lhs = condition->getKid(0);
     klee::ref<klee::Expr> rhs = condition->getKid(1);
-    is_simple = (is_constant(rhs) && is_simple_conditional_expr(lhs)) || (is_constant(lhs) && is_simple_conditional_expr(rhs));
+    is_simple                 = (is_constant(rhs) && is_simple_conditional_expr(lhs)) || (is_constant(lhs) && is_simple_conditional_expr(rhs));
   } break;
   case klee::Expr::Kind::Concat: {
     is_simple = is_readLSB(condition);

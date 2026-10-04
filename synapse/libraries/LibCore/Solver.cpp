@@ -2,6 +2,8 @@
 #include <LibCore/Expr.h>
 #include <LibCore/Debug.h>
 
+#include <klee/Solver/SolverCmdLine.h>
+
 namespace LibCore {
 
 solver_toolbox_t solver_toolbox;
@@ -13,11 +15,11 @@ solver_toolbox_t::solver_toolbox_t()
 }
 
 bool solver_toolbox_t::is_expr_always_true(klee::ref<klee::Expr> expr) const {
-  klee::ConstraintManager no_constraints;
+  klee::ConstraintSet no_constraints;
   return is_expr_always_true(no_constraints, expr);
 }
 
-bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
+bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintSet &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
   bool result = false;
@@ -28,7 +30,7 @@ bool solver_toolbox_t::is_expr_always_true(const klee::ConstraintManager &constr
   return result;
 }
 
-bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
+bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintSet &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
   bool result = false;
@@ -39,7 +41,7 @@ bool solver_toolbox_t::is_expr_maybe_true(const klee::ConstraintManager &constra
   return result;
 }
 
-bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
+bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintSet &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
   bool result = false;
@@ -50,8 +52,8 @@ bool solver_toolbox_t::is_expr_maybe_false(const klee::ConstraintManager &constr
   return result;
 }
 
-bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2, klee::ConstraintManager c1,
-                                              klee::ConstraintManager c2) const {
+bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2, klee::ConstraintSet c1,
+                                              klee::ConstraintSet c2) const {
   klee::ref<klee::Expr> eq_expr = exprBuilder->Eq(e1, e2);
 
   klee::Query eq_in_e1_ctx_sat_query(c1, eq_expr);
@@ -69,8 +71,8 @@ bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> e1, klee::re
   return eq_in_e1_ctx && eq_in_e2_ctx;
 }
 
-bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2, klee::ConstraintManager c1,
-                                                  klee::ConstraintManager c2) const {
+bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2, klee::ConstraintSet c1,
+                                                  klee::ConstraintSet c2) const {
   klee::ref<klee::Expr> eq_expr = exprBuilder->Eq(e1, e2);
 
   klee::Query eq_in_e1_ctx_sat_query(c1, eq_expr);
@@ -89,11 +91,11 @@ bool solver_toolbox_t::are_exprs_always_not_equal(klee::ref<klee::Expr> e1, klee
 }
 
 bool solver_toolbox_t::is_expr_always_false(klee::ref<klee::Expr> expr) const {
-  klee::ConstraintManager no_constraints;
+  klee::ConstraintSet no_constraints;
   return is_expr_always_false(no_constraints, expr);
 }
 
-bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintManager &constraints, klee::ref<klee::Expr> expr) const {
+bool solver_toolbox_t::is_expr_always_false(const klee::ConstraintSet &constraints, klee::ref<klee::Expr> expr) const {
   klee::Query sat_query(constraints, expr);
 
   bool result = false;
@@ -126,7 +128,7 @@ bool solver_toolbox_t::strict_value_from_expr(klee::ref<klee::Expr> expr, u64 &v
   assert(expr->getWidth() <= 64 && "Width too big");
 
   if (expr->getKind() == klee::Expr::Kind::Constant) {
-    klee::ConstantExpr *constant_expr = dynamic_cast<klee::ConstantExpr *>(expr.get());
+    klee::ConstantExpr *constant_expr = llvm::dyn_cast<klee::ConstantExpr>(expr.get());
     value                             = constant_expr->getZExtValue();
     return true;
   }
@@ -135,7 +137,7 @@ bool solver_toolbox_t::strict_value_from_expr(klee::ref<klee::Expr> expr, u64 &v
     std::size_t operator()(klee::ref<klee::Expr> expr) const { return expr->hash(); }
   };
 
-  klee::ConstraintManager no_constraints;
+  klee::ConstraintSet no_constraints;
   klee::Query sat_query(no_constraints, expr);
 
   klee::ref<klee::ConstantExpr> value_expr;
@@ -156,7 +158,7 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
   assert(expr->getWidth() <= 64 && "Width too big");
 
   if (expr->getKind() == klee::Expr::Kind::Constant) {
-    klee::ConstantExpr *constant_expr = dynamic_cast<klee::ConstantExpr *>(expr.get());
+    klee::ConstantExpr *constant_expr = llvm::dyn_cast<klee::ConstantExpr>(expr.get());
     return constant_expr->getZExtValue();
   }
 
@@ -164,7 +166,7 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
     std::size_t operator()(klee::ref<klee::Expr> expr) const { return expr->hash(); }
   };
 
-  klee::ConstraintManager no_constraints;
+  klee::ConstraintSet no_constraints;
   klee::Query sat_query(no_constraints, expr);
 
   klee::ref<klee::ConstantExpr> value_expr;
@@ -175,9 +177,9 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {
   return value_expr->getZExtValue();
 }
 
-u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr, const klee::ConstraintManager &constraints) const {
+u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr, const klee::ConstraintSet &constraints) const {
   if (expr->getKind() == klee::Expr::Kind::Constant) {
-    klee::ConstantExpr *constant_expr = dynamic_cast<klee::ConstantExpr *>(expr.get());
+    klee::ConstantExpr *constant_expr = llvm::dyn_cast<klee::ConstantExpr>(expr.get());
     return constant_expr->getZExtValue();
   }
 
@@ -191,7 +193,7 @@ u64 solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr, const klee::Co
   return value_expr->getZExtValue();
 }
 
-int64_t solver_toolbox_t::signed_value_from_expr(klee::ref<klee::Expr> expr, const klee::ConstraintManager &constraints) const {
+int64_t solver_toolbox_t::signed_value_from_expr(klee::ref<klee::Expr> expr, const klee::ConstraintSet &constraints) const {
   klee::Expr::Width width = expr->getWidth();
   const u64 value         = solver_toolbox.value_from_expr(expr, constraints);
 

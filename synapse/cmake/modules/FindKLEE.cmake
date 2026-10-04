@@ -24,16 +24,12 @@ endif()
 set(KLEE_INCLUDE_DIRS ${KLEE_DIR}/include ${KLEE_DIR}/build/include)
 set(KLEE_LIBRARY_DIRS ${KLEE_DIR}/build/lib)
 
+# Only kleaver (expressions, kquery parsing, solving), as the kleaver tool links it.
 set(KLEE_LIBRARY_NAMES
-    kleaverExpr
     kleaverSolver
     kleeBasic
-    kleeCore
-    kleeModule
-    kleeSupport
-
-    # For dealing with cycles in the dependency graph, we need to link again...
     kleaverExpr
+    kleeSupport
 )
 
 set(KLEE_LIBRARIES "")

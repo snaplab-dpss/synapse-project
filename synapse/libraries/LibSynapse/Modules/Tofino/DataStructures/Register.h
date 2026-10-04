@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <klee/Expr.h>
 
 namespace LibSynapse {
 namespace Tofino {

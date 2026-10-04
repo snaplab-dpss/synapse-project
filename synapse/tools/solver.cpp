@@ -18,7 +18,7 @@ int main() {
 
   klee::ref<klee::Expr> eq = solver_toolbox.exprBuilder->Eq(A1.expr, A2.expr);
 
-  klee::ConstraintManager constraints;
+  klee::ConstraintSet constraints;
   klee::Query sat_query(constraints, eq);
 
   bool result;

@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include <optional>
 
-#include <klee/Expr.h>
+#include <klee/Expr/Expr.h>
 
 namespace LibCore {
 

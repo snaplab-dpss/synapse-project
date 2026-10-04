@@ -3,7 +3,7 @@
 #include <LibCore/Solver.h>
 #include <LibCore/Debug.h>
 
-#include <klee/util/ExprHashMap.h>
+#include <klee/Expr/ExprHashMap.h>
 
 namespace LibBDD {
 
@@ -209,7 +209,7 @@ private:
     const symbol_t symbol         = symbol_manager->create_symbol("unrolled__" + std::to_string(n_symbols++), width);
 
     call_t call;
-    call.function_name = op->name;
+    call.function_name  = op->name;
     call.args["a"].expr = expr->getKid(0);
     if (expr->getNumKids() == 2) {
       call.args["b"].expr = expr->getKid(1);

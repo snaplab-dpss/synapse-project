@@ -6,7 +6,6 @@
 #include <vector>
 #include <optional>
 
-#include <klee/Expr.h>
 
 namespace LibSynapse {
 namespace Tofino {

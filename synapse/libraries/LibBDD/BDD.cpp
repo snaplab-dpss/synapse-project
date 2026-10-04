@@ -329,7 +329,7 @@ void pop_call_paths(call_paths_view_t &call_paths_view) {
 }
 
 BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager, BDDNodeManager &node_manager,
-                             std::vector<Call *> &init, bdd_node_id_t &id, klee::ConstraintManager &base_constraints, bool in_init_mode,
+                             std::vector<Call *> &init, bdd_node_id_t &id, klee::ConstraintSet &base_constraints, bool in_init_mode,
                              std::unordered_map<std::string, size_t> base_symbols_generated) {
   BDDNode *root = nullptr;
   BDDNode *leaf = nullptr;
@@ -372,7 +372,7 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
       if (call.function_name == init_to_process_trigger_function) {
         in_init_mode = false;
         for (klee::ref<klee::Expr> common_constraint : group.get_common_constraints()) {
-          base_constraints.addConstraint(common_constraint);
+          klee::ConstraintManager(base_constraints).addConstraint(common_constraint);
         }
       }
 
@@ -482,7 +482,7 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
 }
 
 BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *symbol_manager, BDDNodeManager &node_manager,
-                             std::vector<Call *> &init, bdd_node_id_t &id, klee::ConstraintManager &base_constraints) {
+                             std::vector<Call *> &init, bdd_node_id_t &id, klee::ConstraintSet &base_constraints) {
   bool in_init_mode = true;
   std::unordered_map<std::string, size_t> base_symbols_generated;
   BDDNode *root =
@@ -518,10 +518,10 @@ BDDNode *bdd_from_call_paths(call_paths_view_t call_paths_view, SymbolManager *s
     symbol_manager->remove_symbol(old_symbol_name);
   }
 
-  klee::ConstraintManager new_base_constraints;
+  klee::ConstraintSet new_base_constraints;
   for (klee::ref<klee::Expr> base_constraint : base_constraints) {
     klee::ref<klee::Expr> new_base_constraint = symbol_manager->translate(base_constraint, translations);
-    new_base_constraints.addConstraint(new_base_constraint);
+    klee::ConstraintManager(new_base_constraints).addConstraint(new_base_constraint);
   }
   base_constraints = new_base_constraints;
 
@@ -1201,8 +1201,8 @@ bool BDD::is_index_alloc_on_unsuccessful_map_get(const Call *dchain_allocate_new
     return false;
   }
 
-  const symbol_t map_has_this_key           = dynamic_cast<const Call *>(map_get)->get_local_symbol("map_has_this_key");
-  const klee::ConstraintManager constraints = get_constraints(dchain_allocate_new_index);
+  const symbol_t map_has_this_key       = dynamic_cast<const Call *>(map_get)->get_local_symbol("map_has_this_key");
+  const klee::ConstraintSet constraints = get_constraints(dchain_allocate_new_index);
 
   klee::ref<klee::Expr> found_key =
       solver_toolbox.exprBuilder->Ne(map_has_this_key.expr, solver_toolbox.exprBuilder->Constant(0, map_has_this_key.expr->getWidth()));
@@ -1257,7 +1257,7 @@ bool BDD::is_map_update_with_dchain(const Call *dchain_allocate_new_index, const
       return false;
     }
 
-    klee::ConstraintManager constraints = get_constraints(map_put);
+    klee::ConstraintSet constraints = get_constraints(map_put);
 
     if ((index_alloc_check.direction && !solver_toolbox.is_expr_always_true(constraints, condition)) ||
         (!index_alloc_check.direction && !solver_toolbox.is_expr_always_false(constraints, condition))) {
@@ -1315,7 +1315,7 @@ std::unordered_set<u16> BDD::get_devices() const {
     return devices;
   }
 
-  const klee::ConstraintManager constraints = get_constraints(root);
+  const klee::ConstraintSet constraints = get_constraints(root);
   for (u16 device_value = 0; device_value < UINT16_MAX; device_value++) {
     const bool valid_device_value = solver_toolbox.is_expr_maybe_true(
         constraints, solver_toolbox.exprBuilder->Eq(device.expr, solver_toolbox.exprBuilder->Constant(device_value, device.expr->getWidth())));
@@ -1643,11 +1643,11 @@ BDDNode *BDD::delete_branch(BDDNode *target, BranchDeletionAction branch_deletio
   return new_current;
 }
 
-klee::ConstraintManager BDD::get_constraints(const BDDNode *node) const {
+klee::ConstraintSet BDD::get_constraints(const BDDNode *node) const {
   assert(node && "BDDNode cannot be null");
-  klee::ConstraintManager constraints = base_constraints;
+  klee::ConstraintSet constraints = base_constraints;
   for (klee::ref<klee::Expr> constraint : node->get_ordered_branch_constraints()) {
-    constraints.addConstraint(constraint);
+    klee::ConstraintManager(constraints).addConstraint(constraint);
   }
   // Unrolled arithmetic keeps its meaning: unrolled == a <op> b (see Unroll.h).
   for (const BDDNode *prev = node; prev; prev = prev->get_prev()) {
@@ -1656,7 +1656,7 @@ klee::ConstraintManager BDD::get_constraints(const BDDNode *node) const {
     }
     const call_t &call = dynamic_cast<const Call *>(prev)->get_call();
     if (is_unrolled_op(call)) {
-      constraints.addConstraint(solver_toolbox.exprBuilder->Eq(call.ret, unrolled_op_value(call)));
+      klee::ConstraintManager(constraints).addConstraint(solver_toolbox.exprBuilder->Eq(call.ret, unrolled_op_value(call)));
     }
   }
   return constraints;
@@ -1764,7 +1764,7 @@ bool BDD::is_map_get_followed_by_map_puts_on_miss(const Call *map_get, std::vect
       return false;
     }
 
-    const klee::ConstraintManager map_put_constraints = get_constraints(map_put);
+    const klee::ConstraintSet map_put_constraints = get_constraints(map_put);
     if (!solver_toolbox.is_expr_always_true(map_put_constraints, failed_map_get)) {
       // Found map_put that happens even if map_get was successful.
       return false;
@@ -1835,7 +1835,7 @@ bool BDD::is_tb_tracing_check_followed_by_update_on_true(const Call *tb_is_traci
       continue;
     }
 
-    const klee::ConstraintManager candidate_constraints = get_constraints(candidate);
+    const klee::ConstraintSet candidate_constraints = get_constraints(candidate);
     if (!solver_toolbox.is_expr_always_true(candidate_constraints, is_tracing_condition)) {
       continue;
     }
@@ -2025,8 +2025,8 @@ std::unordered_set<u16> BDD::get_candidate_fwd_devs(const Route *route) const {
     candidate_devs = get_devices();
   } break;
   case RouteOp::Forward: {
-    klee::ref<klee::Expr> dst_dev             = route->get_dst_device();
-    const klee::ConstraintManager constraints = get_constraints(route);
+    klee::ref<klee::Expr> dst_dev         = route->get_dst_device();
+    const klee::ConstraintSet constraints = get_constraints(route);
 
     const std::unordered_set<u16> devs = get_devices();
     for (const u16 dev : devs) {
@@ -2119,7 +2119,7 @@ std::vector<BDD::vector_values_t> BDD::get_vector_values_from_map_op(const BDDNo
   return values;
 }
 
-BDDNode *BDD::delete_constraints(const klee::ConstraintManager &target_constraints) {
+BDDNode *BDD::delete_constraints(const klee::ConstraintSet &target_constraints) {
   BDDNode *target_node_for_deletion = nullptr;
 
   BDDNode *node = root;

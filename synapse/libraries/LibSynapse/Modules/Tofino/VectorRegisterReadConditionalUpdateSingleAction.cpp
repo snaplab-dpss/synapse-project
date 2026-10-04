@@ -73,7 +73,7 @@ bool expr_reads_symbol(klee::ref<klee::Expr> expr, const std::string &symbol) {
     return false;
   }
   if (expr->getKind() == klee::Expr::Read) {
-    return dynamic_cast<klee::ReadExpr *>(expr.get())->updates.root->name == symbol;
+    return llvm::dyn_cast<klee::ReadExpr>(expr.get())->updates.root->name == symbol;
   }
   for (unsigned i = 0; i < expr->getNumKids(); i++) {
     if (expr_reads_symbol(expr->getKid(i), symbol)) {
@@ -88,7 +88,7 @@ void collect_read_names(klee::ref<klee::Expr> e, std::unordered_set<std::string>
     return;
   }
   if (e->getKind() == klee::Expr::Read) {
-    out.insert(dynamic_cast<klee::ReadExpr *>(e.get())->updates.root->name);
+    out.insert(llvm::dyn_cast<klee::ReadExpr>(e.get())->updates.root->name);
   }
   for (unsigned i = 0; i < e->getNumKids(); i++) {
     collect_read_names(e->getKid(i), out);
@@ -128,8 +128,8 @@ bool exprs_equal_modulo(klee::ref<klee::Expr> a, klee::ref<klee::Expr> b, const 
     return false;
   }
   if (a->getKind() == klee::Expr::Read) {
-    const std::string &na = dynamic_cast<klee::ReadExpr *>(a.get())->updates.root->name;
-    const std::string &nb = dynamic_cast<klee::ReadExpr *>(b.get())->updates.root->name;
+    const std::string &na = llvm::dyn_cast<klee::ReadExpr>(a.get())->updates.root->name;
+    const std::string &nb = llvm::dyn_cast<klee::ReadExpr>(b.get())->updates.root->name;
     if (!exprs_equal_modulo(a->getKid(0), b->getKid(0), ignore)) { // index
       return false;
     }
@@ -229,8 +229,7 @@ const Call *find_shadow_min(const BDDNode *start, klee::ref<klee::Expr> x, klee:
     }
     klee::ref<klee::Expr> a = ita->second.expr;
     klee::ref<klee::Expr> b = itb->second.expr;
-    if ((exprs_structurally_equal(a, x) && exprs_structurally_equal(b, y)) ||
-        (exprs_structurally_equal(a, y) && exprs_structurally_equal(b, x))) {
+    if ((exprs_structurally_equal(a, x) && exprs_structurally_equal(b, y)) || (exprs_structurally_equal(a, y) && exprs_structurally_equal(b, x))) {
       return dynamic_cast<const Call *>(n);
     }
   }
@@ -446,17 +445,17 @@ std::vector<impl_t> VectorRegisterReadConditionalUpdateSingleActionFactory::proc
   bool returns_shadow = false;
   klee::ref<klee::Expr> shadow_symbol;
   if (new_next_node && new_next_node->get_type() == BDDNodeType::Branch) {
-    const Branch *branch    = dynamic_cast<const Branch *>(new_next_node);
-    const Call *min_on_true = find_shadow_min(branch->get_on_true(), vector_register_data.value, vector_register_data.write_value);
+    const Branch *branch     = dynamic_cast<const Branch *>(new_next_node);
+    const Call *min_on_true  = find_shadow_min(branch->get_on_true(), vector_register_data.value, vector_register_data.write_value);
     const Call *min_on_false = find_shadow_min(branch->get_on_false(), vector_register_data.value, vector_register_data.write_value);
     if (min_on_true && min_on_false && branch_sides_alpha_equal(branch->get_on_true(), branch->get_on_false())) {
       const bdd_node_id_t min_id = min_on_true->get_id();
       // Merge the branch's two (equivalent) sides in the profiler before it vanishes
       // from the BDD, so downstream throughput still maps and counts all its traffic.
       new_ep->get_mutable_ctx().get_mutable_profiler().collapse_branch(branch);
-      new_next_node              = new_bdd->delete_branch(new_next_node->get_id(), BDD::BranchDeletionAction::KeepOnTrue);
-      const Call *kept_min       = dynamic_cast<const Call *>(new_bdd->get_node_by_id(min_id));
-      shadow_symbol              = kept_min->get_call().ret;
+      new_next_node        = new_bdd->delete_branch(new_next_node->get_id(), BDD::BranchDeletionAction::KeepOnTrue);
+      const Call *kept_min = dynamic_cast<const Call *>(new_bdd->get_node_by_id(min_id));
+      shadow_symbol        = kept_min->get_call().ret;
       // The register action now produces the shadow, but the min() node that used to
       // generate its symbol is about to be consumed. Move that symbol's generation to
       // the register-read (vector_borrow) node so downstream users stay satisfied.
@@ -473,12 +472,12 @@ std::vector<impl_t> VectorRegisterReadConditionalUpdateSingleActionFactory::proc
     }
   }
 
-  vector_register->add_register_action(returns_shadow ? RegisterActionType::ReadConditionalWriteReturnOther : RegisterActionType::ReadConditionalWrite);
+  vector_register->add_register_action(returns_shadow ? RegisterActionType::ReadConditionalWriteReturnOther
+                                                      : RegisterActionType::ReadConditionalWrite);
 
-  Module *module =
-      new VectorRegisterReadConditionalUpdateSingleAction(node, vector_register->id, vector_register_data.obj, vector_register_data.index,
-                                                          vector_register_data.value, vector_register_data.write_value, condition, returns_shadow,
-                                                          shadow_symbol);
+  Module *module  = new VectorRegisterReadConditionalUpdateSingleAction(node, vector_register->id, vector_register_data.obj,
+                                                                        vector_register_data.index, vector_register_data.value,
+                                                                        vector_register_data.write_value, condition, returns_shadow, shadow_symbol);
   EPNode *ep_node = new EPNode(module);
 
   Context &ctx = new_ep->get_mutable_ctx();

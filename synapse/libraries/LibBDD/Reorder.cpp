@@ -336,8 +336,8 @@ bool map_can_reorder(const BDD *bdd, const BDDNode *anchor, const BDDNode *betwe
     return true;
   }
 
-  const klee::ConstraintManager &between_constraints   = bdd->get_constraints(between);
-  const klee::ConstraintManager &candidate_constraints = bdd->get_constraints(candidate);
+  const klee::ConstraintSet &between_constraints   = bdd->get_constraints(between);
+  const klee::ConstraintSet &candidate_constraints = bdd->get_constraints(candidate);
 
   const Call *between_call_node = dynamic_cast<const Call *>(between);
 
@@ -388,8 +388,8 @@ bool vector_can_reorder(const BDD *bdd, const BDDNode *anchor, const BDDNode *be
     return true;
   }
 
-  const klee::ConstraintManager &between_constraints   = bdd->get_constraints(between);
-  const klee::ConstraintManager &candidate_constraints = bdd->get_constraints(candidate);
+  const klee::ConstraintSet &between_constraints   = bdd->get_constraints(between);
+  const klee::ConstraintSet &candidate_constraints = bdd->get_constraints(candidate);
 
   const Call *between_call_node = dynamic_cast<const Call *>(between);
 
@@ -539,7 +539,7 @@ bool condition_check(const BDD *bdd, const vector_t &anchor, const BDDNode *cand
   klee::ref<klee::Expr> not_condition = solver_toolbox.exprBuilder->Not(condition);
   const BDDNode *anchor_next          = get_vector_next(anchor);
   anchor_next->visit_nodes([&compatible, bdd, condition, not_condition, candidate, siblings](const BDDNode *node) -> BDDNodeVisitAction {
-    const klee::ConstraintManager constraints = bdd->get_constraints(node);
+    const klee::ConstraintSet constraints = bdd->get_constraints(node);
 
     const bool pos_always_false = solver_toolbox.is_expr_always_false(constraints, condition);
     const bool neg_always_false = solver_toolbox.is_expr_always_false(constraints, not_condition);

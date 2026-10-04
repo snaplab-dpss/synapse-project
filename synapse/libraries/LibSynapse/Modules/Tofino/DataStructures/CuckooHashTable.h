@@ -9,7 +9,6 @@
 #include <optional>
 #include <array>
 
-#include <klee/Expr.h>
 
 namespace LibSynapse {
 namespace Tofino {

@@ -8,7 +8,7 @@
 #include <LibSynapse/Modules/Controller/Controller.h>
 #include <LibSynapse/Modules/Tofino/Tofino.h>
 
-#include <klee/util/ExprVisitor.h>
+#include <klee/Expr/ExprVisitor.h>
 
 #include <filesystem>
 #include <stack>

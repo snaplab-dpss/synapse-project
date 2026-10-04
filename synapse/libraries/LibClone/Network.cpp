@@ -500,9 +500,10 @@ BDDNode *build_network_node_bdd_from_local_port(BDD &bdd, const NetworkNode *net
       } else {
         std::vector<std::pair<Port, BDDNode *>> per_device_logic;
         for (const auto &[local_port, destination] : network_node->get_links()) {
-          klee::ConstraintManager leaf_constraints = bdd.get_constraints(leaf_node);
-          leaf_constraints.addConstraint(
-              solver_toolbox.exprBuilder->Eq(bdd.get_device().expr, solver_toolbox.exprBuilder->Constant(port, bdd.get_device().expr->getWidth())));
+          klee::ConstraintSet leaf_constraints = bdd.get_constraints(leaf_node);
+          klee::ConstraintManager(leaf_constraints)
+              .addConstraint(solver_toolbox.exprBuilder->Eq(bdd.get_device().expr,
+                                                            solver_toolbox.exprBuilder->Constant(port, bdd.get_device().expr->getWidth())));
 
           const Port dst_network_node_port      = destination.first;
           const NetworkNode *dst_network_node   = destination.second;
