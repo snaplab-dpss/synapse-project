@@ -1,13 +1,12 @@
 ===== BDD =====
 ;;-- kQuery --
-array loop_termination[4] : w32 -> w8 = symbolic
-array starting_time[8] : w32 -> w8 = symbolic
 array DEVICE[4] : w32 -> w8 = symbolic
 array data_len[4] : w32 -> w8 = symbolic
 array next_time[8] : w32 -> w8 = symbolic
 array pkt_len[4] : w32 -> w8 = symbolic
 array received_a_packet[4] : w32 -> w8 = symbolic
 array restarting_time[8] : w32 -> w8 = symbolic
+array starting_time[8] : w32 -> w8 = symbolic
 (query [
 ] false [
     (ReadLSB w32 (w32 0) DEVICE)
@@ -15,9 +14,6 @@ array restarting_time[8] : w32 -> w8 = symbolic
     (ReadLSB w64 (w32 0) next_time)
     (Sle (w64 0)
       (ReadLSB w64 (w32 0) starting_time))
-    (Eq false
-     (Eq (w32 0)
-         (ReadLSB w32 (w32 0) loop_termination)))
     (Sle (w64 0)
       (ReadLSB w64 (w32 0) restarting_time))
     (Sle (ReadLSB w64 (w32 0) restarting_time)
@@ -42,7 +38,6 @@ array restarting_time[8] : w32 -> w8 = symbolic
 (ReadLSB w64 (w32 0) next_time)
 ;;-- Base Constraints --
 (Sle (w64 0) (ReadLSB w64 (w32 0) starting_time))
-(Eq false (Eq (w32 0) (ReadLSB w32 (w32 0) loop_termination)))
 (Sle (w64 0) (ReadLSB w64 (w32 0) restarting_time))
 (Sle (ReadLSB w64 (w32 0) restarting_time) (ReadLSB w64 (w32 0) next_time))
 (Ult (ReadLSB w32 (w32 0) DEVICE) (w32 32))
