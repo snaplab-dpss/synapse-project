@@ -41,6 +41,5 @@ run() {
 # run "pol"
 # run "cl"
 # run "psd"
-# run "lb"
 # run "hyperloglog"
 run "hhh"
