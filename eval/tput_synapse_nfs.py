@@ -35,7 +35,7 @@ ZIPF_PARAMS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 # CHURN_FPM = [10_000]
 # ZIPF_PARAMS = [1.2]
 
-ITERATIONS = 3
+ITERATIONS = 5
 
 # Meta4's traffic is pktgen's DNS mode (see deps/pktgen/README.md): pairs announced by DNS
 # responses drawn from the watch list the C NF was built with, then data server -> client, the

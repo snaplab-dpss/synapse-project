@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import math
 import os
 
 from pathlib import Path
@@ -19,10 +20,25 @@ PLOTS_DIR = CURRENT_DIR / "plots"
 
 SYNTHESIZED_DIR = PROJECT_DIR / "synthesized"
 
-TARGET_NFS = ["fw", "nat", "psd", "cl", "kvs", "hyperloglog"]
+TARGET_NFS = ["fw", "nat", "psd", "cl", "kvs", "hyperloglog", "meta4", "smartcookie", "pol", "hhh"]
 
 # Legend labels; NFs missing from this map are shown as their upper-cased name.
-NF_LABELS = {"hyperloglog": "HLL"}
+NF_LABELS = {"hyperloglog": "HLL", "smartcookie": "SC"}
+
+# Fixed per NF so a series keeps its look whichever subset --nfs selects. Every hatch is unique:
+# ten colours cannot all stay distinguishable, so the hatch alone must identify a series.
+NF_STYLES = {
+    "fw": ("#2400D8", "//////"),
+    "nat": ("#3D87FF", "\\\\\\\\\\\\"),
+    "psd": ("#FF7F00", "xxxxx"),
+    "cl": ("#FF3D3D", "........"),
+    "kvs": ("#293132", "|||||||"),
+    "hyperloglog": ("#00A878", "++++"),
+    "meta4": ("#B5179E", "-----"),
+    "smartcookie": ("#88CCEE", "OO"),
+    "pol": ("#FFD92F", "****"),
+    "hhh": ("#8C564B", "/o"),
+}
 
 DEFAULT_TOTAL_FLOWS = [40_000]
 DEFAULT_CHURN_FPM = [0, 1_000, 10_000, 100_000, 1_000_000]
@@ -41,7 +57,7 @@ def plot(data: dict[str, dict[int, tuple[Resources, Resources]]]):
     churns = sorted(list(set(churn for nf_data in data.values() for churn in nf_data)))
 
     ind = np.arange(len(churns))
-    bar_width = 0.15
+    bar_width = 0.8 / len(data)
 
     fig, ax = plt.subplots(constrained_layout=True)
 
@@ -49,17 +65,9 @@ def plot(data: dict[str, dict[int, tuple[Resources, Resources]]]):
     ax.set_ylabel("Stages (\\%)")
     ax.set_yticks(np.arange(0, 100 + 1, 100 / 5))
 
-    colors = [
-        "#2400D8",
-        "#3D87FF",
-        "#FF7F00",
-        "#FF3D3D",
-        "#293132",
-        "#00A878",
-    ]
-
     pos = ind
-    for (nf, nf_data), hatch, color in zip(data.items(), itertools.cycle(hatch_list), itertools.cycle(colors)):
+    for nf, nf_data in data.items():
+        color, hatch = NF_STYLES[nf]
         ys = []
         yerrs = []
         for churn in churns:
@@ -75,7 +83,20 @@ def plot(data: dict[str, dict[int, tuple[Resources, Resources]]]):
     ax.tick_params(axis="both", length=0)
     ax.grid(visible=False, axis="x")
 
-    ax.legend(bbox_to_anchor=(0.4, 1.35), loc="upper center", ncols=len(data), columnspacing=0.6, handletextpad=0.2, fontsize="small")
+    handles, nf_labels = ax.get_legend_handles_labels()
+    ncols = math.ceil(len(handles) / 2)
+    # The legend fills column by column; order the entries so each row reads in bar order.
+    order = [row * ncols + col for col in range(ncols) for row in range(2) if row * ncols + col < len(handles)]
+    ax.legend(
+        [handles[i] for i in order],
+        [nf_labels[i] for i in order],
+        bbox_to_anchor=(0.5, 1.02),
+        loc="lower center",
+        ncols=ncols,
+        columnspacing=0.6,
+        handletextpad=0.2,
+        fontsize="small",
+    )
     fig.set_size_inches(width, height * 0.8)
 
     print("-> ", OUTPUT_FILE)
