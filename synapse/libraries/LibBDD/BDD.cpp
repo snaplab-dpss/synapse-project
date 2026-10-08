@@ -65,6 +65,7 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"map_allocate", {"map_allocation_succeeded"}},
     {"map_get", {"map_has_this_key", "allocated_index"}},
     {"map_put", {}},
+    {"map_erase", {}},
     {"map_size", {"map_size"}},
 
     {"vector_allocate", {"vector_alloc_success"}},
@@ -78,6 +79,7 @@ const std::unordered_map<std::string, std::unordered_set<std::string>> symbols_f
     {"dchain_is_index_allocated", {"is_index_allocated"}},
     {"dchain_allocate_new_index", {"not_out_of_space", "new_index"}},
     {"dchain_rejuvenate_index", {}},
+    {"dchain_free_index", {}},
 
     {"cms_allocate", {"cms_allocation_succeeded"}},
     {"cms_count_min", {"min_estimate"}},
