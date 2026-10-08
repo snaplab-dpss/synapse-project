@@ -154,19 +154,21 @@ synapse/build/bin/> bdd-visualizer --in your-nf.bdd --out your-nf.dot
 
 ## Generating traces and profiles
 
-Synapse uses profiling information to guide its search towards workload-optimized solutions. To automatically generate pcaps and corresponding NF profiling information across a variety of traffic profiles, we use the `tools/profiler.py` script.
+Synapse uses profiling information to guide its search towards workload-optimized solutions. To automatically generate pcaps and corresponding NF profiling information across a variety of traffic profiles, we use the `tools/generate_profiles.py` script.
 
 <pre>
-profiler.py --help
-usage: profiler.py [-h] --nfs {echo,fwd,fw,nat,kvs,psd,cl,pol} [{echo,fwd,fw,nat,kvs,psd,cl,pol} ...] [--total-packets TOTAL_PACKETS [TOTAL_PACKETS ...]] [--rate RATE [RATE ...]] [--packet-size PACKET_SIZE [PACKET_SIZE ...]]
-                   [--total-flows TOTAL_FLOWS [TOTAL_FLOWS ...]] [--zipf-params ZIPF_PARAMS [ZIPF_PARAMS ...]] [--churn CHURN [CHURN ...]] [--debug] [--max-concurrent-tasks MAX_CONCURRENT_TASKS] [--skip-pcap-generation] [--skip-profiler-generation]
-                   [--show-cmds-output] [--show-cmds] [--show-execution-plan] [--dry-run] [--force] [--force-profile-stats] [--silence]
+generate_profiles.py --help
+usage: generate_profiles.py [-h] --nfs {echo,fwd,fw,nat,kvs,psd,cl,pol,hhh,hyperloglog,smartcookie,meta4} [{echo,fwd,fw,nat,kvs,psd,cl,pol,hhh,hyperloglog,smartcookie,meta4} ...]
+                            [--total-packets TOTAL_PACKETS [TOTAL_PACKETS ...]] [--rate RATE [RATE ...]] [--packet-size PACKET_SIZE [PACKET_SIZE ...]] [--total-flows TOTAL_FLOWS [TOTAL_FLOWS ...]]
+                            [--zipf-params ZIPF_PARAMS [ZIPF_PARAMS ...]] [--churn CHURN [CHURN ...]] [--debug] [--max-concurrent-tasks MAX_CONCURRENT_TASKS] [--skip-pcap-generation]
+                            [--skip-profiler-generation] [--show-cmds-output] [--show-cmds] [--show-execution-plan] [--dry-run] [--force] [--force-profile-stats] [--silence]
 
-Profiler helper script. This will generate the pcaps and profiles for all the possible combinations of the provided parameters. Profiler dir: /home/fcp/synapse-project/profiles. Pcap dir: /home/fcp/synapse-project/pcaps.
+Profiler helper script. This will generate the pcaps and profiles for all the possible combinations of the provided parameters. Profiler dir: /home/fcp/synapse-project/profiles. Pcap dir:
+/home/fcp/synapse-project/pcaps.
 
 options:
   -h, --help            show this help message and exit
-  --nfs {echo,fwd,fw,nat,kvs,psd,cl,pol} [{echo,fwd,fw,nat,kvs,psd,cl,pol} ...]
+  --nfs {echo,fwd,fw,nat,kvs,psd,cl,pol,hhh,hyperloglog,smartcookie,meta4} [{echo,fwd,fw,nat,kvs,psd,cl,pol,hhh,hyperloglog,smartcookie,meta4} ...]
                         Target NFs to profile
   --total-packets TOTAL_PACKETS [TOTAL_PACKETS ...]
                         Total packets to send
