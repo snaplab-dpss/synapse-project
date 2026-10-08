@@ -32,6 +32,8 @@ class Task:
         cmd: str,
         env_vars: dict[str, str] = {},
         cwd: Optional[Path] = None,
+        # Run cmd through /bin/sh, for globs; otherwise it is split on spaces and executed directly.
+        shell: bool = False,
         # Relations with other tasks
         next: list["Task"] = [],
         # File dependencies
@@ -50,6 +52,7 @@ class Task:
         self.cmd = cmd
         self.env_vars = env_vars
         self.cwd = cwd
+        self.shell = shell
 
         self.prev = set()
         self.next = set(next)
@@ -148,14 +151,11 @@ class Task:
         self.log("spawning", color=SPAWN_COLOR)
 
         try:
-            process = await asyncio.create_subprocess_exec(
-                *self.cmd.split(" "),
-                stdout=PIPE,
-                stderr=STDOUT,
-                bufsize=0,
-                cwd=self.cwd,
-                env={**self.env_vars, **dict(list(os.environ.items()))},
-            )
+            env = {**self.env_vars, **dict(list(os.environ.items()))}
+            if self.shell:
+                process = await asyncio.create_subprocess_shell(self.cmd, stdout=PIPE, stderr=STDOUT, bufsize=0, cwd=self.cwd, env=env)
+            else:
+                process = await asyncio.create_subprocess_exec(*self.cmd.split(" "), stdout=PIPE, stderr=STDOUT, bufsize=0, cwd=self.cwd, env=env)
 
             assert process, "Process creation failed"
 

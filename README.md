@@ -99,7 +99,7 @@ This will generate the following files:
 
 ## Generating BDDs
 
-Synapse receives NFs encoded as BDDs as input (e.g. `bdds/fw.bdd`). We already pre-generated the BDDs for all NFs currently developed on this repository. This BDDs can be found in the `bdds` folder, and their corresponding DPDK implementations are in `dpdk-nfs`. To automatically regenerate these BDDs, you can use the `tools/generate_bdds.sh` script.
+Synapse receives NFs encoded as BDDs as input (e.g. `bdds/fw.bdd`). We already pre-generated the BDDs for all NFs currently developed on this repository. This BDDs can be found in the `bdds` folder, and their corresponding DPDK implementations are in `dpdk-nfs`. To automatically regenerate these BDDs, source `paths.sh` and run `tools/generate_bdds.py` (all NFs by default, or `--nfs` to pick some).
 
 However, if you want to build your own NFs and manually generate BDDs for them, you basically need to (1) develop the NF using our custom DPDK NF development library (passed on by [Vigor](https://github.com/vigor-nf/vigor)), (2) run it by an exhaustive symbolic execution engine, and (3) use Synapse to generate the BDD.
 
