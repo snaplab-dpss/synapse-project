@@ -136,7 +136,7 @@ void vector_return(struct Vector *vector, int index, void *value) {
                                               vector->fields[i].name, TD_IN);
     }
     for (int i = 0; i < vector->nested_field_count; ++i) {
-      klee_trace_param_ptr_nested_field_arr_directed(vector->data, vector->nest_fields[i].base_offset, vector->nest_fields[i].offset,
+      klee_trace_param_ptr_nested_field_arr_directed(value, vector->nest_fields[i].base_offset, vector->nest_fields[i].offset,
                                                      vector->nest_fields[i].width, vector->nest_fields[i].count, vector->nest_fields[i].name, TD_IN);
     }
   }
