@@ -14,7 +14,7 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from hosts.tofino_tg import TofinoTGController
+from hosts.tofino_tg import TofinoTGController, SnapshotError
 from hosts.pktgen import Pktgen
 
 MIN_THROUGHPUT = 100  # 100 Mbps
@@ -33,9 +33,14 @@ WARMUP_RATE = 1_000  # 1 Gbps
 REST_TIME_SEC = 2
 BOGUS_RETRIES = 1
 MAX_WARMUP_RETRIES = 10
+MAX_WINDOW_ATTEMPTS = 3
 
 DEFAULT_THROUGHPUT_SEARCH_STEPS = 10
 DEFAULT_EXPERIMENT_ITERATIONS = 5
+
+
+class InvalidWindow(Exception):
+    """Two counter snapshots whose difference cannot be a measurement."""
 
 
 @dataclass
@@ -164,13 +169,27 @@ class Experiment:
         non-atomic entry_get calls whose from_hw read under-counts, so their ratio
         is dominated by measurement noise (it can even go negative). The MAC
         counters give the true, balanced rx/tx.
+
+        MAC counters only grow, so a port missing from a snapshot or one whose
+        counter went backwards means the window cannot be trusted: InvalidWindow
+        names the ports and their values.
         """
         nb_rx = 0
         nb_tx = 0
-        for port, stats in mac_new.items():
-            if (port in ports) and (port in mac_old):
-                nb_rx += stats.FramesReceivedOK - mac_old[port].FramesReceivedOK
-                nb_tx += stats.FramesTransmittedOK - mac_old[port].FramesTransmittedOK
+        problems = []
+        for port in sorted(ports):
+            if port not in mac_old or port not in mac_new:
+                problems.append(f"port {port} missing from a snapshot")
+                continue
+            old, new = mac_old[port], mac_new[port]
+            rx = new.FramesReceivedOK - old.FramesReceivedOK
+            tx = new.FramesTransmittedOK - old.FramesTransmittedOK
+            if rx < 0 or tx < 0:
+                problems.append(f"port {port} went backwards (rx {old.FramesReceivedOK:,} -> {new.FramesReceivedOK:,}, tx {old.FramesTransmittedOK:,} -> {new.FramesTransmittedOK:,})")
+            nb_rx += rx
+            nb_tx += tx
+        if problems:
+            raise InvalidWindow("; ".join(problems))
         return nb_rx, nb_tx
 
     def __find_stable_throughput(
@@ -225,11 +244,14 @@ class Experiment:
                     break
 
                 measured_ports = set(tg_controller.broadcast_ports) | set(tg_controller.symmetric_ports)
-                mac_old = tg_controller.get_port_stats_from_meta_table()
-                sleep(WARMUP_TIME_SEC)
-                mac_new = tg_controller.get_port_stats_from_meta_table()
-
-                nb_rx_pkts, nb_tx_pkts = self._mac_pkt_deltas(mac_old, mac_new, measured_ports)
+                try:
+                    mac_old = tg_controller.get_port_stats_from_meta_table()
+                    sleep(WARMUP_TIME_SEC)
+                    mac_new = tg_controller.get_port_stats_from_meta_table()
+                    nb_rx_pkts, nb_tx_pkts = self._mac_pkt_deltas(mac_old, mac_new, measured_ports)
+                except (InvalidWindow, SnapshotError) as e:
+                    self.log(f"[{warmup_retries:02}/{MAX_WARMUP_RETRIES:02}] Discarding warmup window: {e}")
+                    continue
 
                 loss = (1 - nb_rx_pkts / nb_tx_pkts) if nb_tx_pkts else 1
                 self.log(f"[{warmup_retries:02}/{MAX_WARMUP_RETRIES:02}] Warmup TX pkts: {nb_tx_pkts:,}, RX pkts: {nb_rx_pkts:,}, loss: {loss*100:.3f}%")
@@ -243,14 +265,23 @@ class Experiment:
             # longer than the NF's expiration time would empty its state, and the warmup would then
             # spend passes reinstalling every flow. The window is therefore the time between the
             # two counter reads, measured on the switch host where the snapshots are taken.
-            mac_old = tg_controller.get_port_stats_from_meta_table()
-            pktgen.reset_stats()
-            sleep(ITERATION_DURATION_SEC)
-            mac_new = tg_controller.get_port_stats_from_meta_table()
+            # A bad window is measured again rather than scored: scored, one became a passing probe
+            # with negative throughput and another sent the search down to its floor.
+            for attempt in range(1, MAX_WINDOW_ATTEMPTS + 1):
+                try:
+                    mac_old = tg_controller.get_port_stats_from_meta_table()
+                    pktgen.reset_stats()
+                    sleep(ITERATION_DURATION_SEC)
+                    mac_new = tg_controller.get_port_stats_from_meta_table()
+                    nb_rx_pkts, nb_tx_pkts = self._mac_pkt_deltas(mac_old, mac_new, measured_ports)
+                    break
+                except (InvalidWindow, SnapshotError) as e:
+                    self.log(f"Discarding window {attempt}/{MAX_WINDOW_ATTEMPTS}: {e}")
+            else:
+                raise RuntimeError(f"No valid measurement window in {MAX_WINDOW_ATTEMPTS} attempts")
+
             window_sec = (mac_new.timestamp_ns - mac_old.timestamp_ns) / 1e9
             self.log(f"Window {window_sec:.3f} s")
-
-            nb_rx_pkts, nb_tx_pkts = self._mac_pkt_deltas(mac_old, mac_new, measured_ports)
 
             pktgen_stats = pktgen.get_stats()
             pktgen_nb_tx_pkts = pktgen_stats[0]

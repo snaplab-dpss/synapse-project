@@ -22,6 +22,10 @@ class MetaStats(dict):
     timestamp_ns: int = 0
 
 
+class SnapshotError(Exception):
+    """A `stats get --meta` report that cannot be trusted as a snapshot."""
+
+
 @dataclass
 class MetaPortStats:
     FramesReceivedOK: int
@@ -211,13 +215,18 @@ class TofinoTGController:
                 stats.timestamp_ns = int(timestamp.group(1))
                 continue
 
-            result = re.search(r"(\d+):(\d+):(\d+)", line)
+            # Whole line only: a stray line that merely contains a clock time (22:21:42) would
+            # otherwise be read as port 22 with tiny counters.
+            result = re.fullmatch(r"(\d+):(\d+):(\d+)", line.strip())
             if not result:
                 continue
 
             port = int(result.group(1))
             FramesReceivedOK = int(result.group(2))
             FramesTransmittedOK = int(result.group(3))
+
+            if port in stats:
+                raise SnapshotError(f"port {port} reported twice:\n{output}")
 
             port_stats = MetaPortStats(FramesReceivedOK, FramesTransmittedOK)
             stats[port] = port_stats
